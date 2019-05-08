@@ -4,10 +4,9 @@ import (
 	"dashrpc"
 	"dashrpc/rpcclient"
 	"fmt"
-	"log"
-
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/dgraph-io/badger"
+	"log"
 )
 
 func main() {
@@ -28,7 +27,7 @@ func main() {
 	// Setup the Badger DB connection
 	opts := badger.DefaultOptions
 	opts.NumVersionsToKeep = 1
-	opts.SyncWrites = true
+	opts.SyncWrites = false
 	opts.ValueDir = "/tmp/research/badger"
 	opts.Dir = "/tmp/research/badger"
 	db, err := badger.Open(opts)
@@ -63,41 +62,37 @@ func main() {
 
 	//
 	// Appeared in Dash 126744 (2014-08-28 19:47:52)
-	blockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
+	// startingBlockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
 
-	startHash, err := chainhash.NewHashFromStr(blockHash)
-	if err != nil {
-		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
+	// 50000 block
+	// startingBlockHash := "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
+
+	// 50 block
+	startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
+	//dashrpc.ProcessNewBlocks(db, client, startingBlockHash)
+	block := dashrpc.Block{}
+	err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
+	if err == nil {
+		// we have processed the block already, we are done.
+		fmt.Printf("we have found the block in DB! %v\n", block)
 	}
 
-	counter := 0
-	lastBlockHash := ""
-	// Main loop
-	for {
-		_, err := dashrpc.DbGetBlock(db, blockHash)
-		if err == nil {
-			// we have processed the block already, we are done.
-			break
-		}
-
-		startBlock, err := client.GetBlock(startHash)
-		if err != nil {
-			fmt.Printf("we have problem with getBlock() %s\n", err.Error())
-			break
-		}
-		block, err := dashrpc.ProcessBlock(db, startBlock, lastBlockHash)
-		blockHash = block.PrevBlockHash
-		lastBlockHash = block.Hash
-		startHash, err = chainhash.NewHashFromStr(blockHash)
-		if err != nil {
-			fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
-		}
-		counter++
-		if counter % 10000 == 0 {
-			fmt.Printf("%vk blocks\n", (counter / 10000))
-		}
+	h, err1 := chainhash.NewHashFromStr(startingBlockHash)
+	fmt.Printf("string hash: %s, value hash: %v", startingBlockHash, h)
+	startBlock, err := client.GetBlock(h)
+	if err1 != nil || err != nil {
+		fmt.Printf("we have problem with getBlock() %s -- %s\n", err1.Error(), err.Error())
 	}
+	var lastBlockHash chainhash.Hash
+	blockNew := dashrpc.Block{}
+	err = dashrpc.ProcessBlock(db, startBlock, *h, lastBlockHash, &blockNew)
+	fmt.Printf("Processed block is: %v", blockNew)
 
-	fmt.Printf("Processed in total: %v blocks\n", counter)
+	err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
+	if err == nil {
+		fmt.Printf("got block after save %v\n", block)
+	} else {
+		fmt.Printf("Block not saved, problem with hashes!!! %s\n", err.Error())
+	}
 
 }
