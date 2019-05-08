@@ -14,7 +14,8 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, txHashString string) err
 	txDetails := TxDetails{}
 	err := DbGetTxDetails(db, txHashString, &txDetails)
 	if err == nil {
-		// we already have it in the system, nothing to do
+		// we already have it in the system, we do nothing
+
 		return nil
 	}
 	txHash, err := chainhash.NewHashFromStr(txHashString)
@@ -93,7 +94,8 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 	out.IsCoinbase = false
 	out.TxHash = details.Hash
 	out.Amount = vout.Value
-	out.Addresses = []string{}
+	out.Addresses = vout.ScriptPubKey.Addresses
+	out.TxType = vout.ScriptPubKey.Type
 	out.Index = index
 
 	details.Outputs = append(details.Outputs, out)

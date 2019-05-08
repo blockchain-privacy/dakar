@@ -27,6 +27,7 @@ type Block struct {
 // TxTransfer represents simple value transfer from/to address(es)
 type TxOutput struct {
 	TxHash string
+	TxType string
 	Amount float64
 	// For UTXO this will not be known
 	Addresses []string

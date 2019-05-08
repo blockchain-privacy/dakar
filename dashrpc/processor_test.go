@@ -311,8 +311,10 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 		len(txDetails.Inputs) != 2 ||
 		txDetails.Outputs[0].Amount != 9.91547479 ||
 		txDetails.Outputs[1].Amount != 6.02335110 ||
-		len(txDetails.Outputs[0].Addresses) != 0 ||
-		len(txDetails.Outputs[1].Addresses) != 0 || // the output addr are not filled in yet!
+		len(txDetails.Outputs[0].Addresses) != 1 ||
+		len(txDetails.Outputs[1].Addresses) != 1 ||
+		txDetails.Outputs[0].Addresses[0] != "XrHBvi9hxQcrUfXsB9hK6V7hb2625s2kAV" ||
+		txDetails.Outputs[1].Addresses[0] != "Xstz9D2DNrrCWhAnsmiu1R144DesKNw22t" ||
 		txDetails.Outputs[0].IsCoinbase != false ||
 		txDetails.Outputs[1].IsCoinbase != false ||
 		txDetails.Outputs[0].Index != 0 ||
