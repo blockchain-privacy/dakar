@@ -27,8 +27,8 @@ func main() {
 	opts := badger.DefaultOptions
 	opts.NumVersionsToKeep = 1
 	opts.SyncWrites = false
-	opts.ValueDir = "/mnt/badger"
-	opts.Dir = "/mnt/badger"
+	opts.ValueDir = "/mnt/dash_badger/data"
+	opts.Dir = 		"/mnt/dash_badger/data"
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
