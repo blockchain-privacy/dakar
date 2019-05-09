@@ -4,7 +4,6 @@ import (
 	"dashrpc"
 	"dashrpc/rpcclient"
 	"fmt"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/dgraph-io/badger"
 	"log"
 )
@@ -28,8 +27,8 @@ func main() {
 	opts := badger.DefaultOptions
 	opts.NumVersionsToKeep = 1
 	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/research/badger"
-	opts.Dir = "/tmp/research/badger"
+	opts.ValueDir = "/mnt/badger"
+	opts.Dir = "/mnt/badger"
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -54,45 +53,52 @@ func main() {
 	// hardcoded starting point.
 	// we will go back, until we re-connect with the DB
 	//
+
+	//
+	//  2019-04-26 06:40
+	//
+	startingBlockId := uint64(1060000)
+	startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
+
+
 	// 2019-05-05 19:22
 	// Block: 1065229
 	// 0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c
 	//
-	//blockHash := "0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c"
+	// startingBlockId := 1065229
+	// startingBlockHash := "0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c"
 
 	//
 	// Appeared in Dash 126744 (2014-08-28 19:47:52)
 	// startingBlockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
 
-	// 50000 block
+	// startingBlockId := 50000
 	// startingBlockHash := "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
 
 	// 50 block
-	startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
-	//dashrpc.ProcessNewBlocks(db, client, startingBlockHash)
+	// startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
+
+	// 100 block
+	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
+
+
+	dashrpc.ProcessNewBlocks(db, client, startingBlockHash, startingBlockId)
+
+/*
 	block := dashrpc.Block{}
 	err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
-	if err == nil {
-		// we have processed the block already, we are done.
-		fmt.Printf("we have found the block in DB! %v\n", block)
+	if err != nil {
+		fmt.Printf(err.Error())
 	}
+	fmt.Printf("Block 50 %v\n", block)
 
-	h, err1 := chainhash.NewHashFromStr(startingBlockHash)
-	fmt.Printf("string hash: %s, value hash: %v", startingBlockHash, h)
-	startBlock, err := client.GetBlock(h)
-	if err1 != nil || err != nil {
-		fmt.Printf("we have problem with getBlock() %s -- %s\n", err1.Error(), err.Error())
+	err = dashrpc.DbGetBlock(db, "0000055d088fd066987aa49312cb75646ff033ac45792b6eb8112f162bd19868", &block)
+	if err != nil {
+		fmt.Printf(err.Error())
 	}
-	var lastBlockHash chainhash.Hash
-	blockNew := dashrpc.Block{}
-	err = dashrpc.ProcessBlock(db, startBlock, *h, lastBlockHash, &blockNew)
-	fmt.Printf("Processed block is: %v", blockNew)
+	fmt.Printf("Block 49 %v\n", block)
 
-	err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
-	if err == nil {
-		fmt.Printf("got block after save %v\n", block)
-	} else {
-		fmt.Printf("Block not saved, problem with hashes!!! %s\n", err.Error())
-	}
-
+	dashrpc.DbGetBlock(db, "000002ba37383d225302973113377b6d7ab36e60a9bdd03377ddf84d928a043d", &block)
+	fmt.Printf("Block 73 %v\n", block)
+*/
 }

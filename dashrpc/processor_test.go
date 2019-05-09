@@ -59,7 +59,7 @@ func TestProcessBlock50000(t *testing.T) {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
 	}
-	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, &block)
+	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, 50000, &block)
 	if err != nil {
 		t.Error(err)
 	}
@@ -142,7 +142,7 @@ func TestProcessBlock49999(t *testing.T) {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
 	}
-	err = ProcessBlock(db, startBlock, *startHash, *block50000hash, &block)
+	err = ProcessBlock(db, startBlock, *startHash, *block50000hash, 50000, &block)
 	if err != nil {
 		t.Error(err)
 	}
@@ -229,7 +229,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
 	}
-	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, &block)
+	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, 50000, &block)
 	if err != nil {
 		t.Fatal(err)
 	}

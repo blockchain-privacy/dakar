@@ -1,6 +1,9 @@
 package dashrpc
 
-import "github.com/btcsuite/btcd/chaincfg/chainhash"
+import (
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"time"
+)
 
 const ChainType_Block = "blk"
 const ChainType_TxDetails = "txd"
@@ -19,6 +22,8 @@ type ChainItem struct {
 // Block represents a simple block
 type Block struct {
 	Hash chainhash.Hash
+	Id uint64
+	Timestamp time.Time
 	PrevBlockHash chainhash.Hash
 	NextBlockHash chainhash.Hash
 	TxHashes []string

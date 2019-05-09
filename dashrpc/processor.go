@@ -15,9 +15,9 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, txHashString string) err
 	err := DbGetTxDetails(db, txHashString, &txDetails)
 	if err == nil {
 		// we already have it in the system, we do nothing
-
 		return nil
 	}
+
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
 		fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
@@ -105,7 +105,7 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 // ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
 // It stops on error or on first already known block
 func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
-	nextBlock chainhash.Hash, block *Block) error {
+	nextBlock chainhash.Hash, blockId uint64, block *Block) error {
 	txHashes, err := startBlock.TxHashes()
 	if err != nil {
 		fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
@@ -114,6 +114,8 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 	block.Hash = currentHash
 	block.PrevBlockHash = startBlock.Header.PrevBlock
 	block.NextBlockHash = nextBlock
+	block.Timestamp = startBlock.Header.Timestamp
+	block.Id = blockId
 
 	var txHashStrings []string
 
@@ -132,7 +134,7 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 }
 
 // ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash string) {
+func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash string, startingBlockId uint64) {
 	blkCounter := 0
 	txCounter := 0
 
@@ -142,31 +144,45 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
 	}
 
-	var lastBlockHash chainhash.Hash
+	var lastBlockHash *chainhash.Hash
 	// Main loop
 
 	for {
 		block := Block{}
 		err := DbGetBlock(db, blockHash, &block)
 		if err == nil {
-			// we have processed the block already, we are done.
+			// we already have this block, we need to update the NextBlockHash
+			if lastBlockHash != nil {
+				block.NextBlockHash = *lastBlockHash
+				err = DbSetBlock(db, block)
+				if err != nil {
+					fmt.Printf("Error saving last known Block with updated NextBlockHash")
+				}
+			}
 			break
 		}
 
 		startBlock, err := client.GetBlock(startHash)
+		if lastBlockHash == nil {
+			lastBlockHash = &chainhash.Hash{} // placeholder for the last block
+		}
+
 		if err != nil {
 			fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 			break
 		}
-		err = ProcessBlock(db, startBlock, *startHash, lastBlockHash, &block)
-		startHash = &block.PrevBlockHash
-		lastBlockHash = block.Hash
-		startHash, err = chainhash.NewHashFromStr(blockHash)
+		err = ProcessBlock(db, startBlock, *startHash, *lastBlockHash, startingBlockId, &block)
 		if err != nil {
-			fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
+			fmt.Printf("Error: we had problem processing the block\n%v\n", block)
+			fmt.Printf("Hash: %v, BlockId: %d\n", *startHash, startingBlockId)
+			break
 		}
+
+		startHash = &block.PrevBlockHash
+		if startingBlockId == 0 { break }
+		startingBlockId--
+		lastBlockHash, _ = chainhash.NewHashFromStr(block.Hash.String())
 		blockHash = startHash.String()
-		fmt.Printf("Current %v blockhash: %s\n", blkCounter, blockHash)
 
 		blkCounter++
 		if blkCounter % 20000 == 0 {
@@ -175,14 +191,14 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 	}
 	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
 
-	currentBlockHash := startingBlockHash
+	blockHash = startingBlockHash
 
 	for {
 		block := Block{}
-		err := DbGetBlock(db, currentBlockHash, &block)
+		err := DbGetBlock(db, blockHash, &block)
 		if err != nil {
 			fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
-
+			fmt.Printf("Block: %v\n", block)
 			break
 		}
 
@@ -192,11 +208,19 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
-				fmt.Println("Continuing....")
+				break
 			}
 			txCounter++
+			if txCounter % 20000 == 0 {
+				fmt.Printf("%v * 20k TXs done. BlockId: %v, %v\n", (txCounter / 20000), block.Id, block.Hash)
+			}
 		}
 
-		currentBlockHash = block.PrevBlockHash.String()
+		blockHash = block.PrevBlockHash.String()
+		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" || block.Id == 0 {
+			break
+		}
 	}
+
+	fmt.Printf("Final TX count: %v\n", txCounter)
 }
