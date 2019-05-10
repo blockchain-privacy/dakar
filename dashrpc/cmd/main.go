@@ -3,19 +3,29 @@ package main
 import (
 	"dashrpc"
 	"dashrpc/rpcclient"
+	"flag"
 	"fmt"
 	"github.com/dgraph-io/badger"
 	"log"
+	"strconv"
 )
 
 func main() {
-	fmt.Println("Go DashRPC client, v.0.0.1")
+	fmt.Println("Go DashRPC client, v0.0.1")
+
+	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
+	rpcUser := flag.String("rpcuser", "rpc1user", "Dash RPC user")
+	rpcPassword := flag.String("rpcpassword", "1234pass", "Dash RPC password")
+	startBlockID := flag.String("blockid", "", "Start Block Id")
+	startBlockHash := flag.String("blockhash", "", "Start Block Hash")
+
+	flag.Parse()
 
 	// Setup the RPC connection
 	var conn = rpcclient.ConnConfig{
 		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
+		User:       *rpcUser,
+		Pass:       *rpcPassword,
 		DisableTLS: true,
 	}
 	var client, err = rpcclient.New(&conn)
@@ -27,8 +37,8 @@ func main() {
 	opts := badger.DefaultOptions
 	opts.NumVersionsToKeep = 1
 	opts.SyncWrites = false
-	opts.ValueDir = "/mnt/dash_badger/data"
-	opts.Dir = 		"/mnt/dash_badger/data"
+	opts.ValueDir = *badgerDir
+	opts.Dir = 		*badgerDir
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -37,10 +47,12 @@ func main() {
 
 	count, err := client.GetBlockCount()
 	if err != nil {
-		fmt.Printf("we have problem with count() %s\n", err.Error())
+		fmt.Printf("\nError: problem with count() %s\n", err.Error())
+	} else {
+		fmt.Printf("Current block count in the chain: %v\n", count)
 	}
-	fmt.Printf("Current block count in the chain is: %v\n", count)
 
+	/*
 	err = db.View(func(txn *badger.Txn) error {
 		count, err := txn.Get([]byte(dashrpc.DB_BLOCK_COUNT))
 		if err != nil {
@@ -49,6 +61,7 @@ func main() {
 		fmt.Printf("Current block count in DB: %v\n", count)
 		return nil
 	})
+	*/
 
 	// hardcoded starting point.
 	// we will go back, until we re-connect with the DB
@@ -57,8 +70,21 @@ func main() {
 	//
 	//  2019-04-26 06:40
 	//
-	startingBlockId := uint64(1060000)
-	startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
+	if *startBlockID == "" || *startBlockHash == "" {
+		fmt.Println("\nMissing block ID or block Hash. They need to match!")
+		return
+	}
+
+	startingBlockId, err := strconv.ParseUint(*startBlockID, 10, 64)
+	if err != nil {
+		fmt.Printf("\nError %v\n", err.Error())
+		return
+	}
+	startingBlockHash := *startBlockHash
+
+
+	//startingBlockId := uint64(1060000)
+	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
 
 
 	// 2019-05-05 19:22
