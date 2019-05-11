@@ -5,9 +5,10 @@ import (
 	"dashrpc/rpcclient"
 	"flag"
 	"fmt"
-	"github.com/dgraph-io/badger"
 	"log"
 	"strconv"
+
+	"github.com/dgraph-io/badger"
 )
 
 func main() {
@@ -38,7 +39,7 @@ func main() {
 	opts.NumVersionsToKeep = 1
 	opts.SyncWrites = false
 	opts.ValueDir = *badgerDir
-	opts.Dir = 		*badgerDir
+	opts.Dir = *badgerDir
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -54,14 +55,14 @@ func main() {
 	fmt.Printf("Current block count in the chain: %v\n", count)
 
 	/*
-	err = db.View(func(txn *badger.Txn) error {
-		count, err := txn.Get([]byte(dashrpc.DB_BLOCK_COUNT))
-		if err != nil {
-			fmt.Printf("Problems with txn.Get(DB_BLOCK_COUNT: %s\n", err.Error())
-		}
-		fmt.Printf("Current block count in DB: %v\n", count)
-		return nil
-	})
+		err = db.View(func(txn *badger.Txn) error {
+			count, err := txn.Get([]byte(dashrpc.DB_BLOCK_COUNT))
+			if err != nil {
+				fmt.Printf("Problems with txn.Get(DB_BLOCK_COUNT: %s\n", err.Error())
+			}
+			fmt.Printf("Current block count in DB: %v\n", count)
+			return nil
+		})
 	*/
 
 	// hardcoded starting point.
@@ -83,10 +84,8 @@ func main() {
 	}
 	startingBlockHash := *startBlockHash
 
-
 	//startingBlockId := uint64(1060000)
 	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
-
 
 	// 2019-05-05 19:22
 	// Block: 1065229
@@ -108,24 +107,23 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-
 	dashrpc.ProcessNewBlocks(db, client, startingBlockHash, startingBlockId)
 
-/*
-	block := dashrpc.Block{}
-	err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
-	if err != nil {
-		fmt.Printf(err.Error())
-	}
-	fmt.Printf("Block 50 %v\n", block)
+	/*
+		block := dashrpc.Block{}
+		err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
+		if err != nil {
+			fmt.Printf(err.Error())
+		}
+		fmt.Printf("Block 50 %v\n", block)
 
-	err = dashrpc.DbGetBlock(db, "0000055d088fd066987aa49312cb75646ff033ac45792b6eb8112f162bd19868", &block)
-	if err != nil {
-		fmt.Printf(err.Error())
-	}
-	fmt.Printf("Block 49 %v\n", block)
+		err = dashrpc.DbGetBlock(db, "0000055d088fd066987aa49312cb75646ff033ac45792b6eb8112f162bd19868", &block)
+		if err != nil {
+			fmt.Printf(err.Error())
+		}
+		fmt.Printf("Block 49 %v\n", block)
 
-	dashrpc.DbGetBlock(db, "000002ba37383d225302973113377b6d7ab36e60a9bdd03377ddf84d928a043d", &block)
-	fmt.Printf("Block 73 %v\n", block)
-*/
+		dashrpc.DbGetBlock(db, "000002ba37383d225302973113377b6d7ab36e60a9bdd03377ddf84d928a043d", &block)
+		fmt.Printf("Block 73 %v\n", block)
+	*/
 }

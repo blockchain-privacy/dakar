@@ -4,8 +4,10 @@ import (
 	"dashrpc/btcjson"
 	"dashrpc/rpcclient"
 	"fmt"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
+
 	"github.com/dgraph-io/badger"
 )
 
@@ -179,13 +181,15 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 		}
 
 		startHash = &block.PrevBlockHash
-		if startingBlockId == 0 { break }
+		if startingBlockId == 0 {
+			break
+		}
 		startingBlockId--
 		lastBlockHash, _ = chainhash.NewHashFromStr(block.Hash.String())
 		blockHash = startHash.String()
 
 		blkCounter++
-		if blkCounter % 20000 == 0 {
+		if blkCounter%20000 == 0 {
 			fmt.Printf("%v * 20k blocks done\n", (blkCounter / 20000))
 		}
 	}
@@ -212,7 +216,7 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 				break
 			}
 			txCounter++
-			if txCounter % 20000 == 0 {
+			if txCounter%20000 == 0 {
 				fmt.Printf("%v * 20k TXs done. BlockId: %v, %v\n", (txCounter / 20000), block.Id, block.Hash)
 			}
 		}

@@ -3,10 +3,12 @@ package dashrpc
 import (
 	"dashrpc/rpcclient"
 	"fmt"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/dgraph-io/badger"
 	"log"
 	"testing"
+
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+
+	"github.com/dgraph-io/badger"
 )
 
 const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"
@@ -40,7 +42,7 @@ func TestProcessBlock50000(t *testing.T) {
 
 	block := Block{}
 
-	defer func(){
+	defer func() {
 		// cleanup
 		err = db.Update(func(txn *badger.Txn) error {
 			return txn.Delete([]byte(block50000))
@@ -118,7 +120,7 @@ func TestProcessBlock49999(t *testing.T) {
 
 	block := Block{}
 
-	defer func(){
+	defer func() {
 		// cleanup
 		err = db.Update(func(txn *badger.Txn) error {
 			return txn.Delete([]byte(block49999))
@@ -176,7 +178,6 @@ func TestProcessBlock49999(t *testing.T) {
 
 }
 
-
 func TestProcessTxFromBlock50000(t *testing.T) {
 	// Setup the Badger DB connection
 	opts := badger.DefaultOptions
@@ -205,7 +206,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 	block := Block{}
 	txHash := "c13fc482603f574b7322da10398c20d64a431e14f8e886b054128591abaa66a4"
 
-	defer func(){
+	defer func() {
 		// cleanup
 		err = db.Update(func(txn *badger.Txn) error {
 			e1 := txn.Delete([]byte(block50000))
@@ -286,7 +287,7 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
-	defer func(){
+	defer func() {
 		// cleanup
 		err = db.Update(func(txn *badger.Txn) error {
 			return txn.Delete([]byte(txHash))

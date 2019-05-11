@@ -12,3 +12,9 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.3.0 // indirect
 )
+
+replace github.com/btcsuite/btcd => ./btcsuite/btcd
+
+replace github.com/btcsuite/btcd/chaincfg => ./btcsuite/btcd/chaincfg
+
+replace github.com/btcsuite/btcutil => ./btcsuite/btcutil

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"dashrpc/btcjson"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,7 +17,6 @@ import (
 	"net/url"
 	"sync"
 	"sync/atomic"
-	"dashrpc/btcjson"
 )
 
 var (

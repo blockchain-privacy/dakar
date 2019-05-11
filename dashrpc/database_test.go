@@ -1,12 +1,12 @@
 package dashrpc
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/dgraph-io/badger"
+	"dashrpc/btcsuite/btcd/chaincfg/chainhash"
 	"log"
 	"testing"
-)
 
+	"github.com/dgraph-io/badger"
+)
 
 func TestDbSetBlock(t *testing.T) {
 	// Setup the Badger DB connection
@@ -63,7 +63,6 @@ func TestDbSetBlock(t *testing.T) {
 		t.Error(err)
 	}
 }
-
 
 func TestDbSetEmptyTxDetails(t *testing.T) {
 	// Setup the Badger DB connection
@@ -132,13 +131,13 @@ func TestDbSetTxDetails(t *testing.T) {
 	o := TxOutput{}
 	o.Index = 0
 	o.Amount = 12.54
-	o.Addresses = []string{ "exampleAddress" }
+	o.Addresses = []string{"exampleAddress"}
 	tx.Outputs = append(tx.Outputs, o)
 
 	i := TxOutput{}
 	i.Index = 1
 	i.Amount = 42.42
-	i.Addresses = []string{ "exampleInputAddr", "another one" }
+	i.Addresses = []string{"exampleInputAddr", "another one"}
 	tx.Inputs = append(tx.Inputs, i)
 
 	err = DbSetTxDetails(db, tx)

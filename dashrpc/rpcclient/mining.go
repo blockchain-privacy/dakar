@@ -46,7 +46,6 @@ func (r FutureGenerateResult) Receive() ([]*chainhash.Hash, error) {
 	return convertedResult, nil
 }
 
-
 // FutureGetGenerateResult is a future promise to deliver the result of a
 // GetGenerateAsync RPC invocation (or an applicable error).
 type FutureGetGenerateResult chan *Response

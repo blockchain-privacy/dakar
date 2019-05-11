@@ -4,9 +4,7 @@
 
 package rpcclient
 
-import (
-	"github.com/btcsuite/btclog"
-)
+import "github.com/btcsuite/btclog"
 
 // log is a logger that is initialized with no output filters.  This
 // means the package will not perform any logging by default until the caller

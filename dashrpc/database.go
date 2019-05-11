@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+
 	"github.com/dgraph-io/badger"
 	"github.com/pkg/errors"
 )
@@ -21,9 +22,13 @@ import (
 func DbGetItem(db *badger.DB, hash string, item *ChainItem) error {
 	return db.View(func(txn *badger.Txn) error {
 		b, e := txn.Get([]byte(hash))
-		if e != nil { return e }
+		if e != nil {
+			return e
+		}
 		buf, e := b.Value()
-		if e != nil {return e}
+		if e != nil {
+			return e
+		}
 		dec := gob.NewDecoder(bytes.NewReader(buf))
 		e = dec.Decode(item)
 		return e
@@ -38,7 +43,9 @@ func DbSetItem(db *badger.DB, hash string, data []byte, itemType string) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(item)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return db.Update(func(txn *badger.Txn) error {
 		return txn.Set([]byte(hash), buf.Bytes())
@@ -66,7 +73,9 @@ func DbSetBlock(db *badger.DB, block Block) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(block)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	return DbSetItem(db, block.Hash.String(), buf.Bytes(), ChainType_Block)
 }
@@ -92,7 +101,9 @@ func DbSetTxDetails(db *badger.DB, txDetails TxDetails) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
 	err := enc.Encode(txDetails)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return DbSetItem(db, txDetails.Hash, buf.Bytes(), ChainType_TxDetails)
 }
 
@@ -107,7 +118,9 @@ func DbAddTxToAddress(db *badger.DB, addr string, output TxOutput) error {
 	outSlice = append(outSlice, output)
 	enc := gob.NewEncoder(&buf)
 	err = enc.Encode(outSlice)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	return DbSetItem(db, addr, buf.Bytes(), ChainType_AddrOutputs)
 }
 
