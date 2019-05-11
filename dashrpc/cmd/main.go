@@ -48,9 +48,10 @@ func main() {
 	count, err := client.GetBlockCount()
 	if err != nil {
 		fmt.Printf("\nError: problem with count() %s\n", err.Error())
-	} else {
-		fmt.Printf("Current block count in the chain: %v\n", count)
+		return
 	}
+
+	fmt.Printf("Current block count in the chain: %v\n", count)
 
 	/*
 	err = db.View(func(txn *badger.Txn) error {

@@ -168,7 +168,7 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 		}
 
 		if err != nil {
-			fmt.Printf("we have problem with getBlock() %s\n", err.Error())
+			fmt.Printf("Problem with getBlock() %s\n", err.Error())
 			break
 		}
 		err = ProcessBlock(db, startBlock, *startHash, *lastBlockHash, startingBlockId, &block)
@@ -197,7 +197,7 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 		block := Block{}
 		err := DbGetBlock(db, blockHash, &block)
 		if err != nil {
-			fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
+			fmt.Printf("DbGetBlock() failed. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 			fmt.Printf("Block: %v\n", block)
 			break
 		}
@@ -208,6 +208,7 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
+				fmt.Printf("Tx: %v\n", t)
 				break
 			}
 			txCounter++
