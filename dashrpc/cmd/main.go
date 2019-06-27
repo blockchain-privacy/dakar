@@ -65,13 +65,6 @@ func main() {
 		})
 	*/
 
-	// hardcoded starting point.
-	// we will go back, until we re-connect with the DB
-	//
-
-	//
-	//  2019-04-26 06:40
-	//
 	if *startBlockID == "" || *startBlockHash == "" {
 		fmt.Println("\nMissing block ID or block Hash. They need to match!")
 		return
@@ -109,21 +102,4 @@ func main() {
 
 	dashrpc.ProcessNewBlocks(db, client, startingBlockHash, startingBlockId)
 
-	/*
-		block := dashrpc.Block{}
-		err = dashrpc.DbGetBlock(db, startingBlockHash, &block)
-		if err != nil {
-			fmt.Printf(err.Error())
-		}
-		fmt.Printf("Block 50 %v\n", block)
-
-		err = dashrpc.DbGetBlock(db, "0000055d088fd066987aa49312cb75646ff033ac45792b6eb8112f162bd19868", &block)
-		if err != nil {
-			fmt.Printf(err.Error())
-		}
-		fmt.Printf("Block 49 %v\n", block)
-
-		dashrpc.DbGetBlock(db, "000002ba37383d225302973113377b6d7ab36e60a9bdd03377ddf84d928a043d", &block)
-		fmt.Printf("Block 73 %v\n", block)
-	*/
 }
