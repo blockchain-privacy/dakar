@@ -3,21 +3,29 @@ package main
 import (
 	"dashrpc"
 	"flag"
-	"fmt"
 	"github.com/dgraph-io/badger"
 	"log"
 )
 
 func findTx(db *badger.DB, txHash string) {
 
+	rounds := 0
+	inputs := 0
+	txH := txHash
 	var txDetails dashrpc.TxDetails
-	err := dashrpc.DbGetTxDetails(db, txHash, &txDetails)
+	for rounds < 16 {
+		err := dashrpc.DbGetTxDetails(db, txH, &txDetails)
+		if err != nil {
+			log.Fatal(err)
+		}
+		inputs += len(txDetails.Inputs)
+		for _,t := range txDetails.Inputs {
+			txH = t.TxHash
 
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println("\nProcessing finished.")
+		}
+		rounds++
 	}
+
 }
 
 func main() {
@@ -30,6 +38,8 @@ func main() {
 	opts := badger.DefaultOptions
 	opts.Dir = *badgerDir
 	opts.ValueDir = *badgerDir
+	opts.NumMemtables = 50
+	opts.MaxTableSize = 512 << 20
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)

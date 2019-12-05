@@ -15,3 +15,9 @@
 
 vendor/
 .idea
+.vscode
+projectFilesBackup
+
+main
+txs
+
