@@ -11,6 +11,10 @@ import (
 	"github.com/dgraph-io/badger"
 )
 
+//
+// DashRPC client traverses the Dash blockchain and creates a Badger database entry for each transaction
+// starting from a given block, and, working backwards
+//
 func main() {
 	fmt.Println("Go DashRPC client, v0.0.1")
 
@@ -35,11 +39,11 @@ func main() {
 	}
 
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 1
-	opts.SyncWrites = false
-	opts.ValueDir = *badgerDir
-	opts.Dir = *badgerDir
+	opts := badger.DefaultOptions(*badgerDir)
+	opts.WithNumVersionsToKeep(1)
+	opts.WithSyncWrites(false)
+	// not needed opts.WithValueDir(*badgerDir)
+	// not needed opts.WithDir(*badgerDir)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)

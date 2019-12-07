@@ -25,13 +25,11 @@ func DbGetItem(db *badger.DB, hash string, item *ChainItem) error {
 		if e != nil {
 			return e
 		}
-		buf, e := b.Value()
-		if e != nil {
-			return e
-		}
-		dec := gob.NewDecoder(bytes.NewReader(buf))
-		e = dec.Decode(item)
-		return e
+		return b.Value(func (buf []byte) error {
+			dec := gob.NewDecoder(bytes.NewReader(buf))
+			e2 := dec.Decode(item)
+			return e2
+		})
 	})
 }
 
