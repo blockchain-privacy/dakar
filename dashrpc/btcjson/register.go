@@ -35,8 +35,8 @@ const (
 
 // Map of UsageFlag values back to their constant names for pretty printing.
 var usageFlagStrings = map[UsageFlag]string{
-	UFWalletOnly:    "UFWalletOnly",
-	UFNotification:  "UFNotification",
+	UFWalletOnly:   "UFWalletOnly",
+	UFNotification: "UFNotification",
 }
 
 // String returns the UsageFlag in human-readable form.
