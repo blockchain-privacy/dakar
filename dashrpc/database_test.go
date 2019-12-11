@@ -10,14 +10,15 @@ import (
 
 func TestDbSetBlock(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
+		t.Error(err)
+		return
 	}
 	defer db.Close()
 
@@ -29,6 +30,7 @@ func TestDbSetBlock(t *testing.T) {
 	hash, err := chainhash.NewHashFromStr(hash1)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	block.Hash = *hash
 	block.PrevBlockHash = chainhash.Hash{}
@@ -38,6 +40,7 @@ func TestDbSetBlock(t *testing.T) {
 	err = DbSetBlock(db, block)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	block2 := Block{}
@@ -66,11 +69,10 @@ func TestDbSetBlock(t *testing.T) {
 
 func TestDbSetEmptyTxDetails(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -112,11 +114,10 @@ func TestDbSetEmptyTxDetails(t *testing.T) {
 
 func TestDbSetTxDetails(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)

@@ -17,11 +17,10 @@ const block50000 = "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a
 
 func TestProcessBlock50000(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -38,6 +37,8 @@ func TestProcessBlock50000(t *testing.T) {
 	client, err := rpcclient.New(&conn)
 	if err != nil {
 		fmt.Printf("we have a problem: %s\n", err.Error())
+		t.Error(err)
+		return
 	}
 
 	block := Block{}
@@ -60,6 +61,7 @@ func TestProcessBlock50000(t *testing.T) {
 	if err != nil {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
+		return
 	}
 	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, 50000, &block)
 	if err != nil {
@@ -95,11 +97,10 @@ func TestProcessBlock50000(t *testing.T) {
 
 func TestProcessBlock49999(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
@@ -116,6 +117,8 @@ func TestProcessBlock49999(t *testing.T) {
 	client, err := rpcclient.New(&conn)
 	if err != nil {
 		fmt.Printf("we have a problem: %s\n", err.Error())
+		t.Error(err)
+		return
 	}
 
 	block := Block{}
@@ -143,6 +146,7 @@ func TestProcessBlock49999(t *testing.T) {
 	if err != nil {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
+		return
 	}
 	err = ProcessBlock(db, startBlock, *startHash, *block50000hash, 50000, &block)
 	if err != nil {
@@ -180,14 +184,14 @@ func TestProcessBlock49999(t *testing.T) {
 
 func TestProcessTxFromBlock50000(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
+		t.Error(err)
 	}
 	defer db.Close()
 
@@ -201,6 +205,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 	client, err := rpcclient.New(&conn)
 	if err != nil {
 		fmt.Printf("we have a problem: %s\n", err.Error())
+		t.Error(err)
 	}
 
 	block := Block{}
@@ -229,6 +234,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 	if err != nil {
 		fmt.Printf("we have problem with getBlock() %s\n", err.Error())
 		t.Error(t)
+		return
 	}
 	err = ProcessBlock(db, startBlock, *startHash, chainhash.Hash{}, 50000, &block)
 	if err != nil {
@@ -262,14 +268,14 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 
 func TestProcessTxFromBlock49999(t *testing.T) {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions
-	opts.NumVersionsToKeep = 0
-	opts.SyncWrites = false
-	opts.ValueDir = "/tmp/testDb"
-	opts.Dir = "/tmp/testDb"
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
+		t.Error(err)
 	}
 	defer db.Close()
 
@@ -283,6 +289,8 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 	client, err := rpcclient.New(&conn)
 	if err != nil {
 		fmt.Printf("we have a problem: %s\n", err.Error())
+		t.Error(err)
+		return
 	}
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
@@ -301,6 +309,7 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 	err = ProcessTx(db, client, txHash)
 	if err != nil {
 		t.Fatal(err)
+		return
 	}
 
 	txDetails := TxDetails{}
