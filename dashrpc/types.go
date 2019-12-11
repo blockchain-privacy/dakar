@@ -15,7 +15,6 @@ const ChainType_AddrOutputs = "ado"
 
 const DB_BLOCK_COUNT = "DB_BLOCK_COUNT"
 
-
 // ChainItem represents a generic blockchain item
 type ChainItem struct {
 	ItemType string
@@ -75,20 +74,37 @@ func (tx TxDetails) IsPrivateSend() bool {
 }
 
 func (tx TxDetails) IsMixingTx() bool {
-	if len(tx.Inputs) != len(tx.Outputs) { return false }
+	if len(tx.Inputs) != len(tx.Outputs) {
+		return false
+	}
 	denomIn := CountDenominations(tx.Inputs)
 	denomOut := CountDenominations(tx.Outputs)
+	sum := 0
+	for _, v := range denomIn {
+		sum += v
+	}
+	if sum == 0 {
+		return false
+	}
+	sum = 0
+	for _, v := range denomIn {
+		sum += v
+	}
+	if sum == 0 {
+		return false
+	}
 	for i, _ := range denomIn {
-		if denomIn[i] != denomOut[i] { return false }
+		if denomIn[i] != denomOut[i] {
+			return false
+		}
 	}
 	return true
 }
 
-
 func almostEqual(a, b float64) bool {
 	var delta float64
 	delta = 0.00001
-	return math.Abs(a - b) <= delta
+	return math.Abs(a-b) <= delta
 }
 
 func CountDenominations(txs []TxOutput) []int {
@@ -96,7 +112,8 @@ func CountDenominations(txs []TxOutput) []int {
 	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
 
 	for _, o := range txs {
-		inner: for i, v := range denominationsTypes {
+	inner:
+		for i, v := range denominationsTypes {
 			if almostEqual(o.Amount, v) {
 				denominations[i]++
 				break inner
@@ -106,4 +123,3 @@ func CountDenominations(txs []TxOutput) []int {
 
 	return denominations
 }
-
