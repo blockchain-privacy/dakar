@@ -1,13 +1,15 @@
 package main
 
 import (
+	"dashrpc"
 	"flag"
 	"fmt"
 	"github.com/dgraph-io/badger"
 	"log"
 )
 
-func traverseTx(db *badger.DB) error {
+func traverseTx(db *badger.DB, blockHash string) error {
+	/*
 	return db.View(func(txn *badger.Txn) error {
 		opts := badger.DefaultIteratorOptions
 		opts.PrefetchSize = 10
@@ -26,6 +28,23 @@ func traverseTx(db *badger.DB) error {
 		}
 		return nil
 	})
+	*/
+	countBlocks := 0
+	countTx := 0
+	for {
+		block := dashrpc.Block{}
+		err := dashrpc.DbGetBlock(db, blockHash, &block)
+		if err != nil {
+			fmt.Printf("Couldn't find the block with hash %s\n", blockHash)
+			break
+		}
+		countBlocks++
+		countTx += len(block.TxHashes)
+		blockHash = block.PrevBlockHash.String()
+	}
+
+	fmt.Printf("Got %d blocks and %d txs.", countBlocks, countTx)
+	return nil
 }
 
 //
@@ -34,6 +53,7 @@ func traverseTx(db *badger.DB) error {
 //
 func main() {
 	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
+	startBlockHash := flag.String("blockhash", "", "Start Block Hash")
 
 	flag.Parse()
 	// Open the Badger database located in the /tmp/badger directory.
@@ -50,5 +70,5 @@ func main() {
 	}
 	defer db.Close()
 
-	traverseTx(db)
+	traverseTx(db, *startBlockHash)
 }

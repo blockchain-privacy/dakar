@@ -4,6 +4,9 @@ import (
 	"dashrpc/btcjson"
 	"dashrpc/rpcclient"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -136,7 +139,12 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 }
 
 // ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash string, startingBlockId uint64) {
+func ProcessNewBlocks(db *badger.DB,
+		client *rpcclient.Client,
+		startingBlockHash string,
+		startingBlockId uint64,
+		stopingBlockId uint64) error {
+
 	blkCounter := 0
 	txCounter := 0
 
@@ -144,12 +152,25 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 	startHash, err := chainhash.NewHashFromStr(blockHash)
 	if err != nil {
 		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
+		return err
 	}
 
 	var lastBlockHash *chainhash.Hash
-	// Main loop
 
-	for {
+	// We will handle CTRL-C and CTRL-Z nicely
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Main loop
+	mainLoop: for {
+		select {
+			case <- c:
+				fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
+					startingBlockId, lastBlockHash)
+				break mainLoop
+			default:
+			// we do nothing
+		}
 		block := Block{}
 		err := DbGetBlock(db, blockHash, &block)
 		if err == nil {
@@ -181,7 +202,7 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 		}
 
 		startHash = &block.PrevBlockHash
-		if startingBlockId == 0 {
+		if startingBlockId == 0 || block.Id == stopingBlockId {
 			break
 		}
 		startingBlockId--
@@ -216,16 +237,19 @@ func ProcessNewBlocks(db *badger.DB, client *rpcclient.Client, startingBlockHash
 				break
 			}
 			txCounter++
-			if txCounter%20000 == 0 {
-				fmt.Printf("%v * 20k TXs done. BlockId: %v, %v\n", (txCounter / 20000), block.Id, block.Hash)
+			if txCounter%5000 == 0 {
+				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", (txCounter / 5000), block.Id, block.Hash)
+				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
 			}
 		}
 
 		blockHash = block.PrevBlockHash.String()
-		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" || block.Id == 0 {
+		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
+			block.Id == stopingBlockId {
 			break
 		}
 	}
 
 	fmt.Printf("Final TX count: %v\n", txCounter)
+	return nil
 }

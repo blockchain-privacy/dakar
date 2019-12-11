@@ -1,7 +1,9 @@
 package dashrpc
 
 import (
+	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"math"
 	"time"
 )
 
@@ -12,6 +14,7 @@ const ChainType_TxDetails = "txd"
 const ChainType_AddrOutputs = "ado"
 
 const DB_BLOCK_COUNT = "DB_BLOCK_COUNT"
+
 
 // ChainItem represents a generic blockchain item
 type ChainItem struct {
@@ -41,6 +44,11 @@ type TxOutput struct {
 	IsCoinbase bool
 }
 
+func (tx TxOutput) String() string {
+	return fmt.Sprintf("hash: %s\ntype: %s\namount: %f\nisCoinbase: %v\naddresses: %v",
+		tx.TxHash, tx.TxType, tx.Amount, tx.IsCoinbase, tx.Addresses)
+}
+
 // TxDetails represents transaction data
 type TxDetails struct {
 	Hash      string
@@ -48,3 +56,54 @@ type TxDetails struct {
 	Outputs   []TxOutput
 	Timestamp int64
 }
+
+func (tx TxDetails) String() string {
+	return fmt.Sprintf("hash: %s\noutputs:\n%vinputs:\n%v\n",
+		tx.Hash, tx.Outputs, tx.Inputs)
+}
+
+func (tx TxDetails) IsCreateDenominationsTx() bool {
+	denom := CountDenominations(tx.Outputs)
+	return len(tx.Inputs) == 1 &&
+		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
+}
+
+func (tx TxDetails) IsPrivateSend() bool {
+	denom := CountDenominations(tx.Inputs)
+	return len(tx.Outputs) == 1 &&
+		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
+}
+
+func (tx TxDetails) IsMixingTx() bool {
+	if len(tx.Inputs) != len(tx.Outputs) { return false }
+	denomIn := CountDenominations(tx.Inputs)
+	denomOut := CountDenominations(tx.Outputs)
+	for i, _ := range denomIn {
+		if denomIn[i] != denomOut[i] { return false }
+	}
+	return true
+}
+
+
+func almostEqual(a, b float64) bool {
+	var delta float64
+	delta = 0.00001
+	return math.Abs(a - b) <= delta
+}
+
+func CountDenominations(txs []TxOutput) []int {
+	denominations := make([]int, 4)
+	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
+
+	for _, o := range txs {
+		inner: for i, v := range denominationsTypes {
+			if almostEqual(o.Amount, v) {
+				denominations[i]++
+				break inner
+			}
+		}
+	}
+
+	return denominations
+}
+
