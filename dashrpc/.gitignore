@@ -1,4 +1,6 @@
 # Binaries for programs and plugins
+addr
+txsearch
 *.exe
 *.dll
 *.so
@@ -22,3 +24,5 @@ main
 txs
 status
 
+# data files
+*.csv
