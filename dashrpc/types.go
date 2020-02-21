@@ -7,13 +7,16 @@ import (
 	"time"
 )
 
-const ChainType_Block = "blk"
-const ChainType_TxDetails = "txd"
+const ChainType_Block = "blk" // Block hash -> Block
+const ChainType_TxDetails = "txd" // TX hash -> TxDetails
 
-//const ChainType_TxOutput = "txo"
-const ChainType_AddrOutputs = "ado"
+const ChainType_AddrOutputs = "ado" // addr -> []TxOutputs
+const ChainType_AddrCluster = "adc" // C_addr -> cluster ID
+const ChainType_Cluster = "clu" // cluster ID -> []string (addresses)
 
-const DB_BLOCK_COUNT = "DB_BLOCK_COUNT"
+const Prefix_AddrCluster = "C_"
+
+// not used ATM const DB_BLOCK_COUNT = "DB_BLOCK_COUNT"
 
 // ChainItem represents a generic blockchain item
 type ChainItem struct {
@@ -31,7 +34,7 @@ type Block struct {
 	TxHashes      []string
 }
 
-// TxTransfer represents simple value transfer from/to address(es)
+// TxOutput represents simple value transfer from/to address(es)
 type TxOutput struct {
 	TxHash string
 	TxType string
@@ -61,7 +64,8 @@ func (tx TxDetails) String() string {
 		tx.Hash, tx.Outputs, tx.Inputs)
 }
 
-func (tx TxDetails) IsCreateDenominationsTx() bool {
+// IsCreateDenominations checks if the TX creates denominations
+func (tx TxDetails) IsCreateDenominations() bool {
 	denom := CountDenominations(tx.Outputs)
 	return len(tx.Inputs) == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
@@ -73,7 +77,14 @@ func (tx TxDetails) IsPrivateSend() bool {
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
 }
 
-func (tx TxDetails) IsMixingTx() bool {
+// IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
+func (tx TxDetails) IsOneOrTwoOutput() bool {
+	return !tx.IsMixing() &&
+		(len(tx.Outputs) == 2 || len(tx.Outputs) == 1)
+}
+
+// IsMixing checks if TX is mixing
+func (tx TxDetails) IsMixing() bool {
 	if len(tx.Inputs) != len(tx.Outputs) {
 		return false
 	}
@@ -93,7 +104,7 @@ func (tx TxDetails) IsMixingTx() bool {
 	if sum == 0 {
 		return false
 	}
-	for i, _ := range denomIn {
+	for i := range denomIn {
 		if denomIn[i] != denomOut[i] {
 			return false
 		}

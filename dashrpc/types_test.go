@@ -61,7 +61,7 @@ func TestMixingTransactions(t *testing.T) {
 	tx := TxDetails{}
 	for _, h := range mixingTxs {
 		DbGetTxDetails(db, h, &tx)
-		if !tx.IsMixingTx() {
+		if !tx.IsMixing() {
 			fmt.Println(tx)
 			t.Error("Mixing transaction not recognized\nFalse Negative")
 		}
@@ -69,7 +69,7 @@ func TestMixingTransactions(t *testing.T) {
 
 	for _, h := range nonMixingTxs {
 		DbGetTxDetails(db, h, &tx)
-		if tx.IsMixingTx() {
+		if tx.IsMixing() {
 			fmt.Println(tx)
 			t.Error("Non-mixing transaction not recognized\nFalse Positive")
 		}

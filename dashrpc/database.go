@@ -15,7 +15,8 @@ import (
 // hash -> TxDetails
 // hash -> Block
 // address -> []TxOutput
-//
+// C_address -> clusterID
+// clusterID -> []string (addresses)
 //
 
 // DbGetItem checks if a given hash is stored in the k-v store
@@ -107,11 +108,12 @@ func DbSetTxDetails(db *badger.DB, txDetails TxDetails) error {
 
 func DbAddTxToAddress(db *badger.DB, addr string, output TxOutput) error {
 	var buf bytes.Buffer
-	outSlice := make([]TxOutput, 2)
+	outSlice := make([]TxOutput, 0)
 	err := DbGetTxosForAddress(db, addr, &outSlice)
 	if err != nil {
 		// we do not have the slice yet
 		// we should log the error, but, it might be that we just do not have that addr yet
+		return err
 	}
 	outSlice = append(outSlice, output)
 	enc := gob.NewEncoder(&buf)
@@ -129,7 +131,7 @@ func DbGetTxosForAddress(db *badger.DB, addr string, txOutputs *[]TxOutput) erro
 		return err
 	}
 	if item.ItemType != ChainType_AddrOutputs {
-		m := fmt.Sprintf("Item's ChainType mismatch. Expected: tx4a, got: %s", item.ItemType)
+		m := fmt.Sprintf("Item's ChainType mismatch. Expected: 'ado', got: %s", item.ItemType)
 		err = errors.New(m)
 		return err
 	}

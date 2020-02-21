@@ -75,8 +75,6 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, details *TxDetails, v
 		return err
 	}
 
-	out.IsCoinbase = vin.IsCoinBase()
-	out.TxHash = vin.Txid
 	out.Amount = tx.Vout[vin.Vout].Value
 	out.Addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
 
@@ -211,7 +209,7 @@ func ProcessNewBlocks(db *badger.DB,
 
 		blkCounter++
 		if blkCounter%20000 == 0 {
-			fmt.Printf("%v * 20k blocks done\n", (blkCounter / 20000))
+			fmt.Printf("%v * 20k blocks done\n", blkCounter / 20000)
 		}
 	}
 	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
@@ -238,7 +236,7 @@ func ProcessNewBlocks(db *badger.DB,
 			}
 			txCounter++
 			if txCounter%5000 == 0 {
-				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", (txCounter / 5000), block.Id, block.Hash)
+				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter / 5000, block.Id, block.Hash)
 				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
 			}
 		}
@@ -251,5 +249,22 @@ func ProcessNewBlocks(db *badger.DB,
 	}
 
 	fmt.Printf("Final TX count: %v\n", txCounter)
+	return nil
+}
+
+// ProcessAddressClustering traverses the transactions from a given address and creates the cluster data in DB
+func ProcessAddressClustering(db *badger.DB,
+	startingAddr string) error {
+
+	txs := make([]TxOutput, 0) // TODO arbitrary choice for initial slice size
+	err := DbGetTxosForAddress(db, startingAddr, &txs)
+	if err != nil {
+		return err
+	}
+
+	for _, tx := range txs {
+		fmt.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
+	}
+
 	return nil
 }
