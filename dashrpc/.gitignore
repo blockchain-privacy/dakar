@@ -23,6 +23,8 @@ projectFilesBackup
 main
 txs
 status
+addr
+crawler
 
 # data files
 *.csv
