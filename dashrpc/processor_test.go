@@ -1,14 +1,10 @@
 package dashrpc
 
 import (
-	"dashrpc/rpcclient"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-
-	"github.com/dgraph-io/badger"
 )
 
 const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"
@@ -16,42 +12,11 @@ const block49999 = "000000000014f796bbd2312686a63cbe17401a1026ab2a8149b74553e8dc
 const block50000 = "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
 
 func TestProcessBlock50000(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		fmt.Printf("we have a problem: %s\n", err.Error())
-		t.Error(err)
-		return
-	}
+	db := setupDB(t)
+	defer tearDownDB(t, db)
+	client := setupRpcClient(t)
 
 	block := Block{}
-
-	defer func() {
-		// cleanup
-		err = db.Update(func(txn *badger.Txn) error {
-			return txn.Delete([]byte(block50000))
-		})
-		if err != nil {
-			t.Error(err)
-		}
-	}()
 
 	startHash, err := chainhash.NewHashFromStr(block50000)
 	if err != nil {
@@ -96,42 +61,12 @@ func TestProcessBlock50000(t *testing.T) {
 }
 
 func TestProcessBlock49999(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer tearDownDB(t, db)
 
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		fmt.Printf("we have a problem: %s\n", err.Error())
-		t.Error(err)
-		return
-	}
+	client := setupRpcClient(t)
 
 	block := Block{}
-
-	defer func() {
-		// cleanup
-		err = db.Update(func(txn *badger.Txn) error {
-			return txn.Delete([]byte(block49999))
-		})
-		if err != nil {
-			t.Error(err)
-		}
-	}()
 
 	startHash, err := chainhash.NewHashFromStr(block49999)
 	if err != nil {
@@ -183,48 +118,13 @@ func TestProcessBlock49999(t *testing.T) {
 }
 
 func TestProcessTxFromBlock50000(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-		t.Error(err)
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer tearDownDB(t, db)
 
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		fmt.Printf("we have a problem: %s\n", err.Error())
-		t.Error(err)
-	}
+	client := setupRpcClient(t)
 
 	block := Block{}
 	txHash := "c13fc482603f574b7322da10398c20d64a431e14f8e886b054128591abaa66a4"
-
-	defer func() {
-		// cleanup
-		err = db.Update(func(txn *badger.Txn) error {
-			e1 := txn.Delete([]byte(block50000))
-			if e1 != nil {
-				return e1
-			}
-			return txn.Delete([]byte(txHash))
-		})
-
-		if err != nil {
-			t.Error(err)
-		}
-	}()
 
 	startHash, err := chainhash.NewHashFromStr(block50000)
 	if err != nil {
@@ -267,46 +167,14 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 }
 
 func TestProcessTxFromBlock49999(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-		t.Error(err)
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer tearDownDB(t, db)
 
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		fmt.Printf("we have a problem: %s\n", err.Error())
-		t.Error(err)
-		return
-	}
+	client := setupRpcClient(t)
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
-	defer func() {
-		// cleanup
-		err = db.Update(func(txn *badger.Txn) error {
-			return txn.Delete([]byte(txHash))
-		})
-
-		if err != nil {
-			t.Error(err)
-		}
-	}()
-
-	err = ProcessTx(db, client, txHash)
+	err := ProcessTx(db, client, txHash)
 	if err != nil {
 		t.Fatal(err)
 		return

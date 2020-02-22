@@ -19,6 +19,23 @@ import (
 // clusterID -> []string (addresses)
 //
 
+// DbSetItem writes chain item into k-v store
+func DbSetItem(db *badger.DB, hash string, data []byte, itemType string) error {
+	item := ChainItem{}
+	item.ItemType = itemType
+	item.Data = data
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(item)
+	if err != nil {
+		return err
+	}
+
+	return db.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(hash), buf.Bytes())
+	})
+}
+
 // DbGetItem checks if a given hash is stored in the k-v store
 func DbGetItem(db *badger.DB, hash string, item *ChainItem) error {
 	return db.View(func(txn *badger.Txn) error {
@@ -34,20 +51,53 @@ func DbGetItem(db *badger.DB, hash string, item *ChainItem) error {
 	})
 }
 
-// DbWriteItem writes chain item into k-v store
-func DbSetItem(db *badger.DB, hash string, data []byte, itemType string) error {
-	item := ChainItem{}
-	item.ItemType = itemType
-	item.Data = data
+// DbSetString writes a single string into k-v store
+func DbSetString(db *badger.DB, key string, data string) error {
+	return db.Update(func(txn *badger.Txn) error {
+		return txn.Set([]byte(key), []byte(data))
+	})
+}
+
+// DbGetString gets a string for a given key
+func DbGetString(db *badger.DB, key string, data *string) error {
+	return db.View(func(txn *badger.Txn) error {
+		b, e := txn.Get([]byte(key))
+		if e != nil {
+			return e
+		}
+		return b.Value(func(buf []byte) error {
+			*data = string(buf)
+			return nil
+		})
+	})
+}
+
+// DbSetUint64 writes a given uint64 item into k-v store
+func DbSetUint64(db *badger.DB, key string, data uint64) error {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(item)
+	err := enc.Encode(data)
 	if err != nil {
 		return err
 	}
 
 	return db.Update(func(txn *badger.Txn) error {
-		return txn.Set([]byte(hash), buf.Bytes())
+		return txn.Set([]byte(key), buf.Bytes())
+	})
+}
+
+// DbGetUint64 checks if a given key is stored in the k-v store
+func DbGetUint64(db *badger.DB, key string, item *uint64) error {
+	return db.View(func(txn *badger.Txn) error {
+		b, e := txn.Get([]byte(key))
+		if e != nil {
+			return e
+		}
+		return b.Value(func(buf []byte) error {
+			dec := gob.NewDecoder(bytes.NewReader(buf))
+			e2 := dec.Decode(item)
+			return e2
+		})
 	})
 }
 

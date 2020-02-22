@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
@@ -82,7 +83,9 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, details *TxDetails, v
 	for _, addr := range out.Addresses {
 		err = DbAddTxToAddress(db, addr, out)
 		if err != nil {
-			fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
+			// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
+			// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
+
 		}
 	}
 	out.Index = index
@@ -114,6 +117,9 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 		fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
 	}
 
+	saveProcessingState(db, currentHash.String(), blockId)
+	DbIncrementBlockCount(db)
+
 	block.Hash = currentHash
 	block.PrevBlockHash = startBlock.Header.PrevBlock
 	block.NextBlockHash = nextBlock
@@ -141,7 +147,14 @@ func ProcessNewBlocks(db *badger.DB,
 		client *rpcclient.Client,
 		startingBlockHash string,
 		startingBlockId uint64,
-		stopingBlockId uint64) error {
+		stoppingBlockId uint64) error {
+
+	timerStart := time.Now()
+	DbSetStatus(db, DbBlockStatusProcessing)
+	err := DbSetUint64(db, DbBlockStopBlockId, stoppingBlockId)
+	if err != nil {
+		fmt.Printf("Error: failed to save stopBlockID\n%v\n", err)
+	}
 
 	blkCounter := 0
 	txCounter := 0
@@ -200,7 +213,7 @@ func ProcessNewBlocks(db *badger.DB,
 		}
 
 		startHash = &block.PrevBlockHash
-		if startingBlockId == 0 || block.Id == stopingBlockId {
+		if startingBlockId == 0 || block.Id == stoppingBlockId {
 			break
 		}
 		startingBlockId--
@@ -235,6 +248,8 @@ func ProcessNewBlocks(db *badger.DB,
 				break
 			}
 			txCounter++
+			DbIncrementGlobalTxCount(db)
+
 			if txCounter%5000 == 0 {
 				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter / 5000, block.Id, block.Hash)
 				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
@@ -242,21 +257,26 @@ func ProcessNewBlocks(db *badger.DB,
 		}
 
 		blockHash = block.PrevBlockHash.String()
+		saveProcessingState(db, blockHash, block.Id - 1)
 		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
-			block.Id == stopingBlockId {
+			block.Id == stoppingBlockId {
+			saveProcessingStateFinished(db)
 			break
 		}
 	}
 
+	elapsedTime := time.Since(timerStart)
+	fmt.Printf("Final Blocks count: %v\n", blkCounter)
 	fmt.Printf("Final TX count: %v\n", txCounter)
+	fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
+		elapsedTime.Milliseconds() / int64(blkCounter))
 	return nil
 }
 
 // ProcessAddressClustering traverses the transactions from a given address and creates the cluster data in DB
-func ProcessAddressClustering(db *badger.DB,
-	startingAddr string) error {
+func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
 
-	txs := make([]TxOutput, 0) // TODO arbitrary choice for initial slice size
+	txs := make([]TxOutput, 0)
 	err := DbGetTxosForAddress(db, startingAddr, &txs)
 	if err != nil {
 		return err
@@ -267,4 +287,32 @@ func ProcessAddressClustering(db *badger.DB,
 	}
 
 	return nil
+}
+
+// saveProcessingState saves the current processing state
+func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId uint64) {
+	// Updating the upper range
+	rangeUp := DbGetRangeUp(db)
+	if currentBlockId > rangeUp {
+		DbSetRangeUp(db, currentBlockId)
+	}
+	// Updating the lower range
+	rangeDown := DbGetRangeDown(db)
+	if rangeDown == 0 || currentBlockId < rangeDown { // lazy initialization problem
+		DbSetRangeDown(db, currentBlockId)
+	}
+
+	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
+	if err != nil {
+		fmt.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
+	}
+	err = DbSetString(db, DbBlockLastBlockHash, currentBlockHash)
+	if err != nil {
+		fmt.Printf("Error: error saving CurrentBlockID state: %v\n", err)
+	}
+}
+
+// resetting the processing state to default values
+func saveProcessingStateFinished(db *badger.DB) {
+	DbSetStatus(db, DbBlockStatusFinished)
 }

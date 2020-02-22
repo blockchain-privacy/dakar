@@ -7,16 +7,18 @@ import (
 	"time"
 )
 
-const ChainType_Block = "blk" // Block hash -> Block
-const ChainType_TxDetails = "txd" // TX hash -> TxDetails
+// Database core data
+const (
+	ChainType_Block 		= "blk" // Block hash -> Block
+	ChainType_TxDetails 	= "txd" // TX hash -> TxDetails
 
-const ChainType_AddrOutputs = "ado" // addr -> []TxOutputs
-const ChainType_AddrCluster = "adc" // C_addr -> cluster ID
-const ChainType_Cluster = "clu" // cluster ID -> []string (addresses)
+	ChainType_AddrOutputs 	= "ado" // addr -> []TxOutputs
+	ChainType_AddrCluster 	= "adc" // C_addr -> cluster ID
+	ChainType_Cluster 		= "clu" // cluster ID -> []string (addresses)
 
-const Prefix_AddrCluster = "C_"
+	Prefix_AddrCluster 		= "C_"
+)
 
-// not used ATM const DB_BLOCK_COUNT = "DB_BLOCK_COUNT"
 
 // ChainItem represents a generic blockchain item
 type ChainItem struct {

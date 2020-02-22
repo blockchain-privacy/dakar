@@ -1,37 +1,9 @@
 package dashrpc
 
 import (
-	"dashrpc/rpcclient"
 	"fmt"
-	"github.com/dgraph-io/badger"
 	"testing"
 )
-
-func setupClients(t *testing.T) (*badger.DB, *rpcclient.Client) {
-	// Setup Badger
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		t.Error(err)
-		return db, nil
-	}
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       "rpc1user",
-		Pass:       "1234pass",
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		t.Error(err)
-	}
-	return db, client
-}
 
 func TestMixingTransactions(t *testing.T) {
 	block850000 := "000000000000003053911f63ae6c1fe8a8872c43127211977e6efb4a3f621dcd"
@@ -51,8 +23,10 @@ func TestMixingTransactions(t *testing.T) {
 		"559a2be1df28485dbc733362806f63920e5feb0209cac7018e77f85ba5a5327d",
 		"fd946e63e4fad17da110a54c0d2287b56142d2f56cf1ac264e773345d06b0491",
 	}
+	db := setupDB(t)
+	defer tearDownDB(t, db)
 
-	db, client := setupClients(t)
+	client := setupRpcClient(t)
 	err := ProcessNewBlocks(db, client, block850000, 850000, 849995)
 	if err != nil {
 		t.Error(err)
