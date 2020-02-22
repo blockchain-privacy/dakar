@@ -2,25 +2,19 @@ package dashrpc
 
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"log"
 	"testing"
 
 	"github.com/dgraph-io/badger"
 )
 
 func TestDbSetBlock(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-		t.Error(err)
-		return
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	block := Block{}
 	hash1 := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
@@ -68,16 +62,13 @@ func TestDbSetBlock(t *testing.T) {
 }
 
 func TestDbSetEmptyTxDetails(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	tx := TxDetails{}
 	hash1 := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
@@ -85,7 +76,7 @@ func TestDbSetEmptyTxDetails(t *testing.T) {
 	tx.Hash = hash1
 	tx.Timestamp = 42
 
-	err = DbSetTxDetails(db, tx)
+	err := DbSetTxDetails(db, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -113,16 +104,13 @@ func TestDbSetEmptyTxDetails(t *testing.T) {
 }
 
 func TestDbSetTxDetails(t *testing.T) {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions("/tmp/testDb")
-	opts.WithNumVersionsToKeep(0)
-	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+	db := setupDB(t)
+	defer func() {
+		err := db.Close()
+		if err != nil {
+			t.Error(err)
+		}
+	}()
 
 	tx := TxDetails{}
 	hash1 := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
@@ -141,7 +129,7 @@ func TestDbSetTxDetails(t *testing.T) {
 	i.Addresses = []string{"exampleInputAddr", "another one"}
 	tx.Inputs = append(tx.Inputs, i)
 
-	err = DbSetTxDetails(db, tx)
+	err := DbSetTxDetails(db, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -172,4 +160,17 @@ func TestDbSetTxDetails(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+}
+
+func setupDB(t *testing.T) *badger.DB {
+	// Setup the Badger DB connection
+	opts := badger.DefaultOptions("/tmp/testDb")
+	opts.WithNumVersionsToKeep(0)
+	opts.WithSyncWrites(false)
+	opts.WithLogger(nil)
+	db, err := badger.Open(opts)
+	if err != nil {
+		t.Error(err)
+	}
+	return db
 }
