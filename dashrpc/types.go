@@ -12,11 +12,11 @@ const (
 	ChainType_Block 		= "blk" // Block hash -> Block
 	ChainType_TxDetails 	= "txd" // TX hash -> TxDetails
 
-	ChainType_AddrOutputs 	= "ado" // addr -> []TxOutputs
-	ChainType_AddrCluster 	= "adc" // C_addr -> cluster ID
-	ChainType_Cluster 		= "clu" // cluster ID -> []string (addresses)
+	// TODO refactor, issue #
+	ChainType_AddrOutputs 	= "ado" // addr -> []TxOutputs.  TODO this needs to change to AddressData
 
-	Prefix_AddrCluster 		= "C_"
+	ChainType_AddrData      = "add" // add -> AddressData
+	ChainType_Cluster	 	= "adc" // cluster ID -> ClusterData
 )
 
 // ChainItem represents a generic blockchain item
@@ -46,15 +46,30 @@ type Block struct {
 
 // TxOutput represents simple value transfer from/to address(es)
 type TxOutput struct {
-	TxHash string  `json:"txhash"`
-	TxType string  `json:"txtype"`
-	Amount float64 `json:"amount"`
+	TxHash 		string  `json:"txhash"`
+	TxType 		string  `json:"txtype"`
+	Amount 		float64 `json:"amount"`
 	// For UTXO this will not be known
-	Addresses []string `json:"addresses"`
+	Addresses []string 	`json:"addresses"`
 	// For TXO this represents the index of the output in the transaction
-	Index      int  `json:"index"`
-	IsCoinbase bool `json:"iscoinbase"`
+	Index      	int  	`json:"index"`
+	IsCoinbase 	bool 	`json:"iscoinbase"`
 }
+
+// ClusterData represents the cluster information
+type ClusterData struct {
+	Addresses []string `json:"addresses"`	// addresses in this cluster
+	Name 		string `json:"name"` 		// this cluster name
+	Heuristic	string `json:"heuristic"` 	// heuristic name and version used to generate this cluster
+}
+
+// AddressData represents the data associated with an address
+type AddressData struct {
+	Address 	string		`json:address`		// the actual string address
+	Clusters  []string		`json:"clusters"`	// Clusters with this address
+	Txs		  []TxOutput 	`json:"txs"`		// Tx with this address
+}
+
 
 func (tx TxOutput) String() string {
 	return fmt.Sprintf("hash: %s\ntype: %s\namount: %f\nisCoinbase: %v\naddresses: %v",
