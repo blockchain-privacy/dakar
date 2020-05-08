@@ -19,33 +19,41 @@ const (
 	Prefix_AddrCluster 		= "C_"
 )
 
-
 // ChainItem represents a generic blockchain item
 type ChainItem struct {
 	ItemType string
 	Data     []byte
 }
 
+type Transaction struct {
+	Tx            TxDetails `json:"tx"`
+	Bhash         string    `json:"bhash"`
+	Bheight       uint64    `json:"bheight"`
+	Bts           int64    `json:"bts"`
+	Confirmations uint64    `json:"confirmations"`
+	Version       int32     `json:"version"`
+}
+
 // Block represents a simple block
 type Block struct {
-	Hash          chainhash.Hash
-	Id            uint64
-	Timestamp     time.Time
-	PrevBlockHash chainhash.Hash
-	NextBlockHash chainhash.Hash
-	TxHashes      []string
+	Hash          chainhash.Hash `json:"hash"`
+	Id            uint64         `json:"id"`
+	Timestamp     time.Time      `json:"ts"`
+	PrevBlockHash chainhash.Hash `json:"prevblockhash"`
+	NextBlockHash chainhash.Hash `json:"nextblockhash"`
+	TxHashes      []string       `json:"txhashes"`
 }
 
 // TxOutput represents simple value transfer from/to address(es)
 type TxOutput struct {
-	TxHash string
-	TxType string
-	Amount float64
+	TxHash string  `json:"txhash"`
+	TxType string  `json:"txtype"`
+	Amount float64 `json:"amount"`
 	// For UTXO this will not be known
-	Addresses []string
+	Addresses []string `json:"addresses"`
 	// For TXO this represents the index of the output in the transaction
-	Index      int
-	IsCoinbase bool
+	Index      int  `json:"index"`
+	IsCoinbase bool `json:"iscoinbase"`
 }
 
 func (tx TxOutput) String() string {
@@ -55,10 +63,10 @@ func (tx TxOutput) String() string {
 
 // TxDetails represents transaction data
 type TxDetails struct {
-	Hash      string
-	Inputs    []TxOutput
-	Outputs   []TxOutput
-	Timestamp int64
+	Hash      string		`json:"hash"`
+	Inputs    []TxOutput	`json:"inputs"`
+	Outputs   []TxOutput	`json:"outputs"`
+	Timestamp int64			`json:"ts"`
 }
 
 func (tx TxDetails) String() string {

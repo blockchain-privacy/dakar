@@ -3,6 +3,7 @@ package dashrpc
 import (
 	"fmt"
 	"github.com/dgraph-io/badger"
+	"log"
 )
 
 const VersionString = "v0.0.1"
@@ -21,6 +22,61 @@ const (
 	DbBlockStatusProcessing = "DB_BLOCK_STATUS_PROCESSING"
 	DbBlockStatusFinished   = "DB_BLOCK_STATUS_FINISHED"
 )
+
+
+
+///////////////////////////////////////////////////////
+// Utility API
+///////////////////////////////////////////////////////
+
+// SetupBadgerDB instantiates and returns the DB
+func SetupBadgerDB(badgerDir string) *badger.DB {
+	// Setup the Badger DB connection
+	opts := badger.DefaultOptions(badgerDir)
+	opts.WithNumVersionsToKeep(1)
+	opts.WithNumMemtables(50)
+	opts.WithMaxTableSize(512 << 20)
+	opts.WithSyncWrites(false)
+	// not needed opts.WithValueDir(*badgerDir)
+	// not needed opts.WithDir(*badgerDir)
+	db, err := badger.Open(opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return db
+}
+
+// PrintStatus outputs the stats for the given DB
+func PrintStatus(db *badger.DB) {
+	var status string
+	DbGetStatus(db, &status)
+	fmt.Printf("Status: %s\n", status)
+	var lastID, stopID uint64
+	var lastHash string
+	err := DbGetUint64(db, DbBlockLastBlockId, &lastID)
+	if err != nil {
+		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
+	}
+	err = DbGetUint64(db, DbBlockStopBlockId, &stopID)
+	if err != nil {
+		fmt.Printf("Error: cannot read StopBlockID: %v\n", err)
+	}
+	err = DbGetString(db, DbBlockLastBlockHash, &lastHash)
+	if err != nil {
+		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
+	}
+	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+	fmt.Printf("Stop ID: %v\n", stopID)
+
+	rangeUp := DbGetRangeUp(db)
+	rangeDown := DbGetRangeDown(db)
+	fmt.Printf("DB range: %v - %v\n", rangeDown, rangeUp)
+}
+
+
+///////////////////////////////////////////////////////
+// Internal API
+///////////////////////////////////////////////////////
 
 // DbSetStatus gets the status
 func DbSetStatus(db *badger.DB, status string) {

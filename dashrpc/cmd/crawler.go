@@ -5,19 +5,24 @@ import (
 	"dashrpc/rpcclient"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/badger"
 )
 
+// "random" temporary badger DB location for benchmarking. Not used for anything else.
+// should be deleted automatically
 const badgerBenchmarkPath = "/tmp/tmpBadger_321"
 
 //
+// The main crawler for the system. It needs to be run prior to using any of the other
+// commands that rely on the Badger DB to be pre-created.
+//
 // DashRPC client traverses the Dash blockchain and creates a Badger database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
+//
+// Note: in the future, the crawler could be integrated with the backend-web service as
+// to run continuously in the background and share the DB with other API queries.
 //
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
@@ -51,7 +56,7 @@ func main() {
 		*isPrintStatus = false
 		*badgerDir = badgerBenchmarkPath
 	}
-	db := setupBadgerDB(*badgerDir)
+	db := dashrpc.SetupBadgerDB(*badgerDir)
 	defer func() {
 		e := db.Close()
 		if e != nil { /* ignore */
@@ -63,7 +68,7 @@ func main() {
 	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
 	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 	if *isPrintStatus {
-		printStatus(db)
+		dashrpc.PrintStatus(db)
 		return
 	}
 
@@ -172,43 +177,4 @@ func main() {
 	}
 }
 
-func setupBadgerDB(badgerDir string) *badger.DB {
-	// Setup the Badger DB connection
-	opts := badger.DefaultOptions(badgerDir)
-	opts.WithNumVersionsToKeep(1)
-	opts.WithSyncWrites(false)
-	// not needed opts.WithValueDir(*badgerDir)
-	// not needed opts.WithDir(*badgerDir)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return db
-}
 
-func printStatus(db *badger.DB) {
-	var status string
-	dashrpc.DbGetStatus(db, &status)
-	fmt.Printf("Status: %s\n", status)
-	var lastID, stopID uint64
-	var lastHash string
-	err := dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &lastID)
-	if err != nil {
-		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
-	}
-	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &stopID)
-	if err != nil {
-		fmt.Printf("Error: cannot read StopBlockID: %v\n", err)
-	}
-	err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &lastHash)
-	if err != nil {
-		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
-	}
-	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
-	fmt.Printf("Stop ID: %v\n", stopID)
-
-	rangeUp := dashrpc.DbGetRangeUp(db)
-	rangeDown := dashrpc.DbGetRangeDown(db)
-	fmt.Printf("DB range: %v - %v\n", rangeDown, rangeUp)
-
-}

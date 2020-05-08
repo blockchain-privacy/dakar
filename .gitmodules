@@ -1,9 +1,9 @@
 [submodule "dashrpc/btcsuite/btcd"]
 	path = dashrpc/btcsuite/btcd
-	url = https://github.com/btcsuite/btcd.git
+	url = https://github.com/decfi/btcd.git
 [submodule "dashrpc/btcsuite/btclog"]
 	path = dashrpc/btcsuite/btclog
-	url = https://github.com/btcsuite/btclog.git
+	url = https://github.com/decfi/btclog.git
 [submodule "dashrpc/btcsuite/btcutil"]
 	path = dashrpc/btcsuite/btcutil
-	url = https://github.com/btcsuite/btcutil.git
+	url = https://github.com/decfi/btcutil.git

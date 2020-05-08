@@ -11,6 +11,12 @@ import (
 	"strconv"
 )
 
+//
+// This is a proof-of-concept implementation of private-send traversal
+//
+//
+//
+
 // Result represents the data of final CreateDenominations TXs
 type Result struct {
 	hash string
@@ -96,6 +102,7 @@ func searchCreateDenominations(db *badger.DB,
 
 //
 // Simple utility to browse/lookup the TXs from the badger database
+//
 // Work in Progress. NOT WORKING YET.
 //
 func main() {

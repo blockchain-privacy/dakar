@@ -8,9 +8,12 @@ import (
 )
 
 
+// DO NOT USE
 //
 // Simple utility to browse/lookup the TXs from the badger database
-// Work in Progress. NOT WORKING YET.
+//
+// Work in Progress. NOT WORKING YET. DO NOT USE.
+// This is for local testing only.  The functionality should be integrated with the `explorer` CMD.
 //
 func main() {
 	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
