@@ -1,6 +1,10 @@
 # Binaries for programs and plugins
 addr
 txsearch
+main
+txs
+status
+crawler
 *.exe
 *.dll
 *.so
@@ -19,12 +23,6 @@ vendor/
 .idea
 .vscode
 projectFilesBackup
-
-main
-txs
-status
-addr
-crawler
 
 # data files
 *.csv
