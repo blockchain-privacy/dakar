@@ -11,10 +11,6 @@ import (
 const (
 	ChainType_Block 		= "blk" // Block hash -> Block
 	ChainType_TxDetails 	= "txd" // TX hash -> TxDetails
-
-	// TODO refactor, issue #
-	ChainType_AddrOutputs 	= "ado" // addr -> []TxOutputs.  TODO this needs to change to AddressData
-
 	ChainType_AddrData      = "add" // add -> AddressData
 	ChainType_Cluster	 	= "adc" // cluster ID -> ClusterData
 )
@@ -49,7 +45,7 @@ type TxOutput struct {
 	TxHash 		string  `json:"txhash"`
 	TxType 		string  `json:"txtype"`
 	Amount 		float64 `json:"amount"`
-	// For UTXO this will not be known
+	// For UTXO this will not be known yet
 	Addresses []string 	`json:"addresses"`
 	// For TXO this represents the index of the output in the transaction
 	Index      	int  	`json:"index"`
@@ -65,7 +61,7 @@ type ClusterData struct {
 
 // AddressData represents the data associated with an address
 type AddressData struct {
-	Address 	string		`json:address`		// the actual string address
+	Address 	string		`json:"address"`		// the actual string address
 	Clusters  []string		`json:"clusters"`	// Clusters with this address
 	Txs		  []TxOutput 	`json:"txs"`		// Tx with this address
 }

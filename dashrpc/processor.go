@@ -12,7 +12,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 )
 
 // ProcessTx process transaction, and the Vout and Vin records
@@ -274,13 +274,15 @@ func ProcessNewBlocks(db *badger.DB,
 }
 
 // ProcessAddressClustering traverses the transactions from a given address and creates the cluster data in DB
+// TODO currently there is no clustering, just a lookup for current TXs associated with a given address
 func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
 
-	txs := make([]TxOutput, 0)
-	err := DbGetTxosForAddress(db, startingAddr, &txs)
+	addrData := AddressData{}
+	err := DbGetDataForAddress(db, startingAddr, &addrData)
 	if err != nil {
 		return err
 	}
+	txs := addrData.Txs
 
 	for _, tx := range txs {
 		fmt.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)

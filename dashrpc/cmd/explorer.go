@@ -7,7 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 	"log"
 	"net/http"
 	"strconv"

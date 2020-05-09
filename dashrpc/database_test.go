@@ -3,10 +3,9 @@ package dashrpc
 import (
 	"dashrpc/rpcclient"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"os"
 	"testing"
 
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 )
 
 func TestDbSetBlock(t *testing.T) {
@@ -203,14 +202,13 @@ func TestDbSetUint64(t *testing.T) {
 	}
 }
 
-const TestDbPath = "/tmp/testDb_321"
+
 // setupDB -- set the Badger DB up
 func setupDB(t *testing.T) *badger.DB {
 	// Setup the Badger DB connection
-	opts := badger.DefaultOptions(TestDbPath)
+	opts := badger.DefaultOptions("").WithInMemory(true)
 	opts.WithNumVersionsToKeep(0)
 	opts.WithSyncWrites(false)
-	opts.WithLogger(nil)
 	db, err := badger.Open(opts)
 	if err != nil {
 		t.Error(err)
@@ -224,13 +222,10 @@ func tearDownDB(t *testing.T, db *badger.DB) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = os.RemoveAll(TestDbPath)
-	if err != nil {
-		t.Error(err)
-	}
 }
 
 // setupRpcClient -- setup client for testing
+// TODO RPC client side should ideally be mocked instead -- see issue #11
 func setupRpcClient(t *testing.T) *rpcclient.Client {
 	// Setup the RPC connection
 	var conn = rpcclient.ConnConfig{

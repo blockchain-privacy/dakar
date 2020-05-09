@@ -5,7 +5,7 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/pkg/errors"
 )
 
@@ -158,36 +158,39 @@ func DbSetTxDetails(db *badger.DB, txDetails TxDetails) error {
 
 func DbAddTxToAddress(db *badger.DB, addr string, output TxOutput) error {
 	var buf bytes.Buffer
-	outSlice := make([]TxOutput, 0)
-	err := DbGetTxosForAddress(db, addr, &outSlice)
+	addrData := AddressData{}
+	err := DbGetDataForAddress(db, addr, &addrData)
 	if err != nil {
 		// we do not have the slice yet
 		// we should log the error, but, it might be that we just do not have that addr yet
 		return err
 	}
-	outSlice = append(outSlice, output)
+	if addrData.Txs == nil {
+		addrData.Txs = make([]TxOutput, 0)
+	}
+	addrData.Txs = append(addrData.Txs, output)
 	enc := gob.NewEncoder(&buf)
-	err = enc.Encode(outSlice)
+	err = enc.Encode(addrData)
 	if err != nil {
 		return err
 	}
-	return DbSetItem(db, addr, buf.Bytes(), ChainType_AddrOutputs)
+	return DbSetItem(db, addr, buf.Bytes(), ChainType_AddrData)
 }
 
-func DbGetTxosForAddress(db *badger.DB, addr string, txOutputs *[]TxOutput) error {
+func DbGetDataForAddress(db *badger.DB, addr string, addrData *AddressData) error {
 	item := ChainItem{}
 	err := DbGetItem(db, addr, &item)
 	if err != nil {
 		return err
 	}
-	if item.ItemType != ChainType_AddrOutputs {
-		m := fmt.Sprintf("Item's ChainType mismatch. Expected: 'ado', got: %s", item.ItemType)
+	if item.ItemType != ChainType_AddrData {
+		m := fmt.Sprintf("Item's ChainType mismatch. Expected: %s, got: %s", ChainType_AddrData, item.ItemType)
 		err = errors.New(m)
 		return err
 	}
 
 	dec := gob.NewDecoder(bytes.NewReader(item.Data))
-	err = dec.Decode(&txOutputs)
+	err = dec.Decode(&addrData)
 	if err != nil {
 		return err
 	}
