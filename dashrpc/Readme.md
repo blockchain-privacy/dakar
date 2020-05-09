@@ -6,8 +6,25 @@ This is a Dash transaction processor, written in Go.
 
 ## Dependencies
 
-* btcsuite - core wire layer
+* btcsuite - core wire communication layer
 * Badger - high-level data storage and partially processed blockchain data
+
+
+## Development
+
+Guide
+
+1. Coding must be done through feature branches
+1. Work must be linked to issues from the issue tracker
+1. Work should be documented 
+1. Work should have unit tests associated, when appropriate  
+1. New work should undergo code-review before merging  
+1. Small editorial and documentation work can be done directly in `master`
+
+Branches
+* `master` - main stable dev branch, must compile and should work.
+* `production` - deployed branch, no work/commits should be done in here.
+*  feature branches - main mechanism for new work.
 
 ## Start
 * Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
