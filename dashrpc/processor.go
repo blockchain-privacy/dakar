@@ -144,10 +144,10 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 
 // ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(db *badger.DB,
-		client *rpcclient.Client,
-		startingBlockHash string,
-		startingBlockId uint64,
-		stoppingBlockId uint64) error {
+	client *rpcclient.Client,
+	startingBlockHash string,
+	startingBlockId uint64,
+	stoppingBlockId uint64) error {
 
 	timerStart := time.Now()
 	DbSetStatus(db, DbBlockStatusProcessing)
@@ -173,13 +173,14 @@ func ProcessNewBlocks(db *badger.DB,
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	// Main loop
-	mainLoop: for {
+mainLoop:
+	for {
 		select {
-			case <- c:
-				fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
-					startingBlockId, lastBlockHash)
-				break mainLoop
-			default:
+		case <-c:
+			fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
+				startingBlockId, lastBlockHash)
+			break mainLoop
+		default:
 			// we do nothing
 		}
 		block := Block{}
@@ -222,7 +223,7 @@ func ProcessNewBlocks(db *badger.DB,
 
 		blkCounter++
 		if blkCounter%20000 == 0 {
-			fmt.Printf("%v * 20k blocks done\n", blkCounter / 20000)
+			fmt.Printf("%v * 20k blocks done\n", blkCounter/20000)
 		}
 	}
 	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
@@ -251,13 +252,13 @@ func ProcessNewBlocks(db *badger.DB,
 			DbIncrementGlobalTxCount(db)
 
 			if txCounter%5000 == 0 {
-				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter / 5000, block.Id, block.Hash)
+				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, block.Id, block.Hash)
 				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
 			}
 		}
 
 		blockHash = block.PrevBlockHash.String()
-		saveProcessingState(db, blockHash, block.Id - 1)
+		saveProcessingState(db, blockHash, block.Id-1)
 		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
 			block.Id == stoppingBlockId {
 			saveProcessingStateFinished(db)
@@ -266,10 +267,17 @@ func ProcessNewBlocks(db *badger.DB,
 	}
 
 	elapsedTime := time.Since(timerStart)
-	fmt.Printf("Final Blocks count: %v\n", blkCounter)
-	fmt.Printf("Final TX count: %v\n", txCounter)
-	fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
-		elapsedTime.Milliseconds() / int64(blkCounter))
+	if blkCounter > 0 {
+		fmt.Printf("Final Blocks count: %v\n", blkCounter)
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
+			elapsedTime.Milliseconds()/int64(blkCounter))
+	} else {
+		fmt.Println("Processed no new blocks")
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\n\n", elapsedTime)
+	}
+
 	return nil
 }
 
