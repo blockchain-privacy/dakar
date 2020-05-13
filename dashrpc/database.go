@@ -161,9 +161,8 @@ func DbAddTxToAddress(db *badger.DB, addr string, output TxOutput) error {
 	addrData := AddressData{}
 	err := DbGetDataForAddress(db, addr, &addrData)
 	if err != nil {
-		// we do not have the slice yet
-		// we should log the error, but, it might be that we just do not have that addr yet
-		return err
+		// address does not exist yet -> let's create it
+		addrData.Address = addr
 	}
 	if addrData.Txs == nil {
 		addrData.Txs = make([]TxOutput, 0)
