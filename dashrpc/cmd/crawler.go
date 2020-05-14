@@ -154,7 +154,7 @@ func main() {
 	if cliArgs.isBenchmark {
 		benchmarkStr := "Benchmark is ON."
 		if cliArgs.saveAddresses {
-			benchmarkStr = "Benchmark with addresses is ON"
+			benchmarkStr = "Benchmark with addresses is ON."
 		}
 		log.Println(benchmarkStr)
 		log.Println("Command line options -start -stop -hash -continue -path are ignored")
