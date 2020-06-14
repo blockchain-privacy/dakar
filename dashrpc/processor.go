@@ -271,10 +271,17 @@ mainLoop:
 	}
 
 	elapsedTime := time.Since(timerStart)
-	fmt.Printf("Final Blocks count: %v\n", blkCounter)
-	fmt.Printf("Final TX count: %v\n", txCounter)
-	fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
-		elapsedTime.Milliseconds()/int64(blkCounter))
+	if blkCounter > 0 {
+		fmt.Printf("Final Blocks count: %v\n", blkCounter)
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
+			elapsedTime.Milliseconds()/int64(blkCounter))
+	} else {
+		fmt.Println("Processed no new blocks")
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\n\n", elapsedTime)
+	}
+
 	return nil
 }
 

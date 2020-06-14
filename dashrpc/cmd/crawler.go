@@ -47,10 +47,10 @@ func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
 
 // saves cli arguments in cli structure
 func getCLIArgs() (cliArgs CLIArguments) {
-	badgerDir := flag.String("db", "/tmp/badger", "Badger database location")
+	badgerDir := flag.String("db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
 	processContinue := flag.Bool("continue", false, "Continue the previously started DB build process")
-	rpcUser := flag.String("rpcuser", "rpc1user", "Dash RPC user")
-	rpcPassword := flag.String("rpcpassword", "1234pass", "Dash RPC password")
+	rpcUser := flag.String("rpcuser", "rpc1user", "Dash RPC user (default: rpc1user)")
+	rpcPassword := flag.String("rpcpassword", "1234pass", "Dash RPC password (default: 1234pass)")
 	startBlockID := flag.Uint64("start", 0, "Start Block Id")
 	stopBlockID := flag.Uint64("stop", 0, "Stop Block Id")
 	startBlockHash := flag.String("hash", "", "Start Block Hash")
@@ -59,7 +59,7 @@ func getCLIArgs() (cliArgs CLIArguments) {
 	saveAddresses := flag.Bool("addresses", false, "Save addresses into database (default: false)")
 	rpcHost := flag.String("rpchost", "0.0.0.0", "Dash RPC host IP (default: 0.0.0.0)")
 	rpcPort := flag.Uint("rpcport", 9998, "Dash RPC port (default: 9998)")
-	logfile := flag.String("logfile", "", "Specify log file (default: crawler.log)")
+	logfile := flag.String("logfile", "", "Specify log file (default: none)")
 	flag.Parse()
 
 	cliArgs.badgerDir = *badgerDir
