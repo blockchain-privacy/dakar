@@ -29,6 +29,7 @@ type CLIArguments struct {
 	startBlockHash  string
 	isPrintStatus   bool
 	isBenchmark     bool
+	saveAddresses   bool
 	rpcEndpoint     string
 	logfile         string
 	err             error
@@ -53,8 +54,9 @@ func getCLIArgs() (cliArgs CLIArguments) {
 	startBlockID := flag.Uint64("start", 0, "Start Block Id")
 	stopBlockID := flag.Uint64("stop", 0, "Stop Block Id")
 	startBlockHash := flag.String("hash", "", "Start Block Hash")
-	isPrintStatus := flag.Bool("status", false, "Prints current processing status")
-	isBenchmark := flag.Bool("benchmark", false, "Run short performance test")
+	isPrintStatus := flag.Bool("status", false, "Prints current processing status (default: false)")
+	isBenchmark := flag.Bool("benchmark", false, "Run short performance test (default: false)")
+	saveAddresses := flag.Bool("addresses", false, "Save addresses into database (default: false)")
 	rpcHost := flag.String("rpchost", "0.0.0.0", "Dash RPC host IP (default: 0.0.0.0)")
 	rpcPort := flag.Uint("rpcport", 9998, "Dash RPC port (default: 9998)")
 	logfile := flag.String("logfile", "", "Specify log file (default: crawler.log)")
@@ -69,6 +71,7 @@ func getCLIArgs() (cliArgs CLIArguments) {
 	cliArgs.startBlockHash = *startBlockHash
 	cliArgs.isPrintStatus = *isPrintStatus
 	cliArgs.isBenchmark = *isBenchmark
+	cliArgs.saveAddresses = *saveAddresses
 	cliArgs.logfile = *logfile
 
 	ep, err := buildEndpoint(*rpcHost, *rpcPort)
@@ -149,7 +152,11 @@ func main() {
 	}
 
 	if cliArgs.isBenchmark {
-		log.Println("Benchmark is ON.")
+		benchmarkStr := "Benchmark is ON."
+		if cliArgs.saveAddresses {
+			benchmarkStr = "Benchmark with addresses is ON."
+		}
+		log.Println(benchmarkStr)
 		log.Println("Command line options -start -stop -hash -continue -path are ignored")
 		log.Printf("It takes about %v minutes to complete the benchmark"+
 			" on a high-end laptop.", 2)
@@ -254,7 +261,7 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-	err = dashrpc.ProcessNewBlocks(db, client, cliArgs.startBlockHash, cliArgs.startBlockID, cliArgs.stopBlockID)
+	err = dashrpc.ProcessNewBlocks(db, client, cliArgs.saveAddresses, cliArgs.startBlockHash, cliArgs.startBlockID, cliArgs.stopBlockID)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
