@@ -14,8 +14,8 @@
             <h1 class="align-center mt-3">Dash Explorer</h1>
           </v-flex>
           <v-flex xs7>
-            <v-form v-on:submit.prevent="searchTx(query)" class="d-flex mx-auto">
-              <v-text-field class="d-flex" full-width v-model="query" label="Blockchain search"/>
+            <v-form v-on:submit.prevent="handleQuery(query)" class="d-flex mx-auto">
+              <v-text-field class="d-flex" full-width v-model="query" label="Search for transactions and addresses"/>
             </v-form>
           </v-flex>
         </v-layout>
@@ -25,13 +25,14 @@
       <v-container fluid>
         <v-layout row>
           <v-flex>
-            <v-alert xs6 :value="errorMsg && errorMsg != ''" type="error">
+            <v-alert xs6 :value="errorMsg && errorMsg !== ''" type="error">
               {{ errorMsg }}
             </v-alert>
           </v-flex>
         </v-layout>
         <v-layout row>
           <TxLookup v-if="transaction" :data="transaction"/>
+          <AddressLookup v-if="address" :data="address"/>
         </v-layout>
       </v-container>
 
@@ -48,28 +49,39 @@
 
 <script>
   import TxLookup from "./components/TxLookup";
-
+  import AddressLookup from "./components/AddressLookup";
   export default {
     name: "App",
 
     components: {
-      TxLookup
+      TxLookup,
+      AddressLookup,
     },
 
     data: function () {
       return {
         query: "",
         errorMsg: null,
-        transaction: null
+        transaction: null,
+        address: null
       };
     },
 
     methods: {
+      handleQuery: function(q){
+          this.query = ""
+          this.errorMsg = null
+          this.transaction = null
+          this.address = null
+         this.searchTx(q).catch(() => {
+             // if transaction query fails, search for address
+             this.searchAddress(q)
+         })
+
+      },
       searchTx: function (q) {
-        this.query = ""
-        this.errorMsg = null
-        console.log("Searching clicked: " + q);
-        fetch("/tx/" + q)
+        console.log("Tx search: " + q);
+        return fetch("/tx/" + q)
           .then(response => {
             if (!response.ok) throw new Error(response.status + " " + response.statusText)
             return response
@@ -77,11 +89,23 @@
           .then(response => response.json())
           .then(data => {
             this.transaction = data;
-          })
-          .catch(error => {
-            this.errorMsg = error
           });
-      }
+      },
+      searchAddress: function (q) {
+              console.log("Address search: " + q);
+              fetch("/address/" + q)
+                .then(response => {
+                  if (!response.ok) throw new Error(response.status + " " + response.statusText)
+                  return response
+                })
+                .then(response => response.json())
+                .then(data => {
+                  this.address = data;
+                })
+                .catch(error => {
+                  this.errorMsg = error
+                });
+            }
     }
   };
 </script>
