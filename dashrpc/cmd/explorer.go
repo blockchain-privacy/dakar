@@ -45,14 +45,35 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handler builder
-//
+// API pattern: "/address/<hash>"
+// OUTPUT: dashrpc.AddressData
+func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		addressHashString := r.URL.Path[9:]
+		addressData := dashrpc.AddressData{}
+		err := dashrpc.DbGetDataForAddress(db, addressHashString, &addressData)
+		if err != nil {
+			http.Error(w, err.Error()+" Key: "+addressHashString, http.StatusNotFound)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(addressData)
+		if err != nil {
+			http.Error(w, err.Error()+" AddressData: "+addressData.Address, http.StatusInternalServerError)
+		}
+	}
+}
+
 // API pattern: "/txt/<hash>"
 // OUTPUT: dashrpc.Transaction
 func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
+
 		txHashString := r.URL.Path[4:]
 		txDetails := dashrpc.TxDetails{}
 		err := dashrpc.DbGetTxDetails(db, txHashString, &txDetails)
@@ -216,6 +237,7 @@ func main() {
 
 	// API end points
 	http.HandleFunc("/tx/", handlerTxDetails(db, client))
+	http.HandleFunc("/address/", handlerAddressDetails(db, client))
 	http.HandleFunc("/", handlerRoot)
 
 	// start the server
