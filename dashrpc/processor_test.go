@@ -141,7 +141,8 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ProcessTx(db, client, txHash)
+	// test without addresses
+	err = ProcessTx(db, client, false, txHash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -166,7 +167,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 
 }
 
-func TestProcessTxFromBlock49999(t *testing.T) {
+func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
 	db := setupDB(t)
 	defer tearDownDB(t, db)
 
@@ -174,7 +175,8 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
-	err := ProcessTx(db, client, txHash)
+	// test with addresses
+	err := ProcessTx(db, client, false, txHash)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -213,4 +215,109 @@ func TestProcessTxFromBlock49999(t *testing.T) {
 		t.Error(err)
 	}
 
+	// check if address is inserted
+	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
+	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
+
+	addressData1 := AddressData{}
+	addressData2 := AddressData{}
+
+	err = DbGetDataForAddress(db, addressHash1, &addressData1)
+	if err == nil {
+		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData1)
+		t.Error(msg)
+	}
+
+	err = DbGetDataForAddress(db, addressHash2, &addressData2)
+	if err == nil {
+		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData2)
+		t.Error(msg)
+	}
+}
+
+func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
+	db := setupDB(t)
+	defer tearDownDB(t, db)
+
+	client := setupRpcClient(t)
+
+	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
+
+	// test with addresses
+	err := ProcessTx(db, client, true, txHash)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	// check if TX details are okay
+	txDetails := TxDetails{}
+	err = DbGetTxDetails(db, txHash, &txDetails)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(txDetails.Outputs) != 2 ||
+		len(txDetails.Inputs) != 2 ||
+		txDetails.Outputs[0].Amount != 9.91547479 ||
+		txDetails.Outputs[1].Amount != 6.02335110 ||
+		len(txDetails.Outputs[0].Addresses) != 1 ||
+		len(txDetails.Outputs[1].Addresses) != 1 ||
+		txDetails.Outputs[0].Addresses[0] != "XrHBvi9hxQcrUfXsB9hK6V7hb2625s2kAV" ||
+		txDetails.Outputs[1].Addresses[0] != "Xstz9D2DNrrCWhAnsmiu1R144DesKNw22t" ||
+		txDetails.Outputs[0].IsCoinbase != false ||
+		txDetails.Outputs[1].IsCoinbase != false ||
+		txDetails.Outputs[0].Index != 0 ||
+		txDetails.Outputs[1].Index != 1 ||
+		len(txDetails.Inputs[0].Addresses) != 1 ||
+		len(txDetails.Inputs[1].Addresses) != 1 ||
+		txDetails.Inputs[0].Amount != 7.73616759 ||
+		txDetails.Inputs[1].Amount != 8.20365830 ||
+		txDetails.Inputs[0].Addresses[0] != "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z" ||
+		txDetails.Inputs[1].Addresses[0] != "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7" ||
+		txDetails.Inputs[0].IsCoinbase != false ||
+		txDetails.Inputs[1].IsCoinbase != false {
+		msg := fmt.Sprintf("Error: TX data does not match for TX af530c23992d74....\nData:\n%v\n", txDetails)
+		t.Error(msg)
+	}
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	// check if address is inserted
+	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
+	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
+
+	addressData1 := AddressData{}
+	addressData2 := AddressData{}
+
+	err = DbGetDataForAddress(db, addressHash1, &addressData1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = DbGetDataForAddress(db, addressHash2, &addressData2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if addressData1.Address != addressHash1 ||
+		len(addressData1.Txs) != 1 ||
+		addressData1.Txs[0].TxHash != "6cf491409356e4ef6fbe758fac68a69370d3ddfcdc442051f9334120692085cc" ||
+		addressData1.Txs[0].Amount != 7.73616759 ||
+		addressData1.Txs[0].Index != 0 ||
+		addressData1.Txs[0].IsCoinbase != false {
+		msg := fmt.Sprintf("Error: address data does not match  XooKzX2FFWZeka....\nData:\n%v\n", addressData1)
+		t.Error(msg)
+	}
+
+	if addressData2.Address != addressHash2 ||
+		len(addressData1.Txs) != 1 ||
+		addressData2.Txs[0].TxHash != "f45e46db10ab19a662ba98fe864ffa5149ede795e6bb5802ec92f3518bd5b833" ||
+		addressData2.Txs[0].Amount != 8.2036583 ||
+		addressData2.Txs[0].Index != 0 ||
+		addressData2.Txs[0].IsCoinbase != false {
+		msg := fmt.Sprintf("Error: address data does not match  XnLNnQVYQ9P2zc....\nData:\n%v\n", addressData2)
+		t.Error(msg)
+	}
 }

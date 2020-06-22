@@ -27,7 +27,8 @@ func TestMixingTransactions(t *testing.T) {
 	defer tearDownDB(t, db)
 
 	client := setupRpcClient(t)
-	err := ProcessNewBlocks(db, client, block850000, 850000, 849995)
+	// test with addresses
+	err := ProcessNewBlocks(db, client, true, block850000, 850000, 849995)
 	if err != nil {
 		t.Error(err)
 		return
