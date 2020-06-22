@@ -42,6 +42,47 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		log.Println(e)
 	}
+
+	_, e = fmt.Fprintln(w, "/address/<hash>\t-> Address details")
+	if e != nil {
+		log.Println(e)
+	}
+
+	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
+	if e != nil {
+		log.Println(e)
+	}
+}
+
+// API pattern: "/blk/<hash>"
+// OUTPUT: dashrpc.BlkDetails
+func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		blkHashString := r.URL.Path[5:]
+		block := dashrpc.Block{}
+		err := dashrpc.DbGetBlock(db, blkHashString, &block)
+		if err != nil {
+			http.Error(w, err.Error()+" Block hash: "+blkHashString, http.StatusNotFound)
+			return
+		}
+
+		blkDetails := dashrpc.BlkDetails{}
+
+		blkDetails.Hash = block.Hash.String()
+		blkDetails.Id = block.Id
+		blkDetails.NextBlockHash = block.NextBlockHash.String()
+		blkDetails.PrevBlockHash = block.PrevBlockHash.String()
+		blkDetails.TxHashes = block.TxHashes
+		blkDetails.Timestamp = block.Timestamp
+
+		err = json.NewEncoder(w).Encode(blkDetails)
+		if err != nil {
+			http.Error(w, err.Error()+" Block: "+blkDetails.String(), http.StatusInternalServerError)
+		}
+	}
 }
 
 // API pattern: "/address/<hash>"
@@ -189,6 +230,7 @@ func main() {
 	// API end points
 	http.HandleFunc("/tx/", handlerTxDetails(db, client))
 	http.HandleFunc("/address/", handlerAddressDetails(db, client))
+	http.HandleFunc("/blk/", handlerBlockDetails(db, client))
 	http.HandleFunc("/", handlerRoot)
 
 	// start the server

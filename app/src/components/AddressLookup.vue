@@ -48,24 +48,6 @@
             </v-card>
         </v-flex>
     </v-layout>
-    <!-- example tx json struct
-      {
-      "address": "XpUHYnvS2d4NsC2GqULvne4iqFd1QuhNzi",
-      "clusters": null,
-      "txs": [
-        {
-          "txhash": "0fde0403cd951be6883930d14229300fe0a05a8c9857d0a9ebc2a141817a2977",
-          "txtype": "",
-          "amount": 0.03257228,
-          "addresses": [
-            "XpUHYnvS2d4NsC2GqULvne4iqFd1QuhNzi"
-          ],
-          "index": 0,
-          "iscoinbase": false
-        }
-      ]
-     }
-     -->
 </template>
 
 <script>

@@ -9,10 +9,10 @@ import (
 
 // Database core data
 const (
-	ChainType_Block 		= "blk" // Block hash -> Block
-	ChainType_TxDetails 	= "txd" // TX hash -> TxDetails
-	ChainType_AddrData      = "add" // add -> AddressData
-	ChainType_Cluster	 	= "adc" // cluster ID -> ClusterData
+	ChainType_Block     = "blk" // Block hash -> Block
+	ChainType_TxDetails = "txd" // TX hash -> TxDetails
+	ChainType_AddrData  = "add" // add -> AddressData
+	ChainType_Cluster   = "adc" // cluster ID -> ClusterData
 )
 
 // ChainItem represents a generic blockchain item
@@ -25,7 +25,7 @@ type Transaction struct {
 	Tx            TxDetails `json:"tx"`
 	Bhash         string    `json:"bhash"`
 	Bheight       uint64    `json:"bheight"`
-	Bts           int64    `json:"bts"`
+	Bts           int64     `json:"bts"`
 	Confirmations uint64    `json:"confirmations"`
 	Version       int32     `json:"version"`
 }
@@ -40,32 +40,46 @@ type Block struct {
 	TxHashes      []string       `json:"txhashes"`
 }
 
+// BlkDetails represents transaction data
+type BlkDetails struct {
+	Hash          string    `json:"hash"`
+	Id            uint64    `json:"id"`
+	Timestamp     time.Time `json:"ts"`
+	PrevBlockHash string    `json:"prevblockhash"`
+	NextBlockHash string    `json:"nextblockhash"`
+	TxHashes      []string  `json:"txhashes"`
+}
+
+func (blk BlkDetails) String() string {
+	return fmt.Sprintf("hash: %s\nid:\n%timestamp:\n%v\n",
+		blk.Hash, blk.Id, blk.Timestamp)
+}
+
 // TxOutput represents simple value transfer from/to address(es)
 type TxOutput struct {
-	TxHash 		string  `json:"txhash"`
-	TxType 		string  `json:"txtype"`
-	Amount 		float64 `json:"amount"`
+	TxHash string  `json:"txhash"`
+	TxType string  `json:"txtype"`
+	Amount float64 `json:"amount"`
 	// For UTXO this will not be known yet
-	Addresses []string 	`json:"addresses"`
+	Addresses []string `json:"addresses"`
 	// For TXO this represents the index of the output in the transaction
-	Index      	int  	`json:"index"`
-	IsCoinbase 	bool 	`json:"iscoinbase"`
+	Index      int  `json:"index"`
+	IsCoinbase bool `json:"iscoinbase"`
 }
 
 // ClusterData represents the cluster information
 type ClusterData struct {
-	Addresses []string `json:"addresses"`	// addresses in this cluster
-	Name 		string `json:"name"` 		// this cluster name
-	Heuristic	string `json:"heuristic"` 	// heuristic name and version used to generate this cluster
+	Addresses []string `json:"addresses"` // addresses in this cluster
+	Name      string   `json:"name"`      // this cluster name
+	Heuristic string   `json:"heuristic"` // heuristic name and version used to generate this cluster
 }
 
 // AddressData represents the data associated with an address
 type AddressData struct {
-	Address 	string		`json:"address"`		// the actual string address
-	Clusters  []string		`json:"clusters"`	// Clusters with this address
-	Txs		  []TxOutput 	`json:"txs"`		// Tx with this address
+	Address  string     `json:"address"`  // the actual string address
+	Clusters []string   `json:"clusters"` // Clusters with this address
+	Txs      []TxOutput `json:"txs"`      // Tx with this address
 }
-
 
 func (tx TxOutput) String() string {
 	return fmt.Sprintf("hash: %s\ntype: %s\namount: %f\nisCoinbase: %v\naddresses: %v",
@@ -74,10 +88,10 @@ func (tx TxOutput) String() string {
 
 // TxDetails represents transaction data
 type TxDetails struct {
-	Hash      string		`json:"hash"`
-	Inputs    []TxOutput	`json:"inputs"`
-	Outputs   []TxOutput	`json:"outputs"`
-	Timestamp int64			`json:"ts"`
+	Hash      string     `json:"hash"`
+	Inputs    []TxOutput `json:"inputs"`
+	Outputs   []TxOutput `json:"outputs"`
+	Timestamp int64      `json:"ts"`
 }
 
 func (tx TxDetails) String() string {
