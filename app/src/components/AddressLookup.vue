@@ -1,5 +1,5 @@
 <template>
-    <v-layout row>
+    <v-layout row v-if="data">
         <v-flex xs12 sm8 offset-sm2>
             <v-card>
                 <v-card-title>
@@ -68,6 +68,10 @@
 <script>
     export default {
         name: 'AddressLookup',
-        props: ['data']
+        computed: {
+            data() {
+                return this.$store.getters.getAddressData;
+            }
+        },
     }
 </script>
