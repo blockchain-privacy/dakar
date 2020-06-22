@@ -1,10 +1,13 @@
 import Vue from 'vue'
 import App from './App.vue'
 import vuetify from './plugins/vuetify';
-import Vuex from 'vuex'
+import Vuex from 'vuex';
+import router from './router'
 
 Vue.config.productionTip = false
 
+// vuex store
+Vue.use(Vuex);
 const state = {
     msg: null,
     transaction: null,
@@ -76,7 +79,6 @@ const getters = {
     getAddressData: state => state.address,
 }
 
-Vue.use(Vuex);
 const store = new Vuex.Store({
     state,
     mutations,
@@ -87,5 +89,6 @@ const store = new Vuex.Store({
 new Vue({
     vuetify,
     store,
+    router,
     render: h => h(App)
 }).$mount('#app')

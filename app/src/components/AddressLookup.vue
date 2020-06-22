@@ -22,7 +22,10 @@
                         </v-list-item-avatar>
                         <v-list-item-content>
                             <v-list-item-title>Transaction</v-list-item-title>
-                            <v-list-item-subtitle>Hash: {{tx.txhash}}</v-list-item-subtitle>
+                            <v-list-item-subtitle>
+                                Hash:
+                                <router-link :to="tx.txhash">{{tx.txhash}}</router-link>
+                            </v-list-item-subtitle>
                             <v-list-item-subtitle>Amount: {{tx.amount}}</v-list-item-subtitle>
                             <v-list-item-subtitle>Index: {{tx.index}}</v-list-item-subtitle>
                             <v-list-item-subtitle v-if="tx.iscoinbase" :data="tx.iscoinbase">Coinbase:
@@ -72,6 +75,6 @@
             data() {
                 return this.$store.getters.getAddressData;
             }
-        },
+        }
     }
 </script>
