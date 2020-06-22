@@ -2,6 +2,7 @@ package main
 
 import (
 	"dashrpc"
+	cli "dashrpc/cmd/cliutil"
 	"dashrpc/rpcclient"
 	"errors"
 	"flag"
@@ -9,9 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -19,103 +18,47 @@ const benchmarkStartBlockID = 901500
 const benchmarkStopBlockID = 901250
 const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
 
-type CLIArguments struct {
-	badgerDir       string
-	processContinue bool
-	rpcUser         string
-	rpcPassword     string
-	startBlockID    uint64
-	stopBlockID     uint64
-	startBlockHash  string
-	isPrintStatus   bool
-	isBenchmark     bool
-	saveAddresses   bool
-	rpcEndpoint     string
-	logfile         string
-	err             error
-}
-
-func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
-	// check if ip is valid
-	if ip := net.ParseIP(rpcHost); ip == nil {
-		return "", errors.New("IP is not valid")
-	}
-
-	// build endpoint string
-	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
-}
-
-// saves cli arguments in cli structure
-func getCLIArgs() (cliArgs CLIArguments) {
-	badgerDir := flag.String("db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
-	processContinue := flag.Bool("continue", false, "Continue the previously started DB build process")
-	rpcUser := flag.String("rpcuser", "rpc1user", "Dash RPC user (default: rpc1user)")
-	rpcPassword := flag.String("rpcpassword", "1234pass", "Dash RPC password (default: 1234pass)")
-	startBlockID := flag.Uint64("start", 0, "Start Block Id")
-	stopBlockID := flag.Uint64("stop", 0, "Stop Block Id")
-	startBlockHash := flag.String("hash", "", "Start Block Hash")
-	isPrintStatus := flag.Bool("status", false, "Prints current processing status (default: false)")
-	isBenchmark := flag.Bool("benchmark", false, "Run short performance test (default: false)")
-	saveAddresses := flag.Bool("addresses", false, "Save addresses into database (default: false)")
-	rpcHost := flag.String("rpchost", "0.0.0.0", "Dash RPC host IP (default: 0.0.0.0)")
-	rpcPort := flag.Uint("rpcport", 9998, "Dash RPC port (default: 9998)")
-	logfile := flag.String("logfile", "", "Specify log file (default: none)")
-	flag.Parse()
-
-	cliArgs.badgerDir = *badgerDir
-	cliArgs.processContinue = *processContinue
-	cliArgs.rpcUser = *rpcUser
-	cliArgs.rpcPassword = *rpcPassword
-	cliArgs.startBlockID = *startBlockID
-	cliArgs.stopBlockID = *stopBlockID
-	cliArgs.startBlockHash = *startBlockHash
-	cliArgs.isPrintStatus = *isPrintStatus
-	cliArgs.isBenchmark = *isBenchmark
-	cliArgs.saveAddresses = *saveAddresses
-	cliArgs.logfile = *logfile
-
-	ep, err := buildEndpoint(*rpcHost, *rpcPort)
+func getCLIArgs() (cliArgs cli.Arguments, err error) {
+	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.SaveAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
-		cliArgs.err = err
-		return cliArgs
+		return cliArgs, err
 	}
 
-	cliArgs.rpcEndpoint = ep
-
-	if !*isPrintStatus && !*processContinue && !*isBenchmark && (*startBlockID == 0 || *startBlockHash == "" || *stopBlockID == 0) {
+	if !cliArgs.IsPrintStatus && !cliArgs.ProcessContinue && !cliArgs.IsBenchmark &&
+		(cliArgs.StartBlockID == 0 || cliArgs.StartBlockHash == "" || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
-		cliArgs.err = errors.New("missing block information")
-		return cliArgs
+		err = errors.New("missing block information")
+		return cliArgs, err
 	}
 
 	// startBlockID must be bigger than stopBlockID, as we go backwards
-	if *startBlockID < *stopBlockID {
+	if cliArgs.StartBlockID < cliArgs.StopBlockID {
 		flag.PrintDefaults()
-		cliArgs.err = errors.New("start must be bigger than stop")
-		return cliArgs
+		err = errors.New("start must be bigger than stop")
+		return cliArgs, err
 	}
 
-	if *isBenchmark {
-		cliArgs.startBlockHash = benchmarkStartBlockHash
-		cliArgs.startBlockID = benchmarkStartBlockID
-		cliArgs.stopBlockID = benchmarkStopBlockID
-		cliArgs.processContinue = false
-		cliArgs.isPrintStatus = false
+	if cliArgs.IsBenchmark {
+		cliArgs.StartBlockHash = benchmarkStartBlockHash
+		cliArgs.StartBlockID = benchmarkStartBlockID
+		cliArgs.StopBlockID = benchmarkStopBlockID
+		cliArgs.ProcessContinue = false
+		cliArgs.IsPrintStatus = false
 
 		// temp dir will be deleted later on
 		dirName, err := ioutil.TempDir("", "dashrpc")
 
 		if err != nil {
 			flag.PrintDefaults()
-			cliArgs.err = err
-			return cliArgs
+			return cliArgs, err
 		}
-		cliArgs.badgerDir = dirName
+		cliArgs.BadgerDir = dirName
 	}
 
-	return cliArgs
+	return cliArgs, err
 }
 
 // The main crawler for the system. It needs to be run prior to using any of the other
@@ -128,15 +71,15 @@ func getCLIArgs() (cliArgs CLIArguments) {
 // to run continuously in the background and share the DB with other API queries.
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
-	cliArgs := getCLIArgs()
-	if cliArgs.err != nil {
-		fmt.Println(cliArgs.err)
+	cliArgs, err := getCLIArgs()
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
 	// setup Logging
-	if len(cliArgs.logfile) > 0 {
-		f, err := os.OpenFile(cliArgs.logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if len(cliArgs.Logfile) > 0 {
+		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 		if err != nil {
 			fmt.Println("Error opening log file", err)
 			return
@@ -151,9 +94,9 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	if cliArgs.isBenchmark {
+	if cliArgs.IsBenchmark {
 		benchmarkStr := "Benchmark is ON."
-		if cliArgs.saveAddresses {
+		if cliArgs.SaveAddresses {
 			benchmarkStr = "Benchmark with addresses is ON."
 		}
 		log.Println(benchmarkStr)
@@ -163,14 +106,14 @@ func main() {
 
 		// remove temp dir at the end
 		defer func() {
-			err := os.RemoveAll(cliArgs.badgerDir)
+			err := os.RemoveAll(cliArgs.BadgerDir)
 			if err != nil {
 				log.Printf("Error: %v\n", err)
 			}
 		}()
 	}
 
-	db := dashrpc.SetupBadgerDB(cliArgs.badgerDir)
+	db := dashrpc.SetupBadgerDB(cliArgs.BadgerDir)
 	defer func() {
 		e := db.Close()
 		if e != nil { /* ignore */
@@ -180,7 +123,7 @@ func main() {
 	dbBlockCount := dashrpc.DbGetBlockCount(db)
 	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
 	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
-	if cliArgs.isPrintStatus {
+	if cliArgs.IsPrintStatus {
 		dashrpc.PrintStatus(db)
 		return
 	}
@@ -189,21 +132,21 @@ func main() {
 	dashrpc.DbGetStatus(db, &dbStatus)
 	log.Printf("DB status: %s\n", dbStatus)
 
-	if dbStatus == dashrpc.DbBlockStatusFinished && cliArgs.processContinue && cliArgs.stopBlockID == 0 {
+	if dbStatus == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
 		log.Println("\nError: when processing is finished to continue provide -stop option")
 		return
 	}
 
-	if cliArgs.processContinue && (cliArgs.startBlockHash != "" || cliArgs.startBlockID != 0) {
+	if cliArgs.ProcessContinue && (cliArgs.StartBlockHash != "" || cliArgs.StartBlockID != 0) {
 		log.Println("\nError: cannot use -continue and start/stop options in the command line")
 		return
 	}
 
 	// Setup the RPC connection
 	var conn = rpcclient.ConnConfig{
-		Host:       cliArgs.rpcEndpoint,
-		User:       cliArgs.rpcUser,
-		Pass:       cliArgs.rpcPassword,
+		Host:       cliArgs.RpcEndpoint,
+		User:       cliArgs.RpcUser,
+		Pass:       cliArgs.RpcPassword,
 		DisableTLS: true,
 	}
 
@@ -220,18 +163,18 @@ func main() {
 	}
 	log.Printf("Current block count in the chain: %v\n", count)
 
-	if cliArgs.processContinue {
-		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.startBlockID)
+	if cliArgs.ProcessContinue {
+		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
 		if err != nil {
 			log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
 			return
 		}
-		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.startBlockHash)
+		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.StartBlockHash)
 		if err != nil {
 			log.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
 			return
 		}
-		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.stopBlockID)
+		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)
 		if err != nil {
 			log.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
 			return
@@ -261,7 +204,7 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-	err = dashrpc.ProcessNewBlocks(db, client, cliArgs.saveAddresses, cliArgs.startBlockHash, cliArgs.startBlockID, cliArgs.stopBlockID)
+	err = dashrpc.ProcessNewBlocks(db, client, cliArgs.SaveAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
@@ -273,7 +216,7 @@ func main() {
 		return
 	}
 
-	if cliArgs.isBenchmark {
+	if cliArgs.IsBenchmark {
 		time.Sleep(time.Second * 5) // need to give time to Badger to shutdown
 	}
 }
