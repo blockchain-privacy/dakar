@@ -4,7 +4,7 @@
             <v-card>
                 <v-card-title>
                     <v-icon>mdi-bank-transfer</v-icon>
-                    Transaction
+                    Block
                 </v-card-title>
                 <v-list two-line subheader>
                     <v-list-item>
@@ -14,53 +14,53 @@
                         <v-list-item-content>
                             <v-list-item-title>HASH</v-list-item-title>
                             <v-list-item-subtitle>
-                                <router-link :to="data.tx.hash">{{data.tx.hash}}</router-link>
+                                <router-link :to="data.hash">{{data.hash}}</router-link>
                             </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                     <v-list-item>
                         <v-list-item-avatar>
-                            <v-icon>mdi-calendar</v-icon>
+                            <v-icon>mdi-pound</v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
-                            <v-list-item-title>DATE</v-list-item-title>
-                            <v-list-item-subtitle>ts: {{data.tx.bts}} - {{new Date(data.tx.bts)}}</v-list-item-subtitle>
+                            <v-list-item-title>ID</v-list-item-title>
+                            <v-list-item-subtitle>
+                                {{data.id}}
+                            </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                     <v-list-item>
                         <v-list-item-avatar>
-                            <v-icon></v-icon>
+                            <v-icon>mdi-format-header-pound</v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
-                            <v-list-item-title>Confirmations</v-list-item-title>
-                            <v-list-item-subtitle>{{data.confirmations}}</v-list-item-subtitle>
+                            <v-list-item-title>Previous Block</v-list-item-title>
+                            <v-list-item-subtitle>
+                                <router-link :to="data.prevblockhash">{{data.prevblockhash}}</router-link>
+                            </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                     <v-list-item>
                         <v-list-item-avatar>
-                            <v-icon></v-icon>
+                            <v-icon>mdi-format-header-pound</v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
-                            <v-list-item-title>Block</v-list-item-title>
-                            <v-list-item-subtitle>{{data.bheight}} - {{data.bhash}}</v-list-item-subtitle>
+                            <v-list-item-title>Next Block</v-list-item-title>
+                            <v-list-item-subtitle>
+                                <router-link :to="data.nextblockhash">{{data.nextblockhash}}</router-link>
+                            </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
-                    <v-list-item>
+                    <v-list-item v-for="tx in data.txhashes" v-bind:key="tx">
                         <v-list-item-avatar>
                             <v-icon></v-icon>
                         </v-list-item-avatar>
                         <v-list-item-content>
-                            <v-list-item-title>Inputs</v-list-item-title>
-                            <v-list-item-subtitle>{{data.tx.inputs.length}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Outputs</v-list-item-title>
-                            <v-list-item-subtitle>{{data.tx.outputs.length}}</v-list-item-subtitle>
+                            <v-list-item-title>Transaction</v-list-item-title>
+                            <v-list-item-subtitle>
+                                Hash:
+                                <router-link :to="tx">{{tx}}</router-link>
+                            </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                 </v-list>
@@ -75,11 +75,11 @@
 
 <script>
     export default {
-        name: 'TxLookup',
+        name: 'BlockLookup',
         computed: {
             data() {
-                return this.$store.getters.getTransactionData;
+                return this.$store.getters.getBlockData;
             }
-        },
+        }
     }
 </script>

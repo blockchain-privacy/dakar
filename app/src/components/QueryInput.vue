@@ -6,7 +6,7 @@
 </template>
 
 <script>
-    function newRouting(context, id){
+    function newRouting(context, id) {
         if (id === undefined) {
             return;
         }
@@ -56,6 +56,14 @@
                     this.$store.dispatch('setAddressData', value);
                 }
             },
+            block: {
+                get() {
+                    return this.$store.getters.getBlockData;
+                },
+                set(value) {
+                    this.$store.dispatch('setBlockData', value);
+                }
+            },
         },
         methods: {
             handleQuery: function (q, origin) {
@@ -74,9 +82,12 @@
                     return;
                 }
 
-                this.searchTx(q).catch(() => {
-                    // if transaction query fails, search for address
-                    this.searchAddress(q)
+                this.searchBlock(q).catch(() => {
+                    // if block query fails, search for transaction
+                    this.searchTx(q).catch(() => {
+                        // if transaction query fails, search for address
+                        this.searchAddress(q);
+                    })
                 });
             },
             isValidData: function (str) {
@@ -84,10 +95,23 @@
                 return str.length >= 34;
             },
             resetData: function () {
-                this.query = ""
+                this.query = "";
                 this.$store.dispatch('resetMsg');
                 this.transaction = null;
                 this.address = null;
+                this.block = null;
+            },
+            searchBlock: function (q) {
+                console.log("Block search: " + q);
+                return fetch("/blk/" + q)
+                    .then(response => {
+                        if (!response.ok) throw new Error(response.status + " " + response.statusText)
+                        return response
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        this.block = data;
+                    })
             },
             searchTx: function (q) {
                 console.log("Tx search: " + q);
@@ -121,7 +145,7 @@
             newRouting(this, this.$route.params.id);
         },
         watch: {
-            '$route' (to) {
+            '$route'(to) {
                 newRouting(this, to.params.id);
             }
         }

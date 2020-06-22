@@ -40,7 +40,6 @@
 <script>
     import QueryInput from "./components/QueryInput";
     import MsgBox from "./components/MsgBox";
-    //import RouterView from "./components/RouterView";
 
     export default {
         name: "App",

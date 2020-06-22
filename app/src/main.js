@@ -11,7 +11,8 @@ Vue.use(Vuex);
 const state = {
     msg: null,
     transaction: null,
-    address: null
+    address: null,
+    block: null
 }
 
 function getMsg(context) {
@@ -31,6 +32,9 @@ const mutations = {
     },
     SET_ADDRESS_DATA(state, payload) {
         state.address = payload;
+    },
+    SET_BLOCK_DATA(state, payload) {
+        state.block = payload;
     }
 }
 
@@ -63,6 +67,9 @@ const actions = {
     },
     setAddressData(context, payload) {
         context.commit('SET_ADDRESS_DATA', payload);
+    },
+    setBlockData(context, payload) {
+        context.commit('SET_BLOCK_DATA', payload);
     }
 }
 
@@ -77,6 +84,7 @@ const getters = {
         state.msg.warning : null,
     getTransactionData: state => state.transaction,
     getAddressData: state => state.address,
+    getBlockData: state => state.block
 }
 
 const store = new Vuex.Store({
