@@ -13,7 +13,7 @@
                         </v-list-item-avatar>
                         <v-list-item-content>
                             <v-list-item-title>HASH</v-list-item-title>
-                            <v-list-item-subtitle>{{data.tx.hash}}</v-list-item-subtitle>
+                            <v-list-item-subtitle><router-link :to="data.tx.hash">{{data.tx.hash}}</router-link></v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                     <v-list-item>

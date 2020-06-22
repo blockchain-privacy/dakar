@@ -1,18 +1,26 @@
 <template>
-    <v-form v-on:submit.prevent="handleQuery(query)" class="d-flex mx-auto">
+    <v-form v-on:submit.prevent="handleQuery(query,'user')" class="d-flex mx-auto">
         <v-text-field class="d-flex" full-width v-model="query"
                       label="Search for transactions and addresses"/>
     </v-form>
 </template>
 
 <script>
+    function newRouting(context, id){
+        if (id === undefined) {
+            return;
+        }
+        context.handleQuery(id, 'route');
+    }
+
     export default {
         name: "QueryInput",
         data() {
             return {
                 // query is not managed by the vuex store
                 // as it only needs to be accessed by this component
-                query: ""
+                query: "",
+                lastQuery: ""
             };
         },
         computed: {
@@ -50,7 +58,16 @@
             },
         },
         methods: {
-            handleQuery: function (q) {
+            handleQuery: function (q, origin) {
+                if (origin === 'user' && q !== this.lastQuery) {
+                    // update route only when input is from user and query is different
+                    this.$router.push({name: 'Search Page', params: {id: q}});
+                } else if (origin === 'route') {
+                    // do nothing -> route is already up to date
+                }
+
+                this.lastQuery = q;
+
                 this.resetData();
                 if (!this.isValidData(q)) {
                     this.warningMsg = "Input was not valid!";
@@ -62,7 +79,7 @@
                     this.searchAddress(q)
                 });
             },
-            isValidData: function  (str) {
+            isValidData: function (str) {
                 // TODO: check if str is address or transaction, also calculate checksum
                 return str.length >= 34;
             },
@@ -98,6 +115,14 @@
                     .catch(error => {
                         this.errorMsg = error;
                     });
+            }
+        },
+        created: function () {
+            newRouting(this, this.$route.params.id);
+        },
+        watch: {
+            '$route' (to) {
+                newRouting(this, to.params.id);
             }
         }
     }

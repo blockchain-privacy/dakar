@@ -22,12 +22,10 @@
         <v-content>
             <v-container fluid>
                 <MsgBox/>
-                <v-layout row>
-                    <TxLookup />
-                    <AddressLookup />
-                </v-layout>
+                <transition name="fade">
+                    <router-view/>
+                </transition>
             </v-container>
-
             <v-footer class="pa-3" fixed>
                 <v-spacer></v-spacer>
                 <div>
@@ -40,17 +38,14 @@
 </template>
 
 <script>
-    import TxLookup from "./components/TxLookup";
-    import AddressLookup from "./components/AddressLookup";
     import QueryInput from "./components/QueryInput";
     import MsgBox from "./components/MsgBox";
+    //import RouterView from "./components/RouterView";
 
     export default {
         name: "App",
         components: {
             MsgBox,
-            TxLookup,
-            AddressLookup,
             QueryInput
         }
     };
