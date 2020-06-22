@@ -42,7 +42,10 @@
                         </v-list-item-avatar>
                         <v-list-item-content>
                             <v-list-item-title>Block</v-list-item-title>
-                            <v-list-item-subtitle>{{data.bheight}} - {{data.bhash}}</v-list-item-subtitle>
+                            <v-list-item-subtitle>
+                                {{data.bheight}} -
+                                <router-link :to="data.bhash">{{data.bhash}}</router-link>
+                            </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>
                     <v-list-item>
