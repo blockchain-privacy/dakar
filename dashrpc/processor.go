@@ -16,7 +16,7 @@ import (
 )
 
 // ProcessTx process transaction, and the Vout and Vin records
-func ProcessTx(db *badger.DB, client *rpcclient.Client, txHashString string) error {
+func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, txHashString string) error {
 	txDetails := TxDetails{}
 	err := DbGetTxDetails(db, txHashString, &txDetails)
 	if err == nil {
@@ -39,7 +39,7 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, txHashString string) err
 	txDetails.Hash = tx.Txid
 	txDetails.Timestamp = tx.Time
 	for index, d := range tx.Vin {
-		err := processTxVin(db, client, &txDetails, d, index)
+		err := processTxVin(db, client, processAddresses, &txDetails, d, index)
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
 		}
@@ -55,7 +55,7 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, txHashString string) err
 	return DbSetTxDetails(db, txDetails)
 }
 
-func processTxVin(db *badger.DB, client *rpcclient.Client, details *TxDetails, vin btcjson.Vin, index int) error {
+func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool, details *TxDetails, vin btcjson.Vin, index int) error {
 	out := TxOutput{}
 	out.IsCoinbase = vin.IsCoinBase()
 	out.TxHash = vin.Txid
@@ -79,15 +79,18 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, details *TxDetails, v
 	out.Amount = tx.Vout[vin.Vout].Value
 	out.Addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
 
-	// Let's associate the address with Tx
-	for _, addr := range out.Addresses {
-		err = DbAddTxToAddress(db, addr, out)
-		if err != nil {
-			// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
-			// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
+	if processAddresses {
+		// Let's associate the address with Tx
+		for _, addr := range out.Addresses {
+			err = DbAddTxToAddress(db, addr, out)
+			if err != nil {
+				// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
+				// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
 
+			}
 		}
 	}
+
 	out.Index = index
 
 	details.Inputs = append(details.Inputs, out)
@@ -144,10 +147,11 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 
 // ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(db *badger.DB,
-		client *rpcclient.Client,
-		startingBlockHash string,
-		startingBlockId uint64,
-		stoppingBlockId uint64) error {
+	client *rpcclient.Client,
+	processAddresses bool,
+	startingBlockHash string,
+	startingBlockId uint64,
+	stoppingBlockId uint64) error {
 
 	timerStart := time.Now()
 	DbSetStatus(db, DbBlockStatusProcessing)
@@ -173,13 +177,14 @@ func ProcessNewBlocks(db *badger.DB,
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	// Main loop
-	mainLoop: for {
+mainLoop:
+	for {
 		select {
-			case <- c:
-				fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
-					startingBlockId, lastBlockHash)
-				break mainLoop
-			default:
+		case <-c:
+			fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
+				startingBlockId, lastBlockHash)
+			break mainLoop
+		default:
 			// we do nothing
 		}
 		block := Block{}
@@ -222,7 +227,7 @@ func ProcessNewBlocks(db *badger.DB,
 
 		blkCounter++
 		if blkCounter%20000 == 0 {
-			fmt.Printf("%v * 20k blocks done\n", blkCounter / 20000)
+			fmt.Printf("%v * 20k blocks done\n", blkCounter/20000)
 		}
 	}
 	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
@@ -240,7 +245,7 @@ func ProcessNewBlocks(db *badger.DB,
 
 		txs := block.TxHashes
 		for _, t := range txs {
-			err = ProcessTx(db, client, t)
+			err = ProcessTx(db, client, processAddresses, t)
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
@@ -251,13 +256,13 @@ func ProcessNewBlocks(db *badger.DB,
 			DbIncrementGlobalTxCount(db)
 
 			if txCounter%5000 == 0 {
-				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter / 5000, block.Id, block.Hash)
+				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, block.Id, block.Hash)
 				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
 			}
 		}
 
 		blockHash = block.PrevBlockHash.String()
-		saveProcessingState(db, blockHash, block.Id - 1)
+		saveProcessingState(db, blockHash, block.Id-1)
 		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
 			block.Id == stoppingBlockId {
 			saveProcessingStateFinished(db)
@@ -266,10 +271,17 @@ func ProcessNewBlocks(db *badger.DB,
 	}
 
 	elapsedTime := time.Since(timerStart)
-	fmt.Printf("Final Blocks count: %v\n", blkCounter)
-	fmt.Printf("Final TX count: %v\n", txCounter)
-	fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
-		elapsedTime.Milliseconds() / int64(blkCounter))
+	if blkCounter > 0 {
+		fmt.Printf("Final Blocks count: %v\n", blkCounter)
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
+			elapsedTime.Milliseconds()/int64(blkCounter))
+	} else {
+		fmt.Println("Processed no new blocks")
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\n\n", elapsedTime)
+	}
+
 	return nil
 }
 

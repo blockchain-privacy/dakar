@@ -2,19 +2,65 @@ package main
 
 import (
 	"dashrpc"
+	cli "dashrpc/cmd/cliutil"
 	"dashrpc/rpcclient"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
 	"os"
-	"strconv"
 	"time"
 )
 
-// "random" temporary badger DB location for benchmarking. Not used for anything else.
-// should be deleted automatically
-const badgerBenchmarkPath = "/tmp/tmpBadger_321"
+const benchmarkStartBlockID = 901500
+const benchmarkStopBlockID = 901250
+const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
 
-//
+func getCLIArgs() (cliArgs cli.Arguments, err error) {
+	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
+
+	if err != nil {
+		flag.PrintDefaults()
+		return cliArgs, err
+	}
+
+	if !cliArgs.IsPrintStatus && !cliArgs.ProcessContinue && !cliArgs.IsBenchmark &&
+		(cliArgs.StartBlockID == 0 || cliArgs.StartBlockHash == "" || cliArgs.StopBlockID == 0) {
+		flag.PrintDefaults()
+		err = errors.New("missing block information")
+		return cliArgs, err
+	}
+
+	// startBlockID must be bigger than stopBlockID, as we go backwards
+	if cliArgs.StartBlockID < cliArgs.StopBlockID {
+		flag.PrintDefaults()
+		err = errors.New("start must be bigger than stop")
+		return cliArgs, err
+	}
+
+	if cliArgs.IsBenchmark {
+		cliArgs.StartBlockHash = benchmarkStartBlockHash
+		cliArgs.StartBlockID = benchmarkStartBlockID
+		cliArgs.StopBlockID = benchmarkStopBlockID
+		cliArgs.ProcessContinue = false
+		cliArgs.IsPrintStatus = false
+
+		// temp dir will be deleted later on
+		dirName, err := ioutil.TempDir("", "dashrpc")
+
+		if err != nil {
+			flag.PrintDefaults()
+			return cliArgs, err
+		}
+		cliArgs.BadgerDir = dirName
+	}
+
+	return cliArgs, err
+}
+
 // The main crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Badger DB to be pre-created.
 //
@@ -23,119 +69,118 @@ const badgerBenchmarkPath = "/tmp/tmpBadger_321"
 //
 // Note: in the future, the crawler could be integrated with the backend-web service as
 // to run continuously in the background and share the DB with other API queries.
-//
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
-
-	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
-	processContinue := flag.Bool("continue", false, "continue the previously started DB build process")
-	rpcUser := flag.String("rpcuser", "rpc1user", "Dash RPC user")
-	rpcPassword := flag.String("rpcpassword", "1234pass", "Dash RPC password")
-	startBlockID := flag.String("start", "", "Start Block Id")
-	stopBlockID := flag.String("stop", "", "Stop Block Id")
-	startBlockHash := flag.String("hash", "", "Start Block Hash")
-	isPrintStatus := flag.Bool("status", false, "prints current processing status")
-	isBenchmark := flag.Bool("benchmark", false, "run short performance test")
-
-	flag.Parse()
-	if !*isPrintStatus &&
-		!*processContinue &&
-		!*isBenchmark && (*startBlockID == "" || *startBlockHash == "" || *stopBlockID == "") {
-		flag.PrintDefaults()
+	cliArgs, err := getCLIArgs()
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
-	if *isBenchmark {
-		fmt.Println("Benchmark is ON.")
-		fmt.Println("Command line options -start -stop -hash -continue -path are ignored")
-		fmt.Printf("\nIt takes about %v minutes to complete the benchmark" +
-			" on a high-end laptop.\n\n", 2)
-		*startBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
-		*startBlockID = "901500"
-		*stopBlockID = "901250"
-		*processContinue = false
-		*isPrintStatus = false
-		*badgerDir = badgerBenchmarkPath
+
+	// setup Logging
+	if len(cliArgs.Logfile) > 0 {
+		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println("Error opening log file", err)
+			return
+		}
+		defer func() {
+			err = f.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
+		log.SetPrefix("crawler ")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
-	db := dashrpc.SetupBadgerDB(*badgerDir)
+
+	if cliArgs.IsBenchmark {
+		benchmarkStr := "Benchmark is ON."
+		if cliArgs.ExcludeAddresses {
+			benchmarkStr = "Benchmark without addresses is ON."
+		}
+		log.Println(benchmarkStr)
+		log.Println("Command line options -start -stop -hash -continue -path are ignored")
+		log.Printf("It takes about %v minutes to complete the benchmark"+
+			" on a high-end laptop.", 2)
+
+		// remove temp dir at the end
+		defer func() {
+			err := os.RemoveAll(cliArgs.BadgerDir)
+			if err != nil {
+				log.Printf("Error: %v\n", err)
+			}
+		}()
+	}
+
+	db := dashrpc.SetupBadgerDB(cliArgs.BadgerDir)
 	defer func() {
 		e := db.Close()
 		if e != nil { /* ignore */
 		}
 	}()
 
-
 	dbBlockCount := dashrpc.DbGetBlockCount(db)
 	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
-	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
-	if *isPrintStatus {
+	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
+	if cliArgs.IsPrintStatus {
 		dashrpc.PrintStatus(db)
 		return
 	}
 
 	var dbStatus string
 	dashrpc.DbGetStatus(db, &dbStatus)
-	fmt.Printf("DB status: %s\n", dbStatus)
-	if dbStatus == dashrpc.DbBlockStatusFinished && *processContinue && *stopBlockID == ""{
-		fmt.Println("\nError: when processing is finished to continue provide -stop option")
+	log.Printf("DB status: %s\n", dbStatus)
+
+	if dbStatus == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
+		log.Println("\nError: when processing is finished to continue provide -stop option")
 		return
 	}
-	if *processContinue && (*startBlockHash != "" || *startBlockID != "") {
-		fmt.Println("\nError: cannot use -continue and start/stop options in the command line")
+
+	if cliArgs.ProcessContinue && (cliArgs.StartBlockHash != "" || cliArgs.StartBlockID != 0) {
+		log.Println("\nError: cannot use -continue and start/stop options in the command line")
+		return
 	}
 
 	// Setup the RPC connection
 	var conn = rpcclient.ConnConfig{
-		Host:       "0.0.0.0:9998",
-		User:       *rpcUser,
-		Pass:       *rpcPassword,
+		Host:       cliArgs.RpcEndpoint,
+		User:       cliArgs.RpcUser,
+		Pass:       cliArgs.RpcPassword,
 		DisableTLS: true,
 	}
+
 	client, err := rpcclient.New(&conn)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
+		return
 	}
+
 	count, err := client.GetBlockCount()
 	if err != nil {
-		fmt.Printf("\nError: problem with count() %s\n", err.Error())
+		log.Printf("\nError: problem with count() %s\n", err.Error())
 		return
 	}
-	fmt.Printf("Current block count in the chain: %v\n", count)
+	log.Printf("Current block count in the chain: %v\n", count)
 
-	if *processContinue {
-		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockId, startBlockID)
+	if cliArgs.ProcessContinue {
+		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
 		if err != nil {
-			fmt.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
+			log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
 			return
 		}
-		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, startBlockHash)
+		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.StartBlockHash)
 		if err != nil {
-			fmt.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
+			log.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
 			return
 		}
-		err = dashrpc.DbGetString(db, dashrpc.DbBlockStopBlockId, stopBlockID)
+		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)
 		if err != nil {
-			fmt.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
+			log.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
 			return
 		}
 	}
 
-	if *startBlockID == "" || *startBlockHash == "" {
-		fmt.Println("\nMissing block ID or block Hash. They need to match!")
-		return
-	}
-
-	startingBlockId, err := strconv.ParseUint(*startBlockID, 10, 64)
-	if err != nil {
-		fmt.Printf("\nError %v\n", err.Error())
-		return
-	}
-	startingBlockHash := *startBlockHash
-
-	stopingBlockId, err := strconv.ParseUint(*stopBlockID, 10, 64)
-	if err != nil {
-		fmt.Printf("\nError %v\n", err.Error())
-		return
-	}
 	//startingBlockId := uint64(1060000)
 	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
 
@@ -159,22 +204,19 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-	err = dashrpc.ProcessNewBlocks(db, client, startingBlockHash, startingBlockId, stopingBlockId)
+	err = dashrpc.ProcessNewBlocks(db, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
+		return
 	}
 
 	err = db.Close()
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
+		return
 	}
-	if *isBenchmark {
+
+	if cliArgs.IsBenchmark {
 		time.Sleep(time.Second * 5) // need to give time to Badger to shutdown
-		err = os.RemoveAll(badgerBenchmarkPath)
-		if err != nil {
-			fmt.Printf("Error: %v\n", err)
-		}
 	}
 }
-
-

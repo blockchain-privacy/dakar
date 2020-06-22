@@ -1,0 +1,96 @@
+# CLI-Util
+
+This is a module to centralize CLI flags parsing and error handling for Dakar command line utilities.
+
+## Using this module
+
+In the Go code import the module and specify via the constants provided by the module the flags which should be used. 
+
+```go
+package main
+
+import (
+	cli "dashrpc/cmd/cliutil"
+)
+
+cliArgs, err := cli.BuildArgs(cli.BadgerDirectory, cli.Logfile)
+	if err != nil {
+		flag.PrintDefaults()
+		return cliArgs, err
+	}
+```
+
+## Adding a new flag
+
+Add the new flag `newFlag` to the "enum". Exported Variables must me uppercase.
+
+```go
+const (
+	BadgerDirectory Flag = iota
+	NewFlag
+	...
+)
+```
+
+Add it to the return type `Arguments`.
+
+```go 
+type Arguments struct {
+	BadgerDir string
+	NewFlag   int
+	...
+}
+```
+
+Create a function which sets up the flag. 
+
+Conventions
+- Add the default value to the flag description
+- The flag should be completely lowercase
+- For boolean flags default value is `false`
+
+```go
+func addBadgerDir(v *string) {
+	flag.StringVar(v, "db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
+}
+
+func addNewFlag(v *int) {
+	flag.IntVar(v, "newflag", 0, "New flag description (default: 0)")
+}
+```
+Connect it all in the function `BuildArgs` by adding the new flag to the switch block in the for loop.
+
+```go
+for _, f := range flags {
+    switch f {
+    case BadgerDirectory:
+        addBadgerDir(&args.BadgerDir)
+        break
+    case ProcessContinue:
+        addNewFlag(&args.NewFlag)
+        break
+    ...
+    }
+} 
+```
+
+If the new flag needs some >>simple<< input verification, implement it in this module. Additionally, add the new flag to the table of this `Readme` file.
+
+## Available CLI flags
+
+| Flag | Default Value | Description |
+|----------|:-------------:|------:|
+| db | /tmp/badger | Badger database location (default: /tmp/badger) |
+| continue | false | Continue the previously started DB build process |
+| rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
+| rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
+| start | 0 | Start Block Id (default: 0)|
+| stop | 0 | Stop Block Id (default: 0) |
+| hash | < empty string > | Start Block Hash (default: none) |
+| status | false | Prints current processing status (default: false) |
+| benchmark | false | Run short performance test (default: false) |
+| excludeaddresses | false | Exclude addresses from saving into the database (default: false) |
+| rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
+| rpcport | 9998 | Dash RPC port (default: 9998) |
+| logfile | < empty string > | Specify log file (default: none) |
+| serverport | 8081 | Explorer server port (default: 8081) |
