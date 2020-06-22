@@ -22,7 +22,7 @@ const (
 	StartBlockHash
 	IsPrintStatus
 	IsBenchmark
-	SaveAddresses
+	ExcludeAddresses
 	ExplorerServerPort
 	Logfile
 )
@@ -37,7 +37,7 @@ type Arguments struct {
 	StartBlockHash     string
 	IsPrintStatus      bool
 	IsBenchmark        bool
-	SaveAddresses      bool
+	ExcludeAddresses   bool
 	RpcEndpoint        string
 	Logfile            string
 	ExplorerServerPort uint
@@ -98,8 +98,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case IsBenchmark:
 			addIsBenchmark(&args.IsBenchmark)
 			break
-		case SaveAddresses:
-			addSaveAddresses(&args.SaveAddresses)
+		case ExcludeAddresses:
+			addExcludeAddresses(&args.ExcludeAddresses)
 			break
 		case Logfile:
 			addLogfile(&args.Logfile)
@@ -170,8 +170,8 @@ func addIsBenchmark(v *bool) {
 	flag.BoolVar(v, "benchmark", false, "Run short performance test (default: false)")
 }
 
-func addSaveAddresses(v *bool) {
-	flag.BoolVar(v, "addresses", false, "Save addresses into database (default: false)")
+func addExcludeAddresses(v *bool) {
+	flag.BoolVar(v, "excludeaddresses", false, "Exclude addresses from saving into the database (default: false)")
 }
 
 func addRpcHost(v *string) {

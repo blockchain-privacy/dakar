@@ -55,6 +55,6 @@ Performance: 499 ms/block
 
 * Michaels's computer (Intel Xeon E3-1230v3, 3.3Ghz, SSD)
 ```
-Elapsed time: 1m28.169110927s
-Performance: 352 ms/block
+Elapsed time: 1m43.415075837s
+Performance: 413 ms/block
 ```

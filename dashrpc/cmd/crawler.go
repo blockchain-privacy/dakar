@@ -20,7 +20,7 @@ const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bd
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.SaveAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
+		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -96,8 +96,8 @@ func main() {
 
 	if cliArgs.IsBenchmark {
 		benchmarkStr := "Benchmark is ON."
-		if cliArgs.SaveAddresses {
-			benchmarkStr = "Benchmark with addresses is ON."
+		if cliArgs.ExcludeAddresses {
+			benchmarkStr = "Benchmark without addresses is ON."
 		}
 		log.Println(benchmarkStr)
 		log.Println("Command line options -start -stop -hash -continue -path are ignored")
@@ -204,7 +204,7 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-	err = dashrpc.ProcessNewBlocks(db, client, cliArgs.SaveAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	err = dashrpc.ProcessNewBlocks(db, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return

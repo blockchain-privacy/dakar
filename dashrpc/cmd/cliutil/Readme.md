@@ -89,6 +89,7 @@ If the new flag needs some >>simple<< input verification, implement it in this m
 | hash | < empty string > | Start Block Hash (default: none) |
 | status | false | Prints current processing status (default: false) |
 | benchmark | false | Run short performance test (default: false) |
+| excludeaddresses | false | Exclude addresses from saving into the database (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
