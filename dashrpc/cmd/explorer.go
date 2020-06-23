@@ -16,6 +16,23 @@ import (
 	"strconv"
 )
 
+// Block represents a simple block
+type meta struct {
+	LastBlockId      uint64 `json:"lastblockid"`
+	StopBlockId      uint64 `json:"stopblockid"`
+	LastBlockHash    string `json:"lastblockhash"`
+	Status           string `json:"status"`
+	RangeUp          uint64 `json:"rangeup"`
+	RangeDown        uint64 `json:"rangedown"`
+	GlobalBlockCount uint64 `json:"globalblockcount"`
+	GlobalTxCount    uint64 `json:"globaltxcount"`
+}
+
+func (m meta) String() string {
+	return fmt.Sprintf("LastBlockId: %s\nStopBlockId:\n%LastBlockHash:\n%v\n",
+		m.LastBlockId, m.StopBlockId, m.LastBlockHash)
+}
+
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
@@ -49,6 +66,10 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
+	if e != nil {
+		log.Println(e)
+	}
+	_, e = fmt.Fprintln(w, "/meta/\t\t-> Database meta information")
 	if e != nil {
 		log.Println(e)
 	}
@@ -153,6 +174,32 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 	}
 }
 
+// API pattern: "/meta/"
+// OUTPUT: dashrpc.Transaction
+func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		metaInformation := meta{
+			LastBlockId:      dashrpc.DbGetLastBlockId(db),
+			StopBlockId:      dashrpc.DbGetStopBlockId(db),
+			LastBlockHash:    dashrpc.DbGetLastBlockHash(db),
+			Status:           dashrpc.DbGetStatus(db),
+			RangeUp:          dashrpc.DbGetRangeUp(db),
+			RangeDown:        dashrpc.DbGetRangeDown(db),
+			GlobalBlockCount: dashrpc.DbGetBlockCount(db),
+			GlobalTxCount:    dashrpc.DbGetGlobalTxCount(db),
+		}
+
+		err := json.NewEncoder(w).Encode(metaInformation)
+		if err != nil {
+			http.Error(w, err.Error()+" Meta information: "+metaInformation.String(), http.StatusInternalServerError)
+		}
+	}
+}
+
+// setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.RpcUser, cli.RpcPassword, cli.RpcHost,
 		cli.RpcPort, cli.Logfile, cli.IsPrintStatus, cli.ExplorerServerPort)
@@ -168,7 +215,6 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 // Simple web-based utility to browse/lookup the TXs from the badger database
 // It provides the API through HTTP
 // Work in Progress. NOT WORKING YET.
-//
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock explorer\n\n", dashrpc.VersionString)
 
@@ -223,14 +269,14 @@ func main() {
 		return
 	}
 
-	var dbStatus string
-	dashrpc.DbGetStatus(db, &dbStatus)
+	dbStatus := dashrpc.DbGetStatus(db)
 	log.Printf("DB status: %s\n", dbStatus)
 
 	// API end points
 	http.HandleFunc("/tx/", handlerTxDetails(db, client))
 	http.HandleFunc("/address/", handlerAddressDetails(db, client))
 	http.HandleFunc("/blk/", handlerBlockDetails(db, client))
+	http.HandleFunc("/meta/", handlerMeta(db, client))
 	http.HandleFunc("/", handlerRoot)
 
 	// start the server

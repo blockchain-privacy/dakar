@@ -23,8 +23,6 @@ const (
 	DbBlockStatusFinished   = "DB_BLOCK_STATUS_FINISHED"
 )
 
-
-
 ///////////////////////////////////////////////////////
 // Utility API
 ///////////////////////////////////////////////////////
@@ -48,23 +46,13 @@ func SetupBadgerDB(badgerDir string) *badger.DB {
 
 // PrintStatus outputs the stats for the given DB
 func PrintStatus(db *badger.DB) {
-	var status string
-	DbGetStatus(db, &status)
+	status := DbGetStatus(db)
 	fmt.Printf("Status: %s\n", status)
-	var lastID, stopID uint64
-	var lastHash string
-	err := DbGetUint64(db, DbBlockLastBlockId, &lastID)
-	if err != nil {
-		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
-	}
-	err = DbGetUint64(db, DbBlockStopBlockId, &stopID)
-	if err != nil {
-		fmt.Printf("Error: cannot read StopBlockID: %v\n", err)
-	}
-	err = DbGetString(db, DbBlockLastBlockHash, &lastHash)
-	if err != nil {
-		fmt.Printf("Error: cannot read LastBlockID: %v\n", err)
-	}
+
+	lastID := DbGetLastBlockId(db)
+	stopID := DbGetStopBlockId(db)
+	lastHash := DbGetLastBlockHash(db)
+
 	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
 	fmt.Printf("Stop ID: %v\n", stopID)
 
@@ -72,7 +60,6 @@ func PrintStatus(db *badger.DB) {
 	rangeDown := DbGetRangeDown(db)
 	fmt.Printf("DB range: %v - %v\n", rangeDown, rangeUp)
 }
-
 
 ///////////////////////////////////////////////////////
 // Internal API
@@ -87,11 +74,13 @@ func DbSetStatus(db *badger.DB, status string) {
 }
 
 // DbGetStatus get the status
-func DbGetStatus(db *badger.DB, status *string) {
-	err := DbGetString(db, DbBlockStatus, status)
+func DbGetStatus(db *badger.DB) string {
+	var status string
+	err := DbGetString(db, DbBlockStatus, &status)
 	if err != nil {
-		*status  = DbBlockStatusUnknown
+		status = DbBlockStatusUnknown
 	}
+	return status
 }
 
 func DbGetBlockCount(db *badger.DB) uint64 {
@@ -102,7 +91,7 @@ func DbGetBlockCount(db *badger.DB) uint64 {
 
 func DbIncrementBlockCount(db *badger.DB) {
 	count := DbGetBlockCount(db)
-	count++ // should be 1 on error
+	count++                                    // should be 1 on error
 	DbSetUint64(db, DbGlobalBlockCount, count) // Ignoring Error on purpose!
 }
 
@@ -135,5 +124,35 @@ func DbSetRangeDown(db *badger.DB, down uint64) {
 func DbGetRangeDown(db *badger.DB) uint64 {
 	var value uint64
 	DbGetUint64(db, DbBlockRangeDown, &value) // ignoring error on purpose
+	return value
+}
+
+func DbSetLastBlockId(db *badger.DB, id uint64) {
+	DbSetUint64(db, DbBlockLastBlockId, id)
+}
+
+func DbGetLastBlockId(db *badger.DB) uint64 {
+	var value uint64
+	DbGetUint64(db, DbBlockLastBlockId, &value) // ignoring error on purpose
+	return value
+}
+
+func DbSetLastBlockHash(db *badger.DB, lastHash string) {
+	DbSetString(db, DbBlockLastBlockHash, lastHash)
+}
+
+func DbGetLastBlockHash(db *badger.DB) string {
+	var value string
+	DbGetString(db, DbBlockLastBlockHash, &value) // ignoring error on purpose
+	return value
+}
+
+func DbSetStopBlockId(db *badger.DB, id uint64) {
+	DbSetUint64(db, DbBlockStopBlockId, id)
+}
+
+func DbGetStopBlockId(db *badger.DB) uint64 {
+	var value uint64
+	DbGetUint64(db, DbBlockStopBlockId, &value) // ignoring error on purpose
 	return value
 }
