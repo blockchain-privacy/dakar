@@ -111,7 +111,7 @@
                     .then(response => response.json())
                     .then(data => {
                         this.block = data;
-                    })
+                    });
             },
             searchTx: function (q) {
                 console.log("Tx search: " + q);

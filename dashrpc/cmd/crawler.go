@@ -128,8 +128,7 @@ func main() {
 		return
 	}
 
-	var dbStatus string
-	dashrpc.DbGetStatus(db, &dbStatus)
+	dbStatus := dashrpc.DbGetStatus(db)
 	log.Printf("DB status: %s\n", dbStatus)
 
 	if dbStatus == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
