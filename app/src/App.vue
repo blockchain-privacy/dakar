@@ -40,12 +40,20 @@
 <script>
     import QueryInput from "./components/QueryInput";
     import MsgBox from "./components/MsgBox";
+    import * as Utility from './utilities';
 
     export default {
-        name: "App",
+        name: 'App',
         components: {
             MsgBox,
             QueryInput
+        },
+        watch: {
+            // global route watcher
+            '$route'() {
+                // reset data on every route change
+                Utility.resetData(this);
+            }
         }
     };
 </script>

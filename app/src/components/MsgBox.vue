@@ -19,7 +19,7 @@
 
 <script>
     export default {
-        name: "MsgBox",
+        name: 'MsgBox',
         computed: {
             errorMsg() {
                 return this.$store.getters.getErrorMsg;

@@ -92,7 +92,7 @@
 
 <script>
     export default {
-        name: "EntryView",
+        name: 'EntryView',
         computed: {
             data() {
                 return this.$store.getters.getMetaData;

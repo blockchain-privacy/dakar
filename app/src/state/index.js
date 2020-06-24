@@ -1,6 +1,6 @@
-import Vue from "vue";
-import Vuex from "vuex";
-import * as Constants from "../constants"
+import Vue from 'vue';
+import Vuex from 'vuex';
+import * as Constants from '../constants'
 
 Vue.use(Vuex);
 const state = {

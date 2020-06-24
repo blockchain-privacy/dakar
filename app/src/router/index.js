@@ -1,7 +1,8 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import SearchView from "../components/SearchView";
-import EntryView from "../components/EntryView";
+import SearchView from '../components/SearchView';
+import EntryView from '../components/EntryView';
+import * as Constants from '../constants';
 
 Vue.use(Router)
 const PageNotFound = { template: '<div>404 Page not found</div>' }
@@ -10,17 +11,17 @@ export default new Router({
     routes: [
         {
             path: '/',
-            name: 'Entry Page',
+            name: Constants.ROUTE_NAME_ENTRY_PAGE,
             component: EntryView
         },
         {
             path: '/search/:id',
-            name: 'Search Page',
+            name: Constants.ROUTE_NAME_SEARCH_PAGE,
             component: SearchView
         },
         {
             path: '*',
-            name: 'Page not found',
+            name: Constants.ROUTE_NAME_404_PAGE,
             component: PageNotFound
         },
 
