@@ -6,7 +6,8 @@
 </template>
 
 <script>
-    import * as Constants from "../constants"
+    import * as Constants from '../constants';
+    import * as Utility from  '../utilities';
 
     function newRouting(context, id) {
         if (id === undefined) {
@@ -78,9 +79,11 @@
 
                 this.lastQuery = q;
 
-                this.resetData();
+                this.query = '';
+                Utility.resetData(this);
+
                 if (!this.isValidData(q)) {
-                    this.warningMsg = "Input was not valid!";
+                    this.warningMsg = 'Input was not valid!';
                     return;
                 }
 
@@ -96,15 +99,8 @@
                 // TODO: check if str is address or transaction, also calculate checksum
                 return str.length >= 34;
             },
-            resetData: function () {
-                this.query = "";
-                this.$store.dispatch('resetMsg');
-                this.transaction = null;
-                this.address = null;
-                this.block = null;
-            },
             searchBlock: function (q) {
-                console.log("Block search: " + q);
+                console.log('Block search: ' + q);
                 return fetch(Constants.ROUTE_BLOCK + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
@@ -116,7 +112,7 @@
                     });
             },
             searchTx: function (q) {
-                console.log("Tx search: " + q);
+                console.log('Tx search: ' + q);
                 return fetch(Constants.ROUTE_TRANSACTION + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
@@ -128,7 +124,7 @@
                     });
             },
             searchAddress: function (q) {
-                console.log("Address search: " + q);
+                console.log('Address search: ' + q);
                 fetch(Constants.ROUTE_ADDRESS + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
@@ -148,6 +144,8 @@
         },
         watch: {
             '$route'(to) {
+                if(to.name !== Constants.ROUTE_NAME_SEARCH_PAGE) return;
+
                 newRouting(this, to.params.id);
             }
         }

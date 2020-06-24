@@ -12,7 +12,7 @@
     import BlockLookup from "./BlockLookup";
 
     export default {
-        name: "SearchView",
+        name: 'SearchView',
         components: {
             TxLookup,
             AddressLookup,
