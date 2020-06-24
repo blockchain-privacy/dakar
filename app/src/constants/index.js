@@ -1,5 +1,5 @@
-const apiVersion1 = "v1/"
-const routePrefix = "/api/" + apiVersion1;
+const apiVersion = "v1"
+const routePrefix = "/api/" + apiVersion + "/";
 
 // possible routes
 export const ROUTE_TRANSACTION = routePrefix + "tx/";
