@@ -25,7 +25,7 @@
                         <v-list-item-content>
                             <v-list-item-title>Last block hash</v-list-item-title>
                             <v-list-item-subtitle>
-                                <router-link :to="data.lastblockhash">{{data.lastblockhash}}</router-link>
+                                <router-link :to="'search/' + data.lastblockhash">{{data.lastblockhash}}</router-link>
                             </v-list-item-subtitle>
                         </v-list-item-content>
                     </v-list-item>

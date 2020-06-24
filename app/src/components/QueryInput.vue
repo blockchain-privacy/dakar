@@ -6,6 +6,8 @@
 </template>
 
 <script>
+    import * as Constants from "../constants"
+
     function newRouting(context, id) {
         if (id === undefined) {
             return;
@@ -103,7 +105,7 @@
             },
             searchBlock: function (q) {
                 console.log("Block search: " + q);
-                return fetch("/blk/" + q)
+                return fetch(Constants.ROUTE_BLOCK + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
                         return response
@@ -115,7 +117,7 @@
             },
             searchTx: function (q) {
                 console.log("Tx search: " + q);
-                return fetch("/tx/" + q)
+                return fetch(Constants.ROUTE_TRANSACTION + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
                         return response
@@ -127,7 +129,7 @@
             },
             searchAddress: function (q) {
                 console.log("Address search: " + q);
-                fetch("/address/" + q)
+                fetch(Constants.ROUTE_ADDRESS + q)
                     .then(response => {
                         if (!response.ok) throw new Error(response.status + " " + response.statusText)
                         return response

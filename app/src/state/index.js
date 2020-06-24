@@ -1,5 +1,6 @@
 import Vue from "vue";
 import Vuex from "vuex";
+import * as Constants from "../constants"
 
 Vue.use(Vuex);
 const state = {
@@ -71,7 +72,7 @@ const actions = {
     },
     updateMetaData(context) {
         console.log("Fetching meta data");
-        return fetch("/meta/")
+        return fetch(Constants.ROUTE_META)
             .then(response => {
                 if (!response.ok) throw new Error(response.status + " " + response.statusText)
                 return response

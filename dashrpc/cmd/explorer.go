@@ -16,6 +16,39 @@ import (
 	"strconv"
 )
 
+const (
+	routePrefix      string = "/api/v1/"
+	routeTransaction string = "tx/"
+	routeBlock       string = "blk/"
+	routeAddress     string = "address/"
+	routeMeta        string = "meta/"
+	routeRoot        string = ""
+)
+
+func getRoute(r string) string {
+	return routePrefix + r
+}
+
+func getRouteTransaction() string {
+	return getRoute(routeTransaction)
+}
+
+func getRouteBlock() string {
+	return getRoute(routeBlock)
+}
+
+func getRouteAddress() string {
+	return getRoute(routeAddress)
+}
+
+func getRouteRoot() string {
+	return getRoute(routeRoot)
+}
+
+func getRouteMeta() string {
+	return getRoute(routeMeta)
+}
+
 // Block represents a simple block
 type meta struct {
 	LastBlockId      uint64 `json:"lastblockid"`
@@ -39,7 +72,7 @@ func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 }
 
-// API pattern: "/"
+// API pattern: "/api/v1/"
 // OUTPUT: List of patterns
 func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	log.Println("Accessed", r.URL.Path)
@@ -75,14 +108,14 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// API pattern: "/blk/<hash>"
+// API pattern: "/api/v1/blk/<hash>"
 // OUTPUT: dashrpc.BlkDetails
 func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		blkHashString := r.URL.Path[5:]
+		blkHashString := r.URL.Path[len(getRouteBlock()):]
 		block := dashrpc.Block{}
 		err := dashrpc.DbGetBlock(db, blkHashString, &block)
 		if err != nil {
@@ -106,14 +139,14 @@ func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.Resp
 	}
 }
 
-// API pattern: "/address/<hash>"
+// API pattern: "/api/v1/address/<hash>"
 // OUTPUT: dashrpc.AddressData
 func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		addressHashString := r.URL.Path[9:]
+		addressHashString := r.URL.Path[len(getRouteAddress()):]
 		addressData := dashrpc.AddressData{}
 		err := dashrpc.DbGetDataForAddress(db, addressHashString, &addressData)
 		if err != nil {
@@ -128,14 +161,15 @@ func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.Re
 	}
 }
 
-// API pattern: "/txt/<hash>"
+// API pattern: "/api/v1/tx/<hash>"
 // OUTPUT: dashrpc.Transaction
 func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[4:]
+		txHashString := r.URL.Path[len(getRouteTransaction()):]
+		log.Println(txHashString)
 		txDetails := dashrpc.TxDetails{}
 		err := dashrpc.DbGetTxDetails(db, txHashString, &txDetails)
 		if err != nil {
@@ -174,7 +208,7 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 	}
 }
 
-// API pattern: "/meta/"
+// API pattern: "/api/v1/meta/"
 // OUTPUT: dashrpc.Transaction
 func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -273,11 +307,12 @@ func main() {
 	log.Printf("DB status: %s\n", dbStatus)
 
 	// API end points
-	http.HandleFunc("/tx/", handlerTxDetails(db, client))
-	http.HandleFunc("/address/", handlerAddressDetails(db, client))
-	http.HandleFunc("/blk/", handlerBlockDetails(db, client))
-	http.HandleFunc("/meta/", handlerMeta(db, client))
-	http.HandleFunc("/", handlerRoot)
+
+	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
+	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
+	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
+	http.HandleFunc(getRouteMeta(), handlerMeta(db, client))
+	http.HandleFunc(getRouteRoot(), handlerRoot)
 
 	// start the server
 	log.Println("Starting server on port", cliArgs.ExplorerServerPort)
