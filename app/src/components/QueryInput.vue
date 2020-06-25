@@ -1,13 +1,11 @@
 <template>
-    <v-form v-on:submit.prevent="handleQuery(query,'user')" class="d-flex mx-auto">
-        <v-text-field class="d-flex" full-width v-model="query"
-                      label="Search for transactions and addresses"/>
-    </v-form>
+    <v-text-field @keydown.enter="handleQuery(query, 'user')" class="d-flex" full-width v-model="query"
+                  label="Search for transactions and addresses"/>
 </template>
 
 <script>
     import * as Constants from '../constants';
-    import * as Utility from  '../utilities';
+    import * as Utility from '../utilities';
 
     function newRouting(context, id) {
         if (id === undefined) {
@@ -144,7 +142,7 @@
         },
         watch: {
             '$route'(to) {
-                if(to.name !== Constants.ROUTE_NAME_SEARCH_PAGE) return;
+                if (to.name !== Constants.ROUTE_NAME_SEARCH_PAGE) return;
 
                 newRouting(this, to.params.id);
             }

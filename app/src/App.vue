@@ -1,23 +1,18 @@
 <template>
     <v-app>
         <v-app-bar app color="primary" dark>
-            <v-container fluid>
-                <v-layout row>
-                    <v-flex xs3>
-                        <v-img
-                                alt="Explorer Logo"
-                                class="shrink mr-2"
-                                contain
-                                src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-                                transition="scale-transition"
-                                width="40"/>
-                        <h1 class="align-center mt-3">Dash Explorer</h1>
-                    </v-flex>
-                    <v-flex xs7>
-                        <QueryInput/>
-                    </v-flex>
-                </v-layout>
-            </v-container>
+            <v-img
+                    @click="goToRoot()" style="cursor:pointer"
+                    alt="Explorer Logo"
+                    class="shrink mr-2"
+                    contain
+                    src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
+                    transition="scale-transition"
+                    width="40"/>
+            <v-toolbar-title class="mx-1" @click="goToRoot()" style="cursor:pointer">Dash Explorer</v-toolbar-title>
+            <v-spacer></v-spacer>
+            <QueryInput class="mx-4"/>
+            <v-spacer></v-spacer>
         </v-app-bar>
         <v-content>
             <v-container fluid>
@@ -41,12 +36,21 @@
     import QueryInput from "./components/QueryInput";
     import MsgBox from "./components/MsgBox";
     import * as Utility from './utilities';
+    import * as Constants from './constants';
 
     export default {
         name: 'App',
         components: {
             MsgBox,
             QueryInput
+        },
+        methods: {
+            goToRoot() {
+                // only change route if not already on entry page
+                if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE)
+                    return;
+                this.$router.push({name: Constants.ROUTE_NAME_ENTRY_PAGE});
+            }
         },
         watch: {
             // global route watcher
