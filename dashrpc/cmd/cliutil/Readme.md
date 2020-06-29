@@ -94,3 +94,5 @@ If the new flag needs some >>simple<< input verification, implement it in this m
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
 | serverport | 8081 | Explorer server port (default: 8081) |
+| txsearch | < empty string > | Last PrivateSend transaction hash (default: none) |
+| txinfo | < empty string > | Get information about the given transaction hash (default: none) |

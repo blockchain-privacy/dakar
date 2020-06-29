@@ -5,6 +5,7 @@ main
 txs
 status
 crawler
+!crawler/
 *.exe
 *.dll
 *.so

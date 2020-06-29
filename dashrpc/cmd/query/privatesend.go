@@ -3,11 +3,9 @@ package main
 import (
 	"dashrpc"
 	"encoding/csv"
-	"flag"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"log"
-	"os"
 	"strconv"
 )
 
@@ -19,8 +17,8 @@ import (
 
 // Result represents the data of final CreateDenominations TXs
 type Result struct {
-	hash string
-	tx *dashrpc.TxDetails
+	hash   string
+	tx     *dashrpc.TxDetails
 	rounds int
 }
 
@@ -46,7 +44,6 @@ func search(db *badger.DB, txHash string, writer *csv.Writer) map[string]*Result
 
 	return results
 }
-
 
 func searchCreateDenominations(db *badger.DB,
 	in *dashrpc.TxOutput, rounds int,
@@ -83,7 +80,7 @@ func searchCreateDenominations(db *badger.DB,
 		}
 		err := writer.Write(rec)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		writer.Flush()
 		return
@@ -98,59 +95,4 @@ func searchCreateDenominations(db *badger.DB,
 		rounds2 := rounds
 		searchCreateDenominations(db, &in2, rounds2, results, txCount, writer)
 	}
-}
-
-//
-// Simple utility to browse/lookup the TXs from the badger database
-//
-// Work in Progress. NOT WORKING YET.
-//
-func main() {
-	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
-	txHash := flag.String("txhash", "", "Tx Hash")
-
-	flag.Parse()
-	// Open the Badger database located in the /tmp/badger directory.
-	// It will be created if it doesn't exist.
-	opts := badger.DefaultOptions(*badgerDir)
-	// in badger 1.6.0 this is not needed to set explicit anymore
-	// opts.Dir = *badgerDir
-	// opts.ValueDir = *badgerDir
-	opts.WithNumMemtables(50)
-	opts.WithMaxTableSize(512 << 20)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
-
-	recordFile, err := os.Create("./results.csv")
-	if err != nil {
-		fmt.Println("Error while creating the file ::", err)
-		return
-	}
-
-	// Initialize the writer
-	writer := csv.NewWriter(recordFile)
-	res := search(db, *txHash, writer)
-	if res == nil {
-		fmt.Println("Result in NIL -- fix it.")
-		return
-	}
-
-	writer.Flush() // Writes the buffered data to the writer
-	err = writer.Error() // Checks if any error occurred while writing
-	if err != nil {
-		fmt.Println("Error while writing to the file ::", err)
-		return
-	}
-	err = recordFile.Close()
-	if err != nil {
-		fmt.Println("Error while closing the file ::", err)
-		return
-	}
-
-	// fmt.Printf("%v\n\n", res)
-	fmt.Printf("Final map has %v elements\n", len(res))
-	fmt.Printf("\n")
 }
