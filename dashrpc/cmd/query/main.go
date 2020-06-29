@@ -19,8 +19,8 @@ import (
 
 // Result represents the data of final CreateDenominations TXs
 type Result struct {
-	hash string
-	tx *dashrpc.TxDetails
+	hash   string
+	tx     *dashrpc.TxDetails
 	rounds int
 }
 
@@ -46,7 +46,6 @@ func search(db *badger.DB, txHash string, writer *csv.Writer) map[string]*Result
 
 	return results
 }
-
 
 func searchCreateDenominations(db *badger.DB,
 	in *dashrpc.TxOutput, rounds int,
@@ -138,7 +137,7 @@ func main() {
 		return
 	}
 
-	writer.Flush() // Writes the buffered data to the writer
+	writer.Flush()       // Writes the buffered data to the writer
 	err = writer.Error() // Checks if any error occurred while writing
 	if err != nil {
 		fmt.Println("Error while writing to the file ::", err)
