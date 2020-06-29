@@ -2,6 +2,7 @@ package main
 
 import (
 	"dashrpc"
+	cli "dashrpc/cmd/cliutil"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -99,19 +100,34 @@ func searchCreateDenominations(db *badger.DB,
 	}
 }
 
+// setup cli
+func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
+	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch)
+
+	if err != nil {
+		flag.PrintDefaults()
+		return cliArgs, err
+	}
+
+	return cliArgs, err
+}
+
 //
 // Simple utility to browse/lookup the TXs from the badger database
 //
 // Work in Progress. NOT WORKING YET.
 //
 func main() {
-	badgerDir := flag.String("db", "/tmp/badger", "badger database location")
-	txHash := flag.String("txhash", "", "Tx Hash")
 
-	flag.Parse()
+	cliArgs, err := getExplorerCLIArgs()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	// Open the Badger database located in the /tmp/badger directory.
 	// It will be created if it doesn't exist.
-	opts := badger.DefaultOptions(*badgerDir)
+	opts := badger.DefaultOptions(cliArgs.BadgerDir)
 	// in badger 1.6.0 this is not needed to set explicit anymore
 	// opts.Dir = *badgerDir
 	// opts.ValueDir = *badgerDir
@@ -131,7 +147,7 @@ func main() {
 
 	// Initialize the writer
 	writer := csv.NewWriter(recordFile)
-	res := search(db, *txHash, writer)
+	res := search(db, cliArgs.TxSearch, writer)
 	if res == nil {
 		fmt.Println("Result in NIL -- fix it.")
 		return

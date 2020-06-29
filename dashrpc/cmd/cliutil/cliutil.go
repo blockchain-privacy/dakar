@@ -25,6 +25,7 @@ const (
 	ExcludeAddresses
 	ExplorerServerPort
 	Logfile
+	TxSearch
 )
 
 type Arguments struct {
@@ -40,6 +41,7 @@ type Arguments struct {
 	ExcludeAddresses   bool
 	RpcEndpoint        string
 	Logfile            string
+	TxSearch           string
 	ExplorerServerPort uint
 }
 
@@ -107,6 +109,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case ExplorerServerPort:
 			addExplorerServerPort(&args.ExplorerServerPort)
 			break
+		case TxSearch:
+			addTxSearch(&args.TxSearch)
+			break
 		default:
 			err = errors.New("flag not recognized")
 			return args, err
@@ -132,6 +137,10 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	}
 
 	return args, err
+}
+
+func addTxSearch(v *string) {
+	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash")
 }
 
 func addBadgerDir(v *string) {

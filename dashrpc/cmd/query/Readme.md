@@ -7,4 +7,4 @@
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
 | db | /tmp/badger | Badger database location (default: /tmp/badger) |
-| txhash | < empty string > | Start Block Hash (default: none) |
+| txsearch | < empty string > | Last PrivateSend transaction hash |
