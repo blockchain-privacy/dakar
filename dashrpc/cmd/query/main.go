@@ -15,16 +15,16 @@ import (
 
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch, cli.Logfile, cli.TxInfo)
+	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if len(cliArgs.TxInfo) == 0 && len(cliArgs.TxSearch) == 0 {
+	if len(cliArgs.TxInfo) == 0 && len(cliArgs.TxSearch) == 0 && len(cliArgs.ClusterAddr) == 0 {
 		flag.PrintDefaults()
-		return cliArgs, errors.New("error in CLI args")
+		return cliArgs, errors.New("provide one input hash")
 	}
 
 	return cliArgs, err
@@ -124,5 +124,7 @@ func main() {
 		if txDetails.IsPrivateSend() {
 			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
 		}
+	} else if len(cliArgs.ClusterAddr) > 0 {
+		dashrpc.ProcessAddressClustering(db, cliArgs.ClusterAddr)
 	}
 }

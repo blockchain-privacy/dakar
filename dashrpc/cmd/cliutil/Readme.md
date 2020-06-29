@@ -96,3 +96,4 @@ If the new flag needs some >>simple<< input verification, implement it in this m
 | serverport | 8081 | Explorer server port (default: 8081) |
 | txsearch | < empty string > | Last PrivateSend transaction hash (default: none) |
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |
+| addrcluster | < empty string > | Create cluster for the given address (default: none) |

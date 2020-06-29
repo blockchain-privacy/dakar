@@ -27,6 +27,7 @@ const (
 	Logfile
 	TxSearch
 	TxInfo
+	ClusterAddr
 )
 
 type Arguments struct {
@@ -44,6 +45,7 @@ type Arguments struct {
 	Logfile            string
 	TxSearch           string
 	TxInfo             string
+	ClusterAddr        string
 	ExplorerServerPort uint
 }
 
@@ -117,6 +119,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
 			break
+		case ClusterAddr:
+			addClusterAddr(&args.ClusterAddr)
+			break
 		default:
 			err = errors.New("flag not recognized")
 			return args, err
@@ -142,6 +147,10 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	}
 
 	return args, err
+}
+
+func addClusterAddr(v *string) {
+	flag.StringVar(v, "clusteraddr", "", "Create cluster for the given address (default: none)")
 }
 
 func addTxInfo(v *string) {
