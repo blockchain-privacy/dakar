@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -83,7 +84,7 @@ func searchCreateDenominations(db *badger.DB,
 		}
 		err := writer.Write(rec)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		writer.Flush()
 		return
@@ -102,7 +103,7 @@ func searchCreateDenominations(db *badger.DB,
 
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch)
+	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -125,6 +126,23 @@ func main() {
 		return
 	}
 
+	// setup Logging
+	if len(cliArgs.Logfile) > 0 {
+		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println("Error opening log file", err)
+			return
+		}
+		defer func() {
+			err = f.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
+		log.SetPrefix("query ")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	}
+
 	// Open the Badger database located in the /tmp/badger directory.
 	// It will be created if it doesn't exist.
 	opts := badger.DefaultOptions(cliArgs.BadgerDir)
@@ -141,7 +159,7 @@ func main() {
 
 	recordFile, err := os.Create("./results.csv")
 	if err != nil {
-		fmt.Println("Error while creating the file ::", err)
+		log.Println("Error while creating the file ::", err)
 		return
 	}
 
@@ -149,23 +167,23 @@ func main() {
 	writer := csv.NewWriter(recordFile)
 	res := search(db, cliArgs.TxSearch, writer)
 	if res == nil {
-		fmt.Println("Result in NIL -- fix it.")
+		log.Println("Result in NIL -- fix it.")
 		return
 	}
 
 	writer.Flush()       // Writes the buffered data to the writer
 	err = writer.Error() // Checks if any error occurred while writing
 	if err != nil {
-		fmt.Println("Error while writing to the file ::", err)
+		log.Println("Error while writing to the file ::", err)
 		return
 	}
 	err = recordFile.Close()
 	if err != nil {
-		fmt.Println("Error while closing the file ::", err)
+		log.Println("Error while closing the file ::", err)
 		return
 	}
 
 	// fmt.Printf("%v\n\n", res)
-	fmt.Printf("Final map has %v elements\n", len(res))
-	fmt.Printf("\n")
+	log.Printf("Final map has %v elements\n", len(res))
+	log.Printf("\n")
 }

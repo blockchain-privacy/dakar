@@ -8,3 +8,4 @@
 |----------|:-------------:|------:|
 | db | /tmp/badger | Badger database location (default: /tmp/badger) |
 | txsearch | < empty string > | Last PrivateSend transaction hash |
+| logfile | < empty string > | Specify log file (default: none) |
