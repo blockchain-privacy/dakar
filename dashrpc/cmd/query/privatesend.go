@@ -3,9 +3,11 @@ package main
 import (
 	"dashrpc"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"log"
+	"os"
 	"strconv"
 )
 
@@ -20,6 +22,47 @@ type Result struct {
 	hash   string
 	tx     *dashrpc.TxDetails
 	rounds int
+}
+
+// Writes the results of "search" to "outputFile"
+func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, res map[string]*Result) {
+	recordFile, err := os.Create(outputFile)
+	if err != nil {
+		errMsg := fmt.Sprintln("error while creating the file ::", err)
+		err = errors.New(errMsg)
+		return err, res
+	}
+
+	// Initialize the writer
+	writer := csv.NewWriter(recordFile)
+	res = search(db, tx, writer)
+	if res == nil {
+		errMsg := "Result in NIL -- fix it."
+		// no results -> delete result file
+		if err := os.Remove(outputFile); err != nil {
+			errMsg += "\n" + err.Error()
+		}
+		err = errors.New(errMsg)
+		return err, res
+	}
+
+	writer.Flush()       // Writes the buffered data to the writer
+	err = writer.Error() // Checks if any error occurred while writing
+	if err != nil {
+		errMsg := fmt.Sprintln("\"error while writing to the file ::\"", err)
+		err = errors.New(errMsg)
+
+		return err, res
+	}
+	err = recordFile.Close()
+	if err != nil {
+		errMsg := fmt.Sprintln("Error while closing the file ::", err)
+		err = errors.New(errMsg)
+		return err, res
+	}
+
+	// fmt.Printf("%v\n\n", res)
+	return err, res
 }
 
 // search initiates recursive search through all inputs to find all CreateDenominations

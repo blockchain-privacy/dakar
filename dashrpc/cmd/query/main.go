@@ -3,7 +3,6 @@ package main
 import (
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
-	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
@@ -81,39 +80,13 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		resultFileName := "./result.csv"
-		recordFile, err := os.Create(resultFileName)
-		if err != nil {
-			log.Println("Error while creating the file ::", err)
-			return
-		}
+		err, res := transactionSearch(db, cliArgs.TxSearch, "./result.csv")
 
-		// Initialize the writer
-		writer := csv.NewWriter(recordFile)
-		res := search(db, cliArgs.TxSearch, writer)
-		if res == nil {
-			log.Println("Result in NIL -- fix it.")
-			if err := os.Remove(resultFileName); err != nil {
-				log.Println(err)
-			}
-			return
-		}
-
-		writer.Flush()       // Writes the buffered data to the writer
-		err = writer.Error() // Checks if any error occurred while writing
 		if err != nil {
-			log.Println("Error while writing to the file ::", err)
+			log.Println(err)
 			return
 		}
-		err = recordFile.Close()
-		if err != nil {
-			log.Println("Error while closing the file ::", err)
-			return
-		}
-
-		// fmt.Printf("%v\n\n", res)
 		log.Printf("Final map has %v elements\n", len(res))
-		log.Printf("\n")
 	} else if len(cliArgs.TxInfo) > 0 {
 		var txDetails dashrpc.TxDetails
 		err = dashrpc.DbGetTxDetails(db, cliArgs.TxInfo, &txDetails)
@@ -135,6 +108,9 @@ func main() {
 			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
 		}
 	} else if len(cliArgs.ClusterAddr) > 0 {
-		dashrpc.ProcessAddressClustering(db, cliArgs.ClusterAddr)
+		if err := dashrpc.ProcessAddressClustering(db, cliArgs.ClusterAddr); err != nil {
+			log.Println(err)
+			return
+		}
 	}
 }
