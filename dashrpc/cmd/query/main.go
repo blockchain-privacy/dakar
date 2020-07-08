@@ -62,16 +62,19 @@ func main() {
 	// Open the Badger database located in the /tmp/badger directory.
 	// It will be created if it doesn't exist.
 	opts := badger.DefaultOptions(cliArgs.BadgerDir)
-	// in badger 1.6.0 this is not needed to set explicit anymore
-	// opts.Dir = *badgerDir
-	// opts.ValueDir = *badgerDir
+
+	// set maximum number of memtables to 50 (default: 5)
 	opts.WithNumMemtables(50)
+
+	// set maximum size of LSM table to 512 MB (default: 64 MB)
 	opts.WithMaxTableSize(512 << 20)
+
 	db, err := badger.Open(opts)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// close database when done
 	defer func() {
 		err = db.Close()
 		if err != nil {
