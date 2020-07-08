@@ -72,10 +72,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		recordFile, err := os.Create("./results.csv")
+		resultFileName := "./result.csv"
+		recordFile, err := os.Create(resultFileName)
 		if err != nil {
 			log.Println("Error while creating the file ::", err)
 			return
@@ -86,6 +93,9 @@ func main() {
 		res := search(db, cliArgs.TxSearch, writer)
 		if res == nil {
 			log.Println("Result in NIL -- fix it.")
+			if err := os.Remove(resultFileName); err != nil {
+				log.Println(err)
+			}
 			return
 		}
 
