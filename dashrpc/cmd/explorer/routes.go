@@ -44,23 +44,6 @@ func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
-// Block represents a simple block
-type meta struct {
-	LastBlockId      uint64 `json:"lastblockid"`
-	StopBlockId      uint64 `json:"stopblockid"`
-	LastBlockHash    string `json:"lastblockhash"`
-	Status           string `json:"status"`
-	RangeUp          uint64 `json:"rangeup"`
-	RangeDown        uint64 `json:"rangedown"`
-	GlobalBlockCount uint64 `json:"globalblockcount"`
-	GlobalTxCount    uint64 `json:"globaltxcount"`
-}
-
-func (m meta) String() string {
-	return fmt.Sprintf("LastBlockId: %s\nStopBlockId:\n%LastBlockHash:\n%v\n",
-		m.LastBlockId, m.StopBlockId, m.LastBlockHash)
-}
-
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
@@ -210,7 +193,7 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		metaInformation := meta{
+		metaInformation := dashrpc.Meta{
 			LastBlockId:      dashrpc.DbGetLastBlockId(db),
 			StopBlockId:      dashrpc.DbGetStopBlockId(db),
 			LastBlockHash:    dashrpc.DbGetLastBlockHash(db),
