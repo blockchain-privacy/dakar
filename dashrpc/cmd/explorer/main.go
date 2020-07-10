@@ -6,7 +6,6 @@ import (
 	"dashrpc/rpcclient"
 	"flag"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
 	"io"
 	"log"
 	"net/http"
@@ -25,16 +24,6 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	}
 
 	return cliArgs, err
-}
-
-// creates endpoint handlers
-func setupHandlers(db *badger.DB, client *rpcclient.Client) {
-	// API end points
-	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
-	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
-	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
-	http.HandleFunc(getRouteMeta(), handlerMeta(db, client))
-	http.HandleFunc(getRouteRoot(), handlerRoot)
 }
 
 // Simple web-based utility to browse/lookup the TXs from the badger database
@@ -91,6 +80,7 @@ func main() {
 		return
 	}
 
+	// setup REST API
 	setupHandlers(db, client)
 
 	// start the server

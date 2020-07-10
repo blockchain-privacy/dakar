@@ -221,3 +221,13 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 		}
 	}
 }
+
+// creates endpoint handlers
+func setupHandlers(db *badger.DB, client *rpcclient.Client) {
+	// API end points
+	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
+	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
+	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
+	http.HandleFunc(getRouteMeta(), handlerMeta(db, client))
+	http.HandleFunc(getRouteRoot(), handlerRoot)
+}
