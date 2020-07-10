@@ -26,9 +26,9 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	return cliArgs, err
 }
 
-// Simple web-based utility to browse/lookup the TXs from the badger database
+// Simple web-based utility to browse/lookup tx, block, address and meta data from the badger database
 // It provides the API through HTTP
-// Work in Progress. NOT WORKING YET.
+// Work in Progress.
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock explorer\n\n", dashrpc.VersionString)
 
