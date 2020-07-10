@@ -101,14 +101,14 @@ func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.Resp
 			return
 		}
 
-		blkDetails := dashrpc.BlkDetails{}
-
-		blkDetails.Hash = block.Hash.String()
-		blkDetails.Id = block.Id
-		blkDetails.NextBlockHash = block.NextBlockHash.String()
-		blkDetails.PrevBlockHash = block.PrevBlockHash.String()
-		blkDetails.TxHashes = block.TxHashes
-		blkDetails.Timestamp = block.Timestamp
+		blkDetails := dashrpc.BlkDetails{
+			Hash:          block.Hash.String(),
+			Id:            block.Id,
+			NextBlockHash: block.NextBlockHash.String(),
+			PrevBlockHash: block.PrevBlockHash.String(),
+			TxHashes:      block.TxHashes,
+			Timestamp:     block.Timestamp,
+		}
 
 		err = json.NewEncoder(w).Encode(blkDetails)
 		if err != nil {
@@ -171,13 +171,16 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 			http.Error(w, err.Error()+" Block hash: "+tx.BlockHash, http.StatusNotFound)
 			return
 		}
-		transaction := dashrpc.Transaction{}
-		transaction.Bhash = tx.BlockHash
-		transaction.Bheight = block.Id
-		transaction.Bts = block.Timestamp.Unix()
-		transaction.Confirmations = tx.Confirmations
-		transaction.Version = tx.Version
-		transaction.Tx = txDetails
+
+		transaction := dashrpc.Transaction{
+			Bhash:         tx.BlockHash,
+			Bheight:       block.Id,
+			Bts:           block.Timestamp.Unix(),
+			Confirmations: tx.Confirmations,
+			Version:       tx.Version,
+			Tx:            txDetails,
+		}
+
 		// common['Access-Control-Request-Method'] = '*'")
 		err = json.NewEncoder(w).Encode(transaction)
 		if err != nil {
