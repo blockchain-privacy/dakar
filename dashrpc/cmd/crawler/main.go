@@ -120,9 +120,6 @@ func main() {
 		}
 	}()
 
-	dbBlockCount := dashrpc.DbGetBlockCount(db)
-	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
-	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 	if cliArgs.IsPrintStatus {
 		dashrpc.PrintStatus(db)
 		return
