@@ -75,19 +75,12 @@ func main() {
 		return
 	}
 
-	dbBlockCount := dashrpc.DbGetBlockCount(db)
-	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
-	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 	if cliArgs.IsPrintStatus {
 		dashrpc.PrintStatus(db)
 		return
 	}
 
-	dbStatus := dashrpc.DbGetStatus(db)
-	log.Printf("DB status: %s\n", dbStatus)
-
 	// API end points
-
 	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))

@@ -49,11 +49,15 @@ func PrintStatus(db *badger.DB) {
 	status := DbGetStatus(db)
 	fmt.Printf("Status: %s\n", status)
 
-	lastID := DbGetLastBlockId(db)
-	stopID := DbGetStopBlockId(db)
-	lastHash := DbGetLastBlockHash(db)
+	dbBlockCount := DbGetBlockCount(db)
+	dbTxCount := DbGetGlobalTxCount(db)
+	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 
+	lastHash := DbGetLastBlockHash(db)
+	lastID := DbGetLastBlockId(db)
 	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+
+	stopID := DbGetStopBlockId(db)
 	fmt.Printf("Stop ID: %v\n", stopID)
 
 	rangeUp := DbGetRangeUp(db)
