@@ -101,6 +101,7 @@ func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.Resp
 			return
 		}
 
+		// assignment to output struct
 		blkDetails := dashrpc.BlkDetails{
 			Hash:          block.Hash.String(),
 			Id:            block.Id,
@@ -110,6 +111,7 @@ func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.Resp
 			Timestamp:     block.Timestamp,
 		}
 
+		// encoding
 		err = json.NewEncoder(w).Encode(blkDetails)
 		if err != nil {
 			http.Error(w, err.Error()+" Block: "+blkDetails.String(), http.StatusInternalServerError)
@@ -126,12 +128,15 @@ func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.Re
 
 		addressHashString := r.URL.Path[len(getRouteAddress()):]
 		addressData := dashrpc.AddressData{}
+
+		// assignment to output struct
 		err := dashrpc.DbGetDataForAddress(db, addressHashString, &addressData)
 		if err != nil {
 			http.Error(w, err.Error()+" Key: "+addressHashString, http.StatusNotFound)
 			return
 		}
 
+		// encoding
 		err = json.NewEncoder(w).Encode(addressData)
 		if err != nil {
 			http.Error(w, err.Error()+" AddressData: "+addressData.Address, http.StatusInternalServerError)
@@ -172,6 +177,7 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 			return
 		}
 
+		// assignment to output struct
 		transaction := dashrpc.Transaction{
 			Bhash:         tx.BlockHash,
 			Bheight:       block.Id,
@@ -181,7 +187,7 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 			Tx:            txDetails,
 		}
 
-		// common['Access-Control-Request-Method'] = '*'")
+		// encoding
 		err = json.NewEncoder(w).Encode(transaction)
 		if err != nil {
 			http.Error(w, err.Error()+" TxDetails: "+txDetails.String(), http.StatusInternalServerError)
@@ -196,6 +202,7 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
+		// assignment to output struct
 		metaInformation := dashrpc.Meta{
 			LastBlockId:      dashrpc.DbGetLastBlockId(db),
 			StopBlockId:      dashrpc.DbGetStopBlockId(db),
@@ -207,6 +214,7 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 			GlobalTxCount:    dashrpc.DbGetGlobalTxCount(db),
 		}
 
+		// encoding
 		err := json.NewEncoder(w).Encode(metaInformation)
 		if err != nil {
 			http.Error(w, err.Error()+" Meta information: "+metaInformation.String(), http.StatusInternalServerError)
