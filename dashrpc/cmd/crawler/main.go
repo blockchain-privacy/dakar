@@ -120,19 +120,13 @@ func main() {
 		}
 	}()
 
-	dbBlockCount := dashrpc.DbGetBlockCount(db)
-	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
-	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 	if cliArgs.IsPrintStatus {
 		dashrpc.PrintStatus(db)
 		return
 	}
 
-	dbStatus := dashrpc.DbGetStatus(db)
-	log.Printf("DB status: %s\n", dbStatus)
-
-	if dbStatus == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
-		log.Println("\nError: when processing is finished to continue provide -stop option")
+	if dashrpc.DbGetStatus(db) == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
+		log.Println("\nError: when processing is finished, provide -stop option to continue provide")
 		return
 	}
 

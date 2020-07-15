@@ -49,11 +49,15 @@ func PrintStatus(db *badger.DB) {
 	status := DbGetStatus(db)
 	fmt.Printf("Status: %s\n", status)
 
-	lastID := DbGetLastBlockId(db)
-	stopID := DbGetStopBlockId(db)
-	lastHash := DbGetLastBlockHash(db)
+	dbBlockCount := DbGetBlockCount(db)
+	dbTxCount := DbGetGlobalTxCount(db)
+	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
 
+	lastHash := DbGetLastBlockHash(db)
+	lastID := DbGetLastBlockId(db)
 	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+
+	stopID := DbGetStopBlockId(db)
 	fmt.Printf("Stop ID: %v\n", stopID)
 
 	rangeUp := DbGetRangeUp(db)
@@ -155,4 +159,29 @@ func DbGetStopBlockId(db *badger.DB) uint64 {
 	var value uint64
 	DbGetUint64(db, DbBlockStopBlockId, &value) // ignoring error on purpose
 	return value
+}
+
+// Information about the state of the database
+type Meta struct {
+	LastBlockId      uint64 `json:"lastblockid"`
+	StopBlockId      uint64 `json:"stopblockid"`
+	LastBlockHash    string `json:"lastblockhash"`
+	Status           string `json:"status"`
+	RangeUp          uint64 `json:"rangeup"`
+	RangeDown        uint64 `json:"rangedown"`
+	GlobalBlockCount uint64 `json:"globalblockcount"`
+	GlobalTxCount    uint64 `json:"globaltxcount"`
+}
+
+func (m Meta) String() string {
+	return fmt.Sprintf(
+		"LastBlockId: %v\n"+
+			"StopBlockId: %v\n"+
+			"LastBlockHash: %v\n"+
+			"Status: %v\n"+
+			"RangeUp: %v\n"+
+			"RangeDown: %v\n"+
+			"GlobalBlockCount: %v\n"+
+			"GlobalTxCount: %v\n",
+		m.LastBlockId, m.StopBlockId, m.LastBlockHash, m.Status, m.RangeUp, m.RangeDown, m.GlobalBlockCount, m.GlobalTxCount)
 }

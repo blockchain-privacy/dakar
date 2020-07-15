@@ -44,23 +44,6 @@ func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
-// Block represents a simple block
-type meta struct {
-	LastBlockId      uint64 `json:"lastblockid"`
-	StopBlockId      uint64 `json:"stopblockid"`
-	LastBlockHash    string `json:"lastblockhash"`
-	Status           string `json:"status"`
-	RangeUp          uint64 `json:"rangeup"`
-	RangeDown        uint64 `json:"rangedown"`
-	GlobalBlockCount uint64 `json:"globalblockcount"`
-	GlobalTxCount    uint64 `json:"globaltxcount"`
-}
-
-func (m meta) String() string {
-	return fmt.Sprintf("LastBlockId: %s\nStopBlockId:\n%LastBlockHash:\n%v\n",
-		m.LastBlockId, m.StopBlockId, m.LastBlockHash)
-}
-
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
@@ -118,15 +101,17 @@ func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.Resp
 			return
 		}
 
-		blkDetails := dashrpc.BlkDetails{}
+		// assignment to output struct
+		blkDetails := dashrpc.BlkDetails{
+			Hash:          block.Hash.String(),
+			Id:            block.Id,
+			NextBlockHash: block.NextBlockHash.String(),
+			PrevBlockHash: block.PrevBlockHash.String(),
+			TxHashes:      block.TxHashes,
+			Timestamp:     block.Timestamp,
+		}
 
-		blkDetails.Hash = block.Hash.String()
-		blkDetails.Id = block.Id
-		blkDetails.NextBlockHash = block.NextBlockHash.String()
-		blkDetails.PrevBlockHash = block.PrevBlockHash.String()
-		blkDetails.TxHashes = block.TxHashes
-		blkDetails.Timestamp = block.Timestamp
-
+		// encoding
 		err = json.NewEncoder(w).Encode(blkDetails)
 		if err != nil {
 			http.Error(w, err.Error()+" Block: "+blkDetails.String(), http.StatusInternalServerError)
@@ -143,12 +128,15 @@ func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.Re
 
 		addressHashString := r.URL.Path[len(getRouteAddress()):]
 		addressData := dashrpc.AddressData{}
+
+		// assignment to output struct
 		err := dashrpc.DbGetDataForAddress(db, addressHashString, &addressData)
 		if err != nil {
 			http.Error(w, err.Error()+" Key: "+addressHashString, http.StatusNotFound)
 			return
 		}
 
+		// encoding
 		err = json.NewEncoder(w).Encode(addressData)
 		if err != nil {
 			http.Error(w, err.Error()+" AddressData: "+addressData.Address, http.StatusInternalServerError)
@@ -188,14 +176,18 @@ func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.Respons
 			http.Error(w, err.Error()+" Block hash: "+tx.BlockHash, http.StatusNotFound)
 			return
 		}
-		transaction := dashrpc.Transaction{}
-		transaction.Bhash = tx.BlockHash
-		transaction.Bheight = block.Id
-		transaction.Bts = block.Timestamp.Unix()
-		transaction.Confirmations = tx.Confirmations
-		transaction.Version = tx.Version
-		transaction.Tx = txDetails
-		// common['Access-Control-Request-Method'] = '*'")
+
+		// assignment to output struct
+		transaction := dashrpc.Transaction{
+			Bhash:         tx.BlockHash,
+			Bheight:       block.Id,
+			Bts:           block.Timestamp.Unix(),
+			Confirmations: tx.Confirmations,
+			Version:       tx.Version,
+			Tx:            txDetails,
+		}
+
+		// encoding
 		err = json.NewEncoder(w).Encode(transaction)
 		if err != nil {
 			http.Error(w, err.Error()+" TxDetails: "+txDetails.String(), http.StatusInternalServerError)
@@ -210,7 +202,8 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		metaInformation := meta{
+		// assignment to output struct
+		metaInformation := dashrpc.Meta{
 			LastBlockId:      dashrpc.DbGetLastBlockId(db),
 			StopBlockId:      dashrpc.DbGetStopBlockId(db),
 			LastBlockHash:    dashrpc.DbGetLastBlockHash(db),
@@ -221,9 +214,20 @@ func handlerMeta(db *badger.DB, client *rpcclient.Client) func(http.ResponseWrit
 			GlobalTxCount:    dashrpc.DbGetGlobalTxCount(db),
 		}
 
+		// encoding
 		err := json.NewEncoder(w).Encode(metaInformation)
 		if err != nil {
 			http.Error(w, err.Error()+" Meta information: "+metaInformation.String(), http.StatusInternalServerError)
 		}
 	}
+}
+
+// creates endpoint handlers
+func setupHandlers(db *badger.DB, client *rpcclient.Client) {
+	// API end points
+	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
+	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
+	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
+	http.HandleFunc(getRouteMeta(), handlerMeta(db, client))
+	http.HandleFunc(getRouteRoot(), handlerRoot)
 }

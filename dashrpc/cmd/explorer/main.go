@@ -26,9 +26,9 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	return cliArgs, err
 }
 
-// Simple web-based utility to browse/lookup the TXs from the badger database
+// Simple web-based utility to browse/lookup tx, block, address and meta data from the badger database
 // It provides the API through HTTP
-// Work in Progress. NOT WORKING YET.
+// Work in Progress.
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock explorer\n\n", dashrpc.VersionString)
 
@@ -62,6 +62,11 @@ func main() {
 		}
 	}()
 
+	if cliArgs.IsPrintStatus {
+		dashrpc.PrintStatus(db)
+		return
+	}
+
 	// Setup the RPC connection
 	var conn = rpcclient.ConnConfig{
 		Host:       cliArgs.RpcEndpoint,
@@ -75,24 +80,8 @@ func main() {
 		return
 	}
 
-	dbBlockCount := dashrpc.DbGetBlockCount(db)
-	dbTxCount := dashrpc.DbGetGlobalTxCount(db)
-	log.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
-	if cliArgs.IsPrintStatus {
-		dashrpc.PrintStatus(db)
-		return
-	}
-
-	dbStatus := dashrpc.DbGetStatus(db)
-	log.Printf("DB status: %s\n", dbStatus)
-
-	// API end points
-
-	http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
-	http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
-	http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
-	http.HandleFunc(getRouteMeta(), handlerMeta(db, client))
-	http.HandleFunc(getRouteRoot(), handlerRoot)
+	// setup REST API
+	setupHandlers(db, client)
 
 	// start the server
 	log.Println("Starting server on port", cliArgs.ExplorerServerPort)
