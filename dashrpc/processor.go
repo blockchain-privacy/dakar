@@ -2,8 +2,11 @@ package dashrpc
 
 import (
 	"dashrpc/btcjson"
+	"dashrpc/db"
 	"dashrpc/rpcclient"
 	"fmt"
+	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/dgo/v2"
 	"os"
 	"os/signal"
 	"syscall"
@@ -11,8 +14,6 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
-
-	"github.com/dgraph-io/badger/v2"
 )
 
 // ProcessTx process transaction, and the Vout and Vin records
@@ -53,6 +54,47 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	}
 
 	return DbSetTxDetails(db, txDetails)
+}
+
+func ProcessTx2(db *dgo.Dgraph, client *rpcclient.Client, processAddresses bool, txHashString string) error {
+	// TODO: start here
+	//txDetails := TxDetails{}
+	//err := DbGetTxDetails(db, txHashString, &txDetails)
+	//if err == nil {
+	//	// we already have it in the system, we do nothing
+	//	return nil
+	//}
+	//
+	//txHash, err := chainhash.NewHashFromStr(txHashString)
+	//if err != nil {
+	//	fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
+	//	return err
+	//}
+	//
+	//tx, err := client.GetRawTransactionVerbose(txHash)
+	//if err != nil {
+	//	fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
+	//	return err
+	//}
+	//
+	//txDetails.Hash = tx.Txid
+	//txDetails.Timestamp = tx.Time
+	//for index, d := range tx.Vin {
+	//	err := processTxVin(db, client, processAddresses, &txDetails, d, index)
+	//	if err != nil {
+	//		fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+	//	}
+	//}
+	//
+	//for index, d := range tx.Vout {
+	//	err := processTxVout(&txDetails, d, index)
+	//	if err != nil {
+	//		fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
+	//	}
+	//}
+	//
+	//return DbSetTxDetails(db, txDetails)
+	return nil
 }
 
 func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool, details *TxDetails, vin btcjson.Vin, index int) error {
@@ -113,6 +155,40 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 
 // ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
 // It stops on error or on first already known block
+func ProcessBlock2(db *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
+	nextBlock chainhash.Hash, blockId uint64, block *db.Block) error {
+	txHashes, err := startBlock.TxHashes()
+	if err != nil {
+		fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
+	}
+
+	//saveProcessingState(db, currentHash.String(), blockId)
+	//DbIncrementBlockCount(db)
+
+	block.Hash = currentHash
+	block.PrevBlockHash = startBlock.Header.PrevBlock
+	block.NextBlockHash = nextBlock
+	block.Timestamp = startBlock.Header.Timestamp
+	block.Id = blockId
+
+	var txHashStrings []string
+
+	for _, tx := range txHashes {
+		txHashStrings = append(txHashStrings, tx.String())
+	}
+	block.TxHashes = txHashStrings
+
+	err = DbSetBlock2(db, *block)
+	if err != nil {
+		fmt.Printf("Saving block gave error %s\n", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
+// It stops on error or on first already known block
 func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
 	nextBlock chainhash.Hash, blockId uint64, block *Block) error {
 	txHashes, err := startBlock.TxHashes()
@@ -140,6 +216,148 @@ func ProcessBlock(db *badger.DB, startBlock *wire.MsgBlock, currentHash chainhas
 	if err != nil {
 		fmt.Printf("Saving block gave error %s\n", err.Error())
 		return err
+	}
+
+	return nil
+}
+
+// ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
+func ProcessNewBlocks2(dgraphDb *dgo.Dgraph,
+	client *rpcclient.Client,
+	processAddresses bool,
+	startingBlockHash string,
+	startingBlockId uint64,
+	stoppingBlockId uint64) error {
+
+	timerStart := time.Now()
+	//DbSetStatus(dgraphDb, DbBlockStatusProcessing)
+	//err := DbSetUint64(dgraphDb, DbBlockStopBlockId, stoppingBlockId)
+	//if err != nil {
+	//	fmt.Printf("Error: failed to save stopBlockID\n%v\n", err)
+	//}
+
+	blkCounter := 0
+	txCounter := 0
+
+	blockHash := startingBlockHash
+	startHash, err := chainhash.NewHashFromStr(blockHash)
+	if err != nil {
+		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
+		return err
+	}
+
+	var lastBlockHash *chainhash.Hash
+
+	// We will handle CTRL-C and CTRL-Z nicely
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	// Main loop
+mainLoop:
+	for {
+		select {
+		case <-c:
+			fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
+				startingBlockId, lastBlockHash)
+			break mainLoop
+		default:
+			// we do nothing
+		}
+
+		block := db.Block{}
+		//err := DbGetBlock(dgraphDb, blockHash, &block)
+		//if err == nil {
+		//	// we already have this block, we need to update the NextBlockHash
+		//	if lastBlockHash != nil {
+		//		block.NextBlockHash = *lastBlockHash
+		//		err = DbSetBlock(dgraphDb, block)
+		//		if err != nil {
+		//			fmt.Printf("Error saving last known Block with updated NextBlockHash")
+		//		}
+		//	}
+		//	break
+		//}
+
+		startBlock, err := client.GetBlock(startHash)
+		if lastBlockHash == nil {
+			lastBlockHash = &chainhash.Hash{} // placeholder for the last block
+		}
+
+		if err != nil {
+			fmt.Printf("Problem with getBlock() %s\n", err.Error())
+			break
+		}
+		err = ProcessBlock2(dgraphDb, startBlock, *startHash, *lastBlockHash, startingBlockId, &block)
+		if err != nil {
+			fmt.Printf("Error: we had problem processing the block\n%v\n", block)
+			fmt.Printf("Hash: %v, BlockId: %d\n", *startHash, startingBlockId)
+			break
+		}
+
+		startHash = &block.PrevBlockHash
+		if startingBlockId == 0 || block.Id == stoppingBlockId {
+			break
+		}
+		startingBlockId--
+		lastBlockHash, _ = chainhash.NewHashFromStr(block.Hash.String())
+		blockHash = startHash.String()
+
+		blkCounter++
+		if blkCounter%20000 == 0 {
+			fmt.Printf("%v * 20k blocks done\n", blkCounter/20000)
+		}
+	}
+
+	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
+
+	blockHash = startingBlockHash
+
+	for {
+		block := db.DatabaseBlock{}
+		err := db.GetBlock(dgraphDb, blockHash, &block)
+		if err != nil {
+			fmt.Printf("DbGetBlock() failed. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
+			fmt.Printf("Block: %v\n", block)
+			break
+		}
+
+		txs := block.Transactions
+		for _, t := range txs {
+			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash)
+			if err != nil {
+				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
+				fmt.Printf("Error: %s\n", err.Error())
+				fmt.Printf("Tx: %v\n", t)
+				break
+			}
+			txCounter++
+			//DbIncrementGlobalTxCount(db)
+
+			if txCounter%5000 == 0 {
+				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, block.Id, block.Hash)
+				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
+			}
+		}
+
+		blockHash = block.PrevBlock.Hash
+		//saveProcessingState(db, blockHash, block.Id-1)
+		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
+			block.Id == stoppingBlockId {
+			//saveProcessingStateFinished(db)
+			break
+		}
+	}
+
+	elapsedTime := time.Since(timerStart)
+	if blkCounter > 0 {
+		fmt.Printf("Final Blocks count: %v\n", blkCounter)
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
+			elapsedTime.Milliseconds()/int64(blkCounter))
+	} else {
+		fmt.Println("Processed no new blocks")
+		fmt.Printf("Final TX count: %v\n", txCounter)
+		fmt.Printf("Elapsed time: %s\n\n", elapsedTime)
 	}
 
 	return nil

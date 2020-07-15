@@ -3,6 +3,7 @@ package main
 import (
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
+	"dashrpc/db"
 	"dashrpc/rpcclient"
 	"errors"
 	"flag"
@@ -70,6 +71,155 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 // Note: in the future, the crawler could be integrated with the backend-web service as
 // to run continuously in the background and share the DB with other API queries.
 func main() {
+	//badgerTest()
+	dgraphTest()
+}
+
+func dgraphTest() {
+	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
+	cliArgs, err := getCLIArgs()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// setup Logging
+	if len(cliArgs.Logfile) > 0 {
+		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Println("Error opening log file", err)
+			return
+		}
+		defer func() {
+			err = f.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
+		log.SetPrefix("crawler ")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	}
+
+	if cliArgs.IsBenchmark {
+		log.Print("Benchmarking is currently not supported")
+		return
+	}
+
+	dbClient, err := db.NewClient()
+
+	err = db.DropAll(dbClient)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	err = db.SetupSchema(dbClient)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	//_, err = db.InsertTestData(dbClient)
+	//if err != nil {
+	//	log.Print(err)
+	//	return
+	//}
+
+	if cliArgs.IsPrintStatus {
+		//dashrpc.PrintStatus(db)
+		return
+	}
+
+	//if dashrpc.DbGetStatus(db) == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
+	//	log.Println("\nError: when processing is finished, provide -stop option to continue provide")
+	//	return
+	//}
+
+	//if cliArgs.ProcessContinue && (cliArgs.StartBlockHash != "" || cliArgs.StartBlockID != 0) {
+	//	log.Println("\nError: cannot use -continue and start/stop options in the command line")
+	//	return
+	//}
+
+	// Setup the RPC connection
+	var conn = rpcclient.ConnConfig{
+		Host:       cliArgs.RpcEndpoint,
+		User:       cliArgs.RpcUser,
+		Pass:       cliArgs.RpcPassword,
+		DisableTLS: true,
+	}
+
+	client, err := rpcclient.New(&conn)
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+
+	count, err := client.GetBlockCount()
+	if err != nil {
+		log.Printf("\nError: problem with count() %s\n", err.Error())
+		return
+	}
+	log.Printf("Current block count in the chain: %v\n", count)
+
+	//if cliArgs.ProcessContinue {
+	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
+	//	if err != nil {
+	//		log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
+	//		return
+	//	}
+	//	err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.StartBlockHash)
+	//	if err != nil {
+	//		log.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
+	//		return
+	//	}
+	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)
+	//	if err != nil {
+	//		log.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
+	//		return
+	//	}
+	//}
+
+	//startingBlockId := uint64(1060000)
+	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
+
+	// 2019-05-05 19:22
+	// Block: 1065229
+	// 0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c
+	//
+	// startingBlockId := 1065229
+	// startingBlockHash := "0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c"
+
+	//
+	// Appeared in Dash 126744 (2014-08-28 19:47:52)
+	// startingBlockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
+
+	// startingBlockId := 50000
+	// startingBlockHash := "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
+
+	// 50 block
+	// startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
+
+	// 100 block
+	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
+
+	err = dashrpc.ProcessNewBlocks2(dbClient, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	if err != nil {
+		log.Printf("Error: %v\n", err)
+		return
+	}
+
+	//err = db.Close()
+	//if err != nil {
+	//	log.Printf("Error: %v\n", err)
+	//	return
+	//}
+
+	//if cliArgs.IsBenchmark {
+	//	time.Sleep(time.Second * 5) // need to give time to Badger to shutdown
+	//}
+}
+
+func badgerTest() {
 	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
