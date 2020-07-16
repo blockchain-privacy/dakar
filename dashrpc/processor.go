@@ -56,7 +56,8 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	return DbSetTxDetails(db, txDetails)
 }
 
-func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses bool, txHashString string) error {
+func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
+	processAddresses bool, txHashString string, blockUid string) error {
 	txDetails := db.Transaction{}
 
 	err := db.GetCompleteTransaction(dgraph, txHashString, &txDetails)
@@ -88,11 +89,22 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses b
 	}
 
 	for index, d := range tx.Vout {
-		err := processTxVout2(&txDetails, d, index)
-		if err != nil {
-			fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
-		}
+		//err := processTxVout2(&txDetails, d, index)
+
+		txDetails.Outputs = append(txDetails.Outputs, db.TxOutput{
+			IsCoinbase: false,
+			Amount:     d.Value,
+			TxType:     d.ScriptPubKey.Type,
+			Index:      index,
+		})
+
+		//
+		//if err != nil {
+		//	fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
+		//}
 	}
+
+	// todo: process addresses after in- and outputs
 
 	_, err = db.UpdateTransaction(dgraph, &txDetails)
 
@@ -103,7 +115,7 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 	details *db.Transaction, vin btcjson.Vin, index int) error {
 	out := db.TxOutput{
 		IsCoinbase: vin.IsCoinBase(),
-		TxHash:     vin.Txid,
+		Index:      index,
 	}
 
 	if out.IsCoinbase {
@@ -124,13 +136,15 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 	}
 
 	out.Amount = tx.Vout[vin.Vout].Value
-	// todo
-	//out.Addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
 
+	//for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
+	//	out.Addresses = append(out.Addresses, db.Address{Hash: e})
+	//}
+	//
 	//if processAddresses {
 	//	// Let's associate the address with Tx
 	//	for _, addr := range out.Addresses {
-	//		err = DbAddTxToAddress(dgraph, addr, out)
+	//		err = DbAddTxToAddress2(dgraph, addr.Hash, out)
 	//		if err != nil {
 	//			// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
 	//			// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
@@ -138,8 +152,6 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 	//		}
 	//	}
 	//}
-
-	out.Index = index
 
 	details.Inputs = append(details.Inputs, out)
 	return nil
@@ -187,23 +199,21 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool
 	return nil
 }
 
-func processTxVout2(details *db.Transaction, vout btcjson.Vout, index int) error {
-	out := db.TxOutput{}
-
-	out.IsCoinbase = false
-	out.TxHash = details.Hash
-	out.Amount = vout.Value
-
-	for _, e := range vout.ScriptPubKey.Addresses {
-		out.Addresses = append(out.Addresses, db.Address{Hash: e})
-	}
-
-	out.TxType = vout.ScriptPubKey.Type
-	out.Index = index
-
-	details.Outputs = append(details.Outputs, out)
-	return nil
-}
+//func processTxVout2(details *db.Transaction, vout btcjson.Vout, index int) error {
+//
+//	//for _, e := range vout.ScriptPubKey.Addresses {
+//	//	out.Addresses = append(out.Addresses, db.Address{Hash: e})
+//	//}
+//
+//	details.Outputs = append(details.Outputs, db.TxOutput{
+//		IsCoinbase: false,
+//		TxHash:     details.Hash,
+//		Amount:     vout.Value,
+//		TxType:     vout.ScriptPubKey.Type,
+//		Index:      index,
+//	})
+//	return nil
+//}
 
 func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 	out := TxOutput{}
@@ -398,7 +408,7 @@ mainLoop:
 
 		txs := block.Transactions
 		for _, t := range txs {
-			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash)
+			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash, block.Uid)
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())

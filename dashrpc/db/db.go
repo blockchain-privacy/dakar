@@ -19,15 +19,15 @@ func SetupSchema(c *dgo.Dgraph) error {
 			addresshash: string @index(exact) @upsert .
 			id: int .
 			ts: dateTime .
-			prevblock: uid .
-			transactions: [uid] .
+			prevblock: uid @reverse .
+			transactions: [uid] @reverse .
 			Dtype: [string] .
 			index: int .
 			txtype: string .
 			amount: float .
 			iscoinbase: bool .
-			inputs: [uid] .
-			outputs: [uid] .
+			inputs: [uid] @reverse .
+			outputs: [uid] @reverse .
 
 			type Block {
 				blockhash
@@ -35,26 +35,26 @@ func SetupSchema(c *dgo.Dgraph) error {
 				ts
 				prevblock
 				transactions
-			 }
+			}
 
 			type Transaction {
 				txhash
 				ts
 				outputs
 				inputs
-			 }
+			}
 
 			type TxOutput {
-				txhash
 				index
 				txtype
 				amount
 				iscoinbase
-			 }
+			}
 			
 			type Address {
 				addresshash
-			 }
+				outputs
+			}
 		`,
 	})
 }
@@ -176,7 +176,7 @@ func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 	return res, err
 }
 
-// gets block information from the database
+// gets transaction information from the database
 func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
 
 	tx := c.NewReadOnlyTxn()
@@ -185,6 +185,23 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 					uid
 					txhash
 					ts
+					block {
+						blockhash
+					}
+					inputs{
+						amount
+						index
+						iscoinbase
+						txtype
+						addresses {addresshash}
+					}
+					outputs{
+						amount
+						index
+						iscoinbase
+						txtype
+						addresses {addresshash}
+					}
 				}
 			  }
 				`
@@ -222,7 +239,7 @@ func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transacti
 	}
 
 	tx := *transaction
-	if tx.Uid == "" || tx.Hash == "" || tx.DType == nil || tx.Block == nil {
+	if tx.Uid == "" || tx.Hash == "" || tx.DType == nil {
 		return errors.New("transaction not complete")
 	}
 
@@ -253,6 +270,105 @@ func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 			v as uid
 		}
 	`, transaction.Hash)
+
+	mu := &api.Mutation{
+		SetJson: pb,
+	}
+	req := &api.Request{
+		Query:     query,
+		Mutations: []*api.Mutation{mu},
+		CommitNow: true,
+	}
+
+	res, err := c.NewTxn().Do(context.Background(), req)
+	return res, err
+}
+
+// gets address information from the database
+func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
+
+	tx := c.NewReadOnlyTxn()
+	query := `query Q($hash: string) {
+				q(func: eq(addresshash, $hash)){
+					uid
+					addresshash
+					outputs{
+						uid
+						amount
+						index
+						iscoinbase
+						txtype
+						addresses {
+						uid
+						addresshash
+						}
+					}
+					inputs{
+						uid
+						amount
+						index
+						iscoinbase
+						txtype
+						addresses {
+						uid
+						addresshash
+						}
+					}
+				}
+			  }
+				`
+	vars := make(map[string]string)
+	vars["$hash"] = txHash
+	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+	if err != nil {
+		return err
+	}
+	var r addressQuery
+	err = json.Unmarshal(resp.Json, &r)
+
+	if err != nil {
+		return err
+	}
+
+	lenQ := len(r.Q)
+
+	if lenQ == 0 {
+		return errors.New("no addresses found")
+	}
+
+	*address = r.Q[0]
+	if lenQ > 1 {
+		// found more than one address, which should not be possible
+		return errors.New("found more than one address")
+	}
+
+	return nil
+}
+
+func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
+	// While setting an object if a struct has a Uid then its properties in the graph are updated
+	// else a new node is created.
+	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
+	// dont have a Uid).
+
+	(*address).Uid = "uid(v)"
+
+	pb, err := json.Marshal(address)
+	if err != nil {
+		return nil, err
+	}
+
+	query := fmt.Sprintf(`
+		{
+			q(func: eq(addresshash, "%s")) {
+				...fragmentA
+			}
+		}
+
+		fragment fragmentA {
+			v as uid
+		}
+	`, address.Hash)
 
 	mu := &api.Mutation{
 		SetJson: pb,
