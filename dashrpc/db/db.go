@@ -382,3 +382,42 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	res, err := c.NewTxn().Do(context.Background(), req)
 	return res, err
 }
+
+// todo implement bulk edit
+func BulkUpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
+	// While setting an object if a struct has a Uid then its properties in the graph are updated
+	// else a new node is created.
+	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
+	// dont have a Uid).
+
+	(*address).Uid = "uid(v)"
+
+	pb, err := json.Marshal(address)
+	if err != nil {
+		return nil, err
+	}
+
+	query := fmt.Sprintf(`
+		{
+			q(func: eq(addresshash, "%s")) {
+				...fragmentA
+			}
+		}
+
+		fragment fragmentA {
+			v as uid
+		}
+	`, address.Hash)
+
+	mu := &api.Mutation{
+		SetJson: pb,
+	}
+	req := &api.Request{
+		Query:     query,
+		Mutations: []*api.Mutation{mu},
+		CommitNow: true,
+	}
+
+	res, err := c.NewTxn().Do(context.Background(), req)
+	return res, err
+}

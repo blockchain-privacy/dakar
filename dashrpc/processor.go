@@ -16,6 +16,19 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
+// returns a slice without duplicates
+func removeDuplicates(slice []string) []string {
+	keys := make(map[string]bool)
+	var list []string
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
+}
+
 // ProcessTx process transaction, and the Vout and Vin records
 func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, txHashString string) error {
 	txDetails := TxDetails{}
@@ -81,10 +94,15 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	txDetails.Hash = tx.Txid
 
 	txDetails.Timestamp = time.Unix(tx.Time, 0).Format(time.RFC3339)
+
+	var allTxAddresses []string
+
 	for index, d := range tx.Vin {
-		err := processTxVin2(dgraph, client, processAddresses, &txDetails, d, index)
+		addresses, err := processTxVin2(dgraph, client, processAddresses, &txDetails, d, index)
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+		} else if addresses != nil {
+			allTxAddresses = append(allTxAddresses, addresses...)
 		}
 	}
 
@@ -98,13 +116,16 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 			Index:      index,
 		})
 
+		if d.ScriptPubKey.Addresses != nil {
+			allTxAddresses = append(allTxAddresses, d.ScriptPubKey.Addresses...)
+		}
 		//
 		//if err != nil {
 		//	fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
 		//}
 	}
 
-	// todo: process addresses after in- and outputs
+	allTxAddresses = removeDuplicates(allTxAddresses)
 
 	_, err = db.UpdateTransaction(dgraph, &txDetails)
 
@@ -112,7 +133,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 }
 
 func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses bool,
-	details *db.Transaction, vin btcjson.Vin, index int) error {
+	details *db.Transaction, vin btcjson.Vin, index int) (addresses []string, err error) {
 	out := db.TxOutput{
 		IsCoinbase: vin.IsCoinBase(),
 		Index:      index,
@@ -120,22 +141,23 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 
 	if out.IsCoinbase {
 		details.Inputs = append(details.Inputs, out)
-		return nil
+		return nil, nil
 	}
 
 	h, err := chainhash.NewHashFromStr(vin.Txid)
 	if err != nil {
 		fmt.Printf("Problems with converting str to hash in showTxVinDetails: %s", err.Error())
-		return err
+		return nil, err
 	}
 
 	tx, err := client.GetRawTransactionVerbose(h)
 	if err != nil {
 		fmt.Printf("Problems with getting Tx details: %s\nHash: %v\nVin: %v\n", h.String(), vin, err.Error())
-		return err
+		return nil, err
 	}
 
 	out.Amount = tx.Vout[vin.Vout].Value
+	addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
 
 	//for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
 	//	out.Addresses = append(out.Addresses, db.Address{Hash: e})
@@ -154,7 +176,7 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 	//}
 
 	details.Inputs = append(details.Inputs, out)
-	return nil
+	return addresses, nil
 }
 
 func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool, details *TxDetails, vin btcjson.Vin, index int) error {
