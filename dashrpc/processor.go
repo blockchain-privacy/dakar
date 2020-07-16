@@ -155,7 +155,7 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 
 // ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
 // It stops on error or on first already known block
-func ProcessBlock2(db *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
+func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
 	nextBlock chainhash.Hash, blockId uint64, block *db.Block) error {
 	txHashes, err := startBlock.TxHashes()
 	if err != nil {
@@ -165,20 +165,19 @@ func ProcessBlock2(db *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainh
 	//saveProcessingState(db, currentHash.String(), blockId)
 	//DbIncrementBlockCount(db)
 
-	block.Hash = currentHash
-	block.PrevBlockHash = startBlock.Header.PrevBlock
-	block.NextBlockHash = nextBlock
-	block.Timestamp = startBlock.Header.Timestamp
+	block.Hash = currentHash.String()
+	block.PrevBlock = &db.Block{
+		Hash: startBlock.Header.PrevBlock.String(),
+	}
+	//block.NextBlock = &db.Block{Hash: nextBlock.String()}
+	block.Timestamp = startBlock.Header.Timestamp.Format(time.RFC3339)
 	block.Id = blockId
 
-	var txHashStrings []string
-
 	for _, tx := range txHashes {
-		txHashStrings = append(txHashStrings, tx.String())
+		block.Transactions = append(block.Transactions, &db.Transaction{Hash: tx.String()})
 	}
-	block.TxHashes = txHashStrings
 
-	err = DbSetBlock2(db, *block)
+	err = DbSetBlock2(dgraph, *block)
 	if err != nil {
 		fmt.Printf("Saving block gave error %s\n", err.Error())
 		return err
@@ -294,12 +293,21 @@ mainLoop:
 			break
 		}
 
-		startHash = &block.PrevBlockHash
+		startHash, err = chainhash.NewHashFromStr(block.PrevBlock.Hash)
+		if err != nil {
+			fmt.Printf("Error: we had problem converting hash to chainhash\n%v\n", block.PrevBlock.Hash)
+			break
+		}
+
 		if startingBlockId == 0 || block.Id == stoppingBlockId {
 			break
 		}
 		startingBlockId--
-		lastBlockHash, _ = chainhash.NewHashFromStr(block.Hash.String())
+		lastBlockHash, err = chainhash.NewHashFromStr(block.Hash)
+		if err != nil {
+			fmt.Printf("Error: we had problem converting hash to chainhash\n%v\n", block.Hash)
+			break
+		}
 		blockHash = startHash.String()
 
 		blkCounter++
@@ -313,7 +321,7 @@ mainLoop:
 	blockHash = startingBlockHash
 
 	for {
-		block := db.DatabaseBlock{}
+		block := db.Block{}
 		err := db.GetBlock(dgraphDb, blockHash, &block)
 		if err != nil {
 			fmt.Printf("DbGetBlock() failed. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
