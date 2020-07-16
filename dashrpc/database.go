@@ -2,11 +2,8 @@ package dashrpc
 
 import (
 	"bytes"
-	"dashrpc/db"
 	"encoding/gob"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
-
 	"github.com/dgraph-io/badger/v2"
 	"github.com/pkg/errors"
 )
@@ -117,20 +114,6 @@ func DbGetBlock(db *badger.DB, hash string, block *Block) error {
 	}
 	dec := gob.NewDecoder(bytes.NewReader(item.Data))
 	return dec.Decode(block)
-}
-
-// DbSetBlock sets a given block into the k-v store as blk chainItem type.
-func DbSetBlock2(dgraphClient *dgo.Dgraph, block db.Block) error {
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(block)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.InsertBlock(dgraphClient, &block)
-
-	return err
 }
 
 // DbSetBlock sets a given block into the k-v store as blk chainItem type.

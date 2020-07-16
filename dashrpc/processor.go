@@ -56,44 +56,92 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	return DbSetTxDetails(db, txDetails)
 }
 
-func ProcessTx2(db *dgo.Dgraph, client *rpcclient.Client, processAddresses bool, txHashString string) error {
-	// TODO: start here
-	//txDetails := TxDetails{}
-	//err := DbGetTxDetails(db, txHashString, &txDetails)
-	//if err == nil {
-	//	// we already have it in the system, we do nothing
-	//	return nil
-	//}
+func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses bool, txHashString string) error {
+	txDetails := db.Transaction{}
+
+	err := db.GetCompleteTransaction(dgraph, txHashString, &txDetails)
+	if err == nil {
+		// we already have it in the system, we do nothing
+		return nil
+	}
+
+	txHash, err := chainhash.NewHashFromStr(txHashString)
+	if err != nil {
+		fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
+		return err
+	}
+
+	tx, err := client.GetRawTransactionVerbose(txHash)
+	if err != nil {
+		fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
+		return err
+	}
+
+	txDetails.Hash = tx.Txid
+
+	txDetails.Timestamp = time.Unix(tx.Time, 0).Format(time.RFC3339)
+	for index, d := range tx.Vin {
+		err := processTxVin2(dgraph, client, processAddresses, &txDetails, d, index)
+		if err != nil {
+			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+		}
+	}
+
+	for index, d := range tx.Vout {
+		err := processTxVout2(&txDetails, d, index)
+		if err != nil {
+			fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
+		}
+	}
+
+	_, err = db.UpdateTransaction(dgraph, &txDetails)
+
+	return err
+}
+
+func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses bool,
+	details *db.Transaction, vin btcjson.Vin, index int) error {
+	out := db.TxOutput{
+		IsCoinbase: vin.IsCoinBase(),
+		TxHash:     vin.Txid,
+	}
+
+	if out.IsCoinbase {
+		details.Inputs = append(details.Inputs, out)
+		return nil
+	}
+
+	h, err := chainhash.NewHashFromStr(vin.Txid)
+	if err != nil {
+		fmt.Printf("Problems with converting str to hash in showTxVinDetails: %s", err.Error())
+		return err
+	}
+
+	tx, err := client.GetRawTransactionVerbose(h)
+	if err != nil {
+		fmt.Printf("Problems with getting Tx details: %s\nHash: %v\nVin: %v\n", h.String(), vin, err.Error())
+		return err
+	}
+
+	out.Amount = tx.Vout[vin.Vout].Value
+	// todo
+	//out.Addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
+
+	//if processAddresses {
+	//	// Let's associate the address with Tx
+	//	for _, addr := range out.Addresses {
+	//		err = DbAddTxToAddress(dgraph, addr, out)
+	//		if err != nil {
+	//			// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
+	//			// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
 	//
-	//txHash, err := chainhash.NewHashFromStr(txHashString)
-	//if err != nil {
-	//	fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
-	//	return err
-	//}
-	//
-	//tx, err := client.GetRawTransactionVerbose(txHash)
-	//if err != nil {
-	//	fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
-	//	return err
-	//}
-	//
-	//txDetails.Hash = tx.Txid
-	//txDetails.Timestamp = tx.Time
-	//for index, d := range tx.Vin {
-	//	err := processTxVin(db, client, processAddresses, &txDetails, d, index)
-	//	if err != nil {
-	//		fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+	//		}
 	//	}
 	//}
-	//
-	//for index, d := range tx.Vout {
-	//	err := processTxVout(&txDetails, d, index)
-	//	if err != nil {
-	//		fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
-	//	}
-	//}
-	//
-	//return DbSetTxDetails(db, txDetails)
+
+	out.Index = index
+
+	details.Inputs = append(details.Inputs, out)
 	return nil
 }
 
@@ -139,6 +187,24 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool
 	return nil
 }
 
+func processTxVout2(details *db.Transaction, vout btcjson.Vout, index int) error {
+	out := db.TxOutput{}
+
+	out.IsCoinbase = false
+	out.TxHash = details.Hash
+	out.Amount = vout.Value
+
+	for _, e := range vout.ScriptPubKey.Addresses {
+		out.Addresses = append(out.Addresses, db.Address{Hash: e})
+	}
+
+	out.TxType = vout.ScriptPubKey.Type
+	out.Index = index
+
+	details.Outputs = append(details.Outputs, out)
+	return nil
+}
+
 func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 	out := TxOutput{}
 
@@ -177,7 +243,7 @@ func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash ch
 		block.Transactions = append(block.Transactions, &db.Transaction{Hash: tx.String()})
 	}
 
-	err = DbSetBlock2(dgraph, *block)
+	_, err = db.UpdateBlock(dgraph, block)
 	if err != nil {
 		fmt.Printf("Saving block gave error %s\n", err.Error())
 		return err
@@ -264,18 +330,19 @@ mainLoop:
 		}
 
 		block := db.Block{}
-		//err := DbGetBlock(dgraphDb, blockHash, &block)
-		//if err == nil {
-		//	// we already have this block, we need to update the NextBlockHash
-		//	if lastBlockHash != nil {
-		//		block.NextBlockHash = *lastBlockHash
-		//		err = DbSetBlock(dgraphDb, block)
-		//		if err != nil {
-		//			fmt.Printf("Error saving last known Block with updated NextBlockHash")
-		//		}
-		//	}
-		//	break
-		//}
+
+		err := db.GetCompleteBlock(dgraphDb, blockHash, &block)
+		if err == nil {
+			// we already have this block, we need to update the NextBlockHash
+			//if lastBlockHash != nil {
+			//	block.NextBlockHash = *lastBlockHash
+			//	err = DbSetBlock(dgraphDb, block)
+			//	if err != nil {
+			//		fmt.Printf("Error saving last known Block with updated NextBlockHash")
+			//	}
+			//}
+			break
+		}
 
 		startBlock, err := client.GetBlock(startHash)
 		if lastBlockHash == nil {

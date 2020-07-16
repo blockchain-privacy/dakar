@@ -16,23 +16,44 @@ func SetupSchema(c *dgo.Dgraph) error {
 		Schema: `
 			blockhash: string @index(exact) @upsert .
 			txhash: string @index(exact) @upsert .
+			addresshash: string @index(exact) @upsert .
 			id: int .
 			ts: dateTime .
-			nextblock: uid .
 			prevblock: uid .
 			transactions: [uid] .
 			Dtype: [string] .
-			
+			index: int .
+			txtype: string .
+			amount: float .
+			iscoinbase: bool .
+			inputs: [uid] .
+			outputs: [uid] .
+
 			type Block {
 				blockhash
 				id
 				ts
-				nextblock
 				prevblock
 				transactions
 			 }
+
 			type Transaction {
 				txhash
+				ts
+				outputs
+				inputs
+			 }
+
+			type TxOutput {
+				txhash
+				index
+				txtype
+				amount
+				iscoinbase
+			 }
+			
+			type Address {
+				addresshash
 			 }
 		`,
 	})
@@ -69,7 +90,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 					prevblock { 
 						blockhash
 					}
-					txhashes{
+					transactions{
 						txhash
 					}
 				}
@@ -89,17 +110,35 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	}
 
 	lenQ := len(r.Q)
-	if lenQ > 0 {
-		*block = r.Q[0]
-		if lenQ > 1 {
-			err = errors.New("found more than one block")
-		}
+
+	if lenQ == 0 {
+		return errors.New("no blocks found")
 	}
 
-	return err
+	*block = r.Q[0]
+	if lenQ > 1 {
+		// found more than one block, which should not be possible
+		return errors.New("found more than one block")
+	}
+
+	return nil
 }
 
-func InsertBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
+func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
+	if err := GetBlock(c, blockHash, block); err != nil {
+		return err
+	}
+
+	blk := *block
+	if blk.Uid == "" || blk.Hash == "" || blk.Id == 0 || blk.Timestamp == "" ||
+		blk.DType == nil || blk.Transactions == nil || blk.PrevBlock == nil {
+		return errors.New("block not complete")
+	}
+
+	return nil
+}
+
+func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 	// While setting an object if a struct has a Uid then its properties in the graph are updated
 	// else a new node is created.
 	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
@@ -123,6 +162,97 @@ func InsertBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 			v as uid
 		}
 	`, block.Hash)
+
+	mu := &api.Mutation{
+		SetJson: pb,
+	}
+	req := &api.Request{
+		Query:     query,
+		Mutations: []*api.Mutation{mu},
+		CommitNow: true,
+	}
+
+	res, err := c.NewTxn().Do(context.Background(), req)
+	return res, err
+}
+
+// gets block information from the database
+func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
+
+	tx := c.NewReadOnlyTxn()
+	query := `query Q($hash: string) {
+				q(func: eq(txhash, $hash)){
+					uid
+					txhash
+					ts
+				}
+			  }
+				`
+	vars := make(map[string]string)
+	vars["$hash"] = txHash
+	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+	if err != nil {
+		return err
+	}
+	var r transactionQuery
+	err = json.Unmarshal(resp.Json, &r)
+
+	if err != nil {
+		return err
+	}
+
+	lenQ := len(r.Q)
+
+	if lenQ == 0 {
+		return errors.New("no transactions found")
+	}
+
+	*transaction = r.Q[0]
+	if lenQ > 1 {
+		// found more than one transaction, which should not be possible
+		return errors.New("found more than one transaction")
+	}
+
+	return nil
+}
+
+func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
+	if err := GetTransaction(c, txHash, transaction); err != nil {
+		return err
+	}
+
+	tx := *transaction
+	if tx.Uid == "" || tx.Hash == "" || tx.DType == nil || tx.Block == nil {
+		return errors.New("transaction not complete")
+	}
+
+	return nil
+}
+
+func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
+	// While setting an object if a struct has a Uid then its properties in the graph are updated
+	// else a new node is created.
+	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
+	// dont have a Uid).
+
+	(*transaction).Uid = "uid(v)"
+
+	pb, err := json.Marshal(transaction)
+	if err != nil {
+		return nil, err
+	}
+
+	query := fmt.Sprintf(`
+		{
+			q(func: eq(txhash, "%s")) {
+				...fragmentA
+			}
+		}
+
+		fragment fragmentA {
+			v as uid
+		}
+	`, transaction.Hash)
 
 	mu := &api.Mutation{
 		SetJson: pb,
