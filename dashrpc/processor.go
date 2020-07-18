@@ -145,8 +145,6 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	txDetails.Hash = tx.Txid
 
-	txDetails.Timestamp = time.Unix(tx.Time, 0).Format(time.RFC3339)
-
 	var inputMappings []outputMapping
 	for index, d := range tx.Vin {
 		iMapping, err := processTxVin2(client, &txDetails, d, index)

@@ -2,11 +2,9 @@ package dashrpc
 
 import (
 	"bytes"
-	"dashrpc/db"
 	"encoding/gob"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/dgraph-io/dgo/v2"
 	"github.com/pkg/errors"
 )
 
@@ -155,24 +153,6 @@ func DbSetTxDetails(db *badger.DB, txDetails TxDetails) error {
 		return err
 	}
 	return DbSetItem(db, txDetails.Hash, buf.Bytes(), ChainType_TxDetails)
-}
-
-func DbAddTxToAddress2(dgraph *dgo.Dgraph, addr string, output db.TxOutput) error {
-	addrData := db.Address{}
-
-	err := db.GetAddress(dgraph, addr, &addrData)
-	if err != nil {
-		// address does not exist yet -> let's create it
-		addrData.Hash = addr
-	}
-	if addrData.Outputs == nil {
-		addrData.Outputs = make([]db.TxOutput, 0)
-	}
-	addrData.Outputs = append(addrData.Outputs, output)
-
-	_, err = db.UpdateAddress(dgraph, &addrData)
-
-	return err
 }
 
 func DbAddTxToAddress(db *badger.DB, addr string, output TxOutput) error {

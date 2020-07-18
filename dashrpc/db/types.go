@@ -11,12 +11,11 @@ type Block struct {
 }
 
 type Transaction struct {
-	Uid       string     `json:"uid,omitempty"`
-	Outputs   []TxOutput `json:"tx_outputs,omitempty"`
-	Inputs    []TxOutput `json:"tx_inputs,omitempty"`
-	Hash      string     `json:"txhash,omitempty"`
-	Timestamp string     `json:"ts,omitempty"`
-	DType     []string   `json:"dgraph.type,omitempty"`
+	Uid     string     `json:"uid,omitempty"`
+	Outputs []TxOutput `json:"tx_outputs,omitempty"`
+	Inputs  []TxOutput `json:"tx_inputs,omitempty"`
+	Hash    string     `json:"txhash,omitempty"`
+	DType   []string   `json:"dgraph.type,omitempty"`
 }
 
 type TxOutput struct {

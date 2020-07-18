@@ -40,7 +40,6 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type Transaction {
 				txhash
-				ts
 				tx_outputs
 				tx_inputs
 			}
@@ -187,7 +186,6 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 				q(func: eq(txhash, $hash)){
 					uid
 					txhash
-					ts
 					tx_inputs{
 						uid
 						amount
@@ -304,14 +302,7 @@ func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
 				q(func: eq(addresshash, $hash)){
 					uid
 					addresshash
-					tx_outputs{
-						uid
-						amount
-						index
-						iscoinbase
-						txtype
-					}
-					tx_inputs{
+					addr_outputs{
 						uid
 						amount
 						index
