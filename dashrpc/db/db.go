@@ -17,15 +17,15 @@ func SetupSchema(c *dgo.Dgraph) error {
 			blockhash: string @index(exact) @upsert .
 			txhash: string @index(exact) @upsert .
 			addresshash: string @index(exact) @upsert .
-			id: int .
+			id: string .
 			ts: dateTime .
 			prevblock: uid @reverse .
 			transactions: [uid] @reverse .
 			Dtype: [string] .
-			index: int .
+			index: string .
 			txtype: string .
-			amount: float .
-			iscoinbase: bool .
+			amount: string .
+			iscoinbase: string .
 			inputs: [uid] @reverse .
 			outputs: [uid] @reverse .
 
@@ -130,7 +130,7 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	}
 
 	blk := *block
-	if blk.Uid == "" || blk.Hash == "" || blk.Id == 0 || blk.Timestamp == "" ||
+	if blk.Uid == "" || blk.Hash == "" || blk.Id == "" || blk.Timestamp == "" ||
 		blk.DType == nil || blk.Transactions == nil || blk.PrevBlock == nil {
 		return errors.New("block not complete")
 	}
@@ -189,6 +189,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 						blockhash
 					}
 					inputs{
+						uid
 						amount
 						index
 						iscoinbase
@@ -196,6 +197,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 						addresses {addresshash}
 					}
 					outputs{
+						uid
 						amount
 						index
 						iscoinbase
@@ -384,30 +386,25 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 }
 
 // todo implement bulk edit
-func BulkUpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
-	// While setting an object if a struct has a Uid then its properties in the graph are updated
-	// else a new node is created.
-	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
-	// dont have a Uid).
+func BulkUpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) {
+	if addresses == nil {
+		return nil, errors.New("got null pointer for addresses")
+	}
 
-	(*address).Uid = "uid(v)"
+	query := "{\n"
 
-	pb, err := json.Marshal(address)
+	// set uid for all addresses and build query
+	for i := range addresses {
+		addresses[i].Uid = fmt.Sprintf("uid(a%d)", i)
+		query += fmt.Sprintf("a%d as var(func: eq(addresshash, \"%s\"))\n", i, addresses[i].Hash)
+	}
+
+	query += "}"
+
+	pb, err := json.Marshal(addresses)
 	if err != nil {
 		return nil, err
 	}
-
-	query := fmt.Sprintf(`
-		{
-			q(func: eq(addresshash, "%s")) {
-				...fragmentA
-			}
-		}
-
-		fragment fragmentA {
-			v as uid
-		}
-	`, address.Hash)
 
 	mu := &api.Mutation{
 		SetJson: pb,
@@ -419,5 +416,10 @@ func BulkUpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	}
 
 	res, err := c.NewTxn().Do(context.Background(), req)
+
+	if err != nil {
+		return res, err
+	}
+
 	return res, err
 }

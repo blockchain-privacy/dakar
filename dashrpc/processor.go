@@ -4,11 +4,13 @@ import (
 	"dashrpc/btcjson"
 	"dashrpc/db"
 	"dashrpc/rpcclient"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/dgo/v2"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -16,17 +18,47 @@ import (
 	"github.com/btcsuite/btcd/wire"
 )
 
-// returns a slice without duplicates
-func removeDuplicates(slice []string) []string {
-	keys := make(map[string]bool)
-	var list []string
-	for _, entry := range slice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			list = append(list, entry)
+type outputMapping struct {
+	address string
+	indexes []int
+}
+
+// adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
+func addOutputToMapping(mapping []outputMapping, addr string, indexOutput int) []outputMapping {
+
+	for i := range mapping {
+		if mapping[i].address == addr {
+			mapping[i].indexes = append(mapping[i].indexes, indexOutput)
+			return mapping
 		}
 	}
-	return list
+
+	return append(mapping, outputMapping{
+		address: addr,
+		indexes: []int{indexOutput},
+	})
+
+}
+
+func addOutputUidsToAddresses(addresses []db.Address, addr string, uids []string) []db.Address {
+
+	for i := range addresses {
+		if addresses[i].Hash == addr {
+			for _, uid := range uids {
+				addresses[i].Outputs = append(addresses[i].Outputs, db.TxOutput{Uid: uid})
+			}
+			return addresses
+		}
+	}
+
+	// create new address if none was found
+	newAddr := db.Address{Hash: addr}
+	for _, uid := range uids {
+		newAddr.Outputs = append(newAddr.Outputs, db.TxOutput{Uid: uid})
+	}
+
+	return append(addresses, newAddr)
+
 }
 
 // ProcessTx process transaction, and the Vout and Vin records
@@ -69,8 +101,28 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	return DbSetTxDetails(db, txDetails)
 }
 
+func buildAddressMapping(outMap []outputMapping, outputs []db.TxOutput, addrs *[]db.Address) error {
+	for _, mapping := range outMap {
+		var uids []string
+		for _, idx := range mapping.indexes {
+			for _, input := range outputs {
+				i, err := strconv.Atoi(input.Index)
+				if err != nil {
+					return errors.New(fmt.Sprintf("%s is not an integer", input.Index))
+				}
+				if i == idx {
+					uids = append(uids, input.Uid)
+				}
+			}
+		}
+		*addrs = addOutputUidsToAddresses(*addrs, mapping.address, uids)
+	}
+
+	return nil
+}
+
 func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
-	processAddresses bool, txHashString string, blockUid string) error {
+	processAddresses bool, txHashString string) error {
 	txDetails := db.Transaction{}
 
 	err := db.GetCompleteTransaction(dgraph, txHashString, &txDetails)
@@ -95,51 +147,78 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	txDetails.Timestamp = time.Unix(tx.Time, 0).Format(time.RFC3339)
 
-	var allTxAddresses []string
-
+	var inputMappings []outputMapping
 	for index, d := range tx.Vin {
-		addresses, err := processTxVin2(dgraph, client, processAddresses, &txDetails, d, index)
+		iMapping, err := processTxVin2(client, &txDetails, d, index)
+		inputMappings = append(inputMappings, iMapping...)
+
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
-		} else if addresses != nil {
-			allTxAddresses = append(allTxAddresses, addresses...)
 		}
 	}
+
+	var outputMappings []outputMapping
 
 	for index, d := range tx.Vout {
-		//err := processTxVout2(&txDetails, d, index)
-
 		txDetails.Outputs = append(txDetails.Outputs, db.TxOutput{
-			IsCoinbase: false,
-			Amount:     d.Value,
+			IsCoinbase: "false",
+			Amount:     strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:     d.ScriptPubKey.Type,
-			Index:      index,
+			Index:      strconv.Itoa(index),
 		})
+		//todo: return combination of addresses and outputs
 
-		if d.ScriptPubKey.Addresses != nil {
-			allTxAddresses = append(allTxAddresses, d.ScriptPubKey.Addresses...)
+		for _, e := range d.ScriptPubKey.Addresses {
+			outputMappings = addOutputToMapping(outputMappings, e, index)
 		}
-		//
-		//if err != nil {
-		//	fmt.Printf("Problems with processTxVout() call in ProcessBlock(): %s", err.Error())
-		//}
 	}
 
-	allTxAddresses = removeDuplicates(allTxAddresses)
+	if _, err = db.UpdateTransaction(dgraph, &txDetails); err != nil {
+		fmt.Printf("Problems updating transaction: %v\n", txDetails)
+		return err
+	}
 
-	_, err = db.UpdateTransaction(dgraph, &txDetails)
+	if !processAddresses || (inputMappings == nil && outputMappings == nil) {
+		// no addresses to process
+		return nil
+	}
 
-	return err
+	var txFromDB db.Transaction
+	if err := db.GetTransaction(dgraph, txDetails.Hash, &txFromDB); err != nil {
+		return err
+	}
+
+	var addrSlice []db.Address
+
+	// handle input mappings
+	if err = buildAddressMapping(inputMappings, txFromDB.Inputs, &addrSlice); err != nil {
+		fmt.Printf("Problems creating input address mapping\n")
+		return err
+	}
+
+	// handle output mappings
+	if err = buildAddressMapping(outputMappings, txFromDB.Outputs, &addrSlice); err != nil {
+		fmt.Printf("Problems creating output address mapping\n")
+		return err
+	}
+	if addrSlice != nil {
+		if _, err = db.BulkUpdateAddresses(dgraph, addrSlice); err != nil {
+			fmt.Printf("Problems updating addresses: %v\n", txDetails)
+			return err
+		}
+	}
+
+	return nil
 }
 
-func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresses bool,
-	details *db.Transaction, vin btcjson.Vin, index int) (addresses []string, err error) {
+func processTxVin2(client *rpcclient.Client, details *db.Transaction,
+	vin btcjson.Vin, index int) (mapping []outputMapping, err error) {
 	out := db.TxOutput{
-		IsCoinbase: vin.IsCoinBase(),
-		Index:      index,
+		IsCoinbase: strconv.FormatBool(vin.IsCoinBase()),
+		Index:      strconv.Itoa(index),
 	}
 
-	if out.IsCoinbase {
+	if vin.IsCoinBase() {
 		details.Inputs = append(details.Inputs, out)
 		return nil, nil
 	}
@@ -156,27 +235,20 @@ func processTxVin2(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddresse
 		return nil, err
 	}
 
-	out.Amount = tx.Vout[vin.Vout].Value
-	addresses = tx.Vout[vin.Vout].ScriptPubKey.Addresses
+	out.Amount = strconv.FormatFloat(tx.Vout[vin.Vout].Value, 'f', 8, 64)
 
-	//for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
-	//	out.Addresses = append(out.Addresses, db.Address{Hash: e})
-	//}
-	//
-	//if processAddresses {
-	//	// Let's associate the address with Tx
-	//	for _, addr := range out.Addresses {
-	//		err = DbAddTxToAddress2(dgraph, addr.Hash, out)
-	//		if err != nil {
-	//			// TODO for performance reasons, unspent TXs that cannot be linked with address are ignored
-	//			// fmt.Printf("Problem adding Tx to address, %v. Error: %s", out, err.Error())
-	//
-	//		}
-	//	}
-	//}
+	for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
+		i, err := strconv.Atoi(out.Index)
+		if err != nil {
+			fmt.Printf("%s is not an integer\n", out.Index)
+			return nil, err
+		}
+
+		mapping = addOutputToMapping(mapping, e, i)
+	}
 
 	details.Inputs = append(details.Inputs, out)
-	return addresses, nil
+	return mapping, nil
 }
 
 func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool, details *TxDetails, vin btcjson.Vin, index int) error {
@@ -221,22 +293,6 @@ func processTxVin(db *badger.DB, client *rpcclient.Client, processAddresses bool
 	return nil
 }
 
-//func processTxVout2(details *db.Transaction, vout btcjson.Vout, index int) error {
-//
-//	//for _, e := range vout.ScriptPubKey.Addresses {
-//	//	out.Addresses = append(out.Addresses, db.Address{Hash: e})
-//	//}
-//
-//	details.Outputs = append(details.Outputs, db.TxOutput{
-//		IsCoinbase: false,
-//		TxHash:     details.Hash,
-//		Amount:     vout.Value,
-//		TxType:     vout.ScriptPubKey.Type,
-//		Index:      index,
-//	})
-//	return nil
-//}
-
 func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 	out := TxOutput{}
 
@@ -269,7 +325,7 @@ func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash ch
 	}
 	//block.NextBlock = &db.Block{Hash: nextBlock.String()}
 	block.Timestamp = startBlock.Header.Timestamp.Format(time.RFC3339)
-	block.Id = blockId
+	block.Id = strconv.FormatUint(blockId, 10)
 
 	for _, tx := range txHashes {
 		block.Transactions = append(block.Transactions, &db.Transaction{Hash: tx.String()})
@@ -398,7 +454,14 @@ mainLoop:
 			break
 		}
 
-		if startingBlockId == 0 || block.Id == stoppingBlockId {
+		id, err := strconv.ParseUint(block.Id, 10, 64)
+
+		if err != nil {
+			fmt.Printf("%s is not a number\n", block.Id)
+			break
+		}
+
+		if startingBlockId == 0 || id == stoppingBlockId {
 			break
 		}
 		startingBlockId--
@@ -430,7 +493,7 @@ mainLoop:
 
 		txs := block.Transactions
 		for _, t := range txs {
-			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash, block.Uid)
+			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash)
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
@@ -442,14 +505,22 @@ mainLoop:
 
 			if txCounter%5000 == 0 {
 				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, block.Id, block.Hash)
-				fmt.Printf("Block %d processed, tx count: %d\n", block.Id, txCounter)
+				fmt.Printf("Block %s processed, tx count: %d\n", block.Id, txCounter)
 			}
 		}
 
 		blockHash = block.PrevBlock.Hash
 		//saveProcessingState(db, blockHash, block.Id-1)
+
+		id, err := strconv.ParseUint(block.Id, 10, 64)
+
+		if err != nil {
+			fmt.Printf("%s is not a number\n", block.Id)
+			break
+		}
+
 		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
-			block.Id == stoppingBlockId {
+			id == stoppingBlockId {
 			//saveProcessingStateFinished(db)
 			break
 		}

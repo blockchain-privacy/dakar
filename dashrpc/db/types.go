@@ -3,7 +3,7 @@ package db
 type Block struct {
 	Uid       string `json:"uid,omitempty"`
 	Hash      string `json:"blockhash,omitempty"`
-	Id        uint64 `json:"id"`
+	Id        string `json:"id,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
 	PrevBlock *Block `json:"prevblock,omitempty"`
 	//NextBlock    *Block         `json:"nextblock,omitempty"`
@@ -22,18 +22,19 @@ type Transaction struct {
 
 type TxOutput struct {
 	Uid        string    `json:"uid,omitempty"`
-	Index      int       `json:"index"`
+	Index      string    `json:"index,omitempty"`
 	TxType     string    `json:"txtype,omitempty"`
-	Amount     float64   `json:"amount"`
-	IsCoinbase bool      `json:"iscoinbase"`
-	DType      []string  `json:"dgraph.type,omitempty"`
+	Amount     string    `json:"amount,omitempty"`
+	IsCoinbase string    `json:"iscoinbase,omitempty"`
 	Addresses  []Address `json:"addresses,omitempty"`
+	DType      []string  `json:"dgraph.type,omitempty"`
 }
 
 type Address struct {
 	Uid     string     `json:"uid,omitempty"`
 	Hash    string     `json:"addresshash,omitempty"`
 	Outputs []TxOutput `json:"outputs,omitempty"`
+	DType   []string   `json:"dgraph.type,omitempty"`
 }
 
 type blockQuery struct {
