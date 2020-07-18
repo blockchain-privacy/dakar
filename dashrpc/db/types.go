@@ -1,12 +1,11 @@
 package db
 
 type Block struct {
-	Uid       string `json:"uid,omitempty"`
-	Hash      string `json:"blockhash,omitempty"`
-	Id        string `json:"id,omitempty"`
-	Timestamp string `json:"ts,omitempty"`
-	PrevBlock *Block `json:"prevblock,omitempty"`
-	//NextBlock    *Block         `json:"nextblock,omitempty"`
+	Uid          string         `json:"uid,omitempty"`
+	Hash         string         `json:"blockhash,omitempty"`
+	Id           string         `json:"id,omitempty"`
+	Timestamp    string         `json:"ts,omitempty"`
+	PrevBlock    *Block         `json:"prevblock,omitempty"`
 	Transactions []*Transaction `json:"transactions,omitempty"`
 	DType        []string       `json:"dgraph.type,omitempty"`
 }

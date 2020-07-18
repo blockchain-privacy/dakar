@@ -166,7 +166,6 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 			TxType:     d.ScriptPubKey.Type,
 			Index:      strconv.Itoa(index),
 		})
-		//todo: return combination of addresses and outputs
 
 		for _, e := range d.ScriptPubKey.Addresses {
 			outputMappings = addOutputToMapping(outputMappings, e, index)

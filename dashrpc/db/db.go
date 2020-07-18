@@ -17,17 +17,17 @@ func SetupSchema(c *dgo.Dgraph) error {
 			blockhash: string @index(exact) @upsert .
 			txhash: string @index(exact) @upsert .
 			addresshash: string @index(exact) @upsert .
-			id: string .
-			ts: dateTime .
+			inputs: [uid] @reverse .
+			outputs: [uid] @reverse .
 			prevblock: uid @reverse .
 			transactions: [uid] @reverse .
-			Dtype: [string] .
+			id: string .
+			ts: dateTime .
 			index: string .
 			txtype: string .
 			amount: string .
 			iscoinbase: string .
-			inputs: [uid] @reverse .
-			outputs: [uid] @reverse .
+			
 
 			type Block {
 				blockhash
@@ -145,7 +145,7 @@ func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 	// dont have a Uid).
 
 	(*block).Uid = "uid(v)"
-
+	(*block).DType = []string{"Block"}
 	pb, err := json.Marshal(block)
 	if err != nil {
 		return nil, err
@@ -249,18 +249,30 @@ func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transacti
 }
 
 func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
-	// While setting an object if a struct has a Uid then its properties in the graph are updated
-	// else a new node is created.
-	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
-	// dont have a Uid).
-
+	// variable for upsert
 	(*transaction).Uid = "uid(v)"
 
+	// set DType
+	(*transaction).DType = []string{"Transaction"}
+
+	inputs := (*transaction).Inputs
+	outputs := (*transaction).Outputs
+
+	for i := range inputs {
+		inputs[i].DType = []string{"TxOutput"}
+	}
+
+	for i := range outputs {
+		outputs[i].DType = []string{"TxOutput"}
+	}
+
+	// create json
 	pb, err := json.Marshal(transaction)
 	if err != nil {
 		return nil, err
 	}
 
+	// build upsert
 	query := fmt.Sprintf(`
 		{
 			q(func: eq(txhash, "%s")) {
@@ -272,7 +284,6 @@ func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 			v as uid
 		}
 	`, transaction.Hash)
-
 	mu := &api.Mutation{
 		SetJson: pb,
 	}
@@ -282,6 +293,7 @@ func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 		CommitNow: true,
 	}
 
+	// commit transaction
 	res, err := c.NewTxn().Do(context.Background(), req)
 	return res, err
 }
@@ -354,7 +366,7 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	// dont have a Uid).
 
 	(*address).Uid = "uid(v)"
-
+	(*address).DType = []string{"Address"}
 	pb, err := json.Marshal(address)
 	if err != nil {
 		return nil, err
