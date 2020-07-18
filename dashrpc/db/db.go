@@ -10,55 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Install a schema into dgraph.
-func SetupSchema(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			blockhash: string @index(exact) @upsert .
-			txhash: string @index(exact) @upsert .
-			addresshash: string @index(exact) @upsert .
-			tx_inputs: [uid] @reverse .
-			tx_outputs: [uid] @reverse .
-			addr_outputs: [uid] @reverse .
-			prevblock: uid @reverse .
-			transactions: [uid] @reverse .
-			id: string .
-			ts: dateTime .
-			index: string .
-			txtype: string .
-			amount: string .
-			iscoinbase: string .
-			
-
-			type Block {
-				blockhash
-				id
-				ts
-				prevblock
-				transactions
-			}
-
-			type Transaction {
-				txhash
-				tx_outputs
-				tx_inputs
-			}
-
-			type TxOutput {
-				index
-				txtype
-				amount
-				iscoinbase
-			}
-			
-			type Address {
-				addresshash
-				addr_outputs
-			}
-		`,
-	})
-}
-
 // drops ALL data from the database, schema included
 func DropAll(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
@@ -67,7 +18,7 @@ func DropAll(c *dgo.Dgraph) error {
 }
 
 // create a new dgraph client connecting to the specified host and port
-func createNewClient(host string, port uint) (*dgo.Dgraph, error) {
+func CreateClient(host string, port uint) (*dgo.Dgraph, error) {
 	d, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
 
 	if err != nil {
@@ -77,9 +28,9 @@ func createNewClient(host string, port uint) (*dgo.Dgraph, error) {
 	return dgo.NewDgraphClient(api.NewDgraphClient(d)), nil
 }
 
-// get a new dgraph client with default connection values
-func NewClient() (*dgo.Dgraph, error) {
-	return createNewClient("localhost", 9080)
+// create a new dgraph client with default connection values
+func CreateDefaultClient() (*dgo.Dgraph, error) {
+	return CreateClient("localhost", 9080)
 }
 
 // gets block information from the database

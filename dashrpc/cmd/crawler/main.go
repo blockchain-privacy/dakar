@@ -105,7 +105,7 @@ func dgraphTest() {
 		return
 	}
 
-	dbClient, err := db.NewClient()
+	dbClient, err := db.CreateDefaultClient()
 
 	err = db.DropAll(dbClient)
 	if err != nil {
