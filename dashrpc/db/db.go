@@ -10,8 +10,8 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Install a schema into dgraph.
 func SetupSchema(c *dgo.Dgraph) error {
-	// Install a schema into dgraph. Accounts have a `name` and a `balance`.
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			blockhash: string @index(exact) @upsert .
@@ -66,16 +66,20 @@ func DropAll(c *dgo.Dgraph) error {
 	})
 }
 
-func NewClient() (*dgo.Dgraph, error) {
-	// Dial a gRPC connection. The address to dial to can be configured when
-	// setting up the dgraph cluster.
-	d, err := grpc.Dial("localhost:9080", grpc.WithInsecure())
+// create a new dgraph client connecting to the specified host and port
+func createNewClient(host string, port uint) (*dgo.Dgraph, error) {
+	d, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
 
 	if err != nil {
 		return nil, err
 	}
 
 	return dgo.NewDgraphClient(api.NewDgraphClient(d)), nil
+}
+
+// get a new dgraph client with default connection values
+func NewClient() (*dgo.Dgraph, error) {
+	return createNewClient("localhost", 9080)
 }
 
 // gets block information from the database
@@ -126,6 +130,8 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	return nil
 }
 
+// todo refactor "iscomplete" logic in own function
+// gets block information from the database and checks if it is complete
 func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	if err := GetBlock(c, blockHash, block); err != nil {
 		return err
@@ -140,12 +146,8 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	return nil
 }
 
+// upserts a block
 func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
-	// While setting an object if a struct has a Uid then its properties in the graph are updated
-	// else a new node is created.
-	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
-	// dont have a Uid).
-
 	(*block).Uid = "uid(v)"
 	(*block).DType = []string{"Block"}
 	pb, err := json.Marshal(block)
@@ -231,6 +233,8 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 	return nil
 }
 
+// todo refactor "iscomplete" logic in own function
+// gets transaction information from the database and checks if it is complete
 func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
 	if err := GetTransaction(c, txHash, transaction); err != nil {
 		return err
@@ -244,6 +248,7 @@ func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transacti
 	return nil
 }
 
+// upserts a transaction
 func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
 	// variable for upsert
 	(*transaction).Uid = "uid(v)"
@@ -340,12 +345,8 @@ func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
 	return nil
 }
 
+// upserts an address
 func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
-	// While setting an object if a struct has a Uid then its properties in the graph are updated
-	// else a new node is created.
-	// In the example below new nodes for Alice, Bob and Charlie and school are created (since they
-	// dont have a Uid).
-
 	(*address).Uid = "uid(v)"
 	(*address).DType = []string{"Address"}
 	pb, err := json.Marshal(address)
@@ -356,12 +357,8 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	query := fmt.Sprintf(`
 		{
 			q(func: eq(addresshash, "%s")) {
-				...fragmentA
+				v as uid
 			}
-		}
-
-		fragment fragmentA {
-			v as uid
 		}
 	`, address.Hash)
 
@@ -378,8 +375,8 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	return res, err
 }
 
-// todo implement bulk edit
-func BulkUpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) {
+// upserts addresses
+func UpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) {
 	if addresses == nil {
 		return nil, errors.New("got null pointer for addresses")
 	}

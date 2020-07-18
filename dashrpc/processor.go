@@ -199,7 +199,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return err
 	}
 	if addrSlice != nil {
-		if _, err = db.BulkUpdateAddresses(dgraph, addrSlice); err != nil {
+		if _, err = db.UpdateAddresses(dgraph, addrSlice); err != nil {
 			fmt.Printf("Problems updating addresses: %v\n", txDetails)
 			return err
 		}
