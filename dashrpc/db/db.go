@@ -17,8 +17,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 			blockhash: string @index(exact) @upsert .
 			txhash: string @index(exact) @upsert .
 			addresshash: string @index(exact) @upsert .
-			inputs: [uid] @reverse .
-			outputs: [uid] @reverse .
+			tx_inputs: [uid] @reverse .
+			tx_outputs: [uid] @reverse .
+			addr_outputs: [uid] @reverse .
 			prevblock: uid @reverse .
 			transactions: [uid] @reverse .
 			id: string .
@@ -40,8 +41,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type Transaction {
 				txhash
 				ts
-				outputs
-				inputs
+				tx_outputs
+				tx_inputs
 			}
 
 			type TxOutput {
@@ -53,7 +54,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			
 			type Address {
 				addresshash
-				outputs
+				addr_outputs
 			}
 		`,
 	})
@@ -88,9 +89,11 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 					id
 					blockhash
 					prevblock { 
+						uid
 						blockhash
 					}
 					transactions{
+						uid
 						txhash
 					}
 				}
@@ -185,24 +188,19 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 					uid
 					txhash
 					ts
-					block {
-						blockhash
-					}
-					inputs{
+					tx_inputs{
 						uid
 						amount
 						index
 						iscoinbase
 						txtype
-						addresses {addresshash}
 					}
-					outputs{
+					tx_outputs{
 						uid
 						amount
 						index
 						iscoinbase
 						txtype
-						addresses {addresshash}
 					}
 				}
 			  }
@@ -306,27 +304,19 @@ func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
 				q(func: eq(addresshash, $hash)){
 					uid
 					addresshash
-					outputs{
+					tx_outputs{
 						uid
 						amount
 						index
 						iscoinbase
 						txtype
-						addresses {
-						uid
-						addresshash
-						}
 					}
-					inputs{
+					tx_inputs{
 						uid
 						amount
 						index
 						iscoinbase
 						txtype
-						addresses {
-						uid
-						addresshash
-						}
 					}
 				}
 			  }

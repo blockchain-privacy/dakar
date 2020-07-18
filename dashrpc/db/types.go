@@ -12,27 +12,26 @@ type Block struct {
 
 type Transaction struct {
 	Uid       string     `json:"uid,omitempty"`
-	Outputs   []TxOutput `json:"outputs,omitempty"`
-	Inputs    []TxOutput `json:"inputs,omitempty"`
+	Outputs   []TxOutput `json:"tx_outputs,omitempty"`
+	Inputs    []TxOutput `json:"tx_inputs,omitempty"`
 	Hash      string     `json:"txhash,omitempty"`
 	Timestamp string     `json:"ts,omitempty"`
 	DType     []string   `json:"dgraph.type,omitempty"`
 }
 
 type TxOutput struct {
-	Uid        string    `json:"uid,omitempty"`
-	Index      string    `json:"index,omitempty"`
-	TxType     string    `json:"txtype,omitempty"`
-	Amount     string    `json:"amount,omitempty"`
-	IsCoinbase string    `json:"iscoinbase,omitempty"`
-	Addresses  []Address `json:"addresses,omitempty"`
-	DType      []string  `json:"dgraph.type,omitempty"`
+	Uid        string   `json:"uid,omitempty"`
+	Index      string   `json:"index,omitempty"`
+	TxType     string   `json:"txtype,omitempty"`
+	Amount     string   `json:"amount,omitempty"`
+	IsCoinbase string   `json:"iscoinbase,omitempty"`
+	DType      []string `json:"dgraph.type,omitempty"`
 }
 
 type Address struct {
 	Uid     string     `json:"uid,omitempty"`
 	Hash    string     `json:"addresshash,omitempty"`
-	Outputs []TxOutput `json:"outputs,omitempty"`
+	Outputs []TxOutput `json:"addr_outputs,omitempty"`
 	DType   []string   `json:"dgraph.type,omitempty"`
 }
 
