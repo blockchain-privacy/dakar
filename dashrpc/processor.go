@@ -4,6 +4,7 @@ import (
 	"dashrpc/btcjson"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
+	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"errors"
@@ -47,7 +48,7 @@ func addOutputUidsToAddresses(addresses []dbaddr.Address, addr string, uids []st
 	for i := range addresses {
 		if addresses[i].Hash == addr {
 			for _, uid := range uids {
-				addresses[i].Outputs = append(addresses[i].Outputs, dbtx.TxOutput{Uid: uid})
+				addresses[i].Outputs = append(addresses[i].Outputs, dbop.Output{Uid: uid})
 			}
 			return addresses
 		}
@@ -56,7 +57,7 @@ func addOutputUidsToAddresses(addresses []dbaddr.Address, addr string, uids []st
 	// create new address if none was found
 	newAddr := dbaddr.Address{Hash: addr}
 	for _, uid := range uids {
-		newAddr.Outputs = append(newAddr.Outputs, dbtx.TxOutput{Uid: uid})
+		newAddr.Outputs = append(newAddr.Outputs, dbop.Output{Uid: uid})
 	}
 
 	return append(addresses, newAddr)
@@ -103,7 +104,7 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	return DbSetTxDetails(db, txDetails)
 }
 
-func buildAddressMapping(outMap []outputMapping, outputs []dbtx.TxOutput, addrs *[]dbaddr.Address) error {
+func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[]dbaddr.Address) error {
 	for _, mapping := range outMap {
 		var uids []string
 		for _, idx := range mapping.indexes {
@@ -160,7 +161,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	var outputMappings []outputMapping
 
 	for index, d := range tx.Vout {
-		txDetails.Outputs = append(txDetails.Outputs, dbtx.TxOutput{
+		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
 			IsCoinbase: "false",
 			Amount:     strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:     d.ScriptPubKey.Type,
@@ -212,7 +213,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 func processTxVin2(client *rpcclient.Client, details *dbtx.Transaction,
 	vin btcjson.Vin, index int) (mapping []outputMapping, err error) {
-	out := dbtx.TxOutput{
+	out := dbop.Output{
 		IsCoinbase: strconv.FormatBool(vin.IsCoinBase()),
 		Index:      strconv.Itoa(index),
 	}
