@@ -1,4 +1,4 @@
-package db
+package address
 
 import (
 	"context"
@@ -75,7 +75,7 @@ func GetCompleteAddress(c *dgo.Dgraph, addressHash string, address *Address) err
 }
 
 // upserts an address
-func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
+func UpsertAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 	(*address).Uid = "uid(v)"
 	(*address).DType = []string{"Address"}
 	pb, err := json.Marshal(address)
@@ -108,7 +108,7 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 }
 
 // upserts addresses
-func UpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) {
+func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) {
 	if addresses == nil {
 		return nil, errors.New("got null pointer for addresses")
 	}

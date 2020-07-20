@@ -1,4 +1,4 @@
-package db
+package transaction
 
 import (
 	"context"
@@ -81,7 +81,7 @@ func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transacti
 }
 
 // upserts a transaction
-func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
+func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
 	// variable for upsert
 	(*transaction).Uid = "uid(v)"
 
@@ -109,12 +109,8 @@ func UpdateTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	query := fmt.Sprintf(`
 		{
 			q(func: eq(txhash, "%s")) {
-				...fragmentA
+				v as uid
 			}
-		}
-
-		fragment fragmentA {
-			v as uid
 		}
 	`, transaction.Hash)
 	mu := &api.Mutation{

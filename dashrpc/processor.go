@@ -2,7 +2,9 @@ package dashrpc
 
 import (
 	"dashrpc/btcjson"
-	"dashrpc/db"
+	dbaddr "dashrpc/db/address"
+	dbblk "dashrpc/db/block"
+	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"errors"
 	"fmt"
@@ -40,21 +42,21 @@ func addOutputToMapping(mapping []outputMapping, addr string, indexOutput int) [
 
 }
 
-func addOutputUidsToAddresses(addresses []db.Address, addr string, uids []string) []db.Address {
+func addOutputUidsToAddresses(addresses []dbaddr.Address, addr string, uids []string) []dbaddr.Address {
 
 	for i := range addresses {
 		if addresses[i].Hash == addr {
 			for _, uid := range uids {
-				addresses[i].Outputs = append(addresses[i].Outputs, db.TxOutput{Uid: uid})
+				addresses[i].Outputs = append(addresses[i].Outputs, dbtx.TxOutput{Uid: uid})
 			}
 			return addresses
 		}
 	}
 
 	// create new address if none was found
-	newAddr := db.Address{Hash: addr}
+	newAddr := dbaddr.Address{Hash: addr}
 	for _, uid := range uids {
-		newAddr.Outputs = append(newAddr.Outputs, db.TxOutput{Uid: uid})
+		newAddr.Outputs = append(newAddr.Outputs, dbtx.TxOutput{Uid: uid})
 	}
 
 	return append(addresses, newAddr)
@@ -101,7 +103,7 @@ func ProcessTx(db *badger.DB, client *rpcclient.Client, processAddresses bool, t
 	return DbSetTxDetails(db, txDetails)
 }
 
-func buildAddressMapping(outMap []outputMapping, outputs []db.TxOutput, addrs *[]db.Address) error {
+func buildAddressMapping(outMap []outputMapping, outputs []dbtx.TxOutput, addrs *[]dbaddr.Address) error {
 	for _, mapping := range outMap {
 		var uids []string
 		for _, idx := range mapping.indexes {
@@ -123,9 +125,9 @@ func buildAddressMapping(outMap []outputMapping, outputs []db.TxOutput, addrs *[
 
 func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	processAddresses bool, txHashString string) error {
-	txDetails := db.Transaction{}
+	txDetails := dbtx.Transaction{}
 
-	err := db.GetCompleteTransaction(dgraph, txHashString, &txDetails)
+	err := dbtx.GetCompleteTransaction(dgraph, txHashString, &txDetails)
 	if err == nil {
 		// we already have it in the system, we do nothing
 		return nil
@@ -158,7 +160,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	var outputMappings []outputMapping
 
 	for index, d := range tx.Vout {
-		txDetails.Outputs = append(txDetails.Outputs, db.TxOutput{
+		txDetails.Outputs = append(txDetails.Outputs, dbtx.TxOutput{
 			IsCoinbase: "false",
 			Amount:     strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:     d.ScriptPubKey.Type,
@@ -170,7 +172,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		}
 	}
 
-	if _, err = db.UpdateTransaction(dgraph, &txDetails); err != nil {
+	if _, err = dbtx.UpsertTransaction(dgraph, &txDetails); err != nil {
 		fmt.Printf("Problems updating transaction: %v\n", txDetails)
 		return err
 	}
@@ -180,12 +182,12 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return nil
 	}
 
-	var txFromDB db.Transaction
-	if err := db.GetTransaction(dgraph, txDetails.Hash, &txFromDB); err != nil {
+	var txFromDB dbtx.Transaction
+	if err := dbtx.GetTransaction(dgraph, txDetails.Hash, &txFromDB); err != nil {
 		return err
 	}
 
-	var addrSlice []db.Address
+	var addrSlice []dbaddr.Address
 
 	// handle input mappings
 	if err = buildAddressMapping(inputMappings, txFromDB.Inputs, &addrSlice); err != nil {
@@ -199,7 +201,7 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return err
 	}
 	if addrSlice != nil {
-		if _, err = db.UpdateAddresses(dgraph, addrSlice); err != nil {
+		if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
 			fmt.Printf("Problems updating addresses: %v\n", txDetails)
 			return err
 		}
@@ -208,9 +210,9 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	return nil
 }
 
-func processTxVin2(client *rpcclient.Client, details *db.Transaction,
+func processTxVin2(client *rpcclient.Client, details *dbtx.Transaction,
 	vin btcjson.Vin, index int) (mapping []outputMapping, err error) {
-	out := db.TxOutput{
+	out := dbtx.TxOutput{
 		IsCoinbase: strconv.FormatBool(vin.IsCoinBase()),
 		Index:      strconv.Itoa(index),
 	}
@@ -307,7 +309,7 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 // ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
 // It stops on error or on first already known block
 func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
-	nextBlock chainhash.Hash, blockId uint64, block *db.Block) error {
+	nextBlock chainhash.Hash, blockId uint64, block *dbblk.Block) error {
 	txHashes, err := startBlock.TxHashes()
 	if err != nil {
 		fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
@@ -317,7 +319,7 @@ func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash ch
 	//DbIncrementBlockCount(db)
 
 	block.Hash = currentHash.String()
-	block.PrevBlock = &db.Block{
+	block.PrevBlock = &dbblk.Block{
 		Hash: startBlock.Header.PrevBlock.String(),
 	}
 	//block.NextBlock = &db.Block{Hash: nextBlock.String()}
@@ -325,10 +327,10 @@ func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash ch
 	block.Id = strconv.FormatUint(blockId, 10)
 
 	for _, tx := range txHashes {
-		block.Transactions = append(block.Transactions, &db.Transaction{Hash: tx.String()})
+		block.Transactions = append(block.Transactions, &dbtx.Transaction{Hash: tx.String()})
 	}
 
-	_, err = db.UpdateBlock(dgraph, block)
+	_, err = dbblk.UpsertBlock(dgraph, block)
 	if err != nil {
 		fmt.Printf("Saving block gave error %s\n", err.Error())
 		return err
@@ -414,9 +416,9 @@ mainLoop:
 			// we do nothing
 		}
 
-		block := db.Block{}
+		block := dbblk.Block{}
 
-		err := db.GetCompleteBlock(dgraphDb, blockHash, &block)
+		err := dbblk.GetCompleteBlock(dgraphDb, blockHash, &block)
 		if err == nil {
 			// we already have this block, we need to update the NextBlockHash
 			//if lastBlockHash != nil {
@@ -480,8 +482,8 @@ mainLoop:
 	blockHash = startingBlockHash
 
 	for {
-		block := db.Block{}
-		err := db.GetBlock(dgraphDb, blockHash, &block)
+		block := dbblk.Block{}
+		err := dbblk.GetBlock(dgraphDb, blockHash, &block)
 		if err != nil {
 			fmt.Printf("DbGetBlock() failed. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 			fmt.Printf("Block: %v\n", block)

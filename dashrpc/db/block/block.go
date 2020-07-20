@@ -1,4 +1,4 @@
-package db
+package block
 
 import (
 	"context"
@@ -82,7 +82,7 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 }
 
 // upserts a block
-func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
+func UpsertBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 	(*block).Uid = "uid(v)"
 	(*block).DType = []string{"Block"}
 	pb, err := json.Marshal(block)
