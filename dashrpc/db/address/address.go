@@ -16,7 +16,7 @@ func isAddressComplete(address Address) bool {
 }
 
 // gets address information from the database
-func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
+func GetAddress(c *dgo.Dgraph, addrHash string, address *Address) error {
 
 	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
@@ -34,7 +34,7 @@ func GetAddress(c *dgo.Dgraph, txHash string, address *Address) error {
 			  }
 				`
 	vars := make(map[string]string)
-	vars["$hash"] = txHash
+	vars["$hash"] = addrHash
 	resp, err := tx.QueryWithVars(context.Background(), query, vars)
 	if err != nil {
 		return err
