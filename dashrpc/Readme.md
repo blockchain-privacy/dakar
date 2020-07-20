@@ -53,7 +53,7 @@ Elapsed time: 2m4.847019277s
 Performance: 499 ms/block
 ```
 
-* Michaels's computer (Intel Xeon E3-1230v3, 3.3Ghz, SSD)
+* Michael's computer (Intel Xeon E3-1230v3, 3.3Ghz, SSD)
 ```
 Elapsed time: 1m43.415075837s
 Performance: 413 ms/block
