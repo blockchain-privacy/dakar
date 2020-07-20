@@ -11,9 +11,9 @@ import (
 func SetupSchema(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			blockhash: string @index(exact) @upsert .
-			txhash: string @index(exact) @upsert .
-			addresshash: string @index(exact) @upsert .
+			blockhash: string @index(hash) @upsert .
+			txhash: string @index(hash) @upsert .
+			addresshash: string @index(hash) @upsert .
 			tx_inputs: [uid] @reverse .
 			tx_outputs: [uid] @reverse .
 			addr_outputs: [uid] @reverse .
