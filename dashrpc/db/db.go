@@ -8,6 +8,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
+	"strconv"
 )
 
 // drops ALL data from the database, schema included
@@ -41,8 +42,13 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 				q(func: eq(blockhash, $hash)){
 					uid
 					id
+					ts
 					blockhash
 					prevblock { 
+						uid
+						blockhash
+					}
+					~prevblock { 
 						uid
 						blockhash
 					}
@@ -106,23 +112,22 @@ func UpdateBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 		return nil, err
 	}
 
-	query := fmt.Sprintf(`
-		{
-			q(func: eq(blockhash, "%s")) {
-				...fragmentA
+	query := `
+		query Q($hash: string) {
+			q(func: eq(blockhash, $hash)) {
+				v as uid
 			}
 		}
-
-		fragment fragmentA {
-			v as uid
-		}
-	`, block.Hash)
+	`
+	vars := make(map[string]string)
+	vars["$hash"] = block.Hash
 
 	mu := &api.Mutation{
 		SetJson: pb,
 	}
 	req := &api.Request{
 		Query:     query,
+		Vars:      vars,
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
@@ -305,19 +310,22 @@ func UpdateAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 		return nil, err
 	}
 
-	query := fmt.Sprintf(`
-		{
-			q(func: eq(addresshash, "%s")) {
+	query := `
+		query Q($hash: string) {
+			q(func: eq(addresshash, $hash)) {
 				v as uid
 			}
 		}
-	`, address.Hash)
+	`
 
+	vars := make(map[string]string)
+	vars["$hash"] = address.Hash
 	mu := &api.Mutation{
 		SetJson: pb,
 	}
 	req := &api.Request{
 		Query:     query,
+		Vars:      vars,
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
@@ -332,15 +340,33 @@ func UpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		return nil, errors.New("got null pointer for addresses")
 	}
 
-	query := "{\n"
+	// the following block creates the query for 4 addresses the query looks like this:
+	//		query Q($h0: string,$h1: string,$h2: string,$h3: string) {
+	//		a0 as var(func: eq(addresshash, $h0))
+	//		a1 as var(func: eq(addresshash, $h1))
+	//		a2 as var(func: eq(addresshash, $h2))
+	//		a3 as var(func: eq(addresshash, $h3))
+	//		}
+	// $h0 ... $h4 are needed to be later replaced. This prevents string injection
 
+	vars := make(map[string]string)
+	queryPrefix := "query Q("
+	var query string
 	// set uid for all addresses and build query
 	for i := range addresses {
+		queryPrefix += "$h" + strconv.Itoa(i) + ": string"
+
+		if i+1 < len(addresses) {
+			queryPrefix += ","
+		}
+
 		addresses[i].Uid = fmt.Sprintf("uid(a%d)", i)
-		query += fmt.Sprintf("a%d as var(func: eq(addresshash, \"%s\"))\n", i, addresses[i].Hash)
+		addresses[i].DType = []string{"Address"}
+		query += fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i)
+		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash
 	}
 
-	query += "}"
+	queryPrefix += ") {\n"
 
 	pb, err := json.Marshal(addresses)
 	if err != nil {
@@ -351,7 +377,8 @@ func UpdateAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		SetJson: pb,
 	}
 	req := &api.Request{
-		Query:     query,
+		Query:     queryPrefix + query + "}",
+		Vars:      vars,
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}

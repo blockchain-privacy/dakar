@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
@@ -63,6 +64,10 @@ type Block struct {
 	PrevBlock    *Block         `json:"prevblock,omitempty"`
 	Transactions []*Transaction `json:"transactions,omitempty"`
 	DType        []string       `json:"dgraph.type,omitempty"`
+}
+
+func (b Block) String() string {
+	return fmt.Sprintf("Hash: %s, Id: %s, Timestamp: %s", b.Hash, b.Id, b.Timestamp)
 }
 
 type Transaction struct {
