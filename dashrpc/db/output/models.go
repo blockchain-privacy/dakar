@@ -16,7 +16,3 @@ type outputQuery struct {
 		} `json:"transaction"`
 	} `json:"getOutput"`
 }
-
-//type outputquery struct {
-//	Q []transaction.Transaction `json:"q"`
-//}
