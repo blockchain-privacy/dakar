@@ -62,6 +62,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	vars := make(map[string]string)
 	vars["$hash"] = blockHash
 	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+
 	if err != nil {
 		return err
 	}
@@ -87,16 +88,19 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	return nil
 }
 
-// todo refactor "iscomplete" logic in own function
+// checks if the given block has all attributes filled
+func isBlockComplete(blk Block) bool {
+	return blk.Uid != "" && blk.Hash != "" && blk.Id != "" && blk.Timestamp != "" ||
+		blk.DType != nil && blk.Transactions != nil && blk.PrevBlock != nil
+}
+
 // gets block information from the database and checks if it is complete
 func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 	if err := GetBlock(c, blockHash, block); err != nil {
 		return err
 	}
 
-	blk := *block
-	if blk.Uid == "" || blk.Hash == "" || blk.Id == "" || blk.Timestamp == "" ||
-		blk.DType == nil || blk.Transactions == nil || blk.PrevBlock == nil {
+	if !isBlockComplete(*block) {
 		return errors.New("block not complete")
 	}
 
@@ -189,6 +193,10 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 	return nil
 }
 
+func isTransactionComplete(tx Transaction) bool {
+	return tx.Uid != "" && tx.Hash != "" && tx.DType != nil
+}
+
 // todo refactor "iscomplete" logic in own function
 // gets transaction information from the database and checks if it is complete
 func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
@@ -196,8 +204,7 @@ func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transacti
 		return err
 	}
 
-	tx := *transaction
-	if tx.Uid == "" || tx.Hash == "" || tx.DType == nil {
+	if !isTransactionComplete(*transaction) {
 		return errors.New("transaction not complete")
 	}
 
