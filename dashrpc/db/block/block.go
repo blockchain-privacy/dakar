@@ -64,7 +64,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
 
 // checks if the given block has all attributes filled
 func isBlockComplete(blk Block) bool {
-	return blk.Uid != "" && blk.Hash != "" && blk.Id != "" && blk.Timestamp != "" ||
+	return blk.Uid != "" && blk.Hash != "" && blk.Id != nil && blk.Timestamp != "" ||
 		blk.DType != nil && blk.Transactions != nil && blk.PrevBlock != nil
 }
 
@@ -103,7 +103,7 @@ func UpsertBlock(c *dgo.Dgraph, block UpsertBlockData) error {
 	}
 	req := &api.Request{
 		Query:     query,
-		Vars:      map[string]string{"$hash": *block.Hash},
+		Vars:      map[string]string{"$hash": block.Hash},
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}

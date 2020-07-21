@@ -18,7 +18,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			addr_outputs: [uid] @reverse .
 			prevblock: uid @reverse .
 			transactions: [uid] @reverse .
-			id: string .
+			id: int .
 			ts: dateTime .
 			index: string .
 			txtype: string .
