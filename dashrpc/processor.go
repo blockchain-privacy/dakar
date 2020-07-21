@@ -314,7 +314,7 @@ func ProcessBlock2(dgraph *dgo.Dgraph, txHashes []string, currentHash string,
 
 	//saveProcessingState(db, currentHash.String(), blockId)
 	//DbIncrementBlockCount(db)
-	block := dbblk.UpsertBlockData{
+	block := dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		Id:        &blockId,

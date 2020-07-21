@@ -83,7 +83,7 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
 }
 
 // upserts a block
-func UpsertBlock(c *dgo.Dgraph, block UpsertBlockData) error {
+func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
 	block.DType = []string{"Block"}
 	pb, err := json.Marshal(block)
