@@ -4,7 +4,7 @@ type Output struct {
 	Uid        string   `json:"uid,omitempty"`
 	Index      *uint64  `json:"index,omitempty"`
 	TxType     string   `json:"txtype,omitempty"`
-	Amount     *float64 `json:"amount,omitempty"`
+	Amount     string   `json:"amount,omitempty"`
 	IsCoinbase *bool    `json:"iscoinbase,omitempty"`
 	DType      []string `json:"dgraph.type,omitempty"`
 }

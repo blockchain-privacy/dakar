@@ -24,7 +24,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			ts: dateTime .
 			index: int .
 			txtype: string .
-			amount: float .
+			amount: string .
 			iscoinbase: bool .
 			
 

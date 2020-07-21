@@ -12,6 +12,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -157,11 +158,10 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	for _, d := range tx.Vout {
 		uindex := uint64(d.N)
-		outAmount := d.Value
 		isCoinBase := false
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
 			IsCoinbase: &isCoinBase,
-			Amount:     &outAmount,
+			Amount:     strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:     d.ScriptPubKey.Type,
 			Index:      &uindex,
 		})
@@ -233,8 +233,7 @@ func processTxVin2(client *rpcclient.Client, details *dbtx.Transaction,
 		fmt.Printf("Problems with getting Tx details: %s\nHash: %v\nVin: %v\n", h.String(), vin, err.Error())
 		return nil, err
 	}
-
-	out.Amount = &tx.Vout[vin.Vout].Value
+	out.Amount = strconv.FormatFloat(tx.Vout[vin.Vout].Value, 'f', 8, 64)
 
 	for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
 		mapping = addOutputToMapping(mapping, e, *out.Index)
