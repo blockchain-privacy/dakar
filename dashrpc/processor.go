@@ -309,30 +309,25 @@ func processTxVout(details *TxDetails, vout btcjson.Vout, index int) error {
 
 // ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
 // It stops on error or on first already known block
-func ProcessBlock2(dgraph *dgo.Dgraph, startBlock *wire.MsgBlock, currentHash chainhash.Hash,
-	nextBlock chainhash.Hash, blockId uint64, block *dbblk.Block) error {
-	txHashes, err := startBlock.TxHashes()
-	if err != nil {
-		fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
-	}
+func ProcessBlock2(dgraph *dgo.Dgraph, txHashes []string, currentHash string,
+	blockId uint64, timestamp string, prevBlockHash string) error {
 
 	//saveProcessingState(db, currentHash.String(), blockId)
 	//DbIncrementBlockCount(db)
-
-	block.Hash = currentHash.String()
-	block.PrevBlock = &dbblk.Block{
-		Hash: startBlock.Header.PrevBlock.String(),
+	block := dbblk.UpsertBlockData{
+		Hash:      &currentHash,
+		Timestamp: &timestamp,
+		Id:        &blockId,
+		PrevBlock: &dbblk.Block{
+			Hash: prevBlockHash,
+		},
 	}
-	//block.NextBlock = &db.Block{Hash: nextBlock.String()}
-	block.Timestamp = startBlock.Header.Timestamp.Format(time.RFC3339)
-	block.Id = strconv.FormatUint(blockId, 10)
 
 	for _, tx := range txHashes {
-		block.Transactions = append(block.Transactions, &dbtx.Transaction{Hash: tx.String()})
+		block.Transactions = append(block.Transactions, dbtx.Transaction{Hash: tx})
 	}
 
-	_, err = dbblk.UpsertBlock(dgraph, block)
-	if err != nil {
+	if err := dbblk.UpsertBlock(dgraph, block); err != nil {
 		fmt.Printf("Saving block gave error %s\n", err.Error())
 		return err
 	}
@@ -393,13 +388,13 @@ func ProcessNewBlocks2(dgraphDb *dgo.Dgraph,
 	txCounter := 0
 
 	blockHash := startingBlockHash
-	startHash, err := chainhash.NewHashFromStr(blockHash)
+	startHashObj, err := chainhash.NewHashFromStr(blockHash)
 	if err != nil {
 		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
 		return err
 	}
 
-	var lastBlockHash *chainhash.Hash
+	var lastBlockHashObj *chainhash.Hash
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
@@ -411,89 +406,44 @@ mainLoop:
 		select {
 		case <-c:
 			fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
-				startingBlockId, lastBlockHash)
+				startingBlockId, lastBlockHashObj)
 			break mainLoop
 		default:
 			// we do nothing
 		}
 
-		block := dbblk.Block{}
-
-		err := dbblk.GetCompleteBlock(dgraphDb, blockHash, &block)
-		if err == nil {
-			// we already have this block, we need to update the NextBlockHash
-			//if lastBlockHash != nil {
-			//	block.NextBlockHash = *lastBlockHash
-			//	err = DbSetBlock(dgraphDb, block)
-			//	if err != nil {
-			//		fmt.Printf("Error saving last known Block with updated NextBlockHash")
-			//	}
-			//}
+		if err := dbblk.GetCompleteBlock(dgraphDb, blockHash); err == nil {
 			break
 		}
 
-		startBlock, err := client.GetBlock(startHash)
-		if lastBlockHash == nil {
-			lastBlockHash = &chainhash.Hash{} // placeholder for the last block
-		}
-
+		startBlock, err := client.GetBlock(startHashObj)
 		if err != nil {
 			fmt.Printf("Problem with getBlock() %s\n", err.Error())
 			break
 		}
-		err = ProcessBlock2(dgraphDb, startBlock, *startHash, *lastBlockHash, startingBlockId, &block)
+
+		txHashes, err := startBlock.TxHashes()
 		if err != nil {
-			fmt.Printf("Error: we had problem processing the block\n%v\n", block)
-			fmt.Printf("Hash: %v, BlockId: %d\n", *startHash, startingBlockId)
+			fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
+		}
+
+		// create transaction slice
+		var txList []string
+		for _, tx := range txHashes {
+			txList = append(txList, tx.String())
+		}
+
+		ts := startBlock.Header.Timestamp.Format(time.RFC3339)
+		previousBlockHash := startBlock.Header.PrevBlock.String()
+
+		if err = ProcessBlock2(dgraphDb, txList, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
+			fmt.Println("Error: we had problem processing the block")
+			fmt.Printf("Hash: %s, BlockId: %d\n", blockHash, startingBlockId)
 			break
 		}
 
-		startHash, err = chainhash.NewHashFromStr(block.PrevBlock.Hash)
-		if err != nil {
-			fmt.Printf("Error: we had problem converting hash to chainhash\n%v\n", block.PrevBlock.Hash)
-			break
-		}
-
-		id, err := strconv.ParseUint(block.Id, 10, 64)
-
-		if err != nil {
-			fmt.Printf("%s is not a number\n", block.Id)
-			break
-		}
-
-		if startingBlockId == 0 || id == stoppingBlockId {
-			break
-		}
-		startingBlockId--
-		lastBlockHash, err = chainhash.NewHashFromStr(block.Hash)
-		if err != nil {
-			fmt.Printf("Error: we had problem converting hash to chainhash\n%v\n", block.Hash)
-			break
-		}
-		blockHash = startHash.String()
-
-		blkCounter++
-		if blkCounter%20000 == 0 {
-			fmt.Printf("%v * 20k blocks done\n", blkCounter/20000)
-		}
-	}
-
-	fmt.Printf("Processed in total: %v blocks\n", blkCounter)
-
-	blockHash = startingBlockHash
-
-	for {
-		block := dbblk.Block{}
-		err := dbblk.GetBlock(dgraphDb, blockHash, &block)
-		if err != nil {
-			fmt.Printf("DbGetBlock() failed. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
-			fmt.Printf("Block: %v\n", block)
-			break
-		}
-
-		txs := block.Transactions
-		for _, t := range txs {
-			err = ProcessTx2(dgraphDb, client, processAddresses, t.Hash)
+		for _, t := range txList {
+			err = ProcessTx2(dgraphDb, client, processAddresses, t)
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
@@ -503,26 +453,34 @@ mainLoop:
 			txCounter++
 			//DbIncrementGlobalTxCount(db)
 
-			if txCounter%5000 == 0 {
-				fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, block.Id, block.Hash)
-				fmt.Printf("Block %s processed, tx count: %d\n", block.Id, txCounter)
-			}
+			//if txCounter%5000 == 0 {
+			//	fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, startingBlockId, blockHash)
+			//	fmt.Printf("Block %s processed, tx count: %d\n", startingBlockId, txCounter)
+			//}
 		}
 
-		blockHash = block.PrevBlock.Hash
 		//saveProcessingState(db, blockHash, block.Id-1)
 
-		id, err := strconv.ParseUint(block.Id, 10, 64)
-
-		if err != nil {
-			fmt.Printf("%s is not a number\n", block.Id)
+		if startingBlockId == 0 || startingBlockId == stoppingBlockId || blockHash == "0000000000000000000000000000000000000000000000000000000000000000" {
+			// finished
+			//saveProcessingStateFinished(db)
 			break
 		}
 
-		if blockHash == "0000000000000000000000000000000000000000000000000000000000000000" ||
-			id == stoppingBlockId {
-			//saveProcessingStateFinished(db)
-			break
+		// set values for next round
+		startHashObj = &(startBlock.Header.PrevBlock)
+		lastBlockHashObj = startHashObj
+		blockHash = previousBlockHash
+
+		startingBlockId--
+		blkCounter++
+
+		//if blkCounter%20000 == 0 {
+		//	fmt.Printf("%d * 20k blocks done\n", blkCounter/20000)
+		//}
+
+		if blkCounter%5 == 0 {
+			fmt.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
 		}
 	}
 

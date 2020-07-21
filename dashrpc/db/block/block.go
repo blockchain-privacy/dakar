@@ -9,7 +9,7 @@ import (
 )
 
 // gets block information from the database
-func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
+func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
 
 	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
@@ -33,33 +33,33 @@ func GetBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 				}
 			  }
 				`
-	vars := make(map[string]string)
-	vars["$hash"] = blockHash
-	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+
+	resp, err := tx.QueryWithVars(context.Background(),
+		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
-		return err
+		return Block{}, err
 	}
 	var r blockQuery
 	err = json.Unmarshal(resp.Json, &r)
 
 	if err != nil {
-		return err
+		return Block{}, err
 	}
 
 	lenQ := len(r.Q)
 
 	if lenQ == 0 {
-		return errors.New("no blocks found")
+		return Block{}, errors.New("no blocks found")
 	}
 
-	*block = r.Q[0]
+	block := r.Q[0]
 	if lenQ > 1 {
 		// found more than one block, which should not be possible
-		return errors.New("found more than one block")
+		return block, errors.New("found more than one block")
 	}
 
-	return nil
+	return block, nil
 }
 
 // checks if the given block has all attributes filled
@@ -69,12 +69,13 @@ func isBlockComplete(blk Block) bool {
 }
 
 // gets block information from the database and checks if it is complete
-func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
-	if err := GetBlock(c, blockHash, block); err != nil {
+func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
+	block, err := GetBlock(c, blockHash)
+	if err != nil {
 		return err
 	}
 
-	if !isBlockComplete(*block) {
+	if !isBlockComplete(block) {
 		return errors.New("block not complete")
 	}
 
@@ -82,12 +83,12 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string, block *Block) error {
 }
 
 // upserts a block
-func UpsertBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
-	(*block).Uid = "uid(v)"
-	(*block).DType = []string{"Block"}
+func UpsertBlock(c *dgo.Dgraph, block UpsertBlockData) error {
+	block.Uid = "uid(v)"
+	block.DType = []string{"Block"}
 	pb, err := json.Marshal(block)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	query := `
@@ -97,19 +98,16 @@ func UpsertBlock(c *dgo.Dgraph, block *Block) (*api.Response, error) {
 			}
 		}
 	`
-	vars := make(map[string]string)
-	vars["$hash"] = block.Hash
-
 	mu := &api.Mutation{
 		SetJson: pb,
 	}
 	req := &api.Request{
 		Query:     query,
-		Vars:      vars,
+		Vars:      map[string]string{"$hash": *block.Hash},
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
 
-	res, err := c.NewTxn().Do(context.Background(), req)
-	return res, err
+	_, err = c.NewTxn().Do(context.Background(), req)
+	return err
 }

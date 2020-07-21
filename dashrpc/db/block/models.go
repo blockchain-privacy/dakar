@@ -10,13 +10,23 @@ type blockQuery struct {
 }
 
 type Block struct {
-	Uid          string            `json:"uid,omitempty"`
-	Hash         string            `json:"blockhash,omitempty"`
-	Id           string            `json:"id,omitempty"`
-	Timestamp    string            `json:"ts,omitempty"`
-	PrevBlock    *Block            `json:"prevblock,omitempty"`
-	Transactions []*tx.Transaction `json:"transactions,omitempty"`
-	DType        []string          `json:"dgraph.type,omitempty"`
+	Uid          string           `json:"uid,omitempty"`
+	Hash         string           `json:"blockhash,omitempty"`
+	Id           string           `json:"id,omitempty"`
+	Timestamp    string           `json:"ts,omitempty"`
+	PrevBlock    *Block           `json:"prevblock,omitempty"`
+	Transactions []tx.Transaction `json:"transactions,omitempty"`
+	DType        []string         `json:"dgraph.type,omitempty"`
+}
+
+type UpsertBlockData struct {
+	Uid          string           `json:"uid,omitempty"`
+	Hash         *string          `json:"blockhash,omitempty"`
+	Id           *uint64          `json:"id,omitempty"`
+	Timestamp    *string          `json:"ts,omitempty"`
+	PrevBlock    *Block           `json:"prevblock,omitempty"`
+	Transactions []tx.Transaction `json:"transactions,omitempty"`
+	DType        []string         `json:"dgraph.type,omitempty"`
 }
 
 func (b Block) String() string {
