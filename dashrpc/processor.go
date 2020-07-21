@@ -7,13 +7,11 @@ import (
 	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/dgo/v2"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -23,11 +21,11 @@ import (
 
 type outputMapping struct {
 	address string
-	indexes []int
+	indexes []uint64
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
-func addOutputToMapping(mapping []outputMapping, addr string, indexOutput int) []outputMapping {
+func addOutputToMapping(mapping []outputMapping, addr string, indexOutput uint64) []outputMapping {
 
 	for i := range mapping {
 		if mapping[i].address == addr {
@@ -38,7 +36,7 @@ func addOutputToMapping(mapping []outputMapping, addr string, indexOutput int) [
 
 	return append(mapping, outputMapping{
 		address: addr,
-		indexes: []int{indexOutput},
+		indexes: []uint64{indexOutput},
 	})
 
 }
@@ -109,11 +107,7 @@ func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[
 		var uids []string
 		for _, idx := range mapping.indexes {
 			for _, input := range outputs {
-				i, err := strconv.Atoi(input.Index)
-				if err != nil {
-					return errors.New(fmt.Sprintf("%s is not an integer", input.Index))
-				}
-				if i == idx {
+				if *input.Index == idx {
 					uids = append(uids, input.Uid)
 				}
 			}
@@ -150,7 +144,8 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	var inputMappings []outputMapping
 	for index, d := range tx.Vin {
-		iMapping, err := processTxVin2(client, &txDetails, d, index)
+		uindex := uint64(index)
+		iMapping, err := processTxVin2(client, &txDetails, d, uindex)
 		inputMappings = append(inputMappings, iMapping...)
 
 		if err != nil {
@@ -160,16 +155,19 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	var outputMappings []outputMapping
 
-	for index, d := range tx.Vout {
+	for _, d := range tx.Vout {
+		uindex := uint64(d.N)
+		outAmount := d.Value
+		isCoinBase := false
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			IsCoinbase: "false",
-			Amount:     strconv.FormatFloat(d.Value, 'f', 8, 64),
+			IsCoinbase: &isCoinBase,
+			Amount:     &outAmount,
 			TxType:     d.ScriptPubKey.Type,
-			Index:      strconv.Itoa(index),
+			Index:      &uindex,
 		})
 
 		for _, e := range d.ScriptPubKey.Addresses {
-			outputMappings = addOutputToMapping(outputMappings, e, index)
+			outputMappings = addOutputToMapping(outputMappings, e, uindex)
 		}
 	}
 
@@ -212,10 +210,11 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 }
 
 func processTxVin2(client *rpcclient.Client, details *dbtx.Transaction,
-	vin btcjson.Vin, index int) (mapping []outputMapping, err error) {
+	vin btcjson.Vin, index uint64) (mapping []outputMapping, err error) {
+	isCoinbase := vin.IsCoinBase()
 	out := dbop.Output{
-		IsCoinbase: strconv.FormatBool(vin.IsCoinBase()),
-		Index:      strconv.Itoa(index),
+		IsCoinbase: &isCoinbase,
+		Index:      &index,
 	}
 
 	if vin.IsCoinBase() {
@@ -235,16 +234,10 @@ func processTxVin2(client *rpcclient.Client, details *dbtx.Transaction,
 		return nil, err
 	}
 
-	out.Amount = strconv.FormatFloat(tx.Vout[vin.Vout].Value, 'f', 8, 64)
+	out.Amount = &tx.Vout[vin.Vout].Value
 
 	for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
-		i, err := strconv.Atoi(out.Index)
-		if err != nil {
-			fmt.Printf("%s is not an integer\n", out.Index)
-			return nil, err
-		}
-
-		mapping = addOutputToMapping(mapping, e, i)
+		mapping = addOutputToMapping(mapping, e, *out.Index)
 	}
 
 	details.Inputs = append(details.Inputs, out)

@@ -13,17 +13,19 @@ func SetupSchema(c *dgo.Dgraph) error {
 			blockhash: string @index(hash) @upsert .
 			txhash: string @index(hash) @upsert .
 			addresshash: string @index(hash) @upsert .
+
 			tx_inputs: [uid] @reverse .
 			tx_outputs: [uid] @reverse .
 			addr_outputs: [uid] @reverse .
-			prevblock: uid @reverse .
 			transactions: [uid] @reverse .
+			prevblock: uid @reverse .
+			
 			id: int .
 			ts: dateTime .
-			index: string .
+			index: int .
 			txtype: string .
-			amount: string .
-			iscoinbase: string .
+			amount: float .
+			iscoinbase: bool .
 			
 
 			type Block {
