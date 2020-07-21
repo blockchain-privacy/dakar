@@ -146,11 +146,11 @@ func ProcessTx2(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	for index, d := range tx.Vin {
 		uindex := uint64(index)
 		iMapping, err := processTxVin2(client, &txDetails, d, uindex)
-		inputMappings = append(inputMappings, iMapping...)
-
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+			continue
 		}
+		inputMappings = append(inputMappings, iMapping...)
 	}
 
 	var outputMappings []outputMapping
