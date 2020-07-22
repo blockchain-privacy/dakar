@@ -79,9 +79,8 @@ func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[
 
 func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	processAddresses bool, txHashString string) error {
-	txDetails := dbtx.Transaction{}
 
-	err := dbtx.GetCompleteTransaction(dgraph, txHashString, &txDetails)
+	txDetails, err := dbtx.GetCompleteTransaction(dgraph, txHashString)
 	if err == nil {
 		// we already have it in the system, we do nothing
 		return nil
@@ -140,8 +139,8 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return nil
 	}
 
-	var txFromDB dbtx.Transaction
-	if err := dbtx.GetTransaction(dgraph, txDetails.Hash, &txFromDB); err != nil {
+	txFromDB, err := dbtx.GetTransaction(dgraph, txDetails.Hash)
+	if err != nil {
 		return err
 	}
 

@@ -14,6 +14,20 @@ type Transaction struct {
 	DType   []string    `json:"dgraph.type,omitempty"`
 }
 
+func (t Transaction) String() string {
+	output := fmt.Sprintf("Uid: %s, Hash: %s", t.Uid, t.Hash)
+
+	if t.Outputs != nil {
+		output += fmt.Sprintf(", OutputCount: %d", len(t.Outputs))
+	}
+
+	if t.Inputs != nil {
+		output += fmt.Sprintf(", InputCount: %d", len(t.Inputs))
+	}
+
+	return output
+}
+
 // converts a Transaction struct to an updateTransactionData struct
 func (t Transaction) toUpdate() (tx updateTransactionData) {
 	tx.Uid = t.Uid
@@ -31,9 +45,9 @@ func (t Transaction) toUpdate() (tx updateTransactionData) {
 	return tx
 }
 
-func (t Transaction) String() string {
-	return fmt.Sprintf("hash: %s\noutputs:\n%vinputs:\n%v\n",
-		t.Hash, t.Outputs, t.Inputs)
+// checks if the given transaction has all attributes filled
+func (t Transaction) isTransactionComplete() bool {
+	return t.Uid != "" && t.Hash != "" && t.DType != nil
 }
 
 // IsCreateDenominations checks if the TX creates denominations

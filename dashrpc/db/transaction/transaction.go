@@ -10,7 +10,7 @@ import (
 )
 
 // gets transaction information from the database
-func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
+func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
 
 	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
@@ -38,52 +38,48 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 	vars["$hash"] = txHash
 	resp, err := tx.QueryWithVars(context.Background(), query, vars)
 	if err != nil {
-		return err
+		return transaction, err
 	}
 	var r transactionQuery
 	err = json.Unmarshal(resp.Json, &r)
 
 	if err != nil {
-		return err
+		return transaction, err
 	}
 
 	lenQ := len(r.Q)
 
 	if lenQ == 0 {
-		return errors.New("no transactions found")
+		err = errors.New("no transactions found")
+		return transaction, err
 	}
 
-	result, err := r.Q[0].toTransaction()
+	transaction, err = r.Q[0].toTransaction()
 	if err != nil {
-		return err
+		return transaction, err
 	}
-
-	transaction = &result
 
 	if lenQ > 1 {
 		// found more than one transaction, which should not be possible
-		return errors.New("found more than one transaction")
+		err = errors.New("found more than one transaction")
+		return transaction, err
 	}
 
-	return nil
-}
-
-// checks if the given transaction has all attributes filled
-func isTransactionComplete(tx Transaction) bool {
-	return tx.Uid != "" && tx.Hash != "" && tx.DType != nil
+	return transaction, err
 }
 
 // gets transaction information from the database and checks if it is complete
-func GetCompleteTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) error {
-	if err := GetTransaction(c, txHash, transaction); err != nil {
-		return err
+func GetCompleteTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
+	if transaction, err := GetTransaction(c, txHash); err != nil {
+		return transaction, err
 	}
 
-	if !isTransactionComplete(*transaction) {
-		return errors.New("transaction not complete")
+	if !transaction.isTransactionComplete() {
+		err = errors.New("transaction not complete")
+		return transaction, err
 	}
 
-	return nil
+	return transaction, err
 }
 
 // upserts a transaction
