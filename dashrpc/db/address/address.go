@@ -11,7 +11,7 @@ import (
 )
 
 // gets address information from the database
-func GetAddress(c *dgo.Dgraph, addrHash string, address *Address) error {
+func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 
 	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
@@ -32,41 +32,45 @@ func GetAddress(c *dgo.Dgraph, addrHash string, address *Address) error {
 	vars["$hash"] = addrHash
 	resp, err := tx.QueryWithVars(context.Background(), query, vars)
 	if err != nil {
-		return err
+		return addr, err
 	}
 	var r addressQuery
 	err = json.Unmarshal(resp.Json, &r)
 
 	if err != nil {
-		return err
+		return addr, err
 	}
 
 	lenQ := len(r.Q)
 
 	if lenQ == 0 {
-		return errors.New("no addresses found")
+		err = errors.New("no addresses found")
+		return addr, err
 	}
 
-	*address = r.Q[0]
+	addr = r.Q[0]
 	if lenQ > 1 {
 		// found more than one address, which should not be possible
-		return errors.New("found more than one address")
+		err = errors.New("found more than one address")
+		return addr, err
 	}
 
-	return nil
+	return addr, err
 }
 
-// gets block information from the database and checks if it is complete
-func GetCompleteAddress(c *dgo.Dgraph, addressHash string, address *Address) error {
-	if err := GetAddress(c, addressHash, address); err != nil {
-		return err
+// gets address information from the database and checks if it is complete
+func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err error) {
+	addr, err = GetAddress(c, addressHash)
+	if err != nil {
+		return addr, err
 	}
 
-	if !address.isComplete() {
-		return errors.New("address not complete")
+	if !addr.isComplete() {
+		err = errors.New("address not complete")
+		return addr, err
 	}
 
-	return nil
+	return addr, err
 }
 
 // upserts an address
