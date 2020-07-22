@@ -89,13 +89,13 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 			}
 		}
 	`
-	mu := &api.Mutation{
-		SetJson: pb,
-	}
+
 	req := &api.Request{
-		Query:     query,
-		Vars:      map[string]string{"$hash": block.Hash},
-		Mutations: []*api.Mutation{mu},
+		Query: query,
+		Vars:  map[string]string{"$hash": block.Hash},
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
 		CommitNow: true,
 	}
 

@@ -115,12 +115,12 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 			}
 		}
 	`, transaction.Hash)
-	mu := &api.Mutation{
-		SetJson: pb,
-	}
+
 	req := &api.Request{
-		Query:     query,
-		Mutations: []*api.Mutation{mu},
+		Query: query,
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
 		CommitNow: true,
 	}
 
