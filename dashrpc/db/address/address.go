@@ -74,9 +74,9 @@ func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err er
 }
 
 // upserts an address
-func UpsertAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
-	(*address).Uid = "uid(v)"
-	(*address).DType = []string{"Address"}
+func UpsertAddress(c *dgo.Dgraph, address Address) (*api.Response, error) {
+	address.Uid = "uid(v)"
+	address.DType = []string{"Address"}
 	pb, err := json.Marshal(address)
 	if err != nil {
 		return nil, err
@@ -92,18 +92,17 @@ func UpsertAddress(c *dgo.Dgraph, address *Address) (*api.Response, error) {
 
 	vars := make(map[string]string)
 	vars["$hash"] = address.Hash
-	mu := &api.Mutation{
-		SetJson: pb,
-	}
+
 	req := &api.Request{
-		Query:     query,
-		Vars:      vars,
-		Mutations: []*api.Mutation{mu},
+		Query: query,
+		Vars:  vars,
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
 		CommitNow: true,
 	}
 
-	res, err := c.NewTxn().Do(context.Background(), req)
-	return res, err
+	return c.NewTxn().Do(context.Background(), req)
 }
 
 // upserts addresses
@@ -145,21 +144,14 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		return nil, err
 	}
 
-	mu := &api.Mutation{
-		SetJson: pb,
-	}
 	req := &api.Request{
-		Query:     queryPrefix + query + "}",
-		Vars:      vars,
-		Mutations: []*api.Mutation{mu},
+		Query: queryPrefix + query + "}",
+		Vars:  vars,
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
 		CommitNow: true,
 	}
 
-	res, err := c.NewTxn().Do(context.Background(), req)
-
-	if err != nil {
-		return res, err
-	}
-
-	return res, err
+	return c.NewTxn().Do(context.Background(), req)
 }
