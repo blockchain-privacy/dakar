@@ -9,7 +9,7 @@ import (
 )
 
 // gets block information from the database
-func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
+func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 
 	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
@@ -19,10 +19,6 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
 					ts
 					blockhash
 					prevblock { 
-						uid
-						blockhash
-					}
-					~prevblock { 
 						uid
 						blockhash
 					}
@@ -38,28 +34,28 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
 		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
-		return Block{}, err
+		return blk, err
 	}
 	var r blockQuery
 	err = json.Unmarshal(resp.Json, &r)
 
 	if err != nil {
-		return Block{}, err
+		return blk, err
 	}
 
 	lenQ := len(r.Q)
 
 	if lenQ == 0 {
-		return Block{}, errors.New("no blocks found")
+		return blk, errors.New("no blocks found")
 	}
 
-	block := r.Q[0]
+	blk = r.Q[0]
 	if lenQ > 1 {
 		// found more than one block, which should not be possible
-		return block, errors.New("found more than one block")
+		return blk, errors.New("found more than one block")
 	}
 
-	return block, nil
+	return blk, nil
 }
 
 // gets block information from the database and checks if it is complete
@@ -80,6 +76,7 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
 func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
 	block.DType = []string{"Block"}
+
 	pb, err := json.Marshal(block)
 	if err != nil {
 		return err

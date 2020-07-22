@@ -20,7 +20,21 @@ type Block struct {
 }
 
 func (b Block) String() string {
-	return fmt.Sprintf("Hash: %s, Id: %s, Timestamp: %s", b.Hash, b.Id, b.Timestamp)
+	output := fmt.Sprintf("Uid: %s, Hash: %s, Timestamp: %s", b.Uid, b.Hash, b.Timestamp)
+
+	if b.Id != nil {
+		output += fmt.Sprintf(", Id: %d", *b.Id)
+	}
+
+	if b.PrevBlock != nil {
+		output += fmt.Sprintf(", PrevBlockHash: %s", b.PrevBlock.Hash)
+	}
+
+	if b.Transactions != nil {
+		output += fmt.Sprintf(", TransactionCount: %d", len(b.Transactions))
+	}
+
+	return output
 }
 
 // checks if the given block has all attributes filled
