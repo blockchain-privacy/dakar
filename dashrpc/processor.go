@@ -80,8 +80,7 @@ func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[
 func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	processAddresses bool, txHashString string) error {
 
-	txDetails, err := dbtx.GetCompleteTransaction(dgraph, txHashString)
-	if err == nil {
+	if t, err := dbtx.GetTransaction(dgraph, txHashString); err == nil && t.IsComplete() {
 		// we already have it in the system, we do nothing
 		return nil
 	}
@@ -98,7 +97,7 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return err
 	}
 
-	txDetails.Hash = tx.Txid
+	txDetails := dbtx.Transaction{Hash: tx.Txid}
 
 	var inputMappings []outputMapping
 	for index, d := range tx.Vin {
@@ -272,8 +271,10 @@ mainLoop:
 			// we do nothing
 		}
 
-		if err := dbblk.GetCompleteBlock(dgraphDb, blockHash); err == nil {
-			break
+		if b, err := dbblk.GetBlock(dgraphDb, blockHash); err == nil && b.IsComplete() {
+			// block already in database
+			// todo check if continue instead of break is okay
+			continue
 		}
 
 		startBlock, err := client.GetBlock(startHashObj)

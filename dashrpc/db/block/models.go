@@ -35,7 +35,7 @@ func (b Block) String() string {
 }
 
 // checks if the given block has all attributes filled
-func (b Block) isComplete() bool {
+func (b Block) IsComplete() bool {
 	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" ||
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
 }

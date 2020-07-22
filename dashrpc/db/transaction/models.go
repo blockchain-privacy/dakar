@@ -47,7 +47,7 @@ func (t Transaction) toUpdate() (tx updateTransactionData) {
 }
 
 // checks if the given transaction has all attributes filled
-func (t Transaction) isTransactionComplete() bool {
+func (t Transaction) IsComplete() bool {
 	return t.Uid != "" && t.Hash != "" && t.DType != nil
 }
 

@@ -3,7 +3,6 @@ package transaction
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -47,20 +46,6 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 	}
 
 	return r.payload()
-}
-
-// gets transaction information from the database and checks if it is complete
-func GetCompleteTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
-	if transaction, err := GetTransaction(c, txHash); err != nil {
-		return transaction, err
-	}
-
-	if !transaction.isTransactionComplete() {
-		err = errors.New("transaction not complete")
-		return transaction, err
-	}
-
-	return transaction, err
 }
 
 // upserts a transaction

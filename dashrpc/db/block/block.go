@@ -3,7 +3,6 @@ package block
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
@@ -41,20 +40,6 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	}
 
 	return r.payload()
-}
-
-// gets block information from the database and checks if it is complete
-func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
-	block, err := GetBlock(c, blockHash)
-	if err != nil {
-		return err
-	}
-
-	if !block.isComplete() {
-		return errors.New("block not complete")
-	}
-
-	return nil
 }
 
 // upserts a block
