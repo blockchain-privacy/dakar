@@ -100,6 +100,10 @@ func main() {
 	}
 
 	dbClient, err := db.CreateDefaultClient()
+	if err != nil {
+		log.Print(err)
+		return
+	}
 
 	err = db.DropAll(dbClient)
 	if err != nil {
