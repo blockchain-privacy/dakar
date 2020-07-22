@@ -1,6 +1,9 @@
 package output
 
-import "strconv"
+import (
+	"fmt"
+	"strconv"
+)
 
 type Output struct {
 	Uid        string   `json:"uid,omitempty"`
@@ -9,6 +12,24 @@ type Output struct {
 	Amount     *float64 `json:"amount,omitempty"`
 	IsCoinbase *bool    `json:"iscoinbase,omitempty"`
 	DType      []string `json:"dgraph.type,omitempty"`
+}
+
+func (o Output) String() string {
+	output := fmt.Sprintf("Uid: %s", o.Uid)
+
+	if o.Index != nil {
+		output += fmt.Sprintf(", Index: %d", *o.Index)
+	}
+
+	if o.Amount != nil {
+		output += fmt.Sprintf(", Amount: %f", *o.Amount)
+	}
+
+	if o.IsCoinbase != nil {
+		output += fmt.Sprintf(", IsCoinbase: %t", *o.IsCoinbase)
+	}
+
+	return output
 }
 
 func (o Output) ToUpdate() (op UpdateOutputData) {
@@ -32,6 +53,20 @@ type UpdateOutputData struct {
 	Amount     string   `json:"amount,omitempty"`
 	IsCoinbase *bool    `json:"iscoinbase,omitempty"`
 	DType      []string `json:"dgraph.type,omitempty"`
+}
+
+func (o UpdateOutputData) String() string {
+	output := fmt.Sprintf("Uid: %s, Amount: %s", o.Uid, o.Amount)
+
+	if o.Index != nil {
+		output += fmt.Sprintf(", Index: %d", *o.Index)
+	}
+
+	if o.IsCoinbase != nil {
+		output += fmt.Sprintf(", IsCoinbase: %t", *o.IsCoinbase)
+	}
+
+	return output
 }
 
 func (o UpdateOutputData) ToOutput() (op Output, err error) {
