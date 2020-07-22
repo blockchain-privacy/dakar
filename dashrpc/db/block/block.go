@@ -62,12 +62,6 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (Block, error) {
 	return block, nil
 }
 
-// checks if the given block has all attributes filled
-func isBlockComplete(blk Block) bool {
-	return blk.Uid != "" && blk.Hash != "" && blk.Id != nil && blk.Timestamp != "" ||
-		blk.DType != nil && blk.Transactions != nil && blk.PrevBlock != nil
-}
-
 // gets block information from the database and checks if it is complete
 func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
 	block, err := GetBlock(c, blockHash)
@@ -75,7 +69,7 @@ func GetCompleteBlock(c *dgo.Dgraph, blockHash string) error {
 		return err
 	}
 
-	if !isBlockComplete(block) {
+	if !block.isComplete() {
 		return errors.New("block not complete")
 	}
 

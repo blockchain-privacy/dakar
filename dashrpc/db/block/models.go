@@ -22,3 +22,9 @@ type Block struct {
 func (b Block) String() string {
 	return fmt.Sprintf("Hash: %s, Id: %s, Timestamp: %s", b.Hash, b.Id, b.Timestamp)
 }
+
+// checks if the given block has all attributes filled
+func (b Block) isComplete() bool {
+	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" ||
+		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
+}

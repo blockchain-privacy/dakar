@@ -10,11 +10,6 @@ import (
 	"strconv"
 )
 
-// checks if the given address has all attributes filled
-func isAddressComplete(address Address) bool {
-	return address.Uid != "" && address.Hash != "" && address.DType != nil && address.Outputs != nil
-}
-
 // gets address information from the database
 func GetAddress(c *dgo.Dgraph, addrHash string, address *Address) error {
 
@@ -67,7 +62,7 @@ func GetCompleteAddress(c *dgo.Dgraph, addressHash string, address *Address) err
 		return err
 	}
 
-	if !isAddressComplete(*address) {
+	if !address.isComplete() {
 		return errors.New("address not complete")
 	}
 
