@@ -53,13 +53,15 @@ func (t Transaction) IsComplete() bool {
 
 // IsCreateDenominations checks if the TX creates denominations
 func (t Transaction) IsCreateDenominations() bool {
-	denom := CountDenominations(t.Outputs)
+	denom := countDenominations(t.Outputs)
+	// todo add fourth denomination?
 	return len(t.Inputs) == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
 }
 
 func (t Transaction) IsPrivateSend() bool {
-	denom := CountDenominations(t.Inputs)
+	denom := countDenominations(t.Inputs)
+	// todo add fourth denomination?
 	return len(t.Outputs) == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
 }
@@ -75,8 +77,8 @@ func (t Transaction) IsMixing() bool {
 	if len(t.Inputs) != len(t.Outputs) {
 		return false
 	}
-	denomIn := CountDenominations(t.Inputs)
-	denomOut := CountDenominations(t.Outputs)
+	denomIn := countDenominations(t.Inputs)
+	denomOut := countDenominations(t.Outputs)
 	sum := 0
 	for _, v := range denomIn {
 		sum += v
@@ -161,11 +163,11 @@ func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= delta
 }
 
-func CountDenominations(txs []op.Output) []int {
-	denominations := make([]int, 4)
+func countDenominations(outputs []op.Output) []int {
 	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
+	denominations := make([]int, len(denominationsTypes))
 
-	for _, o := range txs {
+	for _, o := range outputs {
 	inner:
 		for i, v := range denominationsTypes {
 			if almostEqual(*o.Amount, v) {

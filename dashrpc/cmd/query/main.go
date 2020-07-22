@@ -3,10 +3,10 @@ package main
 import (
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
+	"dashrpc/db"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
 	"io"
 	"log"
 	"os"
@@ -59,31 +59,14 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	// Open the Badger database located in the /tmp/badger directory.
-	// It will be created if it doesn't exist.
-	opts := badger.DefaultOptions(cliArgs.BadgerDir)
-
-	// set maximum number of memtables to 50 (default: 5)
-	opts.WithNumMemtables(50)
-
-	// set maximum size of LSM table to 512 MB (default: 64 MB)
-	opts.WithMaxTableSize(512 << 20)
-
-	db, err := badger.Open(opts)
+	dgraph, err := db.CreateDefaultClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
-	// close database when done
-	defer func() {
-		err = db.Close()
-		if err != nil {
-			fmt.Println(err)
-		}
-	}()
-
 	if len(cliArgs.TxSearch) > 0 {
-		err, res := transactionSearch(db, cliArgs.TxSearch, "./result.csv")
+		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./result.csv")
 
 		if err != nil {
 			log.Println(err)
@@ -92,7 +75,7 @@ func main() {
 		log.Printf("Final map has %v elements\n", len(res))
 	} else if len(cliArgs.TxInfo) > 0 {
 		var txDetails dashrpc.TxDetails
-		err = dashrpc.DbGetTxDetails(db, cliArgs.TxInfo, &txDetails)
+		err = dashrpc.DbGetTxDetails(dgraph, cliArgs.TxInfo, &txDetails)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -111,7 +94,7 @@ func main() {
 			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
 		}
 	} else if len(cliArgs.ClusterAddr) > 0 {
-		if err := dashrpc.ProcessAddressClustering(db, cliArgs.ClusterAddr); err != nil {
+		if err := dashrpc.ProcessAddressClustering(dgraph, cliArgs.ClusterAddr); err != nil {
 			log.Println(err)
 			return
 		}

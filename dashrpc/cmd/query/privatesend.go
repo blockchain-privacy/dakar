@@ -2,10 +2,13 @@ package main
 
 import (
 	"dashrpc"
+	dbop "dashrpc/db/output"
+	dbtx "dashrpc/db/transaction"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
 	"strconv"
@@ -25,7 +28,7 @@ type Result struct {
 }
 
 // Writes the results of "search" to "outputFile"
-func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, res map[string]*Result) {
+func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err error, res map[string]*Result) {
 	recordFile, err := os.Create(outputFile)
 	if err != nil {
 		errMsg := fmt.Sprintln("error while creating the file ::", err)
@@ -35,7 +38,7 @@ func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, 
 
 	// Initialize the writer
 	writer := csv.NewWriter(recordFile)
-	res = search(db, tx, writer)
+	res = search(dgraph, tx, writer)
 	if res == nil {
 		errMsg := "Result in NIL -- fix it."
 		// no results -> delete result file
@@ -66,10 +69,8 @@ func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, 
 }
 
 // search initiates recursive search through all inputs to find all CreateDenominations
-func search(db *badger.DB, txHash string, writer *csv.Writer) map[string]*Result {
-	tx := dashrpc.TxDetails{}
-	hash := txHash
-	err := dashrpc.DbGetTxDetails(db, hash, &tx)
+func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*Result {
+	tx, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
 		fmt.Println("Error", err)
 	}
@@ -82,14 +83,14 @@ func search(db *badger.DB, txHash string, writer *csv.Writer) map[string]*Result
 	var txCount int64
 	for _, input := range tx.Inputs {
 		var rounds int // sets to 0, initially
-		searchCreateDenominations(db, &input, rounds, &results, &txCount, writer)
+		searchCreateDenominations(dgraph, &input, rounds, &results, &txCount, writer)
 	}
 
 	return results
 }
 
-func searchCreateDenominations(db *badger.DB,
-	in *dashrpc.TxOutput, rounds int,
+func searchCreateDenominations(dgraph *dgo.Dgraph,
+	in *dbop.Output, rounds int,
 	results *map[string]*Result, txCount *int64, writer *csv.Writer) {
 
 	if (*txCount % 100000) == 0 {
@@ -97,7 +98,7 @@ func searchCreateDenominations(db *badger.DB,
 	}
 	tx := dashrpc.TxDetails{}
 	hash := in.TxHash
-	err := dashrpc.DbGetTxDetails(db, hash, &tx)
+	err := dashrpc.DbGetTxDetails(dgraph, hash, &tx)
 	if err != nil {
 		// let's ignore it -- our DB does not have ALL TXs
 		return
@@ -136,6 +137,6 @@ func searchCreateDenominations(db *badger.DB,
 
 	for _, in2 := range tx.Inputs {
 		rounds2 := rounds
-		searchCreateDenominations(db, &in2, rounds2, results, txCount, writer)
+		searchCreateDenominations(dgraph, &in2, rounds2, results, txCount, writer)
 	}
 }
