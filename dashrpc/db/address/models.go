@@ -2,6 +2,7 @@ package address
 
 import (
 	op "dashrpc/db/output"
+	"errors"
 	"fmt"
 )
 
@@ -29,4 +30,19 @@ func (a Address) isComplete() bool {
 
 type addressQuery struct {
 	Q []Address `json:"q"`
+}
+
+func (aq addressQuery) payload() (a Address, err error) {
+	lenQ := len(aq.Q)
+
+	if lenQ == 0 {
+		err = errors.New("no addresses found")
+		return a, err
+	} else if lenQ > 1 {
+		// found more than one transaction, which should not be possible
+		err = errors.New("found more than one address")
+		return a, err
+	}
+	a = aq.Q[0]
+	return a, err
 }

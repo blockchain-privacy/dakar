@@ -2,6 +2,7 @@ package transaction
 
 import (
 	op "dashrpc/db/output"
+	"errors"
 	"fmt"
 	"math"
 )
@@ -137,6 +138,21 @@ func (t updateTransactionData) toTransaction() (tx Transaction, err error) {
 
 type transactionQuery struct {
 	Q []updateTransactionData `json:"q"`
+}
+
+func (tq transactionQuery) payload() (tx Transaction, err error) {
+	lenQ := len(tq.Q)
+
+	if lenQ == 0 {
+		err = errors.New("no transactions found")
+		return tx, err
+	} else if lenQ > 1 {
+		// found more than one transaction, which should not be possible
+		err = errors.New("found more than one transaction")
+		return tx, err
+	}
+
+	return tq.Q[0].toTransaction()
 }
 
 func almostEqual(a, b float64) bool {

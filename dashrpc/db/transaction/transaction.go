@@ -41,31 +41,12 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 		return transaction, err
 	}
 	var r transactionQuery
-	err = json.Unmarshal(resp.Json, &r)
 
-	if err != nil {
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return transaction, err
 	}
 
-	lenQ := len(r.Q)
-
-	if lenQ == 0 {
-		err = errors.New("no transactions found")
-		return transaction, err
-	}
-
-	transaction, err = r.Q[0].toTransaction()
-	if err != nil {
-		return transaction, err
-	}
-
-	if lenQ > 1 {
-		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one transaction")
-		return transaction, err
-	}
-
-	return transaction, err
+	return r.payload()
 }
 
 // gets transaction information from the database and checks if it is complete

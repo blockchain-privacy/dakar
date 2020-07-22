@@ -10,8 +10,6 @@ import (
 
 // gets block information from the database
 func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
-
-	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
 					uid
@@ -30,32 +28,19 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 			  }
 				`
 
-	resp, err := tx.QueryWithVars(context.Background(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(),
 		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
 		return blk, err
 	}
 	var r blockQuery
-	err = json.Unmarshal(resp.Json, &r)
 
-	if err != nil {
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return blk, err
 	}
 
-	lenQ := len(r.Q)
-
-	if lenQ == 0 {
-		return blk, errors.New("no blocks found")
-	}
-
-	blk = r.Q[0]
-	if lenQ > 1 {
-		// found more than one block, which should not be possible
-		return blk, errors.New("found more than one block")
-	}
-
-	return blk, nil
+	return r.payload()
 }
 
 // gets block information from the database and checks if it is complete

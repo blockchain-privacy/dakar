@@ -12,8 +12,6 @@ import (
 
 // gets address information from the database
 func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
-
-	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
 				q(func: eq(addresshash, $hash)){
 					uid
@@ -30,32 +28,17 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 				`
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(), query, vars)
 	if err != nil {
 		return addr, err
 	}
 	var r addressQuery
-	err = json.Unmarshal(resp.Json, &r)
 
-	if err != nil {
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return addr, err
 	}
 
-	lenQ := len(r.Q)
-
-	if lenQ == 0 {
-		err = errors.New("no addresses found")
-		return addr, err
-	}
-
-	addr = r.Q[0]
-	if lenQ > 1 {
-		// found more than one address, which should not be possible
-		err = errors.New("found more than one address")
-		return addr, err
-	}
-
-	return addr, err
+	return r.payload()
 }
 
 // gets address information from the database and checks if it is complete

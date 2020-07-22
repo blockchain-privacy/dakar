@@ -1,6 +1,7 @@
 package output
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -94,4 +95,29 @@ type outputQuery struct {
 			Outputs []Output `json:"tx_outputs"`
 		} `json:"transaction"`
 	} `json:"getOutput"`
+}
+
+func (oq outputQuery) payload() (op Output, err error) {
+	lenQ := len(oq.GetOutput)
+	if lenQ == 0 {
+		return op, errors.New("no output found")
+	}
+
+	lenTx := len(oq.GetOutput[0].Transaction)
+	if lenTx == 0 {
+		return op, errors.New("no output found")
+	}
+
+	lenO := len(oq.GetOutput[0].Transaction[0].Outputs)
+	if lenO == 0 {
+		return op, errors.New("no output found")
+	}
+
+	if lenQ > 1 || lenTx > 1 || lenO > 1 {
+		// found more than one output, which should not be possible
+		return op, errors.New("found more than one output")
+	}
+
+	op = oq.GetOutput[0].Transaction[0].Outputs[0]
+	return op, err
 }

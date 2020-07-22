@@ -2,12 +2,9 @@ package block
 
 import (
 	tx "dashrpc/db/transaction"
+	"errors"
 	"fmt"
 )
-
-type blockQuery struct {
-	Q []Block `json:"q"`
-}
 
 type Block struct {
 	Uid          string           `json:"uid,omitempty"`
@@ -41,4 +38,23 @@ func (b Block) String() string {
 func (b Block) isComplete() bool {
 	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" ||
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
+}
+
+type blockQuery struct {
+	Q []Block `json:"q"`
+}
+
+func (bq blockQuery) payload() (blk Block, err error) {
+	lenQ := len(bq.Q)
+
+	if lenQ == 0 {
+		err = errors.New("no blocks found")
+		return blk, err
+	} else if lenQ > 1 {
+		// found more than one transaction, which should not be possible
+		err = errors.New("found more than one block")
+		return blk, err
+	}
+	blk = bq.Q[0]
+	return blk, err
 }
