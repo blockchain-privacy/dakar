@@ -11,7 +11,7 @@ import (
 
 // gets output information from the database
 func GetOutput(c *dgo.Dgraph, txHash string, index uint32, output *Output, isInput bool) error {
-	tx := c.NewReadOnlyTxn()
+	// build query
 	relationship := "tx_outputs"
 	if isInput {
 		relationship = "tx_inputs"
@@ -35,7 +35,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, output *Output, isInp
 	vars["$hash"] = txHash
 
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
-	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(), query, vars)
 	if err != nil {
 		return err
 	}

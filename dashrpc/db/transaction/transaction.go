@@ -53,7 +53,13 @@ func GetTransaction(c *dgo.Dgraph, txHash string, transaction *Transaction) erro
 		return errors.New("no transactions found")
 	}
 
-	*transaction = r.Q[0]
+	result, err := r.Q[0].toTransaction()
+	if err != nil {
+		return err
+	}
+
+	transaction = &result
+
 	if lenQ > 1 {
 		// found more than one transaction, which should not be possible
 		return errors.New("found more than one transaction")
@@ -100,7 +106,7 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	}
 
 	// create json
-	pb, err := json.Marshal(transaction)
+	pb, err := json.Marshal(transaction.toUpdate())
 	if err != nil {
 		return nil, err
 	}
