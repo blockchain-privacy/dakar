@@ -1,7 +1,7 @@
 package block
 
 import (
-	"context"
+	"dashrpc/db"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -27,7 +27,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
 		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
@@ -69,6 +69,6 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(context.Background(), req)
+	_, err = c.NewTxn().Do(db.GetContext(), req)
 	return err
 }

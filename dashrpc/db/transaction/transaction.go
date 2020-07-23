@@ -1,7 +1,7 @@
 package transaction
 
 import (
-	"context"
+	"dashrpc/db"
 	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
@@ -35,7 +35,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 				`
 	vars := make(map[string]string)
 	vars["$hash"] = txHash
-	resp, err := tx.QueryWithVars(context.Background(), query, vars)
+	resp, err := tx.QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
 		return transaction, err
 	}
@@ -91,6 +91,6 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	}
 
 	// commit transaction
-	res, err := c.NewTxn().Do(context.Background(), req)
+	res, err := c.NewTxn().Do(db.GetContext(), req)
 	return res, err
 }

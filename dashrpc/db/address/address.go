@@ -1,7 +1,7 @@
 package address
 
 import (
-	"context"
+	"dashrpc/db"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,7 +28,7 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 				`
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
 		return addr, err
 	}
@@ -85,7 +85,7 @@ func UpsertAddress(c *dgo.Dgraph, address Address) (*api.Response, error) {
 		CommitNow: true,
 	}
 
-	return c.NewTxn().Do(context.Background(), req)
+	return c.NewTxn().Do(db.GetContext(), req)
 }
 
 // upserts addresses
@@ -136,5 +136,5 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		CommitNow: true,
 	}
 
-	return c.NewTxn().Do(context.Background(), req)
+	return c.NewTxn().Do(db.GetContext(), req)
 }

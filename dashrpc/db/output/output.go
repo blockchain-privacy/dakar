@@ -1,7 +1,7 @@
 package output
 
 import (
-	"context"
+	"dashrpc/db"
 	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
@@ -34,7 +34,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	vars["$hash"] = txHash
 
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(context.Background(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
 		return op, err
 	}

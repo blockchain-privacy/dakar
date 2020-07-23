@@ -6,11 +6,19 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
+	"time"
 )
+
+const timeout = time.Second * 30
+
+func GetContext() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), timeout)
+	return ctx
+}
 
 // drops ALL data from the database, schema included
 func DropAll(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
+	return c.Alter(GetContext(), &api.Operation{
 		DropOp: api.Operation_ALL,
 	})
 }
