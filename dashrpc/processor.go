@@ -77,8 +77,30 @@ func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[
 	return nil
 }
 
-func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
-	processAddresses bool, txHashString string) error {
+func processAddresses(dgraph *dgo.Dgraph, txHash string, inputs []outputMapping, outputs []outputMapping) error {
+	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
+	if err != nil {
+		return err
+	}
+	var addrSlice []dbaddr.Address
+	// handle input mappings
+	if err = buildAddressMapping(inputs, txFromDB.Inputs, &addrSlice); err != nil {
+		return err
+	}
+
+	// handle output mappings
+	if err = buildAddressMapping(outputs, txFromDB.Outputs, &addrSlice); err != nil {
+		return err
+	}
+
+	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) error {
 
 	if t, err := dbtx.GetTransaction(dgraph, txHashString); err == nil && t.IsComplete() {
 		// we already have it in the system, we do nothing
@@ -133,37 +155,12 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client,
 		return err
 	}
 
-	if !processAddresses || (inputMappings == nil && outputMappings == nil) {
+	if !processAddrs || (inputMappings == nil && outputMappings == nil) {
 		// no addresses to process
 		return nil
 	}
 
-	txFromDB, err := dbtx.GetTransaction(dgraph, txDetails.Hash)
-	if err != nil {
-		return err
-	}
-
-	var addrSlice []dbaddr.Address
-
-	// handle input mappings
-	if err = buildAddressMapping(inputMappings, txFromDB.Inputs, &addrSlice); err != nil {
-		fmt.Printf("Problems creating input address mapping\n")
-		return err
-	}
-
-	// handle output mappings
-	if err = buildAddressMapping(outputMappings, txFromDB.Outputs, &addrSlice); err != nil {
-		fmt.Printf("Problems creating output address mapping\n")
-		return err
-	}
-	if addrSlice != nil {
-		if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
-			fmt.Printf("Problems updating addresses: %v\n", txDetails)
-			return err
-		}
-	}
-
-	return nil
+	return processAddresses(dgraph, txDetails.Hash, inputMappings, outputMappings)
 }
 
 func processTxVin(client *rpcclient.Client, details *dbtx.Transaction,
