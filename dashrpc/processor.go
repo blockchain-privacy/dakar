@@ -277,6 +277,7 @@ mainLoop:
 			continue
 		}
 
+		// get block from RPC-Client
 		startBlock, err := client.GetBlock(startHashObj)
 		if err != nil {
 			fmt.Printf("Problem with getBlock() %s\n", err.Error())
@@ -288,7 +289,7 @@ mainLoop:
 			fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
 		}
 
-		// create transaction slice
+		// create string list consisting of transaction hashes
 		var txList []string
 		for _, tx := range txHashes {
 			txList = append(txList, tx.String())
