@@ -32,8 +32,8 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 
 	vars := make(map[string]string)
 	vars["$hash"] = txHash
-
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
+
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
 		return op, err

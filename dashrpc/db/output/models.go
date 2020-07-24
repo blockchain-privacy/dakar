@@ -92,12 +92,12 @@ func (o UpdateOutputData) ToOutput() (op Output, err error) {
 	return op, err
 }
 
+type DummyTx struct {
+	Outputs []UpdateOutputData `json:"tx_outputs"`
+}
+
 type outputQuery struct {
-	GetOutput []struct {
-		Transaction []struct {
-			Outputs []Output `json:"tx_outputs"`
-		} `json:"transaction"`
-	} `json:"getOutput"`
+	GetOutput []DummyTx `json:"getOutput"`
 }
 
 func (oq outputQuery) payload() (op Output, err error) {
@@ -106,21 +106,15 @@ func (oq outputQuery) payload() (op Output, err error) {
 		return op, errors.New("no output found")
 	}
 
-	lenTx := len(oq.GetOutput[0].Transaction)
+	lenTx := len(oq.GetOutput[0].Outputs)
 	if lenTx == 0 {
 		return op, errors.New("no output found")
 	}
 
-	lenO := len(oq.GetOutput[0].Transaction[0].Outputs)
-	if lenO == 0 {
-		return op, errors.New("no output found")
-	}
-
-	if lenQ > 1 || lenTx > 1 || lenO > 1 {
+	if lenQ > 1 || lenTx > 1 {
 		// found more than one output, which should not be possible
 		return op, errors.New("found more than one output")
 	}
 
-	op = oq.GetOutput[0].Transaction[0].Outputs[0]
-	return op, err
+	return oq.GetOutput[0].Outputs[0].ToOutput()
 }
