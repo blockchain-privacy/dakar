@@ -20,8 +20,15 @@ import (
 
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
-	address string
+	hash    string
 	indexes []uint64
+}
+
+// maps a address to one or more indexes of a transaction
+type TransactionMapping struct {
+	hash    string
+	inputs  map[string]outputMapping
+	outputs map[string]outputMapping
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
@@ -32,7 +39,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 	}
 
 	mapping[addr] = outputMapping{
-		address: addr,
+		hash:    addr,
 		indexes: []uint64{indexOutput},
 	}
 
@@ -71,26 +78,33 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 				}
 			}
 		}
-		*addrs = addOutputsToAddresses(*addrs, mapping.address, uids)
+		*addrs = addOutputsToAddresses(*addrs, mapping.hash, uids)
 	}
 
 	return nil
 }
 
-func processAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputMapping, outputs map[string]outputMapping) error {
+func buildAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputMapping,
+	outputs map[string]outputMapping, addrMap *map[string]dbaddr.Address) error {
 	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
 		return err
 	}
-	addrMap := make(map[string]dbaddr.Address)
 	// handle input mappings
-	if err = buildAddressMapping(inputs, txFromDB.Inputs, &addrMap); err != nil {
+	if err = buildAddressMapping(inputs, txFromDB.Inputs, addrMap); err != nil {
 		return err
 	}
 
 	// handle output mappings
-	if err = buildAddressMapping(outputs, txFromDB.Outputs, &addrMap); err != nil {
-		return err
+	return buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
+}
+
+func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) error {
+	addrMap := make(map[string]dbaddr.Address)
+	for _, mapping := range transactionMappings {
+		if err := buildAddresses(dgraph, mapping.hash, mapping.inputs, mapping.outputs, &addrMap); err != nil {
+			return err
+		}
 	}
 
 	// map to slice
@@ -99,30 +113,24 @@ func processAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outpu
 		addrSlice = append(addrSlice, a)
 	}
 
-	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+	if _, err := dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) error {
-
-	if t, err := dbtx.GetTransaction(dgraph, txHashString); err == nil && t.IsComplete() {
-		// we already have it in the system, we do nothing
-		return nil
-	}
-
+func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) (tMap TransactionMapping, err error) {
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
 		fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
-		return err
+		return tMap, err
 	}
 
 	tx, err := client.GetRawTransactionVerbose(txHash)
 	if err != nil {
 		fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
-		return err
+		return tMap, err
 	}
 
 	txDetails := dbtx.Transaction{Hash: tx.Txid}
@@ -134,9 +142,8 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 		inputMappings, err = processTxVin(client, &txDetails, d, uindex, inputMappings)
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
-			continue
+			return tMap, err
 		}
-		//inputMappings = append(inputMappings, iMapping...)
 	}
 
 	outputMappings := make(map[string]outputMapping)
@@ -159,17 +166,15 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 
 	if _, err = dbtx.UpsertTransaction(dgraph, &txDetails); err != nil {
 		fmt.Printf("Problems updating transaction: %v\n", txDetails)
-		return err
+		return tMap, err
 	}
 
-	if !processAddrs || (len(inputMappings) == 0 && len(outputMappings) == 0) {
+	if !processAddrs {
 		// no addresses to process
-		return nil
+		return tMap, err
 	}
 
-	//fmt.Println(txDetails.Hash, len(inputMappings), len(outputMappings))
-
-	return processAddresses(dgraph, txDetails.Hash, inputMappings, outputMappings)
+	return TransactionMapping{hash: txDetails.Hash, inputs: inputMappings, outputs: outputMappings}, err
 }
 
 func processTxVin(client *rpcclient.Client, details *dbtx.Transaction, vin btcjson.Vin,
@@ -236,16 +241,16 @@ func ProcessBlock(dgraph *dgo.Dgraph, txHashes []string, currentHash string,
 }
 
 // ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(dgraphDb *dgo.Dgraph,
+func ProcessNewBlocks(dgraph *dgo.Dgraph,
 	client *rpcclient.Client,
-	processAddresses bool,
+	includeAddresses bool,
 	startingBlockHash string,
 	startingBlockId uint64,
 	stoppingBlockId uint64) error {
 
 	timerStart := time.Now()
-	//DbSetStatus(dgraphDb, DbBlockStatusProcessing)
-	//err := DbSetUint64(dgraphDb, DbBlockStopBlockId, stoppingBlockId)
+	//DbSetStatus(dgraph, DbBlockStatusProcessing)
+	//err := DbSetUint64(dgraph, DbBlockStopBlockId, stoppingBlockId)
 	//if err != nil {
 	//	fmt.Printf("Error: failed to save stopBlockID\n%v\n", err)
 	//}
@@ -278,7 +283,7 @@ mainLoop:
 			// we do nothing
 		}
 
-		if b, err := dbblk.GetBlock(dgraphDb, blockHash); err == nil && b.IsComplete() {
+		if b, err := dbblk.GetBlock(dgraph, blockHash); err == nil && b.IsComplete() {
 			// block already in database
 			// todo check if continue instead of break is okay
 			continue
@@ -305,27 +310,38 @@ mainLoop:
 		ts := startBlock.Header.Timestamp.Format(time.RFC3339)
 		previousBlockHash := startBlock.Header.PrevBlock.String()
 
-		if err = ProcessBlock(dgraphDb, txList, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
+		if err = ProcessBlock(dgraph, txList, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
 			fmt.Println("Error: we had problem processing the block")
 			fmt.Printf("Hash: %s, BlockId: %d\n", blockHash, startingBlockId)
 			break
 		}
 
+		var txMapping []TransactionMapping
 		for _, t := range txList {
-			err = ProcessTx(dgraphDb, client, processAddresses, t)
+			tMap, err := ProcessTx(dgraph, client, includeAddresses, t)
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
 				fmt.Printf("Tx: %v\n", t)
-				break
+				return err
 			}
+
 			txCounter++
+
+			if tMap.hash != "" && (len(tMap.inputs) > 0 || len(tMap.outputs) > 0) {
+				txMapping = append(txMapping, tMap)
+			}
+
 			//DbIncrementGlobalTxCount(db)
 
 			//if txCounter%5000 == 0 {
 			//	fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, startingBlockId, blockHash)
 			//	fmt.Printf("Block %s processed, tx count: %d\n", startingBlockId, txCounter)
 			//}
+		}
+
+		if err = processAddresses(dgraph, txMapping); err != nil {
+			return err
 		}
 
 		//saveProcessingState(db, blockHash, block.Id-1)
