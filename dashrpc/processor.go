@@ -18,79 +18,85 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
+// maps a address to one or more indexes of a transaction
 type outputMapping struct {
 	address string
 	indexes []uint64
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
-func addOutputToMapping(mapping []outputMapping, addr string, indexOutput uint64) []outputMapping {
-
-	for i := range mapping {
-		if mapping[i].address == addr {
-			mapping[i].indexes = append(mapping[i].indexes, indexOutput)
-			return mapping
-		}
+func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint64) map[string]outputMapping {
+	if val, ok := mapping[addr]; ok {
+		val.indexes = append(val.indexes, indexOutput)
+		return mapping
 	}
 
-	return append(mapping, outputMapping{
+	mapping[addr] = outputMapping{
 		address: addr,
 		indexes: []uint64{indexOutput},
-	})
-
-}
-
-func addOutputUidsToAddresses(addresses []dbaddr.Address, addr string, uids []string) []dbaddr.Address {
-
-	for i := range addresses {
-		if addresses[i].Hash == addr {
-			for _, uid := range uids {
-				addresses[i].Outputs = append(addresses[i].Outputs, dbop.Output{Uid: uid})
-			}
-			return addresses
-		}
 	}
 
-	// create new address if none was found
-	newAddr := dbaddr.Address{Hash: addr}
+	return mapping
+}
+
+func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) map[string]dbaddr.Address {
+	var (
+		editAddress dbaddr.Address
+		ok          bool
+	)
+
+	if editAddress, ok = addresses[addr]; !ok {
+		// new address -> set hash
+		editAddress.Hash = addr
+	}
+
+	// add new outputs
 	for _, uid := range uids {
-		newAddr.Outputs = append(newAddr.Outputs, dbop.Output{Uid: uid})
+		editAddress.Outputs = append(editAddress.Outputs, dbop.Output{Uid: uid})
 	}
 
-	return append(addresses, newAddr)
+	// save in map
+	addresses[addr] = editAddress
+	return addresses
 
 }
 
-func buildAddressMapping(outMap []outputMapping, outputs []dbop.Output, addrs *[]dbaddr.Address) error {
+func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output, addrs *map[string]dbaddr.Address) error {
 	for _, mapping := range outMap {
 		var uids []string
 		for _, idx := range mapping.indexes {
-			for _, input := range outputs {
-				if *input.Index == idx {
-					uids = append(uids, input.Uid)
+			for _, o := range outputs {
+				if *o.Index == idx {
+					uids = append(uids, o.Uid)
 				}
 			}
 		}
-		*addrs = addOutputUidsToAddresses(*addrs, mapping.address, uids)
+		*addrs = addOutputsToAddresses(*addrs, mapping.address, uids)
 	}
 
 	return nil
 }
 
-func processAddresses(dgraph *dgo.Dgraph, txHash string, inputs []outputMapping, outputs []outputMapping) error {
+func processAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputMapping, outputs map[string]outputMapping) error {
 	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
 		return err
 	}
-	var addrSlice []dbaddr.Address
+	addrMap := make(map[string]dbaddr.Address)
 	// handle input mappings
-	if err = buildAddressMapping(inputs, txFromDB.Inputs, &addrSlice); err != nil {
+	if err = buildAddressMapping(inputs, txFromDB.Inputs, &addrMap); err != nil {
 		return err
 	}
 
 	// handle output mappings
-	if err = buildAddressMapping(outputs, txFromDB.Outputs, &addrSlice); err != nil {
+	if err = buildAddressMapping(outputs, txFromDB.Outputs, &addrMap); err != nil {
 		return err
+	}
+
+	// map to slice
+	var addrSlice []dbaddr.Address
+	for _, a := range addrMap {
+		addrSlice = append(addrSlice, a)
 	}
 
 	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
@@ -121,18 +127,19 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 
 	txDetails := dbtx.Transaction{Hash: tx.Txid}
 
-	var inputMappings []outputMapping
+	inputMappings := make(map[string]outputMapping)
+
 	for index, d := range tx.Vin {
 		uindex := uint64(index)
-		iMapping, err := processTxVin(client, &txDetails, d, uindex)
+		inputMappings, err = processTxVin(client, &txDetails, d, uindex, inputMappings)
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
 			continue
 		}
-		inputMappings = append(inputMappings, iMapping...)
+		//inputMappings = append(inputMappings, iMapping...)
 	}
 
-	var outputMappings []outputMapping
+	outputMappings := make(map[string]outputMapping)
 
 	for _, d := range tx.Vout {
 		uindex := uint64(d.N)
@@ -155,16 +162,19 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 		return err
 	}
 
-	if !processAddrs || (inputMappings == nil && outputMappings == nil) {
+	if !processAddrs || (len(inputMappings) == 0 && len(outputMappings) == 0) {
 		// no addresses to process
 		return nil
 	}
 
+	//fmt.Println(txDetails.Hash, len(inputMappings), len(outputMappings))
+
 	return processAddresses(dgraph, txDetails.Hash, inputMappings, outputMappings)
 }
 
-func processTxVin(client *rpcclient.Client, details *dbtx.Transaction,
-	vin btcjson.Vin, index uint64) (mapping []outputMapping, err error) {
+func processTxVin(client *rpcclient.Client, details *dbtx.Transaction, vin btcjson.Vin,
+	index uint64, srcMapping map[string]outputMapping) (mapping map[string]outputMapping, err error) {
+	mapping = srcMapping
 	isCoinbase := vin.IsCoinBase()
 	out := dbop.Output{
 		IsCoinbase: &isCoinbase,
