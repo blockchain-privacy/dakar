@@ -29,6 +29,10 @@ func (t Transaction) String() string {
 	return output
 }
 
+func (t *Transaction) SetDType() {
+	t.DType = []string{"Transaction"}
+}
+
 // converts a Transaction struct to an updateTransactionData struct
 func (t Transaction) toUpdate() (tx updateTransactionData) {
 	tx.Uid = t.Uid

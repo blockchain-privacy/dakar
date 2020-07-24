@@ -10,8 +10,6 @@ import (
 
 // gets transaction information from the database
 func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
-
-	tx := c.NewReadOnlyTxn()
 	query := `query Q($hash: string) {
 				q(func: eq(txhash, $hash)){
 					uid
@@ -33,9 +31,8 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 				}
 			  }
 				`
-	vars := make(map[string]string)
-	vars["$hash"] = txHash
-	resp, err := tx.QueryWithVars(db.GetContext(), query, vars)
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
 	if err != nil {
 		return transaction, err
 	}
@@ -54,17 +51,17 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	(*transaction).Uid = "uid(v)"
 
 	// set DType
-	(*transaction).DType = []string{"Transaction"}
+	transaction.SetDType()
 
 	inputs := (*transaction).Inputs
 	outputs := (*transaction).Outputs
 
 	for i := range inputs {
-		inputs[i].DType = []string{"TxOutput"}
+		inputs[i].SetDType()
 	}
 
 	for i := range outputs {
-		outputs[i].DType = []string{"TxOutput"}
+		outputs[i].SetDType()
 	}
 
 	// create json

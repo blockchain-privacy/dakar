@@ -59,7 +59,7 @@ func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err er
 // upserts an address
 func UpsertAddress(c *dgo.Dgraph, address Address) (*api.Response, error) {
 	address.Uid = "uid(v)"
-	address.DType = []string{"Address"}
+	address.SetDType()
 	pb, err := json.Marshal(address)
 	if err != nil {
 		return nil, err
@@ -115,7 +115,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		}
 
 		addresses[i].Uid = fmt.Sprintf("uid(a%d)", i)
-		addresses[i].DType = []string{"Address"}
+		addresses[i].SetDType()
 		query += fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i)
 		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash
 	}

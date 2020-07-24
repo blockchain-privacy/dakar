@@ -32,6 +32,9 @@ func (o Output) String() string {
 
 	return output
 }
+func (o *Output) SetDType() {
+	o.DType = []string{"TxOutput"}
+}
 
 func (o Output) ToUpdate() (op UpdateOutputData) {
 	op.DType = o.DType

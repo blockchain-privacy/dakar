@@ -23,6 +23,10 @@ func (a Address) String() string {
 	return output
 }
 
+func (a *Address) SetDType() {
+	a.DType = []string{"Address"}
+}
+
 // checks if the given address has all attributes filled
 func (a Address) isComplete() bool {
 	return a.Uid != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil

@@ -45,7 +45,17 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 // upserts a block
 func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
-	block.DType = []string{"Block"}
+	block.SetDType()
+
+	for i := range block.Transactions {
+		block.Transactions[i].DType = []string{"Transaction"}
+		for y := range block.Transactions[i].Inputs {
+			block.Transactions[i].Inputs[y].SetDType()
+		}
+		for y := range block.Transactions[i].Outputs {
+			block.Transactions[i].Outputs[y].SetDType()
+		}
+	}
 
 	pb, err := json.Marshal(block)
 	if err != nil {
