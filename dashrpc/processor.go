@@ -120,20 +120,20 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 	return nil
 }
 
-func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) (tMap TransactionMapping, err error) {
+func BuildTransactionMapping(client *rpcclient.Client, processAddrs bool, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
-		fmt.Printf("Cannot convert string to Hash in ProcessTx(). String: %s", txHashString)
-		return tMap, err
+		fmt.Printf("Cannot convert string to Hash in BuildTransactionMapping(). String: %s", txHashString)
+		return txDetails, tMap, err
 	}
 
 	tx, err := client.GetRawTransactionVerbose(txHash)
 	if err != nil {
 		fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
-		return tMap, err
+		return txDetails, tMap, err
 	}
 
-	txDetails := dbtx.Transaction{Hash: tx.Txid}
+	txDetails.Hash = tx.Txid
 
 	inputMappings := make(map[string]outputMapping)
 
@@ -142,7 +142,7 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 		inputMappings, err = processTxVin(client, &txDetails, d, uindex, inputMappings)
 		if err != nil {
 			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
-			return tMap, err
+			return txDetails, tMap, err
 		}
 	}
 
@@ -164,17 +164,11 @@ func ProcessTx(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, 
 		}
 	}
 
-	if _, err = dbtx.UpsertTransaction(dgraph, &txDetails); err != nil {
-		fmt.Printf("Problems updating transaction: %v\n", txDetails)
-		return tMap, err
+	if processAddrs {
+		tMap = TransactionMapping{hash: txDetails.Hash, inputs: inputMappings, outputs: outputMappings}
 	}
 
-	if !processAddrs {
-		// no addresses to process
-		return tMap, err
-	}
-
-	return TransactionMapping{hash: txDetails.Hash, inputs: inputMappings, outputs: outputMappings}, err
+	return txDetails, tMap, err
 }
 
 func processTxVin(client *rpcclient.Client, details *dbtx.Transaction, vin btcjson.Vin,
@@ -212,9 +206,8 @@ func processTxVin(client *rpcclient.Client, details *dbtx.Transaction, vin btcjs
 	return mapping, nil
 }
 
-// ProcessBlock is traversing the blockchain backwards adding all unknown yet blocks.
-// It stops on error or on first already known block
-func ProcessBlock(dgraph *dgo.Dgraph, txHashes []string, currentHash string,
+// builds a block with the provided arguments and inserts it in the database
+func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) error {
 
 	//saveProcessingState(db, currentHash.String(), blockId)
@@ -226,21 +219,13 @@ func ProcessBlock(dgraph *dgo.Dgraph, txHashes []string, currentHash string,
 		PrevBlock: &dbblk.Block{
 			Hash: prevBlockHash,
 		},
+		Transactions: transactions,
 	}
 
-	for _, tx := range txHashes {
-		block.Transactions = append(block.Transactions, dbtx.Transaction{Hash: tx})
-	}
-
-	if err := dbblk.UpsertBlock(dgraph, block); err != nil {
-		fmt.Printf("Saving block gave error %s\n", err.Error())
-		return err
-	}
-
-	return nil
+	return dbblk.UpsertBlock(dgraph, block)
 }
 
-// ProcessNewBlocks process all the new blocks from a given hash down to the block that is already in DB
+// processes all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(dgraph *dgo.Dgraph,
 	client *rpcclient.Client,
 	includeAddresses bool,
@@ -301,24 +286,10 @@ mainLoop:
 			fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
 		}
 
-		// create string list consisting of transaction hashes
-		var txList []string
-		for _, tx := range txHashes {
-			txList = append(txList, tx.String())
-		}
-
-		ts := startBlock.Header.Timestamp.Format(time.RFC3339)
-		previousBlockHash := startBlock.Header.PrevBlock.String()
-
-		if err = ProcessBlock(dgraph, txList, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
-			fmt.Println("Error: we had problem processing the block")
-			fmt.Printf("Hash: %s, BlockId: %d\n", blockHash, startingBlockId)
-			break
-		}
-
 		var txMapping []TransactionMapping
-		for _, t := range txList {
-			tMap, err := ProcessTx(dgraph, client, includeAddresses, t)
+		var transactions []dbtx.Transaction
+		for _, t := range txHashes {
+			newTx, tMap, err := BuildTransactionMapping(client, includeAddresses, t.String())
 			if err != nil {
 				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				fmt.Printf("Error: %s\n", err.Error())
@@ -327,7 +298,7 @@ mainLoop:
 			}
 
 			txCounter++
-
+			transactions = append(transactions, newTx)
 			if tMap.hash != "" && (len(tMap.inputs) > 0 || len(tMap.outputs) > 0) {
 				txMapping = append(txMapping, tMap)
 			}
@@ -340,8 +311,19 @@ mainLoop:
 			//}
 		}
 
-		if err = processAddresses(dgraph, txMapping); err != nil {
-			return err
+		// create new block
+		ts := startBlock.Header.Timestamp.Format(time.RFC3339)
+		previousBlockHash := startBlock.Header.PrevBlock.String()
+		if err = ProcessBlock(dgraph, transactions, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
+			fmt.Println("Error: we had problem processing the block")
+			fmt.Printf("Hash: %s, BlockId: %d\n", blockHash, startingBlockId)
+			break
+		}
+
+		if includeAddresses {
+			if err = processAddresses(dgraph, txMapping); err != nil {
+				return err
+			}
 		}
 
 		//saveProcessingState(db, blockHash, block.Id-1)

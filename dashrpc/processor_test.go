@@ -142,7 +142,7 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 	}
 
 	// test without addresses
-	err = ProcessTx(db, client, false, txHash)
+	err = BuildTransactionMapping(db, client, false, txHash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
 	// test with addresses
-	err := ProcessTx(db, client, false, txHash)
+	err := BuildTransactionMapping(db, client, false, txHash)
 	if err != nil {
 		t.Fatal(err)
 		return
@@ -244,7 +244,7 @@ func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
 	// test with addresses
-	err := ProcessTx(db, client, true, txHash)
+	err := BuildTransactionMapping(db, client, true, txHash)
 	if err != nil {
 		t.Fatal(err)
 		return
