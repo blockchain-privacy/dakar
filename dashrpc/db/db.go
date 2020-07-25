@@ -24,17 +24,17 @@ func DropAll(c *dgo.Dgraph) error {
 }
 
 // create a new dgraph client connecting to the specified host and port
-func CreateClient(host string, port uint) (*dgo.Dgraph, error) {
-	d, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
+func CreateClient(host string, port uint) (*dgo.Dgraph, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
 
 	if err != nil {
-		return nil, err
+		return nil, conn, err
 	}
 
-	return dgo.NewDgraphClient(api.NewDgraphClient(d)), nil
+	return dgo.NewDgraphClient(api.NewDgraphClient(conn)), conn, nil
 }
 
 // create a new dgraph client with default connection values
-func CreateDefaultClient() (*dgo.Dgraph, error) {
+func CreateDefaultClient() (*dgo.Dgraph, *grpc.ClientConn, error) {
 	return CreateClient("localhost", 9080)
 }
