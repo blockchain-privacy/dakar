@@ -34,11 +34,13 @@ func SetupSchema(c *dgo.Dgraph) error {
 				id
 				ts
 				prevblock
+				<~prevblock>
 				transactions
 			}
 
 			type Transaction {
 				txhash
+				<~transactions>
 				tx_outputs
 				tx_inputs
 			}
@@ -49,6 +51,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 				txtype
 				amount
 				iscoinbase
+				<~tx_inputs>
+				<~tx_outputs>
+				<~addr_outputs>
 			}
 			
 			type Address {
