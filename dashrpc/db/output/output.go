@@ -12,15 +12,18 @@ import (
 func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Output, err error) {
 	// build query
 	relationship := "tx_outputs"
+	indextype := "outputindex"
 	if isInput {
 		relationship = "tx_inputs"
+		indextype = "inputindex"
 	}
 
 	query := fmt.Sprintf(`query Q($hash: string, $idx: string) {
 				getOutput(func: eq(txhash, $hash)) {
-					%s @filter(eq(index, $idx)) {
+					%s @filter(eq(%s, $idx)) {
 						uid
-						index
+						outputindex
+						inputindex
 						amount
 						txtype
 						iscoinbase
@@ -28,7 +31,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 					}
 				}
 			  }
-				`, relationship)
+				`, relationship, indextype)
 
 	vars := make(map[string]string)
 	vars["$hash"] = txHash

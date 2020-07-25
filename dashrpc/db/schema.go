@@ -22,7 +22,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			
 			id: int .
 			ts: dateTime .
-			index: int .
+			outputindex: int .
+			inputindex: int .
 			txtype: string .
 			amount: string .
 			iscoinbase: bool .
@@ -43,7 +44,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			}
 
 			type TxOutput {
-				index
+				outputindex
+				inputindex
 				txtype
 				amount
 				iscoinbase

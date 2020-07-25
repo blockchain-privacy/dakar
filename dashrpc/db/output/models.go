@@ -7,19 +7,24 @@ import (
 )
 
 type Output struct {
-	Uid        string   `json:"uid,omitempty"`
-	Index      *uint64  `json:"index,omitempty"`
-	TxType     string   `json:"txtype,omitempty"`
-	Amount     *float64 `json:"amount,omitempty"`
-	IsCoinbase *bool    `json:"iscoinbase,omitempty"`
-	DType      []string `json:"dgraph.type,omitempty"`
+	Uid         string   `json:"uid,omitempty"`
+	OutputIndex *uint64  `json:"outputindex,omitempty"`
+	InputIndex  *uint64  `json:"inputindex,omitempty"`
+	TxType      string   `json:"txtype,omitempty"`
+	Amount      *float64 `json:"amount,omitempty"`
+	IsCoinbase  *bool    `json:"iscoinbase,omitempty"` // todo save iscoinbase info from input into output
+	DType       []string `json:"dgraph.type,omitempty"`
 }
 
 func (o Output) String() string {
 	output := fmt.Sprintf("Uid: %s", o.Uid)
 
-	if o.Index != nil {
-		output += fmt.Sprintf(", Index: %d", *o.Index)
+	if o.OutputIndex != nil {
+		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)
+	}
+
+	if o.InputIndex != nil {
+		output += fmt.Sprintf(", InputIndex: %d", *o.InputIndex)
 	}
 
 	if o.Amount != nil {
@@ -39,7 +44,8 @@ func (o *Output) SetDType() {
 func (o Output) ToUpdate() (op UpdateOutputData) {
 	op.DType = o.DType
 	op.Uid = o.Uid
-	op.Index = o.Index
+	op.OutputIndex = o.OutputIndex
+	op.InputIndex = o.InputIndex
 	op.IsCoinbase = o.IsCoinbase
 	op.TxType = o.TxType
 
@@ -51,19 +57,24 @@ func (o Output) ToUpdate() (op UpdateOutputData) {
 }
 
 type UpdateOutputData struct {
-	Uid        string   `json:"uid,omitempty"`
-	Index      *uint64  `json:"index,omitempty"`
-	TxType     string   `json:"txtype,omitempty"`
-	Amount     string   `json:"amount,omitempty"`
-	IsCoinbase *bool    `json:"iscoinbase,omitempty"`
-	DType      []string `json:"dgraph.type,omitempty"`
+	Uid         string   `json:"uid,omitempty"`
+	OutputIndex *uint64  `json:"outputindex,omitempty"`
+	InputIndex  *uint64  `json:"inputindex,omitempty"`
+	TxType      string   `json:"txtype,omitempty"`
+	Amount      string   `json:"amount,omitempty"`
+	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`
+	DType       []string `json:"dgraph.type,omitempty"`
 }
 
 func (o UpdateOutputData) String() string {
 	output := fmt.Sprintf("Uid: %s, Amount: %s", o.Uid, o.Amount)
 
-	if o.Index != nil {
-		output += fmt.Sprintf(", Index: %d", *o.Index)
+	if o.OutputIndex != nil {
+		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)
+	}
+
+	if o.InputIndex != nil {
+		output += fmt.Sprintf(", InputIndex: %d", *o.InputIndex)
 	}
 
 	if o.IsCoinbase != nil {
@@ -76,7 +87,8 @@ func (o UpdateOutputData) String() string {
 func (o UpdateOutputData) ToOutput() (op Output, err error) {
 	op.DType = o.DType
 	op.Uid = o.Uid
-	op.Index = o.Index
+	op.OutputIndex = o.OutputIndex
+	op.InputIndex = o.InputIndex
 	op.IsCoinbase = o.IsCoinbase
 	op.TxType = o.TxType
 

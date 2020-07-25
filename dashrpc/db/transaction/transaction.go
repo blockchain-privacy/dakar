@@ -17,14 +17,16 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 					tx_inputs{
 						uid
 						amount
-						index
+						inputindex
+						outputindex
 						iscoinbase
 						txtype
 					}
 					tx_outputs{
 						uid
 						amount
-						index
+						inputindex
+						outputindex
 						iscoinbase
 						txtype
 					}
