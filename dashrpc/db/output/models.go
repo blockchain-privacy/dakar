@@ -112,20 +112,25 @@ type outputQuery struct {
 	GetOutput []DummyTx `json:"getOutput"`
 }
 
+const (
+	ErrorNotFound      = "output not found"
+	ErrorMultipleFound = "found multiple outputs"
+)
+
 func (oq outputQuery) payload() (op Output, err error) {
 	lenQ := len(oq.GetOutput)
 	if lenQ == 0 {
-		return op, errors.New("no output found")
+		return op, errors.New(ErrorNotFound)
 	}
 
 	lenTx := len(oq.GetOutput[0].Outputs)
 	if lenTx == 0 {
-		return op, errors.New("no output found")
+		return op, errors.New(ErrorNotFound)
 	}
 
 	if lenQ > 1 || lenTx > 1 {
 		// found more than one output, which should not be possible
-		return op, errors.New("found more than one output")
+		return op, errors.New(ErrorMultipleFound)
 	}
 
 	return oq.GetOutput[0].Outputs[0].ToOutput()
