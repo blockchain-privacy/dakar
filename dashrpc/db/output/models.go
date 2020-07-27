@@ -112,6 +112,34 @@ type outputQuery struct {
 	GetOutput []DummyTx `json:"getOutput"`
 }
 
+type DummyTxVerboseEncased struct {
+	Hash string `json:"txhash,omitempty"`
+}
+
+type DummyAddress struct {
+	Hash string `json:"addresshash,omitempty"`
+}
+
+type OutputVerbose struct {
+	Uid                string                  `json:"uid,omitempty"`
+	OutputIndex        *uint64                 `json:"outputindex,omitempty"`
+	InputIndex         *uint64                 `json:"inputindex,omitempty"`
+	TxType             string                  `json:"txtype,omitempty"`
+	Amount             string                  `json:"amount,omitempty"`
+	IsCoinbase         *bool                   `json:"iscoinbase,omitempty"`
+	DType              []string                `json:"dgraph.type,omitempty"`
+	OutputTransactions []DummyTxVerboseEncased `json:"~tx_outputs,omitempty"`
+	InputTransactions  []DummyTxVerboseEncased `json:"~tx_inputs,omitempty"`
+	Addresses          []DummyAddress          `json:"~addr_outputs,omitempty"`
+}
+
+type DummyTxVerbose struct {
+	Outputs []OutputVerbose `json:"tx_outputs"`
+}
+type outputQueryVerbose struct {
+	GetOutput []DummyTxVerbose `json:"getOutput"`
+}
+
 const (
 	ErrorNotFound      = "output not found"
 	ErrorMultipleFound = "found multiple outputs"
@@ -134,4 +162,41 @@ func (oq outputQuery) payload() (op Output, err error) {
 	}
 
 	return oq.GetOutput[0].Outputs[0].ToOutput()
+}
+
+func (oq outputQueryVerbose) payload() (op OutputVerbose, err error) {
+	lenQ := len(oq.GetOutput)
+	if lenQ == 0 {
+		return op, errors.New(ErrorNotFound)
+	}
+
+	lenTx := len(oq.GetOutput[0].Outputs)
+	if lenTx == 0 {
+		return op, errors.New(ErrorNotFound)
+	}
+
+	if lenQ > 1 || lenTx > 1 {
+		// found more than one output, which should not be possible
+		return op, errors.New(ErrorMultipleFound)
+	}
+
+	return oq.GetOutput[0].Outputs[0], err
+}
+
+type outputQueryVerboseUid struct {
+	GetOutput []OutputVerbose `json:"getOutput"`
+}
+
+func (oq outputQueryVerboseUid) payload() (op OutputVerbose, err error) {
+	lenQ := len(oq.GetOutput)
+	if lenQ == 0 {
+		return op, errors.New(ErrorNotFound)
+	}
+
+	if lenQ > 1 {
+		// found more than one output, which should not be possible
+		return op, errors.New(ErrorMultipleFound)
+	}
+
+	return oq.GetOutput[0], err
 }

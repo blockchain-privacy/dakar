@@ -49,3 +49,92 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 
 	return r.payload()
 }
+
+// same as 'GetOutput', but also includes the connected transactions
+func GetOutputVerbose(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op OutputVerbose, err error) {
+	// build query
+	relationship := "tx_outputs"
+	indextype := "outputindex"
+	if isInput {
+		relationship = "tx_inputs"
+		indextype = "inputindex"
+	}
+
+	query := fmt.Sprintf(`query Q($hash: string, $idx: string) {
+				getOutput(func: eq(txhash, $hash)) {
+					%s @filter(eq(%s, $idx)) {
+						uid
+						outputindex
+						inputindex
+						amount
+						txtype
+						iscoinbase
+						dgraph.type
+						~tx_inputs{
+							txhash
+						}
+						~tx_outputs{
+							txhash
+						}
+						~addr_outputs{
+							addresshash
+						}
+					}
+				}
+			  }
+				`, relationship, indextype)
+
+	vars := make(map[string]string)
+	vars["$hash"] = txHash
+	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	if err != nil {
+		return op, err
+	}
+	var r outputQueryVerbose
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return op, err
+	}
+
+	return r.payload()
+}
+
+// same as 'GetOutputVerbose', but search by uid
+func GetOutputVerboseByUid(c *dgo.Dgraph, uid string) (op OutputVerbose, err error) {
+	// build query
+	query := `query Q($id: string) {
+				getOutput(func: uid($id)) {
+						uid
+						outputindex
+						inputindex
+						amount
+						txtype
+						iscoinbase
+						dgraph.type
+						~tx_inputs{
+							txhash
+						}
+						~tx_outputs{
+							txhash
+						}
+						~addr_outputs{
+							addresshash
+						}
+				}
+			  }
+				`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"uid": uid})
+	if err != nil {
+		return op, err
+	}
+	var r outputQueryVerboseUid
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return op, err
+	}
+
+	return r.payload()
+}
