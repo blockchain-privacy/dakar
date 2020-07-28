@@ -34,10 +34,10 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 		return cliArgs, err
 	}
 
-	// startBlockID must be bigger than stopBlockID, as we go backwards
-	if cliArgs.StartBlockID < cliArgs.StopBlockID {
+	// startBlockID must be smaller than stopBlockID, as we go forward
+	if cliArgs.StartBlockID > cliArgs.StopBlockID {
 		flag.PrintDefaults()
-		err = errors.New("start must be bigger than stop")
+		err = errors.New("start must be smaller than stop")
 		return cliArgs, err
 	}
 
@@ -99,11 +99,16 @@ func main() {
 		return
 	}
 
-	dbClient, err := db.CreateDefaultClient()
+	dbClient, c, err := db.CreateDefaultClient()
 	if err != nil {
 		log.Print(err)
 		return
 	}
+	defer func() {
+		if err = c.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	err = db.DropAll(dbClient)
 	if err != nil {
@@ -205,10 +210,4 @@ func main() {
 		log.Printf("Error: %v\n", err)
 		return
 	}
-
-	//err = db.Close()
-	//if err != nil {
-	//	log.Printf("Error: %v\n", err)
-	//	return
-	//}
 }

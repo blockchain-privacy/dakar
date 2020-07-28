@@ -7,9 +7,9 @@ import (
 	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
-	"fmt"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/dgo/v2"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -73,7 +73,7 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 		var uids []string
 		for _, idx := range mapping.indexes {
 			for _, o := range outputs {
-				if *o.Index == idx {
+				if *o.OutputIndex == idx {
 					uids = append(uids, o.Uid)
 				}
 			}
@@ -99,6 +99,7 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputM
 	return buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
 }
 
+// inserts mappings between addresses and outputs in database
 func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) error {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
@@ -120,43 +121,47 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 	return nil
 }
 
-func BuildTransactionMapping(client *rpcclient.Client, processAddrs bool, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
+// processes the transaction specified by 'txHashString'
+// 'txDetails' is the created transaction
+// 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
+func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
-		fmt.Printf("Cannot convert string to Hash in BuildTransactionMapping(). String: %s", txHashString)
+		log.Printf("Cannot convert string to Hash in BuildTransactionMapping(). String: %s", txHashString)
 		return txDetails, tMap, err
 	}
 
 	tx, err := client.GetRawTransactionVerbose(txHash)
 	if err != nil {
-		fmt.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
+		log.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
 		return txDetails, tMap, err
 	}
 
 	txDetails.Hash = tx.Txid
 
-	inputMappings := make(map[string]outputMapping)
-
-	for index, d := range tx.Vin {
-		uindex := uint64(index)
-		inputMappings, err = processTxVin(client, &txDetails, d, uindex, inputMappings)
-		if err != nil {
-			fmt.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
-			return txDetails, tMap, err
+	isCoinbaseTransaction := false
+	if len(tx.Vin) == 1 && tx.Vin[0].IsCoinBase() {
+		isCoinbaseTransaction = true
+	} else {
+		// process inputs if transaction is not a coinbase transaction
+		for i, d := range tx.Vin {
+			if err = processTxVin(dgraph, &txDetails, d, uint64(i)); err != nil {
+				log.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
+				return txDetails, tMap, err
+			}
 		}
 	}
 
+	// process all outputs
 	outputMappings := make(map[string]outputMapping)
-
 	for _, d := range tx.Vout {
 		uindex := uint64(d.N)
-		isCoinBase := false
 		amount := d.Value
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			IsCoinbase: &isCoinBase,
-			Amount:     &amount,
-			TxType:     d.ScriptPubKey.Type,
-			Index:      &uindex,
+			IsCoinbase:  &isCoinbaseTransaction,
+			Amount:      &amount,
+			TxType:      d.ScriptPubKey.Type,
+			OutputIndex: &uindex,
 		})
 
 		for _, e := range d.ScriptPubKey.Addresses {
@@ -164,46 +169,38 @@ func BuildTransactionMapping(client *rpcclient.Client, processAddrs bool, txHash
 		}
 	}
 
+	// create transaction mapping for address processing later on
 	if processAddrs {
-		tMap = TransactionMapping{hash: txDetails.Hash, inputs: inputMappings, outputs: outputMappings}
+		tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
 	}
 
 	return txDetails, tMap, err
 }
 
-func processTxVin(client *rpcclient.Client, details *dbtx.Transaction, vin btcjson.Vin,
-	index uint64, srcMapping map[string]outputMapping) (mapping map[string]outputMapping, err error) {
-	mapping = srcMapping
-	isCoinbase := vin.IsCoinBase()
-	out := dbop.Output{
-		IsCoinbase: &isCoinbase,
-		Index:      &index,
-	}
-
+// maps the input information to the output if it exists already in the database
+func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint64) error {
 	if vin.IsCoinBase() {
-		details.Inputs = append(details.Inputs, out)
-		return nil, nil
+		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
+		// we can recognize coinbase outputs by checking the number of connected transactions
+		return nil
 	}
 
-	h, err := chainhash.NewHashFromStr(vin.Txid)
+	output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
 	if err != nil {
-		fmt.Printf("Problems with converting str to hash in showTxVinDetails: %s", err.Error())
-		return nil, err
+		// origin transaction of output does not exist in database, ignore input
+		// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
+		// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
+		if err.Error() == dbop.ErrorNotFound {
+			return nil
+		}
+		return err
 	}
 
-	tx, err := client.GetRawTransactionVerbose(h)
-	if err != nil {
-		fmt.Printf("Problems with getting Tx details: %s\nHash: %v\nVin: %v\n", h.String(), vin, err.Error())
-		return nil, err
-	}
-	out.Amount = &tx.Vout[vin.Vout].Value
-
-	for _, e := range tx.Vout[vin.Vout].ScriptPubKey.Addresses {
-		mapping = addOutputToMapping(mapping, e, *out.Index)
-	}
-
-	details.Inputs = append(details.Inputs, out)
-	return mapping, nil
+	details.Inputs = append(details.Inputs, dbop.Output{
+		Uid:        output.Uid,
+		InputIndex: &index,
+	})
+	return nil
 }
 
 // builds a block with the provided arguments and inserts it in the database
@@ -237,16 +234,17 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph,
 	//DbSetStatus(dgraph, DbBlockStatusProcessing)
 	//err := DbSetUint64(dgraph, DbBlockStopBlockId, stoppingBlockId)
 	//if err != nil {
-	//	fmt.Printf("Error: failed to save stopBlockID\n%v\n", err)
+	//	log.Printf("Error: failed to save stopBlockID\n%v\n", err)
 	//}
 
 	blkCounter := 0
 	txCounter := 0
 
-	blockHash := startingBlockHash
-	startHashObj, err := chainhash.NewHashFromStr(blockHash)
+	currentBlockHash := startingBlockHash
+	currentBlockId := startingBlockId
+	startHashObj, err := chainhash.NewHashFromStr(currentBlockHash)
 	if err != nil {
-		fmt.Printf("we have problem with HashFromStr() %s\n", err.Error())
+		log.Printf("we have problem with HashFromStr() %s\n", err.Error())
 		return err
 	}
 
@@ -261,39 +259,33 @@ mainLoop:
 	for {
 		select {
 		case <-c:
-			fmt.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
-				startingBlockId, lastBlockHashObj)
+			log.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
+				currentBlockId, lastBlockHashObj)
 			break mainLoop
 		default:
 			// we do nothing
 		}
-
-		if b, err := dbblk.GetBlock(dgraph, blockHash); err == nil && b.IsComplete() {
+		if b, err := dbblk.GetBlock(dgraph, currentBlockHash); err == nil && b.IsComplete() {
 			// block already in database
 			// todo check if continue instead of break is okay
 			continue
 		}
 
 		// get block from RPC-Client
-		startBlock, err := client.GetBlock(startHashObj)
+		startBlock, err := client.GetBlockVerbose(startHashObj)
 		if err != nil {
-			fmt.Printf("Problem with getBlock() %s\n", err.Error())
-			break
-		}
-
-		txHashes, err := startBlock.TxHashes()
-		if err != nil {
-			fmt.Printf("we have problem with TxHashes() %s\n", err.Error())
+			return err
 		}
 
 		var txMapping []TransactionMapping
 		var transactions []dbtx.Transaction
-		for _, t := range txHashes {
-			newTx, tMap, err := BuildTransactionMapping(client, includeAddresses, t.String())
+		//fmt.Printf("%s;%d\n", currentBlockHash, len(startBlock.Tx))
+		for _, t := range startBlock.Tx {
+			newTx, tMap, err := BuildTransactionMapping(dgraph, client, includeAddresses, t)
 			if err != nil {
-				fmt.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
-				fmt.Printf("Error: %s\n", err.Error())
-				fmt.Printf("Tx: %v\n", t)
+				log.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
+				log.Printf("Error: %s\n", err.Error())
+				log.Printf("Tx: %v\n", t)
 				return err
 			}
 
@@ -306,17 +298,16 @@ mainLoop:
 			//DbIncrementGlobalTxCount(db)
 
 			//if txCounter%5000 == 0 {
-			//	fmt.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, startingBlockId, blockHash)
-			//	fmt.Printf("Block %s processed, tx count: %d\n", startingBlockId, txCounter)
+			//	log.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, currentBlockId, currentBlockHash)
+			//	log.Printf("Block %s processed, tx count: %d\n", currentBlockId, txCounter)
 			//}
 		}
 
 		// create new block
-		ts := startBlock.Header.Timestamp.Format(time.RFC3339)
-		previousBlockHash := startBlock.Header.PrevBlock.String()
-		if err = ProcessBlock(dgraph, transactions, blockHash, startingBlockId, ts, previousBlockHash); err != nil {
-			fmt.Println("Error: we had problem processing the block")
-			fmt.Printf("Hash: %s, BlockId: %d\n", blockHash, startingBlockId)
+		ts := time.Unix(startBlock.Time, 0).Format(time.RFC3339)
+		if err = ProcessBlock(dgraph, transactions, currentBlockHash, currentBlockId, ts, startBlock.PreviousHash); err != nil {
+			log.Println("Error: we had problem processing the block")
+			log.Printf("Hash: %s, BlockId: %d\n", currentBlockHash, currentBlockId)
 			break
 		}
 
@@ -326,41 +317,45 @@ mainLoop:
 			}
 		}
 
-		//saveProcessingState(db, blockHash, block.Id-1)
+		//saveProcessingState(db, currentBlockHash, block.Id-1)
 
-		if startingBlockId == 0 || startingBlockId == stoppingBlockId || blockHash == "0000000000000000000000000000000000000000000000000000000000000000" {
+		if currentBlockId == stoppingBlockId || startBlock.NextHash == "" {
 			// finished
 			//saveProcessingStateFinished(db)
 			break
 		}
 
 		// set values for next round
-		startHashObj = &(startBlock.Header.PrevBlock)
+		startHashObj, err = chainhash.NewHashFromStr(startBlock.NextHash)
+		if err != nil {
+			return err
+		}
 		lastBlockHashObj = startHashObj
-		blockHash = previousBlockHash
+		currentBlockHash = startBlock.NextHash
 
-		startingBlockId--
+		currentBlockId++
 		blkCounter++
 
 		//if blkCounter%20000 == 0 {
-		//	fmt.Printf("%d * 20k blocks done\n", blkCounter/20000)
+		//	log.Printf("%d * 20k blocks done\n", blkCounter/20000)
 		//}
 
 		if blkCounter%5 == 0 {
-			fmt.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
+			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
 		}
 	}
 
 	elapsedTime := time.Since(timerStart)
 	if blkCounter > 0 {
-		fmt.Printf("Final Blocks count: %v\n", blkCounter)
-		fmt.Printf("Final TX count: %v\n", txCounter)
-		fmt.Printf("Elapsed time: %s\nPerformance: %v ms/block\n\n", elapsedTime,
-			elapsedTime.Milliseconds()/int64(blkCounter))
+		log.Printf("Last Block Hash: %s, Id: %d\n", currentBlockHash, currentBlockId)
+		log.Printf("Final Blocks count: %v\n", blkCounter)
+		log.Printf("Final TX count: %v\n", txCounter)
+		log.Printf("Elapsed time: %s\n", elapsedTime)
+		log.Printf("Performance: %v ms/block", elapsedTime.Milliseconds()/int64(blkCounter))
 	} else {
-		fmt.Println("Processed no new blocks")
-		fmt.Printf("Final TX count: %v\n", txCounter)
-		fmt.Printf("Elapsed time: %s\n\n", elapsedTime)
+		log.Println("Processed no new blocks")
+		log.Printf("Final TX count: %v\n", txCounter)
+		log.Printf("Elapsed time: %s", elapsedTime)
 	}
 
 	return nil
@@ -378,7 +373,7 @@ func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
 	txs := addrData.Txs
 
 	for _, tx := range txs {
-		fmt.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
+		log.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
 	}
 
 	return nil
@@ -400,11 +395,11 @@ func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId 
 
 	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
 	if err != nil {
-		fmt.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
+		log.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
 	}
 	err = DbSetString(db, DbBlockLastBlockHash, currentBlockHash)
 	if err != nil {
-		fmt.Printf("Error: error saving CurrentBlockID state: %v\n", err)
+		log.Printf("Error: error saving CurrentBlockID state: %v\n", err)
 	}
 }
 
