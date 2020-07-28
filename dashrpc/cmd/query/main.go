@@ -1,7 +1,6 @@
 package main
 
 import (
-	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"errors"
@@ -59,11 +58,17 @@ func main() {
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	dgraph, err := db.CreateDefaultClient()
+	dgraph, c, err := db.CreateDefaultClient()
 	if err != nil {
 		log.Println(err)
 		return
 	}
+
+	defer func() {
+		if err = c.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	if len(cliArgs.TxSearch) > 0 {
 		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./result.csv")
@@ -73,30 +78,31 @@ func main() {
 			return
 		}
 		log.Printf("Final map has %v elements\n", len(res))
-	} else if len(cliArgs.TxInfo) > 0 {
-		var txDetails dashrpc.TxDetails
-		err = dashrpc.DbGetTxDetails(dgraph, cliArgs.TxInfo, &txDetails)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Printf("Tx isCreateDenominations %v\n", txDetails.IsCreateDenominations())
-		if txDetails.IsCreateDenominations() {
-			log.Printf("Denominations: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
-		}
-		log.Printf("Tx isMixingTransaction %v\n", txDetails.IsMixing())
-		if txDetails.IsMixing() {
-			log.Printf("Denominations on outputs: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
-			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
-		}
-		log.Printf("Tx isPrivateSend %v\n", txDetails.IsPrivateSend())
-		if txDetails.IsPrivateSend() {
-			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
-		}
-	} else if len(cliArgs.ClusterAddr) > 0 {
-		if err := dashrpc.ProcessAddressClustering(dgraph, cliArgs.ClusterAddr); err != nil {
-			log.Println(err)
-			return
-		}
 	}
+	//else if len(cliArgs.TxInfo) > 0 {
+	//	var txDetails dashrpc.TxDetails
+	//	err = dashrpc.DbGetTxDetails(dgraph, cliArgs.TxInfo, &txDetails)
+	//	if err != nil {
+	//		log.Fatal(err)
+	//	}
+	//
+	//	log.Printf("Tx isCreateDenominations %v\n", txDetails.IsCreateDenominations())
+	//	if txDetails.IsCreateDenominations() {
+	//		log.Printf("Denominations: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
+	//	}
+	//	log.Printf("Tx isMixingTransaction %v\n", txDetails.IsMixing())
+	//	if txDetails.IsMixing() {
+	//		log.Printf("Denominations on outputs: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
+	//		log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
+	//	}
+	//	log.Printf("Tx isPrivateSend %v\n", txDetails.IsPrivateSend())
+	//	if txDetails.IsPrivateSend() {
+	//		log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
+	//	}
+	//} else if len(cliArgs.ClusterAddr) > 0 {
+	//	if err := dashrpc.ProcessAddressClustering(dgraph, cliArgs.ClusterAddr); err != nil {
+	//		log.Println(err)
+	//		return
+	//	}
+	//}
 }

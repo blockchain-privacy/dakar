@@ -7,7 +7,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
@@ -83,22 +82,27 @@ func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*R
 	var txCount int64
 	for _, input := range tx.Inputs {
 		var rounds int // sets to 0, initially
-		searchCreateDenominations(dgraph, &input, rounds, &results, &txCount, writer)
+		searchCreateDenominations(dgraph, input.Uid, rounds, &results, &txCount, writer)
 	}
 
 	return results
 }
 
-func searchCreateDenominations(dgraph *dgo.Dgraph,
-	in *dbop.Output, rounds int,
+func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 	results *map[string]*Result, txCount *int64, writer *csv.Writer) {
 
 	if (*txCount % 100000) == 0 {
 		fmt.Printf("\n%v\n", *txCount)
 	}
-	tx := dashrpc.TxDetails{}
-	hash := in.TxHash
-	err := dashrpc.DbGetTxDetails(dgraph, hash, &tx)
+
+	op, err := dbop.GetOutputVerboseByUid(dgraph, outputUid)
+	if err != nil {
+		log.Println("Problem getting output", err)
+		return
+	}
+	hash := op.OutputTransactions[0].Hash
+
+	tx, err := dbtx.GetTransaction(dgraph, hash)
 	if err != nil {
 		// let's ignore it -- our DB does not have ALL TXs
 		return
@@ -117,7 +121,7 @@ func searchCreateDenominations(dgraph *dgo.Dgraph,
 		rec := []string{
 			strconv.Itoa(len(*results)),
 			tx.Inputs[0].Addresses[0],
-			strconv.FormatFloat(tx.Inputs[0].Amount, 'f', -1, 64),
+			strconv.FormatFloat(*tx.Inputs[0].Amount, 'f', -1, 64),
 			r.hash,
 			strconv.FormatInt(tx.Timestamp, 10),
 			strconv.Itoa(rounds),
