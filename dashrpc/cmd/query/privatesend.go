@@ -10,6 +10,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
+	"strconv"
 )
 
 //
@@ -81,7 +82,6 @@ func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*R
 	var txCount int64
 	for _, input := range tx.Inputs {
 		var rounds int // sets to 0, initially
-		_, _ = dbop.GetVerboseOutput(dgraph, txHash, 0, false)
 		searchCreateDenominations(dgraph, input.Uid, rounds, &results, &txCount, writer)
 	}
 
@@ -108,40 +108,47 @@ func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 		return
 	}
 	*txCount++
-	_ = tx // todo
 	// End Condition
-	//if tx.IsCreateDenominations() {
-	//	if _, ok := (*results)[tx.Inputs[0].Addresses[0]]; ok {
-	//		return
-	//	}
-	//	r := Result{}
-	//	r.hash = tx.Hash
-	//	r.tx = &tx
-	//	r.rounds = rounds
-	//	(*results)[tx.Inputs[0].Addresses[0]] = &r
-	//	rec := []string{
-	//		strconv.Itoa(len(*results)),
-	//		tx.Inputs[0].Addresses[0],
-	//		strconv.FormatFloat(*tx.Inputs[0].Amount, 'f', -1, 64),
-	//		r.hash,
-	//		strconv.FormatInt(tx.Timestamp, 10),
-	//		strconv.Itoa(rounds),
-	//	}
-	//	err := writer.Write(rec)
-	//	if err != nil {
-	//		log.Println(err)
-	//	}
-	//	writer.Flush()
-	//	return
-	//}
-	//rounds++
-	//// End Condition based on MAX rounds
-	//if rounds > 16 {
-	//	return
-	//}
-	//
-	//for _, in2 := range tx.Inputs {
-	//	rounds2 := rounds
-	//	searchCreateDenominations(dgraph, &in2, rounds2, results, txCount, writer)
-	//}
+	if tx.IsCreateDenominations() {
+		o, err := dbop.GetVerboseOutputByUid(dgraph, tx.Inputs[0].Uid)
+		if err != nil {
+			log.Println("Problem getting output", err)
+			return
+		}
+
+		if _, ok := (*results)[o.Addresses[0]]; ok {
+			return
+		}
+		r := Result{}
+		r.hash = tx.Hash
+		// todo check if necessary
+		//r.tx = &tx
+		r.rounds = rounds
+		(*results)[o.Addresses[0]] = &r
+		rec := []string{
+			strconv.Itoa(len(*results)),
+			o.Addresses[0],
+			strconv.FormatFloat(*tx.Inputs[0].Amount, 'f', -1, 64),
+			r.hash,
+			//todo
+			//strconv.FormatInt(tx.Timestamp, 10),
+			strconv.Itoa(rounds),
+		}
+		err = writer.Write(rec)
+		if err != nil {
+			log.Println(err)
+		}
+		writer.Flush()
+		return
+	}
+	rounds++
+	// End Condition based on MAX rounds
+	if rounds > 16 {
+		return
+	}
+
+	for _, in2 := range tx.Inputs {
+		rounds2 := rounds
+		searchCreateDenominations(dgraph, in2.Uid, rounds2, results, txCount, writer)
+	}
 }
