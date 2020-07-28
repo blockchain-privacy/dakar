@@ -12,7 +12,7 @@ type Output struct {
 	InputIndex  *uint64  `json:"inputindex,omitempty"`
 	TxType      string   `json:"txtype,omitempty"`
 	Amount      *float64 `json:"amount,omitempty"`
-	IsCoinbase  *bool    `json:"iscoinbase,omitempty"` // todo save iscoinbase info from input into output
+	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`
 	DType       []string `json:"dgraph.type,omitempty"`
 }
 
