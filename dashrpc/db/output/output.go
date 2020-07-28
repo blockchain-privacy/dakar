@@ -3,6 +3,7 @@ package output
 import (
 	"dashrpc/db"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"strconv"
@@ -51,7 +52,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 }
 
 // same as 'GetOutput', but also includes the connected transactions
-func GetOutputVerbose(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op OutputVerbose, err error) {
+func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op VerboseOutput, err error) {
 	// build query
 	relationship := "tx_outputs"
 	indextype := "outputindex"
@@ -92,20 +93,78 @@ func GetOutputVerbose(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 	if err != nil {
 		return op, err
 	}
-	var r outputQueryVerbose
+
+	// struct for json parsing
+	type verboseOutputQuery struct {
+		GetOutput []struct {
+			Outputs []struct {
+				Uid                string   `json:"uid,omitempty"`
+				OutputIndex        *uint64  `json:"outputindex,omitempty"`
+				InputIndex         *uint64  `json:"inputindex,omitempty"`
+				TxType             string   `json:"txtype,omitempty"`
+				Amount             string   `json:"amount,omitempty"`
+				IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
+				DType              []string `json:"dgraph.type,omitempty"`
+				OutputTransactions []struct {
+					Hash string `json:"txhash,omitempty"`
+				} `json:"~tx_outputs,omitempty"`
+				InputTransactions []struct {
+					Hash string `json:"txhash,omitempty"`
+				} `json:"~tx_inputs,omitempty"`
+				Addresses []struct {
+					Hash string `json:"addresshash,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_outputs"`
+		} `json:"getOutput"`
+	}
+
+	var r verboseOutputQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return op, err
 	}
 
-	return r.payload()
+	// check result of parsed json
+	if len(r.GetOutput) != 1 ||
+		len(r.GetOutput[0].Outputs) != 1 ||
+		len(r.GetOutput[0].Outputs[0].Addresses) == 0 ||
+		(len(r.GetOutput[0].Outputs[0].OutputTransactions) != 1 &&
+			len(r.GetOutput[0].Outputs[0].InputTransactions) != 1) {
+		err = errors.New(ErrorNotFound)
+		return
+	}
+
+	// convert to return type
+	out := r.GetOutput[0].Outputs[0]
+	op = VerboseOutput{
+		Uid:         out.Uid,
+		OutputIndex: out.OutputIndex,
+		InputIndex:  out.InputIndex,
+		TxType:      out.TxType,
+		Amount:      out.Amount,
+		IsCoinbase:  out.IsCoinbase,
+	}
+
+	if out.OutputTransactions != nil {
+		op.OutputTransaction = out.OutputTransactions[0].Hash
+	}
+
+	if out.InputTransactions != nil {
+		op.InputTransaction = out.InputTransactions[0].Hash
+	}
+
+	for _, v := range out.Addresses {
+		op.Addresses = append(op.Addresses, v.Hash)
+	}
+
+	return
 }
 
 // same as 'GetOutputVerbose', but search by uid
-func GetOutputVerboseByUid(c *dgo.Dgraph, uid string) (op OutputVerbose, err error) {
+func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err error) {
 	// build query
 	query := `query Q($id: string) {
-				getOutput(func: uid($id)) {
+				q(func: uid($id)) {
 						uid
 						outputindex
 						inputindex
@@ -126,15 +185,69 @@ func GetOutputVerboseByUid(c *dgo.Dgraph, uid string) (op OutputVerbose, err err
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"uid": uid})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$id": uid})
 	if err != nil {
-		return op, err
+		return
 	}
-	var r outputQueryVerboseUid
 
+	// struct for json parsing
+	type queryOutput struct {
+		GetOutput []struct {
+			Uid                string   `json:"uid,omitempty"`
+			OutputIndex        *uint64  `json:"outputindex,omitempty"`
+			InputIndex         *uint64  `json:"inputindex,omitempty"`
+			TxType             string   `json:"txtype,omitempty"`
+			Amount             string   `json:"amount,omitempty"`
+			IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
+			DType              []string `json:"dgraph.type,omitempty"`
+			OutputTransactions []struct {
+				Hash string `json:"txhash,omitempty"`
+			} `json:"~tx_outputs,omitempty"`
+			InputTransactions []struct {
+				Hash string `json:"txhash,omitempty"`
+			} `json:"~tx_inputs,omitempty"`
+			Addresses []struct {
+				Hash string `json:"addresshash,omitempty"`
+			} `json:"~addr_outputs,omitempty"`
+		} `json:"q"`
+	}
+
+	var r queryOutput
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return op, err
+		return
 	}
 
-	return r.payload()
+	// check result of parsed json
+	if len(r.GetOutput) != 1 ||
+		len(r.GetOutput[0].Addresses) == 0 ||
+		(len(r.GetOutput[0].OutputTransactions) != 1 &&
+			len(r.GetOutput[0].InputTransactions) != 1) {
+		err = errors.New(ErrorNotFound)
+		return
+	}
+
+	// convert to return type
+	out := r.GetOutput[0]
+	op = VerboseOutput{
+		Uid:         out.Uid,
+		OutputIndex: out.OutputIndex,
+		InputIndex:  out.InputIndex,
+		TxType:      out.TxType,
+		Amount:      out.Amount,
+		IsCoinbase:  out.IsCoinbase,
+	}
+
+	if out.OutputTransactions != nil {
+		op.OutputTransaction = out.OutputTransactions[0].Hash
+	}
+
+	if out.InputTransactions != nil {
+		op.InputTransaction = out.InputTransactions[0].Hash
+	}
+
+	for _, v := range out.Addresses {
+		op.Addresses = append(op.Addresses, v.Hash)
+	}
+
+	return
 }
