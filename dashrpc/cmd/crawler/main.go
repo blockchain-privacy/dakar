@@ -15,7 +15,6 @@ import (
 
 const benchmarkStartBlockID = 901500
 const benchmarkStopBlockID = 901250
-const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
@@ -98,6 +97,7 @@ func main() {
 		return
 	}
 
+	// create dgraph client
 	dbClient, c, err := db.CreateDefaultClient()
 	if err != nil {
 		log.Print(err)
@@ -109,12 +109,14 @@ func main() {
 		}
 	}()
 
+	// drop all data todo: remove
 	err = db.DropAll(dbClient)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
+	// create new db schema todo: remove and only do if requested via CLI argument
 	err = db.SetupSchema(dbClient)
 	if err != nil {
 		log.Print(err)
@@ -137,14 +139,12 @@ func main() {
 	}
 
 	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
+	client, err := rpcclient.New(&rpcclient.ConnConfig{
 		Host:       cliArgs.RpcEndpoint,
 		User:       cliArgs.RpcUser,
 		Pass:       cliArgs.RpcPassword,
 		DisableTLS: true,
-	}
-
-	client, err := rpcclient.New(&conn)
+	})
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
@@ -174,29 +174,6 @@ func main() {
 	//		return
 	//	}
 	//}
-
-	//startingBlockId := uint64(1060000)
-	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
-
-	// 2019-05-05 19:22
-	// Block: 1065229
-	// 0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c
-	//
-	// startingBlockId := 1065229
-	// startingBlockHash := "0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c"
-
-	//
-	// Appeared in Dash 126744 (2014-08-28 19:47:52)
-	// startingBlockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
-
-	// startingBlockId := 50000
-	// startingBlockHash := "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
-
-	// 50 block
-	// startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
-
-	// 100 block
-	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
 	err = dashrpc.ProcessNewBlocks(dbClient, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
