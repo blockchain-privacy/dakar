@@ -19,7 +19,6 @@ const (
 	RpcPort
 	StartBlockID
 	StopBlockID
-	StartBlockHash
 	IsPrintStatus
 	IsBenchmark
 	ExcludeAddresses
@@ -37,7 +36,6 @@ type Arguments struct {
 	RpcPassword        string
 	StartBlockID       uint64
 	StopBlockID        uint64
-	StartBlockHash     string
 	IsPrintStatus      bool
 	IsBenchmark        bool
 	ExcludeAddresses   bool
@@ -94,9 +92,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case StopBlockID:
 			addStopBlockID(&args.StopBlockID)
-			break
-		case StartBlockHash:
-			addStartBlockHash(&args.StartBlockHash)
 			break
 		case IsPrintStatus:
 			addIsPrintStatus(&args.IsPrintStatus)
@@ -183,10 +178,6 @@ func addStartBlockID(v *uint64) {
 
 func addStopBlockID(v *uint64) {
 	flag.Uint64Var(v, "stop", 0, "Stop Block Id")
-}
-
-func addStartBlockHash(v *string) {
-	flag.StringVar(v, "hash", "", "Start Block Hash")
 }
 
 func addIsPrintStatus(v *bool) {

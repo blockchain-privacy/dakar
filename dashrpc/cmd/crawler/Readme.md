@@ -12,7 +12,6 @@ This is the blockchain crawler. It loads data from `dashd` and stores it in its 
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
 | start | 0 | Start Block Id (default: 0)|
 | stop | 0 | Stop Block Id (default: 0) |
-| hash | < empty string > | Start Block Hash (default: none) |
 | status | false | Prints current processing status (default: false) |
 | benchmark | false | Run short performance test (default: false) |
 | excludeaddresses | false | Exclude addresses from saving into the database (default: false) |

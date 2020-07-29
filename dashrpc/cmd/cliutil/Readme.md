@@ -86,7 +86,6 @@ If the new flag needs some >>simple<< input verification, implement it in this m
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
 | start | 0 | Start Block Id (default: 0)|
 | stop | 0 | Stop Block Id (default: 0) |
-| hash | < empty string > | Start Block Hash (default: none) |
 | status | false | Prints current processing status (default: false) |
 | benchmark | false | Run short performance test (default: false) |
 | excludeaddresses | false | Exclude addresses from saving into the database (default: false) |

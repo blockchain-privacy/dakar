@@ -20,7 +20,7 @@ const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bd
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
+		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -28,7 +28,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	}
 
 	if !cliArgs.IsPrintStatus && !cliArgs.ProcessContinue && !cliArgs.IsBenchmark &&
-		(cliArgs.StartBlockID == 0 || cliArgs.StartBlockHash == "" || cliArgs.StopBlockID == 0) {
+		(cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
 		err = errors.New("missing block information")
 		return cliArgs, err
@@ -42,7 +42,6 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	}
 
 	if cliArgs.IsBenchmark {
-		cliArgs.StartBlockHash = benchmarkStartBlockHash
 		cliArgs.StartBlockID = benchmarkStartBlockID
 		cliArgs.StopBlockID = benchmarkStopBlockID
 		cliArgs.ProcessContinue = false
@@ -138,7 +137,7 @@ func main() {
 	//	return
 	//}
 
-	if cliArgs.ProcessContinue && (cliArgs.StartBlockHash != "" || cliArgs.StartBlockID != 0) {
+	if cliArgs.ProcessContinue && cliArgs.StartBlockID != 0 {
 		log.Println("\nError: cannot use -continue and start/stop options in the command line")
 		return
 	}
@@ -205,7 +204,7 @@ func main() {
 	// 100 block
 	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
 
-	err = dashrpc.ProcessNewBlocks(dbClient, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	err = dashrpc.ProcessNewBlocks(dbClient, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
