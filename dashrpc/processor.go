@@ -223,30 +223,26 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 }
 
 // processes all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(dgraph *dgo.Dgraph,
-	client *rpcclient.Client,
-	includeAddresses bool,
-	startingBlockHash string,
-	startingBlockId uint64,
-	stoppingBlockId uint64) error {
+func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
+	includeAddresses bool, startingBlockId uint64, stoppingBlockId uint64) error {
 
-	timerStart := time.Now()
 	//DbSetStatus(dgraph, DbBlockStatusProcessing)
 	//err := DbSetUint64(dgraph, DbBlockStopBlockId, stoppingBlockId)
 	//if err != nil {
 	//	log.Printf("Error: failed to save stopBlockID\n%v\n", err)
 	//}
 
+	startHashObj, err := client.GetBlockHash(int64(startingBlockId))
+	if err != nil {
+		log.Printf("we have problem with GetBlockHash() %s\n", err.Error())
+		return err
+	}
+
 	blkCounter := 0
 	txCounter := 0
 
-	currentBlockHash := startingBlockHash
 	currentBlockId := startingBlockId
-	startHashObj, err := chainhash.NewHashFromStr(currentBlockHash)
-	if err != nil {
-		log.Printf("we have problem with HashFromStr() %s\n", err.Error())
-		return err
-	}
+	currentBlockHash := startHashObj.String()
 
 	var lastBlockHashObj *chainhash.Hash
 
@@ -254,6 +250,7 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph,
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
+	timerStart := time.Now()
 	// Main loop
 mainLoop:
 	for {
