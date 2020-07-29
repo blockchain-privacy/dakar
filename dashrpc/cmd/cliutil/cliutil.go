@@ -11,8 +11,7 @@ type Flag int
 
 // flag enum
 const (
-	BadgerDirectory Flag = iota
-	ProcessContinue
+	ProcessContinue Flag = iota
 	RpcUser
 	RpcPassword
 	RpcHost
@@ -30,7 +29,6 @@ const (
 )
 
 type Arguments struct {
-	BadgerDir          string
 	ProcessContinue    bool
 	RpcUser            string
 	RpcPassword        string
@@ -62,15 +60,10 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var rpcHostString string
 	var rpcPortNumber uint
 
-	badgerDirRequested := false
 	isPortSet := false
 
 	for _, f := range flags {
 		switch f {
-		case BadgerDirectory:
-			addBadgerDir(&args.BadgerDir)
-			badgerDirRequested = true
-			break
 		case ProcessContinue:
 			addProcessContinue(&args.ProcessContinue)
 			break
@@ -135,12 +128,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		args.RpcEndpoint = endpoint
 	}
 
-	// check if database directory is empty
-	if badgerDirRequested && len(args.BadgerDir) == 0 {
-		err = errors.New("badger dir is empty")
-		return args, err
-	}
-
 	return args, err
 }
 
@@ -154,10 +141,6 @@ func addTxInfo(v *string) {
 
 func addTxSearch(v *string) {
 	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash (default: none)")
-}
-
-func addBadgerDir(v *string) {
-	flag.StringVar(v, "db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
 }
 
 func addProcessContinue(v *bool) {

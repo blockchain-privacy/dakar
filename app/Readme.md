@@ -6,12 +6,12 @@ This is the front-end of the Dash explorer.
 
 * Build the front-end
 * Build `crawler` on the backend project
-* Run `crawler` for a small-test block range, such that badger DB is generated
+* Run `crawler` for a small-test block range, such that the Dgraph DB gets generated
 * Build `explorer` on the backend project
 * Run Dash daemon (`dashd`)
 * Run `explorer`
 * Deploy the front-end app
-* Seach for TX from the blocks that you have cached in badger
+* Seach for transactions, blocks or addresses that are stored in the Dgraph DB
 
 
 ## Front-end setup

@@ -7,7 +7,7 @@ This is a Dash transaction processor, written in Go.
 ## Dependencies
 
 * btcsuite - core wire communication layer
-* Badger - high-level data storage and partially processed blockchain data
+* Dgraph - data storage and processed blockchain data
 
 
 ## Development

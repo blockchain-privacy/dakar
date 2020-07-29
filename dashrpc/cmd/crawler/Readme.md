@@ -6,7 +6,6 @@ This is the blockchain crawler. It loads data from `dashd` and stores it in its 
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| db | /tmp/badger | Badger database location (default: /tmp/badger) |
 | continue | false | Continue the previously started DB build process |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |

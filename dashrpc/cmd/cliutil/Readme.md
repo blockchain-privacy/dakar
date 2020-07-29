@@ -13,7 +13,7 @@ import (
 	cli "dashrpc/cmd/cliutil"
 )
 
-cliArgs, err := cli.BuildArgs(cli.BadgerDirectory, cli.Logfile)
+cliArgs, err := cli.BuildArgs(cli.RpcUser, cli.RpcPassword)
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
@@ -26,7 +26,8 @@ Add the new flag `newFlag` to the "enum". Exported Variables must me uppercase.
 
 ```go
 const (
-	BadgerDirectory Flag = iota
+	RpcUser Flag = iota
+    RpcPassword
 	NewFlag
 	...
 )
@@ -36,8 +37,9 @@ Add it to the return type `Arguments`.
 
 ```go 
 type Arguments struct {
-	BadgerDir string
-	NewFlag   int
+	RpcUser     string
+    RpcPassword string
+	NewFlag     int
 	...
 }
 ```
@@ -50,8 +52,8 @@ Conventions
 - For boolean flags default value is `false`
 
 ```go
-func addBadgerDir(v *string) {
-	flag.StringVar(v, "db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
+func addRpcUser(v *string) {
+	flag.StringVar(v, "rpcuser", "rpc1user", "Dash RPC user (default: rpc1user)")
 }
 
 func addNewFlag(v *int) {
@@ -63,10 +65,10 @@ Connect it all in the function `BuildArgs` by adding the new flag to the switch 
 ```go
 for _, f := range flags {
     switch f {
-    case BadgerDirectory:
-        addBadgerDir(&args.BadgerDir)
+    case RpcUser:
+        addRpcUser(&args.RpcUser)
         break
-    case ProcessContinue:
+    case NewFlag:
         addNewFlag(&args.NewFlag)
         break
     ...
@@ -74,13 +76,12 @@ for _, f := range flags {
 } 
 ```
 
-If the new flag needs some >>simple<< input verification, implement it in this module. Additionally, add the new flag to the table of this `Readme` file.
+If the new flag needs some **simple** input verification, implement it in this module. Additionally, add the new flag to the table of this `Readme` file.
 
 ## Available CLI flags
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| db | /tmp/badger | Badger database location (default: /tmp/badger) |
 | continue | false | Continue the previously started DB build process |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |

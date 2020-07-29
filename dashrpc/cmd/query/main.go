@@ -13,7 +13,7 @@ import (
 
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
+	cliArgs, err = cli.BuildArgs(cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
 
 	if err != nil {
 		flag.PrintDefaults()

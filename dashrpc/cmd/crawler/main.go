@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 )
@@ -19,7 +18,7 @@ const benchmarkStopBlockID = 901250
 const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+	cliArgs, err = cli.BuildArgs(cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
@@ -41,21 +40,22 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 		return cliArgs, err
 	}
 
-	if cliArgs.IsBenchmark {
-		cliArgs.StartBlockID = benchmarkStartBlockID
-		cliArgs.StopBlockID = benchmarkStopBlockID
-		cliArgs.ProcessContinue = false
-		cliArgs.IsPrintStatus = false
-
-		// temp dir will be deleted later on
-		dirName, err := ioutil.TempDir("", "dashrpc")
-
-		if err != nil {
-			flag.PrintDefaults()
-			return cliArgs, err
-		}
-		cliArgs.BadgerDir = dirName
-	}
+	// todo: do we still need benchmarks?
+	//if cliArgs.IsBenchmark {
+	//	cliArgs.StartBlockID = benchmarkStartBlockID
+	//	cliArgs.StopBlockID = benchmarkStopBlockID
+	//	cliArgs.ProcessContinue = false
+	//	cliArgs.IsPrintStatus = false
+	//
+	//	// temp dir will be deleted later on
+	//	dirName, err := ioutil.TempDir("", "dashrpc")
+	//
+	//	if err != nil {
+	//		flag.PrintDefaults()
+	//		return cliArgs, err
+	//	}
+	//	cliArgs.BadgerDir = dirName
+	//}
 
 	return cliArgs, err
 }
@@ -120,12 +120,6 @@ func main() {
 		log.Print(err)
 		return
 	}
-
-	//_, err = db.InsertTestData(dbClient)
-	//if err != nil {
-	//	log.Print(err)
-	//	return
-	//}
 
 	if cliArgs.IsPrintStatus {
 		//dashrpc.PrintStatus(db)
