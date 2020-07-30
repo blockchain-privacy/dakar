@@ -42,9 +42,56 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	return r.payload()
 }
 
-// upserts a block
+// upserts a block and the prevBlock relation
 func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
+	block.PrevBlock.Uid = "uid(x)"
+	block.SetDType()
+	block.PrevBlock.SetDType()
+
+	for i := range block.Transactions {
+		block.Transactions[i].DType = []string{"Transaction"}
+		for y := range block.Transactions[i].Inputs {
+			block.Transactions[i].Inputs[y].SetDType()
+		}
+		for y := range block.Transactions[i].Outputs {
+			block.Transactions[i].Outputs[y].SetDType()
+		}
+	}
+
+	pb, err := json.Marshal(block)
+	if err != nil {
+		return err
+	}
+
+	query := `
+		query Q($currentHash: string, $prevHash: string) {
+			current(func: eq(blockhash, $currentHash)) {
+				v as uid
+			}
+			previous(func: eq(blockhash, $prevHash)) {
+				x as uid
+			}
+		}
+	`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$currentHash": block.Hash, "$prevHash": block.PrevBlock.Hash},
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	_, err = c.NewTxn().Do(db.GetContext(), req)
+	return err
+}
+
+// inserts a block, the prevBlock relation is done via an upsert
+func InsertBlock(c *dgo.Dgraph, block Block) error {
+	block.PrevBlock.Uid = "uid(v)"
+	block.PrevBlock.SetDType()
 	block.SetDType()
 
 	for i := range block.Transactions {
@@ -72,7 +119,7 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$hash": block.Hash},
+		Vars:  map[string]string{"$hash": block.PrevBlock.Hash},
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
@@ -81,4 +128,27 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 
 	_, err = c.NewTxn().Do(db.GetContext(), req)
 	return err
+}
+
+// gets the number of blocks in the database
+func GetBlockCount(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
+	query := `{
+				 getBlockCount(func: type(Block)){
+					count(uid)
+				  }
+				}
+				`
+
+	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+
+	if err != nil {
+		return blk, err
+	}
+	var r blockQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return blk, err
+	}
+
+	return r.payload()
 }
