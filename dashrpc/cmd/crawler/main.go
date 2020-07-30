@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/dgraph-io/dgo/v2"
 	"log"
 )
 
@@ -16,7 +17,7 @@ const benchmarkStartBlockID = 901500
 const benchmarkStopBlockID = 901250
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+	cliArgs, err = cli.BuildArgs(cli.ProcessContinue, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
@@ -56,6 +57,26 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	//}
 
 	return cliArgs, err
+}
+
+// checks if we can continue crawling with the provided arguments
+func canContinue(dgraph *dgo.Dgraph, startBlock uint64, stopBlock uint64) error {
+	if startBlock != 0 {
+		return errors.New("cannot use -continue and start/stop options in the command line")
+	}
+
+	dbStatus, err := status.Get(dgraph)
+	if err != nil {
+		return err
+	} else if dbStatus.IsCrawling == nil {
+		return errors.New("was not able to status successfully")
+	}
+
+	if !*dbStatus.IsCrawling && stopBlock == 0 {
+		return errors.New("when processing is finished, provide -stop option to continue provide")
+	}
+
+	return nil
 }
 
 // The main crawler for the system. It needs to be run prior to using any of the other
@@ -100,33 +121,31 @@ func main() {
 		}
 	}()
 
-	// drop all data todo: remove
-	err = db.DropAll(dgraph)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-
-	// create new db schema todo: remove and only do if requested via CLI argument
-	err = db.SetupSchema(dgraph)
-	if err != nil {
-		log.Print(err)
-		return
-	}
-
 	if cliArgs.IsPrintStatus {
 		status.PrintStatus(dgraph)
 		return
 	}
 
-	//if dashrpc.DbGetStatus(db) == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
-	//	log.Println("\nError: when processing is finished, provide -stop option to continue provide")
-	//	return
-	//}
+	if cliArgs.ResetDB {
+		err = db.DropAll(dgraph)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("dropped all data")
+		err = db.SetupSchema(dgraph)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("setup new schema")
+	}
 
-	if cliArgs.ProcessContinue && cliArgs.StartBlockID != 0 {
-		log.Println("\nError: cannot use -continue and start/stop options in the command line")
-		return
+	if cliArgs.ProcessContinue {
+		if err = canContinue(dgraph, cliArgs.StartBlockID, cliArgs.StopBlockID); err != nil {
+			log.Println(err)
+			return
+		}
 	}
 
 	// Setup the RPC connection
@@ -168,7 +187,7 @@ func main() {
 
 	err = dashrpc.ProcessNewBlocks(dgraph, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
-		log.Printf("Error: %v\n", err)
+		log.Println(err)
 		return
 	}
 }

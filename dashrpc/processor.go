@@ -8,7 +8,6 @@ import (
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
-	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
@@ -221,7 +220,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 		Transactions: transactions,
 	}
 
-	return dbblk.InsertBlock(dgraph, block)
+	return dbblk.UpsertBlock(dgraph, block)
 }
 
 // processes all the new blocks from a given hash down to the block that is already in DB
@@ -268,8 +267,7 @@ mainLoop:
 		}
 		if b, err := dbblk.GetBlock(dgraph, currentBlockHash); err == nil && b.IsComplete() {
 			// block already in database
-			// todo check if continue instead of break is okay
-			continue
+			break
 		}
 
 		// get block from RPC-Client
@@ -364,21 +362,21 @@ mainLoop:
 
 // ProcessAddressClustering traverses the transactions from a given address and creates the cluster data in DB
 // TODO currently there is no clustering, just a lookup for current TXs associated with a given address
-func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
-
-	addrData := AddressData{}
-	err := DbGetDataForAddress(db, startingAddr, &addrData)
-	if err != nil {
-		return err
-	}
-	txs := addrData.Txs
-
-	for _, tx := range txs {
-		log.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
-	}
-
-	return nil
-}
+//func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
+//
+//	addrData := AddressData{}
+//	err := DbGetDataForAddress(db, startingAddr, &addrData)
+//	if err != nil {
+//		return err
+//	}
+//	txs := addrData.Txs
+//
+//	for _, tx := range txs {
+//		log.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
+//	}
+//
+//	return nil
+//}
 
 // todo implement for dgraph
 // saveProcessingState saves the current processing state

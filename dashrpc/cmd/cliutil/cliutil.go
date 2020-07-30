@@ -15,6 +15,7 @@ type Flag int
 // flag enum
 const (
 	ProcessContinue Flag = iota
+	ResetDB
 	RpcUser
 	RpcPassword
 	RpcHost
@@ -33,6 +34,7 @@ const (
 
 type Arguments struct {
 	ProcessContinue    bool
+	ResetDB            bool
 	RpcUser            string
 	RpcPassword        string
 	StartBlockID       uint64
@@ -82,6 +84,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		switch f {
 		case ProcessContinue:
 			addProcessContinue(&args.ProcessContinue)
+			break
+		case ResetDB:
+			addResetDB(&args.ResetDB)
 			break
 		case RpcUser:
 			addRpcUser(&args.RpcUser)
@@ -160,7 +165,11 @@ func addTxSearch(v *string) {
 }
 
 func addProcessContinue(v *bool) {
-	flag.BoolVar(v, "continue", false, "Continue the previously started DB build process")
+	flag.BoolVar(v, "continue", false, "Continue the previously started DB build process (default: false)")
+}
+
+func addResetDB(v *bool) {
+	flag.BoolVar(v, "reset", false, "Remove all data from the database (default: false)")
 }
 
 func addRpcUser(v *string) {

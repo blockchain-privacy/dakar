@@ -6,7 +6,8 @@ This is the blockchain crawler. It loads data from `dashd` and stores it in its 
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| continue | false | Continue the previously started DB build process |
+| continue | false | Continue the previously started DB build process (default: false) |
+| reset | false | Remove all data from the database (default: false) |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
 | start | 0 | Start Block Id (default: 0)|
