@@ -219,7 +219,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 		Transactions: transactions,
 	}
 
-	return dbblk.UpsertBlock(dgraph, block)
+	return dbblk.InsertBlock(dgraph, block)
 }
 
 // processes all the new blocks from a given hash down to the block that is already in DB
