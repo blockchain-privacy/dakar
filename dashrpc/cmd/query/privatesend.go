@@ -71,11 +71,11 @@ func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err er
 func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*Result {
 	tx, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
-		fmt.Println("Error", err)
+		log.Println(err)
 	}
 	// Sanity check
 	if !tx.IsPrivateSend() {
-		fmt.Printf("Error: TX is not a PrivateSend! %v", tx)
+		log.Printf("Error: TX is not a PrivateSend! %v", tx)
 		return nil
 	}
 	results := make(map[string]*Result)
@@ -92,7 +92,7 @@ func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 	results *map[string]*Result, txCount *int64, writer *csv.Writer) {
 
 	if (*txCount % 100000) == 0 {
-		fmt.Printf("\n%v\n", *txCount)
+		log.Printf("\n%v\n", *txCount)
 	}
 
 	op, err := dbop.GetVerboseOutputByUid(dgraph, outputUid)

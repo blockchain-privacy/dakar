@@ -3,7 +3,10 @@ package cliutil
 import (
 	"errors"
 	"flag"
+	"io"
+	"log"
 	"net"
+	"os"
 	"strconv"
 )
 
@@ -53,6 +56,19 @@ func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
 
 	// build endpoint string
 	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
+}
+
+func GetLogfile(fileName string, logPrefix string) (f *os.File, err error) {
+	if len(fileName) > 0 {
+		f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			return
+		}
+		log.SetPrefix(logPrefix + " ")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	}
+	err = errors.New("name for log file is invalid")
+	return
 }
 
 // parse arguments specified by the provided flags

@@ -8,9 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"os"
 )
 
 const benchmarkStartBlockID = 901500
@@ -76,20 +74,12 @@ func main() {
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Println("Error opening log file", err)
-			return
-		}
+	if f, err := cli.GetLogfile(cliArgs.Logfile, "crawler"); err != nil {
 		defer func() {
-			err = f.Close()
-			if err != nil {
+			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-		log.SetPrefix("crawler ")
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
 	if cliArgs.IsBenchmark {
