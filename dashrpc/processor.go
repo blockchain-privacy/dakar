@@ -308,6 +308,8 @@ mainLoop:
 			break
 		}
 
+		blkCounter++
+
 		if includeAddresses {
 			if err = processAddresses(dgraph, txMapping); err != nil {
 				return err
@@ -327,11 +329,10 @@ mainLoop:
 		if err != nil {
 			return err
 		}
+
 		lastBlockHashObj = startHashObj
 		currentBlockHash = startBlock.NextHash
-
 		currentBlockId++
-		blkCounter++
 
 		//if blkCounter%20000 == 0 {
 		//	log.Printf("%d * 20k blocks done\n", blkCounter/20000)
