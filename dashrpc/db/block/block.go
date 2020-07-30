@@ -131,24 +131,6 @@ func InsertBlock(c *dgo.Dgraph, block Block) error {
 }
 
 // gets the number of blocks in the database
-func GetBlockCount(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
-	query := `{
-				 getBlockCount(func: type(Block)){
-					count(uid)
-				  }
-				}
-				`
-
-	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
-
-	if err != nil {
-		return blk, err
-	}
-	var r blockQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return blk, err
-	}
-
-	return r.payload()
+func GetCount(c *dgo.Dgraph) (uint64, error) {
+	return db.GetCount(c, DType)
 }

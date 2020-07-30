@@ -93,3 +93,8 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	res, err := c.NewTxn().Do(db.GetContext(), req)
 	return res, err
 }
+
+// gets the number of transactions in the database
+func GetCount(c *dgo.Dgraph) (uint64, error) {
+	return db.GetCount(c, DType)
+}

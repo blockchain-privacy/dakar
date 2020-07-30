@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+const DType = "Block"
+
 type Block struct {
 	Uid          string           `json:"uid,omitempty"`
 	Hash         string           `json:"blockhash,omitempty"`
@@ -35,7 +37,7 @@ func (b Block) String() string {
 }
 
 func (b *Block) SetDType() {
-	b.DType = []string{"Block"}
+	b.DType = []string{DType}
 }
 
 // checks if the given block has all attributes filled

@@ -7,6 +7,8 @@ import (
 	"math"
 )
 
+const DType = "Transaction"
+
 type Transaction struct {
 	Uid     string      `json:"uid,omitempty"`
 	Outputs []op.Output `json:"tx_outputs,omitempty"`
@@ -30,7 +32,7 @@ func (t Transaction) String() string {
 }
 
 func (t *Transaction) SetDType() {
-	t.DType = []string{"Transaction"}
+	t.DType = []string{DType}
 }
 
 // converts a Transaction struct to an updateTransactionData struct
@@ -105,7 +107,7 @@ func (t Transaction) IsMixing() bool {
 	return true
 }
 
-// This struct is needed to interally convert floats to strings and backwards.
+// This struct is needed to internally convert floats to strings and backwards.
 // That is, because the precision of the float type of Dgraph is to low.
 type updateTransactionData struct {
 	Uid     string                `json:"uid,omitempty"`

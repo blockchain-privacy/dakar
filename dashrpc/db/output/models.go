@@ -6,6 +6,8 @@ import (
 	"strconv"
 )
 
+const DType = "TxOutput"
+
 type Output struct {
 	Uid         string   `json:"uid,omitempty"`
 	OutputIndex *uint64  `json:"outputindex,omitempty"`
@@ -38,7 +40,7 @@ func (o Output) String() string {
 	return output
 }
 func (o *Output) SetDType() {
-	o.DType = []string{"TxOutput"}
+	o.DType = []string{DType}
 }
 
 func (o Output) ToUpdate() (op UpdateOutputData) {

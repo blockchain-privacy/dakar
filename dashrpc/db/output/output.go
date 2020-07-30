@@ -251,3 +251,8 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 
 	return
 }
+
+// gets the number of outputs in the database
+func GetCount(c *dgo.Dgraph) (uint64, error) {
+	return db.GetCount(c, DType)
+}

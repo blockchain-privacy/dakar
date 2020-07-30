@@ -138,3 +138,8 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 
 	return c.NewTxn().Do(db.GetContext(), req)
 }
+
+// gets the number of addresses in the database
+func GetCount(c *dgo.Dgraph) (uint64, error) {
+	return db.GetCount(c, DType)
+}

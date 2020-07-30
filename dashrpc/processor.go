@@ -244,8 +244,6 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	currentBlockId := startingBlockId
 	currentBlockHash := startHashObj.String()
 
-	var lastBlockHashObj *chainhash.Hash
-
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -256,8 +254,7 @@ mainLoop:
 	for {
 		select {
 		case <-c:
-			log.Printf("\n### Block processing interrupted\n\nLast processed block #%d - %s\n\n",
-				currentBlockId, lastBlockHashObj)
+			log.Printf("\n### Block processing interrupted\n")
 			break mainLoop
 		default:
 			// we do nothing
@@ -330,7 +327,6 @@ mainLoop:
 			return err
 		}
 
-		lastBlockHashObj = startHashObj
 		currentBlockHash = startBlock.NextHash
 		currentBlockId++
 

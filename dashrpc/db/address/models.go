@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+const DType = "Address"
+
 type Address struct {
 	Uid     string      `json:"uid,omitempty"`
 	Hash    string      `json:"addresshash,omitempty"`
@@ -24,7 +26,7 @@ func (a Address) String() string {
 }
 
 func (a *Address) SetDType() {
-	a.DType = []string{"Address"}
+	a.DType = []string{DType}
 }
 
 // checks if the given address has all attributes filled
