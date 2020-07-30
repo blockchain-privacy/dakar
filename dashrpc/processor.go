@@ -208,7 +208,6 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 	blockId uint64, timestamp string, prevBlockHash string) error {
 
 	//saveProcessingState(db, currentHash.String(), blockId)
-	//DbIncrementBlockCount(db)
 	block := dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
@@ -288,8 +287,6 @@ mainLoop:
 			if tMap.hash != "" && (len(tMap.inputs) > 0 || len(tMap.outputs) > 0) {
 				txMapping = append(txMapping, tMap)
 			}
-
-			//DbIncrementGlobalTxCount(db)
 
 			//if txCounter%5000 == 0 {
 			//	log.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, currentBlockId, currentBlockHash)
@@ -376,17 +373,6 @@ func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
 // todo implement for dgraph
 // saveProcessingState saves the current processing state
 func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId uint64) {
-	// Updating the upper range
-	rangeUp := DbGetRangeUp(db)
-	if currentBlockId > rangeUp {
-		DbSetRangeUp(db, currentBlockId)
-	}
-	// Updating the lower range
-	rangeDown := DbGetRangeDown(db)
-	if rangeDown == 0 || currentBlockId < rangeDown { // lazy initialization problem
-		DbSetRangeDown(db, currentBlockId)
-	}
-
 	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
 	if err != nil {
 		log.Printf("Error: error saving CurrentBlockHash state: %v\n", err)

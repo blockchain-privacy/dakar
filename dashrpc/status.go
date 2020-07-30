@@ -1,8 +1,11 @@
 package dashrpc
 
 import (
+	dbblk "dashrpc/db/block"
+	dbtx "dashrpc/db/transaction"
 	"fmt"
 	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/dgo/v2"
 	"log"
 )
 
@@ -45,24 +48,38 @@ func SetupBadgerDB(badgerDir string) *badger.DB {
 }
 
 // PrintStatus outputs the stats for the given DB
-func PrintStatus(db *badger.DB) {
-	status := DbGetStatus(db)
-	fmt.Printf("Status: %s\n", status)
+//func PrintStatus(db *badger.DB) {
+//	status := DbGetStatus(db)
+//	fmt.Printf("Status: %s\n", status)
+//
+//	dbBlockCount := DbGetBlockCount(db)
+//	dbTxCount := DbGetGlobalTxCount(db)
+//	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
+//
+//	lastHash := DbGetLastBlockHash(db)
+//	lastID := DbGetLastBlockId(db)
+//	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+//
+//	stopID := DbGetStopBlockId(db)
+//	fmt.Printf("Stop ID: %v\n", stopID)
+//}
 
-	dbBlockCount := DbGetBlockCount(db)
-	dbTxCount := DbGetGlobalTxCount(db)
-	fmt.Printf("DB block count: %v  TX count: %v\n", dbBlockCount, dbTxCount)
+// PrintStatus outputs the stats for the given DB
+func PrintStatus(dgraph *dgo.Dgraph) {
+	//status := DbGetStatus(db)
+	//fmt.Printf("Status: %s\n", status)
 
-	lastHash := DbGetLastBlockHash(db)
-	lastID := DbGetLastBlockId(db)
-	fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+	blockCount, _ := dbblk.GetCount(dgraph)
+	txCount, _ := dbtx.GetCount(dgraph)
 
-	stopID := DbGetStopBlockId(db)
-	fmt.Printf("Stop ID: %v\n", stopID)
+	fmt.Printf("DB block count: %v  TX count: %v\n", blockCount, txCount)
 
-	rangeUp := DbGetRangeUp(db)
-	rangeDown := DbGetRangeDown(db)
-	fmt.Printf("DB range: %v - %v\n", rangeDown, rangeUp)
+	//lastHash := DbGetLastBlockHash(db)
+	//lastID := DbGetLastBlockId(db)
+	//fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
+	//
+	//stopID := DbGetStopBlockId(db)
+	//fmt.Printf("Stop ID: %v\n", stopID)
 }
 
 ///////////////////////////////////////////////////////
@@ -85,50 +102,6 @@ func DbGetStatus(db *badger.DB) string {
 		status = DbBlockStatusUnknown
 	}
 	return status
-}
-
-func DbGetBlockCount(db *badger.DB) uint64 {
-	var count uint64
-	DbGetUint64(db, DbGlobalBlockCount, &count)
-	return count
-}
-
-func DbIncrementBlockCount(db *badger.DB) {
-	count := DbGetBlockCount(db)
-	count++                                    // should be 1 on error
-	DbSetUint64(db, DbGlobalBlockCount, count) // Ignoring Error on purpose!
-}
-
-func DbGetGlobalTxCount(db *badger.DB) uint64 {
-	var count uint64
-	DbGetUint64(db, DbGlobalTxCount, &count)
-	return count
-}
-
-func DbIncrementGlobalTxCount(db *badger.DB) {
-	count := DbGetGlobalTxCount(db)
-	count++ // should be 1 on error
-	DbSetUint64(db, DbGlobalTxCount, count)
-}
-
-func DbSetRangeUp(db *badger.DB, up uint64) {
-	DbSetUint64(db, DbBlockRangeUp, up) // Ignoring errors on purpose
-}
-
-func DbGetRangeUp(db *badger.DB) uint64 {
-	var value uint64
-	DbGetUint64(db, DbBlockRangeUp, &value) // ignoring error on purpose
-	return value
-}
-
-func DbSetRangeDown(db *badger.DB, down uint64) {
-	DbSetUint64(db, DbBlockRangeDown, down)
-}
-
-func DbGetRangeDown(db *badger.DB) uint64 {
-	var value uint64
-	DbGetUint64(db, DbBlockRangeDown, &value) // ignoring error on purpose
-	return value
 }
 
 func DbSetLastBlockId(db *badger.DB, id uint64) {
