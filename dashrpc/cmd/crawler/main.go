@@ -4,6 +4,7 @@ import (
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
+	"dashrpc/db/status"
 	"dashrpc/rpcclient"
 	"errors"
 	"flag"
@@ -88,7 +89,7 @@ func main() {
 	}
 
 	// create dgraph client
-	dbClient, c, err := db.CreateDefaultClient()
+	dgraph, c, err := db.CreateDefaultClient()
 	if err != nil {
 		log.Print(err)
 		return
@@ -100,21 +101,21 @@ func main() {
 	}()
 
 	// drop all data todo: remove
-	err = db.DropAll(dbClient)
+	err = db.DropAll(dgraph)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
 	// create new db schema todo: remove and only do if requested via CLI argument
-	err = db.SetupSchema(dbClient)
+	err = db.SetupSchema(dgraph)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
 	if cliArgs.IsPrintStatus {
-		//dashrpc.PrintStatus(db)
+		status.PrintStatus(dgraph)
 		return
 	}
 
@@ -165,7 +166,7 @@ func main() {
 	//	}
 	//}
 
-	err = dashrpc.ProcessNewBlocks(dbClient, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	err = dashrpc.ProcessNewBlocks(dgraph, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return

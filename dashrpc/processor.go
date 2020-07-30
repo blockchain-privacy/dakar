@@ -5,6 +5,7 @@ import (
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
 	dbop "dashrpc/db/output"
+	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"github.com/dgraph-io/badger/v2"
@@ -17,6 +18,8 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
+
+const VersionString = "v0.0.1"
 
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
@@ -225,11 +228,16 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	includeAddresses bool, startingBlockId uint64, stoppingBlockId uint64) error {
 
+	// todo remove
 	//DbSetStatus(dgraph, DbBlockStatusProcessing)
 	//err := DbSetUint64(dgraph, DbBlockStopBlockId, stoppingBlockId)
 	//if err != nil {
 	//	log.Printf("Error: failed to save stopBlockID\n%v\n", err)
 	//}
+
+	if err := dbstat.SetCrawling(dgraph, true); err != nil {
+		return err
+	}
 
 	startHashObj, err := client.GetBlockHash(int64(startingBlockId))
 	if err != nil {
@@ -314,7 +322,9 @@ mainLoop:
 
 		if currentBlockId == stoppingBlockId || startBlock.NextHash == "" {
 			// finished
-			//saveProcessingStateFinished(db)
+			if err = dbstat.SetCrawling(dgraph, false); err != nil {
+				return err
+			}
 			break
 		}
 
@@ -372,19 +382,13 @@ func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
 
 // todo implement for dgraph
 // saveProcessingState saves the current processing state
-func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId uint64) {
-	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
-	if err != nil {
-		log.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
-	}
-	err = DbSetString(db, DbBlockLastBlockHash, currentBlockHash)
-	if err != nil {
-		log.Printf("Error: error saving CurrentBlockID state: %v\n", err)
-	}
-}
-
-// todo implement for dgraph
-// resetting the processing state to default values
-func saveProcessingStateFinished(db *badger.DB) {
-	DbSetStatus(db, DbBlockStatusFinished)
-}
+//func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId uint64) {
+//	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
+//	if err != nil {
+//		log.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
+//	}
+//	err = DbSetString(db, DbBlockLastBlockHash, currentBlockHash)
+//	if err != nil {
+//		log.Printf("Error: error saving CurrentBlockID state: %v\n", err)
+//	}
+//}

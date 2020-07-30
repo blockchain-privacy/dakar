@@ -27,6 +27,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			txtype: string .
 			amount: string .
 			iscoinbase: bool .
+
+			iscrawling: bool .
 			
 
 			type Block {
@@ -59,6 +61,10 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type Address {
 				addresshash
 				addr_outputs
+			}
+
+			type Status {
+				iscrawling
 			}
 		`,
 	})
