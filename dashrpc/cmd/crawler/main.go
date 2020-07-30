@@ -165,17 +165,12 @@ func main() {
 		log.Printf("\nError: problem with count() %s\n", err.Error())
 		return
 	}
-	log.Printf("Current block count in the chain: %v\n", count)
+	log.Printf("Current block count in the chain of the RPC client: %v\n", count)
 
 	//if cliArgs.ProcessContinue {
 	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
 	//	if err != nil {
 	//		log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
-	//		return
-	//	}
-	//	err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.StartBlockHash)
-	//	if err != nil {
-	//		log.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
 	//		return
 	//	}
 	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)

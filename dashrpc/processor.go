@@ -209,7 +209,6 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) error {
 
-	//saveProcessingState(db, currentHash.String(), blockId)
 	block := dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
@@ -226,13 +225,6 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 // processes all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	includeAddresses bool, startingBlockId uint64, stoppingBlockId uint64) error {
-
-	// todo remove
-	//DbSetStatus(dgraph, DbBlockStatusProcessing)
-	//err := DbSetUint64(dgraph, DbBlockStopBlockId, stoppingBlockId)
-	//if err != nil {
-	//	log.Printf("Error: failed to save stopBlockID\n%v\n", err)
-	//}
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return err
@@ -308,15 +300,19 @@ mainLoop:
 			break
 		}
 
-		blkCounter++
-
 		if includeAddresses {
 			if err = processAddresses(dgraph, txMapping); err != nil {
 				return err
 			}
 		}
 
-		//saveProcessingState(db, currentBlockHash, block.Id-1)
+		// save processing state
+		if err = dbstat.SetLastBlockId(dgraph, currentBlockId); err != nil {
+			log.Printf("error saving CurrentBlockID state: %v\n", err)
+			return err
+		}
+
+		blkCounter++
 
 		if currentBlockId == stoppingBlockId || startBlock.NextHash == "" {
 			// finished
@@ -376,17 +372,4 @@ mainLoop:
 //	}
 //
 //	return nil
-//}
-
-// todo implement for dgraph
-// saveProcessingState saves the current processing state
-//func saveProcessingState(db *badger.DB, currentBlockHash string, currentBlockId uint64) {
-//	err := DbSetUint64(db, DbBlockLastBlockId, currentBlockId)
-//	if err != nil {
-//		log.Printf("Error: error saving CurrentBlockHash state: %v\n", err)
-//	}
-//	err = DbSetString(db, DbBlockLastBlockHash, currentBlockHash)
-//	if err != nil {
-//		log.Printf("Error: error saving CurrentBlockID state: %v\n", err)
-//	}
 //}

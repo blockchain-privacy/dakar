@@ -2,8 +2,8 @@ package status
 
 import "fmt"
 
-// Information about the state of the database
-//type Status struct {
+// Old Meta struct // todo
+//type Meta struct {
 //	LastBlockId      uint64 `json:"lastblockid"`
 //	StopBlockId      uint64 `json:"stopblockid"`
 //	LastBlockHash    string `json:"lastblockhash"`
@@ -15,9 +15,17 @@ import "fmt"
 const DType = "Status"
 
 type Status struct {
-	Uid        string   `json:"uid,omitempty"`
-	IsCrawling *bool    `json:"iscrawling,omitempty"`
-	DType      []string `json:"dgraph.type,omitempty"`
+	Uid        string `json:"uid,omitempty"`
+	IsCrawling *bool  `json:"iscrawling,omitempty"`
+
+	// Crawling works in two steps:
+	// Step 1: Insert block, transaction and output data.
+	// Step 2: Connect the outputs of the block with addresses.
+	// LastBlockId is the ID of the last block where both steps have been successful.
+	// Thus, it is possible to have a Block with a higher ID than LastBlockId,
+	// if the crawling was aborted between step 1 and 2.
+	LastBlockId *uint64  `json:"lastblockid,omitempty"`
+	DType       []string `json:"dgraph.type,omitempty"`
 }
 
 func (s Status) String() string {
@@ -26,6 +34,11 @@ func (s Status) String() string {
 	if s.IsCrawling != nil {
 		output += fmt.Sprintf(", IsCrawling: %t", *s.IsCrawling)
 	}
+
+	if s.LastBlockId != nil {
+		output += fmt.Sprintf(", LastBlockId: %d", *s.LastBlockId)
+	}
+
 	return output
 }
 

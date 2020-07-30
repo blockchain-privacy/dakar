@@ -13,17 +13,6 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// Database statistics
-const (
-	DbBlockLastBlockId      = "DB_BLOCK_LAST_ID"
-	DbBlockLastBlockHash    = "DB_BLOCK_LAST_HASH"
-	DbBlockStopBlockId      = "DB_BLOCK_STOP_BLOCK_ID"
-	DbBlockStatus           = "DB_BLOCK_STATUS"
-	DbBlockStatusUnknown    = "DB_BLOCK_STATUS_UNKNOWN"
-	DbBlockStatusProcessing = "DB_BLOCK_STATUS_PROCESSING"
-	DbBlockStatusFinished   = "DB_BLOCK_STATUS_FINISHED"
-)
-
 ///////////////////////////////////////////////////////
 // Utility API
 ///////////////////////////////////////////////////////
@@ -35,23 +24,20 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 	if status.IsCrawling != nil {
 		fmt.Println("Currently crawling:", *status.IsCrawling)
 	}
+	if status.LastBlockId != nil {
+		fmt.Println("LastBlockId:", *status.LastBlockId)
+	}
 
 	blockCount, _ := dbblk.GetCount(dgraph)
 	txCount, _ := dbtx.GetCount(dgraph)
 	opCount, _ := dbop.GetCount(dgraph)
 	addrCount, _ := dbaddr.GetCount(dgraph)
 
-	fmt.Println("Counts:")
+	fmt.Print("Counts:")
 	fmt.Println("\tBlocks:", blockCount)
 	fmt.Println("\tTransactions:", txCount)
 	fmt.Println("\tOutputs:", opCount)
 	fmt.Println("\tAddresses:", addrCount)
-	//lastHash := DbGetLastBlockHash(db)
-	//lastID := DbGetLastBlockId(db)
-	//fmt.Printf("Last hash: %s -- last ID: %v -- ", lastHash, lastID)
-	//
-	//stopID := DbGetStopBlockId(db)
-	//fmt.Printf("Stop ID: %v\n", stopID)
 }
 
 // gets block information from the database
@@ -59,6 +45,7 @@ func Get(c *dgo.Dgraph) (status Status, err error) {
 	query := `{
 				 q(func: type(Status)){
 					iscrawling
+					lastblockid
 				  }
 				}
 				`
@@ -121,42 +108,15 @@ func SetCrawling(c *dgo.Dgraph, crawling bool) error {
 	})
 }
 
+// sets the last block id
+func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
+	return Set(c, Status{
+		LastBlockId: &id,
+	})
+}
+
 // gets the number of status instances in the database
-// IMPORTANT: Should always be atmost one
+// IMPORTANT: Should always be at most one
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
-
-///////////////////////////////////////////////////////
-// Internal API
-///////////////////////////////////////////////////////
-
-//func DbSetLastBlockId(db *badger.DB, id uint64) {
-//	DbSetUint64(db, DbBlockLastBlockId, id)
-//}
-//
-//func DbGetLastBlockId(db *badger.DB) uint64 {
-//	var value uint64
-//	DbGetUint64(db, DbBlockLastBlockId, &value) // ignoring error on purpose
-//	return value
-//}
-//
-//func DbSetLastBlockHash(db *badger.DB, lastHash string) {
-//	DbSetString(db, DbBlockLastBlockHash, lastHash)
-//}
-//
-//func DbGetLastBlockHash(db *badger.DB) string {
-//	var value string
-//	DbGetString(db, DbBlockLastBlockHash, &value) // ignoring error on purpose
-//	return value
-//}
-//
-//func DbSetStopBlockId(db *badger.DB, id uint64) {
-//	DbSetUint64(db, DbBlockStopBlockId, id)
-//}
-//
-//func DbGetStopBlockId(db *badger.DB) uint64 {
-//	var value uint64
-//	DbGetUint64(db, DbBlockStopBlockId, &value) // ignoring error on purpose
-//	return value
-//}
