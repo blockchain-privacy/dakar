@@ -244,7 +244,35 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 		return
 	}
 
-	startId = *status.LastBlockId + 1
+	startId = *status.LastBlockId
+
+	return
+}
+
+// wait for the next block
+// if the interrupt receives a signal isInterrupt is true
+// if the next block is available, currentBlock gets updated
+func waitForNextBlock(client *rpcclient.Client, interrupt <-chan os.Signal, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+	ticker := time.NewTicker(newBlockIntervalTime)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-interrupt:
+			log.Printf("### Block processing interrupted ###")
+			isInterrupt = true
+			return
+		case <-ticker.C:
+			// todo instead of using a ticker use asyncblock call and wait for future channel
+			currentBlock, err = client.GetBlockVerbose(hashObj)
+			if err != nil {
+				return
+			}
+		}
+
+		if currentBlock.NextHash != "" {
+			break
+		}
+	}
 
 	return
 }
@@ -260,7 +288,7 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 
 	currentHashObj, err := client.GetBlockHash(int64(currentBlockId))
 	if err != nil {
-		log.Println("problem converting startingBlockId", startingBlockId, err)
+		log.Println("problem converting startingBlockId", currentBlockId, err)
 		return err
 	}
 
@@ -276,24 +304,68 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 
 	timerStart := time.Now()
 	// Main loop
+
+	firstLoop := true
+	var currentBlock *btcjson.GetBlockVerboseResult
 mainLoop:
 	for {
+		if continuous && !firstLoop {
+			// set values for this round
+			if currentBlock.NextHash == "" {
+				log.Println("Waiting for next block. Current block id:", currentBlockId)
+				var isInterrupt bool
+				// can not used short hand declaration, because it would mask currentBlock in the outer scope
+				currentBlock, isInterrupt, err = waitForNextBlock(client, c, currentHashObj)
+				if err != nil {
+					return err
+				}
+
+				if isInterrupt {
+					break mainLoop
+				}
+
+				log.Println("Found next block. Current block id:", currentBlockId)
+			}
+		}
+
+		// if not the first round set variables for this loop
+		if !firstLoop {
+			currentHashObj, err = chainhash.NewHashFromStr(currentBlock.NextHash)
+			if err != nil {
+				return err
+			}
+
+			currentBlockHash = currentBlock.NextHash
+			currentBlockId++
+		}
+
+		// check for stop conditions if not stop
+		if !continuous {
+			// stoppingBlockId+1 <- +1 because we still need to process this round
+			if currentBlockId == stoppingBlockId+1 || (currentBlock != nil && currentBlock.NextHash == "") {
+				// finished
+				break
+			}
+		}
+
 		select {
 		case <-c:
-			log.Printf("### Block processing interrupted ###ś")
+			log.Printf("### Block processing interrupted ###")
 			break mainLoop
 		default:
 			// we do nothing
 		}
-		if b, err := dbblk.GetBlock(dgraph, currentBlockHash); err == nil && b.IsComplete() {
-			// block already in database
-			break
-		}
 
+		firstLoop = false
 		// get block from RPC-Client
-		currentBlock, err := client.GetBlockVerbose(currentHashObj)
+		currentBlock, err = client.GetBlockVerbose(currentHashObj)
 		if err != nil {
 			return err
+		}
+
+		if b, err := dbblk.GetBlock(dgraph, currentBlockHash); err == nil && b.IsComplete() {
+			// block already in database
+			continue
 		}
 
 		var txMapping []TransactionMapping
@@ -339,36 +411,6 @@ mainLoop:
 		}
 
 		blkCounter++
-
-		if continuous {
-			for currentBlock.NextHash == "" {
-				log.Println("Waiting for next block. Current block id:", currentBlockId)
-				time.Sleep(newBlockIntervalTime)
-				currentBlock, err = client.GetBlockVerbose(currentHashObj)
-				if err != nil {
-					return err
-				}
-			}
-			log.Println("Found next block. Current block id:", currentBlockId)
-		} else {
-			if currentBlockId == stoppingBlockId || currentBlock.NextHash == "" {
-				// finished
-				break
-			}
-		}
-
-		// set values for next round
-		currentHashObj, err = chainhash.NewHashFromStr(currentBlock.NextHash)
-		if err != nil {
-			return err
-		}
-
-		currentBlockHash = currentBlock.NextHash
-		currentBlockId++
-
-		//if blkCounter%20000 == 0 {
-		//	log.Printf("%d * 20k blocks done\n", blkCounter/20000)
-		//}
 
 		if blkCounter%5 == 0 {
 			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
