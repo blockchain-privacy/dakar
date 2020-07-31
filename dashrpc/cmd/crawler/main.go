@@ -39,7 +39,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	}
 
 	// startBlockID must be smaller or equal than stopBlockID, as we go forward
-	if cliArgs.StartBlockID >= cliArgs.StopBlockID {
+	if cliArgs.StartBlockID > cliArgs.StopBlockID {
 		flag.PrintDefaults()
 		err = errors.New("start must be smaller or equal than stop")
 		return
@@ -59,30 +59,27 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	//		flag.PrintDefaults()
 	//		return cliArgs, err
 	//	}
-	//	cliArgs.BadgerDir = dirName
 	//}
 
 	return
 }
 
-// checks if we can continue crawling with the provided arguments
-func canContinue(dgraph *dgo.Dgraph, startBlock uint64, stopBlock uint64) error {
-	if startBlock != 0 {
-		return errors.New("cannot use -continue and start/stop options in the command line")
-	}
-
+// checks if a crawling process is already running
+func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 	dbStatus, err := status.Get(dgraph)
 	if err != nil {
-		return err
+		// no status information found -> database is completely new
+		// and thus no crawling is happening right now
+		if err.Error() == status.ErrorStatusNotFound {
+			return false, nil
+		}
+
+		return true, err
 	} else if dbStatus.IsCrawling == nil {
-		return errors.New("was not able to status successfully")
+		return true, errors.New("was not able to get crawling status successfully")
 	}
 
-	if !*dbStatus.IsCrawling && stopBlock == 0 {
-		return errors.New("when processing is finished, provide -stop option to continue provide")
-	}
-
-	return nil
+	return *dbStatus.IsCrawling, nil
 }
 
 // The main crawler for the system. It needs to be run prior to using any of the other
@@ -147,11 +144,12 @@ func main() {
 		log.Println("setup new schema")
 	}
 
-	if cliArgs.Continuous {
-		if err = canContinue(dgraph, cliArgs.StartBlockID, cliArgs.StopBlockID); err != nil {
-			log.Println(err)
-			return
-		}
+	if ok, err := isCrawling(dgraph); err != nil {
+		log.Println(err)
+		return
+	} else if ok {
+		log.Println("Crawling process is already running. Aborting ...")
+		return
 	}
 
 	// Setup the RPC connection
@@ -173,21 +171,17 @@ func main() {
 	}
 	log.Printf("Current block count in the chain of the RPC client: %v\n", count)
 
-	//if cliArgs.ProcessContinue {
-	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
-	//	if err != nil {
-	//		log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
-	//		return
-	//	}
-	//	err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)
-	//	if err != nil {
-	//		log.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
-	//		return
-	//	}
-	//}
+	if err := status.SetCrawling(dgraph, true); err != nil {
+		log.Println("could not set crawling status:", err)
+		return
+	}
 
-	err = dashrpc.ProcessNewBlocks(dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	err = dashrpc.ProcessNewBlocks(dgraph, client, cliArgs.Continuous, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
+		log.Println(err)
+	}
+
+	if err = status.SetCrawling(dgraph, false); err != nil {
 		log.Println(err)
 		return
 	}

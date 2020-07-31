@@ -1,6 +1,9 @@
 package status
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Old Meta struct // todo
 //type Meta struct {
@@ -48,4 +51,26 @@ func (s *Status) SetDType() {
 
 type statusQuery struct {
 	Q []Status `json:"q"`
+}
+
+const (
+	ErrorStatusNotFound = "no status found"
+	ErrorInvalidNumber  = "wrong number of status objects returned"
+)
+
+func (s statusQuery) payload() (status Status, err error) {
+	lenQ := len(s.Q)
+
+	if lenQ == 0 {
+		err = errors.New(ErrorStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = errors.New(ErrorInvalidNumber)
+		return
+	}
+
+	status = s.Q[0]
+	return
 }

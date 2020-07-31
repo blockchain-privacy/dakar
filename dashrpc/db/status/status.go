@@ -7,7 +7,6 @@ import (
 	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -62,14 +61,7 @@ func Get(c *dgo.Dgraph) (status Status, err error) {
 		return
 	}
 
-	if len(r.Q) != 1 {
-		err = errors.New("wrong number of status objects returned")
-		return
-	}
-
-	status = r.Q[0]
-
-	return
+	return r.payload()
 }
 
 // sets the new status

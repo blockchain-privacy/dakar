@@ -18,7 +18,15 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
-const VersionString = "v0.0.1"
+const (
+	VersionString = "v0.0.1"
+
+	// average Dash block time
+	blockTime = 2*time.Minute + 30*time.Second
+
+	// time interval in which the processor checks if a new block is available
+	newBlockIntervalTime = blockTime / 3
+)
 
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
@@ -219,16 +227,38 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 	return dbblk.UpsertBlock(dgraph, block)
 }
 
+func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (startId uint64, err error) {
+	if !continuous {
+		startId = startBlockId
+		return
+	}
+
+	status, err := dbstat.Get(dgraph)
+	if err != nil {
+		return
+	}
+
+	if status.LastBlockId == nil {
+		// last block id is not set -> we start at the beginning of the chain
+		startId = 1
+		return
+	}
+
+	startId = *status.LastBlockId + 1
+
+	return
+}
+
 // processes all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
+func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool,
 	startingBlockId uint64, stoppingBlockId uint64) error {
 
-	if err := dbstat.SetCrawling(dgraph, true); err != nil {
-		log.Println("could not set crawling status:", err)
+	currentBlockId, err := getStartingId(dgraph, continuous, startingBlockId)
+	if err != nil {
 		return err
 	}
 
-	currentHashObj, err := client.GetBlockHash(int64(startingBlockId))
+	currentHashObj, err := client.GetBlockHash(int64(currentBlockId))
 	if err != nil {
 		log.Println("problem converting startingBlockId", startingBlockId, err)
 		return err
@@ -236,9 +266,9 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 
 	blkCounter := 0
 	txCounter := 0
-
-	currentBlockId := startingBlockId
 	currentBlockHash := currentHashObj.String()
+
+	log.Println("Starting crawling at Id:", currentBlockId, "Hash:", currentBlockHash)
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
@@ -250,7 +280,7 @@ mainLoop:
 	for {
 		select {
 		case <-c:
-			log.Printf("\n### Block processing interrupted\n")
+			log.Printf("### Block processing interrupted ###ś")
 			break mainLoop
 		default:
 			// we do nothing
@@ -310,12 +340,21 @@ mainLoop:
 
 		blkCounter++
 
-		if currentBlockId == stoppingBlockId || currentBlock.NextHash == "" {
-			// finished
-			if err = dbstat.SetCrawling(dgraph, false); err != nil {
-				return err
+		if continuous {
+			for currentBlock.NextHash == "" {
+				log.Println("Waiting for next block. Current block id:", currentBlockId)
+				time.Sleep(newBlockIntervalTime)
+				currentBlock, err = client.GetBlockVerbose(currentHashObj)
+				if err != nil {
+					return err
+				}
 			}
-			break
+			log.Println("Found next block. Current block id:", currentBlockId)
+		} else {
+			if currentBlockId == stoppingBlockId || currentBlock.NextHash == "" {
+				// finished
+				break
+			}
 		}
 
 		// set values for next round
