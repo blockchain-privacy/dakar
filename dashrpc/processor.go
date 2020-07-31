@@ -67,7 +67,6 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 	// save in map
 	addresses[addr] = editAddress
 	return addresses
-
 }
 
 func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output, addrs *map[string]dbaddr.Address) error {
@@ -227,12 +226,13 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	includeAddresses bool, startingBlockId uint64, stoppingBlockId uint64) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
+		log.Println("could not set crawling status:", err)
 		return err
 	}
 
-	startHashObj, err := client.GetBlockHash(int64(startingBlockId))
+	currentHashObj, err := client.GetBlockHash(int64(startingBlockId))
 	if err != nil {
-		log.Printf("we have problem with GetBlockHash() %s\n", err.Error())
+		log.Println("problem converting startingBlockId", startingBlockId, err)
 		return err
 	}
 
@@ -240,7 +240,7 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
 	txCounter := 0
 
 	currentBlockId := startingBlockId
-	currentBlockHash := startHashObj.String()
+	currentBlockHash := currentHashObj.String()
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
@@ -263,15 +263,15 @@ mainLoop:
 		}
 
 		// get block from RPC-Client
-		startBlock, err := client.GetBlockVerbose(startHashObj)
+		currentBlock, err := client.GetBlockVerbose(currentHashObj)
 		if err != nil {
 			return err
 		}
 
 		var txMapping []TransactionMapping
 		var transactions []dbtx.Transaction
-		//fmt.Printf("%s;%d\n", currentBlockHash, len(startBlock.Tx))
-		for _, t := range startBlock.Tx {
+
+		for _, t := range currentBlock.Tx {
 			newTx, tMap, err := BuildTransactionMapping(dgraph, client, includeAddresses, t)
 			if err != nil {
 				log.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
@@ -293,8 +293,8 @@ mainLoop:
 		}
 
 		// create new block
-		ts := time.Unix(startBlock.Time, 0).Format(time.RFC3339)
-		if err = ProcessBlock(dgraph, transactions, currentBlockHash, currentBlockId, ts, startBlock.PreviousHash); err != nil {
+		ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
+		if err = ProcessBlock(dgraph, transactions, currentBlockHash, currentBlockId, ts, currentBlock.PreviousHash); err != nil {
 			log.Println("Error: we had problem processing the block")
 			log.Printf("Hash: %s, BlockId: %d\n", currentBlockHash, currentBlockId)
 			break
@@ -314,7 +314,7 @@ mainLoop:
 
 		blkCounter++
 
-		if currentBlockId == stoppingBlockId || startBlock.NextHash == "" {
+		if currentBlockId == stoppingBlockId || currentBlock.NextHash == "" {
 			// finished
 			if err = dbstat.SetCrawling(dgraph, false); err != nil {
 				return err
@@ -323,12 +323,12 @@ mainLoop:
 		}
 
 		// set values for next round
-		startHashObj, err = chainhash.NewHashFromStr(startBlock.NextHash)
+		currentHashObj, err = chainhash.NewHashFromStr(currentBlock.NextHash)
 		if err != nil {
 			return err
 		}
 
-		currentBlockHash = startBlock.NextHash
+		currentBlockHash = currentBlock.NextHash
 		currentBlockId++
 
 		//if blkCounter%20000 == 0 {
