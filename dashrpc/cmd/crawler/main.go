@@ -29,14 +29,20 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 		(cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
 		err = errors.New("missing block information")
-		return cliArgs, err
+		return
 	}
 
-	// startBlockID must be smaller than stopBlockID, as we go forward
-	if cliArgs.StartBlockID > cliArgs.StopBlockID {
+	if cliArgs.Continuous && (cliArgs.StartBlockID > 0 || cliArgs.StopBlockID > 0) {
 		flag.PrintDefaults()
-		err = errors.New("start must be smaller than stop")
-		return cliArgs, err
+		err = errors.New("continuous syncing can not be used together with start and stop block id")
+		return
+	}
+
+	// startBlockID must be smaller or equal than stopBlockID, as we go forward
+	if cliArgs.StartBlockID >= cliArgs.StopBlockID {
+		flag.PrintDefaults()
+		err = errors.New("start must be smaller or equal than stop")
+		return
 	}
 
 	// todo: do we still need benchmarks?
@@ -56,7 +62,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	//	cliArgs.BadgerDir = dirName
 	//}
 
-	return cliArgs, err
+	return
 }
 
 // checks if we can continue crawling with the provided arguments
