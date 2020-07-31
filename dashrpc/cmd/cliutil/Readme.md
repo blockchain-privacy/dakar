@@ -82,7 +82,7 @@ If the new flag needs some **simple** input verification, implement it in this m
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| continue | false | Continue the previously started DB build process (default: false) |
+| continuous | false | Continuously syncs the whole chain (default: false) |
 | reset | false | Remove all data from the database (default: false) |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
@@ -90,7 +90,6 @@ If the new flag needs some **simple** input verification, implement it in this m
 | stop | 0 | Stop Block Id (default: 0) |
 | status | false | Prints current processing status (default: false) |
 | benchmark | false | Run short performance test (default: false) |
-| excludeaddresses | false | Exclude addresses from saving into the database (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |

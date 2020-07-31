@@ -17,15 +17,15 @@ const benchmarkStartBlockID = 901500
 const benchmarkStopBlockID = 901250
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.ProcessContinue, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
+	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if !cliArgs.IsPrintStatus && !cliArgs.ProcessContinue && !cliArgs.IsBenchmark &&
+	if !cliArgs.IsPrintStatus && !cliArgs.Continuous && !cliArgs.IsBenchmark &&
 		(cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
 		err = errors.New("missing block information")
@@ -141,7 +141,7 @@ func main() {
 		log.Println("setup new schema")
 	}
 
-	if cliArgs.ProcessContinue {
+	if cliArgs.Continuous {
 		if err = canContinue(dgraph, cliArgs.StartBlockID, cliArgs.StopBlockID); err != nil {
 			log.Println(err)
 			return
@@ -180,7 +180,7 @@ func main() {
 	//	}
 	//}
 
-	err = dashrpc.ProcessNewBlocks(dgraph, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockID, cliArgs.StopBlockID)
+	err = dashrpc.ProcessNewBlocks(dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
 	if err != nil {
 		log.Println(err)
 		return

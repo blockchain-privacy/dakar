@@ -14,7 +14,7 @@ type Flag int
 
 // flag enum
 const (
-	ProcessContinue Flag = iota
+	Continuous Flag = iota
 	ResetDB
 	RpcUser
 	RpcPassword
@@ -24,7 +24,6 @@ const (
 	StopBlockID
 	IsPrintStatus
 	IsBenchmark
-	ExcludeAddresses
 	ExplorerServerPort
 	Logfile
 	TxSearch
@@ -33,7 +32,7 @@ const (
 )
 
 type Arguments struct {
-	ProcessContinue    bool
+	Continuous         bool
 	ResetDB            bool
 	RpcUser            string
 	RpcPassword        string
@@ -41,7 +40,6 @@ type Arguments struct {
 	StopBlockID        uint64
 	IsPrintStatus      bool
 	IsBenchmark        bool
-	ExcludeAddresses   bool
 	RpcEndpoint        string
 	Logfile            string
 	TxSearch           string
@@ -82,8 +80,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	for _, f := range flags {
 		switch f {
-		case ProcessContinue:
-			addProcessContinue(&args.ProcessContinue)
+		case Continuous:
+			addContinuous(&args.Continuous)
 			break
 		case ResetDB:
 			addResetDB(&args.ResetDB)
@@ -112,9 +110,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case IsBenchmark:
 			addIsBenchmark(&args.IsBenchmark)
-			break
-		case ExcludeAddresses:
-			addExcludeAddresses(&args.ExcludeAddresses)
 			break
 		case Logfile:
 			addLogfile(&args.Logfile)
@@ -164,8 +159,8 @@ func addTxSearch(v *string) {
 	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash (default: none)")
 }
 
-func addProcessContinue(v *bool) {
-	flag.BoolVar(v, "continue", false, "Continue the previously started DB build process (default: false)")
+func addContinuous(v *bool) {
+	flag.BoolVar(v, "continuous", false, "Continuously syncs the whole chain (default: false)")
 }
 
 func addResetDB(v *bool) {
@@ -194,10 +189,6 @@ func addIsPrintStatus(v *bool) {
 
 func addIsBenchmark(v *bool) {
 	flag.BoolVar(v, "benchmark", false, "Run short performance test (default: false)")
-}
-
-func addExcludeAddresses(v *bool) {
-	flag.BoolVar(v, "excludeaddresses", false, "Exclude addresses from saving into the database (default: false)")
 }
 
 func addRpcHost(v *string) {

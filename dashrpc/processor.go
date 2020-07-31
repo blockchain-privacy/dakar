@@ -125,7 +125,7 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 // processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
-func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, processAddrs bool, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
+func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
 		log.Printf("Cannot convert string to Hash in BuildTransactionMapping(). String: %s", txHashString)
@@ -171,9 +171,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, proce
 	}
 
 	// create transaction mapping for address processing later on
-	if processAddrs {
-		tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
-	}
+	tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
 
 	return txDetails, tMap, err
 }
@@ -223,7 +221,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 
 // processes all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client,
-	includeAddresses bool, startingBlockId uint64, stoppingBlockId uint64) error {
+	startingBlockId uint64, stoppingBlockId uint64) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		log.Println("could not set crawling status:", err)
@@ -272,7 +270,7 @@ mainLoop:
 		var transactions []dbtx.Transaction
 
 		for _, t := range currentBlock.Tx {
-			newTx, tMap, err := BuildTransactionMapping(dgraph, client, includeAddresses, t)
+			newTx, tMap, err := BuildTransactionMapping(dgraph, client, t)
 			if err != nil {
 				log.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
 				log.Printf("Error: %s\n", err.Error())
@@ -300,10 +298,8 @@ mainLoop:
 			break
 		}
 
-		if includeAddresses {
-			if err = processAddresses(dgraph, txMapping); err != nil {
-				return err
-			}
+		if err = processAddresses(dgraph, txMapping); err != nil {
+			return err
 		}
 
 		// save processing state
