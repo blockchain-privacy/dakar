@@ -18,8 +18,10 @@ import (
 const DType = "Status"
 
 type Status struct {
-	Uid        string `json:"uid,omitempty"`
-	IsCrawling *bool  `json:"iscrawling,omitempty"`
+	Uid string `json:"uid,omitempty"`
+
+	// true if a crawling process is currently active
+	IsCrawling *bool `json:"iscrawling,omitempty"`
 
 	// Crawling works in two steps:
 	// Step 1: Insert block, transaction and output data.
@@ -49,14 +51,33 @@ func (s *Status) SetDType() {
 	s.DType = []string{DType}
 }
 
-type statusQuery struct {
-	Q []Status `json:"q"`
+type VerboseStatus struct {
+	Uid              string
+	IsCrawling       bool
+	LastBlockId      uint64
+	HighestBlockId   uint64
+	TransactionCount uint64
+	BlockCount       uint64
+	OutputCount      uint64
+	AddressCount     uint64
+}
+
+func (v VerboseStatus) String() string {
+	return fmt.Sprintf("Uid: %s, IsCrawling: %t, LastBlockId: %d, HighestBlockId: %d, "+
+		"TransactionCount: %d, BlockCount: %d, OutputCount: %d, AddressCount: %d",
+		v.Uid, v.IsCrawling, v.LastBlockId, v.HighestBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
 }
 
 const (
-	ErrorStatusNotFound = "no status found"
-	ErrorInvalidNumber  = "wrong number of status objects returned"
+	ErrorStatusNotFound      = "no status found"
+	ErrorInvalidNumber       = "wrong number of status objects returned"
+	ErrorLastBlockIdNotFound = "last block id not found"
+	ErrorIsCrawlingNotFound  = "crawling status not found"
 )
+
+type statusQuery struct {
+	Q []Status `json:"q"`
+}
 
 func (s statusQuery) payload() (status Status, err error) {
 	lenQ := len(s.Q)
