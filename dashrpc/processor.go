@@ -483,21 +483,3 @@ mainLoop:
 
 	return nil
 }
-
-// ProcessAddressClustering traverses the transactions from a given address and creates the cluster data in DB
-// TODO currently there is no clustering, just a lookup for current TXs associated with a given address
-//func ProcessAddressClustering(db *badger.DB, startingAddr string) error {
-//
-//	addrData := AddressData{}
-//	err := DbGetDataForAddress(db, startingAddr, &addrData)
-//	if err != nil {
-//		return err
-//	}
-//	txs := addrData.Txs
-//
-//	for _, tx := range txs {
-//		log.Printf("TX %v -- hash: %v Amount: %f -- %v\n", tx.TxType, tx.TxHash, tx.Amount, tx.Addresses)
-//	}
-//
-//	return nil
-//}
