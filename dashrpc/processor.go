@@ -28,6 +28,28 @@ const (
 	newBlockIntervalTime = blockTime / 3
 )
 
+// holds the current state of the processing loop
+type processingState struct {
+	// current block id
+	id uint64
+	// current block hash
+	hash string
+	// current block hash as a chainhash.Hash
+	chainHash *chainhash.Hash
+}
+
+// increments the state for the next processing loop
+func (p *processingState) increment(nextHash string) (err error) {
+	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
+	if err != nil {
+		return err
+	}
+
+	p.hash = nextHash
+	p.id++
+	return
+}
+
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
 	hash    string
@@ -56,6 +78,8 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 	return mapping
 }
 
+// adds the given uids of outputs to the address specified by addr in addresses
+// addr is inserted into addresses if it does not yet exist
 func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) map[string]dbaddr.Address {
 	var (
 		editAddress dbaddr.Address
@@ -249,6 +273,11 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 	return
 }
 
+func processingInterrupted() {
+	log.Printf("### Block processing interrupted ###")
+
+}
+
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
@@ -258,11 +287,10 @@ func waitForNextBlock(client *rpcclient.Client, interrupt <-chan os.Signal, hash
 	for {
 		select {
 		case <-interrupt:
-			log.Printf("### Block processing interrupted ###")
+			processingInterrupted()
 			isInterrupt = true
 			return
 		case <-ticker.C:
-			// todo instead of using a ticker use asyncblock call and wait for future channel
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
 				return
@@ -277,26 +305,33 @@ func waitForNextBlock(client *rpcclient.Client, interrupt <-chan os.Signal, hash
 	return
 }
 
+// creates the initial state of the processing loop
+func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state processingState, err error) {
+	if state.id, err = getStartingId(dgraph, continuous, startId); err != nil {
+		return
+	}
+
+	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
+		return
+	}
+	state.hash = state.chainHash.String()
+
+	return
+}
+
 // processes all the new blocks from a given hash down to the block that is already in DB
 func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool,
 	startingBlockId uint64, stoppingBlockId uint64) error {
 
-	currentBlockId, err := getStartingId(dgraph, continuous, startingBlockId)
+	state, err := getInitialState(dgraph, client, continuous, startingBlockId)
 	if err != nil {
-		return err
-	}
-
-	currentHashObj, err := client.GetBlockHash(int64(currentBlockId))
-	if err != nil {
-		log.Println("problem converting startingBlockId", currentBlockId, err)
 		return err
 	}
 
 	blkCounter := 0
 	txCounter := 0
-	currentBlockHash := currentHashObj.String()
 
-	log.Println("Starting crawling at Id:", currentBlockId, "Hash:", currentBlockHash)
+	log.Println("Starting crawling at Id:", state.id, "Hash:", state.hash)
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
@@ -307,15 +342,16 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 
 	firstLoop := true
 	var currentBlock *btcjson.GetBlockVerboseResult
+
 mainLoop:
 	for {
 		if continuous && !firstLoop {
 			// set values for this round
 			if currentBlock.NextHash == "" {
-				log.Println("Waiting for next block. Current block id:", currentBlockId)
+				log.Println("Waiting for next block. Current block id:", state.id)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextBlock(client, c, currentHashObj)
+				currentBlock, isInterrupt, err = waitForNextBlock(client, c, state.chainHash)
 				if err != nil {
 					return err
 				}
@@ -324,25 +360,21 @@ mainLoop:
 					break mainLoop
 				}
 
-				log.Println("Found next block. Current block id:", currentBlockId)
+				log.Println("Found next block. Current block id:", state.id)
 			}
 		}
 
 		// if not the first round set variables for this loop
 		if !firstLoop {
-			currentHashObj, err = chainhash.NewHashFromStr(currentBlock.NextHash)
-			if err != nil {
+			if err = state.increment(currentBlock.NextHash); err != nil {
 				return err
 			}
-
-			currentBlockHash = currentBlock.NextHash
-			currentBlockId++
 		}
 
 		// check for stop conditions if not stop
 		if !continuous {
 			// stoppingBlockId+1 <- +1 because we still need to process this round
-			if currentBlockId == stoppingBlockId+1 || (currentBlock != nil && currentBlock.NextHash == "") {
+			if state.id == stoppingBlockId+1 || (currentBlock != nil && currentBlock.NextHash == "") {
 				// finished
 				break
 			}
@@ -350,7 +382,7 @@ mainLoop:
 
 		select {
 		case <-c:
-			log.Printf("### Block processing interrupted ###")
+			processingInterrupted()
 			break mainLoop
 		default:
 			// we do nothing
@@ -358,12 +390,12 @@ mainLoop:
 
 		firstLoop = false
 		// get block from RPC-Client
-		currentBlock, err = client.GetBlockVerbose(currentHashObj)
+		currentBlock, err = client.GetBlockVerbose(state.chainHash)
 		if err != nil {
 			return err
 		}
 
-		if b, err := dbblk.GetBlock(dgraph, currentBlockHash); err == nil && b.IsComplete() {
+		if b, err := dbblk.GetBlock(dgraph, state.hash); err == nil && b.IsComplete() {
 			// block already in database
 			continue
 		}
@@ -387,16 +419,16 @@ mainLoop:
 			}
 
 			//if txCounter%5000 == 0 {
-			//	log.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, currentBlockId, currentBlockHash)
-			//	log.Printf("Block %s processed, tx count: %d\n", currentBlockId, txCounter)
+			//	log.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, state.id, state.hash)
+			//	log.Printf("Block %s processed, tx count: %d\n", state.id, txCounter)
 			//}
 		}
 
 		// create new block
 		ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
-		if err = ProcessBlock(dgraph, transactions, currentBlockHash, currentBlockId, ts, currentBlock.PreviousHash); err != nil {
+		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, currentBlock.PreviousHash); err != nil {
 			log.Println("Error: we had problem processing the block")
-			log.Printf("Hash: %s, BlockId: %d\n", currentBlockHash, currentBlockId)
+			log.Printf("Hash: %s, BlockId: %d\n", state.hash, state.id)
 			break
 		}
 
@@ -405,8 +437,8 @@ mainLoop:
 		}
 
 		// save processing state
-		if err = dbstat.SetLastBlockId(dgraph, currentBlockId); err != nil {
-			log.Printf("error saving CurrentBlockID state: %v\n", err)
+		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
+			log.Printf("error saving state.id state: %v\n", err)
 			return err
 		}
 
@@ -419,7 +451,7 @@ mainLoop:
 
 	elapsedTime := time.Since(timerStart)
 	if blkCounter > 0 {
-		log.Printf("Last Block Hash: %s, Id: %d\n", currentBlockHash, currentBlockId)
+		log.Printf("Last Block Hash: %s, Id: %d\n", state.hash, state.id)
 		log.Printf("Final Blocks count: %v\n", blkCounter)
 		log.Printf("Final TX count: %v\n", txCounter)
 		log.Printf("Elapsed time: %s\n", elapsedTime)
