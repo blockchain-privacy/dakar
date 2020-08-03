@@ -129,10 +129,6 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputM
 	if err != nil {
 		return err
 	}
-	// handle input mappings
-	if err = buildAddressMapping(inputs, txFromDB.Inputs, addrMap); err != nil {
-		return err
-	}
 
 	// handle output mappings
 	return buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
@@ -383,7 +379,7 @@ mainLoop:
 			}
 		}
 
-		// if not the first round set variables for this loop
+		// if not the first round increment state
 		if !firstLoop {
 			if err = state.increment(currentBlock.NextHash); err != nil {
 				return err
@@ -471,7 +467,7 @@ mainLoop:
 	elapsedTime := time.Since(timerStart)
 	if blkCounter > 0 {
 		log.Println("Last Block:", state)
-		log.Printf("Final Blocks count: %v\n", blkCounter)
+		log.Printf("New blocks inserted: %v\n", blkCounter)
 		log.Printf("Final TX count: %v\n", txCounter)
 		log.Printf("Elapsed time: %s\n", elapsedTime)
 		log.Printf("Performance: %v ms/block", elapsedTime.Milliseconds()/int64(blkCounter))
