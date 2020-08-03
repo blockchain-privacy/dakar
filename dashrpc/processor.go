@@ -8,6 +8,7 @@ import (
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
+	"errors"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
@@ -257,18 +258,23 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 		return
 	}
 
-	status, err := dbstat.Get(dgraph)
+	status, err := dbstat.GetVerbose(dgraph)
 	if err != nil {
+		if err.Error() == dbstat.ErrorLastBlockIdNotFound {
+			// last block id is not set -> we start at the beginning of the chain
+			startId = 1
+			err = nil
+			return
+		}
 		return
 	}
 
-	if status.LastBlockId == nil {
-		// last block id is not set -> we start at the beginning of the chain
-		startId = 1
+	if status.LastBlockId != status.HighestBlockId {
+		err = errors.New("last crawled block and highest block are not the same! Status: " + status.String())
 		return
 	}
 
-	startId = *status.LastBlockId
+	startId = status.LastBlockId
 
 	return
 }
@@ -345,6 +351,14 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 
 mainLoop:
 	for {
+		select {
+		case <-c:
+			processingInterrupted()
+			break mainLoop
+		default:
+			// we do nothing
+		}
+
 		if continuous && !firstLoop {
 			// set values for this round
 			if currentBlock.NextHash == "" {
@@ -380,24 +394,11 @@ mainLoop:
 			}
 		}
 
-		select {
-		case <-c:
-			processingInterrupted()
-			break mainLoop
-		default:
-			// we do nothing
-		}
-
 		firstLoop = false
 		// get block from RPC-Client
 		currentBlock, err = client.GetBlockVerbose(state.chainHash)
 		if err != nil {
 			return err
-		}
-
-		if b, err := dbblk.GetBlock(dgraph, state.hash); err == nil && b.IsComplete() {
-			// block already in database
-			continue
 		}
 
 		var txMapping []TransactionMapping
@@ -424,12 +425,28 @@ mainLoop:
 			//}
 		}
 
-		// create new block
-		ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
-		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, currentBlock.PreviousHash); err != nil {
-			log.Println("Error: we had problem processing the block")
-			log.Printf("Hash: %s, BlockId: %d\n", state.hash, state.id)
-			break
+		// if the current block is not yet in the database or if only a shallow block exist in
+		// the database a new block is created shallow blocks get created when a crawling process gets
+		// started for the first time. Each block creation connects the current block with the previous block.
+		// In the case of the first block, a previous block does not exist, thus a shallow block is created.
+		// This check is relatively late in the processing loop. The reason for this is, that even if the
+		// block already exists, the address mapping might not exist. This is the case if after block
+		// creation the crawling process is aborted. So the address mapping must be created either way.
+		// Address mappings are upserted in the worst case with same mappings as already included in the database,
+		// so there is no damage done if we upsert the same mapping twice.
+		if b, err := dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+			// block is not yet in database -> create new block
+			ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
+			if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, currentBlock.PreviousHash); err != nil {
+				log.Println("Error: we had problem processing the block")
+				log.Printf("Hash: %s, BlockId: %d\n", state.hash, state.id)
+				break
+			}
+
+			blkCounter++
+		} else {
+			// reduce txCounter as the currentBlock is not processed
+			txCounter -= len(currentBlock.Tx)
 		}
 
 		if err = processAddresses(dgraph, txMapping); err != nil {
@@ -442,9 +459,7 @@ mainLoop:
 			return err
 		}
 
-		blkCounter++
-
-		if blkCounter%5 == 0 {
+		if blkCounter%10 == 0 {
 			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
 		}
 	}
