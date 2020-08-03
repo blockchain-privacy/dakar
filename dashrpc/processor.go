@@ -9,6 +9,7 @@ import (
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"errors"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
@@ -37,6 +38,10 @@ type processingState struct {
 	hash string
 	// current block hash as a chainhash.Hash
 	chainHash *chainhash.Hash
+}
+
+func (p processingState) String() string {
+	return fmt.Sprintf("Id: %d, Hash: %s", p.id, p.hash)
 }
 
 // increments the state for the next processing loop
@@ -337,7 +342,7 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 	blkCounter := 0
 	txCounter := 0
 
-	log.Println("Starting crawling at Id:", state.id, "Hash:", state.hash)
+	log.Println("Starting crawling at", state)
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	c := make(chan os.Signal, 2)
@@ -362,7 +367,7 @@ mainLoop:
 		if continuous && !firstLoop {
 			// set values for this round
 			if currentBlock.NextHash == "" {
-				log.Println("Waiting for next block. Current block id:", state.id)
+				log.Println("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
 				currentBlock, isInterrupt, err = waitForNextBlock(client, c, state.chainHash)
@@ -374,7 +379,7 @@ mainLoop:
 					break mainLoop
 				}
 
-				log.Println("Found next block. Current block id:", state.id)
+				log.Println("Found next block.", state)
 			}
 		}
 
@@ -438,8 +443,7 @@ mainLoop:
 			// block is not yet in database -> create new block
 			ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
 			if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, currentBlock.PreviousHash); err != nil {
-				log.Println("Error: we had problem processing the block")
-				log.Printf("Hash: %s, BlockId: %d\n", state.hash, state.id)
+				log.Println("Error: we had problem processing the block.", state)
 				break
 			}
 
@@ -466,7 +470,7 @@ mainLoop:
 
 	elapsedTime := time.Since(timerStart)
 	if blkCounter > 0 {
-		log.Printf("Last Block Hash: %s, Id: %d\n", state.hash, state.id)
+		log.Println("Last Block:", state)
 		log.Printf("Final Blocks count: %v\n", blkCounter)
 		log.Printf("Final TX count: %v\n", txCounter)
 		log.Printf("Elapsed time: %s\n", elapsedTime)
