@@ -65,7 +65,6 @@ type outputMapping struct {
 // maps a address to one or more indexes of a transaction
 type TransactionMapping struct {
 	hash    string
-	inputs  map[string]outputMapping
 	outputs map[string]outputMapping
 }
 
@@ -123,8 +122,8 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 	return nil
 }
 
-func buildAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputMapping,
-	outputs map[string]outputMapping, addrMap *map[string]dbaddr.Address) error {
+func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]outputMapping,
+	addrMap *map[string]dbaddr.Address) error {
 	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
 		return err
@@ -138,7 +137,7 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, inputs map[string]outputM
 func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) error {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
-		if err := buildAddresses(dgraph, mapping.hash, mapping.inputs, mapping.outputs, &addrMap); err != nil {
+		if err := buildAddresses(dgraph, mapping.hash, mapping.outputs, &addrMap); err != nil {
 			return err
 		}
 	}
@@ -416,7 +415,7 @@ mainLoop:
 
 			txCounter++
 			transactions = append(transactions, newTx)
-			if tMap.hash != "" && (len(tMap.inputs) > 0 || len(tMap.outputs) > 0) {
+			if tMap.hash != "" && len(tMap.outputs) > 0 {
 				txMapping = append(txMapping, tMap)
 			}
 
@@ -459,7 +458,7 @@ mainLoop:
 			return err
 		}
 
-		if blkCounter%10 == 0 {
+		if blkCounter > 0 && blkCounter%10 == 0 {
 			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
 		}
 	}

@@ -115,19 +115,27 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	}
 
 	// check if all values are set correctly
-	if len(r.Status) != 1 || len(r.Highestblock) != 1 || len(r.Blk) != 1 ||
-		len(r.Tx) != 1 || len(r.Op) != 1 || len(r.Addr) != 1 {
+	if len(r.Status) != 1 || len(r.Blk) != 1 || len(r.Tx) != 1 ||
+		len(r.Op) != 1 || len(r.Addr) != 1 {
 		err = errors.New(ErrorInvalidNumber)
 		return
 	}
 
-	if r.Status[0].LastBlockId == nil {
+	if r.Status[0].IsCrawling == nil {
 		err = errors.New(ErrorIsCrawlingNotFound)
 		return
 	}
 
-	if r.Status[0].IsCrawling == nil {
+	if r.Status[0].LastBlockId == nil {
 		err = errors.New(ErrorLastBlockIdNotFound)
+		return
+	}
+
+	if len(r.Highestblock) == 0 {
+		err = errors.New(ErrorHighestBlockNotFound)
+		return
+	} else if len(r.Highestblock) > 1 {
+		err = errors.New(ErrorInvalidNumber)
 		return
 	}
 

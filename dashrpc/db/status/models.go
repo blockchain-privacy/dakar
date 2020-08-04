@@ -69,10 +69,11 @@ func (v VerboseStatus) String() string {
 }
 
 const (
-	ErrorStatusNotFound      = "no status found"
-	ErrorInvalidNumber       = "wrong number of status objects returned"
-	ErrorLastBlockIdNotFound = "last block id not found"
-	ErrorIsCrawlingNotFound  = "crawling status not found"
+	ErrorStatusNotFound       = "no status found"
+	ErrorInvalidNumber        = "wrong number of status objects returned"
+	ErrorLastBlockIdNotFound  = "last block id not found"
+	ErrorIsCrawlingNotFound   = "crawling status not found"
+	ErrorHighestBlockNotFound = "highest block not found"
 )
 
 type statusQuery struct {
