@@ -23,7 +23,6 @@ const (
 	StartBlockID
 	StopBlockID
 	IsPrintStatus
-	IsBenchmark
 	ExplorerServerPort
 	Logfile
 	TxSearch
@@ -39,7 +38,6 @@ type Arguments struct {
 	StartBlockID       uint64
 	StopBlockID        uint64
 	IsPrintStatus      bool
-	IsBenchmark        bool
 	RpcEndpoint        string
 	Logfile            string
 	TxSearch           string
@@ -107,9 +105,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case IsPrintStatus:
 			addIsPrintStatus(&args.IsPrintStatus)
-			break
-		case IsBenchmark:
-			addIsBenchmark(&args.IsBenchmark)
 			break
 		case Logfile:
 			addLogfile(&args.Logfile)
@@ -185,10 +180,6 @@ func addStopBlockID(v *uint64) {
 
 func addIsPrintStatus(v *bool) {
 	flag.BoolVar(v, "status", false, "Prints current processing status (default: false)")
-}
-
-func addIsBenchmark(v *bool) {
-	flag.BoolVar(v, "benchmark", false, "Run short performance test (default: false)")
 }
 
 func addRpcHost(v *string) {

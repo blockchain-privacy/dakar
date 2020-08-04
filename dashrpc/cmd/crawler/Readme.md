@@ -30,7 +30,6 @@ Print the current status of the database
 | start | 0 | Start Block Id (default: 0)|
 | stop | 0 | Stop Block Id (default: 0) |
 | status | false | Prints current processing status (default: false) |
-| benchmark | false | Run short performance test (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |

@@ -34,27 +34,11 @@ git submodule update --init --recursive
 ```
 * Build the `crawler`
 ```bash
-go build ./cmd/crawler.go
+cd dashrpc
+go build ./cmd/crawler
 ```
 * Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler.go) are used.
 ```bash
 dashd -rpcuser=rpc1user -rpcpassword=1234pass
 ```
-* Execute the benchmark. You should get output like in the benchmarking section.
-```bash
-./crawler -benchmark
-```
-
-## Benchmarking
-
-* Mariusz's laptop (Intel i7, 7th gen, 3.3GHz, SSD)
-```
-Elapsed time: 2m4.847019277s
-Performance: 499 ms/block
-```
-
-* Michael's computer (Intel Xeon E3-1230v3, 3.3Ghz, SSD)
-```
-Elapsed time: 1m43.415075837s
-Performance: 413 ms/block
-```
+* Ensure Dgraph is active

@@ -13,20 +13,16 @@ import (
 	"log"
 )
 
-const benchmarkStartBlockID = 901500
-const benchmarkStopBlockID = 901250
-
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.IsBenchmark, cli.RpcHost, cli.RpcPort, cli.Logfile)
+		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if !cliArgs.IsPrintStatus && !cliArgs.Continuous && !cliArgs.IsBenchmark &&
-		(cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
+	if !cliArgs.IsPrintStatus && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
 		err = errors.New("missing block information")
 		return
@@ -44,22 +40,6 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 		err = errors.New("start must be smaller or equal than stop")
 		return
 	}
-
-	// todo: do we still need benchmarks?
-	//if cliArgs.IsBenchmark {
-	//	cliArgs.StartBlockID = benchmarkStartBlockID
-	//	cliArgs.StopBlockID = benchmarkStopBlockID
-	//	cliArgs.ProcessContinue = false
-	//	cliArgs.IsPrintStatus = false
-	//
-	//	// temp dir will be deleted later on
-	//	dirName, err := ioutil.TempDir("", "dashrpc")
-	//
-	//	if err != nil {
-	//		flag.PrintDefaults()
-	//		return cliArgs, err
-	//	}
-	//}
 
 	return
 }
@@ -105,11 +85,6 @@ func main() {
 				fmt.Println(err)
 			}
 		}()
-	}
-
-	if cliArgs.IsBenchmark {
-		log.Print("Benchmarking is currently not supported")
-		return
 	}
 
 	// create dgraph client
