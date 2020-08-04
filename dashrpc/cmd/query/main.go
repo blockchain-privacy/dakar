@@ -10,6 +10,8 @@ import (
 	"log"
 )
 
+const privateSendFilename = "result.csv"
+
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
@@ -62,13 +64,13 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./result.csv")
+		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./"+privateSendFilename)
 
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		log.Printf("Final map has %v elements\n", len(res))
+		log.Println("Final map has", len(res), "elements")
 	} else if len(cliArgs.TxInfo) > 0 {
 
 		transaction, err := dbtx.GetTransaction(dgraph, cliArgs.TxInfo)
@@ -76,24 +78,20 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Printf("Tx isCreateDenominations %v\n", transaction.IsCreateDenominations())
+		log.Println("Tx isCreateDenominations:", transaction.IsCreateDenominations())
 		if transaction.IsCreateDenominations() {
-			log.Printf("Denominations: %v\n", transaction.CountOutputDenominations())
+			log.Println("Denominations:", transaction.CountOutputDenominations())
 		}
-		log.Printf("Tx isMixingTransaction %v\n", transaction.IsMixing())
+		log.Println("Tx isMixingTransaction:", transaction.IsMixing())
 		if transaction.IsMixing() {
-			log.Printf("Denominations on outputs: %v\n", transaction.CountOutputDenominations())
-			log.Printf("Denominations on inputs: %v\n", transaction.CountInputDenominations())
+			log.Println("Denominations on outputs:", transaction.CountOutputDenominations())
+			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
-		log.Printf("Tx isPrivateSend %v\n", transaction.IsPrivateSend())
+		log.Println("Tx isPrivateSend:", transaction.IsPrivateSend())
 		if transaction.IsPrivateSend() {
-			log.Printf("Denominations on inputs: %v\n", transaction.CountInputDenominations())
+			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
+	} else if len(cliArgs.ClusterAddr) > 0 {
+		log.Println("Clustering is not yet implemented")
 	}
-	//else if len(cliArgs.ClusterAddr) > 0 {
-	//	if err := dashrpc.ProcessAddressClustering(dgraph, cliArgs.ClusterAddr); err != nil {
-	//		log.Println(err)
-	//		return
-	//	}
-	//}
 }
