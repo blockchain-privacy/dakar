@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-const DType = "TxOutput"
+const DType = "Output"
 
 type Output struct {
 	Uid         string   `json:"uid,omitempty"`

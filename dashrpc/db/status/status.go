@@ -77,7 +77,7 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 				  tx(func: type(Transaction)){
 						count: count(uid)
 					}
-				  op(func: type(TxOutput)){
+				  op(func: type(Output)){
 						count: count(uid)
 					}
 				  addr(func: type(Address)){

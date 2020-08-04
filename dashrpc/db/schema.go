@@ -47,7 +47,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 				tx_inputs
 			}
 
-			type TxOutput {
+			type Output {
 				outputindex
 				inputindex
 				txtype
