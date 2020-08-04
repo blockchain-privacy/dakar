@@ -29,11 +29,7 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	return cliArgs, err
 }
 
-//
-// Simple utility to browse/lookup the TXs from the badger database
-//
-// Work in Progress. NOT WORKING YET.
-//
+// Simple utility to browse/lookup the TXs from the database
 func main() {
 
 	cliArgs, err := getExplorerCLIArgs()

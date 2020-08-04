@@ -63,9 +63,9 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 }
 
 // The main crawler for the system. It needs to be run prior to using any of the other
-// commands that rely on the Badger DB to be pre-created.
+// commands that rely on the Dgraph DB to be pre-created.
 //
-// DashRPC client traverses the Dash blockchain and creates a Badger database entry for each transaction
+// DashRPC client traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 //
 // Note: in the future, the crawler could be integrated with the backend-web service as
