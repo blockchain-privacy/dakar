@@ -66,7 +66,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 
 // checks if a crawling process is already running
 func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
-	dbStatus, err := status.Get(dgraph)
+	dbStatus, err := status.GetStatus(dgraph)
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now

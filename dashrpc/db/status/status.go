@@ -15,7 +15,7 @@ import (
 
 // PrintStatus outputs the stats for the given DB
 func PrintStatus(dgraph *dgo.Dgraph) {
-	status, _ := Get(dgraph)
+	status, _ := GetStatus(dgraph)
 
 	if status.IsCrawling != nil {
 		fmt.Println("Currently crawling:", *status.IsCrawling)
@@ -37,7 +37,7 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 }
 
 // gets status information from the database
-func Get(c *dgo.Dgraph) (status Status, err error) {
+func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 	query := `{
 				 q(func: type(Status)){
 					iscrawling
@@ -154,7 +154,7 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 }
 
 // sets the new status
-func Set(c *dgo.Dgraph, status Status) error {
+func setStatus(c *dgo.Dgraph, status Status) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
 
@@ -184,14 +184,14 @@ func Set(c *dgo.Dgraph, status Status) error {
 
 // sets the crawling status
 func SetCrawling(c *dgo.Dgraph, crawling bool) error {
-	return Set(c, Status{
+	return setStatus(c, Status{
 		IsCrawling: &crawling,
 	})
 }
 
 // sets the last block id
 func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
-	return Set(c, Status{
+	return setStatus(c, Status{
 		LastBlockId: &id,
 	})
 }
