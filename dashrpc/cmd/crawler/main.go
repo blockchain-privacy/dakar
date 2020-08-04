@@ -15,7 +15,7 @@ import (
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile)
+		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -128,12 +128,14 @@ func main() {
 		return
 	}
 
-	if ok, err := isCrawling(dgraph); err != nil {
-		log.Println(err)
-		return
-	} else if ok {
-		log.Println("Crawling process is already running.")
-		return
+	if !cliArgs.IgnoreSafeguard {
+		if ok, err := isCrawling(dgraph); err != nil {
+			log.Println(err)
+			return
+		} else if ok {
+			log.Println("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
+			return
+		}
 	}
 
 	// Setup the RPC connection

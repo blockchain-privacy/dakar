@@ -15,6 +15,7 @@ type Flag int
 // flag enum
 const (
 	Continuous Flag = iota
+	IgnoreSafeguard
 	ResetDB
 	RpcUser
 	RpcPassword
@@ -32,6 +33,7 @@ const (
 
 type Arguments struct {
 	Continuous         bool
+	IgnoreSafeguard    bool
 	ResetDB            bool
 	RpcUser            string
 	RpcPassword        string
@@ -80,6 +82,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		switch f {
 		case Continuous:
 			addContinuous(&args.Continuous)
+			break
+		case IgnoreSafeguard:
+			addIgnoreSafeguard(&args.IgnoreSafeguard)
 			break
 		case ResetDB:
 			addResetDB(&args.ResetDB)
@@ -156,6 +161,10 @@ func addTxSearch(v *string) {
 
 func addContinuous(v *bool) {
 	flag.BoolVar(v, "continuous", false, "Continuously syncs the whole chain (default: false)")
+}
+
+func addIgnoreSafeguard(v *bool) {
+	flag.BoolVar(v, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
 }
 
 func addResetDB(v *bool) {
