@@ -2,6 +2,23 @@
 
 This is the blockchain crawler. It loads data from `dashd` and stores it in its own database.
 
+## Examples
+
+Write to a log file, reset the database and start crawling continuously at block height 1.
+```crawler
+./crawler -continuous -logfile /tmp/crawler.log -reset
+```
+
+Write to a log file, reset the database and start crawling from block height 1268019 to 1269019
+```crawler
+./crawler -start 1268019 -stop 1269019 -logfile /home/dark/crawler.log -reset
+```
+
+Print the current status of the database
+```crawler
+./crawler -status
+```
+
 ## Commandline Arguments
 
 | Flag | Default Value | Description |
