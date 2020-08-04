@@ -144,11 +144,20 @@ func main() {
 		log.Println("setup new schema")
 	}
 
+	// check if schema exists
+	if isSet, err := db.IsSchemaSet(dgraph); err != nil {
+		log.Println(err)
+		return
+	} else if !isSet {
+		log.Println("Schema is not set. Use -reset to create a new schema.")
+		return
+	}
+
 	if ok, err := isCrawling(dgraph); err != nil {
 		log.Println(err)
 		return
 	} else if ok {
-		log.Println("Crawling process is already running. Aborting ...")
+		log.Println("Crawling process is already running.")
 		return
 	}
 

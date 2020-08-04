@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
@@ -69,4 +70,33 @@ func SetupSchema(c *dgo.Dgraph) error {
 			}
 		`,
 	})
+}
+
+// checks if a schema is set
+func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
+	query := "schema(type: Block){}"
+
+	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
+
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		Types []struct {
+			Fields []struct {
+				Name string `json:"name,omitempty"`
+			} `json:"fields,omitempty"`
+		} `json:"types,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return
+	}
+
+	if len(r.Types) == 1 && len(r.Types[0].Fields) > 0 {
+		exists = true
+	}
+
+	return
 }
