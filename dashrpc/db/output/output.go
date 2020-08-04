@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"math"
 	"strconv"
 )
 
@@ -255,4 +256,27 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 // gets the number of outputs in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
+}
+
+func almostEqual(a, b float64) bool {
+	var delta float64
+	delta = 0.00001
+	return math.Abs(a-b) <= delta
+}
+
+func CountDenominations(outputs []Output) []int {
+	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
+	denominations := make([]int, len(denominationsTypes))
+
+	for _, o := range outputs {
+	inner:
+		for i, v := range denominationsTypes {
+			if almostEqual(*o.Amount, v) {
+				denominations[i]++
+				break inner
+			}
+		}
+	}
+
+	return denominations
 }

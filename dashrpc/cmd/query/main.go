@@ -3,6 +3,7 @@ package main
 import (
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
+	dbtx "dashrpc/db/transaction"
 	"errors"
 	"flag"
 	"fmt"
@@ -68,28 +69,28 @@ func main() {
 			return
 		}
 		log.Printf("Final map has %v elements\n", len(res))
+	} else if len(cliArgs.TxInfo) > 0 {
+
+		transaction, err := dbtx.GetTransaction(dgraph, cliArgs.TxInfo)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("Tx isCreateDenominations %v\n", transaction.IsCreateDenominations())
+		if transaction.IsCreateDenominations() {
+			log.Printf("Denominations: %v\n", transaction.CountOutputDenominations())
+		}
+		log.Printf("Tx isMixingTransaction %v\n", transaction.IsMixing())
+		if transaction.IsMixing() {
+			log.Printf("Denominations on outputs: %v\n", transaction.CountOutputDenominations())
+			log.Printf("Denominations on inputs: %v\n", transaction.CountInputDenominations())
+		}
+		log.Printf("Tx isPrivateSend %v\n", transaction.IsPrivateSend())
+		if transaction.IsPrivateSend() {
+			log.Printf("Denominations on inputs: %v\n", transaction.CountInputDenominations())
+		}
 	}
-	//else if len(cliArgs.TxInfo) > 0 {
-	//	var txDetails dashrpc.TxDetails
-	//	err = dashrpc.DbGetTxDetails(dgraph, cliArgs.TxInfo, &txDetails)
-	//	if err != nil {
-	//		log.Fatal(err)
-	//	}
-	//
-	//	log.Printf("Tx isCreateDenominations %v\n", txDetails.IsCreateDenominations())
-	//	if txDetails.IsCreateDenominations() {
-	//		log.Printf("Denominations: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
-	//	}
-	//	log.Printf("Tx isMixingTransaction %v\n", txDetails.IsMixing())
-	//	if txDetails.IsMixing() {
-	//		log.Printf("Denominations on outputs: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
-	//		log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
-	//	}
-	//	log.Printf("Tx isPrivateSend %v\n", txDetails.IsPrivateSend())
-	//	if txDetails.IsPrivateSend() {
-	//		log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
-	//	}
-	//} else if len(cliArgs.ClusterAddr) > 0 {
+	//else if len(cliArgs.ClusterAddr) > 0 {
 	//	if err := dashrpc.ProcessAddressClustering(dgraph, cliArgs.ClusterAddr); err != nil {
 	//		log.Println(err)
 	//		return

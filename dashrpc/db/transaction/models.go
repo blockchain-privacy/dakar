@@ -4,7 +4,6 @@ import (
 	op "dashrpc/db/output"
 	"errors"
 	"fmt"
-	"math"
 )
 
 const DType = "Transaction"
@@ -57,16 +56,24 @@ func (t Transaction) IsComplete() bool {
 	return t.Uid != "" && t.Hash != "" && t.DType != nil
 }
 
+func (t Transaction) CountInputDenominations() []int {
+	return op.CountDenominations(t.Inputs)
+}
+
+func (t Transaction) CountOutputDenominations() []int {
+	return op.CountDenominations(t.Outputs)
+}
+
 // IsCreateDenominations checks if the TX creates denominations
 func (t Transaction) IsCreateDenominations() bool {
-	denom := countDenominations(t.Outputs)
+	denom := t.CountOutputDenominations()
 	// todo add fourth denomination?
 	return len(t.Inputs) == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
 }
 
 func (t Transaction) IsPrivateSend() bool {
-	denom := countDenominations(t.Inputs)
+	denom := t.CountInputDenominations()
 	// todo add fourth denomination?
 	return len(t.Outputs) == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
@@ -83,8 +90,8 @@ func (t Transaction) IsMixing() bool {
 	if len(t.Inputs) != len(t.Outputs) {
 		return false
 	}
-	denomIn := countDenominations(t.Inputs)
-	denomOut := countDenominations(t.Outputs)
+	denomIn := t.CountInputDenominations()
+	denomOut := t.CountOutputDenominations()
 	sum := 0
 	for _, v := range denomIn {
 		sum += v
@@ -161,27 +168,4 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 	}
 
 	return tq.Q[0].toTransaction()
-}
-
-func almostEqual(a, b float64) bool {
-	var delta float64
-	delta = 0.00001
-	return math.Abs(a-b) <= delta
-}
-
-func countDenominations(outputs []op.Output) []int {
-	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
-	denominations := make([]int, len(denominationsTypes))
-
-	for _, o := range outputs {
-	inner:
-		for i, v := range denominationsTypes {
-			if almostEqual(*o.Amount, v) {
-				denominations[i]++
-				break inner
-			}
-		}
-	}
-
-	return denominations
 }
