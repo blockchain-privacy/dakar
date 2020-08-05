@@ -334,8 +334,8 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 		return err
 	}
 
-	blkCounter := 0
-	txCounter := 0
+	var blkCounter uint64
+	var txCounter uint64
 
 	log.Println("Starting crawling at", state)
 
@@ -401,61 +401,13 @@ mainLoop:
 			return err
 		}
 
-		var txMapping []TransactionMapping
-		var transactions []dbtx.Transaction
-
-		for _, t := range currentBlock.Tx {
-			newTx, tMap, err := BuildTransactionMapping(dgraph, client, t)
-			if err != nil {
-				log.Printf("DbGetBlock() failed in tx traversal. blkcount: %v, txcount: %v\n", blkCounter, txCounter)
-				log.Printf("Error: %s\n", err.Error())
-				log.Printf("Tx: %v\n", t)
-				return err
-			}
-
-			txCounter++
-			transactions = append(transactions, newTx)
-			if tMap.hash != "" && len(tMap.outputs) > 0 {
-				txMapping = append(txMapping, tMap)
-			}
-
-			//if txCounter%5000 == 0 {
-			//	log.Printf("%v * 5k TXs done. BlockId: %v, %v\n", txCounter/5000, state.id, state.hash)
-			//	log.Printf("Block %s processed, tx count: %d\n", state.id, txCounter)
-			//}
-		}
-
-		// if the current block is not yet in the database or if only a shallow block exist in
-		// the database a new block is created shallow blocks get created when a crawling process gets
-		// started for the first time. Each block creation connects the current block with the previous block.
-		// In the case of the first block, a previous block does not exist, thus a shallow block is created.
-		// This check is relatively late in the processing loop. The reason for this is, that even if the
-		// block already exists, the address mapping might not exist. This is the case if after block
-		// creation the crawling process is aborted. So the address mapping must be created either way.
-		// Address mappings are upserted in the worst case with same mappings as already included in the database,
-		// so there is no damage done if we upsert the same mapping twice.
-		if b, err := dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
-			// block is not yet in database -> create new block
-			ts := time.Unix(currentBlock.Time, 0).Format(time.RFC3339)
-			if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, currentBlock.PreviousHash); err != nil {
-				log.Println("Error: we had problem processing the block.", state)
-				break
-			}
-
-			blkCounter++
+		if rBlockCounter, rTransactionCounter,
+			err := ProcessRound(dgraph, client, state, currentBlock); err == nil {
+			blkCounter += rBlockCounter
+			txCounter += rTransactionCounter
 		} else {
-			// reduce txCounter as the currentBlock is not processed
-			txCounter -= len(currentBlock.Tx)
-		}
-
-		if err = processAddresses(dgraph, txMapping); err != nil {
-			return err
-		}
-
-		// save processing state
-		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
-			log.Printf("error saving state.id state: %v\n", err)
-			return err
+			log.Println(err)
+			break
 		}
 
 		if blkCounter > 0 && blkCounter%10 == 0 {
@@ -477,4 +429,61 @@ mainLoop:
 	}
 
 	return nil
+}
+
+// ProcessRound process the given block. Hat includes the insertion of the block,
+// its transaction, the outputs of all transaction and the mapping between outputs and addresses
+func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult) (blkCounter uint64, txCounter uint64, err error) {
+	var txMapping []TransactionMapping
+	var transactions []dbtx.Transaction
+
+	for _, t := range block.Tx {
+		var newTx dbtx.Transaction
+		var tMap TransactionMapping
+
+		newTx, tMap, err = BuildTransactionMapping(dgraph, client, t)
+		if err != nil {
+			return
+		}
+
+		txCounter++
+		transactions = append(transactions, newTx)
+		if tMap.hash != "" && len(tMap.outputs) > 0 {
+			txMapping = append(txMapping, tMap)
+		}
+	}
+
+	// if the current block is not yet in the database or if only a shallow block exist in
+	// the database a new block is created shallow blocks get created when a crawling process gets
+	// started for the first time. Each block creation connects the current block with the previous block.
+	// In the case of the first block, a previous block does not exist, thus a shallow block is created.
+	// This check is relatively late in the processing loop. The reason for this is, that even if the
+	// block already exists, the address mapping might not exist. This is the case if after block
+	// creation the crawling process is aborted. So the address mapping must be created either way.
+	// Address mappings are upserted in the worst case with same mappings as already included in the database,
+	// so there is no damage done if we upsert the same mapping twice.
+	var b dbblk.Block
+	if b, err = dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+		// block is not yet in database -> create new block
+		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
+		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+			return
+		}
+
+		blkCounter++
+	} else {
+		// reset txCounter as the block is not processed
+		txCounter = 0
+	}
+
+	if err = processAddresses(dgraph, txMapping); err != nil {
+		return
+	}
+
+	// save processing state
+	if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
+		return
+	}
+
+	return
 }
