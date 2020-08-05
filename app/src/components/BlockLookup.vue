@@ -17,38 +17,41 @@
                 {{ data.hash }}
               </v-list-item-subtitle>
             </v-list-item-content>
-            <v-list-item-avatar>
-              <v-icon>mdi mdi-calendar-month-outline </v-icon>
+            <v-list-item-avatar v-if="data.ts">
+              <v-icon>mdi mdi-calendar-month-outline</v-icon>
             </v-list-item-avatar>
-            <v-list-item-content>
+            <v-list-item-content v-if="data.ts">
               <v-list-item-title>Timestamp</v-list-item-title>
               <v-list-item-subtitle>
-                {{ new Date(data.ts).toLocaleString() }}
+                {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
               </v-list-item-subtitle>
             </v-list-item-content>
           </v-list-item>
-          <v-list-item>
+          <v-list-item v-if="data.id">
             <v-list-item-avatar>
               <v-icon>mdi-pound</v-icon>
             </v-list-item-avatar>
             <v-list-item-content>
-              <v-list-item-title>ID</v-list-item-title>
+              <v-list-item-title>Block Height</v-list-item-title>
               <v-list-item-subtitle>
                 {{ data.id }}
               </v-list-item-subtitle>
             </v-list-item-content>
           </v-list-item>
           <v-list-item>
-            <v-list-item-avatar>
+            <v-list-item-avatar v-if="data.prevblockhash">
               <v-icon>mdi-format-header-pound</v-icon>
             </v-list-item-avatar>
-            <v-list-item-content>
+            <v-list-item-content v-if="data.prevblockhash">
               <v-list-item-title>Previous Block</v-list-item-title>
               <v-list-item-subtitle>
                 <router-link :to="data.prevblockhash">{{ data.prevblockhash }}</router-link>
               </v-list-item-subtitle>
             </v-list-item-content>
-            <v-list-item-content>
+            <v-list-item-avatar v-if="data.nextblockhash">
+              <v-icon>mdi-format-header-pound</v-icon>
+            </v-list-item-avatar>
+            <v-list-item-content v-if="data.nextblockhash">
               <v-list-item-title>Next Block</v-list-item-title>
               <v-list-item-subtitle>
                 <router-link :to="data.nextblockhash">{{ data.nextblockhash }}</router-link>
