@@ -1,6 +1,7 @@
 package main
 
 import (
+	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	"dashrpc/rpcclient"
 	"encoding/json"
@@ -85,39 +86,29 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//// API pattern: "/api/v1/blk/<hash>"
-//// OUTPUT: dashrpc.BlkDetails
-//func handlerBlockDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		log.Println("Accessed", r.URL.Path)
-//		setDefaultHeader(w)
-//
-//		blkHashString := r.URL.Path[len(getRouteBlock()):]
-//		block := dashrpc.Block{}
-//		err := dashrpc.DbGetBlock(db, blkHashString, &block)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Block hash: "+blkHashString, http.StatusNotFound)
-//			return
-//		}
-//
-//		// assignment to output struct
-//		blkDetails := dashrpc.BlkDetails{
-//			Hash:          block.Hash.String(),
-//			Id:            block.Id,
-//			NextBlockHash: block.NextBlockHash.String(),
-//			PrevBlockHash: block.PrevBlockHash.String(),
-//			TxHashes:      block.TxHashes,
-//			Timestamp:     block.Timestamp,
-//		}
-//
-//		// encoding
-//		err = json.NewEncoder(w).Encode(blkDetails)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Block: "+blkDetails.String(), http.StatusInternalServerError)
-//		}
-//	}
-//}
-//
+// API pattern: "/api/v1/blk/<hash>"
+// OUTPUT: dashrpc.BlkDetails
+func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		blkHashString := r.URL.Path[len(getRouteBlock()):]
+
+		block, err := dbblk.GetVerboseBlock(dgraph, blkHashString)
+		if err != nil {
+			http.Error(w, err.Error()+" Block hash: "+blkHashString, http.StatusNotFound)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(block)
+		if err != nil {
+			http.Error(w, err.Error()+" Block: "+block.String(), http.StatusInternalServerError)
+		}
+	}
+}
+
 //// API pattern: "/api/v1/address/<hash>"
 //// OUTPUT: dashrpc.AddressData
 //func handlerAddressDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
@@ -216,11 +207,11 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 }
 
 // creates endpoint handlers
-func setupHandlers(db *dgo.Dgraph, client *rpcclient.Client) {
+func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	// API end points
-	//http.HandleFunc(getRouteTransaction(), handlerTxDetails(db, client))
-	//http.HandleFunc(getRouteAddress(), handlerAddressDetails(db, client))
-	//http.HandleFunc(getRouteBlock(), handlerBlockDetails(db, client))
-	http.HandleFunc(getRouteMeta(), handlerMeta(db))
+	//http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph, client))
+	//http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph, client))
+	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
+	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph))
 	http.HandleFunc(getRouteRoot(), handlerRoot)
 }

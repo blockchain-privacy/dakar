@@ -3,6 +3,7 @@ package block
 import (
 	"dashrpc/db"
 	"encoding/json"
+	"errors"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
@@ -40,6 +41,91 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	}
 
 	return r.payload()
+}
+
+// gets verbose block information from the database
+func GetVerboseBlock(c *dgo.Dgraph, blockHash string) (block VerboseBlock, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(blockhash, $hash)){
+					uid
+					id
+					ts
+					blockhash
+					prevblock { 
+						uid
+						blockhash
+					}
+					nextblock: ~prevblock { 
+						uid
+						blockhash
+					}
+					transactions{
+						uid
+						txhash
+					}
+				}
+			  }
+				`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+		query, map[string]string{"$hash": blockHash})
+
+	if err != nil {
+		return
+	}
+
+	// json struct
+	var r struct {
+		Blocks []struct {
+			Uid       string `json:"uid,omitempty"`
+			Id        uint64 `json:"id,omitempty"`
+			Ts        string `json:"ts,omitempty"`
+			Hash      string `json:"blockhash,omitempty"`
+			PrevBlock struct {
+				Uid  string `json:"uid,omitempty"`
+				Hash string `json:"blockhash,omitempty"`
+			} `json:"prevblock,omitempty"`
+			NextBlock []struct {
+				Uid  string `json:"uid,omitempty"`
+				Hash string `json:"blockhash,omitempty"`
+			} `json:"nextblock,omitempty"`
+			Transactions []struct {
+				Uid  string `json:"uid,omitempty"`
+				Hash string `json:"txhash,omitempty"`
+			} `json:"transactions,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return
+	}
+
+	if len(r.Blocks) != 1 || len(r.Blocks[0].NextBlock) > 1 {
+		err = errors.New("invalid length of of property in verbose query")
+		return
+	}
+
+	b := r.Blocks[0]
+
+	var txHashes []string
+	for _, e := range b.Transactions {
+		txHashes = append(txHashes, e.Hash)
+	}
+
+	block = VerboseBlock{
+		Uid:           b.Uid,
+		Hash:          b.Hash,
+		Id:            b.Id,
+		Timestamp:     b.Ts,
+		PrevBlockHash: b.PrevBlock.Hash,
+		Transactions:  txHashes,
+	}
+
+	if len(b.NextBlock) == 1 {
+		block.NextBlockHash = b.NextBlock[0].Hash
+	}
+
+	return
 }
 
 // upserts a block and the prevBlock relation
