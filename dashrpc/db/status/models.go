@@ -5,16 +5,6 @@ import (
 	"fmt"
 )
 
-// Old Meta struct // todo
-//type Meta struct {
-//	LastBlockId      uint64 `json:"lastblockid"`
-//	StopBlockId      uint64 `json:"stopblockid"`
-//	LastBlockHash    string `json:"lastblockhash"`
-//	Status           string `json:"status"`
-//	GlobalBlockCount uint64 `json:"globalblockcount"`
-//	GlobalTxCount    uint64 `json:"globaltxcount"`
-//}
-
 const DType = "Status"
 
 type Status struct {
@@ -52,14 +42,14 @@ func (s *Status) SetDType() {
 }
 
 type VerboseStatus struct {
-	Uid              string
-	IsCrawling       bool
-	LastBlockId      uint64
-	HighestBlockId   uint64
-	TransactionCount uint64
-	BlockCount       uint64
-	OutputCount      uint64
-	AddressCount     uint64
+	Uid              string `json:"uid"`
+	IsCrawling       bool   `json:"iscrawling"`
+	LastBlockId      uint64 `json:"lastblockid"`
+	HighestBlockId   uint64 `json:"highestblockid"`
+	TransactionCount uint64 `json:"txcount"`
+	BlockCount       uint64 `json:"blkcount"`
+	OutputCount      uint64 `json:"outputcount"`
+	AddressCount     uint64 `json:"addresscount"`
 }
 
 func (v VerboseStatus) String() string {

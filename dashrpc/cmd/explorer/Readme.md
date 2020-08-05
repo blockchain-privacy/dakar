@@ -16,7 +16,6 @@ This is the REST API server. Via the API integrates with the frontend.
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| db | /tmp/badger | Badger database location (default: /tmp/badger) |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |

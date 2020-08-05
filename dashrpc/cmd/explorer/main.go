@@ -3,19 +3,19 @@ package main
 import (
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
+	"dashrpc/db"
+	dbstat "dashrpc/db/status"
 	"dashrpc/rpcclient"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 )
 
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.RpcUser, cli.RpcPassword, cli.RpcHost,
+	cliArgs, err = cli.BuildArgs(cli.RpcUser, cli.RpcPassword, cli.RpcHost,
 		cli.RpcPort, cli.Logfile, cli.IsPrintStatus, cli.ExplorerServerPort)
 
 	if err != nil {
@@ -39,31 +39,28 @@ func main() {
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Println("Error opening log file", err)
-			return
-		}
+	if f, err := cli.GetLogfile(cliArgs.Logfile, "explorer"); err != nil {
 		defer func() {
-			err = f.Close()
-			if err != nil {
+			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-		log.SetPrefix("explorer ")
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	db := dashrpc.SetupBadgerDB(cliArgs.BadgerDir)
+	// create dgraph client
+	dgraph, c, err := db.CreateDefaultClient()
+	if err != nil {
+		log.Print(err)
+		return
+	}
 	defer func() {
-		e := db.Close()
-		if e != nil { /* ignore */
+		if err = c.Close(); err != nil {
+			log.Println(err)
 		}
 	}()
 
 	if cliArgs.IsPrintStatus {
-		dashrpc.PrintStatus(db)
+		dbstat.PrintStatus(dgraph)
 		return
 	}
 
@@ -81,7 +78,7 @@ func main() {
 	}
 
 	// setup REST API
-	setupHandlers(db, client)
+	setupHandlers(dgraph, client)
 
 	// start the server
 	log.Println("Starting server on port", cliArgs.ExplorerServerPort)

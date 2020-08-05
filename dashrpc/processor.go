@@ -401,6 +401,7 @@ mainLoop:
 			return err
 		}
 
+		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
 			err := ProcessRound(dgraph, client, state, currentBlock); err == nil {
 			blkCounter += rBlockCounter

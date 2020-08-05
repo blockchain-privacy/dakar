@@ -40,6 +40,7 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 	query := `{
 				 q(func: type(Status)){
+					uid
 					iscrawling
 					lastblockid
 				  }
@@ -65,6 +66,7 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	query := `{
 				  status(func: type(Status)){
+						uid
 						iscrawling
 						lastblockid
 					}
