@@ -85,7 +85,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 	}
 
 	if len(r.Blocks) != 1 {
-		err = errors.New("invalid length of of property in verbose query")
+		err = errors.New("invalid length of property in frontend block query")
 		return
 	}
 
