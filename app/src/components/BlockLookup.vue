@@ -18,7 +18,7 @@
               </v-list-item-subtitle>
             </v-list-item-content>
             <v-list-item-avatar v-if="data.ts">
-              <v-icon>mdi mdi-calendar-month-outline</v-icon>
+              <v-icon>mdi mdi-calendar</v-icon>
             </v-list-item-avatar>
             <v-list-item-content v-if="data.ts">
               <v-list-item-title>Timestamp</v-list-item-title>
