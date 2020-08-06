@@ -41,6 +41,50 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 	return r.payload()
 }
 
+// gets address information for the frontend
+func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(addresshash, $hash)){
+					addresshash
+					addr_outputs@normalize{
+						amount:amount
+						index:index
+						iscoinbase:iscoinbase
+						~tx_outputs{
+							output_transaction: txhash
+						}
+						~tx_inputs{
+							input_transaction: txhash
+						}
+					}
+				}
+			  }`
+
+	vars := make(map[string]string)
+	vars["$hash"] = addrHash
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		Address []FrontendAddress `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return addr, err
+	}
+
+	if len(r.Address) != 1 || len(r.Address[0].Outputs) == 0 {
+		err = errors.New("invalid length of property in frontend address query")
+		return
+	}
+
+	addr = r.Address[0]
+
+	return
+}
+
 // gets address information from the database and checks if it is complete
 func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err error) {
 	addr, err = GetAddress(c, addressHash)

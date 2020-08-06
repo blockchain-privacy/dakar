@@ -5,7 +5,6 @@ import (
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	dbstat "dashrpc/db/status"
-	"dashrpc/rpcclient"
 	"flag"
 	"fmt"
 	"log"
@@ -64,21 +63,8 @@ func main() {
 		return
 	}
 
-	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
-		Host:       cliArgs.RpcEndpoint,
-		User:       cliArgs.RpcUser,
-		Pass:       cliArgs.RpcPassword,
-		DisableTLS: true,
-	}
-	client, err := rpcclient.New(&conn)
-	if err != nil {
-		log.Printf("Error: %v\n", err)
-		return
-	}
-
 	// setup REST API
-	setupHandlers(dgraph, client)
+	setupHandlers(dgraph)
 
 	// start the server
 	log.Println("Starting server on port", cliArgs.ExplorerServerPort)

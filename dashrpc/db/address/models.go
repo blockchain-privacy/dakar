@@ -52,3 +52,17 @@ func (aq addressQuery) payload() (a Address, err error) {
 	a = aq.Q[0]
 	return a, err
 }
+
+type FrontendAddress struct {
+	Hash    string `json:"addresshash"`
+	Outputs []struct {
+		Amount                string `json:"amount"`
+		IsCoinbase            bool   `json:"iscoinbase"`
+		InputTransactionHash  string `json:"input_transaction"`
+		OutputTransactionHash string `json:"output_transaction"`
+	} `json:"addr_outputs"`
+}
+
+func (f FrontendAddress) String() string {
+	return fmt.Sprintf("Hash: %s, OutputCount: %d", f.Hash, len(f.Outputs))
+}
