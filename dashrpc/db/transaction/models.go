@@ -34,23 +34,6 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
 
-// converts a Transaction struct to an updateTransactionData struct
-func (t Transaction) toUpdate() (tx updateTransactionData) {
-	tx.Uid = t.Uid
-	tx.Hash = t.Hash
-	tx.DType = t.DType
-
-	for _, e := range t.Inputs {
-		tx.Inputs = append(tx.Inputs, e.ToUpdate())
-	}
-
-	for _, e := range t.Outputs {
-		tx.Outputs = append(tx.Outputs, e.ToUpdate())
-	}
-
-	return tx
-}
-
 // checks if the given transaction has all attributes filled
 func (t Transaction) IsComplete() bool {
 	return t.Uid != "" && t.Hash != "" && t.DType != nil
@@ -114,45 +97,8 @@ func (t Transaction) IsMixing() bool {
 	return true
 }
 
-// This struct is needed to internally convert floats to strings and backwards.
-// That is, because the precision of the float type of Dgraph is to low.
-type updateTransactionData struct {
-	Uid     string                `json:"uid,omitempty"`
-	Outputs []op.UpdateOutputData `json:"tx_outputs,omitempty"`
-	Inputs  []op.UpdateOutputData `json:"tx_inputs,omitempty"`
-	Hash    string                `json:"txhash,omitempty"`
-	DType   []string              `json:"dgraph.type,omitempty"`
-}
-
-// converts an updateTransactionData struct to a Transaction struct
-func (t updateTransactionData) toTransaction() (tx Transaction, err error) {
-	tx.Uid = t.Uid
-	tx.Hash = t.Hash
-	tx.DType = t.DType
-
-	for _, e := range t.Inputs {
-		o, err := e.ToOutput()
-		if err != nil {
-			return tx, err
-		}
-
-		tx.Inputs = append(tx.Inputs, o)
-	}
-
-	for _, e := range t.Outputs {
-		o, err := e.ToOutput()
-		if err != nil {
-			return tx, err
-		}
-
-		tx.Outputs = append(tx.Outputs, o)
-	}
-
-	return tx, err
-}
-
 type transactionQuery struct {
-	Q []updateTransactionData `json:"q"`
+	Q []Transaction `json:"q"`
 }
 
 func (tq transactionQuery) payload() (tx Transaction, err error) {
@@ -166,8 +112,8 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 		err = errors.New("found more than one transaction")
 		return tx, err
 	}
-
-	return tq.Q[0].toTransaction()
+	tx = tq.Q[0]
+	return
 }
 
 type FrontendOutput struct {

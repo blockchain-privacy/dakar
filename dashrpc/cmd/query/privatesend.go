@@ -128,7 +128,7 @@ func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 		rec := []string{
 			strconv.Itoa(len(*results)),
 			o.Addresses[0],
-			strconv.FormatFloat(*tx.Inputs[0].Amount, 'f', -1, 64),
+			tx.Inputs[0].Amount,
 			r.hash,
 			//todo
 			//strconv.FormatInt(tx.Timestamp, 10),

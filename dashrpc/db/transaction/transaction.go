@@ -140,7 +140,7 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	}
 
 	// create json
-	pb, err := json.Marshal(transaction.toUpdate())
+	pb, err := json.Marshal(transaction)
 	if err != nil {
 		return nil, err
 	}

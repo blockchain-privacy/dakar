@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"log"
 	"math"
 	"strconv"
 )
@@ -271,7 +272,12 @@ func CountDenominations(outputs []Output) []int {
 	for _, o := range outputs {
 	inner:
 		for i, v := range denominationsTypes {
-			if almostEqual(*o.Amount, v) {
+			amt, err := strconv.ParseFloat(o.Amount, 64)
+			if err != nil {
+				log.Println("Error converting", o.Amount, "to string")
+				return nil
+			}
+			if almostEqual(amt, v) {
 				denominations[i]++
 				break inner
 			}

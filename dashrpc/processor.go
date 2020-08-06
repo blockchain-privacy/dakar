@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -190,10 +191,9 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 	outputMappings := make(map[string]outputMapping)
 	for _, d := range tx.Vout {
 		uindex := uint64(d.N)
-		amount := d.Value
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
 			IsCoinbase:  &isCoinbaseTransaction,
-			Amount:      &amount,
+			Amount:      strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:      d.ScriptPubKey.Type,
 			OutputIndex: &uindex,
 		})
