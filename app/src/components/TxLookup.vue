@@ -15,8 +15,6 @@
               <v-list-item-title>Hash</v-list-item-title>
               <v-list-item-subtitle>{{ data.txhash }}</v-list-item-subtitle>
             </v-list-item-content>
-          </v-list-item>
-          <v-list-item>
             <v-list-item-avatar>
               <v-icon>mdi-calendar</v-icon>
             </v-list-item-avatar>
@@ -69,7 +67,7 @@
               <v-list-item-content>
                 <v-list-item-title>Output</v-list-item-title>
                 <v-list-item-subtitle>
-                  Hash:
+                  Address hash:
                   <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
                   <br>
                   Amount: {{ i.amount }}<br>
