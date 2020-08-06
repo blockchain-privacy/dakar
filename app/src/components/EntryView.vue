@@ -20,7 +20,7 @@
         <v-list two-line subheader>
           <v-list-item>
             <v-list-item-avatar>
-              <v-icon>mdi-pound</v-icon>
+              <v-icon>mdi-format-list-numbered</v-icon>
             </v-list-item-avatar>
             <v-list-item-content>
               <v-list-item-title>Last block ID</v-list-item-title>
@@ -39,6 +39,9 @@
                 {{ data.blkcount }}
               </v-list-item-subtitle>
             </v-list-item-content>
+            <v-list-item-avatar>
+              <v-icon>mdi-pound</v-icon>
+            </v-list-item-avatar>
             <v-list-item-content>
               <v-list-item-title>Global transaction count</v-list-item-title>
               <v-list-item-subtitle>
@@ -56,6 +59,9 @@
                 {{ data.outputcount }}
               </v-list-item-subtitle>
             </v-list-item-content>
+            <v-list-item-avatar>
+              <v-icon>mdi-pound</v-icon>
+            </v-list-item-avatar>
             <v-list-item-content>
               <v-list-item-title>Global address count</v-list-item-title>
               <v-list-item-subtitle>

@@ -29,7 +29,7 @@
           </v-list-item>
           <v-list-item v-if="data.id">
             <v-list-item-avatar>
-              <v-icon>mdi-pound</v-icon>
+              <v-icon>mdi-format-list-numbered</v-icon>
             </v-list-item-avatar>
             <v-list-item-content>
               <v-list-item-title>Block Height</v-list-item-title>
