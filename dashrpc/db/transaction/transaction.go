@@ -102,7 +102,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	}
 
 	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
-		err = errors.New("invalid length of of property in frontend transaction query")
+		err = errors.New("invalid length of property in frontend transaction query")
 		return
 	}
 
