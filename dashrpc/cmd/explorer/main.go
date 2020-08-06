@@ -38,7 +38,7 @@ func main() {
 	}
 
 	// setup Logging
-	if f, err := cli.GetLogfile(cliArgs.Logfile, "explorer"); err != nil {
+	if f, err := cli.GetLogfile(cliArgs.Logfile, "explorer"); err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
@@ -57,6 +57,15 @@ func main() {
 			log.Println(err)
 		}
 	}()
+
+	// check if schema exists
+	if isSet, err := db.IsSchemaSet(dgraph); err != nil {
+		log.Println(err)
+		return
+	} else if !isSet {
+		log.Println("Schema is not set.")
+		return
+	}
 
 	if cliArgs.IsPrintStatus {
 		dbstat.PrintStatus(dgraph)
