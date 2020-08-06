@@ -171,20 +171,20 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 }
 
 type FrontendOutput struct {
-	Amount      string `json:"amount,omitempty"`
-	InputIndex  int    `json:"inputindex,omitempty"`
-	OutputIndex int    `json:"outputindex,omitempty"`
-	IsCoinbase  bool   `json:"iscoinbase,omitempty"`
-	AddressHash string `json:"addresshash,omitempty"`
+	Amount      string `json:"amount"`
+	InputIndex  int    `json:"inputindex"`
+	OutputIndex int    `json:"outputindex"`
+	IsCoinbase  bool   `json:"iscoinbase"`
+	AddressHash string `json:"addresshash"`
 }
 
 type FrontendTransaction struct {
-	Hash           string           `json:"txhash,omitempty"`
-	BlockHash      string           `json:"bhash,omitempty"`
-	BlockId        uint64           `json:"bid,omitempty"`
-	BlockTimestamp string           `json:"bts,omitempty"`
-	Outputs        []FrontendOutput `json:"outputs,omitempty"`
-	Inputs         []FrontendOutput `json:"inputs,omitempty"`
+	Hash           string           `json:"txhash"`
+	BlockHash      string           `json:"bhash"`
+	BlockId        uint64           `json:"bid"`
+	BlockTimestamp string           `json:"bts"`
+	Outputs        []FrontendOutput `json:"outputs"`
+	Inputs         []FrontendOutput `json:"inputs"`
 }
 
 func (f FrontendTransaction) String() string {
