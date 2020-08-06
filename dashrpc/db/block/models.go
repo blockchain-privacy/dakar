@@ -46,9 +46,8 @@ func (b Block) IsComplete() bool {
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
 }
 
-type VerboseBlock struct {
-	Uid           string   `json:"uid,omitempty"`
-	Hash          string   `json:"hash,omitempty"`
+type FrontendBlock struct {
+	Hash          string   `json:"blockhash,omitempty"`
 	Id            uint64   `json:"id,omitempty"`
 	Timestamp     string   `json:"ts,omitempty"`
 	PrevBlockHash string   `json:"prevblockhash,omitempty"`
@@ -56,10 +55,10 @@ type VerboseBlock struct {
 	Transactions  []string `json:"txhashes,omitempty"`
 }
 
-func (v VerboseBlock) String() string {
-	output := fmt.Sprintf("Uid: %s, Id: %d, Hash: %s, Timestamp: %s, "+
+func (v FrontendBlock) String() string {
+	output := fmt.Sprintf("Id: %d, Hash: %s, Timestamp: %s, "+
 		"PrevBlockHash: %s, NextBlockHash: %s, transaction count: %d",
-		v.Uid, v.Id, v.Hash, v.Timestamp, v.PrevBlockHash, v.NextBlockHash, len(v.Transactions))
+		v.Id, v.Hash, v.Timestamp, v.PrevBlockHash, v.NextBlockHash, len(v.Transactions))
 
 	return output
 }

@@ -14,7 +14,7 @@
             <v-list-item-content>
               <v-list-item-title>Hash</v-list-item-title>
               <v-list-item-subtitle>
-                {{ data.hash }}
+                {{ data.blockhash }}
               </v-list-item-subtitle>
             </v-list-item-content>
             <v-list-item-avatar v-if="data.ts">

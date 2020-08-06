@@ -44,28 +44,25 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 }
 
 // gets verbose block information from the database
-func GetVerboseBlock(c *dgo.Dgraph, blockHash string) (block VerboseBlock, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(blockhash, $hash)){
-					uid
-					id
-					ts
-					blockhash
+func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err error) {
+	query := `query Q($hash: string){
+				v as q(func: eq(blockhash, $hash))@normalize{
+					id: id
+					ts: ts
+					blockhash: blockhash
 					prevblock { 
-						uid
-						blockhash
+						prevblockhash: blockhash
 					}
 					nextblock: ~prevblock { 
-						uid
-						blockhash
-					}
-					transactions{
-						uid
-						txhash
+						nextblockhash: blockhash
 					}
 				}
-			  }
-				`
+				x(func: uid(v)) @normalize{
+					transactions{
+						tx: txhash
+					}
+				}
+			  }`
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
 		query, map[string]string{"$hash": blockHash})
@@ -75,54 +72,27 @@ func GetVerboseBlock(c *dgo.Dgraph, blockHash string) (block VerboseBlock, err e
 	}
 
 	// json struct
+
 	var r struct {
-		Blocks []struct {
-			Uid       string `json:"uid,omitempty"`
-			Id        uint64 `json:"id,omitempty"`
-			Ts        string `json:"ts,omitempty"`
-			Hash      string `json:"blockhash,omitempty"`
-			PrevBlock struct {
-				Uid  string `json:"uid,omitempty"`
-				Hash string `json:"blockhash,omitempty"`
-			} `json:"prevblock,omitempty"`
-			NextBlock []struct {
-				Uid  string `json:"uid,omitempty"`
-				Hash string `json:"blockhash,omitempty"`
-			} `json:"nextblock,omitempty"`
-			Transactions []struct {
-				Uid  string `json:"uid,omitempty"`
-				Hash string `json:"txhash,omitempty"`
-			} `json:"transactions,omitempty"`
-		} `json:"q,omitempty"`
+		Blocks       []FrontendBlock `json:"q,omitempty"`
+		Transactions []struct {
+			Hash string `json:"tx,omitempty"`
+		} `json:"x,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return
 	}
 
-	if len(r.Blocks) != 1 || len(r.Blocks[0].NextBlock) > 1 {
+	if len(r.Blocks) != 1 {
 		err = errors.New("invalid length of of property in verbose query")
 		return
 	}
 
-	b := r.Blocks[0]
+	block = r.Blocks[0]
 
-	var txHashes []string
-	for _, e := range b.Transactions {
-		txHashes = append(txHashes, e.Hash)
-	}
-
-	block = VerboseBlock{
-		Uid:           b.Uid,
-		Hash:          b.Hash,
-		Id:            b.Id,
-		Timestamp:     b.Ts,
-		PrevBlockHash: b.PrevBlock.Hash,
-		Transactions:  txHashes,
-	}
-
-	if len(b.NextBlock) == 1 {
-		block.NextBlockHash = b.NextBlock[0].Hash
+	for _, e := range r.Transactions {
+		block.Transactions = append(block.Transactions, e.Hash)
 	}
 
 	return
