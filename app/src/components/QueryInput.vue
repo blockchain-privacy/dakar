@@ -1,6 +1,6 @@
 <template>
     <v-text-field @keydown.enter="handleQuery(query, 'user')" class="d-flex" full-width v-model="query"
-                  label="Search for transactions and addresses"/>
+                  label="Search for blocks, transactions and addresses"/>
 </template>
 
 <script>
