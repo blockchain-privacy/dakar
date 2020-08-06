@@ -3,6 +3,7 @@ package main
 import (
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
+	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"encoding/json"
 	"fmt"
@@ -133,57 +134,30 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 //		}
 //	}
 //}
-//
-//// API pattern: "/api/v1/tx/<hash>"
-//// OUTPUT: dashrpc.Transaction
-//func handlerTxDetails(db *badger.DB, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		log.Println("Accessed", r.URL.Path)
-//		setDefaultHeader(w)
-//
-//		txHashString := r.URL.Path[len(getRouteTransaction()):]
-//		log.Println(txHashString)
-//		txDetails := dashrpc.TxDetails{}
-//		err := dashrpc.DbGetTxDetails(db, txHashString, &txDetails)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Key: "+txHashString, http.StatusNotFound)
-//			return
-//		}
-//		txHash, err := chainhash.NewHashFromStr(txHashString)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Key: "+txHashString, http.StatusNotFound)
-//			return
-//		}
-//
-//		tx, err := client.GetRawTransactionVerbose(txHash)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Key: "+txHashString, http.StatusNotFound)
-//			return
-//		}
-//		block := dashrpc.Block{}
-//		err = dashrpc.DbGetBlock(db, tx.BlockHash, &block)
-//		if err != nil {
-//			http.Error(w, err.Error()+" Block hash: "+tx.BlockHash, http.StatusNotFound)
-//			return
-//		}
-//
-//		// assignment to output struct
-//		transaction := dashrpc.Transaction{
-//			Bhash:         tx.BlockHash,
-//			Bheight:       block.Id,
-//			Bts:           block.Timestamp.Unix(),
-//			Confirmations: tx.Confirmations,
-//			Version:       tx.Version,
-//			Tx:            txDetails,
-//		}
-//
-//		// encoding
-//		err = json.NewEncoder(w).Encode(transaction)
-//		if err != nil {
-//			http.Error(w, err.Error()+" TxDetails: "+txDetails.String(), http.StatusInternalServerError)
-//		}
-//	}
-//}
+
+// API pattern: "/api/v1/tx/<hash>"
+// OUTPUT: dashrpc.Transaction
+func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteTransaction()):]
+		log.Println(txHashString)
+
+		vTx, err := dbtx.GetFrontendTransaction(dgraph, txHashString)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(vTx)
+		if err != nil {
+			http.Error(w, err.Error()+" TxDetails: "+vTx.String(), http.StatusInternalServerError)
+		}
+	}
+}
 
 // API pattern: "/api/v1/meta/"
 // OUTPUT: dashrpc.Transaction
@@ -209,7 +183,7 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 // creates endpoint handlers
 func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	// API end points
-	//http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph, client))
+	http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph))
 	//http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph, client))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph))

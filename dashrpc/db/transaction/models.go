@@ -169,3 +169,27 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 
 	return tq.Q[0].toTransaction()
 }
+
+type FrontendOutput struct {
+	Amount      string `json:"amount,omitempty"`
+	InputIndex  int    `json:"inputindex,omitempty"`
+	OutputIndex int    `json:"outputindex,omitempty"`
+	IsCoinbase  bool   `json:"iscoinbase,omitempty"`
+	AddressHash string `json:"addresshash,omitempty"`
+}
+
+type FrontendTransaction struct {
+	Hash           string           `json:"txhash,omitempty"`
+	BlockHash      string           `json:"bhash,omitempty"`
+	BlockId        uint64           `json:"bid,omitempty"`
+	BlockTimestamp string           `json:"bts,omitempty"`
+	Outputs        []FrontendOutput `json:"outputs,omitempty"`
+	Inputs         []FrontendOutput `json:"inputs,omitempty"`
+}
+
+func (f FrontendTransaction) String() string {
+	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
+		"BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		f.Hash, f.BlockHash, f.BlockId, f.BlockTimestamp,
+		len(f.Outputs), len(f.Inputs))
+}

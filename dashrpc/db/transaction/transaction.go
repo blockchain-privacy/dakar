@@ -3,6 +3,7 @@ package transaction
 import (
 	"dashrpc/db"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -45,6 +46,78 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 	}
 
 	return r.payload()
+}
+
+// gets transaction information for the frontend
+func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendTransaction, err error) {
+	query := `query Q($hash: string){
+				q(func: eq(txhash, $hash)){
+					txhash
+					inputs: tx_inputs @normalize{
+						amount: amount
+						inputindex: inputindex
+						iscoinbase: iscoinbase
+						~addr_outputs{
+							addresshash: addresshash
+						}
+					}
+					outputs: tx_outputs @normalize{
+						amount: amount
+						outputindex: outputindex
+						inputindex: inputindex
+						iscoinbase: iscoinbase
+						~addr_outputs{
+							addresshash: addresshash
+						}
+					}
+					block: ~transactions {
+						blockhash
+						ts
+						id
+					}
+			  	}
+			   }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Hash    string           `json:"txhash,omitempty"`
+			Outputs []FrontendOutput `json:"outputs,omitempty"`
+			Inputs  []FrontendOutput `json:"inputs,omitempty"`
+			Block   []struct {
+				Hash string `json:"blockhash,omitempty"`
+				Ts   string `json:"ts,omitempty"`
+				Id   uint64 `json:"id,omitempty"`
+			} `json:"block,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return transaction, err
+	}
+
+	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+		err = errors.New("invalid length of of property in frontend transaction query")
+		return
+	}
+
+	t := r.Transaction[0]
+
+	transaction = FrontendTransaction{
+		Hash:           t.Hash,
+		BlockHash:      t.Block[0].Hash,
+		BlockId:        t.Block[0].Id,
+		BlockTimestamp: t.Block[0].Ts,
+		Outputs:        t.Outputs,
+		Inputs:         t.Inputs,
+	}
+
+	return
 }
 
 // upserts a transaction
