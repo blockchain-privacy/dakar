@@ -13,6 +13,9 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
+      <v-btn icon v-on:click="changeTheme()">
+        <v-icon dark>mdi-invert-colors</v-icon>
+      </v-btn>
     </v-app-bar>
     <v-main>
       <v-container fluid>
@@ -45,6 +48,9 @@ export default {
     QueryInput
   },
   methods: {
+    changeTheme() {
+      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
+    },
     goToRoot() {
       // only change route if not already on entry page
       if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE)
