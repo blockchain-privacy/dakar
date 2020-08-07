@@ -4,3 +4,13 @@ export function resetData(context) {
     context.$store.dispatch('setTransactionData', null);
     context.$store.dispatch('setAddressData', null);
 }
+
+export function shortenHash(hash) {
+    const elementLen = 17
+
+    if (hash.length < elementLen *2 +3) {
+        return hash;
+    }
+
+    return hash.substring(0,elementLen) + '...' + hash.substring(hash.length-elementLen,hash.length)
+}
