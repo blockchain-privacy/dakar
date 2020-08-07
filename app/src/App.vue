@@ -24,12 +24,11 @@
         </v-container>
       </v-content>
     </v-main>
-
     <v-footer app>
       <v-spacer></v-spacer>
       <div>
         &copy; {{ new Date().getFullYear() }}
-        <b>Dakar project</b> - <a href="http://ntnu.no">NTNU</a>
+        <b>Dakar</b> - <a href="https://ntnu.no">NTNU</a>
       </div>
     </v-footer>
   </v-app>
