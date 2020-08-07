@@ -78,6 +78,7 @@
                   </v-list-item>
                 </v-col>
               </v-row>
+              <v-divider v-if="outputs"></v-divider>
               <v-row v-if="outputs">
                 <v-col v-for="i in outputs" v-bind:key="i.addresshash">
                   <v-list-item>
@@ -99,6 +100,7 @@
                   </v-list-item>
                 </v-col>
               </v-row>
+              <v-divider v-if="inputs"></v-divider>
               <v-row v-if="inputs">
                 <v-col v-for="i in inputs" v-bind:key="i.addresshash">
                   <v-list-item>

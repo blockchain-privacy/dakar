@@ -67,11 +67,12 @@
                   </v-list-item>
                 </v-col>
               </v-row>
+              <v-divider v-if="data.txhashes"></v-divider>
               <v-row v-if="data.txhashes">
                 <v-col v-for="tx in data.txhashes" v-bind:key="tx">
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon> mdi-transfer</v-icon>
+                      <v-icon>mdi-transfer</v-icon>
                     </v-list-item-avatar>
                     <v-list-item-content>
                       <v-list-item-title>Transaction</v-list-item-title>
