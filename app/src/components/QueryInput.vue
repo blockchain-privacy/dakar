@@ -95,7 +95,7 @@
             },
             isValidData: function (str) {
                 // TODO: check if str is address or transaction, also calculate checksum
-                return str.length >= 34;
+                return str.length >= 1;
             },
             searchBlock: function (q) {
                 console.log('Block search: ' + q);

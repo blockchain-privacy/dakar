@@ -4,8 +4,10 @@ import (
 	"dashrpc/db"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
+	"strconv"
 )
 
 // gets block information from the database
@@ -43,10 +45,23 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	return r.payload()
 }
 
+func isBlockIdentifier(field string) bool {
+	_, err := strconv.Atoi(field)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
 // gets verbose block information from the database
 func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err error) {
-	query := `query Q($hash: string){
-				v as q(func: eq(blockhash, $hash))@normalize{
+	searchProperty := "blockhash"
+	if isBlockIdentifier(blockHash) {
+		searchProperty = "id"
+	}
+
+	query := fmt.Sprintf(`query Q($ident: string){
+				v as q(func: eq(%s, $ident))@normalize{
 					id: id
 					ts: ts
 					blockhash: blockhash
@@ -62,10 +77,10 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 						tx: txhash
 					}
 				}
-			  }`
+			  }`, searchProperty)
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
-		query, map[string]string{"$hash": blockHash})
+		query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
 		return

@@ -29,7 +29,9 @@
             </v-list-item-avatar>
             <v-list-item-content>
               <v-list-item-title>Block Id</v-list-item-title>
-              <v-list-item-subtitle>{{ data.bid }}</v-list-item-subtitle>
+              <v-list-item-subtitle>
+                <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+              </v-list-item-subtitle>
             </v-list-item-content>
             <v-list-item-avatar>
               <v-icon>mdi-format-header-pound</v-icon>
