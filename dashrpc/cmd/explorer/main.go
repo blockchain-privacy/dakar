@@ -76,6 +76,6 @@ func main() {
 	setupHandlers(dgraph)
 
 	// start the server
-	log.Println("Starting server on port", cliArgs.ExplorerServerPort)
+	log.Printf("Starting server at endpoint http://localhost:%d\n", cliArgs.ExplorerServerPort)
 	log.Fatal(http.ListenAndServe(":"+strconv.FormatUint(uint64(cliArgs.ExplorerServerPort), 10), nil))
 }
