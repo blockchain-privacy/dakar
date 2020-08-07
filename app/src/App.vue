@@ -14,16 +14,14 @@
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
     </v-app-bar>
-    <v-main>
-      <v-content>
-        <v-container>
-          <MsgBox/>
-          <transition name="fade">
-            <router-view/>
-          </transition>
-        </v-container>
-      </v-content>
-    </v-main>
+    <v-content>
+      <v-container>
+        <MsgBox/>
+        <transition name="fade">
+          <router-view/>
+        </transition>
+      </v-container>
+    </v-content>
     <v-footer app>
       <v-spacer></v-spacer>
       <div>
