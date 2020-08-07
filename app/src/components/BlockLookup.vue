@@ -5,22 +5,22 @@
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
-              <v-icon>mdi-file-tree </v-icon>
-              Block
+              <v-icon>mdi-file-tree</v-icon>
+              Block {{ data.blockhash }}
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text>
             <v-container>
               <v-row>
-                <v-col>
+                <v-col v-if="data.id">
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon>mdi-format-header-pound</v-icon>
+                      <v-icon>mdi-format-list-numbered</v-icon>
                     </v-list-item-avatar>
                     <v-list-item-content>
-                      <v-list-item-title>Hash</v-list-item-title>
+                      <v-list-item-title>Block Height</v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ shortenHash(data.blockhash) }}
+                        {{ data.id }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -39,28 +39,13 @@
                   </v-list-item>
                 </v-col>
               </v-row>
-              <v-row v-if="data.id">
-                <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-format-list-numbered</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Block Height</v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.id }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-col>
-              </v-row>
               <v-row>
                 <v-col v-if="data.prevblockhash">
                   <v-list-item>
-                    <v-list-item-avatar >
+                    <v-list-item-avatar>
                       <v-icon>mdi-format-header-pound</v-icon>
                     </v-list-item-avatar>
-                    <v-list-item-content >
+                    <v-list-item-content>
                       <v-list-item-title>Previous Block</v-list-item-title>
                       <v-list-item-subtitle>
                         <router-link :to="data.prevblockhash">{{ shortenHash(data.prevblockhash) }}</router-link>
@@ -86,7 +71,7 @@
                 <v-col v-for="tx in data.txhashes" v-bind:key="tx">
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon> mdi-transfer  </v-icon>
+                      <v-icon> mdi-transfer</v-icon>
                     </v-list-item-avatar>
                     <v-list-item-content>
                       <v-list-item-title>Transaction</v-list-item-title>
