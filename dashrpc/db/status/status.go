@@ -65,26 +65,29 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 // gets verbose status information from the database
 func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	query := `{
-				  status(func: type(Status)){
-						uid
-						iscrawling
-						lastblockid
-					}
-				  highestblockid(func: type(Block), orderdesc: id,first: 1) @filter(ge(id,0)){
+				status(func: type(Status)){
+					uid
+					iscrawling
+					lastblockid
+				}
+				highestblockid(func: type(Block), orderdesc: id,first: 1) @filter(ge(id,0)){
 					id
-				  }
-				  blk(func: type(Block)){
-						count: count(uid)
-					}
-				  tx(func: type(Transaction)){
-						count: count(uid)
-					}
-				  op(func: type(Output)){
-						count: count(uid)
-					}
-				  addr(func: type(Address)){
-						count: count(uid)
-					}
+				}
+    			lowestblockid(func: type(Block), orderasc: id,first: 1) @filter(ge(id,0)){
+					id
+				}
+				blk(func: type(Block)){
+					count: count(uid)
+				}
+				tx(func: type(Transaction)){
+					count: count(uid)
+				}
+				op(func: type(Output)){
+					count: count(uid)
+				}
+				addr(func: type(Address)){
+					count: count(uid)
+				}
 			}`
 
 	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
@@ -98,6 +101,9 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 		Highestblock []struct {
 			Id uint64 `json:"id,omitempty"`
 		} `json:"highestblockid,omitempty"`
+		Lowestblock []struct {
+			Id uint64 `json:"id,omitempty"`
+		} `json:"lowestblockid,omitempty"`
 		Blk []struct {
 			Count uint64 `json:"count,omitempty"`
 		} `json:"blk,omitempty"`
@@ -141,11 +147,20 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 		return
 	}
 
+	if len(r.Lowestblock) == 0 {
+		err = errors.New(ErrorLowestBlockNotFound)
+		return
+	} else if len(r.Lowestblock) > 1 {
+		err = errors.New(ErrorInvalidNumber)
+		return
+	}
+
 	status = VerboseStatus{
 		Uid:              r.Status[0].Uid,
 		IsCrawling:       *r.Status[0].IsCrawling,
 		LastBlockId:      *r.Status[0].LastBlockId,
 		HighestBlockId:   r.Highestblock[0].Id,
+		LowestBlockId:    r.Lowestblock[0].Id,
 		AddressCount:     r.Addr[0].Count,
 		TransactionCount: r.Tx[0].Count,
 		BlockCount:       r.Blk[0].Count,

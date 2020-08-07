@@ -46,6 +46,7 @@ type VerboseStatus struct {
 	IsCrawling       bool   `json:"iscrawling"`
 	LastBlockId      uint64 `json:"lastblockid"`
 	HighestBlockId   uint64 `json:"highestblockid"`
+	LowestBlockId    uint64 `json:"lowestblockid"`
 	TransactionCount uint64 `json:"txcount"`
 	BlockCount       uint64 `json:"blkcount"`
 	OutputCount      uint64 `json:"outputcount"`
@@ -64,6 +65,7 @@ const (
 	ErrorLastBlockIdNotFound  = "last block id not found"
 	ErrorIsCrawlingNotFound   = "crawling status not found"
 	ErrorHighestBlockNotFound = "highest block not found"
+	ErrorLowestBlockNotFound  = "lowest block not found"
 )
 
 type statusQuery struct {
