@@ -25,9 +25,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -53,9 +52,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -73,7 +71,7 @@
                 <v-col>
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon>mdi-format-list-numbered</v-icon>
+                      <v-icon>mdi-arrow-down-circle-outline</v-icon>
                     </v-list-item-avatar>
                     <v-list-item-content>
                       <v-list-item-title>
@@ -83,9 +81,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -101,7 +98,7 @@
                 <v-col>
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon>mdi-format-list-numbered</v-icon>
+                      <v-icon>mdi-arrow-up-circle-outline</v-icon>
                     </v-list-item-avatar>
                     <v-list-item-content>
                       <v-list-item-title>
@@ -111,9 +108,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -141,9 +137,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -169,9 +164,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -199,9 +193,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
@@ -227,9 +220,8 @@
                             <v-hover
                                 v-slot:default="{ hover }"
                                 open-delay="0">
-                              <v-icon small v-on="on">{{
-                                  hover ? "mdi-help-circle" : "mdi-help-circle-outline"
-                                }}
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
                               </v-icon>
                             </v-hover>
                           </template>
