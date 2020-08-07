@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app color="primary" dark>
+    <v-app-bar app absolute  color="primary" dark>
       <v-img
           @click="goToRoot()" style="cursor:pointer"
           alt="Explorer Logo"
@@ -14,15 +14,15 @@
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
     </v-app-bar>
-    <v-content>
-      <v-container>
+    <v-main>
+      <v-container fluid>
         <MsgBox/>
         <transition name="fade">
           <router-view/>
         </transition>
       </v-container>
-    </v-content>
-    <v-footer app>
+    </v-main>
+    <v-footer app absolute>
       <v-spacer></v-spacer>
       <div>
         &copy; {{ new Date().getFullYear() }}
