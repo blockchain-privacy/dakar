@@ -111,7 +111,7 @@ export default {
   },
   updated() {
     let id = ' ';
-    if (this.data.id) {
+    if (this.data && this.data.id) {
       id = ` ${this.data.id} `
     }
     document.title = `Block${id}- ${PAGE_TITLE}`;

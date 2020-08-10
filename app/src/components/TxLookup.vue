@@ -166,7 +166,7 @@ export default {
   },
   updated() {
     let h = ' ';
-    if (this.data.txhash) {
+    if (this.data && this.data.txhash) {
       h = ` ${this.data.txhash} `
     }
     document.title = `Transaction${h}- ${PAGE_TITLE}`;

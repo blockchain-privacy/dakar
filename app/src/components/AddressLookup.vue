@@ -64,7 +64,7 @@ export default {
   },
   updated() {
     let h = ' ';
-    if (this.data.addresshash) {
+    if (this.data && this.data.addresshash) {
       h = ` ${this.data.addresshash} `
     }
     document.title = `Address${h}- ${PAGE_TITLE}`;
