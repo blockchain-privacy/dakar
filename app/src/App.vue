@@ -9,7 +9,7 @@
           src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
           transition="scale-transition"
           width="40"/>
-      <v-toolbar-title class="mx-1" @click="goToRoot()" style="cursor:pointer">Dash Explorer</v-toolbar-title>
+      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer">Dash Explorer</v-toolbar-title>
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
