@@ -31,6 +31,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			iscrawling: bool .
 			lastblockid: int .
+			lowestblockid: int .
 
 			type Block {
 				blockhash
@@ -67,6 +68,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type Status {
 				iscrawling
 				lastblockid
+				lowestblockid
 			}
 		`,
 	})

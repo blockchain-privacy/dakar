@@ -19,8 +19,9 @@ type Status struct {
 	// LastBlockId is the ID of the last block where both steps have been successful.
 	// Thus, it is possible to have a Block with a higher ID than LastBlockId,
 	// if the crawling was aborted between step 1 and 2.
-	LastBlockId *uint64  `json:"lastblockid,omitempty"`
-	DType       []string `json:"dgraph.type,omitempty"`
+	LastBlockId   *uint64  `json:"lastblockid,omitempty"`
+	LowestBlockId *uint64  `json:"lowestblockid,omitempty"`
+	DType         []string `json:"dgraph.type,omitempty"`
 }
 
 func (s Status) String() string {
@@ -45,7 +46,6 @@ type VerboseStatus struct {
 	Uid              string `json:"uid"`
 	IsCrawling       bool   `json:"iscrawling"`
 	LastBlockId      uint64 `json:"lastblockid"`
-	HighestBlockId   uint64 `json:"highestblockid"`
 	LowestBlockId    uint64 `json:"lowestblockid"`
 	TransactionCount uint64 `json:"txcount"`
 	BlockCount       uint64 `json:"blkcount"`
@@ -54,18 +54,17 @@ type VerboseStatus struct {
 }
 
 func (v VerboseStatus) String() string {
-	return fmt.Sprintf("Uid: %s, IsCrawling: %t, LastBlockId: %d, HighestBlockId: %d, "+
+	return fmt.Sprintf("Uid: %s, IsCrawling: %t, LastBlockId: %d, "+
 		"TransactionCount: %d, BlockCount: %d, OutputCount: %d, AddressCount: %d",
-		v.Uid, v.IsCrawling, v.LastBlockId, v.HighestBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
+		v.Uid, v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
 }
 
 const (
-	ErrorStatusNotFound       = "no status found"
-	ErrorInvalidNumber        = "wrong number of status objects returned"
-	ErrorLastBlockIdNotFound  = "last block id not found"
-	ErrorIsCrawlingNotFound   = "crawling status not found"
-	ErrorHighestBlockNotFound = "highest block not found"
-	ErrorLowestBlockNotFound  = "lowest block not found"
+	ErrorStatusNotFound      = "no status found"
+	ErrorInvalidNumber       = "wrong number of status objects returned"
+	ErrorLastBlockIdNotFound = "last block id not found"
+	ErrorIsCrawlingNotFound  = "crawling status not found"
+	ErrorTopBlockNotFound    = "top block not found"
 )
 
 type statusQuery struct {

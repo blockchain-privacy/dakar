@@ -48,7 +48,6 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 				`
 
 	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
-
 	if err != nil {
 		return
 	}
@@ -62,6 +61,61 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 	return r.payload()
 }
 
+// gets the highest block id.
+// on large datasets this is an expensive call.
+func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
+	return getTopBlockId(c, false)
+}
+
+// gets the lowest block id.
+// on large datasets this is an expensive call.
+func GetLowestBlockId(c *dgo.Dgraph) (id uint64, err error) {
+	return getTopBlockId(c, true)
+}
+
+// gets the top block id, either ordered descending (highest or ascending (lowest).
+// on large datasets this is an expensive call.
+func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
+	order := "desc"
+
+	if ascending {
+		order = "asc"
+	}
+
+	query := fmt.Sprintf(`{
+				q(func: type(Block), order%s: id,first: 1) @filter(ge(id,0)){
+					id
+				}
+			}`, order)
+
+	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+
+	if err != nil {
+		return
+	}
+
+	var r struct {
+		TopBlock []struct {
+			Id uint64 `json:"id,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return
+	}
+
+	if len(r.TopBlock) == 0 {
+		err = errors.New(ErrorTopBlockNotFound)
+		return
+	} else if len(r.TopBlock) > 1 {
+		err = errors.New(ErrorInvalidNumber)
+		return
+	}
+	id = r.TopBlock[0].Id
+
+	return
+}
+
 // gets verbose status information from the database
 func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	query := `{
@@ -69,12 +123,7 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 					uid
 					iscrawling
 					lastblockid
-				}
-				highestblockid(func: type(Block), orderdesc: id,first: 1) @filter(ge(id,0)){
-					id
-				}
-    			lowestblockid(func: type(Block), orderasc: id,first: 1) @filter(ge(id,0)){
-					id
+					lowestblockid
 				}
 				blk(func: type(Block)){
 					count: count(uid)
@@ -97,14 +146,8 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	}
 
 	var r struct {
-		Status       []Status `json:"status,omitempty"`
-		Highestblock []struct {
-			Id uint64 `json:"id,omitempty"`
-		} `json:"highestblockid,omitempty"`
-		Lowestblock []struct {
-			Id uint64 `json:"id,omitempty"`
-		} `json:"lowestblockid,omitempty"`
-		Blk []struct {
+		Status []Status `json:"status,omitempty"`
+		Blk    []struct {
 			Count uint64 `json:"count,omitempty"`
 		} `json:"blk,omitempty"`
 		Tx []struct {
@@ -139,28 +182,11 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 		return
 	}
 
-	if len(r.Highestblock) == 0 {
-		err = errors.New(ErrorHighestBlockNotFound)
-		return
-	} else if len(r.Highestblock) > 1 {
-		err = errors.New(ErrorInvalidNumber)
-		return
-	}
-
-	if len(r.Lowestblock) == 0 {
-		err = errors.New(ErrorLowestBlockNotFound)
-		return
-	} else if len(r.Lowestblock) > 1 {
-		err = errors.New(ErrorInvalidNumber)
-		return
-	}
-
 	status = VerboseStatus{
 		Uid:              r.Status[0].Uid,
 		IsCrawling:       *r.Status[0].IsCrawling,
 		LastBlockId:      *r.Status[0].LastBlockId,
-		HighestBlockId:   r.Highestblock[0].Id,
-		LowestBlockId:    r.Lowestblock[0].Id,
+		LowestBlockId:    *r.Status[0].LowestBlockId,
 		AddressCount:     r.Addr[0].Count,
 		TransactionCount: r.Tx[0].Count,
 		BlockCount:       r.Blk[0].Count,
@@ -171,7 +197,7 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 }
 
 // sets the new status
-func setStatus(c *dgo.Dgraph, status Status) error {
+func SetStatus(c *dgo.Dgraph, status Status) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
 
@@ -201,14 +227,14 @@ func setStatus(c *dgo.Dgraph, status Status) error {
 
 // sets the crawling status
 func SetCrawling(c *dgo.Dgraph, crawling bool) error {
-	return setStatus(c, Status{
+	return SetStatus(c, Status{
 		IsCrawling: &crawling,
 	})
 }
 
 // sets the last block id
 func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
-	return setStatus(c, Status{
+	return SetStatus(c, Status{
 		LastBlockId: &id,
 	})
 }

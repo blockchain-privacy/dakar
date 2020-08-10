@@ -258,30 +258,34 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 		return
 	}
 
-	status, err := dbstat.GetVerbose(dgraph)
+	status, err := dbstat.GetStatus(dgraph)
 	if err != nil {
-		if err.Error() == dbstat.ErrorLastBlockIdNotFound {
-			// last block id is not set -> we start at the beginning of the chain
-			startId = 1
-			err = nil
-			return
-		}
 		return
 	}
 
-	if status.LastBlockId != status.HighestBlockId {
+	if status.LastBlockId == nil {
+		// last block id is not set -> we start at the beginning of the chain
+		startId = 1
+		return
+	}
+
+	highestBlockId, err := dbstat.GetHighestBlockId(dgraph)
+	if err != nil {
+		return
+	}
+
+	if *status.LastBlockId != highestBlockId {
 		err = errors.New("last crawled block and highest block are not the same! Status: " + status.String())
 		return
 	}
 
-	startId = status.LastBlockId
+	startId = *status.LastBlockId
 
 	return
 }
 
 func processingInterrupted() {
 	log.Printf("### Block processing interrupted ###")
-
 }
 
 // wait for the next block
@@ -332,6 +336,16 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 	state, err := getInitialState(dgraph, client, continuous, startingBlockId)
 	if err != nil {
 		return err
+	}
+
+	status, err := dbstat.GetStatus(dgraph)
+	if err != nil {
+		return err
+	}
+
+	var isEmptyDatabase bool
+	if status.LastBlockId == nil {
+		isEmptyDatabase = true
 	}
 
 	var blkCounter uint64
@@ -403,15 +417,16 @@ mainLoop:
 
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock); err == nil {
+			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase); err == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
+			isEmptyDatabase = false
 		} else {
 			log.Println(err)
 			break
 		}
 
-		if blkCounter > 0 && blkCounter%10 == 0 {
+		if blkCounter > 0 && blkCounter%100 == 0 {
 			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
 		}
 	}
@@ -434,7 +449,7 @@ mainLoop:
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult) (blkCounter uint64, txCounter uint64, err error) {
+func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult, setLowestId bool) (blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
 
@@ -482,8 +497,15 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 	}
 
 	// save processing state
-	if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
-		return
+	if setLowestId {
+		if err = dbstat.SetStatus(dgraph, dbstat.Status{LastBlockId: &state.id,
+			LowestBlockId: &state.id}); err != nil {
+			return
+		}
+	} else {
+		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
+			return
+		}
 	}
 
 	return
