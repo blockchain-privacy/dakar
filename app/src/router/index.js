@@ -2,10 +2,11 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import SearchView from '../components/SearchView';
 import EntryView from '../components/EntryView';
+import PageNotFound from '../components/PageNotFound';
 import * as Constants from '../constants';
 
 Vue.use(Router)
-const PageNotFound = { template: '<div>404 Page not found</div>' }
+
 export default new Router({
     mode: 'history',
     routes: [
