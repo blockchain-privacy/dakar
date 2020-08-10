@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
@@ -9,7 +10,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 )
 
 // setup cli
@@ -75,7 +80,30 @@ func main() {
 	// setup REST API
 	setupHandlers(dgraph)
 
-	// start the server
-	log.Printf("Starting server at endpoint http://localhost:%d\n", cliArgs.ExplorerServerPort)
-	log.Fatal(http.ListenAndServe(":"+strconv.FormatUint(uint64(cliArgs.ExplorerServerPort), 10), nil))
+	// create server
+	srv := &http.Server{
+		Addr: ":" + strconv.FormatUint(uint64(cliArgs.ExplorerServerPort), 10),
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalln("listen:", err)
+		}
+	}()
+
+	log.Println("Starting server at endpoint http://localhost", srv.Addr)
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+	log.Println("### Shutting down server###")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		// extra handling here
+		cancel()
+	}()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalln("Server Shutdown Failed:", err)
+	}
 }
