@@ -81,44 +81,53 @@
               <v-divider v-if="outputs"></v-divider>
               <v-row v-if="outputs">
                 <v-col v-for="i in outputs" v-bind:key="i.addresshash">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-currency-usd-circle-outline</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Output</v-list-item-title>
-                      <v-list-item-subtitle>
-                        Address hash:
-                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
-                        <br>
-                        Amount: {{ i.amount }}<br>
-                        Spent: {{ i.inputindex != null }}<br>
-                        Index: {{ i.outputindex }}<br>
-                        Coinbase: {{ i.iscoinbase }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <v-sheet min-height="50" class="fill-height" color="transparent">
+                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
+                      <v-list-item>
+                        <v-list-item-avatar>
+                          <v-icon>mdi-currency-usd-circle-outline</v-icon>
+                        </v-list-item-avatar>
+                        <v-list-item-content>
+                          <v-list-item-title>Output</v-list-item-title>
+                          <v-list-item-subtitle>
+                            Address hash:
+                            <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                            <br>
+                            Amount: {{ i.amount }}<br>
+                            Spent: {{ i.inputindex != null }}<br>
+                            Index: {{ i.outputindex }}<br>
+                            Coinbase: {{ i.iscoinbase }}
+                          </v-list-item-subtitle>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-lazy>
+                  </v-sheet>
                 </v-col>
               </v-row>
               <v-divider v-if="inputs"></v-divider>
               <v-row v-if="inputs">
                 <v-col v-for="i in inputs" v-bind:key="i.addresshash">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-currency-usd-circle</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Input</v-list-item-title>
-                      <v-list-item-subtitle>
-                        Hash:
-                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
-                        <br>
-                        Amount: {{ i.amount }}<br>
-                        Index: {{ i.inputindex }}<br>
-                        Coinbase: {{ i.iscoinbase }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <v-sheet min-height="50" class="fill-height" color="transparent">
+                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
+
+                      <v-list-item>
+                        <v-list-item-avatar>
+                          <v-icon>mdi-currency-usd-circle</v-icon>
+                        </v-list-item-avatar>
+                        <v-list-item-content>
+                          <v-list-item-title>Input</v-list-item-title>
+                          <v-list-item-subtitle>
+                            Hash:
+                            <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                            <br>
+                            Amount: {{ i.amount }}<br>
+                            Index: {{ i.inputindex }}<br>
+                            Coinbase: {{ i.iscoinbase }}
+                          </v-list-item-subtitle>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-lazy>
+                  </v-sheet>
                 </v-col>
               </v-row>
             </v-container>
