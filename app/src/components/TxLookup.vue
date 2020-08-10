@@ -131,6 +131,7 @@
 
 <script>
 import {shortenHash} from "@/utilities";
+import {PAGE_TITLE} from "@/constants";
 
 export default {
   name: 'TxLookup',
@@ -159,6 +160,16 @@ export default {
         return a.inputindex > b.inputindex
       })
     }
-  }
+  },
+  mounted() {
+    document.title = `Transaction - ${PAGE_TITLE}`;
+  },
+  updated() {
+    let h = ' ';
+    if (this.data.txhash) {
+      h = ` ${this.data.txhash} `
+    }
+    document.title = `Transaction${h}- ${PAGE_TITLE}`;
+  },
 }
 </script>

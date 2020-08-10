@@ -13,18 +13,20 @@ export default new Router({
         {
             path: '/',
             name: Constants.ROUTE_NAME_ENTRY_PAGE,
-            component: EntryView
+            component: EntryView,
+            meta: {title: 'Status'},
         },
         {
             path: '/search/:id',
             name: Constants.ROUTE_NAME_SEARCH_PAGE,
-            component: SearchView
+            component: SearchView,
+            meta: {title: 'Search'},
         },
         {
             path: '*',
             name: Constants.ROUTE_NAME_404_PAGE,
-            component: PageNotFound
+            component: PageNotFound,
+            meta: {title: 'Page not found'},
         },
-
     ]
 })

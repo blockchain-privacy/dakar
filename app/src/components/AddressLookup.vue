@@ -47,6 +47,7 @@
 
 <script>
 import {shortenHash} from "@/utilities";
+import {PAGE_TITLE} from "@/constants";
 
 export default {
   name: 'AddressLookup',
@@ -57,6 +58,16 @@ export default {
     data() {
       return this.$store.getters.getAddressData;
     }
-  }
+  },
+  mounted() {
+    document.title = `Address - ${PAGE_TITLE}`;
+  },
+  updated() {
+    let h = ' ';
+    if (this.data.addresshash) {
+      h = ` ${this.data.addresshash} `
+    }
+    document.title = `Address${h}- ${PAGE_TITLE}`;
+  },
 }
 </script>

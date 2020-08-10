@@ -231,6 +231,8 @@
 </template>
 
 <script>
+import {PAGE_TITLE} from "@/constants";
+
 export default {
   name: 'EntryView',
   data: function () {
@@ -297,6 +299,9 @@ export default {
   },
   created() {
     this.refreshData();
+  },
+  mounted() {
+    document.title = `Status - ${PAGE_TITLE}`;
   },
   beforeDestroy() {
     this.resetTimers();

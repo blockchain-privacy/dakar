@@ -94,6 +94,7 @@
 
 <script>
 import {shortenHash} from "@/utilities";
+import {PAGE_TITLE} from "@/constants";
 
 export default {
   name: 'BlockLookup',
@@ -104,6 +105,16 @@ export default {
     data() {
       return this.$store.getters.getBlockData;
     }
-  }
+  },
+  mounted() {
+    document.title = `Block - ${PAGE_TITLE}`;
+  },
+  updated() {
+    let id = ' ';
+    if (this.data.id) {
+      id = ` ${this.data.id} `
+    }
+    document.title = `Block${id}- ${PAGE_TITLE}`;
+  },
 }
 </script>

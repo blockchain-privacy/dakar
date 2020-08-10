@@ -26,6 +26,9 @@ export default {
     toEntryPage: function () {
       this.$router.push({name: Constants.ROUTE_NAME_ENTRY_PAGE});
     }
+  },
+  mounted() {
+    document.title = 'Page not found';
   }
 }
 </script>
