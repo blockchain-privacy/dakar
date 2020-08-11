@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
@@ -98,14 +99,16 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 
 		block, err := dbblk.GetFrontendBlock(dgraph, blkHashString)
 		if err != nil {
-			http.Error(w, err.Error()+" Block hash: "+blkHashString, http.StatusNotFound)
+			http.Error(w, "Block hash: "+blkHashString, http.StatusNotFound)
+			log.Println(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(block)
 		if err != nil {
-			http.Error(w, err.Error()+" Block: "+block.String(), http.StatusInternalServerError)
+			http.Error(w, "Block: "+block.String(), http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -121,14 +124,16 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 
 		address, err := dbaddr.GetFrontendAddress(dgraph, addressHashString)
 		if err != nil {
-			http.Error(w, err.Error()+" Key: "+addressHashString, http.StatusNotFound)
+			http.Error(w, "Address: "+addressHashString, http.StatusNotFound)
+			log.Println(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(address)
 		if err != nil {
-			http.Error(w, err.Error()+" AddressData: "+address.String(), http.StatusInternalServerError)
+			http.Error(w, "AddressData: "+address.String(), http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -145,14 +150,16 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 
 		vTx, err := dbtx.GetFrontendTransaction(dgraph, txHashString)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "Transaction: "+txHashString, http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(vTx)
 		if err != nil {
-			http.Error(w, err.Error()+" TxDetails: "+vTx.String(), http.StatusInternalServerError)
+			http.Error(w, "TxDetails: "+vTx.String(), http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -166,14 +173,16 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 
 		verboseStatus, err := dbstat.GetVerbose(dgraph)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "error getting status information", http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(verboseStatus)
 		if err != nil {
-			http.Error(w, err.Error()+" Meta information: "+verboseStatus.String(), http.StatusInternalServerError)
+			http.Error(w, "Meta information: "+verboseStatus.String(), http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
