@@ -59,3 +59,13 @@ crawler 2020/08/11 13:15:15 Current block count in the chain of the RPC client: 
 crawler 2020/08/11 13:15:15 Starting server at endpoint http://localhost:8081
 crawler 2020/08/11 13:15:15 Starting crawling at Id: 1, Hash: 000007d91d1254d60e2dd1ae580383070a4ddffa4c64c2eeb4a2f9ecc0414343
 ```
+
+## Screenshots
+
+Entry page
+
+![Entry page screenshot](../data/screenshots/EntryPage.png)
+
+Block page
+
+![Block page screenshot](../data/screenshots/BlockPage.png)
