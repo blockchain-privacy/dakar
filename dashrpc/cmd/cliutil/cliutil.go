@@ -24,7 +24,8 @@ const (
 	StartBlockID
 	StopBlockID
 	IsPrintStatus
-	ExplorerServerPort
+	HttpServerPort
+	StartHttpServer
 	Logfile
 	TxSearch
 	TxInfo
@@ -32,20 +33,21 @@ const (
 )
 
 type Arguments struct {
-	Continuous         bool
-	IgnoreSafeguard    bool
-	ResetDB            bool
-	RpcUser            string
-	RpcPassword        string
-	StartBlockID       uint64
-	StopBlockID        uint64
-	IsPrintStatus      bool
-	RpcEndpoint        string
-	Logfile            string
-	TxSearch           string
-	TxInfo             string
-	ClusterAddr        string
-	ExplorerServerPort uint
+	Continuous      bool
+	IgnoreSafeguard bool
+	ResetDB         bool
+	RpcUser         string
+	RpcPassword     string
+	StartBlockID    uint64
+	StopBlockID     uint64
+	IsPrintStatus   bool
+	RpcEndpoint     string
+	Logfile         string
+	TxSearch        string
+	TxInfo          string
+	ClusterAddr     string
+	HttpServerPort  uint
+	StartHttpServer bool
 }
 
 func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
@@ -114,8 +116,11 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case Logfile:
 			addLogfile(&args.Logfile)
 			break
-		case ExplorerServerPort:
-			addExplorerServerPort(&args.ExplorerServerPort)
+		case HttpServerPort:
+			addHttpServerPort(&args.HttpServerPort)
+			break
+		case StartHttpServer:
+			addStartHttpServer(&args.StartHttpServer)
 			break
 		case TxSearch:
 			addTxSearch(&args.TxSearch)
@@ -203,6 +208,10 @@ func addLogfile(v *string) {
 	flag.StringVar(v, "logfile", "", "Specify log file (default: none)")
 }
 
-func addExplorerServerPort(v *uint) {
-	flag.UintVar(v, "serverport", 8081, "Explorer server port (default: 8081)")
+func addHttpServerPort(v *uint) {
+	flag.UintVar(v, "serverport", 8081, "Http server port (default: 8081)")
+}
+
+func addStartHttpServer(v *bool) {
+	flag.BoolVar(v, "startserver", false, "Start the http server (default: false)")
 }
