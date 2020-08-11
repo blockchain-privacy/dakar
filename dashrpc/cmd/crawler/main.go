@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
@@ -11,6 +12,10 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
@@ -157,18 +162,33 @@ func main() {
 	}
 	log.Printf("Current block count in the chain of the RPC client: %v\n", count)
 
-	if err := status.SetCrawling(dgraph, true); err != nil {
-		log.Println("could not set crawling status:", err)
-		return
+	// We will handle CTRL-C and CTRL-Z nicely
+	chSignal := make(chan os.Signal, 1)
+	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	chStopped := make(chan bool, 1)
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer func() {
+			chStopped <- true
+		}()
+		err = dashrpc.ProcessNewBlocks(ctx, dgraph, client, cliArgs.Continuous, cliArgs.StartBlockID, cliArgs.StopBlockID)
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	select {
+	case <-chSignal:
+		cancelFunc()
+	case <-chStopped:
+		cancelFunc()
 	}
 
-	err = dashrpc.ProcessNewBlocks(dgraph, client, cliArgs.Continuous, cliArgs.StartBlockID, cliArgs.StopBlockID)
-	if err != nil {
-		log.Println(err)
-	}
-
-	if err = status.SetCrawling(dgraph, false); err != nil {
-		log.Println(err)
-		return
-	}
+	wg.Wait()
 }

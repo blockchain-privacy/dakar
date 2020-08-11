@@ -1,6 +1,7 @@
 package dashrpc
 
 import (
+	"context"
 	"dashrpc/btcjson"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
@@ -12,10 +13,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -291,7 +289,7 @@ func processingInterrupted() {
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextBlock(client *rpcclient.Client, interrupt <-chan os.Signal, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+func waitForNextBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(newBlockIntervalTime)
 	defer ticker.Stop()
 	for {
@@ -330,8 +328,19 @@ func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bo
 }
 
 // processes all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool,
+func ProcessNewBlocks(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool,
 	startingBlockId uint64, stoppingBlockId uint64) error {
+
+	if err := dbstat.SetCrawling(dgraph, true); err != nil {
+		return err
+	}
+
+	defer func() {
+		if err := dbstat.SetCrawling(dgraph, false); err != nil {
+			log.Println("could not set crawling status:", err)
+			return
+		}
+	}()
 
 	state, err := getInitialState(dgraph, client, continuous, startingBlockId)
 	if err != nil {
@@ -353,10 +362,6 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 
 	log.Println("Starting crawling at", state)
 
-	// We will handle CTRL-C and CTRL-Z nicely
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
 	timerStart := time.Now()
 	// Main loop
 
@@ -366,7 +371,7 @@ func ProcessNewBlocks(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous b
 mainLoop:
 	for {
 		select {
-		case <-c:
+		case <-ctx.Done():
 			processingInterrupted()
 			break mainLoop
 		default:
@@ -379,7 +384,7 @@ mainLoop:
 				log.Println("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextBlock(client, c, state.chainHash)
+				currentBlock, isInterrupt, err = waitForNextBlock(client, ctx.Done(), state.chainHash)
 				if err != nil {
 					return err
 				}
