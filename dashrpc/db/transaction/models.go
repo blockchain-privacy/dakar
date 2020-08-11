@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"dashrpc/cmd/cliutil"
 	op "dashrpc/db/output"
 	"errors"
 	"fmt"
@@ -105,12 +106,12 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 	lenQ := len(tq.Q)
 
 	if lenQ == 0 {
-		err = errors.New("no transactions found")
-		return tx, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("no transactions found"))
+		return
 	} else if lenQ > 1 {
 		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one transaction")
-		return tx, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("found more than one transaction"))
+		return
 	}
 	tx = tq.Q[0]
 	return

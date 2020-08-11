@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
 	"errors"
@@ -37,12 +38,14 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
 	if err != nil {
-		return transaction, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	var r transactionQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return transaction, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return r.payload()
@@ -80,6 +83,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -98,11 +102,12 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return transaction, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
-		err = errors.New("invalid length of property in frontend transaction query")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("invalid length of property in frontend transaction query"))
 		return
 	}
 
@@ -142,7 +147,7 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 	// create json
 	pb, err := json.Marshal(transaction)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// build upsert
@@ -164,6 +169,9 @@ func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, 
 
 	// commit transaction
 	res, err := c.NewTxn().Do(db.GetContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
 	return res, err
 }
 
