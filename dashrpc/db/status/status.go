@@ -1,6 +1,7 @@
 package status
 
 import (
+	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
@@ -49,12 +50,14 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 
 	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	var r statusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -89,8 +92,8 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 			}`, order)
 
 	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
-
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -104,6 +107,7 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 		return
 	}
 
+	// todo compare errors with error.Is or error.As
 	if len(r.TopBlock) == 0 {
 		err = errors.New(ErrorTopBlockNotFound)
 		return
@@ -140,8 +144,8 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 			}`
 
 	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
-
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -162,9 +166,11 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
+	// todo compare errors with error.Is or error.As
 	// check if all values are set correctly
 	if len(r.Status) != 1 || len(r.Blk) != 1 || len(r.Tx) != 1 ||
 		len(r.Op) != 1 || len(r.Addr) != 1 {

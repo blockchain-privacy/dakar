@@ -71,6 +71,7 @@ type statusQuery struct {
 	Q []Status `json:"q"`
 }
 
+// todo wrap errors and compare with error.Is or error.As
 func (s statusQuery) payload() (status Status, err error) {
 	lenQ := len(s.Q)
 
