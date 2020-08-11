@@ -3,6 +3,7 @@ package dashrpc
 import (
 	"context"
 	"dashrpc/btcjson"
+	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
 	dbop "dashrpc/db/output"
@@ -47,7 +48,8 @@ func (p processingState) String() string {
 func (p *processingState) increment(nextHash string) (err error) {
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
-		return err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	p.hash = nextHash
@@ -105,7 +107,7 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 	return addresses
 }
 
-func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output, addrs *map[string]dbaddr.Address) error {
+func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output, addrs *map[string]dbaddr.Address) {
 	for _, mapping := range outMap {
 		var uids []string
 		for _, idx := range mapping.indexes {
@@ -118,26 +120,29 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 		*addrs = addOutputsToAddresses(*addrs, mapping.hash, uids)
 	}
 
-	return nil
+	return
 }
 
 func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]outputMapping,
-	addrMap *map[string]dbaddr.Address) error {
+	addrMap *map[string]dbaddr.Address) (err error) {
 	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
-		return err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// handle output mappings
-	return buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
+	buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
+	return
 }
 
 // inserts mappings between addresses and outputs in database
-func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) error {
+func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) (err error) {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
-		if err := buildAddresses(dgraph, mapping.hash, mapping.outputs, &addrMap); err != nil {
-			return err
+		if err = buildAddresses(dgraph, mapping.hash, mapping.outputs, &addrMap); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
 	}
 
@@ -147,8 +152,9 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 		addrSlice = append(addrSlice, a)
 	}
 
-	if _, err := dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
-		return err
+	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return nil
@@ -160,14 +166,14 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txHash, err := chainhash.NewHashFromStr(txHashString)
 	if err != nil {
-		log.Printf("Cannot convert string to Hash in BuildTransactionMapping(). String: %s", txHashString)
-		return txDetails, tMap, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	tx, err := client.GetRawTransactionVerbose(txHash)
 	if err != nil {
-		log.Printf("Problems getting the RawTransaction from hash: %v\n", txHash)
-		return txDetails, tMap, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	txDetails.Hash = tx.Txid
@@ -179,8 +185,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range tx.Vin {
 			if err = processTxVin(dgraph, &txDetails, d, uint64(i)); err != nil {
-				log.Printf("Problems with processTxVin() call in ProcessBlock(): %s", err.Error())
-				return txDetails, tMap, err
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
 			}
 		}
 	}
@@ -204,7 +210,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 	// create transaction mapping for address processing later on
 	tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
 
-	return txDetails, tMap, err
+	return
 }
 
 // maps the input information to the output if it exists already in the database
@@ -220,6 +226,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 		// origin transaction of output does not exist in database, ignore input
 		// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
 		// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
+		// todo unwrap errors
 		if err.Error() == dbop.ErrorNotFound {
 			return nil
 		}
@@ -235,7 +242,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 
 // builds a block with the provided arguments and inserts it in the database
 func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
-	blockId uint64, timestamp string, prevBlockHash string) error {
+	blockId uint64, timestamp string, prevBlockHash string) (err error) {
 
 	block := dbblk.Block{
 		Hash:      currentHash,
@@ -247,7 +254,11 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 		Transactions: transactions,
 	}
 
-	return dbblk.UpsertBlock(dgraph, block)
+	err = dbblk.UpsertBlock(dgraph, block)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	return
 }
 
 func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (startId uint64, err error) {
@@ -258,6 +269,7 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 
 	status, err := dbstat.GetStatus(dgraph)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -269,11 +281,14 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 
 	highestBlockId, err := dbstat.GetHighestBlockId(dgraph)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	if *status.LastBlockId != highestBlockId {
-		err = errors.New("last crawled block and highest block are not the same! Status: " + status.String())
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			errors.New("last crawled block and highest block are not the same! Status: "+status.String()))
+
 		return
 	}
 
@@ -283,6 +298,7 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 }
 
 func processingInterrupted() {
+	// todo remove
 	log.Printf("### Block processing interrupted ###")
 }
 
@@ -301,6 +317,7 @@ func waitForNextBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashO
 		case <-ticker.C:
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
 		}
@@ -316,10 +333,12 @@ func waitForNextBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashO
 // creates the initial state of the processing loop
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state processingState, err error) {
 	if state.id, err = getStartingId(dgraph, continuous, startId); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 	state.hash = state.chainHash.String()
@@ -332,7 +351,7 @@ func ProcessNewBlocks(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient
 	startingBlockId uint64, stoppingBlockId uint64) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	defer func() {
@@ -344,12 +363,12 @@ func ProcessNewBlocks(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient
 
 	state, err := getInitialState(dgraph, client, continuous, startingBlockId)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	status, err := dbstat.GetStatus(dgraph)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	var isEmptyDatabase bool
@@ -386,7 +405,7 @@ mainLoop:
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
 				currentBlock, isInterrupt, err = waitForNextBlock(client, ctx.Done(), state.chainHash)
 				if err != nil {
-					return err
+					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				}
 
 				if isInterrupt {
@@ -400,7 +419,7 @@ mainLoop:
 		// if not the first round increment state
 		if !firstLoop {
 			if err = state.increment(currentBlock.NextHash); err != nil {
-				return err
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}
 
@@ -417,7 +436,7 @@ mainLoop:
 		// get block from RPC-Client
 		currentBlock, err = client.GetBlockVerbose(state.chainHash)
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		// do the actual processing and aggregate the resulting metrics
@@ -464,6 +483,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 
 		newTx, tMap, err = BuildTransactionMapping(dgraph, client, t)
 		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -488,6 +508,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -498,6 +519,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 	}
 
 	if err = processAddresses(dgraph, txMapping); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -505,10 +527,12 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 	if setLowestId {
 		if err = dbstat.SetStatus(dgraph, dbstat.Status{LastBlockId: &state.id,
 			LowestBlockId: &state.id}); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 	} else {
 		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 	}
