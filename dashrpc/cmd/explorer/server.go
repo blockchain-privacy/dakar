@@ -25,7 +25,7 @@ func createServer(port uint, dgraph *dgo.Dgraph) *http.Server {
 		}
 	}()
 
-	log.Println("Starting server at endpoint http://localhost", srv.Addr)
+	log.Printf("Starting server at endpoint http://localhost%s\n", srv.Addr)
 	return srv
 }
 
