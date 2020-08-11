@@ -1,6 +1,7 @@
 package output
 
 import (
+	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
 	"errors"
@@ -42,12 +43,14 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
-		return op, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	var r outputQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return op, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return r.payload()
@@ -93,7 +96,8 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
-		return op, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// struct for json parsing
@@ -132,6 +136,7 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 		len(r.GetOutput[0].Outputs[0].Addresses) == 0 ||
 		(len(r.GetOutput[0].Outputs[0].OutputTransactions) != 1 &&
 			len(r.GetOutput[0].Outputs[0].InputTransactions) != 1) {
+		// todo compare errors with error.Is or error.As
 		err = errors.New(ErrorNotFound)
 		return
 	}
@@ -189,6 +194,7 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$id": uid})
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -216,6 +222,7 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 
 	var r queryOutput
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -224,6 +231,7 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 		len(r.GetOutput[0].Addresses) == 0 ||
 		(len(r.GetOutput[0].OutputTransactions) != 1 &&
 			len(r.GetOutput[0].InputTransactions) != 1) {
+		// todo compare errors with error.Is or error.As
 		err = errors.New(ErrorNotFound)
 		return
 	}

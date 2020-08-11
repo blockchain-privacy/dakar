@@ -49,6 +49,7 @@ const (
 	ErrorMultipleFound = "found multiple outputs"
 )
 
+// todo wrap errors and compare with error.Is or error.As
 func (oq outputQuery) payload() (op Output, err error) {
 	lenQ := len(oq.GetOutput)
 	if lenQ == 0 {
