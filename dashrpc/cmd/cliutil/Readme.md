@@ -1,6 +1,7 @@
 # CLI-Util
 
-This is a module to centralize CLI flags parsing and error handling for Dakar command line utilities.
+This is a module to centralize CLI flags parsing and error handling for Dakar command line utilities. 
+Additionally, included are helper functions.
 
 ## Using this module
 

@@ -3,11 +3,15 @@ package cliutil
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+	"path"
+	"runtime"
 	"strconv"
+	"strings"
 )
 
 type Flag int
@@ -50,6 +54,29 @@ type Arguments struct {
 	StartHttpServer bool
 }
 
+func ShowCallInfo() string {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		log.Fatal("not ok")
+	}
+
+	_, fileName := path.Split(file)
+	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
+	pl := len(parts)
+	packageName := ""
+	funcName := parts[pl-1]
+
+	if parts[pl-2][0] == '(' {
+		funcName = parts[pl-2] + "." + funcName
+		packageName = strings.Join(parts[0:pl-2], ".")
+	} else {
+		packageName = strings.Join(parts[0:pl-1], ".")
+	}
+
+	return fmt.Sprintln("the end:", pc, file, fileName, packageName, funcName, line)
+}
+
+// creates a string in the format of "rpcHost:rpcPort"
 func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
 	// check if ip is valid
 	if ip := net.ParseIP(rpcHost); ip == nil {
