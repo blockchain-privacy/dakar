@@ -2,7 +2,9 @@ package db
 
 import (
 	"context"
+	"dashrpc/cmd/cliutil"
 	"encoding/json"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
@@ -79,8 +81,8 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
 
 	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
-
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -93,6 +95,7 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 

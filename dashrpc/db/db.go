@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"dashrpc/cmd/cliutil"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,6 +31,7 @@ func CreateClient(host string, port uint) (*dgo.Dgraph, *grpc.ClientConn, error)
 	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port), grpc.WithInsecure())
 
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return nil, conn, err
 	}
 
@@ -51,8 +53,8 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 				`, dbType)
 
 	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
-
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -67,7 +69,7 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 	}
 
 	if len(r.GetCount) != 1 {
-		err = errors.New("wrong number of objects returned")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("wrong number of objects returned"))
 		return
 	}
 
