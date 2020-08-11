@@ -1,12 +1,30 @@
 # Crawler
 
-This is the blockchain crawler. It loads data from `dashd` and stores it in its own database.
+This is the blockchain crawler. It loads data from `dashd` and stores it in a Dgraph database. 
+
+An HTTP server can be activated (with `-startserver`), which exposes the database entries via a REST API. 
+
+## REST API Routes
+
+Routes supported by the REST API. Consume the endpoints via GET requests.
+
+| Route | Description |
+|----------| ------:|
+| /api/v1/ | Possible routes |
+| /api/v1/tx/ | Transaction details |
+| /api/v1/blk/ | Block details |
+| /api/v1/address/ | Address details |
+| /api/v1/meta/ | Database details |
+
+## Stop the crawler
+
+Do not kill the crawling process, instead send a termination or interrupt signal. The crawler will then gracefully shutdown.
 
 ## Examples
 
-Write to a log file, reset the database and start crawling continuously at block height 1.
+Write to a log file, reset the database, start the http server on the default port and start crawling continuously at block height 1.
 ```sh
-./crawler -continuous -logfile /tmp/crawler.log -reset
+./crawler -continuous -logfile /tmp/crawler.log -reset -startserver
 ```
 
 Write to a log file, reset the database and start crawling from block height 1268019 to 1269019
@@ -34,3 +52,5 @@ Print the current status of the database
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
+| startserver | false | Start the http server (default: false) |
+| serverport | 8081 | Http server port (default: 8081) |

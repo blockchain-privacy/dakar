@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -20,7 +21,7 @@ import (
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard)
+		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard, cli.StartHttpServer, cli.HttpServerPort)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -171,6 +172,7 @@ func main() {
 	chStopped := make(chan bool, 1)
 
 	var wg sync.WaitGroup
+
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -183,11 +185,28 @@ func main() {
 		}
 	}()
 
+	var srv *http.Server
+	if cliArgs.StartHttpServer {
+		wg.Add(1)
+		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph)
+	}
+
+	var stoppedWorking bool
 	select {
 	case <-chSignal:
 		cancelFunc()
+		shutdownServer(srv)
 	case <-chStopped:
 		cancelFunc()
+		stoppedWorking = true
+	}
+
+	if cliArgs.StartHttpServer && stoppedWorking {
+		// if the crawler stopped working on his own accord, the server is still active at this point
+		select {
+		case <-chSignal:
+			shutdownServer(srv)
+		}
 	}
 
 	wg.Wait()

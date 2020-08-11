@@ -6,11 +6,12 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 )
 
 // creates a http server on the given port
-func createServer(port uint, dgraph *dgo.Dgraph) *http.Server {
+func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph) *http.Server {
 	// setup REST API
 	setupHandlers(dgraph)
 
@@ -21,8 +22,9 @@ func createServer(port uint, dgraph *dgo.Dgraph) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalln("server error:", err)
+			log.Println("server error:", err)
 		}
+		wg.Done()
 	}()
 
 	log.Printf("Starting server at endpoint http://localhost%s\n", srv.Addr)
@@ -31,6 +33,9 @@ func createServer(port uint, dgraph *dgo.Dgraph) *http.Server {
 
 // sends a shutdown signal to the server with a timout of 5 seconds
 func shutdownServer(server *http.Server) {
+	if server == nil {
+		return
+	}
 	log.Println("### Shutting down server###")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
