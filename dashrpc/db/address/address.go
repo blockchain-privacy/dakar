@@ -1,6 +1,7 @@
 package address
 
 import (
+	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
 	"errors"
@@ -30,12 +31,14 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 	vars["$hash"] = addrHash
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
-		return addr, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	var r addressQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return addr, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return r.payload()
@@ -64,6 +67,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 	vars["$hash"] = addrHash
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -72,11 +76,13 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return addr, err
 	}
 
 	if len(r.Address) != 1 || len(r.Address[0].Outputs) == 0 {
-		err = errors.New("invalid length of property in frontend address query")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			errors.New("invalid length of property in frontend address query"))
 		return
 	}
 
@@ -89,11 +95,12 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err error) {
 	addr, err = GetAddress(c, addressHash)
 	if err != nil {
-		return addr, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	if !addr.isComplete() {
-		err = errors.New("address not complete")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("address not complete"))
 		return addr, err
 	}
 
@@ -106,6 +113,7 @@ func UpsertAddress(c *dgo.Dgraph, address Address) (*api.Response, error) {
 	address.SetDType()
 	pb, err := json.Marshal(address)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return nil, err
 	}
 
@@ -168,6 +176,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 
 	pb, err := json.Marshal(addresses)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return nil, err
 	}
 
