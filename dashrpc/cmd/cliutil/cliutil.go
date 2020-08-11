@@ -63,17 +63,13 @@ func ShowCallInfo() string {
 	_, fileName := path.Split(file)
 	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
 	pl := len(parts)
-	packageName := ""
 	funcName := parts[pl-1]
 
 	if parts[pl-2][0] == '(' {
 		funcName = parts[pl-2] + "." + funcName
-		packageName = strings.Join(parts[0:pl-2], ".")
-	} else {
-		packageName = strings.Join(parts[0:pl-1], ".")
 	}
 
-	return fmt.Sprintln("the end:", pc, file, fileName, packageName, funcName, line)
+	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
 }
 
 // creates a string in the format of "rpcHost:rpcPort"
