@@ -1,6 +1,7 @@
 package block
 
 import (
+	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
 	"errors"
@@ -34,12 +35,14 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
-		return blk, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	var r blockQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return blk, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return r.payload()
@@ -83,6 +86,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 		query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -100,7 +104,8 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 	}
 
 	if len(r.Blocks) != 1 {
-		err = errors.New("invalid length of property in frontend block query")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			errors.New("invalid length of property in frontend block query"))
 		return
 	}
 
@@ -132,6 +137,7 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 
 	pb, err := json.Marshal(block)
 	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return err
 	}
 
@@ -156,6 +162,10 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	}
 
 	_, err = c.NewTxn().Do(db.GetContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
 	return err
 }
 
@@ -177,7 +187,7 @@ func InsertBlock(c *dgo.Dgraph, block Block) error {
 
 	pb, err := json.Marshal(block)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	query := `
@@ -198,6 +208,10 @@ func InsertBlock(c *dgo.Dgraph, block Block) error {
 	}
 
 	_, err = c.NewTxn().Do(db.GetContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
 	return err
 }
 

@@ -1,6 +1,7 @@
 package block
 
 import (
+	"dashrpc/cmd/cliutil"
 	tx "dashrpc/db/transaction"
 	"errors"
 	"fmt"
@@ -71,13 +72,13 @@ func (bq blockQuery) payload() (blk Block, err error) {
 	lenQ := len(bq.Q)
 
 	if lenQ == 0 {
-		err = errors.New("no blocks found")
-		return blk, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("no blocks found"))
+		return
 	} else if lenQ > 1 {
 		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one block")
-		return blk, err
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("found more than one block"))
+		return
 	}
 	blk = bq.Q[0]
-	return blk, err
+	return
 }
