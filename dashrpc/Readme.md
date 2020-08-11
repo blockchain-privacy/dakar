@@ -19,6 +19,9 @@ Guide
 1. Work should have unit tests associated, when appropriate  
 1. New work should undergo code-review before merging  
 1. Small editorial and documentation work can be done directly in `master`
+1. [Propogate](https://dave.cheney.net/2015/11/05/lets-talk-about-logging) and [wrap](https://blog.golang.org/go1.13-errors) errors. 
+In short: Propogate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`. 
+Only log if there is an error. Do not log metrics.
 
 Branches
 * `master` - main stable dev branch, must compile and should work.
