@@ -44,7 +44,6 @@ func (s *Status) SetDType() {
 }
 
 type VerboseStatus struct {
-	Uid              string `json:"uid"`
 	IsCrawling       bool   `json:"iscrawling"`
 	LastBlockId      uint64 `json:"lastblockid"`
 	LowestBlockId    uint64 `json:"lowestblockid"`
@@ -55,9 +54,9 @@ type VerboseStatus struct {
 }
 
 func (v VerboseStatus) String() string {
-	return fmt.Sprintf("Uid: %s, IsCrawling: %t, LastBlockId: %d, "+
+	return fmt.Sprintf("IsCrawling: %t, LastBlockId: %d, "+
 		"TransactionCount: %d, BlockCount: %d, OutputCount: %d, AddressCount: %d",
-		v.Uid, v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
+		v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
 }
 
 var (

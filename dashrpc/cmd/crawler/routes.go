@@ -1,11 +1,13 @@
 package main
 
 import (
+	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
+	"dashrpc/rpcclient"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -176,7 +178,7 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 
 // API pattern: "/api/v1/meta/"
 // OUTPUT: dashrpc.Transaction
-func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
@@ -193,8 +195,24 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		info, err := client.GetInfo()
+		if err != nil {
+			http.Error(w, "error getting status information", http.StatusInternalServerError)
+			log.Println(cliutil.ShowCallInfo(), err)
+		}
+
+		type metaStatus struct {
+			Status  dbstat.VerboseStatus     `json:"status"`
+			RPCInfo btcjson.InfoWalletResult `json:"rpcinfo"`
+		}
+
+		stat := metaStatus{
+			Status:  verboseStatus,
+			RPCInfo: *info,
+		}
+
 		// encoding
-		err = json.NewEncoder(w).Encode(verboseStatus)
+		err = json.NewEncoder(w).Encode(stat)
 		if err != nil {
 			http.Error(w, "Meta information: "+verboseStatus.String(), http.StatusInternalServerError)
 			log.Println(cliutil.ShowCallInfo(), err)
@@ -203,11 +221,11 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 }
 
 // creates endpoint handlers
-func setupHandlers(dgraph *dgo.Dgraph) {
+func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	// API end points
 	http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph))
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
-	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph))
+	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteRoot(), handlerRoot)
 }

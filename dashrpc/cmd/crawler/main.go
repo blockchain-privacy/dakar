@@ -190,7 +190,7 @@ func main() {
 	var srv *http.Server
 	if cliArgs.StartHttpServer {
 		wg.Add(1)
-		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph)
+		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
 	}
 
 	var stoppedWorking bool

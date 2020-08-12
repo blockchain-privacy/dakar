@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dashrpc/rpcclient"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"net/http"
@@ -11,9 +12,9 @@ import (
 )
 
 // creates a http server on the given port
-func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph) *http.Server {
+func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) *http.Server {
 	// setup REST API
-	setupHandlers(dgraph)
+	setupHandlers(dgraph, client)
 
 	// create server
 	srv := &http.Server{

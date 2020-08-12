@@ -43,6 +43,7 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 					uid
 					iscrawling
 					lastblockid
+					lowestblockid
 				  }
 				}
 				`
@@ -122,7 +123,6 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	query := `{
 				status(func: type(Status)){
-					uid
 					iscrawling
 					lastblockid
 					lowestblockid
@@ -186,7 +186,6 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	}
 
 	status = VerboseStatus{
-		Uid:              r.Status[0].Uid,
 		IsCrawling:       *r.Status[0].IsCrawling,
 		LastBlockId:      *r.Status[0].LastBlockId,
 		LowestBlockId:    *r.Status[0].LowestBlockId,
