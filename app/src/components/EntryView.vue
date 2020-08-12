@@ -27,7 +27,7 @@
                 <v-col>
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon v-bind:class="{ 'green--text': data.iscrawling, 'red--text': !data.iscrawling }">
+                      <v-icon v-bind:class="{ 'green--text': data.status.iscrawling, 'red--text': !data.status.iscrawling }">
                         mdi-robot
                       </v-icon>
                     </v-list-item-avatar>
@@ -48,7 +48,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.iscrawling ? "Active" : "Inactive" }}
+                        {{ data.status.iscrawling ? "Active" : "Inactive" }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -77,7 +77,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.lowestblockid">{{ data.lowestblockid }}</router-link>
+                        <router-link :to="'search/' + data.status.lowestblockid">{{ data.status.lowestblockid }}</router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -104,7 +104,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.lastblockid">{{ data.lastblockid }}</router-link>
+                        <router-link :to="'search/' + data.status.lastblockid">{{ data.status.lastblockid }}</router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -133,7 +133,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.blkcount }}
+                        {{ data.status.blkcount }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -160,7 +160,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.txcount }}
+                        {{ data.status.txcount }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -189,7 +189,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.outputcount }}
+                        {{ data.status.outputcount }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -216,7 +216,149 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.addresscount }}
+                        {{ data.status.addresscount }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
+              </v-row>
+              <v-divider v-if="data.rpcinfo"></v-divider>
+              <v-row>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>mdi-message-text-clock-outline</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        RPC Version
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.rpcVersion }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ data.rpcinfo.version }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>mdi-file-clock-outline</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Protocol version
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.rpcProtocolVersion }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ data.rpcinfo.protocolversion }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>mdi-format-list-numbered</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Block Height
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.rpcBlockHeight }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ data.rpcinfo.blocks }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>mdi-weight</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Difficulty
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.rpcDifficulty }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ data.rpcinfo.difficulty }}
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>mdi-lan</v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Connections
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.rpcConnections }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        {{ data.rpcinfo.connections }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -245,6 +387,11 @@ export default {
         transactionCount: "Number of transactions in the database",
         outputCount: "Number of outputs in the database. Note that an output is only saved once, even if it is used as an input.",
         addressCount: "Number of addresses in the database",
+        rpcVersion: "Version of the RPC client",
+        rpcProtocolVersion: "Version of the protocol",
+        rpcBlockHeight: "Current block height of the RPC client",
+        rpcConnections: "Number of Nodes connected to the RPC client",
+        rpcDifficulty: "Current mining difficulty",
       },
       timeoutData: {
         start: 0,
