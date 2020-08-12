@@ -8,6 +8,11 @@ import (
 
 const DType = "Address"
 
+var (
+	ErrorAddressNotFound = errors.New("no address found")
+	ErrorInvalidResult   = errors.New("invalid result")
+)
+
 type Address struct {
 	Uid     string      `json:"uid,omitempty"`
 	Hash    string      `json:"addresshash,omitempty"`

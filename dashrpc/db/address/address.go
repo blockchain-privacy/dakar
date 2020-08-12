@@ -80,9 +80,11 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 		return addr, err
 	}
 
-	if len(r.Address) != 1 || len(r.Address[0].Outputs) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			errors.New("invalid length of property in frontend address query"))
+	if len(r.Address) == 0 || len(r.Address[0].Outputs) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+		return
+	} else if len(r.Address) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
 

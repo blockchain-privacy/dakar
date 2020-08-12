@@ -184,7 +184,12 @@ func handlerMeta(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		verboseStatus, err := dbstat.GetVerbose(dgraph)
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+
+			// only print error if it is not expected
+			if errors.Is(err, dbaddr.ErrorAddressNotFound) {
+				log.Println(cliutil.ShowCallInfo(), err)
+			}
+
 			return
 		}
 
