@@ -120,24 +120,12 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 }
 
 // gets verbose status information from the database
-func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
+func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	query := `{
 				status(func: type(Status)){
 					iscrawling
 					lastblockid
 					lowestblockid
-				}
-				blk(func: type(Block)){
-					count: count(uid)
-				}
-				tx(func: type(Transaction)){
-					count: count(uid)
-				}
-				op(func: type(Output)){
-					count: count(uid)
-				}
-				addr(func: type(Address)){
-					count: count(uid)
 				}
 			}`
 
@@ -149,18 +137,6 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 
 	var r struct {
 		Status []Status `json:"status,omitempty"`
-		Blk    []struct {
-			Count uint64 `json:"count,omitempty"`
-		} `json:"blk,omitempty"`
-		Tx []struct {
-			Count uint64 `json:"count,omitempty"`
-		} `json:"tx,omitempty"`
-		Op []struct {
-			Count uint64 `json:"count,omitempty"`
-		} `json:"op,omitempty"`
-		Addr []struct {
-			Count uint64 `json:"count,omitempty"`
-		} `json:"addr,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -169,8 +145,7 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 	}
 
 	// check if all values are set correctly
-	if len(r.Status) != 1 || len(r.Blk) != 1 || len(r.Tx) != 1 ||
-		len(r.Op) != 1 || len(r.Addr) != 1 {
+	if len(r.Status) != 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
@@ -185,14 +160,10 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 		return
 	}
 
-	status = VerboseStatus{
-		IsCrawling:       *r.Status[0].IsCrawling,
-		LastBlockId:      *r.Status[0].LastBlockId,
-		LowestBlockId:    *r.Status[0].LowestBlockId,
-		AddressCount:     r.Addr[0].Count,
-		TransactionCount: r.Tx[0].Count,
-		BlockCount:       r.Blk[0].Count,
-		OutputCount:      r.Op[0].Count,
+	status = FrontendStatus{
+		IsCrawling:    *r.Status[0].IsCrawling,
+		LastBlockId:   *r.Status[0].LastBlockId,
+		LowestBlockId: *r.Status[0].LowestBlockId,
 	}
 
 	return

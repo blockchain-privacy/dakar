@@ -183,7 +183,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		log.Println("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
-		verboseStatus, err := dbstat.GetVerbose(dgraph)
+		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
 
@@ -202,7 +202,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		}
 
 		type metaStatus struct {
-			Status  dbstat.VerboseStatus     `json:"status"`
+			Status  dbstat.FrontendStatus    `json:"status"`
 			RPCInfo btcjson.InfoWalletResult `json:"rpcinfo"`
 		}
 

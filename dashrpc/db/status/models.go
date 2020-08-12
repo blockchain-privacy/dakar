@@ -43,7 +43,7 @@ func (s *Status) SetDType() {
 	s.DType = []string{DType}
 }
 
-type VerboseStatus struct {
+type FrontendStatus struct {
 	IsCrawling       bool   `json:"iscrawling"`
 	LastBlockId      uint64 `json:"lastblockid"`
 	LowestBlockId    uint64 `json:"lowestblockid"`
@@ -53,7 +53,7 @@ type VerboseStatus struct {
 	AddressCount     uint64 `json:"addresscount"`
 }
 
-func (v VerboseStatus) String() string {
+func (v FrontendStatus) String() string {
 	return fmt.Sprintf("IsCrawling: %t, LastBlockId: %d, "+
 		"TransactionCount: %d, BlockCount: %d, OutputCount: %d, AddressCount: %d",
 		v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
