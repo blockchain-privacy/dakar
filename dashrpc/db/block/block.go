@@ -4,7 +4,6 @@ import (
 	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -103,9 +102,11 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 		return
 	}
 
-	if len(r.Blocks) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			errors.New("invalid length of property in frontend block query"))
+	if len(r.Blocks) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorBlockNotFound)
+		return
+	} else if len(r.Blocks) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
 

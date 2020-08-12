@@ -9,6 +9,11 @@ import (
 
 const DType = "Block"
 
+var (
+	ErrorBlockNotFound = errors.New("no blocks found")
+	ErrorInvalidResult = errors.New("invalid result")
+)
+
 type Block struct {
 	Uid          string           `json:"uid,omitempty"`
 	Hash         string           `json:"blockhash,omitempty"`

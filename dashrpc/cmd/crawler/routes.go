@@ -7,6 +7,7 @@ import (
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
@@ -100,7 +101,12 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 		block, err := dbblk.GetFrontendBlock(dgraph, blkHashString)
 		if err != nil {
 			http.Error(w, "Block hash: "+blkHashString, http.StatusNotFound)
-			log.Println(cliutil.ShowCallInfo(), err)
+
+			// only print error if it is not expected
+			if !errors.Is(err, dbblk.ErrorBlockNotFound) {
+				log.Println(cliutil.ShowCallInfo(), err)
+			}
+
 			return
 		}
 
