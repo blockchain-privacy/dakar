@@ -5,7 +5,7 @@
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
-              <v-icon>mdi-file-tree</v-icon>
+              <v-icon>mdi-cube-outline</v-icon>
               Block {{ data.blockhash }}
             </v-toolbar-title>
           </v-toolbar>
