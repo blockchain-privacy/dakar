@@ -1,5 +1,5 @@
 <template>
-  <v-text-field @keydown.enter="handleQuery(query, 'user')" class="d-flex" full-width v-model="query"
+  <v-text-field @keydown.enter="handleInput(query, 'user')" class="d-flex" full-width v-model="query"
                 label="Search for blocks, transactions and addresses"/>
 </template>
 
@@ -11,7 +11,7 @@ function newRouting(context, id) {
   if (id === undefined) {
     return;
   }
-  context.handleQuery(id, 'route');
+  context.handleQuery(id);
 }
 
 export default {
@@ -67,13 +67,27 @@ export default {
     },
   },
   methods: {
-    handleQuery: function (q, origin) {
+    handleInput: function (q, origin) {
       if (origin === 'user' && q !== this.lastQuery) {
         // update route only when input is from user and query is different
+
+        if (!this.isValidData(q)) {
+          this.warningMsg = 'Input was not valid!';
+          return;
+        }
+
         this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
       } else if (origin === 'route') {
         // do nothing -> route is already up to date
       }
+    },
+    handleQuery: function (q) {
+      // if (origin === 'user' && q !== this.lastQuery) {
+      //   // update route only when input is from user and query is different
+      //   this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
+      // } else if (origin === 'route') {
+      //   // do nothing -> route is already up to date
+      // }
 
       this.lastQuery = q;
 
@@ -94,8 +108,7 @@ export default {
       });
     },
     isValidData: function (str) {
-      // TODO: check if str is address or transaction, also calculate checksum
-      return str.length >= 1;
+      return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/)
     },
     searchBlock: function (q) {
       console.log('Block search: ' + q);
