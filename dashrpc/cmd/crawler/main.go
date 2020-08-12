@@ -176,7 +176,12 @@ func main() {
 		defer func() {
 			chStopped <- true
 		}()
-		err = dashrpc.ProcessNewBlocks(ctx, dgraph, client, cliArgs.Continuous, cliArgs.StartBlockID, cliArgs.StopBlockID)
+		if cliArgs.Continuous {
+			err = dashrpc.ProcessBlocksContinuously(ctx, dgraph, client)
+		} else {
+			err = dashrpc.ProcessBlockRange(ctx, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+		}
+
 		if err != nil {
 			log.Println(err)
 		}

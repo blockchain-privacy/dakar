@@ -261,12 +261,9 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 	return
 }
 
-func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (startId uint64, err error) {
-	if !continuous {
-		startId = startBlockId
-		return
-	}
-
+// Gets the block id from which the crawling will be resumed. If no crawling has
+// happened yet, the block id is set to 1.
+func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	status, err := dbstat.GetStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -331,9 +328,13 @@ func waitForNextBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashO
 
 // creates the initial state of the processing loop
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state processingState, err error) {
-	if state.id, err = getStartingId(dgraph, continuous, startId); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+	if continuous {
+		if state.id, err = getStartingId(dgraph); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+	} else {
+		state.id = startId
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
@@ -345,8 +346,8 @@ func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bo
 	return
 }
 
-// processes all the new blocks from a given hash down to the block that is already in DB
-func ProcessNewBlocks(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool,
+// processes all blocks from startingBlockId to stoppingBlockId
+func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client,
 	startingBlockId uint64, stoppingBlockId uint64) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
@@ -360,7 +361,103 @@ func ProcessNewBlocks(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient
 		}
 	}()
 
-	state, err := getInitialState(dgraph, client, continuous, startingBlockId)
+	state, err := getInitialState(dgraph, client, false, startingBlockId)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	status, err := dbstat.GetStatus(dgraph)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	var isEmptyDatabase bool
+	if status.LastBlockId == nil {
+		isEmptyDatabase = true
+	}
+
+	var blkCounter uint64
+	var txCounter uint64
+
+	log.Println("Starting crawling at", state)
+
+	timerStart := time.Now()
+	// Main loop
+
+	var currentBlock *btcjson.GetBlockVerboseResult
+
+mainLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			processingInterrupted()
+			break mainLoop
+		default:
+			// we do nothing
+		}
+
+		// get block from RPC-Client
+		currentBlock, err = client.GetBlockVerbose(state.chainHash)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		// do the actual processing and aggregate the resulting metrics
+		if rBlockCounter, rTransactionCounter,
+			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase); err == nil {
+			blkCounter += rBlockCounter
+			txCounter += rTransactionCounter
+			isEmptyDatabase = false
+		} else {
+			log.Println(err)
+			break
+		}
+
+		if state.id == stoppingBlockId || currentBlock.NextHash == "" {
+			// finished
+			break
+		}
+
+		if err = state.increment(currentBlock.NextHash); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
+	printMetrics(state, blkCounter, txCounter, time.Since(timerStart))
+
+	return nil
+}
+
+// prints the given metrics
+func printMetrics(state processingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
+	if blkCounter > 0 {
+		log.Println("Last Block:", state)
+		log.Printf("New blocks inserted: %v\n", blkCounter)
+		log.Printf("Final TX count: %v\n", txCounter)
+		log.Printf("Elapsed time: %s\n", elapsedTime)
+		log.Printf("Performance: %v ms/block", elapsedTime.Milliseconds()/int64(blkCounter))
+	} else {
+		log.Println("Processed no new blocks")
+		log.Printf("Final TX count: %v\n", txCounter)
+		log.Printf("Elapsed time: %s", elapsedTime)
+	}
+}
+
+// processes all blocks provided by the RPC client continuously
+func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) error {
+
+	if err := dbstat.SetCrawling(dgraph, true); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	defer func() {
+		if err := dbstat.SetCrawling(dgraph, false); err != nil {
+			log.Println("could not set crawling status:", err)
+			return
+		}
+	}()
+
+	state, err := getInitialState(dgraph, client, true, 0)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -396,7 +493,7 @@ mainLoop:
 			// we do nothing
 		}
 
-		if continuous && !firstLoop {
+		if !firstLoop {
 			// set values for this round
 			if currentBlock.NextHash == "" {
 				log.Println("Waiting for next block.", state)
@@ -422,15 +519,6 @@ mainLoop:
 			}
 		}
 
-		// check for stop conditions if not stop
-		if !continuous {
-			// stoppingBlockId+1 <- +1 because we still need to process this round
-			if state.id == stoppingBlockId+1 || (currentBlock != nil && currentBlock.NextHash == "") {
-				// finished
-				break
-			}
-		}
-
 		firstLoop = false
 		// get block from RPC-Client
 		currentBlock, err = client.GetBlockVerbose(state.chainHash)
@@ -448,24 +536,9 @@ mainLoop:
 			log.Println(err)
 			break
 		}
-
-		if blkCounter > 0 && blkCounter%100 == 0 {
-			log.Printf("%v ms/block\n", time.Since(timerStart).Milliseconds()/int64(blkCounter))
-		}
 	}
 
-	elapsedTime := time.Since(timerStart)
-	if blkCounter > 0 {
-		log.Println("Last Block:", state)
-		log.Printf("New blocks inserted: %v\n", blkCounter)
-		log.Printf("Final TX count: %v\n", txCounter)
-		log.Printf("Elapsed time: %s\n", elapsedTime)
-		log.Printf("Performance: %v ms/block", elapsedTime.Milliseconds()/int64(blkCounter))
-	} else {
-		log.Println("Processed no new blocks")
-		log.Printf("Final TX count: %v\n", txCounter)
-		log.Printf("Elapsed time: %s", elapsedTime)
-	}
+	printMetrics(state, blkCounter, txCounter, time.Since(timerStart))
 
 	return nil
 }
