@@ -9,6 +9,11 @@ import (
 
 const DType = "Transaction"
 
+var (
+	ErrorTransactionNotFound = errors.New("no transaction found")
+	ErrorInvalidResult       = errors.New("invalid result")
+)
+
 type Transaction struct {
 	Uid     string      `json:"uid,omitempty"`
 	Outputs []op.Output `json:"tx_outputs,omitempty"`

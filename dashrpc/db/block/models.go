@@ -10,7 +10,7 @@ import (
 const DType = "Block"
 
 var (
-	ErrorBlockNotFound = errors.New("no blocks found")
+	ErrorBlockNotFound = errors.New("no block found")
 	ErrorInvalidResult = errors.New("invalid result")
 )
 

@@ -152,12 +152,16 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(getRouteTransaction()):]
-		log.Println(txHashString)
 
 		vTx, err := dbtx.GetFrontendTransaction(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, "Transaction: "+txHashString, http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+
+			// only print error if it is not expected
+			if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
+				log.Println(cliutil.ShowCallInfo(), err)
+			}
+
 			return
 		}
 

@@ -4,7 +4,6 @@ import (
 	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -106,8 +105,11 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		return
 	}
 
-	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("invalid length of property in frontend transaction query"))
+	if len(r.Transaction) == 0 || len(r.Transaction[0].Block) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		return
+	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
 
