@@ -68,14 +68,11 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 	return *dbStatus.IsCrawling, nil
 }
 
-// The main crawler for the system. It needs to be run prior to using any of the other
+// The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //
-// DashRPC client traverses the Dash blockchain and creates a Dgraph database entry for each transaction
+// The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
-//
-// Note: in the future, the crawler could be integrated with the backend-web service as
-// to run continuously in the background and share the DB with other API queries.
 func main() {
 	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
 	cliArgs, err := getCLIArgs()
