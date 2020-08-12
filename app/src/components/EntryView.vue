@@ -27,7 +27,8 @@
                 <v-col>
                   <v-list-item>
                     <v-list-item-avatar>
-                      <v-icon v-bind:class="{ 'green--text': data.status.iscrawling, 'red--text': !data.status.iscrawling }">
+                      <v-icon
+                          v-bind:class="{ 'green--text': data.status.iscrawling, 'red--text': !data.status.iscrawling }">
                         mdi-robot
                       </v-icon>
                     </v-list-item-avatar>
@@ -77,7 +78,10 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lowestblockid">{{ data.status.lowestblockid }}</router-link>
+                        <router-link :to="'search/' + data.status.lowestblockid">{{
+                            data.status.lowestblockid
+                          }}
+                        </router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -104,119 +108,10 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lastblockid">{{ data.status.lastblockid }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Block count
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.blockCount }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.status.blkcount }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-col>
-                <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Transaction count
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.transactionCount }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.status.txcount }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Output count
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.outputCount }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.status.outputcount }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-col>
-                <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Address count
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.addressCount }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.status.addresscount }}
+                        <router-link :to="'search/' + data.status.lastblockid">{{
+                            data.status.lastblockid
+                          }}
+                        </router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
@@ -329,7 +224,7 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        {{ data.rpcinfo.difficulty }}
+                        {{ Math.trunc(data.rpcinfo.difficulty) }}
                       </v-list-item-subtitle>
                     </v-list-item-content>
                   </v-list-item>
