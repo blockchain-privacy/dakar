@@ -8,7 +8,6 @@ import (
 	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -107,12 +106,11 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 		return
 	}
 
-	// todo compare errors with error.Is or error.As
 	if len(r.TopBlock) == 0 {
-		err = errors.New(ErrorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
 		return
 	} else if len(r.TopBlock) > 1 {
-		err = errors.New(ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
 	id = r.TopBlock[0].Id
@@ -170,21 +168,20 @@ func GetVerbose(c *dgo.Dgraph) (status VerboseStatus, err error) {
 		return
 	}
 
-	// todo compare errors with error.Is or error.As
 	// check if all values are set correctly
 	if len(r.Status) != 1 || len(r.Blk) != 1 || len(r.Tx) != 1 ||
 		len(r.Op) != 1 || len(r.Addr) != 1 {
-		err = errors.New(ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
 
 	if r.Status[0].IsCrawling == nil {
-		err = errors.New(ErrorIsCrawlingNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsCrawlingNotFound)
 		return
 	}
 
 	if r.Status[0].LastBlockId == nil {
-		err = errors.New(ErrorLastBlockIdNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 

@@ -4,7 +4,6 @@ import (
 	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
@@ -136,8 +135,7 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 		len(r.GetOutput[0].Outputs[0].Addresses) == 0 ||
 		(len(r.GetOutput[0].Outputs[0].OutputTransactions) != 1 &&
 			len(r.GetOutput[0].Outputs[0].InputTransactions) != 1) {
-		// todo compare errors with error.Is or error.As
-		err = errors.New(ErrorNotFound)
+		err = ErrorNotFound
 		return
 	}
 
@@ -231,8 +229,7 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 		len(r.GetOutput[0].Addresses) == 0 ||
 		(len(r.GetOutput[0].OutputTransactions) != 1 &&
 			len(r.GetOutput[0].InputTransactions) != 1) {
-		// todo compare errors with error.Is or error.As
-		err = errors.New(ErrorNotFound)
+		err = ErrorNotFound
 		return
 	}
 

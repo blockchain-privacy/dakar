@@ -1,6 +1,7 @@
 package output
 
 import (
+	"dashrpc/cmd/cliutil"
 	"errors"
 	"fmt"
 )
@@ -44,26 +45,28 @@ type outputQuery struct {
 	} `json:"getOutput"`
 }
 
-const (
-	ErrorNotFound      = "output not found"
-	ErrorMultipleFound = "found multiple outputs"
+var (
+	ErrorNotFound      = errors.New("output not found")
+	ErrorMultipleFound = errors.New("found multiple outputs")
 )
 
-// todo wrap errors and compare with error.Is or error.As
 func (oq outputQuery) payload() (op Output, err error) {
 	lenQ := len(oq.GetOutput)
 	if lenQ == 0 {
-		return op, errors.New(ErrorNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorNotFound)
+		return
 	}
 
 	lenTx := len(oq.GetOutput[0].Outputs)
 	if lenTx == 0 {
-		return op, errors.New(ErrorNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorNotFound)
+		return
 	}
 
 	if lenQ > 1 || lenTx > 1 {
 		// found more than one output, which should not be possible
-		return op, errors.New(ErrorMultipleFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorMultipleFound)
+		return
 	}
 	op = oq.GetOutput[0].Outputs[0]
 	return

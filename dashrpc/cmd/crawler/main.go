@@ -56,7 +56,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
-		if err.Error() == status.ErrorStatusNotFound {
+		if errors.Is(err, status.ErrorStatusNotFound) {
 			return false, nil
 		}
 

@@ -226,10 +226,10 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 		// origin transaction of output does not exist in database, ignore input
 		// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
 		// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
-		// todo unwrap errors
-		if err.Error() == dbop.ErrorNotFound {
+		if errors.Is(err, dbop.ErrorNotFound) {
 			return nil
 		}
+
 		return err
 	}
 

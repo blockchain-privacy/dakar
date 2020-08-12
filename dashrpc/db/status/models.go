@@ -1,6 +1,7 @@
 package status
 
 import (
+	"dashrpc/cmd/cliutil"
 	"errors"
 	"fmt"
 )
@@ -59,29 +60,28 @@ func (v VerboseStatus) String() string {
 		v.Uid, v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
 }
 
-const (
-	ErrorStatusNotFound      = "no status found"
-	ErrorInvalidNumber       = "wrong number of status objects returned"
-	ErrorLastBlockIdNotFound = "last block id not found"
-	ErrorIsCrawlingNotFound  = "crawling status not found"
-	ErrorTopBlockNotFound    = "top block not found"
+var (
+	ErrorStatusNotFound      = errors.New("no status found")
+	ErrorInvalidNumber       = errors.New("wrong number of status objects returned")
+	ErrorLastBlockIdNotFound = errors.New("last block id not found")
+	ErrorIsCrawlingNotFound  = errors.New("crawling status not found")
+	ErrorTopBlockNotFound    = errors.New("top block not found")
 )
 
 type statusQuery struct {
 	Q []Status `json:"q"`
 }
 
-// todo wrap errors and compare with error.Is or error.As
 func (s statusQuery) payload() (status Status, err error) {
 	lenQ := len(s.Q)
 
 	if lenQ == 0 {
-		err = errors.New(ErrorStatusNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = errors.New(ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
 
