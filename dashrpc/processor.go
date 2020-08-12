@@ -298,7 +298,6 @@ func getStartingId(dgraph *dgo.Dgraph, continuous bool, startBlockId uint64) (st
 }
 
 func processingInterrupted() {
-	// todo remove
 	log.Printf("### Block processing interrupted ###")
 }
 
