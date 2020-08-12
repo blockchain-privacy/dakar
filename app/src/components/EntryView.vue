@@ -11,7 +11,7 @@
             <v-spacer></v-spacer>
             <v-btn icon v-on:click="refreshData">
               <v-progress-circular
-                  :value="timeoutData.percent" :indeterminate="timeoutData.updating" rotate="270" size="40">
+                  :value="timeoutData.percent" rotate="270" size="40">
                 <v-icon>
                   mdi-refresh
                 </v-icon>
@@ -251,7 +251,6 @@ export default {
         refreshStep: 10000,
         progressStep: 600,
         remaining: 0,
-        updating: false,
         percent: 0,
       }
     };
@@ -267,10 +266,8 @@ export default {
       this.startProgressTimer();
 
       this.timer = setInterval(async () => {
-        //this.timeoutData.updating = true;
         clearInterval(this.remainderTimer);
         await this.$store.dispatch('updateMetaData');
-        // this.timeoutData.updating = false;
         this.startProgressTimer();
       }, this.timeoutData.refreshStep);
     },
@@ -288,6 +285,7 @@ export default {
       this.timeoutData.percent = this.timeoutData.remaining / this.timeoutData.refreshStep * 100;
     },
     resetTimers: function () {
+      this.timeoutData.percent = 100;
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
