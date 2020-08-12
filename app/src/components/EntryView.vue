@@ -78,9 +78,8 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lowestblockid">{{
-                            data.status.lowestblockid
-                          }}
+                        <router-link :to="'search/' + data.status.lowestblockid">
+                          {{ data.status.lowestblockid }}
                         </router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
@@ -108,9 +107,8 @@
                         </v-tooltip>
                       </v-list-item-title>
                       <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lastblockid">{{
-                            data.status.lastblockid
-                          }}
+                        <router-link :to="'search/' + data.status.lastblockid">
+                          {{ data.status.lastblockid }}
                         </router-link>
                       </v-list-item-subtitle>
                     </v-list-item-content>
@@ -278,10 +276,6 @@ export default {
         crawler: "Displays if the crawler is currently active",
         lastBlockId: "The last block which was completely saved in the database",
         lowestBlockId: "The lowest block ID in the database",
-        blockCount: "Number of blocks in the database",
-        transactionCount: "Number of transactions in the database",
-        outputCount: "Number of outputs in the database. Note that an output is only saved once, even if it is used as an input.",
-        addressCount: "Number of addresses in the database",
         rpcVersion: "Version of the RPC client",
         rpcProtocolVersion: "Version of the protocol",
         rpcBlockHeight: "Current block height of the RPC client",
