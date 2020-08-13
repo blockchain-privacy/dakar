@@ -54,6 +54,41 @@
                     </v-list-item-content>
                   </v-list-item>
                 </v-col>
+                <v-col>
+                  <v-list-item>
+                    <v-list-item-avatar>
+                      <v-icon>
+                        mdi-database-sync
+                      </v-icon>
+                    </v-list-item-avatar>
+                    <v-list-item-content>
+                      <v-list-item-title>
+                        Database synchronisation
+                        <v-tooltip right>
+                          <template v-slot:activator="{ on }">
+                            <v-hover
+                                v-slot:default="{ hover }"
+                                open-delay="0">
+                              <v-icon small v-on="on">
+                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+                              </v-icon>
+                            </v-hover>
+                          </template>
+                          <span>{{ tooltips.databaseSync }}</span>
+                        </v-tooltip>
+                      </v-list-item-title>
+                      <v-list-item-subtitle>
+                        <v-progress-linear
+                            :color="databaseSyncProgress > 98?'green':databaseSyncProgress > 90?'light-green':'light-blue'"
+                            height="17"
+                            :value="databaseSyncProgress"
+                            rounded>
+                          {{ Math.round(databaseSyncProgress) }} %
+                        </v-progress-linear>
+                      </v-list-item-subtitle>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-col>
               </v-row>
               <v-row>
                 <v-col>
@@ -274,8 +309,9 @@ export default {
     return {
       tooltips: {
         crawler: "Displays if the crawler is currently active",
-        lastBlockId: "The last block which was completely saved in the database",
-        lowestBlockId: "The lowest block ID in the database",
+        lastBlockId: "Last block which was completely saved in the database",
+        lowestBlockId: "Lowest block ID in the database",
+        databaseSync: "Percentage of available blocks included in database",
         rpcVersion: "Version of the RPC client",
         rpcProtocolVersion: "Version of the protocol",
         rpcBlockHeight: "Current block height of the RPC client",
@@ -288,13 +324,20 @@ export default {
         progressStep: 600,
         remaining: 0,
         percent: 0,
-      }
+      },
     };
   },
   computed: {
     data() {
       return this.$store.getters.getMetaData;
     },
+    databaseSyncProgress() {
+      if (!this.data) {
+        return 0.0;
+      }
+
+      return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid)) / this.data.rpcinfo.blocks * 100;
+    }
   },
 
   methods: {

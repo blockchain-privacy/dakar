@@ -195,10 +195,11 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 			return
 		}
 
-		info, err := client.GetInfo()
+		rpcInfo, err := client.GetInfo()
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
 			log.Println(cliutil.ShowCallInfo(), err)
+			return
 		}
 
 		type metaStatus struct {
@@ -208,7 +209,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 
 		stat := metaStatus{
 			Status:  verboseStatus,
-			RPCInfo: *info,
+			RPCInfo: *rpcInfo,
 		}
 
 		// encoding
