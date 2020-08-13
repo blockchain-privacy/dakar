@@ -13,119 +13,66 @@
             <v-container>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-calendar</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Timestamp</v-list-item-title>
-                      <v-list-item-subtitle>{{ new Date(data.bts).toLocaleString() }}</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-calendar" title="Timestamp">
+                    {{ new Date(data.bts).toLocaleString() }}
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Block Id</v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-pound" title="Block Id">
+                    <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-format-header-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Block</v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="data.bhash">{{ shortenHash(data.bhash) }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-format-header-pound" title="Block">
+                    <router-link :to="data.bhash">{{ shortenHash(data.bhash) }}</router-link>
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Number of outputs</v-list-item-title>
-                      <v-list-item-subtitle v-if="!data.outputs">0</v-list-item-subtitle>
-                      <v-list-item-subtitle v-if="data.outputs">{{ data.outputs.length }}</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-pound" title="Number of outputs">
+                    {{ !data.outputs ? 0 : data.outputs.length }}
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Number of inputs</v-list-item-title>
-                      <v-list-item-subtitle v-if="!data.inputs">0</v-list-item-subtitle>
-                      <v-list-item-subtitle v-if="data.inputs">{{ data.inputs.length }}</v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-pound" title="Number of inputs">
+                    {{ !data.inputs ? 0 : data.inputs.length }}
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-divider v-if="outputs"></v-divider>
               <v-row v-if="outputs">
-                <v-col v-for="i in outputs" v-bind:key="i.addresshash">
+                <v-col v-for="i in outputs" v-bind:key="i.addresshash + i.outputindex">
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-                      <v-list-item>
-                        <v-list-item-avatar>
-                          <v-icon>mdi-currency-usd-circle-outline</v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                          <v-list-item-title>Output</v-list-item-title>
-                          <v-list-item-subtitle>
-                            Address hash:
-                            <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
-                            <br>
-                            Amount: {{ i.amount }}<br>
-                            Spent: {{ i.inputindex != null }}<br>
-                            Index: {{ i.outputindex }}<br>
-                            Coinbase: {{ i.iscoinbase }}
-                          </v-list-item-subtitle>
-                        </v-list-item-content>
-                      </v-list-item>
+                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
+                        Address hash:
+                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <br>
+                        Amount: {{ i.amount }}<br>
+                        Spent: {{ i.inputindex != null }}<br>
+                        Index: {{ i.outputindex }}<br>
+                        Coinbase: {{ i.iscoinbase }}
+                      </IconItem>
                     </v-lazy>
                   </v-sheet>
                 </v-col>
               </v-row>
               <v-divider v-if="inputs"></v-divider>
               <v-row v-if="inputs">
-                <v-col v-for="i in inputs" v-bind:key="i.addresshash">
+                <v-col v-for="i in inputs" v-bind:key="i.addresshash + i.inputindex">
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-
-                      <v-list-item>
-                        <v-list-item-avatar>
-                          <v-icon>mdi-currency-usd-circle</v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                          <v-list-item-title>Input</v-list-item-title>
-                          <v-list-item-subtitle>
-                            Hash:
-                            <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
-                            <br>
-                            Amount: {{ i.amount }}<br>
-                            Index: {{ i.inputindex }}<br>
-                            Coinbase: {{ i.iscoinbase }}
-                          </v-list-item-subtitle>
-                        </v-list-item-content>
-                      </v-list-item>
+                      <IconItem icon="mdi-currency-usd-circle" title="Input">
+                        Address hash:
+                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <br>
+                        Amount: {{ i.amount }}<br>
+                        Index: {{ i.inputindex }}<br>
+                        Coinbase: {{ i.iscoinbase }}
+                      </IconItem>
                     </v-lazy>
                   </v-sheet>
                 </v-col>
@@ -141,9 +88,11 @@
 <script>
 import {shortenHash} from "@/utilities";
 import {PAGE_TITLE} from "@/constants";
+import IconItem from "@/components/common/IconItem";
 
 export default {
   name: 'TxLookup',
+  components: {IconItem},
   computed: {
     data() {
       return this.$store.getters.getTransactionData;

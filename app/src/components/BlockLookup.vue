@@ -13,75 +13,34 @@
             <v-container>
               <v-row>
                 <v-col v-if="data.id">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-format-list-numbered</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Block Height</v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.id }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-format-list-numbered" title="Block Height" :subtitle="data.id">
+                    {{ data.id }}
+                  </IconItem>
                 </v-col>
                 <v-col v-if="data.ts">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi mdi-calendar</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Timestamp</v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-calendar" title="Timestamp">
+                    {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col v-if="data.prevblockhash">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-format-header-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Previous Block</v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="data.prevblockhash">{{ shortenHash(data.prevblockhash) }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-format-header-pound" title="Previous Block">
+                    <router-link :to="data.prevblockhash">{{ shortenHash(data.prevblockhash) }}</router-link>
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar v-if="data.nextblockhash">
-                      <v-icon>mdi-format-header-pound</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content v-if="data.nextblockhash">
-                      <v-list-item-title>Next Block</v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="data.nextblockhash">{{ shortenHash(data.nextblockhash) }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-format-header-pound" title="Next Block">
+                    <router-link :to="data.nextblockhash">{{ shortenHash(data.nextblockhash) }}</router-link>
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-divider v-if="data.txhashes"></v-divider>
               <v-row v-if="data.txhashes">
                 <v-col v-for="tx in data.txhashes" v-bind:key="tx">
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-transfer</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>Transaction</v-list-item-title>
-                      <v-list-item-subtitle>
-                        Hash:
-                        <router-link :to="tx">{{ shortenHash(tx) }}</router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-transfer" title="Transaction">
+                    <router-link :to="tx">{{ shortenHash(tx) }}</router-link>
+                  </IconItem>
                 </v-col>
               </v-row>
             </v-container>
@@ -95,9 +54,11 @@
 <script>
 import {shortenHash} from "@/utilities";
 import {PAGE_TITLE} from "@/constants";
+import IconItem from "@/components/common/IconItem";
 
 export default {
   name: 'BlockLookup',
+  components: {IconItem},
   methods: {
     shortenHash,
   },

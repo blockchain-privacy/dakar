@@ -25,271 +25,72 @@
             <v-container v-if="data">
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon
-                          v-bind:class="{ 'green--text': data.status.iscrawling, 'red--text': !data.status.iscrawling }">
-                        mdi-robot
-                      </v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Crawler status
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.crawler }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.status.iscrawling ? "Active" : "Inactive" }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-robot" title="Crawler status"
+                            :tooltip="tooltips.crawler" is-color :is-red="!data.status.iscrawling">
+                    {{ data.status.iscrawling ? "Active" : "Inactive" }}
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>
-                        mdi-database-sync
-                      </v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Database synchronisation
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.databaseSync }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        <v-progress-linear
-                            :color="databaseSyncProgress > 98?'green':databaseSyncProgress > 90?'light-green':'light-blue'"
-                            height="17"
-                            :value="databaseSyncProgress"
-                            rounded>
-                          {{ Math.round(databaseSyncProgress) }} %
-                        </v-progress-linear>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-database-sync" title="Database synchronisation" :tooltip="tooltips.databaseSync">
+                    <v-progress-linear
+                        :color="databaseSyncProgress > 98?'green':databaseSyncProgress > 90?'light-green':'light-blue'"
+                        height="17"
+                        :value="databaseSyncProgress"
+                        rounded>
+                      {{ Math.round(databaseSyncProgress) }} %
+                    </v-progress-linear>
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-arrow-down-circle-outline</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Lowest block ID
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.lowestBlockId }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lowestblockid">
-                          {{ data.status.lowestblockid }}
-                        </router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-arrow-down-circle-outline" title="Lowest block ID"
+                            :tooltip="tooltips.lowestBlockId">
+                    <router-link :to="'search/' + data.status.lowestblockid">
+                      {{ data.status.lowestblockid }}
+                    </router-link>
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-timeline-clock-outline</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Last fully crawled block
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.lastBlockId }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        <router-link :to="'search/' + data.status.lastblockid">
-                          {{ data.status.lastblockid }}
-                        </router-link>
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-timeline-clock-outline" title="Last fully crawled block"
+                            :tooltip="tooltips.lowestBlockId">
+                    <router-link :to="'search/' + data.status.lastblockid">
+                      {{ data.status.lastblockid }}
+                    </router-link>
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-divider v-if="data.rpcinfo"></v-divider>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-message-text-clock-outline</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        RPC Version
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.rpcVersion }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.rpcinfo.version }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-message-text-clock-outline" title="RPC Version" :tooltip="tooltips.rpcVersion">
+                    {{ data.rpcinfo.version }}
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-file-clock-outline</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Protocol version
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.rpcProtocolVersion }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.rpcinfo.protocolversion }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-file-clock-outline" title="Protocol version"
+                            :tooltip="tooltips.rpcProtocolVersion">
+                    {{ data.rpcinfo.protocolversion }}
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-format-list-numbered</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Block Height
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.rpcBlockHeight }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.rpcinfo.blocks }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-format-list-numbered" title="Block Height" :tooltip="tooltips.rpcBlockHeight">
+                    {{ data.rpcinfo.blocks }}
+                  </IconItem>
                 </v-col>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-weight</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Difficulty
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.rpcDifficulty }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ Math.trunc(data.rpcinfo.difficulty) }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-weight" title="Difficulty" :tooltip="tooltips.rpcDifficulty">
+                    {{ Math.trunc(data.rpcinfo.difficulty) }}
+                  </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
-                  <v-list-item>
-                    <v-list-item-avatar>
-                      <v-icon>mdi-lan</v-icon>
-                    </v-list-item-avatar>
-                    <v-list-item-content>
-                      <v-list-item-title>
-                        Connections
-                        <v-tooltip right>
-                          <template v-slot:activator="{ on }">
-                            <v-hover
-                                v-slot:default="{ hover }"
-                                open-delay="0">
-                              <v-icon small v-on="on">
-                                {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
-                              </v-icon>
-                            </v-hover>
-                          </template>
-                          <span>{{ tooltips.rpcConnections }}</span>
-                        </v-tooltip>
-                      </v-list-item-title>
-                      <v-list-item-subtitle>
-                        {{ data.rpcinfo.connections }}
-                      </v-list-item-subtitle>
-                    </v-list-item-content>
-                  </v-list-item>
+                  <IconItem icon="mdi-lan" title="Connections" :tooltip="tooltips.rpcConnections">
+                    {{ data.rpcinfo.connections }}
+                  </IconItem>
                 </v-col>
               </v-row>
             </v-container>
@@ -302,9 +103,11 @@
 
 <script>
 import {PAGE_TITLE} from "@/constants";
+import IconItem from "@/components/common/IconItem";
 
 export default {
   name: 'EntryView',
+  components: {IconItem},
   data: function () {
     return {
       tooltips: {
