@@ -68,6 +68,7 @@ export default {
   },
   methods: {
     handleInput: function (q, origin) {
+      q = q.trim();
       if (origin === 'user' && q !== this.lastQuery) {
         // update route only when input is from user and query is different
 
@@ -88,7 +89,7 @@ export default {
       // } else if (origin === 'route') {
       //   // do nothing -> route is already up to date
       // }
-
+      q = q.trim();
       this.lastQuery = q;
 
       this.query = '';
