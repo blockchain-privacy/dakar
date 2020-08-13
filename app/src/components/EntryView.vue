@@ -82,7 +82,7 @@
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-weight" title="Difficulty" :tooltip="tooltips.rpcDifficulty">
-                    {{ Math.trunc(data.rpcinfo.difficulty) }}
+                    {{ data.rpcinfo.difficulty.toFixed() }}
                   </IconItem>
                 </v-col>
               </v-row>

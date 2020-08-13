@@ -14,19 +14,19 @@
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
-                    {{ this.amounts.received - this.amounts.spent }}
+                    {{ (this.amounts.received - this.amounts.spent).toFixed(2) }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
-                    {{ this.amounts.received }}
+                    {{ this.amounts.received.toFixed(2) }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
-                    {{ this.amounts.spent }}
+                    {{ this.amounts.spent.toFixed(2) }}
                   </IconItem>
                 </v-col>
               </v-row>
