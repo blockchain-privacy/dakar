@@ -1,6 +1,7 @@
-package dashrpc
+package processor
 
 import (
+	"dashrpc"
 	"fmt"
 	"testing"
 
@@ -12,11 +13,11 @@ const block49999 = "000000000014f796bbd2312686a63cbe17401a1026ab2a8149b74553e8dc
 const block50000 = "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
 
 func TestProcessBlock50000(t *testing.T) {
-	db := setupDB(t)
-	defer tearDownDB(t, db)
-	client := setupRpcClient(t)
+	db := dashrpc.setupDB(t)
+	defer dashrpc.tearDownDB(t, db)
+	client := dashrpc.setupRpcClient(t)
 
-	block := Block{}
+	block := dashrpc.Block{}
 
 	startHash, err := chainhash.NewHashFromStr(block50000)
 	if err != nil {
@@ -33,8 +34,8 @@ func TestProcessBlock50000(t *testing.T) {
 		t.Error(err)
 	}
 
-	block2 := Block{}
-	err = DbGetBlock(db, block50000, &block2)
+	block2 := dashrpc.Block{}
+	err = dashrpc.DbGetBlock(db, block50000, &block2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -61,12 +62,12 @@ func TestProcessBlock50000(t *testing.T) {
 }
 
 func TestProcessBlock49999(t *testing.T) {
-	db := setupDB(t)
-	defer tearDownDB(t, db)
+	db := dashrpc.setupDB(t)
+	defer dashrpc.tearDownDB(t, db)
 
-	client := setupRpcClient(t)
+	client := dashrpc.setupRpcClient(t)
 
-	block := Block{}
+	block := dashrpc.Block{}
 
 	startHash, err := chainhash.NewHashFromStr(block49999)
 	if err != nil {
@@ -88,8 +89,8 @@ func TestProcessBlock49999(t *testing.T) {
 		t.Error(err)
 	}
 
-	block2 := Block{}
-	err = DbGetBlock(db, block49999, &block2)
+	block2 := dashrpc.Block{}
+	err = dashrpc.DbGetBlock(db, block49999, &block2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -118,12 +119,12 @@ func TestProcessBlock49999(t *testing.T) {
 }
 
 func TestProcessTxFromBlock50000(t *testing.T) {
-	db := setupDB(t)
-	defer tearDownDB(t, db)
+	db := dashrpc.setupDB(t)
+	defer dashrpc.tearDownDB(t, db)
 
-	client := setupRpcClient(t)
+	client := dashrpc.setupRpcClient(t)
 
-	block := Block{}
+	block := dashrpc.Block{}
 	txHash := "c13fc482603f574b7322da10398c20d64a431e14f8e886b054128591abaa66a4"
 
 	startHash, err := chainhash.NewHashFromStr(block50000)
@@ -147,8 +148,8 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	txDetails := TxDetails{}
-	err = DbGetTxDetails(db, block.TxHashes[0], &txDetails)
+	txDetails := dashrpc.TxDetails{}
+	err = dashrpc.DbGetTxDetails(db, block.TxHashes[0], &txDetails)
 	if err != nil {
 		t.Error(err)
 	}
@@ -168,10 +169,10 @@ func TestProcessTxFromBlock50000(t *testing.T) {
 }
 
 func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
-	db := setupDB(t)
-	defer tearDownDB(t, db)
+	db := dashrpc.setupDB(t)
+	defer dashrpc.tearDownDB(t, db)
 
-	client := setupRpcClient(t)
+	client := dashrpc.setupRpcClient(t)
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
@@ -182,8 +183,8 @@ func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
 		return
 	}
 
-	txDetails := TxDetails{}
-	err = DbGetTxDetails(db, txHash, &txDetails)
+	txDetails := dashrpc.TxDetails{}
+	err = dashrpc.DbGetTxDetails(db, txHash, &txDetails)
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,16 +220,16 @@ func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
 	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
 	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
 
-	addressData1 := AddressData{}
-	addressData2 := AddressData{}
+	addressData1 := dashrpc.AddressData{}
+	addressData2 := dashrpc.AddressData{}
 
-	err = DbGetDataForAddress(db, addressHash1, &addressData1)
+	err = dashrpc.DbGetDataForAddress(db, addressHash1, &addressData1)
 	if err == nil {
 		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData1)
 		t.Error(msg)
 	}
 
-	err = DbGetDataForAddress(db, addressHash2, &addressData2)
+	err = dashrpc.DbGetDataForAddress(db, addressHash2, &addressData2)
 	if err == nil {
 		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData2)
 		t.Error(msg)
@@ -236,10 +237,10 @@ func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
 }
 
 func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
-	db := setupDB(t)
-	defer tearDownDB(t, db)
+	db := dashrpc.setupDB(t)
+	defer dashrpc.tearDownDB(t, db)
 
-	client := setupRpcClient(t)
+	client := dashrpc.setupRpcClient(t)
 
 	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 
@@ -251,8 +252,8 @@ func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
 	}
 
 	// check if TX details are okay
-	txDetails := TxDetails{}
-	err = DbGetTxDetails(db, txHash, &txDetails)
+	txDetails := dashrpc.TxDetails{}
+	err = dashrpc.DbGetTxDetails(db, txHash, &txDetails)
 	if err != nil {
 		t.Error(err)
 	}
@@ -288,15 +289,15 @@ func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
 	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
 	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
 
-	addressData1 := AddressData{}
-	addressData2 := AddressData{}
+	addressData1 := dashrpc.AddressData{}
+	addressData2 := dashrpc.AddressData{}
 
-	err = DbGetDataForAddress(db, addressHash1, &addressData1)
+	err = dashrpc.DbGetDataForAddress(db, addressHash1, &addressData1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = DbGetDataForAddress(db, addressHash2, &addressData2)
+	err = dashrpc.DbGetDataForAddress(db, addressHash2, &addressData2)
 	if err != nil {
 		t.Error(err)
 	}

@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"dashrpc/db/status"
+	"dashrpc/processor"
 	"dashrpc/rpcclient"
 	"errors"
 	"flag"
@@ -74,7 +74,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
+	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", processor.VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)
@@ -177,9 +177,9 @@ func main() {
 			chStopped <- true
 		}()
 		if cliArgs.Continuous {
-			err = dashrpc.ProcessBlocksContinuously(ctx, dgraph, client)
+			err = processor.ProcessBlocksContinuously(ctx, dgraph, client)
 		} else {
-			err = dashrpc.ProcessBlockRange(ctx, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+			err = processor.ProcessBlockRange(ctx, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
 		}
 
 		if err != nil {

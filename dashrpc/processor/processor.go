@@ -1,4 +1,4 @@
-package dashrpc
+package processor
 
 import (
 	"context"
