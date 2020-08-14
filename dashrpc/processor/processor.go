@@ -73,6 +73,7 @@ type TransactionMapping struct {
 func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint64) map[string]outputMapping {
 	if val, ok := mapping[addr]; ok {
 		val.indexes = append(val.indexes, indexOutput)
+		mapping[addr] = val
 		return mapping
 	}
 
