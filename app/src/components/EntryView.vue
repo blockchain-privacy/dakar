@@ -53,7 +53,7 @@
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-timeline-clock-outline" title="Last fully crawled block"
-                            :tooltip="tooltips.lowestBlockId">
+                            :tooltip="tooltips.lastBlockId">
                     <router-link :to="'search/' + data.status.lastblockid">
                       {{ data.status.lastblockid }}
                     </router-link>
