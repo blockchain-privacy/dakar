@@ -544,6 +544,11 @@ mainLoop:
 	return nil
 }
 
+func processPrivateSend(transactions []dbtx.Transaction) []dbtx.Transaction {
+
+	return transactions
+}
+
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult, setLowestId bool) (blkCounter uint64, txCounter uint64, err error) {
@@ -578,6 +583,9 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 	// so there is no damage done if we upsert the same mapping twice.
 	var b dbblk.Block
 	if b, err = dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+
+		transactions = processPrivateSend(transactions)
+
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {

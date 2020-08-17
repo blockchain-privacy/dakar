@@ -270,18 +270,29 @@ func almostEqual(a, b float64) bool {
 	return math.Abs(a-b) <= delta
 }
 
-func CountDenominations(outputs []Output) []int {
+func CountOutputDenominations(outputs []Output) []int {
+
+	var amounts []float64
+
+	for _, o := range outputs {
+		amt, err := strconv.ParseFloat(o.Amount, 64)
+		if err != nil {
+			log.Println("Error converting", o.Amount, "to string")
+			return nil
+		}
+		amounts = append(amounts, amt)
+	}
+
+	return CountAmountDenominations(amounts)
+}
+
+func CountAmountDenominations(amounts []float64) []int {
 	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
 	denominations := make([]int, len(denominationsTypes))
 
-	for _, o := range outputs {
+	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationsTypes {
-			amt, err := strconv.ParseFloat(o.Amount, 64)
-			if err != nil {
-				log.Println("Error converting", o.Amount, "to string")
-				return nil
-			}
 			if almostEqual(amt, v) {
 				denominations[i]++
 				break inner

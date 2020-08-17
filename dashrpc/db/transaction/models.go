@@ -15,7 +15,8 @@ var (
 )
 
 type Transaction struct {
-	Uid     string      `json:"uid,omitempty"`
+	Uid string `json:"uid,omitempty"`
+
 	Outputs []op.Output `json:"tx_outputs,omitempty"`
 	Inputs  []op.Output `json:"tx_inputs,omitempty"`
 	Hash    string      `json:"txhash,omitempty"`
@@ -46,25 +47,26 @@ func (t Transaction) IsComplete() bool {
 }
 
 func (t Transaction) CountInputDenominations() []int {
-	return op.CountDenominations(t.Inputs)
+	return op.CountOutputDenominations(t.Inputs)
 }
 
 func (t Transaction) CountOutputDenominations() []int {
-	return op.CountDenominations(t.Outputs)
+	return op.CountOutputDenominations(t.Outputs)
 }
 
 // IsCreateDenominations checks if the TX creates denominations
 func (t Transaction) IsCreateDenominations() bool {
-	denom := t.CountOutputDenominations()
-	// todo add fourth denomination?
-	return len(t.Inputs) == 1 &&
-		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
+	return IsPrivateSend(len(t.Inputs), t.CountOutputDenominations())
 }
 
+// IsPrivateSend checks if the TX is the end receiver of a private send transaction
 func (t Transaction) IsPrivateSend() bool {
-	denom := t.CountInputDenominations()
+	return IsPrivateSend(len(t.Outputs), t.CountInputDenominations())
+}
+
+func IsPrivateSend(outputcount int, denom []int) bool {
 	// todo add fourth denomination?
-	return len(t.Outputs) == 1 &&
+	return outputcount == 1 &&
 		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
 }
 
