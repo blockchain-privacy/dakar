@@ -133,12 +133,14 @@ type FrontendOutput struct {
 }
 
 type FrontendTransaction struct {
-	Hash           string           `json:"txhash"`
-	BlockHash      string           `json:"bhash"`
-	BlockId        uint64           `json:"bid"`
-	BlockTimestamp string           `json:"bts"`
-	Outputs        []FrontendOutput `json:"outputs"`
-	Inputs         []FrontendOutput `json:"inputs"`
+	Hash                  string           `json:"txhash"`
+	BlockHash             string           `json:"bhash"`
+	IsPrivateSend         bool             `json:"isprivatesend"`
+	IsCreateDenominations bool             `json:"iscreatedenominations"`
+	BlockId               uint64           `json:"bid"`
+	BlockTimestamp        string           `json:"bts"`
+	Outputs               []FrontendOutput `json:"outputs"`
+	Inputs                []FrontendOutput `json:"inputs"`
 }
 
 func (f FrontendTransaction) String() string {
