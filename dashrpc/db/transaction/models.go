@@ -7,7 +7,12 @@ import (
 	"fmt"
 )
 
-const DType = "Transaction"
+const (
+	DType               = "Transaction"
+	PrivacyDenomination = "Denomination"
+	PrivacyMixing       = "Mixing"
+	PrivacyPrivateSend  = "PrivateSend"
+)
 
 var (
 	ErrorTransactionNotFound = errors.New("no transaction found")
@@ -15,17 +20,16 @@ var (
 )
 
 type Transaction struct {
-	Uid           string      `json:"uid,omitempty"`
-	IsPrivSend    *bool       `json:"isprivatesend,omitempty"`
-	IsCreateDenom *bool       `json:"iscreatedenominations,omitempty"`
-	Outputs       []op.Output `json:"tx_outputs,omitempty"`
-	Inputs        []op.Output `json:"tx_inputs,omitempty"`
-	Hash          string      `json:"txhash,omitempty"`
-	DType         []string    `json:"dgraph.type,omitempty"`
+	Uid         string      `json:"uid,omitempty"`
+	PrivacyType string      `json:"privacytype,omitempty"`
+	Outputs     []op.Output `json:"tx_outputs,omitempty"`
+	Inputs      []op.Output `json:"tx_inputs,omitempty"`
+	Hash        string      `json:"txhash,omitempty"`
+	DType       []string    `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s", t.Uid, t.Hash)
+	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s", t.Uid, t.Hash, t.PrivacyType)
 
 	if t.Outputs != nil {
 		output += fmt.Sprintf(", OutputCount: %d", len(t.Outputs))
@@ -40,6 +44,18 @@ func (t Transaction) String() string {
 
 func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
+}
+
+func (t *Transaction) SetDenomination() {
+	t.PrivacyType = PrivacyDenomination
+}
+
+func (t *Transaction) SetMixing() {
+	t.PrivacyType = PrivacyMixing
+}
+
+func (t *Transaction) SetPrivateSend() {
+	t.PrivacyType = PrivacyPrivateSend
 }
 
 // checks if the given transaction has all attributes filled
@@ -133,19 +149,18 @@ type FrontendOutput struct {
 }
 
 type FrontendTransaction struct {
-	Hash                  string           `json:"txhash"`
-	BlockHash             string           `json:"bhash"`
-	IsPrivateSend         bool             `json:"isprivatesend"`
-	IsCreateDenominations bool             `json:"iscreatedenominations"`
-	BlockId               uint64           `json:"bid"`
-	BlockTimestamp        string           `json:"bts"`
-	Outputs               []FrontendOutput `json:"outputs"`
-	Inputs                []FrontendOutput `json:"inputs"`
+	Hash           string           `json:"txhash"`
+	BlockHash      string           `json:"bhash"`
+	PrivacyType    string           `json:"privacytype"`
+	BlockId        uint64           `json:"bid"`
+	BlockTimestamp string           `json:"bts"`
+	Outputs        []FrontendOutput `json:"outputs"`
+	Inputs         []FrontendOutput `json:"inputs"`
 }
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"BlockTimestamp: %s, Output Count: %d, Input Count: %d",
-		f.Hash, f.BlockHash, f.BlockId, f.BlockTimestamp,
+		"Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		f.Hash, f.BlockHash, f.BlockId, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs))
 }

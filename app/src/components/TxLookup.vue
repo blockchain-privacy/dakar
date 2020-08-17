@@ -3,11 +3,13 @@
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
-          <v-toolbar color="primary" dark flat>
+          <v-toolbar :color="data.privacytype?'purple':'primary'" dark flat>
             <v-toolbar-title>
               <v-icon>mdi-transfer</v-icon>
               Transaction {{ data.txhash }}
             </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-icon v-if="data.privacytype" large>mdi-incognito-circle</v-icon>
           </v-toolbar>
           <v-card-text>
             <v-container>

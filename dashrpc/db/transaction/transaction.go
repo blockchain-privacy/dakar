@@ -15,8 +15,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 				q(func: eq(txhash, $hash)){
 					uid
 					txhash
-					isprivatesend
-					iscreatedenominations
+					privacytype
 					tx_inputs{
 						uid
 						amount
@@ -57,8 +56,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash)){
 					txhash
-					isprivatesend
-					iscreatedenominations
+					privacytype
 					inputs: tx_inputs @normalize{
 						amount: amount
 						inputindex: inputindex
@@ -93,12 +91,11 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Hash                  string           `json:"txhash,omitempty"`
-			IsPrivateSend         bool             `json:"isprivatesend,omitempty"`
-			IsCreateDenominations bool             `json:"iscreatedenominations,omitempty"`
-			Outputs               []FrontendOutput `json:"outputs,omitempty"`
-			Inputs                []FrontendOutput `json:"inputs,omitempty"`
-			Block                 []struct {
+			Hash        string           `json:"txhash,omitempty"`
+			PrivacyType string           `json:"privacytype,omitempty"`
+			Outputs     []FrontendOutput `json:"outputs,omitempty"`
+			Inputs      []FrontendOutput `json:"inputs,omitempty"`
+			Block       []struct {
 				Hash string `json:"blockhash,omitempty"`
 				Ts   string `json:"ts,omitempty"`
 				Id   uint64 `json:"id,omitempty"`
@@ -122,14 +119,13 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	t := r.Transaction[0]
 
 	transaction = FrontendTransaction{
-		Hash:                  t.Hash,
-		IsPrivateSend:         t.IsPrivateSend,
-		IsCreateDenominations: t.IsCreateDenominations,
-		BlockHash:             t.Block[0].Hash,
-		BlockId:               t.Block[0].Id,
-		BlockTimestamp:        t.Block[0].Ts,
-		Outputs:               t.Outputs,
-		Inputs:                t.Inputs,
+		Hash:           t.Hash,
+		PrivacyType:    t.PrivacyType,
+		BlockHash:      t.Block[0].Hash,
+		BlockId:        t.Block[0].Id,
+		BlockTimestamp: t.Block[0].Ts,
+		Outputs:        t.Outputs,
+		Inputs:         t.Inputs,
 	}
 
 	return

@@ -208,13 +208,9 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 		}
 	}
 
-	var isCreateDenom bool
-	var isPrivSend bool
 	if !isCoinbaseTransaction {
-		isCreateDenom = IsCreateDenominationTransaction(len(tx.Vin), tx.Vout)
+		txDetails = SetPrivacyType(tx, txDetails)
 	}
-	txDetails.IsCreateDenom = &isCreateDenom
-	txDetails.IsPrivSend = &isPrivSend
 
 	// create transaction mapping for address processing later on
 	tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
@@ -222,6 +218,16 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 	return
 }
 
+// sets the privacy type of transaction dependent on the inputs and outputs of tx
+func SetPrivacyType(tx *btcjson.TxRawResult, transaction dbtx.Transaction) dbtx.Transaction {
+	if IsCreateDenominationTransaction(len(tx.Vin), tx.Vout) {
+		transaction.SetDenomination()
+	}
+	return transaction
+}
+
+// Checks if with the given arguments the transaction could be a transaction which
+// creates the denominations for a private send
 func IsCreateDenominationTransaction(inputCount int, outputs []btcjson.Vout) bool {
 	if inputCount != 1 || len(outputs) < 3 {
 		return false

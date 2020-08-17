@@ -31,8 +31,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			amount: string .
 			iscoinbase: bool .
 			#todo check if index is actually helpful
-			iscreatedenominations: bool @index(bool) .
-			isprivatesend: bool @index(bool) .
+			privacytype: string @index(hash) .
 
 			iscrawling: bool .
 			lastblockid: int .
@@ -49,8 +48,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type Transaction {
 				txhash
-				iscreatedenominations
-				isprivatesend
+				privacytype
 				<~transactions>
 				tx_outputs
 				tx_inputs
