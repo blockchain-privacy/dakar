@@ -208,10 +208,44 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 		}
 	}
 
+	var isCreateDenom bool
+	var isPrivSend bool
+	if !isCoinbaseTransaction {
+		isCreateDenom = IsCreateDenominationTransaction(len(tx.Vin), tx.Vout)
+	}
+	txDetails.IsCreateDenom = &isCreateDenom
+	txDetails.IsPrivSend = &isPrivSend
+
 	// create transaction mapping for address processing later on
 	tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
 
 	return
+}
+
+func IsCreateDenominationTransaction(inputCount int, outputs []btcjson.Vout) bool {
+	if inputCount != 1 || len(outputs) < 3 {
+		return false
+	}
+
+	var amounts []float64
+	for _, o := range outputs {
+		amounts = append(amounts, o.Value)
+	}
+
+	return dbtx.IsPrivacyTransaction(dbop.CountAmountDenominations(amounts))
+}
+
+func IsPrivateSendTransaction(outputCount int, inputs []btcjson.Vout) bool {
+	if outputCount != 1 || len(inputs) < 3 {
+		return false
+	}
+
+	var amounts []float64
+	for _, o := range inputs {
+		amounts = append(amounts, o.Value)
+	}
+
+	return dbtx.IsPrivacyTransaction(dbop.CountAmountDenominations(amounts))
 }
 
 // maps the input information to the output if it exists already in the database

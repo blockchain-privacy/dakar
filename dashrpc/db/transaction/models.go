@@ -15,12 +15,13 @@ var (
 )
 
 type Transaction struct {
-	Uid string `json:"uid,omitempty"`
-
-	Outputs []op.Output `json:"tx_outputs,omitempty"`
-	Inputs  []op.Output `json:"tx_inputs,omitempty"`
-	Hash    string      `json:"txhash,omitempty"`
-	DType   []string    `json:"dgraph.type,omitempty"`
+	Uid           string      `json:"uid,omitempty"`
+	IsPrivSend    *bool       `json:"isprivatesend,omitempty"`
+	IsCreateDenom *bool       `json:"iscreatedenominations,omitempty"`
+	Outputs       []op.Output `json:"tx_outputs,omitempty"`
+	Inputs        []op.Output `json:"tx_inputs,omitempty"`
+	Hash          string      `json:"txhash,omitempty"`
+	DType         []string    `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
@@ -56,18 +57,17 @@ func (t Transaction) CountOutputDenominations() []int {
 
 // IsCreateDenominations checks if the TX creates denominations
 func (t Transaction) IsCreateDenominations() bool {
-	return IsPrivateSend(len(t.Inputs), t.CountOutputDenominations())
+	return len(t.Inputs) == 1 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivateSend checks if the TX is the end receiver of a private send transaction
 func (t Transaction) IsPrivateSend() bool {
-	return IsPrivateSend(len(t.Outputs), t.CountInputDenominations())
+	return len(t.Outputs) == 1 && IsPrivacyTransaction(t.CountInputDenominations())
 }
 
-func IsPrivateSend(outputcount int, denom []int) bool {
+func IsPrivacyTransaction(denom []int) bool {
 	// todo add fourth denomination?
-	return outputcount == 1 &&
-		(denom[0] > 2 || denom[1] > 2 || denom[2] > 2)
+	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2
 }
 
 // IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
