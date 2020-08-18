@@ -73,12 +73,23 @@ func (t Transaction) CountOutputDenominations() []int {
 
 // IsCreateDenominations checks if the TX creates denominations
 func (t Transaction) IsCreateDenominations() bool {
-	return len(t.Inputs) == 1 && IsPrivacyTransaction(t.CountOutputDenominations())
+	return len(t.Inputs) == 1 && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivateSend checks if the TX is the end receiver of a private send transaction
 func (t Transaction) IsPrivateSend() bool {
-	return len(t.Outputs) == 1 && IsPrivacyTransaction(t.CountInputDenominations())
+	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
+}
+
+// sets the privacy type of the transaction
+func (t *Transaction) SetPrivacyType() {
+	if t.IsMixing() {
+		t.SetMixing()
+	} else if t.IsCreateDenominations() {
+		t.SetDenomination()
+	} else if t.IsPrivateSend() {
+		t.SetPrivateSend()
+	}
 }
 
 func IsPrivacyTransaction(denom []int) bool {
@@ -94,7 +105,7 @@ func (t Transaction) IsOneOrTwoOutput() bool {
 
 // IsMixing checks if TX is mixing
 func (t Transaction) IsMixing() bool {
-	if len(t.Inputs) != len(t.Outputs) {
+	if len(t.Inputs) < 3 || len(t.Outputs) < 3 || len(t.Inputs) != len(t.Outputs) {
 		return false
 	}
 	denomIn := t.CountInputDenominations()
