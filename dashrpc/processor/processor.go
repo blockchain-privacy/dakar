@@ -161,42 +161,48 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 	return nil
 }
 
+// creates a named uid, parsable by dgraph
+func createOutputUid(transaction string, outputId uint64) string {
+	return "_:" + transaction + strconv.FormatUint(outputId, 10)
+}
+
 // processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
-func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHashString string) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
-	txHash, err := chainhash.NewHashFromStr(txHashString)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	tx, err := client.GetRawTransactionVerbose(txHash)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	txDetails.Hash = tx.Txid
+func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawResult,
+	txHashMap map[string]btcjson.TxRawResult, isContinuous bool) (txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
+	txDetails.Hash = rawTransaction.Txid
 
 	isCoinbaseTransaction := false
-	if len(tx.Vin) == 1 && tx.Vin[0].IsCoinBase() {
+	if len(rawTransaction.Vin) == 1 && rawTransaction.Vin[0].IsCoinBase() {
 		isCoinbaseTransaction = true
 	} else {
 		// process inputs if transaction is not a coinbase transaction
-		for i, d := range tx.Vin {
-			if err = processTxVin(dgraph, &txDetails, d, uint64(i)); err != nil {
+		for i, d := range rawTransaction.Vin {
+			if err = processTxVin(dgraph, &txDetails, d, uint64(i), txHashMap); err != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
 		}
 	}
 
+	var foundAllInputs bool
+	if !isCoinbaseTransaction {
+		if len(rawTransaction.Vin) == len(txDetails.Inputs) {
+			foundAllInputs = true
+		} else if isContinuous {
+			// Only log error if this is a continuous crawl. If it is not a continuous crawl, missing inputs are
+			// expected as we only consider outputs created in the given block range
+			log.Println("Error did not find all inputs!!!", rawTransaction.Txid)
+		}
+	}
+
 	// process all outputs
 	outputMappings := make(map[string]outputMapping)
-	for _, d := range tx.Vout {
+	for _, d := range rawTransaction.Vout {
 		uindex := uint64(d.N)
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
+			Uid:         createOutputUid(rawTransaction.Txid, uindex),
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      strconv.FormatFloat(d.Value, 'f', 8, 64),
 			TxType:      d.ScriptPubKey.Type,
@@ -208,8 +214,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 		}
 	}
 
-	if !isCoinbaseTransaction {
-		txDetails = SetPrivacyType(tx, txDetails)
+	if !isCoinbaseTransaction && foundAllInputs {
+		txDetails.SetPrivacyType()
 	}
 
 	// create transaction mapping for address processing later on
@@ -218,66 +224,39 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, client *rpcclient.Client, txHas
 	return
 }
 
-// sets the privacy type of transaction dependent on the inputs and outputs of tx
-func SetPrivacyType(tx *btcjson.TxRawResult, transaction dbtx.Transaction) dbtx.Transaction {
-	if IsCreateDenominationTransaction(len(tx.Vin), tx.Vout) {
-		transaction.SetDenomination()
-	}
-	return transaction
-}
-
-// Checks if with the given arguments the transaction could be a transaction which
-// creates the denominations for a private send
-func IsCreateDenominationTransaction(inputCount int, outputs []btcjson.Vout) bool {
-	if inputCount != 1 || len(outputs) < 3 {
-		return false
-	}
-
-	var amounts []float64
-	for _, o := range outputs {
-		amounts = append(amounts, o.Value)
-	}
-
-	return dbtx.IsPrivacyTransaction(dbop.CountAmountDenominations(amounts))
-}
-
-func IsPrivateSendTransaction(outputCount int, inputs []btcjson.Vout) bool {
-	if outputCount != 1 || len(inputs) < 3 {
-		return false
-	}
-
-	var amounts []float64
-	for _, o := range inputs {
-		amounts = append(amounts, o.Value)
-	}
-
-	return dbtx.IsPrivacyTransaction(dbop.CountAmountDenominations(amounts))
-}
-
 // maps the input information to the output if it exists already in the database
-func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint64) error {
+func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint64, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
 		return nil
 	}
 
-	output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
-	if err != nil {
-		// origin transaction of output does not exist in database, ignore input
-		// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
-		// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
-		if errors.Is(err, dbop.ErrorNotFound) {
-			return nil
-		}
-
-		return err
+	refOutput := dbop.Output{
+		InputIndex: &index,
 	}
 
-	details.Inputs = append(details.Inputs, dbop.Output{
-		Uid:        output.Uid,
-		InputIndex: &index,
-	})
+	if v, ok := txHashMap[vin.Txid]; ok {
+		refOutput.Uid = createOutputUid(vin.Txid, uint64(vin.Vout))
+		refOutput.Amount = strconv.FormatFloat(v.Vout[vin.Vout].Value, 'f', 8, 64)
+	} else {
+		output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
+		if err != nil {
+			// origin transaction of output does not exist in database, ignore input
+			// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
+			// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
+			if errors.Is(err, dbop.ErrorNotFound) {
+				return nil
+			}
+
+			return err
+		}
+
+		refOutput.Amount = output.Amount
+		refOutput.Uid = output.Uid
+	}
+
+	details.Inputs = append(details.Inputs, refOutput)
 	return nil
 }
 
@@ -445,7 +424,7 @@ mainLoop:
 
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase); err == nil {
+			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false); err == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -569,7 +548,7 @@ mainLoop:
 
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase); err == nil {
+			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, true); err == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -584,22 +563,43 @@ mainLoop:
 	return nil
 }
 
-func processPrivateSend(transactions []dbtx.Transaction) []dbtx.Transaction {
+// creates a hash map of btcjson.TxRawResult
+func createTransactionHashmap(client *rpcclient.Client, transactions []string) (map[string]btcjson.TxRawResult, error) {
+	txs := make(map[string]btcjson.TxRawResult)
+	for _, t := range transactions {
+		txHash, err := chainhash.NewHashFromStr(t)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return txs, err
+		}
+		tx, err := client.GetRawTransactionVerbose(txHash)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return txs, err
+		}
+		txs[t] = *tx
+	}
 
-	return transactions
+	return txs, nil
 }
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult, setLowestId bool) (blkCounter uint64, txCounter uint64, err error) {
+func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool) (blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
 
-	for _, t := range block.Tx {
+	txHashMap, err := createTransactionHashmap(client, block.Tx)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, t := range txHashMap {
 		var newTx dbtx.Transaction
 		var tMap TransactionMapping
 
-		newTx, tMap, err = BuildTransactionMapping(dgraph, client, t)
+		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
@@ -623,9 +623,6 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 	// so there is no damage done if we upsert the same mapping twice.
 	var b dbblk.Block
 	if b, err = dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
-
-		transactions = processPrivateSend(transactions)
-
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
