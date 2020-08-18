@@ -4,6 +4,12 @@ This is the blockchain crawler. It loads data from `dashd` and stores it in a Dg
 
 An HTTP server can be activated (with `-startserver`), which exposes the database entries via a REST API. 
 
+## Crawling Modes
+
+The crawler can be started either in continuous mode (`-continuous`) or in range mode (`-start 1 -stop 10`). 
+In range mode some functionality is not completely available. This is the case if outputs of transactions **not** part of the 
+range are used as inputs of transactions part of the range. 
+
 ## REST API Routes
 
 Routes supported by the REST API. Consume the endpoints via GET requests.
