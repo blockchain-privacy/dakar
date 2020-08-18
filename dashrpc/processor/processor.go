@@ -553,8 +553,8 @@ mainLoop:
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
 		} else {
-			log.Println(err)
-			break
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 	}
 
