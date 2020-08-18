@@ -133,7 +133,12 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 		address, err := dbaddr.GetFrontendAddress(dgraph, addressHashString)
 		if err != nil {
 			http.Error(w, "Address: "+addressHashString, http.StatusNotFound)
-			log.Println(cliutil.ShowCallInfo(), err)
+
+			// only print error if it is not expected
+			if !errors.Is(err, dbaddr.ErrorAddressNotFound) {
+				log.Println(cliutil.ShowCallInfo(), err)
+			}
+
 			return
 		}
 
