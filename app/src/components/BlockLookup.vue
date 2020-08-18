@@ -29,7 +29,7 @@
                     <router-link :to="data.prevblockhash">{{ shortenHash(data.prevblockhash) }}</router-link>
                   </IconItem>
                 </v-col>
-                <v-col>
+                <v-col v-if="data.nextblockhash">
                   <IconItem icon="mdi-format-header-pound" title="Next Block">
                     <router-link :to="data.nextblockhash">{{ shortenHash(data.nextblockhash) }}</router-link>
                   </IconItem>
