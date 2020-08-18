@@ -67,14 +67,14 @@ func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err er
 	return err, res
 }
 
-// search initiates recursive search through all inputs to find all CreateDenominations
+// search initiates recursive search through all inputs to find all PrivacyOrigins
 func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*Result {
 	tx, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
 		log.Println(err)
 	}
 	// Sanity check
-	if !tx.IsPrivateSend() {
+	if !tx.IsPrivacyDestination() {
 		log.Printf("Error: TX is not a PrivateSend! %v", tx)
 		return nil
 	}
@@ -82,13 +82,13 @@ func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*R
 	var txCount int64
 	for _, input := range tx.Inputs {
 		var rounds int // sets to 0, initially
-		searchCreateDenominations(dgraph, input.Uid, rounds, &results, &txCount, writer)
+		searchPrivacyOrigin(dgraph, input.Uid, rounds, &results, &txCount, writer)
 	}
 
 	return results
 }
 
-func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
+func searchPrivacyOrigin(dgraph *dgo.Dgraph, outputUid string, rounds int,
 	results *map[string]*Result, txCount *int64, writer *csv.Writer) {
 
 	if (*txCount % 100000) == 0 {
@@ -109,7 +109,7 @@ func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 	}
 	*txCount++
 	// End Condition
-	if tx.IsCreateDenominations() {
+	if tx.IsPrivacyOrigin() {
 		o, err := dbop.GetVerboseOutputByUid(dgraph, tx.Inputs[0].Uid)
 		if err != nil {
 			log.Println("Problem getting output", err)
@@ -149,6 +149,6 @@ func searchCreateDenominations(dgraph *dgo.Dgraph, outputUid string, rounds int,
 
 	for _, in2 := range tx.Inputs {
 		rounds2 := rounds
-		searchCreateDenominations(dgraph, in2.Uid, rounds2, results, txCount, writer)
+		searchPrivacyOrigin(dgraph, in2.Uid, rounds2, results, txCount, writer)
 	}
 }

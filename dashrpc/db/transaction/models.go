@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	DType               = "Transaction"
-	PrivacyDenomination = "Denomination"
-	PrivacyMixing       = "Mixing"
-	PrivacyPrivateSend  = "PrivateSend"
+	DType              = "Transaction"
+	PrivacyOrigin      = "origin"
+	PrivacyMixing      = "mixing"
+	PrivacyDestination = "destination"
 )
 
 var (
@@ -46,16 +46,16 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
 
-func (t *Transaction) SetDenomination() {
-	t.PrivacyType = PrivacyDenomination
+func (t *Transaction) SetPrivacyOrigin() {
+	t.PrivacyType = PrivacyOrigin
 }
 
 func (t *Transaction) SetMixing() {
 	t.PrivacyType = PrivacyMixing
 }
 
-func (t *Transaction) SetPrivateSend() {
-	t.PrivacyType = PrivacyPrivateSend
+func (t *Transaction) SetPrivacyDestination() {
+	t.PrivacyType = PrivacyDestination
 }
 
 // checks if the given transaction has all attributes filled
@@ -71,13 +71,13 @@ func (t Transaction) CountOutputDenominations() []int {
 	return op.CountOutputDenominations(t.Outputs)
 }
 
-// IsCreateDenominations checks if the TX creates denominations
-func (t Transaction) IsCreateDenominations() bool {
+// IsPrivacyOrigin checks if the TX creates denominations
+func (t Transaction) IsPrivacyOrigin() bool {
 	return len(t.Inputs) == 1 && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
-// IsPrivateSend checks if the TX is the end receiver of a private send transaction
-func (t Transaction) IsPrivateSend() bool {
+// IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
+func (t Transaction) IsPrivacyDestination() bool {
 	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
 }
 
@@ -85,10 +85,10 @@ func (t Transaction) IsPrivateSend() bool {
 func (t *Transaction) SetPrivacyType() {
 	if t.IsMixing() {
 		t.SetMixing()
-	} else if t.IsCreateDenominations() {
-		t.SetDenomination()
-	} else if t.IsPrivateSend() {
-		t.SetPrivateSend()
+	} else if t.IsPrivacyOrigin() {
+		t.SetPrivacyOrigin()
+	} else if t.IsPrivacyDestination() {
+		t.SetPrivacyDestination()
 	}
 }
 

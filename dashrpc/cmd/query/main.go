@@ -74,8 +74,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		log.Println("Tx isCreateDenominations:", transaction.IsCreateDenominations())
-		if transaction.IsCreateDenominations() {
+		log.Println("Tx IsPrivacyOrigin:", transaction.IsPrivacyOrigin())
+		if transaction.IsPrivacyOrigin() {
 			log.Println("Denominations:", transaction.CountOutputDenominations())
 		}
 		log.Println("Tx isMixingTransaction:", transaction.IsMixing())
@@ -83,8 +83,8 @@ func main() {
 			log.Println("Denominations on outputs:", transaction.CountOutputDenominations())
 			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
-		log.Println("Tx isPrivateSend:", transaction.IsPrivateSend())
-		if transaction.IsPrivateSend() {
+		log.Println("Tx IsPrivacyDestination:", transaction.IsPrivacyDestination())
+		if transaction.IsPrivacyDestination() {
 			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
 	} else if len(cliArgs.ClusterAddr) > 0 {
