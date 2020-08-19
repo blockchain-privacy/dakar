@@ -15,15 +15,20 @@
             <v-container>
               <v-row>
                 <v-col>
+                  <IconItem icon="mdi-format-list-numbered" title="Block Height">
+                    <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+                  </IconItem>
+                </v-col>
+                <v-col>
                   <IconItem icon="mdi-calendar" title="Timestamp">
                     {{ new Date(data.bts).toLocaleString() }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
-                <v-col>
-                  <IconItem icon="mdi-pound" title="Block Id">
-                    <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+                <v-col v-if="data.fee">
+                  <IconItem icon="mdi-cash" title="Fee">
+                    {{ Number.parseFloat(data.fee) }}
                   </IconItem>
                 </v-col>
                 <v-col>
