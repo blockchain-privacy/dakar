@@ -102,11 +102,11 @@ func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err er
 	}
 
 	if !addr.isComplete() {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("address not complete"))
-		return addr, err
+		err = errors.New("address is not complete")
+		return
 	}
 
-	return addr, err
+	return
 }
 
 // upserts an address

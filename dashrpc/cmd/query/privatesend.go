@@ -2,6 +2,7 @@ package main
 
 import (
 	"dashrpc"
+	"dashrpc/cmd/cliutil"
 	dbop "dashrpc/db/output"
 	dbtx "dashrpc/db/transaction"
 	"encoding/csv"
@@ -30,9 +31,8 @@ type Result struct {
 func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err error, res map[string]*Result) {
 	recordFile, err := os.Create(outputFile)
 	if err != nil {
-		errMsg := fmt.Sprintln("error while creating the file ::", err)
-		err = errors.New(errMsg)
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// Initialize the writer
@@ -45,26 +45,23 @@ func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err er
 			errMsg += "\n" + err.Error()
 		}
 		err = errors.New(errMsg)
-		return err, res
+		return
 	}
 
 	writer.Flush()       // Writes the buffered data to the writer
 	err = writer.Error() // Checks if any error occurred while writing
 	if err != nil {
-		errMsg := fmt.Sprintln("\"error while writing to the file ::\"", err)
-		err = errors.New(errMsg)
-
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	err = recordFile.Close()
 	if err != nil {
-		errMsg := fmt.Sprintln("Error while closing the file ::", err)
-		err = errors.New(errMsg)
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// fmt.Printf("%v\n\n", res)
-	return err, res
+	return
 }
 
 // search initiates recursive search through all inputs to find all PrivacyOrigins

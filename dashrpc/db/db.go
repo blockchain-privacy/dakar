@@ -69,7 +69,7 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 	}
 
 	if len(r.GetCount) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("wrong number of objects returned"))
+		err = errors.New("wrong number of objects returned")
 		return
 	}
 

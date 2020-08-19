@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"dashrpc/cmd/cliutil"
 	op "dashrpc/db/output"
 	"errors"
 	"fmt"
@@ -101,7 +100,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	for _, e := range t.Inputs {
 		amt, err := strconv.ParseFloat(e.Amount, 64)
 		if err != nil {
-			err = errors.New("could not convert amount string to float for transaction " + t.Hash)
+			err = fmt.Errorf("could not convert amount string to float for transaction: %s", t)
 			return err
 		}
 		amountInputs += amt
@@ -110,7 +109,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	for _, e := range t.Outputs {
 		amt, err := strconv.ParseFloat(e.Amount, 64)
 		if err != nil {
-			err = errors.New("could not convert amount string to float for transaction " + t.Hash)
+			err = fmt.Errorf("could not convert amount string to float for transaction: %s", t)
 			return err
 		}
 		amountOutputs += amt
@@ -169,11 +168,11 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 	lenQ := len(tq.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("no transactions found"))
+		err = errors.New("no transactions found")
 		return
 	} else if lenQ > 1 {
 		// found more than one transaction, which should not be possible
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New("found more than one transaction"))
+		err = errors.New("found more than one transaction")
 		return
 	}
 	tx = tq.Q[0]

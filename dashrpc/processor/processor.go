@@ -193,7 +193,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		} else if isContinuous {
 			// Only create error if this is a continuous crawl. If it is not a continuous crawl, missing inputs are
 			// expected as we only consider outputs created in the given block range
-			err = errors.New("not all inputs where found in transaction " + rawTransaction.Txid)
+			err = fmt.Errorf("not all inputs where found in transaction %s", rawTransaction.Txid)
 			return
 		}
 	} else {
@@ -220,10 +220,11 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 
 	// sanity check outputs
 	if len(txDetails.Outputs) == 0 {
-		err = errors.New("no outputs found in transaction " + rawTransaction.Txid)
+		err = fmt.Errorf("no outputs found in transaction %s", rawTransaction.Txid)
 		return
 	}
 
+	// if all inputs are available the transaction fee gets calculated and the privacy type set
 	if foundAllInputs {
 		if err = txDetails.CalculateTransactionFee(); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -318,9 +319,7 @@ func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	}
 
 	if *status.LastBlockId != highestBlockId {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			errors.New("last crawled block and highest block are not the same! Status: "+status.String()))
-
+		err = fmt.Errorf("last crawled block and highest block are not the same! Status: %s", status)
 		return
 	}
 
@@ -630,7 +629,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 
 	// sanity check for number of transactions
 	if len(transactions) != len(block.Tx) {
-		err = errors.New("wrong number of transactions in block " + block.Hash)
+		err = fmt.Errorf("wrong number of transactions in block: %s", block.Hash)
 		return
 	}
 
