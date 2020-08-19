@@ -16,6 +16,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 					uid
 					txhash
 					privacytype
+					fee
 					tx_inputs{
 						uid
 						amount
@@ -57,6 +58,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 				q(func: eq(txhash, $hash)){
 					txhash
 					privacytype
+					fee
 					inputs: tx_inputs @normalize{
 						amount: amount
 						inputindex: inputindex
@@ -93,6 +95,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType string           `json:"privacytype,omitempty"`
+			Fee         string           `json:"fee,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
@@ -121,6 +124,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	transaction = FrontendTransaction{
 		Hash:           t.Hash,
 		PrivacyType:    t.PrivacyType,
+		Fee:            t.Fee,
 		BlockHash:      t.Block[0].Hash,
 		BlockId:        t.Block[0].Id,
 		BlockTimestamp: t.Block[0].Ts,

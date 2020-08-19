@@ -5,6 +5,7 @@ import (
 	op "dashrpc/db/output"
 	"errors"
 	"fmt"
+	"strconv"
 )
 
 const (
@@ -22,6 +23,7 @@ var (
 type Transaction struct {
 	Uid         string      `json:"uid,omitempty"`
 	PrivacyType string      `json:"privacytype,omitempty"`
+	Fee         string      `json:"fee,omitempty"`
 	Outputs     []op.Output `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output `json:"tx_inputs,omitempty"`
 	Hash        string      `json:"txhash,omitempty"`
@@ -90,6 +92,33 @@ func (t *Transaction) SetPrivacyType() {
 	} else if t.IsPrivacyDestination() {
 		t.SetPrivacyDestination()
 	}
+}
+
+// checks if the cumulative amount of inputs and outputs matches
+func (t *Transaction) CalculateTransactionFee() (err error) {
+	var amountInputs float64
+	var amountOutputs float64
+	for _, e := range t.Inputs {
+		amt, err := strconv.ParseFloat(e.Amount, 64)
+		if err != nil {
+			err = errors.New("could not convert amount string to float for transaction " + t.Hash)
+			return err
+		}
+		amountInputs += amt
+	}
+
+	for _, e := range t.Outputs {
+		amt, err := strconv.ParseFloat(e.Amount, 64)
+		if err != nil {
+			err = errors.New("could not convert amount string to float for transaction " + t.Hash)
+			return err
+		}
+		amountOutputs += amt
+	}
+
+	t.Fee = strconv.FormatFloat(amountInputs-amountOutputs, 'f', 8, 64)
+
+	return
 }
 
 func IsPrivacyTransaction(denom []int) bool {
@@ -162,6 +191,7 @@ type FrontendOutput struct {
 type FrontendTransaction struct {
 	Hash           string           `json:"txhash"`
 	BlockHash      string           `json:"bhash"`
+	Fee            string           `json:"fee"`
 	PrivacyType    string           `json:"privacytype"`
 	BlockId        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts"`
@@ -171,7 +201,7 @@ type FrontendTransaction struct {
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
-		f.Hash, f.BlockHash, f.BlockId, f.PrivacyType, f.BlockTimestamp,
+		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs))
 }

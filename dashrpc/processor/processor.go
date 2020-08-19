@@ -191,10 +191,14 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		if len(rawTransaction.Vin) == len(txDetails.Inputs) {
 			foundAllInputs = true
 		} else if isContinuous {
-			// Only log error if this is a continuous crawl. If it is not a continuous crawl, missing inputs are
+			// Only create error if this is a continuous crawl. If it is not a continuous crawl, missing inputs are
 			// expected as we only consider outputs created in the given block range
-			log.Println("Error did not find all inputs!!!", rawTransaction.Txid)
+			err = errors.New("not all inputs where found in transaction " + rawTransaction.Txid)
+			return
 		}
+	} else {
+		// no fees for coinbase transactions
+		txDetails.Fee = "0.00000000"
 	}
 
 	// process all outputs
@@ -214,7 +218,18 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		}
 	}
 
-	if !isCoinbaseTransaction && foundAllInputs {
+	// sanity check outputs
+	if len(txDetails.Outputs) == 0 {
+		err = errors.New("no outputs found in transaction " + rawTransaction.Txid)
+		return
+	}
+
+	if foundAllInputs {
+		if err = txDetails.CalculateTransactionFee(); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+
 		txDetails.SetPrivacyType()
 	}
 
@@ -585,7 +600,8 @@ func createTransactionHashmap(client *rpcclient.Client, transactions []string) (
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState, block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool) (blkCounter uint64, txCounter uint64, err error) {
+func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState,
+	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool) (blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
 
@@ -610,6 +626,12 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processing
 		if tMap.hash != "" && len(tMap.outputs) > 0 {
 			txMapping = append(txMapping, tMap)
 		}
+	}
+
+	// sanity check for number of transactions
+	if len(transactions) != len(block.Tx) {
+		err = errors.New("wrong number of transactions in block " + block.Hash)
+		return
 	}
 
 	// if the current block is not yet in the database or if only a shallow block exist in
