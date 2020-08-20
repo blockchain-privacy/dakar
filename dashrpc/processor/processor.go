@@ -218,12 +218,6 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		}
 	}
 
-	// sanity check outputs
-	if len(txDetails.Outputs) == 0 {
-		err = fmt.Errorf("no outputs found in transaction %s", rawTransaction.Txid)
-		return
-	}
-
 	// if all inputs are available the transaction fee gets calculated and the privacy type set
 	if foundAllInputs {
 		if err = txDetails.CalculateTransactionFee(); err != nil {
