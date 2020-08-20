@@ -121,8 +121,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 }
 
 func IsPrivacyTransaction(denom []int) bool {
-	// todo add fourth denomination?
-	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2
+	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2
 }
 
 // IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
