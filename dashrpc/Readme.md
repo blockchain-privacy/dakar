@@ -32,17 +32,17 @@ Branches
 ### Setup Dash
 * Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
 * Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler.go) are used.
-```bash
+```shell script
 dashd -rpcuser=rpc1user -rpcpassword=1234pass
 ```
 
 ### Setup Dgraph
 * Download submodules
-```bash
+```shell script
 git submodule update --init --recursive
 ```
 * Change to the `docker` directory and create a new external docker network
-```bash
+```shell script
 cd <project_dir>/dashrpc/docker
 docker network create dgraph_default
 ```
@@ -52,13 +52,13 @@ docker network create dgraph_default
 
 ### Setup Crawler
 * Build the `crawler`
-```bash
+```shell script
 cd <project_dir>/dashrpc
 go build ./cmd/crawler
 ```
 
 * Launch the crawler with the following command
-```bash
+```shell script
 # -reset will delete all data on the dgraph instance and setup a new schema
 ./crawler -continuous -reset -startserver
 ```
@@ -84,7 +84,7 @@ crawler 2020/08/11 13:15:15 Starting crawling at Id: 1, Hash: 000007d91d1254d60e
 * Start dev server `yarn serve`
 
 Example output:
-```bash 
+```text
 App running at:
 - Local:   http://localhost:8082/ 
 - Network: http://<your-private-ip>:8082/

@@ -29,18 +29,24 @@ Do not kill the crawling process, instead send a termination or interrupt signal
 ## Examples
 
 Write to a log file, reset the database, start the http server on the default port and start crawling continuously at block height 1.
-```sh
+
+```shell script
 ./crawler -continuous -logfile /tmp/crawler.log -reset -startserver
 ```
 
 Write to a log file, reset the database and start crawling from block height 1268019 to 1269019
-```sh
+```shell script
 ./crawler -start 1268019 -stop 1269019 -logfile /home/dark/crawler.log -reset
 ```
 
 Print the current status of the database
-```sh
+```shell script
 ./crawler -status
+```
+
+Confirm the reset dialog
+```shell script
+echo yes | ./crawler -reset -continous
 ```
 
 ## Commandline Arguments
