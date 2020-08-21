@@ -108,6 +108,19 @@ func main() {
 	}
 
 	if cliArgs.ResetDB {
+		// get confirmation for database deletion
+		var userAnswer string
+		log.Println("All data in the database will we deleted! Do you want to continue (yes/no)?")
+		if _, err := fmt.Scanln(&userAnswer); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if userAnswer != "yes" {
+			log.Println("Exiting program. Database has not been changed.")
+			return
+		}
+
 		err = db.DropAll(dgraph)
 		if err != nil {
 			log.Println(err)
