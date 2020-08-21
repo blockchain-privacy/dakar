@@ -29,23 +29,37 @@ Branches
 *  feature branches - main mechanism for new work.
 
 ## Start
+### Setup Dash
 * Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
-* Download submodules
-```bash
-git submodule update --init --recursive
-```
-* Build the `crawler`
-```bash
-cd dashrpc
-go build ./cmd/crawler
-```
 * Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler.go) are used.
 ```bash
 dashd -rpcuser=rpc1user -rpcpassword=1234pass
 ```
-* Ensure Dgraph is active
+
+### Setup Dgraph
+* Download submodules
+```bash
+git submodule update --init --recursive
+```
+* Change to the `docker` directory and create a new external docker network
+```bash
+cd <project_dir>/dashrpc/docker
+docker network create dgraph_default
+```
+* Change the whitelisted ip range in `docker-compose.yml` to your private ip (line 29)
+* Execute `docker-compose up` to start Dgraph
+* After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
+
+## Setup Crawler
+* Build the `crawler`
+```bash
+cd <project_dir>/dashrpc
+go build ./cmd/crawler
+```
+
 * Launch the crawler with the following command
 ```bash
+# -reset will delete all data on the dgraph instance and setup a new schema
 ./crawler -continuous -reset -startserver
 ```
 * The REST API can be accessed via the address printed in the standard output.

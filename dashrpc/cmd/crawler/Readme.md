@@ -22,7 +22,7 @@ Routes supported by the REST API. Consume the endpoints via GET requests.
 | /api/v1/address/ | Address details |
 | /api/v1/meta/ | Database details |
 
-## Stop the crawler
+## Stopping the crawler
 
 Do not kill the crawling process, instead send a termination or interrupt signal. The crawler will then gracefully shutdown.
 
