@@ -50,7 +50,7 @@ docker network create dgraph_default
 * Execute `docker-compose up` to start Dgraph
 * After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
 
-## Setup Crawler
+### Setup Crawler
 * Build the `crawler`
 ```bash
 cd <project_dir>/dashrpc
@@ -75,6 +75,19 @@ crawler 2020/08/11 13:15:15 setup new schema
 crawler 2020/08/11 13:15:15 Current block count in the chain of the RPC client: 1319430
 crawler 2020/08/11 13:15:15 Starting server at endpoint http://localhost:8081
 crawler 2020/08/11 13:15:15 Starting crawling at Id: 1, Hash: 000007d91d1254d60e2dd1ae580383070a4ddffa4c64c2eeb4a2f9ecc0414343
+```
+
+### Setup Frontend
+
+* Switch to frontend folder `cd <project_dir>/app`
+* Upgrade dependencies `yarn upgrade`
+* Start dev server `yarn serve`
+
+Example output:
+```bash 
+App running at:
+- Local:   http://localhost:8082/ 
+- Network: http://<your-private-ip>:8082/
 ```
 
 ## Screenshots
