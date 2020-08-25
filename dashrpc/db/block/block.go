@@ -47,6 +47,43 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	return r.payload()
 }
 
+// gets block information from the database
+func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
+	query := `query Q($id: string) {
+				q(func: eq(id, $hash)){
+					uid
+					id
+					ts
+					blockhash
+					prevblock { 
+						uid
+						blockhash
+					}
+					transactions{
+						uid
+						txhash
+					}
+				}
+			  }
+				`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+		query, map[string]string{"$hash": strconv.FormatUint(blockId, 10)})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r blockQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
 func isBlockIdentifier(field string) bool {
 	_, err := strconv.Atoi(field)
 	if err != nil {
