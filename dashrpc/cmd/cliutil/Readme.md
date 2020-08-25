@@ -1,6 +1,7 @@
 # CLI-Util
 
-This is a module to centralize CLI flags parsing and error handling for Dakar command line utilities.
+This is a module to centralize CLI flags parsing and error handling for Dakar command line utilities. 
+Additionally, included are helper functions.
 
 ## Using this module
 
@@ -13,7 +14,7 @@ import (
 	cli "dashrpc/cmd/cliutil"
 )
 
-cliArgs, err := cli.BuildArgs(cli.BadgerDirectory, cli.Logfile)
+cliArgs, err := cli.BuildArgs(cli.RpcUser, cli.RpcPassword)
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
@@ -26,7 +27,8 @@ Add the new flag `newFlag` to the "enum". Exported Variables must me uppercase.
 
 ```go
 const (
-	BadgerDirectory Flag = iota
+	RpcUser Flag = iota
+    RpcPassword
 	NewFlag
 	...
 )
@@ -36,8 +38,9 @@ Add it to the return type `Arguments`.
 
 ```go 
 type Arguments struct {
-	BadgerDir string
-	NewFlag   int
+	RpcUser     string
+    RpcPassword string
+	NewFlag     int
 	...
 }
 ```
@@ -50,8 +53,8 @@ Conventions
 - For boolean flags default value is `false`
 
 ```go
-func addBadgerDir(v *string) {
-	flag.StringVar(v, "db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
+func addRpcUser(v *string) {
+	flag.StringVar(v, "rpcuser", "rpc1user", "Dash RPC user (default: rpc1user)")
 }
 
 func addNewFlag(v *int) {
@@ -63,10 +66,10 @@ Connect it all in the function `BuildArgs` by adding the new flag to the switch 
 ```go
 for _, f := range flags {
     switch f {
-    case BadgerDirectory:
-        addBadgerDir(&args.BadgerDir)
+    case RpcUser:
+        addRpcUser(&args.RpcUser)
         break
-    case ProcessContinue:
+    case NewFlag:
         addNewFlag(&args.NewFlag)
         break
     ...
@@ -74,26 +77,25 @@ for _, f := range flags {
 } 
 ```
 
-If the new flag needs some >>simple<< input verification, implement it in this module. Additionally, add the new flag to the table of this `Readme` file.
+If the new flag needs some **simple** input verification, implement it in this module. Additionally, add the new flag to the table of this `Readme` file.
 
 ## Available CLI flags
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| db | /tmp/badger | Badger database location (default: /tmp/badger) |
-| continue | false | Continue the previously started DB build process |
+| continuous | false | Continuously syncs the whole chain (default: false) |
+| ignoresafeguard | false | Ignore the crawling safe guard (default: false) |
+| reset | false | Remove all data from the database (default: false) |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
 | start | 0 | Start Block Id (default: 0)|
 | stop | 0 | Stop Block Id (default: 0) |
-| hash | < empty string > | Start Block Hash (default: none) |
 | status | false | Prints current processing status (default: false) |
-| benchmark | false | Run short performance test (default: false) |
-| excludeaddresses | false | Exclude addresses from saving into the database (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
-| serverport | 8081 | Explorer server port (default: 8081) |
+| startserver | false | Start the http server (default: false) |
+| serverport | 8081 | Http server port (default: 8081) |
 | txsearch | < empty string > | Last PrivateSend transaction hash (default: none) |
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |
 | addrcluster | < empty string > | Create cluster for the given address (default: none) |

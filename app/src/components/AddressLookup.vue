@@ -1,62 +1,109 @@
 <template>
-    <v-layout row v-if="data">
-        <v-flex xs12 sm8 offset-sm2>
-            <v-card>
-                <v-card-title>
-                    <v-icon>mdi-bank-transfer</v-icon>
-                    Address
-                </v-card-title>
-                <v-list two-line subheader>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon>mdi-format-header-pound</v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>HASH</v-list-item-title>
-                            <v-list-item-subtitle>{{data.address}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item v-for="tx in data.txs" v-bind:key="tx.txhash">
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Transaction</v-list-item-title>
-                            <v-list-item-subtitle>
-                                Hash:
-                                <router-link :to="tx.txhash">{{tx.txhash}}</router-link>
-                            </v-list-item-subtitle>
-                            <v-list-item-subtitle>Amount: {{tx.amount}}</v-list-item-subtitle>
-                            <v-list-item-subtitle>Index: {{tx.index}}</v-list-item-subtitle>
-                            <v-list-item-subtitle v-if="tx.iscoinbase" :data="tx.iscoinbase">Coinbase:
-                                {{tx.iscoinbase}}
-                            </v-list-item-subtitle>
-                            <v-list-item-subtitle v-if="tx.txtype" :data="tx.txtype">Type: {{tx.txtype}}
-                            </v-list-item-subtitle>
-                            <div v-if="tx.addresses.length > 1">
-                                <v-list-item-subtitle v-for="addr in tx.addresses" v-bind:key="addr">Addresses:
-                                    {{addr}}
-                                </v-list-item-subtitle>
-                            </div>
-                        </v-list-item-content>
-                    </v-list-item>
-                </v-list>
-            </v-card>
-            <v-card><!-- TODO hack, to leave space at the bottom, such that content is not hidden by the footer.-->
-                <div style="height: 40pt">
-                </div>
-            </v-card>
-        </v-flex>
-    </v-layout>
+  <v-container class="fill-height" fluid v-if="data">
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="12" md="10" lg="9" xl="8">
+        <v-card class="elevation-12">
+          <v-toolbar color="primary" dark flat>
+            <v-toolbar-title>
+              <v-icon>mdi-card-bulleted-outline</v-icon>
+              Address {{ data.addresshash }}
+            </v-toolbar-title>
+          </v-toolbar>
+          <v-card-text>
+            <v-container>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-scale-balance" title="Balance">
+                    {{ (this.amounts.received - this.amounts.spent).toFixed(2) }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
+                    {{ this.amounts.received.toFixed(2) }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
+                    {{ this.amounts.spent.toFixed(2) }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-divider></v-divider>
+              <v-row>
+                <v-col v-for="o in data.addr_outputs" v-bind:key="o.input_transaction + o.output_transaction">
+                  <v-sheet min-height="50" class="fill-height" color="transparent">
+                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
+                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
+                        Amount: {{ o.amount }}
+                        <br v-if="o.iscoinbase"/>
+                        {{ o.iscoinbase ? 'Coinbase: ' + o.iscoinbase : '' }}
+                        <br/>
+                        Output Transaction:
+                        <router-link :to="o.output_transaction">
+                          {{ shortenHash(o.output_transaction) }}
+                        </router-link>
+                        <br v-if="o.input_transaction"/>
+                        {{ o.input_transaction ? 'Input transaction:' : '' }}
+                        <router-link :to="o.input_transaction" v-if="o.input_transaction">
+                          {{ shortenHash(o.input_transaction) }}
+                        </router-link>
+                      </IconItem>
+                    </v-lazy>
+                  </v-sheet>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
-    export default {
-        name: 'AddressLookup',
-        computed: {
-            data() {
-                return this.$store.getters.getAddressData;
-            }
-        }
+import {shortenHash} from "@/utilities";
+import {PAGE_TITLE} from "@/constants";
+import IconItem from "@/components/common/IconItem";
+
+export default {
+  name: 'AddressLookup',
+  components: {IconItem},
+  methods: {
+    shortenHash,
+    calculateAmountReceived: function (outputs) {
+      return outputs
+          .map(e => parseFloat(e.amount))
+          .reduce((sum, e) => sum + e, 0);
+    },
+    calculateAmountSpent: function (outputs) {
+      return outputs
+          .filter(e => e.input_transaction !== '')
+          .map(e => parseFloat(e.amount))
+          .reduce((sum, e) => sum + e, 0);
     }
+  },
+  computed: {
+    data() {
+      return this.$store.getters.getAddressData;
+    },
+    amounts() {
+      return {
+        received: this.calculateAmountReceived(this.data.addr_outputs),
+        spent: this.calculateAmountSpent(this.data.addr_outputs),
+      };
+    }
+  },
+  mounted() {
+    document.title = `Address - ${PAGE_TITLE}`;
+  },
+  updated() {
+    let h = ' ';
+    if (this.data && this.data.addresshash) {
+      h = ` ${this.data.addresshash} `
+    }
+    document.title = `Address${h}- ${PAGE_TITLE}`;
+  },
+}
 </script>

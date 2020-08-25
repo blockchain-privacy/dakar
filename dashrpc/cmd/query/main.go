@@ -1,20 +1,22 @@
 package main
 
 import (
-	"dashrpc"
 	cli "dashrpc/cmd/cliutil"
+	"dashrpc/db"
+	"dashrpc/db/analytics"
+	dbtx "dashrpc/db/transaction"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
-	"io"
 	"log"
 	"os"
 )
 
+const privateSendFilename = "result.csv"
+
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
+	cliArgs, err = cli.BuildArgs(cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -29,11 +31,7 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	return cliArgs, err
 }
 
-//
-// Simple utility to browse/lookup the TXs from the badger database
-//
-// Work in Progress. NOT WORKING YET.
-//
+// Simple utility to browse/lookup the TXs from the database
 func main() {
 
 	cliArgs, err := getExplorerCLIArgs()
@@ -43,77 +41,63 @@ func main() {
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Println("Error opening log file", err)
-			return
-		}
+	if f, err := cli.GetLogfile(cliArgs.Logfile, "query"); err != nil {
 		defer func() {
-			err = f.Close()
-			if err != nil {
+			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-		log.SetPrefix("query ")
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	// Open the Badger database located in the /tmp/badger directory.
-	// It will be created if it doesn't exist.
-	opts := badger.DefaultOptions(cliArgs.BadgerDir)
-
-	// set maximum number of memtables to 50 (default: 5)
-	opts.WithNumMemtables(50)
-
-	// set maximum size of LSM table to 512 MB (default: 64 MB)
-	opts.WithMaxTableSize(512 << 20)
-
-	db, err := badger.Open(opts)
+	dgraph, c, err := db.CreateDefaultClient()
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
 
-	// close database when done
 	defer func() {
-		err = db.Close()
-		if err != nil {
-			fmt.Println(err)
+		if err = c.Close(); err != nil {
+			log.Println(err)
 		}
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		err, res := transactionSearch(db, cliArgs.TxSearch, "./result.csv")
+
+		err := analytics.GetOrigins(dgraph, cliArgs.TxSearch, uint(4))
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		os.Exit(0)
+		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./"+privateSendFilename)
 
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		log.Printf("Final map has %v elements\n", len(res))
+		log.Println("Final map has", len(res), "elements")
 	} else if len(cliArgs.TxInfo) > 0 {
-		var txDetails dashrpc.TxDetails
-		err = dashrpc.DbGetTxDetails(db, cliArgs.TxInfo, &txDetails)
+
+		transaction, err := dbtx.GetTransaction(dgraph, cliArgs.TxInfo)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("Tx isCreateDenominations %v\n", txDetails.IsCreateDenominations())
-		if txDetails.IsCreateDenominations() {
-			log.Printf("Denominations: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
+		log.Println("Tx IsPrivacyOrigin:", transaction.IsPrivacyOrigin())
+		if transaction.IsPrivacyOrigin() {
+			log.Println("Denominations:", transaction.CountOutputDenominations())
 		}
-		log.Printf("Tx isMixingTransaction %v\n", txDetails.IsMixing())
-		if txDetails.IsMixing() {
-			log.Printf("Denominations on outputs: %v\n", dashrpc.CountDenominations(txDetails.Outputs))
-			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
+		log.Println("Tx isMixingTransaction:", transaction.IsMixing())
+		if transaction.IsMixing() {
+			log.Println("Denominations on outputs:", transaction.CountOutputDenominations())
+			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
-		log.Printf("Tx isPrivateSend %v\n", txDetails.IsPrivateSend())
-		if txDetails.IsPrivateSend() {
-			log.Printf("Denominations on inputs: %v\n", dashrpc.CountDenominations(txDetails.Inputs))
+		log.Println("Tx IsPrivacyDestination:", transaction.IsPrivacyDestination())
+		if transaction.IsPrivacyDestination() {
+			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
 		}
 	} else if len(cliArgs.ClusterAddr) > 0 {
-		if err := dashrpc.ProcessAddressClustering(db, cliArgs.ClusterAddr); err != nil {
-			log.Println(err)
-			return
-		}
+		log.Println("Clustering is not yet implemented")
 	}
 }

@@ -2,10 +2,13 @@ package main
 
 import (
 	"dashrpc"
+	"dashrpc/cmd/cliutil"
+	dbop "dashrpc/db/output"
+	dbtx "dashrpc/db/transaction"
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
 	"strconv"
@@ -25,17 +28,16 @@ type Result struct {
 }
 
 // Writes the results of "search" to "outputFile"
-func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, res map[string]*Result) {
+func transactionSearch(dgraph *dgo.Dgraph, tx string, outputFile string) (err error, res map[string]*Result) {
 	recordFile, err := os.Create(outputFile)
 	if err != nil {
-		errMsg := fmt.Sprintln("error while creating the file ::", err)
-		err = errors.New(errMsg)
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// Initialize the writer
 	writer := csv.NewWriter(recordFile)
-	res = search(db, tx, writer)
+	res = search(dgraph, tx, writer)
 	if res == nil {
 		errMsg := "Result in NIL -- fix it."
 		// no results -> delete result file
@@ -43,85 +45,93 @@ func transactionSearch(db *badger.DB, tx string, outputFile string) (err error, 
 			errMsg += "\n" + err.Error()
 		}
 		err = errors.New(errMsg)
-		return err, res
+		return
 	}
 
 	writer.Flush()       // Writes the buffered data to the writer
 	err = writer.Error() // Checks if any error occurred while writing
 	if err != nil {
-		errMsg := fmt.Sprintln("\"error while writing to the file ::\"", err)
-		err = errors.New(errMsg)
-
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 	err = recordFile.Close()
 	if err != nil {
-		errMsg := fmt.Sprintln("Error while closing the file ::", err)
-		err = errors.New(errMsg)
-		return err, res
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// fmt.Printf("%v\n\n", res)
-	return err, res
+	return
 }
 
-// search initiates recursive search through all inputs to find all CreateDenominations
-func search(db *badger.DB, txHash string, writer *csv.Writer) map[string]*Result {
-	tx := dashrpc.TxDetails{}
-	hash := txHash
-	err := dashrpc.DbGetTxDetails(db, hash, &tx)
+// search initiates recursive search through all inputs to find all PrivacyOrigins
+func search(dgraph *dgo.Dgraph, txHash string, writer *csv.Writer) map[string]*Result {
+	tx, err := dbtx.GetTransaction(dgraph, txHash)
 	if err != nil {
-		fmt.Println("Error", err)
+		log.Println(err)
 	}
 	// Sanity check
-	if !tx.IsPrivateSend() {
-		fmt.Printf("Error: TX is not a PrivateSend! %v", tx)
+	if !tx.IsPrivacyDestination() {
+		log.Printf("Error: TX is not a PrivateSend! %v", tx)
 		return nil
 	}
 	results := make(map[string]*Result)
 	var txCount int64
 	for _, input := range tx.Inputs {
 		var rounds int // sets to 0, initially
-		searchCreateDenominations(db, &input, rounds, &results, &txCount, writer)
+		searchPrivacyOrigin(dgraph, input.Uid, rounds, &results, &txCount, writer)
 	}
 
 	return results
 }
 
-func searchCreateDenominations(db *badger.DB,
-	in *dashrpc.TxOutput, rounds int,
+func searchPrivacyOrigin(dgraph *dgo.Dgraph, outputUid string, rounds int,
 	results *map[string]*Result, txCount *int64, writer *csv.Writer) {
 
 	if (*txCount % 100000) == 0 {
-		fmt.Printf("\n%v\n", *txCount)
+		log.Printf("\n%v\n", *txCount)
 	}
-	tx := dashrpc.TxDetails{}
-	hash := in.TxHash
-	err := dashrpc.DbGetTxDetails(db, hash, &tx)
+
+	op, err := dbop.GetVerboseOutputByUid(dgraph, outputUid)
+	if err != nil {
+		log.Println("Problem getting output", err)
+		return
+	}
+	hash := op.OutputTransaction
+
+	tx, err := dbtx.GetTransaction(dgraph, hash)
 	if err != nil {
 		// let's ignore it -- our DB does not have ALL TXs
 		return
 	}
 	*txCount++
 	// End Condition
-	if tx.IsCreateDenominations() {
-		if _, ok := (*results)[tx.Inputs[0].Addresses[0]]; ok {
+	if tx.IsPrivacyOrigin() {
+		o, err := dbop.GetVerboseOutputByUid(dgraph, tx.Inputs[0].Uid)
+		if err != nil {
+			log.Println("Problem getting output", err)
+			return
+		}
+
+		if _, ok := (*results)[o.Addresses[0]]; ok {
 			return
 		}
 		r := Result{}
 		r.hash = tx.Hash
-		r.tx = &tx
+		// todo check if necessary
+		//r.tx = &tx
 		r.rounds = rounds
-		(*results)[tx.Inputs[0].Addresses[0]] = &r
+		(*results)[o.Addresses[0]] = &r
 		rec := []string{
 			strconv.Itoa(len(*results)),
-			tx.Inputs[0].Addresses[0],
-			strconv.FormatFloat(tx.Inputs[0].Amount, 'f', -1, 64),
+			o.Addresses[0],
+			tx.Inputs[0].Amount,
 			r.hash,
-			strconv.FormatInt(tx.Timestamp, 10),
+			//todo
+			//strconv.FormatInt(tx.Timestamp, 10),
 			strconv.Itoa(rounds),
 		}
-		err := writer.Write(rec)
+		err = writer.Write(rec)
 		if err != nil {
 			log.Println(err)
 		}
@@ -136,6 +146,6 @@ func searchCreateDenominations(db *badger.DB,
 
 	for _, in2 := range tx.Inputs {
 		rounds2 := rounds
-		searchCreateDenominations(db, &in2, rounds2, results, txCount, writer)
+		searchPrivacyOrigin(dgraph, in2.Uid, rounds2, results, txCount, writer)
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-
 	"github.com/dgraph-io/badger/v2"
 	"github.com/pkg/errors"
 )

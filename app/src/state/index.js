@@ -80,9 +80,17 @@ const actions = {
             .then(response => response.json())
             .then(data => {
                 context.commit('UPDATE_META_DATA', data);
+                this.dispatch('resetMsg');
             })
             .catch(e => {
-                context.commit('SET_MSG', `Error getting meta data: ${e}`);
+                let errMsg;
+                if (e.message === '500 Internal Server Error'){
+                    errMsg = 'Server ist not reachable';
+                } else {
+                    errMsg = `Error getting meta data: ${e}`
+                }
+
+                this.dispatch('setErrorMsg', errMsg);
             });
     },
 }

@@ -1,88 +1,140 @@
 <template>
-    <v-layout row v-if="data">
-        <v-flex xs12 sm8 offset-sm2>
-            <v-card>
-                <v-card-title>
-                    <v-icon>mdi-bank-transfer</v-icon>
-                    Transaction
-                </v-card-title>
-                <v-list two-line subheader>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon>mdi-format-header-pound</v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>HASH</v-list-item-title>
-                            <v-list-item-subtitle>
-                                <router-link :to="data.tx.hash">{{data.tx.hash}}</router-link>
-                            </v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon>mdi-calendar</v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>DATE</v-list-item-title>
-                            <v-list-item-subtitle>ts: {{data.tx.bts}} - {{new Date(data.tx.bts)}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Confirmations</v-list-item-title>
-                            <v-list-item-subtitle>{{data.confirmations}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Block</v-list-item-title>
-                            <v-list-item-subtitle>
-                                {{data.bheight}} -
-                                <router-link :to="data.bhash">{{data.bhash}}</router-link>
-                            </v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Inputs</v-list-item-title>
-                            <v-list-item-subtitle>{{data.tx.inputs.length}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                    <v-list-item>
-                        <v-list-item-avatar>
-                            <v-icon></v-icon>
-                        </v-list-item-avatar>
-                        <v-list-item-content>
-                            <v-list-item-title>Outputs</v-list-item-title>
-                            <v-list-item-subtitle>{{data.tx.outputs.length}}</v-list-item-subtitle>
-                        </v-list-item-content>
-                    </v-list-item>
-                </v-list>
-            </v-card>
-            <v-card><!-- TODO hack, to leave space at the bottom, such that content is not hidden by the footer.-->
-                <div style="height: 40pt">
-                </div>
-            </v-card>
-        </v-flex>
-    </v-layout>
+  <v-container class="fill-height" fluid v-if="data">
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="12" md="10" lg="9" xl="8">
+        <v-card class="elevation-12">
+          <v-toolbar :color="data.privacytype?'purple':'primary'" dark flat>
+            <v-toolbar-title>
+              <v-icon>mdi-transfer</v-icon>
+              Transaction {{ data.txhash }}
+            </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-icon v-if="data.privacytype" large>mdi-incognito-circle</v-icon>
+          </v-toolbar>
+          <v-card-text>
+            <v-container>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-format-list-numbered" title="Block Height">
+                    <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-calendar" title="Timestamp">
+                    {{ new Date(data.bts).toLocaleString() }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col v-if="data.fee">
+                  <IconItem icon="mdi-cash" title="Fee">
+                    {{ Number.parseFloat(data.fee) }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-format-header-pound" title="Block">
+                    <router-link :to="data.bhash">{{ shortenHash(data.bhash) }}</router-link>
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Number of outputs">
+                    {{ !data.outputs ? 0 : data.outputs.length }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Number of inputs">
+                    {{ !data.inputs ? 0 : data.inputs.length }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-divider v-if="outputs"></v-divider>
+              <v-row v-if="outputs">
+                <v-col v-for="i in outputs" v-bind:key="i.addresshash + i.outputindex">
+                  <v-sheet min-height="50" class="fill-height" color="transparent">
+                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
+                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
+                        Address hash:
+                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <br>
+                        Amount: {{ i.amount }}<br>
+                        Spent: {{ i.inputindex != null }}<br>
+                        Index: {{ i.outputindex }}<br>
+                        Coinbase: {{ i.iscoinbase }}
+                      </IconItem>
+                    </v-lazy>
+                  </v-sheet>
+                </v-col>
+              </v-row>
+              <v-divider v-if="inputs"></v-divider>
+              <v-row v-if="inputs">
+                <v-col v-for="i in inputs" v-bind:key="i.addresshash + i.inputindex">
+                  <v-sheet min-height="50" class="fill-height" color="transparent">
+                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
+                      <IconItem icon="mdi-currency-usd-circle" title="Input">
+                        Address hash:
+                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <br>
+                        Amount: {{ i.amount }}<br>
+                        Index: {{ i.inputindex }}<br>
+                        Coinbase: {{ i.iscoinbase }}
+                      </IconItem>
+                    </v-lazy>
+                  </v-sheet>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>
-    export default {
-        name: 'TxLookup',
-        computed: {
-            data() {
-                return this.$store.getters.getTransactionData;
-            }
-        },
+import {shortenHash} from "@/utilities";
+import {PAGE_TITLE} from "@/constants";
+import IconItem from "@/components/common/IconItem";
+
+export default {
+  name: 'TxLookup',
+  components: {IconItem},
+  computed: {
+    data() {
+      return this.$store.getters.getTransactionData;
+    },
+    inputs() {
+      return this.sortByInput(this.data.inputs);
+    },
+    outputs() {
+      return this.sortByOutput(this.data.outputs);
     }
+  },
+  methods: {
+    shortenHash,
+    sortByOutput(outputs) {
+      if (outputs == null) return null;
+      return outputs.sort((a, b) => {
+        return a.outputindex > b.outputindex
+      })
+    },
+    sortByInput(inputs) {
+      if (inputs == null) return null;
+      return inputs.sort((a, b) => {
+        return a.inputindex > b.inputindex
+      })
+    }
+  },
+  mounted() {
+    document.title = `Transaction - ${PAGE_TITLE}`;
+  },
+  updated() {
+    let h = ' ';
+    if (this.data && this.data.txhash) {
+      h = ` ${this.data.txhash} `
+    }
+    document.title = `Transaction${h}- ${PAGE_TITLE}`;
+  },
+}
 </script>

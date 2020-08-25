@@ -1,76 +1,80 @@
 package main
 
 import (
-	"dashrpc"
+	"context"
 	cli "dashrpc/cmd/cliutil"
+	"dashrpc/db"
+	"dashrpc/db/status"
+	"dashrpc/processor"
 	"dashrpc/rpcclient"
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
+	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"net/http"
 	"os"
-	"time"
+	"os/signal"
+	"sync"
+	"syscall"
 )
 
-const benchmarkStartBlockID = 901500
-const benchmarkStopBlockID = 901250
-const benchmarkStartBlockHash = "000000000000002ded278008e12198d0687682a299795bdbbcac8084d59cd607"
-
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.BadgerDirectory, cli.ProcessContinue, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.StartBlockHash, cli.IsPrintStatus, cli.IsBenchmark, cli.ExcludeAddresses, cli.RpcHost, cli.RpcPort, cli.Logfile)
+	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
+		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard, cli.StartHttpServer, cli.HttpServerPort)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if !cliArgs.IsPrintStatus && !cliArgs.ProcessContinue && !cliArgs.IsBenchmark &&
-		(cliArgs.StartBlockID == 0 || cliArgs.StartBlockHash == "" || cliArgs.StopBlockID == 0) {
+	if !cliArgs.IsPrintStatus && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
 		err = errors.New("missing block information")
-		return cliArgs, err
+		return
 	}
 
-	// startBlockID must be bigger than stopBlockID, as we go backwards
-	if cliArgs.StartBlockID < cliArgs.StopBlockID {
+	if cliArgs.Continuous && (cliArgs.StartBlockID > 0 || cliArgs.StopBlockID > 0) {
 		flag.PrintDefaults()
-		err = errors.New("start must be bigger than stop")
-		return cliArgs, err
+		err = errors.New("continuous syncing can not be used together with start and stop block id")
+		return
 	}
 
-	if cliArgs.IsBenchmark {
-		cliArgs.StartBlockHash = benchmarkStartBlockHash
-		cliArgs.StartBlockID = benchmarkStartBlockID
-		cliArgs.StopBlockID = benchmarkStopBlockID
-		cliArgs.ProcessContinue = false
-		cliArgs.IsPrintStatus = false
-
-		// temp dir will be deleted later on
-		dirName, err := ioutil.TempDir("", "dashrpc")
-
-		if err != nil {
-			flag.PrintDefaults()
-			return cliArgs, err
-		}
-		cliArgs.BadgerDir = dirName
+	// startBlockID must be smaller or equal than stopBlockID, as we go forward
+	if cliArgs.StartBlockID > cliArgs.StopBlockID {
+		flag.PrintDefaults()
+		err = errors.New("start must be smaller or equal than stop")
+		return
 	}
 
-	return cliArgs, err
+	return
 }
 
-// The main crawler for the system. It needs to be run prior to using any of the other
-// commands that rely on the Badger DB to be pre-created.
+// checks if a crawling process is already running
+func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
+	dbStatus, err := status.GetCrawlerStatus(dgraph)
+	if err != nil {
+		// no status information found -> database is completely new
+		// and thus no crawling is happening right now
+		if errors.Is(err, status.ErrorStatusNotFound) {
+			return false, nil
+		}
+
+		return true, err
+	} else if dbStatus.IsCrawling == nil {
+		return true, errors.New("was not able to get crawling status successfully")
+	}
+
+	return *dbStatus.IsCrawling, nil
+}
+
+// The crawler for the system. It needs to be run prior to using any of the other
+// commands that rely on the Dgraph DB to be pre-created.
 //
-// DashRPC client traverses the Dash blockchain and creates a Badger database entry for each transaction
+// The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
-//
-// Note: in the future, the crawler could be integrated with the backend-web service as
-// to run continuously in the background and share the DB with other API queries.
 func main() {
-	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", dashrpc.VersionString)
+	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", processor.VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)
@@ -78,72 +82,85 @@ func main() {
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		f, err := os.OpenFile(cliArgs.Logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			fmt.Println("Error opening log file", err)
-			return
-		}
+	if f, err := cli.GetLogfile(cliArgs.Logfile, "crawler"); err == nil {
 		defer func() {
-			err = f.Close()
-			if err != nil {
+			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-		log.SetPrefix("crawler ")
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 
-	if cliArgs.IsBenchmark {
-		benchmarkStr := "Benchmark is ON."
-		if cliArgs.ExcludeAddresses {
-			benchmarkStr = "Benchmark without addresses is ON."
-		}
-		log.Println(benchmarkStr)
-		log.Println("Command line options -start -stop -hash -continue -path are ignored")
-		log.Printf("It takes about %v minutes to complete the benchmark"+
-			" on a high-end laptop.", 2)
-
-		// remove temp dir at the end
-		defer func() {
-			err := os.RemoveAll(cliArgs.BadgerDir)
-			if err != nil {
-				log.Printf("Error: %v\n", err)
-			}
-		}()
+	// create dgraph client
+	dgraph, c, err := db.CreateDefaultClient()
+	if err != nil {
+		log.Print(err)
+		return
 	}
-
-	db := dashrpc.SetupBadgerDB(cliArgs.BadgerDir)
 	defer func() {
-		e := db.Close()
-		if e != nil { /* ignore */
+		if err = c.Close(); err != nil {
+			log.Println(err)
 		}
 	}()
 
 	if cliArgs.IsPrintStatus {
-		dashrpc.PrintStatus(db)
+		status.PrintStatus(dgraph)
 		return
 	}
 
-	if dashrpc.DbGetStatus(db) == dashrpc.DbBlockStatusFinished && cliArgs.ProcessContinue && cliArgs.StopBlockID == 0 {
-		log.Println("\nError: when processing is finished, provide -stop option to continue provide")
+	if cliArgs.ResetDB {
+		// get confirmation for database deletion
+		var userAnswer string
+		log.Println("All data in the database will we deleted! Do you want to continue (yes/no)?")
+		if _, err := fmt.Scanln(&userAnswer); err != nil {
+			log.Println(err)
+			return
+		}
+
+		if userAnswer != "yes" {
+			log.Println("Exiting program. Database has not been changed.")
+			return
+		}
+
+		err = db.DropAll(dgraph)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("dropped all data")
+		err = db.SetupSchema(dgraph)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("setup new schema")
+	}
+
+	// check if schema exists
+	if isSet, err := db.IsSchemaSet(dgraph); err != nil {
+		log.Println(err)
+		return
+	} else if !isSet {
+		log.Println("Schema is not set. Use -reset to create a new schema.")
 		return
 	}
 
-	if cliArgs.ProcessContinue && (cliArgs.StartBlockHash != "" || cliArgs.StartBlockID != 0) {
-		log.Println("\nError: cannot use -continue and start/stop options in the command line")
-		return
+	if !cliArgs.IgnoreSafeguard {
+		if ok, err := isCrawling(dgraph); err != nil {
+			log.Println(err)
+			return
+		} else if ok {
+			log.Println("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
+			return
+		}
 	}
 
 	// Setup the RPC connection
-	var conn = rpcclient.ConnConfig{
+	client, err := rpcclient.New(&rpcclient.ConnConfig{
 		Host:       cliArgs.RpcEndpoint,
 		User:       cliArgs.RpcUser,
 		Pass:       cliArgs.RpcPassword,
 		DisableTLS: true,
-	}
-
-	client, err := rpcclient.New(&conn)
+	})
 	if err != nil {
 		log.Printf("Error: %v\n", err)
 		return
@@ -154,62 +171,74 @@ func main() {
 		log.Printf("\nError: problem with count() %s\n", err.Error())
 		return
 	}
-	log.Printf("Current block count in the chain: %v\n", count)
+	log.Printf("Current block count in the chain of the RPC client: %v\n", count)
 
-	if cliArgs.ProcessContinue {
-		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockLastBlockId, &cliArgs.StartBlockID)
-		if err != nil {
-			log.Printf("\nError: problem reading LastBlockID from DB: %s\n", err.Error())
-			return
+	// We will handle CTRL-C and CTRL-Z nicely
+	chSignal := make(chan os.Signal, 1)
+	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	chCrawlingStopped := make(chan bool, 1)
+	chAnalyzingStopped := make(chan bool, 1)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer func() {
+			chCrawlingStopped <- true
+		}()
+		if cliArgs.Continuous {
+			err = processor.ProcessBlocksContinuously(ctx, dgraph, client)
+		} else {
+			err = processor.ProcessBlockRange(ctx, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
 		}
-		err = dashrpc.DbGetString(db, dashrpc.DbBlockLastBlockHash, &cliArgs.StartBlockHash)
+
 		if err != nil {
-			log.Printf("\nError: problem reading LastBlockHash from DB: %s\n", err.Error())
-			return
+			log.Println(err)
 		}
-		err = dashrpc.DbGetUint64(db, dashrpc.DbBlockStopBlockId, &cliArgs.StopBlockID)
-		if err != nil {
-			log.Printf("\nError: problem reading StopBlockID from DB: %s\n", err.Error())
-			return
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer func() {
+			chAnalyzingStopped <- true
+		}()
+
+		if err := processor.StartPost(ctx, dgraph); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	var srv *http.Server
+	if cliArgs.StartHttpServer {
+		wg.Add(1)
+		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
+	}
+
+	var stoppedWorking bool
+	select {
+	case <-chSignal:
+		cancelFunc()
+		shutdownServer(srv)
+	case <-chCrawlingStopped:
+		cancelFunc()
+		stoppedWorking = true
+	case <-chAnalyzingStopped:
+		cancelFunc()
+		stoppedWorking = true
+	}
+
+	if cliArgs.StartHttpServer && stoppedWorking {
+		// if the crawler stopped working on his own accord, the server is still active at this point
+		select {
+		case <-chSignal:
+			shutdownServer(srv)
 		}
 	}
 
-	//startingBlockId := uint64(1060000)
-	//startingBlockHash := "00000000000000132447e6bac9fe0d7d756851450eab29358787dc05d809bf07"
-
-	// 2019-05-05 19:22
-	// Block: 1065229
-	// 0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c
-	//
-	// startingBlockId := 1065229
-	// startingBlockHash := "0000000000000015b42d1e661ccffac1128a0fde14ae6ec5ed78f7b16a04820c"
-
-	//
-	// Appeared in Dash 126744 (2014-08-28 19:47:52)
-	// startingBlockHash := "00000000000d0b8cd2507d6ea244bc7109ff9c979a8653617caaff6df848452d"
-
-	// startingBlockId := 50000
-	// startingBlockHash := "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
-
-	// 50 block
-	// startingBlockHash := "00000f106b17cfec9d127b0cab42fd5b8c4102b39800be0e711b4cb38c017e7a"
-
-	// 100 block
-	// startingBlockHash := "00000fcef4b9e3b5aa2371dc7f310a8cc2e27171121d656e77f59464e7c0d400"
-
-	err = dashrpc.ProcessNewBlocks(db, client, !cliArgs.ExcludeAddresses, cliArgs.StartBlockHash, cliArgs.StartBlockID, cliArgs.StopBlockID)
-	if err != nil {
-		log.Printf("Error: %v\n", err)
-		return
-	}
-
-	err = db.Close()
-	if err != nil {
-		log.Printf("Error: %v\n", err)
-		return
-	}
-
-	if cliArgs.IsBenchmark {
-		time.Sleep(time.Second * 5) // need to give time to Badger to shutdown
-	}
+	wg.Wait()
 }

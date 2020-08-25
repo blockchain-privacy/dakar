@@ -3,27 +3,33 @@ package cliutil
 import (
 	"errors"
 	"flag"
+	"fmt"
+	"io"
+	"log"
 	"net"
+	"os"
+	"path"
+	"runtime"
 	"strconv"
+	"strings"
 )
 
 type Flag int
 
 // flag enum
 const (
-	BadgerDirectory Flag = iota
-	ProcessContinue
+	Continuous Flag = iota
+	IgnoreSafeguard
+	ResetDB
 	RpcUser
 	RpcPassword
 	RpcHost
 	RpcPort
 	StartBlockID
 	StopBlockID
-	StartBlockHash
 	IsPrintStatus
-	IsBenchmark
-	ExcludeAddresses
-	ExplorerServerPort
+	HttpServerPort
+	StartHttpServer
 	Logfile
 	TxSearch
 	TxInfo
@@ -31,24 +37,42 @@ const (
 )
 
 type Arguments struct {
-	BadgerDir          string
-	ProcessContinue    bool
-	RpcUser            string
-	RpcPassword        string
-	StartBlockID       uint64
-	StopBlockID        uint64
-	StartBlockHash     string
-	IsPrintStatus      bool
-	IsBenchmark        bool
-	ExcludeAddresses   bool
-	RpcEndpoint        string
-	Logfile            string
-	TxSearch           string
-	TxInfo             string
-	ClusterAddr        string
-	ExplorerServerPort uint
+	Continuous      bool
+	IgnoreSafeguard bool
+	ResetDB         bool
+	RpcUser         string
+	RpcPassword     string
+	StartBlockID    uint64
+	StopBlockID     uint64
+	IsPrintStatus   bool
+	RpcEndpoint     string
+	Logfile         string
+	TxSearch        string
+	TxInfo          string
+	ClusterAddr     string
+	HttpServerPort  uint
+	StartHttpServer bool
 }
 
+func ShowCallInfo() string {
+	pc, file, line, ok := runtime.Caller(1)
+	if !ok {
+		log.Fatal("not ok")
+	}
+
+	_, fileName := path.Split(file)
+	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
+	pl := len(parts)
+	funcName := parts[pl-1]
+
+	if parts[pl-2][0] == '(' {
+		funcName = parts[pl-2] + "." + funcName
+	}
+
+	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
+}
+
+// creates a string in the format of "rpcHost:rpcPort"
 func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
 	// check if ip is valid
 	if ip := net.ParseIP(rpcHost); ip == nil {
@@ -59,22 +83,36 @@ func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
 	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
 }
 
+func GetLogfile(fileName string, logPrefix string) (f *os.File, err error) {
+	if len(fileName) > 0 {
+		f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			return
+		}
+		log.SetPrefix(logPrefix + " ")
+		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	}
+	err = errors.New("name for log file is invalid")
+	return
+}
+
 // parse arguments specified by the provided flags
 func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var rpcHostString string
 	var rpcPortNumber uint
 
-	badgerDirRequested := false
 	isPortSet := false
 
 	for _, f := range flags {
 		switch f {
-		case BadgerDirectory:
-			addBadgerDir(&args.BadgerDir)
-			badgerDirRequested = true
+		case Continuous:
+			addContinuous(&args.Continuous)
 			break
-		case ProcessContinue:
-			addProcessContinue(&args.ProcessContinue)
+		case IgnoreSafeguard:
+			addIgnoreSafeguard(&args.IgnoreSafeguard)
+			break
+		case ResetDB:
+			addResetDB(&args.ResetDB)
 			break
 		case RpcUser:
 			addRpcUser(&args.RpcUser)
@@ -95,23 +133,17 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case StopBlockID:
 			addStopBlockID(&args.StopBlockID)
 			break
-		case StartBlockHash:
-			addStartBlockHash(&args.StartBlockHash)
-			break
 		case IsPrintStatus:
 			addIsPrintStatus(&args.IsPrintStatus)
-			break
-		case IsBenchmark:
-			addIsBenchmark(&args.IsBenchmark)
-			break
-		case ExcludeAddresses:
-			addExcludeAddresses(&args.ExcludeAddresses)
 			break
 		case Logfile:
 			addLogfile(&args.Logfile)
 			break
-		case ExplorerServerPort:
-			addExplorerServerPort(&args.ExplorerServerPort)
+		case HttpServerPort:
+			addHttpServerPort(&args.HttpServerPort)
+			break
+		case StartHttpServer:
+			addStartHttpServer(&args.StartHttpServer)
 			break
 		case TxSearch:
 			addTxSearch(&args.TxSearch)
@@ -140,12 +172,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		args.RpcEndpoint = endpoint
 	}
 
-	// check if database directory is empty
-	if badgerDirRequested && len(args.BadgerDir) == 0 {
-		err = errors.New("badger dir is empty")
-		return args, err
-	}
-
 	return args, err
 }
 
@@ -161,12 +187,16 @@ func addTxSearch(v *string) {
 	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash (default: none)")
 }
 
-func addBadgerDir(v *string) {
-	flag.StringVar(v, "db", "/tmp/badger", "Badger database location (default: /tmp/badger)")
+func addContinuous(v *bool) {
+	flag.BoolVar(v, "continuous", false, "Continuously syncs the whole chain (default: false)")
 }
 
-func addProcessContinue(v *bool) {
-	flag.BoolVar(v, "continue", false, "Continue the previously started DB build process")
+func addIgnoreSafeguard(v *bool) {
+	flag.BoolVar(v, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
+}
+
+func addResetDB(v *bool) {
+	flag.BoolVar(v, "reset", false, "Remove all data from the database (default: false)")
 }
 
 func addRpcUser(v *string) {
@@ -185,20 +215,8 @@ func addStopBlockID(v *uint64) {
 	flag.Uint64Var(v, "stop", 0, "Stop Block Id")
 }
 
-func addStartBlockHash(v *string) {
-	flag.StringVar(v, "hash", "", "Start Block Hash")
-}
-
 func addIsPrintStatus(v *bool) {
 	flag.BoolVar(v, "status", false, "Prints current processing status (default: false)")
-}
-
-func addIsBenchmark(v *bool) {
-	flag.BoolVar(v, "benchmark", false, "Run short performance test (default: false)")
-}
-
-func addExcludeAddresses(v *bool) {
-	flag.BoolVar(v, "excludeaddresses", false, "Exclude addresses from saving into the database (default: false)")
 }
 
 func addRpcHost(v *string) {
@@ -213,6 +231,10 @@ func addLogfile(v *string) {
 	flag.StringVar(v, "logfile", "", "Specify log file (default: none)")
 }
 
-func addExplorerServerPort(v *uint) {
-	flag.UintVar(v, "serverport", 8081, "Explorer server port (default: 8081)")
+func addHttpServerPort(v *uint) {
+	flag.UintVar(v, "serverport", 8081, "Http server port (default: 8081)")
+}
+
+func addStartHttpServer(v *bool) {
+	flag.BoolVar(v, "startserver", false, "Start the http server (default: false)")
 }
