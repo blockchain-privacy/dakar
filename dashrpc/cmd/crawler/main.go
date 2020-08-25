@@ -52,7 +52,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 
 // checks if a crawling process is already running
 func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
-	dbStatus, err := status.GetStatus(dgraph)
+	dbStatus, err := status.GetCrawlerStatus(dgraph)
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
@@ -179,7 +179,8 @@ func main() {
 
 	ctx, cancelFunc := context.WithCancel(context.Background())
 
-	chStopped := make(chan bool, 1)
+	chCrawlingStopped := make(chan bool, 1)
+	chAnalyzingStopped := make(chan bool, 1)
 
 	var wg sync.WaitGroup
 
@@ -187,7 +188,7 @@ func main() {
 	go func() {
 		defer wg.Done()
 		defer func() {
-			chStopped <- true
+			chCrawlingStopped <- true
 		}()
 		if cliArgs.Continuous {
 			err = processor.ProcessBlocksContinuously(ctx, dgraph, client)
@@ -196,6 +197,18 @@ func main() {
 		}
 
 		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		defer func() {
+			chAnalyzingStopped <- true
+		}()
+
+		if err := processor.StartPost(ctx, dgraph); err != nil {
 			log.Println(err)
 		}
 	}()
@@ -211,7 +224,10 @@ func main() {
 	case <-chSignal:
 		cancelFunc()
 		shutdownServer(srv)
-	case <-chStopped:
+	case <-chCrawlingStopped:
+		cancelFunc()
+		stoppedWorking = true
+	case <-chAnalyzingStopped:
 		cancelFunc()
 		stoppedWorking = true
 	}

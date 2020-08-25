@@ -50,7 +50,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 // gets block information from the database
 func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
 	query := `query Q($id: string) {
-				q(func: eq(id, $hash)){
+				q(func: eq(id, $id)){
 					uid
 					id
 					ts
@@ -68,7 +68,7 @@ func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
 				`
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
-		query, map[string]string{"$hash": strconv.FormatUint(blockId, 10)})
+		query, map[string]string{"$id": strconv.FormatUint(blockId, 10)})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

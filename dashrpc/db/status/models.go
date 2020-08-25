@@ -6,16 +6,14 @@ import (
 	"fmt"
 )
 
-const DType = "Status"
+const CrawlerStatusDType = "CrawlerStatus"
+const AnalyzerStatusDType = "AnalyzerStatus"
 
-type Status struct {
+type CrawlerStatus struct {
 	Uid string `json:"uid,omitempty"`
 
 	// true if a crawling process is currently active
 	IsCrawling *bool `json:"iscrawling,omitempty"`
-
-	// true if a analyze process is currently active
-	IsAnalyzing *bool `json:"isanalyzing,omitempty"`
 
 	// Crawling works in three steps:
 	// Step 1: Insert block, transaction and output data.
@@ -27,35 +25,54 @@ type Status struct {
 	LastBlockId   *uint64 `json:"lastblockid,omitempty"`
 	LowestBlockId *uint64 `json:"lowestblockid,omitempty"`
 
-	// The id of the last completely analysed block
-	LastAnalysedBlockId *uint64  `json:"lastanalysedid,omitempty"`
-	DType               []string `json:"dgraph.type,omitempty"`
+	DType []string `json:"dgraph.type,omitempty"`
 }
 
-func (s Status) String() string {
-	output := fmt.Sprintf("Uid: %s", s.Uid)
+func (c CrawlerStatus) String() string {
+	output := fmt.Sprintf("Uid: %s", c.Uid)
 
-	if s.IsAnalyzing != nil {
-		output += fmt.Sprintf(", IsAnalyzing: %t", *s.IsAnalyzing)
+	if c.IsCrawling != nil {
+		output += fmt.Sprintf(", IsCrawling: %t", *c.IsCrawling)
 	}
 
-	if s.IsCrawling != nil {
-		output += fmt.Sprintf(", IsCrawling: %t", *s.IsCrawling)
-	}
-
-	if s.LastBlockId != nil {
-		output += fmt.Sprintf(", LastBlockId: %d", *s.LastBlockId)
-	}
-
-	if s.LastAnalysedBlockId != nil {
-		output += fmt.Sprintf(", LastAnalysedBlockId: %d", *s.LastBlockId)
+	if c.LastBlockId != nil {
+		output += fmt.Sprintf(", LastBlockId: %d", *c.LastBlockId)
 	}
 
 	return output
 }
 
-func (s *Status) SetDType() {
-	s.DType = []string{DType}
+func (c *CrawlerStatus) SetDType() {
+	c.DType = []string{CrawlerStatusDType}
+}
+
+type AnalyzerStatus struct {
+	Uid string `json:"uid,omitempty"`
+
+	// true if a analyze process is currently active
+	IsAnalyzing *bool `json:"isanalyzing,omitempty"`
+
+	// The id of the last completely analysed block
+	LastAnalysedBlockId *uint64  `json:"lastanalysedid,omitempty"`
+	DType               []string `json:"dgraph.type,omitempty"`
+}
+
+func (a AnalyzerStatus) String() string {
+	output := fmt.Sprintf("Uid: %s", a.Uid)
+
+	if a.IsAnalyzing != nil {
+		output += fmt.Sprintf(", IsAnalyzing: %t", *a.IsAnalyzing)
+	}
+
+	if a.LastAnalysedBlockId != nil {
+		output += fmt.Sprintf(", LastAnalysedBlockId: %d", *a.LastAnalysedBlockId)
+	}
+
+	return output
+}
+
+func (a *AnalyzerStatus) SetDType() {
+	a.DType = []string{AnalyzerStatusDType}
 }
 
 type FrontendStatus struct {
@@ -72,21 +89,22 @@ func (v FrontendStatus) String() string {
 }
 
 var (
-	ErrorStatusNotFound              = errors.New("no status found")
-	ErrorInvalidNumber               = errors.New("wrong number of status objects returned")
-	ErrorLastBlockIdNotFound         = errors.New("last block id not found")
-	ErrorIsCrawlingNotFound          = errors.New("crawling status not found")
-	ErrorIsAnalyzingNotFound         = errors.New("analyzing status not found")
-	ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
-	ErrorTopBlockNotFound            = errors.New("top block not found")
+	ErrorStatusNotFound      = errors.New("no status found")
+	ErrorInvalidNumber       = errors.New("wrong number of status objects returned")
+	ErrorLastBlockIdNotFound = errors.New("last block id not found")
+	ErrorIsCrawlingNotFound  = errors.New("crawling status not found")
+	ErrorIsAnalyzingNotFound = errors.New("analyzing status not found")
+	// todo
+	//ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
+	ErrorTopBlockNotFound = errors.New("top block not found")
 )
 
-type statusQuery struct {
-	Q []Status `json:"q"`
+type crawlerStatusQuery struct {
+	Q []CrawlerStatus `json:"q"`
 }
 
-func (s statusQuery) payload() (status Status, err error) {
-	lenQ := len(s.Q)
+func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
+	lenQ := len(c.Q)
 
 	if lenQ == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
@@ -98,6 +116,27 @@ func (s statusQuery) payload() (status Status, err error) {
 		return
 	}
 
-	status = s.Q[0]
+	status = c.Q[0]
+	return
+}
+
+type analyzerStatusQuery struct {
+	Q []AnalyzerStatus `json:"q"`
+}
+
+func (a analyzerStatusQuery) payload() (status AnalyzerStatus, err error) {
+	lenQ := len(a.Q)
+
+	if lenQ == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		return
+	}
+
+	status = a.Q[0]
 	return
 }

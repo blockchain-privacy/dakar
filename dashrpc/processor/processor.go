@@ -294,7 +294,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 // Gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
 func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
-	status, err := dbstat.GetStatus(dgraph)
+	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -313,7 +313,7 @@ func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	}
 
 	if *status.LastBlockId != highestBlockId {
-		err = fmt.Errorf("last crawled block and highest block are not the same! Status: %s", status)
+		err = fmt.Errorf("last crawled block and highest block are not the same! CrawlerStatus: %s", status)
 		return
 	}
 
@@ -394,7 +394,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclien
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	status, err := dbstat.GetStatus(dgraph)
+	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -490,7 +490,7 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	status, err := dbstat.GetStatus(dgraph)
+	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -658,7 +658,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 
 	// save processing state
 	if setLowestId {
-		if err = dbstat.SetStatus(dgraph, dbstat.Status{LastBlockId: &state.id,
+		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockId: &state.id,
 			LowestBlockId: &state.id}); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return

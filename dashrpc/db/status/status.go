@@ -15,22 +15,24 @@ import (
 
 // PrintStatus outputs the stats for the given DB
 func PrintStatus(dgraph *dgo.Dgraph) {
-	status, _ := GetStatus(dgraph)
+	crawlerStatus, _ := GetCrawlerStatus(dgraph)
 
-	if status.IsCrawling != nil {
-		fmt.Println("Currently crawling:", *status.IsCrawling)
+	if crawlerStatus.IsCrawling != nil {
+		fmt.Println("Currently crawling:", *crawlerStatus.IsCrawling)
 	}
 
-	if status.IsAnalyzing != nil {
-		fmt.Println("Currently analyzing:", *status.IsAnalyzing)
+	if crawlerStatus.LastBlockId != nil {
+		fmt.Println("LastBlockId:", *crawlerStatus.LastBlockId)
 	}
 
-	if status.LastBlockId != nil {
-		fmt.Println("LastBlockId:", *status.LastBlockId)
+	analyzerStatus, _ := GetAnalyzerStatus(dgraph)
+
+	if analyzerStatus.IsAnalyzing != nil {
+		fmt.Println("Currently analyzing:", *analyzerStatus.IsAnalyzing)
 	}
 
-	if status.LastAnalysedBlockId != nil {
-		fmt.Println("LastAnalysedBlockId:", *status.LastAnalysedBlockId)
+	if analyzerStatus.LastAnalysedBlockId != nil {
+		fmt.Println("LastAnalysedBlockId:", *analyzerStatus.LastAnalysedBlockId)
 	}
 
 	blockCount, _ := dbblk.GetCount(dgraph)
@@ -46,14 +48,39 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 }
 
 // gets status information from the database
-func GetStatus(c *dgo.Dgraph) (status Status, err error) {
+func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 	query := `{
-				 q(func: type(Status)){
+				 q(func: type(CrawlerStatus)){
 					uid
 					iscrawling
-					isanalyzing
 					lastblockid
 					lowestblockid
+				  }
+				}
+				`
+
+	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r crawlerStatusQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
+// gets status information from the database
+func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
+	query := `{
+				 q(func: type(AnalyzerStatus)){
+					uid
+					isanalyzing
 					lastanalysedid
 				  }
 				}
@@ -65,7 +92,7 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 		return
 	}
 
-	var r statusQuery
+	var r analyzerStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -133,12 +160,10 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 // gets verbose status information from the database
 func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	query := `{
-				status(func: type(Status)){
+				status(func: type(CrawlerStatus)){
 					iscrawling
-					isanalyzing
 					lastblockid
 					lowestblockid
-					lastanalysedid
 				}
 			}`
 
@@ -149,7 +174,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	var r struct {
-		Status []Status `json:"status,omitempty"`
+		Status []CrawlerStatus `json:"status,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -168,34 +193,22 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		return
 	}
 
-	if r.Status[0].IsAnalyzing == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
-		return
-	}
-
 	if r.Status[0].LastBlockId == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 
-	if r.Status[0].LastAnalysedBlockId == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
-		return
-	}
-
 	status = FrontendStatus{
-		IsCrawling:          *r.Status[0].IsCrawling,
-		IsAnalyzing:         *r.Status[0].IsAnalyzing,
-		LastBlockId:         *r.Status[0].LastBlockId,
-		LowestBlockId:       *r.Status[0].LowestBlockId,
-		LastAnalysedBlockId: *r.Status[0].LastAnalysedBlockId,
+		IsCrawling:    *r.Status[0].IsCrawling,
+		LastBlockId:   *r.Status[0].LastBlockId,
+		LowestBlockId: *r.Status[0].LowestBlockId,
 	}
 
 	return
 }
 
 // sets the new status
-func SetStatus(c *dgo.Dgraph, status Status) error {
+func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
 
@@ -205,7 +218,36 @@ func SetStatus(c *dgo.Dgraph, status Status) error {
 	}
 
 	query := `{
-				q(func: type(Status)){
+				q(func: type(CrawlerStatus)){
+					v as uid
+				  }
+				}
+				`
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	_, err = c.NewTxn().Do(db.GetContext(), req)
+	return err
+}
+
+// sets the new status
+func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
+	status.Uid = "uid(v)"
+	status.SetDType()
+
+	pb, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
+
+	query := `{
+				q(func: type(AnalyzerStatus)){
 					v as uid
 				  }
 				}
@@ -225,28 +267,28 @@ func SetStatus(c *dgo.Dgraph, status Status) error {
 
 // sets the crawling status
 func SetCrawling(c *dgo.Dgraph, crawling bool) error {
-	return SetStatus(c, Status{
+	return SetCrawlerStatus(c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
 // sets the analyzing status
 func SetAnalyzing(c *dgo.Dgraph, analyzing bool) error {
-	return SetStatus(c, Status{
+	return SetAnalyzerStatus(c, AnalyzerStatus{
 		IsAnalyzing: &analyzing,
 	})
 }
 
 // sets the last block id
 func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
-	return SetStatus(c, Status{
+	return SetCrawlerStatus(c, CrawlerStatus{
 		LastBlockId: &id,
 	})
 }
 
 // sets the last analysed block id
 func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
-	return SetStatus(c, Status{
+	return SetAnalyzerStatus(c, AnalyzerStatus{
 		LastAnalysedBlockId: &id,
 	})
 }
@@ -254,5 +296,5 @@ func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
 // gets the number of status instances in the database
 // IMPORTANT: Should always be at most one
 func GetCount(c *dgo.Dgraph) (uint64, error) {
-	return db.GetCount(c, DType)
+	return db.GetCount(c, CrawlerStatusDType)
 }

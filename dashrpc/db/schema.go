@@ -74,11 +74,14 @@ func SetupSchema(c *dgo.Dgraph) error {
 				addr_outputs
 			}
 
-			type Status {
+			type CrawlerStatus {
 				iscrawling
-				isanalyzing
 				lastblockid
 				lowestblockid
+			}
+
+			type AnalyzerStatus {
+				isanalyzing
 				lastanalysedid
 			}
 		`,
