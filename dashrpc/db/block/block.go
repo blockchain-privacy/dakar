@@ -156,6 +156,29 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 	return
 }
 
+// updates a block
+func UpdateBlock(c *dgo.Dgraph, block Block) error {
+	pb, err := json.Marshal(block)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	_, err = c.NewTxn().Do(db.GetContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
 // upserts a block and the prevBlock relation
 func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
