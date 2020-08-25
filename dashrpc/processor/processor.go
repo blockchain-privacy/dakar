@@ -329,7 +329,7 @@ func processingInterrupted() {
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(newBlockIntervalTime)
 	defer ticker.Stop()
 	for {
@@ -527,7 +527,7 @@ mainLoop:
 				log.Println("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextBlock(client, ctx.Done(), state.chainHash)
+				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash)
 				if err != nil {
 					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				}
