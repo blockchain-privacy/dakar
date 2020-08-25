@@ -5,6 +5,7 @@ import (
 	"dashrpc/cmd/cliutil"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
+	dbtx "dashrpc/db/transaction"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
@@ -109,9 +110,29 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		log.Println("Analysing block:", *currentBlock.Id)
+		updatedBlock := dbblk.Block{Uid: currentBlock.Uid}
+		for _, tx := range currentBlock.Transactions {
+			transaction, err := dbtx.GetTransaction(dgraph, tx.Hash)
+			if err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+			transaction.SetPrivacyType()
 
-		// todo the actual analyzing
+			if transaction.PrivacyType != "" {
+				updatedTransaction := dbtx.Transaction{
+					Uid:         transaction.Uid,
+					PrivacyType: transaction.PrivacyType,
+				}
+				updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
+			}
+		}
+
+		if len(updatedBlock.Transactions) > 0 {
+			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+			log.Println("updated block!")
+		}
 
 		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

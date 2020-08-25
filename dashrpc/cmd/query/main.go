@@ -3,11 +3,13 @@ package main
 import (
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
+	"dashrpc/db/analytics"
 	dbtx "dashrpc/db/transaction"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 )
 
 const privateSendFilename = "result.csv"
@@ -60,6 +62,14 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
+
+		err := analytics.GetOrigins(dgraph, cliArgs.TxSearch, uint(4))
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		os.Exit(0)
 		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./"+privateSendFilename)
 
 		if err != nil {

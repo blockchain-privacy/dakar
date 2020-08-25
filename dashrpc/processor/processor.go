@@ -218,14 +218,12 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		}
 	}
 
-	// if all inputs are available the transaction fee gets calculated and the privacy type set
+	// if all inputs are available the transaction fee gets calculated
 	if foundAllInputs {
 		if err = txDetails.CalculateTransactionFee(); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
-
-		txDetails.SetPrivacyType()
 	}
 
 	// create transaction mapping for address processing later on
