@@ -35,8 +35,10 @@ func SetupSchema(c *dgo.Dgraph) error {
 			privacytype: string @index(hash) .
 
 			iscrawling: bool .
+			isanalyzing: bool .
 			lastblockid: int .
 			lowestblockid: int .
+			lastanalysedid: int . 
 
 			type Block {
 				blockhash
@@ -74,8 +76,10 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type Status {
 				iscrawling
+				isanalyzing
 				lastblockid
 				lowestblockid
+				lastanalysedid
 			}
 		`,
 	})

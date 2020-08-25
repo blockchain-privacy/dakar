@@ -14,19 +14,30 @@ type Status struct {
 	// true if a crawling process is currently active
 	IsCrawling *bool `json:"iscrawling,omitempty"`
 
-	// Crawling works in two steps:
+	// true if a analyze process is currently active
+	IsAnalyzing *bool `json:"isanalyzing,omitempty"`
+
+	// Crawling works in three steps:
 	// Step 1: Insert block, transaction and output data.
 	// Step 2: Connect the outputs of the block with addresses.
+	// Step 3: Set LastBlockId to the id of the processed block.
 	// LastBlockId is the ID of the last block where both steps have been successful.
-	// Thus, it is possible to have a Block with a higher ID than LastBlockId,
-	// if the crawling was aborted between step 1 and 2.
-	LastBlockId   *uint64  `json:"lastblockid,omitempty"`
-	LowestBlockId *uint64  `json:"lowestblockid,omitempty"`
-	DType         []string `json:"dgraph.type,omitempty"`
+	// Thus, it is possible to have a block inside the database with a higher ID
+	//than LastBlockId, if the crawling was aborted between step 1 and 2.
+	LastBlockId   *uint64 `json:"lastblockid,omitempty"`
+	LowestBlockId *uint64 `json:"lowestblockid,omitempty"`
+
+	// The id of the last completely analysed block
+	LastAnalysedBlockId *uint64  `json:"lastanalysedid,omitempty"`
+	DType               []string `json:"dgraph.type,omitempty"`
 }
 
 func (s Status) String() string {
 	output := fmt.Sprintf("Uid: %s", s.Uid)
+
+	if s.IsAnalyzing != nil {
+		output += fmt.Sprintf(", IsAnalyzing: %t", *s.IsAnalyzing)
+	}
 
 	if s.IsCrawling != nil {
 		output += fmt.Sprintf(", IsCrawling: %t", *s.IsCrawling)
@@ -34,6 +45,10 @@ func (s Status) String() string {
 
 	if s.LastBlockId != nil {
 		output += fmt.Sprintf(", LastBlockId: %d", *s.LastBlockId)
+	}
+
+	if s.LastAnalysedBlockId != nil {
+		output += fmt.Sprintf(", LastAnalysedBlockId: %d", *s.LastBlockId)
 	}
 
 	return output
@@ -44,27 +59,26 @@ func (s *Status) SetDType() {
 }
 
 type FrontendStatus struct {
-	IsCrawling       bool   `json:"iscrawling"`
-	LastBlockId      uint64 `json:"lastblockid"`
-	LowestBlockId    uint64 `json:"lowestblockid"`
-	TransactionCount uint64 `json:"txcount"`
-	BlockCount       uint64 `json:"blkcount"`
-	OutputCount      uint64 `json:"outputcount"`
-	AddressCount     uint64 `json:"addresscount"`
+	IsCrawling          bool   `json:"iscrawling"`
+	IsAnalyzing         bool   `json:"isanalyzing"`
+	LastBlockId         uint64 `json:"lastblockid"`
+	LowestBlockId       uint64 `json:"lowestblockid"`
+	LastAnalysedBlockId uint64 `json:"lastanalysedid"`
 }
 
 func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, LastBlockId: %d, "+
-		"TransactionCount: %d, BlockCount: %d, OutputCount: %d, AddressCount: %d",
-		v.IsCrawling, v.LastBlockId, v.TransactionCount, v.BlockCount, v.OutputCount, v.AddressCount)
+	return fmt.Sprintf("IsCrawling: %t, IsAnalyzing: %t, LastBlockId: %d, LastAnalysedBlockId: %d",
+		v.IsCrawling, v.IsAnalyzing, v.LastBlockId, v.LastAnalysedBlockId)
 }
 
 var (
-	ErrorStatusNotFound      = errors.New("no status found")
-	ErrorInvalidNumber       = errors.New("wrong number of status objects returned")
-	ErrorLastBlockIdNotFound = errors.New("last block id not found")
-	ErrorIsCrawlingNotFound  = errors.New("crawling status not found")
-	ErrorTopBlockNotFound    = errors.New("top block not found")
+	ErrorStatusNotFound              = errors.New("no status found")
+	ErrorInvalidNumber               = errors.New("wrong number of status objects returned")
+	ErrorLastBlockIdNotFound         = errors.New("last block id not found")
+	ErrorIsCrawlingNotFound          = errors.New("crawling status not found")
+	ErrorIsAnalyzingNotFound         = errors.New("analyzing status not found")
+	ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
+	ErrorTopBlockNotFound            = errors.New("top block not found")
 )
 
 type statusQuery struct {

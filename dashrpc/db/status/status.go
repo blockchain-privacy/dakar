@@ -20,8 +20,17 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 	if status.IsCrawling != nil {
 		fmt.Println("Currently crawling:", *status.IsCrawling)
 	}
+
+	if status.IsAnalyzing != nil {
+		fmt.Println("Currently analyzing:", *status.IsAnalyzing)
+	}
+
 	if status.LastBlockId != nil {
 		fmt.Println("LastBlockId:", *status.LastBlockId)
+	}
+
+	if status.LastAnalysedBlockId != nil {
+		fmt.Println("LastAnalysedBlockId:", *status.LastAnalysedBlockId)
 	}
 
 	blockCount, _ := dbblk.GetCount(dgraph)
@@ -42,8 +51,10 @@ func GetStatus(c *dgo.Dgraph) (status Status, err error) {
 				 q(func: type(Status)){
 					uid
 					iscrawling
+					isanalyzing
 					lastblockid
 					lowestblockid
+					lastanalysedid
 				  }
 				}
 				`
@@ -124,8 +135,10 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	query := `{
 				status(func: type(Status)){
 					iscrawling
+					isanalyzing
 					lastblockid
 					lowestblockid
+					lastanalysedid
 				}
 			}`
 
@@ -155,15 +168,27 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		return
 	}
 
+	if r.Status[0].IsAnalyzing == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
+		return
+	}
+
 	if r.Status[0].LastBlockId == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 
+	if r.Status[0].LastAnalysedBlockId == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
+		return
+	}
+
 	status = FrontendStatus{
-		IsCrawling:    *r.Status[0].IsCrawling,
-		LastBlockId:   *r.Status[0].LastBlockId,
-		LowestBlockId: *r.Status[0].LowestBlockId,
+		IsCrawling:          *r.Status[0].IsCrawling,
+		IsAnalyzing:         *r.Status[0].IsAnalyzing,
+		LastBlockId:         *r.Status[0].LastBlockId,
+		LowestBlockId:       *r.Status[0].LowestBlockId,
+		LastAnalysedBlockId: *r.Status[0].LastAnalysedBlockId,
 	}
 
 	return
@@ -205,10 +230,24 @@ func SetCrawling(c *dgo.Dgraph, crawling bool) error {
 	})
 }
 
+// sets the analyzing status
+func SetAnalyzing(c *dgo.Dgraph, analyzing bool) error {
+	return SetStatus(c, Status{
+		IsAnalyzing: &analyzing,
+	})
+}
+
 // sets the last block id
 func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
 	return SetStatus(c, Status{
 		LastBlockId: &id,
+	})
+}
+
+// sets the last analysed block id
+func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
+	return SetStatus(c, Status{
+		LastAnalysedBlockId: &id,
 	})
 }
 
