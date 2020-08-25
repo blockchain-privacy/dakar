@@ -30,8 +30,8 @@ const (
 	newBlockIntervalTime = blockTime / 3
 )
 
-// holds the current state of the processing loop
-type processingState struct {
+// holds the current state of the crawling processing loop
+type crawlerProcessingState struct {
 	// current block id
 	id uint64
 	// current block hash
@@ -40,12 +40,12 @@ type processingState struct {
 	chainHash *chainhash.Hash
 }
 
-func (p processingState) String() string {
+func (p crawlerProcessingState) String() string {
 	return fmt.Sprintf("Id: %d, Hash: %s", p.id, p.hash)
 }
 
 // increments the state for the next processing loop
-func (p *processingState) increment(nextHash string) (err error) {
+func (p *crawlerProcessingState) increment(nextHash string) (err error) {
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -355,7 +355,7 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 }
 
 // creates the initial state of the processing loop
-func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state processingState, err error) {
+func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if continuous {
 		if state.id, err = getStartingId(dgraph); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -457,7 +457,7 @@ mainLoop:
 }
 
 // prints the given metrics
-func printMetrics(state processingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
+func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
 		log.Println("Last Block:", state)
 		log.Printf("New blocks inserted: %v\n", blkCounter)
@@ -593,7 +593,7 @@ func createTransactionHashmap(client *rpcclient.Client, transactions []string) (
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state processingState,
+func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerProcessingState,
 	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool) (blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction

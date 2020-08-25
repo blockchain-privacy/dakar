@@ -14,7 +14,7 @@ func TestIncrementProcessingState(t *testing.T) {
 		invalidHash = "."
 	)
 
-	var p processingState
+	var p crawlerProcessingState
 
 	err := p.increment(firstHash)
 	if err != nil {
