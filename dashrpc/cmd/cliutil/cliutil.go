@@ -89,7 +89,7 @@ func GetLogfile(fileName string) (f *os.File, err error) {
 		if err != nil {
 			return
 		}
-		log.SetFlags(log.Lshortfile)
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.SetOutput(io.MultiWriter(os.Stdout, f))
 	}
 	err = errors.New("name for log file is invalid")
