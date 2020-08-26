@@ -17,7 +17,7 @@ import (
 )
 
 func serverInfo(v ...interface{}) {
-	log.SetPrefix("\033[0;34m server \u001B[0m")
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
 	log.Println(v)
 	log.SetPrefix("")
 }

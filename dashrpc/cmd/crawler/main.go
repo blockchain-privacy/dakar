@@ -21,7 +21,7 @@ import (
 )
 
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;31m crawler \033[0m")
+	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
 	log.Println(v)
 	log.SetPrefix("")
 }

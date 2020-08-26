@@ -21,7 +21,7 @@ import (
 )
 
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;35m processor \u001B[0m")
+	log.SetPrefix("\033[0;35mprocess\u001B[0m\t")
 	log.Println(v)
 	log.SetPrefix("")
 }
