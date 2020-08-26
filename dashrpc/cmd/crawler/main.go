@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"dashrpc/analytics"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"dashrpc/db/status"
@@ -18,6 +19,12 @@ import (
 	"sync"
 	"syscall"
 )
+
+func info(v ...interface{}) {
+	log.SetPrefix("\033[0;31m crawler \033[0m")
+	log.Println(v)
+	log.SetPrefix("")
+}
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
@@ -82,7 +89,7 @@ func main() {
 	}
 
 	// setup Logging
-	if f, err := cli.GetLogfile(cliArgs.Logfile, "crawler"); err == nil {
+	if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
@@ -93,12 +100,12 @@ func main() {
 	// create dgraph client
 	dgraph, c, err := db.CreateDefaultClient()
 	if err != nil {
-		log.Print(err)
+		info(err)
 		return
 	}
 	defer func() {
 		if err = c.Close(); err != nil {
-			log.Println(err)
+			info(err)
 		}
 	}()
 
@@ -110,46 +117,46 @@ func main() {
 	if cliArgs.ResetDB {
 		// get confirmation for database deletion
 		var userAnswer string
-		log.Println("All data in the database will we deleted! Do you want to continue (yes/no)?")
+		info("All data in the database will we deleted! Do you want to continue (yes/no)?")
 		if _, err := fmt.Scanln(&userAnswer); err != nil {
-			log.Println(err)
+			info(err)
 			return
 		}
 
 		if userAnswer != "yes" {
-			log.Println("Exiting program. Database has not been changed.")
+			info("Exiting program. Database has not been changed.")
 			return
 		}
 
 		err = db.DropAll(dgraph)
 		if err != nil {
-			log.Println(err)
+			info(err)
 			return
 		}
-		log.Println("dropped all data")
+		info("dropped all data")
 		err = db.SetupSchema(dgraph)
 		if err != nil {
-			log.Println(err)
+			info(err)
 			return
 		}
-		log.Println("setup new schema")
+		info("setup new schema")
 	}
 
 	// check if schema exists
 	if isSet, err := db.IsSchemaSet(dgraph); err != nil {
-		log.Println(err)
+		info(err)
 		return
 	} else if !isSet {
-		log.Println("Schema is not set. Use -reset to create a new schema.")
+		info("Schema is not set. Use -reset to create a new schema.")
 		return
 	}
 
 	if !cliArgs.IgnoreSafeguard {
 		if ok, err := isCrawling(dgraph); err != nil {
-			log.Println(err)
+			info(err)
 			return
 		} else if ok {
-			log.Println("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
+			info("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
 			return
 		}
 	}
@@ -162,16 +169,16 @@ func main() {
 		DisableTLS: true,
 	})
 	if err != nil {
-		log.Printf("Error: %v\n", err)
+		info(err)
 		return
 	}
 
 	count, err := client.GetBlockCount()
 	if err != nil {
-		log.Printf("\nError: problem with count() %s\n", err.Error())
+		info("\nError: problem with count()", err.Error())
 		return
 	}
-	log.Printf("Current block count in the chain of the RPC client: %v\n", count)
+	info("Current block count in the chain of the RPC client:", count)
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	chSignal := make(chan os.Signal, 1)
@@ -197,7 +204,7 @@ func main() {
 		}
 
 		if err != nil {
-			log.Println(err)
+			info(err)
 		}
 	}()
 
@@ -208,8 +215,8 @@ func main() {
 			chAnalyzingStopped <- true
 		}()
 
-		if err := processor.StartPost(ctx, dgraph); err != nil {
-			log.Println(err)
+		if err := analytics.StartPost(ctx, dgraph); err != nil {
+			info(err)
 		}
 	}()
 

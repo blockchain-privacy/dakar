@@ -1,4 +1,4 @@
-package processor
+package analytics
 
 import (
 	"context"
@@ -12,6 +12,12 @@ import (
 	"log"
 	"time"
 )
+
+func info(v ...interface{}) {
+	log.SetPrefix("\033[0;32m analytics \u001B[0m")
+	log.Println(v)
+	log.SetPrefix("")
+}
 
 // holds the current state of the analyzing processing loop
 type analyzerProcessingState struct {
@@ -33,7 +39,7 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 
 	defer func() {
 		if err := dbstat.SetAnalyzing(dgraph, false); err != nil {
-			log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+			info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 			return
 		}
 	}()
@@ -52,7 +58,7 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 
 	if crawlerStatus.LastBlockId == nil {
 		// no crawling has happened yet
-		log.Println("No blocks in database. Waiting until crawling starts.")
+		info("No blocks in database. Waiting until crawling starts.")
 
 		// wait until crawler is active
 		var isInterrupt bool
@@ -76,7 +82,7 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 		state.top = *crawlerStatus.LastBlockId
 	}
 
-	log.Println("Starting analytics process")
+	info("Starting process")
 
 mainLoop:
 	for {
@@ -90,7 +96,7 @@ mainLoop:
 
 		// update top state
 		if state.id > state.top {
-			log.Println("Waiting for next block for analyzing.", state)
+			info("Waiting for next block", state)
 			var isInterrupt bool
 			// can not used short hand declaration, because it would mask currentBlock in the outer scope
 			state, isInterrupt, err = waitForNextDbBlockId(dgraph, ctx.Done(), state)
@@ -102,7 +108,7 @@ mainLoop:
 				break mainLoop
 			}
 
-			log.Println("Found next block for analyzing.", state)
+			info("Found next block", state)
 		}
 
 		currentBlock, err := dbblk.GetBlockById(dgraph, state.id)
@@ -135,7 +141,7 @@ mainLoop:
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
-			log.Println("updated block!")
+			info("updated block!")
 		}
 
 		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
@@ -149,7 +155,7 @@ mainLoop:
 }
 
 func analyzingInterrupted() {
-	log.Println("Stopped analyzing")
+	info("Stopped")
 }
 
 // wait for the next block

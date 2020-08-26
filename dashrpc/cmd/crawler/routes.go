@@ -16,6 +16,12 @@ import (
 	"net/http"
 )
 
+func serverInfo(v ...interface{}) {
+	log.SetPrefix("\033[0;34m server \u001B[0m")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
 const (
 	routePrefix      string = "/api/v1/"
 	routeTransaction string = "tx/"
@@ -58,36 +64,36 @@ func setDefaultHeader(w http.ResponseWriter) {
 // API pattern: "/api/v1/"
 // OUTPUT: List of patterns
 func handlerRoot(w http.ResponseWriter, r *http.Request) {
-	log.Println("Accessed", r.URL.Path)
+	serverInfo("Accessed", r.URL.Path)
 	setDefaultHeader(w)
 	// not handling possible errors
 	_, e := fmt.Fprintln(w, "Possible routes:")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 
 	_, e = fmt.Fprintln(w, "/\t\t-> This page")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 
 	_, e = fmt.Fprintln(w, "/tx/<hash>\t-> Transaction details")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 
 	_, e = fmt.Fprintln(w, "/address/<hash>\t-> Address details")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 
 	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 	_, e = fmt.Fprintln(w, "/meta/\t\t-> Database meta information")
 	if e != nil {
-		log.Println(e)
+		serverInfo(e)
 	}
 }
 
@@ -95,7 +101,7 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 // OUTPUT: dashrpc.BlkDetails
 func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Accessed", r.URL.Path)
+		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		blkHashString := r.URL.Path[len(getRouteBlock()):]
@@ -106,7 +112,7 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 
 			// only print error if it is not expected
 			if !errors.Is(err, dbblk.ErrorBlockNotFound) {
-				log.Println(cliutil.ShowCallInfo(), err)
+				serverInfo(cliutil.ShowCallInfo(), err)
 			}
 
 			return
@@ -116,7 +122,7 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 		err = json.NewEncoder(w).Encode(block)
 		if err != nil {
 			http.Error(w, "Block: "+block.String(), http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -125,7 +131,7 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 // OUTPUT: dashrpc.AddressData
 func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Accessed", r.URL.Path)
+		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		addressHashString := r.URL.Path[len(getRouteAddress()):]
@@ -136,7 +142,7 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 
 			// only print error if it is not expected
 			if !errors.Is(err, dbaddr.ErrorAddressNotFound) {
-				log.Println(cliutil.ShowCallInfo(), err)
+				serverInfo(cliutil.ShowCallInfo(), err)
 			}
 
 			return
@@ -146,7 +152,7 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 		err = json.NewEncoder(w).Encode(address)
 		if err != nil {
 			http.Error(w, "AddressData: "+address.String(), http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -155,7 +161,7 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 // OUTPUT: dashrpc.Transaction
 func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Accessed", r.URL.Path)
+		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(getRouteTransaction()):]
@@ -166,7 +172,7 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 
 			// only print error if it is not expected
 			if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
-				log.Println(cliutil.ShowCallInfo(), err)
+				serverInfo(cliutil.ShowCallInfo(), err)
 			}
 
 			return
@@ -176,7 +182,7 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 		err = json.NewEncoder(w).Encode(vTx)
 		if err != nil {
 			http.Error(w, "TxDetails: "+vTx.String(), http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
@@ -185,7 +191,7 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 // OUTPUT: dashrpc.Transaction
 func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Accessed", r.URL.Path)
+		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
@@ -194,7 +200,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 
 			// only print error if it is not expected
 			if errors.Is(err, dbaddr.ErrorAddressNotFound) {
-				log.Println(cliutil.ShowCallInfo(), err)
+				serverInfo(cliutil.ShowCallInfo(), err)
 			}
 
 			return
@@ -203,7 +209,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		rpcInfo, err := client.GetInfo()
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -221,7 +227,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		err = json.NewEncoder(w).Encode(stat)
 		if err != nil {
 			http.Error(w, "Meta information: "+verboseStatus.String(), http.StatusInternalServerError)
-			log.Println(cliutil.ShowCallInfo(), err)
+			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
 }

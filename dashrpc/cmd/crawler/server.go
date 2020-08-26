@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"dashrpc/rpcclient"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 	"net/http"
 	"strconv"
 	"sync"
@@ -23,12 +23,12 @@ func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Println("server error:", err)
+			serverInfo("server error:", err)
 		}
 		wg.Done()
 	}()
 
-	log.Printf("Starting server at endpoint http://localhost%s\n", srv.Addr)
+	serverInfo(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
 	return srv
 }
 
@@ -37,7 +37,7 @@ func shutdownServer(server *http.Server) {
 	if server == nil {
 		return
 	}
-	log.Println("### Shutting down server###")
+	serverInfo("### Shutting down server###")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
@@ -46,6 +46,6 @@ func shutdownServer(server *http.Server) {
 	}()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalln("Server Shutdown Failed:", err)
+		serverInfo("Server Shutdown Failed:", err)
 	}
 }

@@ -41,7 +41,7 @@ func main() {
 	}
 
 	// setup Logging
-	if f, err := cli.GetLogfile(cliArgs.Logfile, "query"); err != nil {
+	if f, err := cli.GetLogfile(cliArgs.Logfile); err != nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)

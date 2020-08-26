@@ -20,6 +20,12 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
+func info(v ...interface{}) {
+	log.SetPrefix("\033[0;35m processor \u001B[0m")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
 const (
 	VersionString = "v0.0.1"
 
@@ -321,7 +327,7 @@ func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 }
 
 func processingInterrupted() {
-	log.Printf("### Block processing interrupted ###")
+	info("### Block processing interrupted ###")
 }
 
 // wait for the next block
@@ -382,7 +388,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclien
 
 	defer func() {
 		if err := dbstat.SetCrawling(dgraph, false); err != nil {
-			log.Println("could not set crawling status:", err)
+			info("could not set crawling status:", err)
 			return
 		}
 	}()
@@ -405,7 +411,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclien
 	var blkCounter uint64
 	var txCounter uint64
 
-	log.Println("Starting crawling at", state)
+	info("Starting crawling at", state)
 
 	timerStart := time.Now()
 	// Main loop
@@ -435,7 +441,7 @@ mainLoop:
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
 		} else {
-			log.Println(err)
+			info(err)
 			break
 		}
 
@@ -457,15 +463,15 @@ mainLoop:
 // prints the given metrics
 func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
-		log.Println("Last Block:", state)
-		log.Printf("New blocks inserted: %v\n", blkCounter)
-		log.Printf("Final TX count: %v\n", txCounter)
-		log.Printf("Elapsed time: %s\n", elapsedTime)
-		log.Printf("Performance: %v ms/block", elapsedTime.Milliseconds()/int64(blkCounter))
+		info("Last Block:", state)
+		info("New blocks inserted:", blkCounter)
+		info("Final TX count:", txCounter)
+		info("Elapsed time:", elapsedTime)
+		info("Performance:", elapsedTime.Milliseconds()/int64(blkCounter), "ms/block")
 	} else {
-		log.Println("Processed no new blocks")
-		log.Printf("Final TX count: %v\n", txCounter)
-		log.Printf("Elapsed time: %s", elapsedTime)
+		info("Processed no new blocks")
+		info("Final TX count:", txCounter)
+		info("Elapsed time", elapsedTime)
 	}
 }
 
@@ -478,7 +484,7 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *
 
 	defer func() {
 		if err := dbstat.SetCrawling(dgraph, false); err != nil {
-			log.Println("could not set crawling status:", err)
+			info("could not set crawling status:", err)
 			return
 		}
 	}()
@@ -501,7 +507,7 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *
 	var blkCounter uint64
 	var txCounter uint64
 
-	log.Println("Starting crawling at", state)
+	info("Starting crawling at", state)
 
 	timerStart := time.Now()
 	// Main loop
@@ -522,7 +528,7 @@ mainLoop:
 		if !firstLoop {
 			// set values for this round
 			if currentBlock.NextHash == "" {
-				log.Println("Waiting for next block.", state)
+				info("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
 				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash)
@@ -534,7 +540,7 @@ mainLoop:
 					break mainLoop
 				}
 
-				log.Println("Found next block.", state)
+				info("Found next block.", state)
 			}
 		}
 
