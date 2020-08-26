@@ -110,6 +110,10 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
+		// todo move to new function
+		// todo use dbaddr.GetInputAddressesOfTransaction() for determining the privacy type correctly
+		// todo make function modular enough to do mulitiple analytic steps
+		// todo also make analytics pluggable
 		updatedBlock := dbblk.Block{Uid: currentBlock.Uid}
 		for _, tx := range currentBlock.Transactions {
 			transaction, err := dbtx.GetTransaction(dgraph, tx.Hash)
