@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
 // gets transaction information from the database
@@ -133,56 +132,6 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	}
 
 	return
-}
-
-// upserts a transaction
-func UpsertTransaction(c *dgo.Dgraph, transaction *Transaction) (*api.Response, error) {
-	// variable for upsert
-	(*transaction).Uid = "uid(v)"
-
-	// set DType
-	transaction.SetDType()
-
-	inputs := (*transaction).Inputs
-	outputs := (*transaction).Outputs
-
-	for i := range inputs {
-		inputs[i].SetDType()
-	}
-
-	for i := range outputs {
-		outputs[i].SetDType()
-	}
-
-	// create json
-	pb, err := json.Marshal(transaction)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// build upsert
-	query := fmt.Sprintf(`
-		{
-			q(func: eq(txhash, "%s")) {
-				v as uid
-			}
-		}
-	`, transaction.Hash)
-
-	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	// commit transaction
-	res, err := c.NewTxn().Do(db.GetContext(), req)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-	return res, err
 }
 
 // gets the number of transactions in the database
