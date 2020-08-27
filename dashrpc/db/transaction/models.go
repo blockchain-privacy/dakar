@@ -73,24 +73,13 @@ func (t Transaction) CountOutputDenominations() []int {
 }
 
 // IsPrivacyOrigin checks if the TX creates denominations
-func (t Transaction) IsPrivacyOrigin() bool {
-	return len(t.Inputs) == 1 && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
+func (t Transaction) IsPrivacyOrigin(areAllInputAddressesDistinct bool) bool {
+	return !areAllInputAddressesDistinct && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
 func (t Transaction) IsPrivacyDestination() bool {
 	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
-}
-
-// sets the privacy type of the transaction
-func (t *Transaction) SetPrivacyType() {
-	if t.IsMixing() {
-		t.SetMixing()
-	} else if t.IsPrivacyOrigin() {
-		t.SetPrivacyOrigin()
-	} else if t.IsPrivacyDestination() {
-		t.SetPrivacyDestination()
-	}
 }
 
 // checks if the cumulative amount of inputs and outputs matches
@@ -121,7 +110,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 }
 
 func IsPrivacyTransaction(denom []int) bool {
-	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2
+	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2 || denom[4] > 2
 }
 
 // IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.

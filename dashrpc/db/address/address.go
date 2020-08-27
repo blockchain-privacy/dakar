@@ -125,7 +125,12 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 		return
 	}
 
-	if len(r.Transaction) != 1 {
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+		return
+	}
+
+	if len(r.Transaction) > 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}

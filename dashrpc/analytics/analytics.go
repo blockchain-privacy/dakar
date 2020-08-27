@@ -3,6 +3,7 @@ package analytics
 import (
 	"context"
 	"dashrpc/cmd/cliutil"
+	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
@@ -116,32 +117,15 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		// todo move to new function
-		// todo use dbaddr.GetInputAddressesOfTransaction() for determining the privacy type correctly
-		// todo make function modular enough to do mulitiple analytic steps
-		// todo also make analytics pluggable
-		updatedBlock := dbblk.Block{Uid: currentBlock.Uid}
-		for _, tx := range currentBlock.Transactions {
-			transaction, err := dbtx.GetTransaction(dgraph, tx.Hash)
-			if err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
-			transaction.SetPrivacyType()
-
-			if transaction.PrivacyType != "" {
-				updatedTransaction := dbtx.Transaction{
-					Uid:         transaction.Uid,
-					PrivacyType: transaction.PrivacyType,
-				}
-				updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
-			}
+		updatedBlock, err := analyseBlock(dgraph, currentBlock)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		if len(updatedBlock.Transactions) > 0 {
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
-			info("updated block!")
 		}
 
 		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
@@ -191,4 +175,80 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 			}
 		}
 	}
+}
+
+func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block) (updatedBlock dbblk.Block, err error) {
+	updatedBlock.Uid = block.Uid
+	for _, tx := range block.Transactions {
+		transaction, txErr := dbtx.GetTransaction(dgraph, tx.Hash)
+		if txErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+		transaction, err = setPrivacyType(dgraph, transaction)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if transaction.PrivacyType != "" {
+			if transaction.PrivacyType != "mixing" {
+				info(transaction.Uid + " " + transaction.PrivacyType)
+			}
+
+			updatedTransaction := dbtx.Transaction{
+				Uid:         transaction.Uid,
+				PrivacyType: transaction.PrivacyType,
+			}
+			updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
+		}
+	}
+	return
+}
+
+// sets the privacy type of the transaction
+func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transaction, err error) {
+	newTx = tx
+	if newTx.IsMixing() {
+		newTx.SetMixing()
+		return
+	}
+
+	if newTx.IsPrivacyDestination() {
+		newTx.SetPrivacyDestination()
+		return
+	}
+
+	addresses, addErr := dbaddr.GetInputAddressesOfTransaction(dgraph, tx.Uid)
+	if addErr != nil && !errors.Is(addErr, dbaddr.ErrorAddressNotFound) {
+		// If the crawler is executed in range mode,
+		// it is possible for addressses not to be found
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
+		return
+	}
+
+	if newTx.IsPrivacyOrigin(areAllAddressesDistinct(addresses)) {
+		newTx.SetPrivacyOrigin()
+	}
+
+	return
+}
+
+// returns true if all addresses are different
+func areAllAddressesDistinct(addresses []dbaddr.Address) bool {
+	if len(addresses) < 2 {
+		return true
+	}
+
+	hashes := make(map[string]bool)
+
+	for _, a := range addresses {
+		if hashes[a.Hash] {
+			return false
+		}
+
+		hashes[a.Hash] = true
+	}
+
+	return true
 }
