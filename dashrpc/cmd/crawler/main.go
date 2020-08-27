@@ -175,7 +175,7 @@ func main() {
 
 	count, err := client.GetBlockCount()
 	if err != nil {
-		info("\nError: problem with count()", err.Error())
+		info("Error: problem with count()", err.Error())
 		return
 	}
 	info("Current block count in the chain of the RPC client:", count)
