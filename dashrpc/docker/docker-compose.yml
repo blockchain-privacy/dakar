@@ -36,7 +36,19 @@ services:
     command: dgraph-ratel
     networks:
         - dgraph_default
+  dash:
+    image: dashpay/dashd:latest
+    volumes:
+      - /tmp/dash:/dash
+    ports:
+      - 9999:9999
+      - 9998:9998
+    restart: on-failure
+    networks:
+      - dash_default
 
 networks:
   dgraph_default:
+    external: true
+  dash_default:
     external: true
