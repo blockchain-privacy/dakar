@@ -109,7 +109,7 @@ mainLoop:
 				break mainLoop
 			}
 
-			info("Found next block", state)
+			info("Found next block. New state:", state)
 		}
 
 		currentBlock, err := dbblk.GetBlockById(dgraph, state.id)
@@ -192,10 +192,6 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block) (updatedBlock dbblk.Blo
 		}
 
 		if transaction.PrivacyType != "" {
-			if transaction.PrivacyType != "mixing" {
-				info(transaction.Uid + " " + transaction.PrivacyType)
-			}
-
 			updatedTransaction := dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
