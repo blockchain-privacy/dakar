@@ -287,7 +287,7 @@ func CountOutputDenominations(outputs []Output) []int {
 }
 
 func CountAmountDenominations(amounts []float64) []int {
-	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001}
+	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001, 10.0001}
 	denominations := make([]int, len(denominationsTypes))
 
 	for _, amt := range amounts {

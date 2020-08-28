@@ -20,26 +20,30 @@ var (
 )
 
 type Transaction struct {
-	Uid         string      `json:"uid,omitempty"`
-	PrivacyType string      `json:"privacytype,omitempty"`
-	Fee         string      `json:"fee,omitempty"`
-	Outputs     []op.Output `json:"tx_outputs,omitempty"`
-	Inputs      []op.Output `json:"tx_inputs,omitempty"`
-	Hash        string      `json:"txhash,omitempty"`
-	DType       []string    `json:"dgraph.type,omitempty"`
+	Uid         string        `json:"uid,omitempty"`
+	PrivacyType string        `json:"privacytype,omitempty"`
+	Fee         string        `json:"fee,omitempty"`
+	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
+	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
+	Hash        string        `json:"txhash,omitempty"`
+	Origins     []Transaction `json:"origins,omitempty"`
+	DType       []string      `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
 	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s", t.Uid, t.Hash, t.PrivacyType)
 
 	if t.Outputs != nil {
-		output += fmt.Sprintf(", OutputCount: %d", len(t.Outputs))
+		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
 	}
 
 	if t.Inputs != nil {
-		output += fmt.Sprintf(", InputCount: %d", len(t.Inputs))
+		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
 	}
 
+	if t.Origins != nil {
+		output += fmt.Sprintf(", Origin count: %d", len(t.Origins))
+	}
 	return output
 }
 
@@ -73,24 +77,13 @@ func (t Transaction) CountOutputDenominations() []int {
 }
 
 // IsPrivacyOrigin checks if the TX creates denominations
-func (t Transaction) IsPrivacyOrigin() bool {
-	return len(t.Inputs) == 1 && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
+func (t Transaction) IsPrivacyOrigin(areAllInputAddressesDistinct bool) bool {
+	return !areAllInputAddressesDistinct && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
 func (t Transaction) IsPrivacyDestination() bool {
 	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
-}
-
-// sets the privacy type of the transaction
-func (t *Transaction) SetPrivacyType() {
-	if t.IsMixing() {
-		t.SetMixing()
-	} else if t.IsPrivacyOrigin() {
-		t.SetPrivacyOrigin()
-	} else if t.IsPrivacyDestination() {
-		t.SetPrivacyDestination()
-	}
 }
 
 // checks if the cumulative amount of inputs and outputs matches
@@ -121,7 +114,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 }
 
 func IsPrivacyTransaction(denom []int) bool {
-	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2
+	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2 || denom[4] > 2
 }
 
 // IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
@@ -195,11 +188,12 @@ type FrontendTransaction struct {
 	BlockTimestamp string           `json:"bts"`
 	Outputs        []FrontendOutput `json:"outputs"`
 	Inputs         []FrontendOutput `json:"inputs"`
+	OriginCount    uint64           `json:"origincount"`
 }
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
-		len(f.Outputs), len(f.Inputs))
+		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }

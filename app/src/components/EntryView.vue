@@ -33,11 +33,31 @@
                 <v-col>
                   <IconItem icon="mdi-database-sync" title="Database synchronisation" :tooltip="tooltips.databaseSync">
                     <v-progress-linear
-                        :color="databaseSyncProgress > 98?'green':databaseSyncProgress > 90?'light-green':'light-blue'"
+                        :color="crawlerSyncProgress > 98?'green':crawlerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
-                        :value="databaseSyncProgress"
+                        :value="crawlerSyncProgress"
                         rounded>
-                      {{ Math.round(databaseSyncProgress) }} %
+                      {{ Math.round(crawlerSyncProgress) }} %
+                    </v-progress-linear>
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-text-box-search-outline" title="Analyzer status"
+                            :tooltip="tooltips.analyzer" is-color :is-red="!data.status.isanalyzing">
+                    {{ data.status.isanalyzing ? "Active" : "Inactive" }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-database-search" title="Database analyzation"
+                            :tooltip="tooltips.databaseAnalyzation">
+                    <v-progress-linear
+                        :color="analyzerSyncProgress > 98?'green':analyzerSyncProgress > 90?'light-green':'light-blue'"
+                        height="17"
+                        :value="analyzerSyncProgress"
+                        rounded>
+                      {{ Math.round(analyzerSyncProgress) }} %
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
@@ -112,9 +132,11 @@ export default {
     return {
       tooltips: {
         crawler: "Displays if the crawler is currently active",
+        analyzer: "Displays if the analyzer is currently active",
         lastBlockId: "Last block which was completely saved in the database",
         lowestBlockId: "Lowest block ID in the database",
-        databaseSync: "Percentage of available blocks included in database",
+        databaseSync: "Percentage of blocks synced from the RPC client to the database",
+        databaseAnalyzation: "Percentage of analyzed blocks in the database",
         rpcVersion: "Version of the RPC client",
         rpcProtocolVersion: "Version of the protocol",
         rpcBlockHeight: "Current block height of the RPC client",
@@ -134,12 +156,21 @@ export default {
     data() {
       return this.$store.getters.getMetaData;
     },
-    databaseSyncProgress() {
+    crawlerSyncProgress() {
       if (!this.data) {
         return 0.0;
       }
 
       return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid)) / this.data.rpcinfo.blocks * 100;
+    },
+    analyzerSyncProgress() {
+      if (!this.data) {
+        return 0.0;
+      }
+      const percentage = ((1 + (this.data.status.lastanalysedid - this.data.status.lowestblockid))
+          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+
+      return percentage > 100 ? 100 : percentage;
     }
   },
 

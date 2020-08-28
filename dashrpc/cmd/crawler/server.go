@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"dashrpc/rpcclient"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"net/http"
@@ -10,6 +11,18 @@ import (
 	"sync"
 	"time"
 )
+
+func serverInfo(v ...interface{}) {
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
+func serverFatal(v ...interface{}) {
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
+	log.Fatalln(v)
+	log.SetPrefix("")
+}
 
 // creates a http server on the given port
 func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) *http.Server {
@@ -23,12 +36,12 @@ func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Println("server error:", err)
+			serverFatal("server error:", err)
 		}
 		wg.Done()
 	}()
 
-	log.Printf("Starting server at endpoint http://localhost%s\n", srv.Addr)
+	serverInfo(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
 	return srv
 }
 
@@ -37,7 +50,7 @@ func shutdownServer(server *http.Server) {
 	if server == nil {
 		return
 	}
-	log.Println("### Shutting down server###")
+	serverInfo("### Shutting down server###")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
@@ -46,6 +59,6 @@ func shutdownServer(server *http.Server) {
 	}()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalln("Server Shutdown Failed:", err)
+		serverInfo("Server Shutdown Failed:", err)
 	}
 }

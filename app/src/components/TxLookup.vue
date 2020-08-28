@@ -9,7 +9,10 @@
               Transaction {{ data.txhash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-icon v-if="data.privacytype" large>mdi-incognito-circle</v-icon>
+            <div v-if="data.privacytype">
+              {{ data.origincount > 0 ? data.origincount : ""}}
+              <v-icon large>mdi-incognito-circle</v-icon>
+            </div>
           </v-toolbar>
           <v-card-text>
             <v-container>

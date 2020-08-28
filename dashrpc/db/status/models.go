@@ -89,14 +89,13 @@ func (v FrontendStatus) String() string {
 }
 
 var (
-	ErrorStatusNotFound      = errors.New("no status found")
-	ErrorInvalidNumber       = errors.New("wrong number of status objects returned")
-	ErrorLastBlockIdNotFound = errors.New("last block id not found")
-	ErrorIsCrawlingNotFound  = errors.New("crawling status not found")
-	ErrorIsAnalyzingNotFound = errors.New("analyzing status not found")
-	// todo
-	//ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
-	ErrorTopBlockNotFound = errors.New("top block not found")
+	ErrorStatusNotFound              = errors.New("no status found")
+	ErrorInvalidNumber               = errors.New("wrong number of status objects returned")
+	ErrorLastBlockIdNotFound         = errors.New("last block id not found")
+	ErrorIsCrawlingNotFound          = errors.New("crawling status not found")
+	ErrorIsAnalyzingNotFound         = errors.New("analyzing status not found")
+	ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
+	ErrorTopBlockNotFound            = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {

@@ -46,10 +46,11 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 
 // gets address information for the frontend
 func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
+	// todo remove first: 200 limit
 	query := `query Q($hash: string) {
 				q(func: eq(addresshash, $hash)){
 					addresshash
-					addr_outputs@normalize{
+					addr_outputs(first: 200)@normalize{
 						amount:amount
 						index:index
 						iscoinbase:iscoinbase
@@ -89,6 +90,55 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 	}
 
 	addr = r.Address[0]
+
+	return
+}
+
+// gets all input addresses of the transaction specified by uid
+func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Address, err error) {
+	query := `query Q($uid: string){
+				q(func: uid($uid)){
+					inputs: tx_inputs @normalize{
+						~addr_outputs{
+							addresshash: addresshash
+						}
+					}
+			  	}
+			   }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$uid": uid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Inputs []struct {
+				AddressHash string `json:"addresshash"`
+			} `json:"inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+		return
+	}
+
+	if len(r.Transaction) > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		return
+	}
+
+	for _, e := range r.Transaction[0].Inputs {
+		addresses = append(addresses, Address{Hash: e.AddressHash})
+	}
 
 	return
 }
