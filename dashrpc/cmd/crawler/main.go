@@ -190,7 +190,8 @@ func main() {
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
-	ctx, cancelFunc := context.WithCancel(context.Background())
+	crawlerContext, cancelCrawler := context.WithCancel(context.Background())
+	analyzerContext, cancelAnalyzer := context.WithCancel(context.Background())
 
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
@@ -204,9 +205,9 @@ func main() {
 			chCrawlingStopped <- true
 		}()
 		if cliArgs.Continuous {
-			err = processor.ProcessBlocksContinuously(ctx, dgraph, client)
+			err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client)
 		} else {
-			err = processor.ProcessBlockRange(ctx, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+			err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
 		}
 
 		if err != nil {
@@ -221,7 +222,7 @@ func main() {
 			chAnalyzingStopped <- true
 		}()
 
-		if err := analytics.StartPost(ctx, dgraph); err != nil {
+		if err := analytics.StartPost(analyzerContext, dgraph); err != nil {
 			fatal(err)
 		}
 	}()
@@ -232,20 +233,27 @@ func main() {
 		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
 	}
 
-	var stoppedWorking bool
-	select {
-	case <-chSignal:
-		cancelFunc()
-		shutdownServer(srv)
-	case <-chCrawlingStopped:
-		cancelFunc()
-		stoppedWorking = true
-	case <-chAnalyzingStopped:
-		cancelFunc()
-		stoppedWorking = true
+	var crawlerStopped bool
+	var analyzerStopped bool
+	var interrupted bool
+
+	for !(interrupted || (crawlerStopped && analyzerStopped)) {
+		select {
+		case <-chSignal:
+			interrupted = true
+			cancelCrawler()
+			cancelAnalyzer()
+			shutdownServer(srv)
+		case <-chCrawlingStopped:
+			cancelCrawler()
+			crawlerStopped = true
+		case <-chAnalyzingStopped:
+			cancelAnalyzer()
+			analyzerStopped = true
+		}
 	}
 
-	if cliArgs.StartHttpServer && stoppedWorking {
+	if cliArgs.StartHttpServer && crawlerStopped && analyzerStopped {
 		// if the crawler stopped working on his own accord, the server is still active at this point
 		select {
 		case <-chSignal:
