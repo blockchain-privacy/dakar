@@ -50,7 +50,8 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-database-search" title="Database analyzation" :tooltip="tooltips.databaseAnalyzation">
+                  <IconItem icon="mdi-database-search" title="Database analyzation"
+                            :tooltip="tooltips.databaseAnalyzation">
                     <v-progress-linear
                         :color="analyzerSyncProgress > 98?'green':analyzerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
@@ -166,8 +167,10 @@ export default {
       if (!this.data) {
         return 0.0;
       }
+      const percentage = ((1 + (this.data.status.lastanalysedid - this.data.status.lowestblockid))
+          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
 
-      return ((1 + (this.data.status.lastanalysedid - this.data.status.lowestblockid)) / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+      return percentage > 100 ? 100 : percentage;
     }
   },
 
