@@ -5,11 +5,24 @@ import (
 	"dashrpc/rpcclient"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 )
+
+func serverInfo(v ...interface{}) {
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
+func serverFatal(v ...interface{}) {
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
+	log.Fatalln(v)
+	log.SetPrefix("")
+}
 
 // creates a http server on the given port
 func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) *http.Server {

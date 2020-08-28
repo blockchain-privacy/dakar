@@ -160,10 +160,14 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 // gets verbose status information from the database
 func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	query := `{
-				status(func: type(CrawlerStatus)){
+				crawler(func: type(CrawlerStatus)){
 					iscrawling
 					lastblockid
 					lowestblockid
+				}
+				analyzer(func: type(AnalyzerStatus)){
+					isanalyzing
+					lastanalysedid
 				}
 			}`
 
@@ -174,7 +178,8 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	var r struct {
-		Status []CrawlerStatus `json:"status,omitempty"`
+		Crawler  []CrawlerStatus  `json:"crawler,omitempty"`
+		Analyzer []AnalyzerStatus `json:"analyzer,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -183,25 +188,37 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	// check if all values are set correctly
-	if len(r.Status) != 1 {
+	if len(r.Crawler) != 1 || len(r.Analyzer) != 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
 
-	if r.Status[0].IsCrawling == nil {
+	if r.Crawler[0].IsCrawling == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsCrawlingNotFound)
 		return
 	}
 
-	if r.Status[0].LastBlockId == nil {
+	if r.Analyzer[0].IsAnalyzing == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
+		return
+	}
+
+	if r.Crawler[0].LastBlockId == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 
+	if r.Analyzer[0].LastAnalysedBlockId == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
+		return
+	}
+
 	status = FrontendStatus{
-		IsCrawling:    *r.Status[0].IsCrawling,
-		LastBlockId:   *r.Status[0].LastBlockId,
-		LowestBlockId: *r.Status[0].LowestBlockId,
+		IsCrawling:          *r.Crawler[0].IsCrawling,
+		LastBlockId:         *r.Crawler[0].LastBlockId,
+		LowestBlockId:       *r.Crawler[0].LowestBlockId,
+		IsAnalyzing:         *r.Analyzer[0].IsAnalyzing,
+		LastAnalysedBlockId: *r.Analyzer[0].LastAnalysedBlockId,
 	}
 
 	return
