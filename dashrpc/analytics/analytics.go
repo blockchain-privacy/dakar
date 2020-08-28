@@ -15,6 +15,9 @@ import (
 	"time"
 )
 
+// block id after which we start analysing
+const analyseStartBlock = 450000
+
 func info(v ...interface{}) {
 	log.SetPrefix("\033[0;32manalyse\u001B[0m\t")
 	log.Println(v)
@@ -34,6 +37,23 @@ func (a analyzerProcessingState) String() string {
 	return fmt.Sprintf("Id: %d, Top: %d", a.id, a.top)
 }
 
+func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
+	status, err := dbstat.GetAnalyzerStatus(dgraph)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if status.LastAnalysedBlockId == nil ||
+		*status.LastAnalysedBlockId < analyseStartBlock {
+		if err = dbstat.SetLastAnalysedBlockId(dgraph, analyseStartBlock); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+	}
+	return
+}
+
 func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 	if err := dbstat.SetAnalyzing(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -45,6 +65,10 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 			return
 		}
 	}()
+
+	if err := setInitialAnalyserId(dgraph); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
 
 	crawlerStatus, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
@@ -58,29 +82,18 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 
 	var state analyzerProcessingState
 
+	if analyzerStatus.LastAnalysedBlockId == nil {
+		return errors.New("error last analysed block is not set")
+	}
+
+	state.id = *analyzerStatus.LastAnalysedBlockId + 1
+
 	if crawlerStatus.LastBlockId == nil {
-		// no crawling has happened yet
-		info("No blocks in database. Waiting until crawling starts.")
-
-		// wait until crawler is active
-		var isInterrupt bool
-		state, isInterrupt, err = waitForNextDbBlockId(dgraph, ctx.Done(), state)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		if isInterrupt {
-			return nil
-		}
-	} else if analyzerStatus.LastAnalysedBlockId == nil && crawlerStatus.LowestBlockId != nil {
+		state.top = *analyzerStatus.LastAnalysedBlockId
+	} else if *crawlerStatus.LowestBlockId > state.id {
 		state.id = *crawlerStatus.LowestBlockId
 		state.top = *crawlerStatus.LastBlockId
 	} else {
-		if *analyzerStatus.LastAnalysedBlockId > *crawlerStatus.LastBlockId {
-			return errors.New("inconsistent state of status")
-		}
-
-		state.id = *analyzerStatus.LastAnalysedBlockId + 1
 		state.top = *crawlerStatus.LastBlockId
 	}
 
@@ -163,16 +176,14 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 				return
 			}
 
-			if currentState.id == 0 && status.LowestBlockId != nil {
-				nextState.id = *status.LowestBlockId
+			if status.LastBlockId != nil && *status.LastBlockId >= currentState.id {
+				if *status.LowestBlockId > currentState.id {
+					currentState.id = *status.LowestBlockId
+				}
+
+				nextState = currentState
 				nextState.top = *status.LastBlockId
 				return
-			} else if status.LastBlockId != nil {
-				if currentState.id <= *status.LastBlockId {
-					nextState = currentState
-					nextState.top = *status.LastBlockId
-					return
-				}
 			}
 		}
 	}
