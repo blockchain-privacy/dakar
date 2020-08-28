@@ -167,8 +167,8 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 				nextState.top = *status.LastBlockId
 				return
 			} else if status.LastBlockId != nil {
-				if currentState.id < *status.LastBlockId {
-					nextState.id = currentState.id + 1
+				if currentState.id <= *status.LastBlockId {
+					nextState = currentState
 					nextState.top = *status.LastBlockId
 					return
 				}

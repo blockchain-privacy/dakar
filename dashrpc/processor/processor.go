@@ -540,7 +540,7 @@ mainLoop:
 					break mainLoop
 				}
 
-				info("Found next block.", state)
+				info("Found next block. Old state:", state)
 			}
 		}
 
