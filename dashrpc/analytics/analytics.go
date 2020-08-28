@@ -4,6 +4,7 @@ import (
 	"context"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
+	dban "dashrpc/db/analytics"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
@@ -196,6 +197,25 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block) (updatedBlock dbblk.Blo
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
 			}
+
+			// find all potential origins for transaction
+			if transaction.PrivacyType == dbtx.PrivacyDestination {
+				info("Starting analyzing", transaction.Hash)
+				start := time.Now()
+
+				origins, originErr := dban.GetOrigins(dgraph, transaction.Hash, 16)
+				if originErr != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
+					return
+				}
+
+				for _, o := range origins {
+					updatedTransaction.Origins = append(updatedTransaction.Origins, dbtx.Transaction{Uid: o})
+				}
+				t := time.Now()
+				info("Finished analyzing", transaction.Hash, "Elapsed time:", t.Sub(start))
+			}
+
 			updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
 		}
 	}

@@ -20,26 +20,30 @@ var (
 )
 
 type Transaction struct {
-	Uid         string      `json:"uid,omitempty"`
-	PrivacyType string      `json:"privacytype,omitempty"`
-	Fee         string      `json:"fee,omitempty"`
-	Outputs     []op.Output `json:"tx_outputs,omitempty"`
-	Inputs      []op.Output `json:"tx_inputs,omitempty"`
-	Hash        string      `json:"txhash,omitempty"`
-	DType       []string    `json:"dgraph.type,omitempty"`
+	Uid         string        `json:"uid,omitempty"`
+	PrivacyType string        `json:"privacytype,omitempty"`
+	Fee         string        `json:"fee,omitempty"`
+	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
+	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
+	Hash        string        `json:"txhash,omitempty"`
+	Origins     []Transaction `json:"origins,omitempty"`
+	DType       []string      `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
 	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s", t.Uid, t.Hash, t.PrivacyType)
 
 	if t.Outputs != nil {
-		output += fmt.Sprintf(", OutputCount: %d", len(t.Outputs))
+		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
 	}
 
 	if t.Inputs != nil {
-		output += fmt.Sprintf(", InputCount: %d", len(t.Inputs))
+		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
 	}
 
+	if t.Origins != nil {
+		output += fmt.Sprintf(", Origin count: %d", len(t.Origins))
+	}
 	return output
 }
 

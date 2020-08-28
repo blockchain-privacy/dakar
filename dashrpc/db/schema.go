@@ -21,6 +21,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			tx_outputs: [uid] @reverse .
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
+			origins: [uid] @reverse .
 			prevblock: uid @reverse .
 			
 			id: int @index(int) .
@@ -53,6 +54,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 				txhash
 				privacytype
 				fee
+				origins
+				<~origins>
 				<~transactions>
 				tx_outputs
 				tx_inputs

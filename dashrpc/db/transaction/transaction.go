@@ -51,6 +51,52 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 	return r.payload()
 }
 
+// gets transaction information from the database including uids of origins
+func GetTransactionWithOrigins(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(txhash, $hash)){
+					uid
+					txhash
+					privacytype
+					fee
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+						iscoinbase
+						txtype
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+						iscoinbase
+						txtype
+					}
+					origins{
+						uid
+					}
+				}
+			  }
+				`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r transactionQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
 // gets transaction information for the frontend
 func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendTransaction, err error) {
 	query := `query Q($hash: string){

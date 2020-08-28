@@ -9,7 +9,7 @@ import (
 )
 
 // gets block information from the database
-func GetOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (err error) {
+func GetOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins []string, err error) {
 	if depth == 0 || depth > 30 {
 		err = fmt.Errorf("invalid depth")
 		return
@@ -48,9 +48,7 @@ func GetOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (err error) {
 
 	queryEnd := fmt.Sprintf(`
 		filtertx(func: uid(%s)){
-			count(uid)
 			uid
-			#txhash
 		}
 }`, txUids)
 
@@ -76,7 +74,7 @@ func GetOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (err error) {
 	}
 
 	for _, uid := range r.Transaction {
-		fmt.Println(uid)
+		origins = append(origins, uid.Uid)
 	}
 
 	return
