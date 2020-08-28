@@ -22,6 +22,12 @@ func serverInfo(v ...interface{}) {
 	log.SetPrefix("")
 }
 
+func serverFatal(v ...interface{}) {
+	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
+	log.Fatalln(v)
+	log.SetPrefix("")
+}
+
 const (
 	routePrefix      string = "/api/v1/"
 	routeTransaction string = "tx/"

@@ -23,7 +23,7 @@ func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverInfo("server error:", err)
+			serverFatal("server error:", err)
 		}
 		wg.Done()
 	}()

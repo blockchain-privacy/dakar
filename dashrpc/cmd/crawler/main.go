@@ -26,6 +26,12 @@ func info(v ...interface{}) {
 	log.SetPrefix("")
 }
 
+func fatal(v ...interface{}) {
+	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
+	log.Fatalln(v)
+	log.SetPrefix("")
+}
+
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard, cli.StartHttpServer, cli.HttpServerPort)
@@ -204,7 +210,7 @@ func main() {
 		}
 
 		if err != nil {
-			info(err)
+			fatal(err)
 		}
 	}()
 
@@ -216,7 +222,7 @@ func main() {
 		}()
 
 		if err := analytics.StartPost(ctx, dgraph); err != nil {
-			info(err)
+			fatal(err)
 		}
 	}()
 
