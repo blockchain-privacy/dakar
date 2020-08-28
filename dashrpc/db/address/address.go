@@ -46,10 +46,11 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 
 // gets address information for the frontend
 func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
+	// todo remove first: 200 limit
 	query := `query Q($hash: string) {
 				q(func: eq(addresshash, $hash)){
 					addresshash
-					addr_outputs@normalize{
+					addr_outputs(first: 200)@normalize{
 						amount:amount
 						index:index
 						iscoinbase:iscoinbase
