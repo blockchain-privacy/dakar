@@ -191,10 +191,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
 
-			// only print error if it is not expected
-			if errors.Is(err, dbaddr.ErrorAddressNotFound) {
-				serverInfo(cliutil.ShowCallInfo(), err)
-			}
+			serverInfo(cliutil.ShowCallInfo(), err)
 
 			return
 		}

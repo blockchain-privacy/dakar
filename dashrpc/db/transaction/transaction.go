@@ -126,6 +126,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 						ts
 						id
 					}
+					origincount: count(origins)
 			  	}
 			   }`
 
@@ -141,6 +142,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType string           `json:"privacytype,omitempty"`
 			Fee         string           `json:"fee,omitempty"`
+			OriginCount uint64           `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
@@ -170,6 +172,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Hash:           t.Hash,
 		PrivacyType:    t.PrivacyType,
 		Fee:            t.Fee,
+		OriginCount:    t.OriginCount,
 		BlockHash:      t.Block[0].Hash,
 		BlockId:        t.Block[0].Id,
 		BlockTimestamp: t.Block[0].Ts,

@@ -188,11 +188,12 @@ type FrontendTransaction struct {
 	BlockTimestamp string           `json:"bts"`
 	Outputs        []FrontendOutput `json:"outputs"`
 	Inputs         []FrontendOutput `json:"inputs"`
+	OriginCount    uint64           `json:"origincount"`
 }
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
-		len(f.Outputs), len(f.Inputs))
+		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }
