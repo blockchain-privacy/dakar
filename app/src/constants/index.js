@@ -12,5 +12,6 @@ export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 
-// page title
+// application
 export const PAGE_TITLE = 'Dakar';
+export const APPLICATON_NAME = 'Dakar';
