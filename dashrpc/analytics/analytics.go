@@ -254,7 +254,7 @@ func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transac
 		return
 	}
 
-	if newTx.IsPrivacyOrigin(areAllAddressesDistinct(addresses)) {
+	if newTx.IsPrivacyOrigin(areALLAddressesEqual(addresses)) {
 		newTx.SetPrivacyOrigin()
 	}
 
@@ -262,7 +262,7 @@ func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transac
 }
 
 // returns true if all addresses are different
-func areAllAddressesDistinct(addresses []dbaddr.Address) bool {
+func areALLAddressesEqual(addresses []dbaddr.Address) bool {
 	if len(addresses) < 2 {
 		return true
 	}
@@ -270,11 +270,10 @@ func areAllAddressesDistinct(addresses []dbaddr.Address) bool {
 	hashes := make(map[string]bool)
 
 	for _, a := range addresses {
-		if hashes[a.Hash] {
+		hashes[a.Hash] = true
+		if len(hashes) > 1 {
 			return false
 		}
-
-		hashes[a.Hash] = true
 	}
 
 	return true
