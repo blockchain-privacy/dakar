@@ -4,7 +4,6 @@ import (
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"dashrpc/db/analytics"
-	dbtx "dashrpc/db/transaction"
 	"errors"
 	"flag"
 	"fmt"
@@ -63,40 +62,44 @@ func main() {
 
 	if len(cliArgs.TxSearch) > 0 {
 
-		err := analytics.GetOrigins(dgraph, cliArgs.TxSearch, uint(4))
+		origins, err := analytics.GetOrigins(dgraph, cliArgs.TxSearch, uint(16))
 		if err != nil {
 			log.Println(err)
 			return
+		}
+
+		for _, o := range origins {
+			fmt.Println(o)
 		}
 
 		os.Exit(0)
-		err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./"+privateSendFilename)
-
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		log.Println("Final map has", len(res), "elements")
-	} else if len(cliArgs.TxInfo) > 0 {
-
-		transaction, err := dbtx.GetTransaction(dgraph, cliArgs.TxInfo)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		log.Println("Tx IsPrivacyOrigin:", transaction.IsPrivacyOrigin())
-		if transaction.IsPrivacyOrigin() {
-			log.Println("Denominations:", transaction.CountOutputDenominations())
-		}
-		log.Println("Tx isMixingTransaction:", transaction.IsMixing())
-		if transaction.IsMixing() {
-			log.Println("Denominations on outputs:", transaction.CountOutputDenominations())
-			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
-		}
-		log.Println("Tx IsPrivacyDestination:", transaction.IsPrivacyDestination())
-		if transaction.IsPrivacyDestination() {
-			log.Println("Denominations on inputs:", transaction.CountInputDenominations())
-		}
+		//err, res := transactionSearch(dgraph, cliArgs.TxSearch, "./"+privateSendFilename)
+		//
+		//if err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+		//log.Println("Final map has", len(res), "elements")
+		//} else if len(cliArgs.TxInfo) > 0 {
+		//
+		//	transaction, err := dbtx.GetTransaction(dgraph, cliArgs.TxInfo)
+		//	if err != nil {
+		//		log.Fatal(err)
+		//	}
+		//
+		//	log.Println("Tx IsPrivacyOrigin:", transaction.IsPrivacyOrigin())
+		//	if transaction.IsPrivacyOrigin() {
+		//		log.Println("Denominations:", transaction.CountOutputDenominations())
+		//	}
+		//	log.Println("Tx isMixingTransaction:", transaction.IsMixing())
+		//	if transaction.IsMixing() {
+		//		log.Println("Denominations on outputs:", transaction.CountOutputDenominations())
+		//		log.Println("Denominations on inputs:", transaction.CountInputDenominations())
+		//	}
+		//	log.Println("Tx IsPrivacyDestination:", transaction.IsPrivacyDestination())
+		//	if transaction.IsPrivacyDestination() {
+		//		log.Println("Denominations on inputs:", transaction.CountInputDenominations())
+		//	}
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
 	}
