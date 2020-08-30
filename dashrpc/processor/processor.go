@@ -295,6 +295,8 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 	return
 }
 
+var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
+
 // Gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
 func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
@@ -317,8 +319,7 @@ func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	}
 
 	if *status.LastBlockId != highestBlockId {
-		err = fmt.Errorf("last crawled block and highest block are not the same! CrawlerStatus: %s", status)
-		return
+		err = errorBlockIdsDoNotMatch
 	}
 
 	startId = *status.LastBlockId
@@ -362,8 +363,11 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if continuous {
 		if state.id, err = getStartingId(dgraph); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+			if !errors.Is(err, errorBlockIdsDoNotMatch) {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
+			}
+			info(errorBlockIdsDoNotMatch.Error(), "continuing...")
 		}
 	} else {
 		state.id = startId
