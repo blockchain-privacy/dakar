@@ -12,7 +12,8 @@ import (
 	"time"
 )
 
-const timeout = time.Second * 30
+// todo different timeout for each db module, only analytics module should have such a high timeout
+const timeout = time.Second * 60
 
 func GetContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), timeout)
