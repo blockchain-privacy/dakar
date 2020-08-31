@@ -78,7 +78,7 @@ func (t Transaction) CountOutputDenominations() []int {
 
 // IsPrivacyOrigin checks if the TX creates denominations
 func (t Transaction) IsPrivacyOrigin(areAllInputAddressesEqual bool) bool {
-	return areAllInputAddressesEqual && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
+	return len(t.Inputs) >= 1 && areAllInputAddressesEqual && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
