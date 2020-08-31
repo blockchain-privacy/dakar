@@ -54,7 +54,7 @@ func GetOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins []st
 
 	query := queryStart + queryMiddle + queryEnd
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(),
 		query, map[string]string{"$hash": transactionHash})
 
 	if err != nil {

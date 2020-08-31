@@ -40,7 +40,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -93,7 +93,7 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -190,7 +190,7 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$id": uid})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$id": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

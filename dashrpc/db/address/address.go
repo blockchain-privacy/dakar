@@ -29,7 +29,7 @@ func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
 				`
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -66,7 +66,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -106,7 +106,7 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 			  	}
 			   }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$uid": uid})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -189,7 +189,7 @@ func UpsertAddress(c *dgo.Dgraph, address Address) (*api.Response, error) {
 		CommitNow: true,
 	}
 
-	return c.NewTxn().Do(db.GetContext(), req)
+	return c.NewTxn().Do(db.GetBackendContext(), req)
 }
 
 // upserts addresses
@@ -241,7 +241,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) (*api.Response, error) 
 		CommitNow: true,
 	}
 
-	return c.NewTxn().Do(db.GetContext(), req)
+	return c.NewTxn().Do(db.GetBackendContext(), req)
 }
 
 // gets the number of addresses in the database

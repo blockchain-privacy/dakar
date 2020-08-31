@@ -95,7 +95,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
 
-	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
+	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

@@ -30,7 +30,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(),
 		query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
@@ -67,7 +67,7 @@ func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(),
 		query, map[string]string{"$id": strconv.FormatUint(blockId, 10)})
 
 	if err != nil {
@@ -118,7 +118,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 				}
 			  }`, searchProperty)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(),
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(),
 		query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
@@ -171,7 +171,7 @@ func UpdateBlock(c *dgo.Dgraph, block Block) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(db.GetContext(), req)
+	_, err = c.NewTxn().Do(db.GetBackendContext(), req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -222,7 +222,7 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(db.GetContext(), req)
+	_, err = c.NewTxn().Do(db.GetBackendContext(), req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -268,7 +268,7 @@ func InsertBlock(c *dgo.Dgraph, block Block) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(db.GetContext(), req)
+	_, err = c.NewTxn().Do(db.GetBackendContext(), req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

@@ -12,17 +12,23 @@ import (
 	"time"
 )
 
-// todo different timeout for each db module, only analytics module should have such a high timeout
-const timeout = time.Second * 240
+const backendTimeout = time.Minute * 20
 
-func GetContext() context.Context {
-	ctx, _ := context.WithTimeout(context.Background(), timeout)
+const frontEndTimout = time.Second * 30
+
+func GetBackendContext() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
+	return ctx
+}
+
+func GetFrontendContext() context.Context {
+	ctx, _ := context.WithTimeout(context.Background(), frontEndTimout)
 	return ctx
 }
 
 // drops ALL data from the database, schema included
 func DropAll(c *dgo.Dgraph) error {
-	return c.Alter(GetContext(), &api.Operation{
+	return c.Alter(GetBackendContext(), &api.Operation{
 		DropOp: api.Operation_ALL,
 	})
 }
@@ -53,7 +59,7 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 				}
 				`, dbType)
 
-	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
+	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
