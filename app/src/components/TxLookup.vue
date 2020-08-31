@@ -9,10 +9,15 @@
               Transaction {{ data.txhash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <div v-if="data.privacytype">
-              {{ data.origincount > 0 ? data.origincount : ""}}
-              <v-icon large>mdi-incognito-circle</v-icon>
-            </div>
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on" v-bind="attrs">
+                  <v-icon large>mdi-file-download-outline</v-icon>
+                </v-btn>
+              </template>
+              <span>Download potential origins of this transaction. {{ data.origincount }} origins found.</span>
+            </v-tooltip>
+            <v-icon large v-if="data.privacytype">mdi-incognito-circle</v-icon>
           </v-toolbar>
           <v-card-text>
             <v-container>
@@ -97,7 +102,7 @@
 
 <script>
 import {shortenHash} from "@/utilities";
-import {PAGE_TITLE} from "@/constants";
+import {PAGE_TITLE, ROUTE_ORIGINS} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
 export default {
@@ -127,7 +132,31 @@ export default {
       return inputs.sort((a, b) => {
         return a.inputindex > b.inputindex
       })
-    }
+    },
+    getCSV: function () {
+      const url = ROUTE_ORIGINS + this.data.txhash;
+
+      const options = {
+        headers: {
+          // header for pass through
+          Accept: '*/*'
+        }
+      };
+      fetch(url, options)
+          .then(res => res.blob())
+          .then(blob => {
+            // looks hacky, but it is the only way with good UX
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.setAttribute("download", `${this.data.txhash}.csv`);
+            a.click();
+            a.remove();
+          })
+          .catch(error => {
+            this.errorMsg = error;
+          });
+      console.log("get CSV clicked!")
+    },
   },
   mounted() {
     document.title = `Transaction - ${PAGE_TITLE}`;

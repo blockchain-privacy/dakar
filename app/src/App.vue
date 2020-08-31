@@ -49,7 +49,7 @@ export default {
   },
   data: function () {
     return {
-      applicatonName: Constants.APPLICATON_NAME,
+      applicatonName: Constants.APPLICATION_NAME,
     }
   },
   methods: {
