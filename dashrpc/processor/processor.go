@@ -445,8 +445,7 @@ mainLoop:
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
 		} else {
-			info(err)
-			break
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		if state.id == stoppingBlockId || currentBlock.NextHash == "" {
