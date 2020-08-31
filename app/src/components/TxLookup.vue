@@ -134,15 +134,13 @@ export default {
       })
     },
     getCSV: function () {
-      const url = ROUTE_ORIGINS + this.data.txhash;
-
       const options = {
         headers: {
           // header for pass through
           Accept: '*/*'
         }
       };
-      fetch(url, options)
+      fetch(ROUTE_ORIGINS + this.data.txhash, options)
           .then(res => res.blob())
           .then(blob => {
             // looks hacky, but it is the only way with good UX
@@ -155,7 +153,6 @@ export default {
           .catch(error => {
             this.errorMsg = error;
           });
-      console.log("get CSV clicked!")
     },
   },
   mounted() {
