@@ -214,7 +214,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block) (updatedBlock dbblk.Blo
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := dban.GetOrigins(dgraph, transaction.Hash, 16)
+				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return

@@ -197,3 +197,17 @@ func (f FrontendTransaction) String() string {
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }
+
+type FrontendRequest struct {
+	Hash        string           `json:"txhash,omitempty"`
+	PrivacyType string           `json:"privacytype,omitempty"`
+	Fee         string           `json:"fee,omitempty"`
+	OriginCount uint64           `json:"origincount,omitempty"`
+	Outputs     []FrontendOutput `json:"outputs,omitempty"`
+	Inputs      []FrontendOutput `json:"inputs,omitempty"`
+	Block       []struct {
+		Hash string `json:"blockhash,omitempty"`
+		Ts   string `json:"ts,omitempty"`
+		Id   uint64 `json:"id,omitempty"`
+	} `json:"block,omitempty"`
+}

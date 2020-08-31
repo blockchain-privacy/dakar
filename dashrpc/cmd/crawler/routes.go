@@ -4,15 +4,19 @@ import (
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
+	dban "dashrpc/db/analytics"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"net/http"
+	"regexp"
+	"strconv"
 )
 
 const (
@@ -21,6 +25,7 @@ const (
 	routeBlock       string = "blk/"
 	routeAddress     string = "address/"
 	routeMeta        string = "meta/"
+	routeOrigins     string = "origins/"
 	routeRoot        string = ""
 )
 
@@ -48,6 +53,10 @@ func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
+func getRouteOrigins() string {
+	return getRoute(routeOrigins)
+}
+
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
@@ -55,7 +64,6 @@ func setDefaultHeader(w http.ResponseWriter) {
 }
 
 // API pattern: "/api/v1/"
-// OUTPUT: List of patterns
 func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	serverInfo("Accessed", r.URL.Path)
 	setDefaultHeader(w)
@@ -80,6 +88,11 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 		serverInfo(e)
 	}
 
+	_, e = fmt.Fprintln(w, "/origins/<hash>\t\t-> Get CSV file of origins")
+	if e != nil {
+		serverInfo(e)
+	}
+
 	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
 	if e != nil {
 		serverInfo(e)
@@ -88,16 +101,21 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 	if e != nil {
 		serverInfo(e)
 	}
+
 }
 
 // API pattern: "/api/v1/blk/<hash>"
-// OUTPUT: dashrpc.BlkDetails
 func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		blkHashString := r.URL.Path[len(getRouteBlock()):]
+
+		if !isValid(blkHashString) {
+			http.Error(w, "Block hash: "+blkHashString, http.StatusNotFound)
+			return
+		}
 
 		block, err := dbblk.GetFrontendBlock(dgraph, blkHashString)
 		if err != nil {
@@ -121,13 +139,17 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 }
 
 // API pattern: "/api/v1/address/<hash>"
-// OUTPUT: dashrpc.AddressData
 func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		addressHashString := r.URL.Path[len(getRouteAddress()):]
+
+		if !isValid(addressHashString) {
+			http.Error(w, "Address: "+addressHashString, http.StatusNotFound)
+			return
+		}
 
 		address, err := dbaddr.GetFrontendAddress(dgraph, addressHashString)
 		if err != nil {
@@ -151,7 +173,6 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 }
 
 // API pattern: "/api/v1/tx/<hash>"
-// OUTPUT: dashrpc.Transaction
 func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverInfo("Accessed", r.URL.Path)
@@ -159,9 +180,14 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 
 		txHashString := r.URL.Path[len(getRouteTransaction()):]
 
+		if !isValid(txHashString) {
+			http.Error(w, "Transaction: "+txHashString, http.StatusNotFound)
+			return
+		}
+
 		vTx, err := dbtx.GetFrontendTransaction(dgraph, txHashString)
 		if err != nil {
-			http.Error(w, "Transaction: "+txHashString, http.StatusInternalServerError)
+			http.Error(w, "Transaction: "+txHashString, http.StatusNotFound)
 
 			// only print error if it is not expected
 			if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
@@ -181,7 +207,6 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 }
 
 // API pattern: "/api/v1/meta/"
-// OUTPUT: dashrpc.Transaction
 func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		serverInfo("Accessed", r.URL.Path)
@@ -222,6 +247,70 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 	}
 }
 
+// API pattern: "/api/v1/origins/"
+func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		serverInfo("Accessed", r.URL.Path)
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteOrigins()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, "error getting origins", http.StatusNotFound)
+			return
+		}
+
+		origins, err := dban.GetOrigins(dgraph, txHashString)
+		if err != nil {
+			http.Error(w, "error getting origins", http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if len(origins) == 0 {
+			http.Error(w, "error getting origins", http.StatusNotFound)
+			return
+		}
+
+		// headers for streaming data to client
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+		w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+		csvWriter := csv.NewWriter(w)
+		csvWriter.Comma = ';'
+		headerRow := []string{"transaction hash", "block hash", "block height", "timestamp"}
+
+		if err = csvWriter.Write(headerRow); err != nil {
+			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+
+		for _, o := range origins {
+			var row []string
+			row = append(row, o.Hash)
+			row = append(row, o.BlockHash)
+			row = append(row, strconv.FormatUint(o.BlockId, 10))
+			row = append(row, o.BlockTimestamp)
+			if err = csvWriter.Write(row); err != nil {
+				http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+				serverInfo(cliutil.ShowCallInfo(), err)
+			}
+		}
+		csvWriter.Flush()
+	}
+}
+
+var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
+
+func isValid(input string) bool {
+	if len(input) == 0 {
+		return false
+	}
+
+	return isValidInput(input)
+}
+
 // creates endpoint handlers
 func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	// API end points
@@ -229,5 +318,6 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
+	http.HandleFunc(getRouteOrigins(), handlerOrigins(dgraph))
 	http.HandleFunc(getRouteRoot(), handlerRoot)
 }

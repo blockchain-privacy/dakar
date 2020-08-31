@@ -62,7 +62,7 @@ func main() {
 
 	if len(cliArgs.TxSearch) > 0 {
 
-		origins, err := analytics.GetOrigins(dgraph, cliArgs.TxSearch, uint(16))
+		origins, err := analytics.AnalyzeOrigins(dgraph, cliArgs.TxSearch, uint(16))
 		if err != nil {
 			log.Println(err)
 			return
