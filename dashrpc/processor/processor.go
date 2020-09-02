@@ -159,7 +159,7 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 		addrSlice = append(addrSlice, a)
 	}
 
-	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+	if err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

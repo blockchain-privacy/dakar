@@ -9,12 +9,17 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
 const backendTimeout = time.Minute * 20
 
 const frontEndTimout = time.Second * 30
+
+const maxRetries = 5
+
+const retrySleepDuration = time.Second * 5
 
 func GetBackendContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
@@ -24,6 +29,65 @@ func GetBackendContext() context.Context {
 func GetFrontendContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), frontEndTimout)
 	return ctx
+}
+
+// Execute the given request. In case the request fails repeat it
+func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) error {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
+			return nil
+		}
+		// todo remove
+		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
+		log.Println(err)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return err
+}
+
+// Execute the given request. In case the request fails repeat it
+func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
+	vars map[string]string) (*api.Response, error) {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		resp, txErr := dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+		if txErr == nil {
+			return resp, nil
+		}
+		err = txErr
+		// todo remove
+		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
+		log.Println(err)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return nil, err
+}
+
+// Execute the given request. In case the request fails repeat it
+func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*api.Response, error) {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		resp, txErr := dgraph.NewReadOnlyTxn().Query(ctx, q)
+		if txErr == nil {
+			return resp, nil
+		}
+		err = txErr
+		// todo remove
+		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
+		log.Println(err)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return nil, err
 }
 
 // drops ALL data from the database, schema included

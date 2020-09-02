@@ -56,8 +56,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins 
 
 	query := queryStart + queryMiddle + queryEnd
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(),
-		query, map[string]string{"$hash": transactionHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -100,7 +99,8 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
