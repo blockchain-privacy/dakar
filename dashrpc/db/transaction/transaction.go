@@ -96,7 +96,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType string           `json:"privacytype,omitempty"`
-			Fee         string           `json:"fee,omitempty"`
+			Fee         uint64           `json:"fee,omitempty"`
 			OriginCount uint64           `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`

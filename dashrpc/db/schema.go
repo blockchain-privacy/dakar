@@ -29,8 +29,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			outputindex: int .
 			inputindex: int .
 			txtype: string .
-			amount: string .
-			fee: string .
+			amount: int .
+			fee: int .
 			iscoinbase: bool .
 			#todo check if index is actually helpful
 			privacytype: string @index(hash) .

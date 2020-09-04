@@ -61,7 +61,7 @@ func (aq addressQuery) payload() (a Address, err error) {
 type FrontendAddress struct {
 	Hash    string `json:"addresshash"`
 	Outputs []struct {
-		Amount                string `json:"amount"`
+		Amount                uint64 `json:"amount"`
 		IsCoinbase            bool   `json:"iscoinbase"`
 		InputTransactionHash  string `json:"input_transaction"`
 		OutputTransactionHash string `json:"output_transaction"`

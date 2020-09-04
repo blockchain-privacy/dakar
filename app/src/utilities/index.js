@@ -14,3 +14,7 @@ export function shortenHash(hash) {
 
     return hash.substring(0,elementLen) + '...' + hash.substring(hash.length-elementLen,hash.length)
 }
+
+export function convertAmount(val){
+    return val / 1e8
+}

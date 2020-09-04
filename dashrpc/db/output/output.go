@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"math"
 	"strconv"
 )
 
@@ -267,36 +266,29 @@ func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
-func almostEqual(a, b float64) bool {
-	var delta float64
-	delta = 0.00001
-	return math.Abs(a-b) <= delta
-}
-
 func CountOutputDenominations(outputs []Output) []int {
 
-	var amounts []float64
+	var amounts []uint64
 
 	for _, o := range outputs {
-		amt, err := strconv.ParseFloat(o.Amount, 64)
-		if err != nil {
-			log.Println("Error converting", o.Amount, "to string")
+		if o.Amount == nil {
+			log.Println("error amount not set")
 			return nil
 		}
-		amounts = append(amounts, amt)
+		amounts = append(amounts, *o.Amount)
 	}
 
 	return CountAmountDenominations(amounts)
 }
 
-func CountAmountDenominations(amounts []float64) []int {
-	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001, 10.0001}
+func CountAmountDenominations(amounts []uint64) []int {
+	denominationsTypes := []uint64{1000010000, 100001000, 10000100, 1000010, 100001}
 	denominations := make([]int, len(denominationsTypes))
 
 	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationsTypes {
-			if almostEqual(amt, v) {
+			if amt == v {
 				denominations[i]++
 				break inner
 			}

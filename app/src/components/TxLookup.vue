@@ -34,7 +34,7 @@
                 </v-col>
               </v-row>
               <v-row>
-                <v-col v-if="data.fee">
+                <v-col v-if="data.fee || data.fee === 0">
                   <IconItem icon="mdi-cash" title="Fee">
                     {{ Number.parseFloat(data.fee) }}
                   </IconItem>
@@ -66,7 +66,7 @@
                         Address hash:
                         <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
                         <br>
-                        Amount: {{ i.amount }}<br>
+                        Amount: {{ convertAmount(i.amount) }}<br>
                         Spent: {{ i.inputindex != null }}<br>
                         Index: {{ i.outputindex }}<br>
                         Coinbase: {{ i.iscoinbase }}
@@ -84,7 +84,7 @@
                         Address hash:
                         <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
                         <br>
-                        Amount: {{ i.amount }}<br>
+                        Amount: {{ convertAmount(i.amount) }}<br>
                         Index: {{ i.inputindex }}<br>
                         Coinbase: {{ i.iscoinbase }}
                       </IconItem>
@@ -101,7 +101,7 @@
 </template>
 
 <script>
-import {shortenHash} from "@/utilities";
+import {shortenHash,convertAmount} from "@/utilities";
 import {PAGE_TITLE, ROUTE_ORIGINS} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
@@ -121,6 +121,7 @@ export default {
   },
   methods: {
     shortenHash,
+    convertAmount,
     sortByOutput(outputs) {
       if (outputs == null) return null;
       return outputs.sort((a, b) => {
