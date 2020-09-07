@@ -171,8 +171,8 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 
 type FrontendOutput struct {
 	Amount      uint64 `json:"amount"`
-	InputIndex  int    `json:"inputindex"`
-	OutputIndex int    `json:"outputindex"`
+	InputIndex  *int   `json:"inputindex"`
+	OutputIndex *int   `json:"outputindex"`
 	IsCoinbase  bool   `json:"iscoinbase"`
 	AddressHash string `json:"addresshash"`
 }
