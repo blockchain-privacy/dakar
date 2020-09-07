@@ -21,6 +21,7 @@ Routes supported by the REST API. Consume the endpoints via GET requests.
 | /api/v1/blk/ | Block details |
 | /api/v1/address/ | Address details |
 | /api/v1/meta/ | Database details |
+| /api/v1/origins/ | Origins of transaction |
 
 ## Stopping the crawler
 
@@ -31,10 +32,10 @@ Do not kill the crawling process, instead send a termination or interrupt signal
 Write to a log file, reset the database, start the http server on the default port and start crawling continuously at block height 1.
 
 ```shell script
-./crawler -continuous -logfile /tmp/crawler.log -reset -startserver
+./crawler -continuous -logfile /tmp/crawler.log -reset
 ```
 
-Write to a log file, reset the database and start crawling from block height 1268019 to 1269019
+Write to a log file, reset the database and start crawling from block height 1268019 to 1269019. Also start the http server.
 ```shell script
 ./crawler -start 1268019 -stop 1269019 -logfile /home/dark/crawler.log -reset
 ```
@@ -44,7 +45,7 @@ Print the current status of the database
 ./crawler -status
 ```
 
-Confirm the reset dialog
+Confirm the reset dialog and start crawler, analyzer and server.
 ```shell script
 echo yes | ./crawler -reset -continous
 ```
@@ -64,5 +65,7 @@ echo yes | ./crawler -reset -continous
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
-| startserver | false | Start the http server (default: false) |
+| disableserver | false | Disable the http server (default: false) |
+| disablecrawler | false | Disable the crawler (default: false) |
+| disableanalyzer | false | Disable the analyzer (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |

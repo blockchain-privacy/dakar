@@ -29,7 +29,9 @@ const (
 	StopBlockID
 	IsPrintStatus
 	HttpServerPort
-	StartHttpServer
+	DisableHttpServer
+	DisableCrawler
+	DisableAnalyzer
 	Logfile
 	TxSearch
 	TxInfo
@@ -37,21 +39,23 @@ const (
 )
 
 type Arguments struct {
-	Continuous      bool
-	IgnoreSafeguard bool
-	ResetDB         bool
-	RpcUser         string
-	RpcPassword     string
-	StartBlockID    uint64
-	StopBlockID     uint64
-	IsPrintStatus   bool
-	RpcEndpoint     string
-	Logfile         string
-	TxSearch        string
-	TxInfo          string
-	ClusterAddr     string
-	HttpServerPort  uint
-	StartHttpServer bool
+	Continuous        bool
+	IgnoreSafeguard   bool
+	ResetDB           bool
+	RpcUser           string
+	RpcPassword       string
+	StartBlockID      uint64
+	StopBlockID       uint64
+	IsPrintStatus     bool
+	RpcEndpoint       string
+	Logfile           string
+	TxSearch          string
+	TxInfo            string
+	ClusterAddr       string
+	HttpServerPort    uint
+	DisableHttpServer bool
+	DisableCrawler    bool
+	DisableAnalyzer   bool
 }
 
 func ShowCallInfo() string {
@@ -142,8 +146,14 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case HttpServerPort:
 			addHttpServerPort(&args.HttpServerPort)
 			break
-		case StartHttpServer:
-			addStartHttpServer(&args.StartHttpServer)
+		case DisableHttpServer:
+			addDisableHttpServer(&args.DisableHttpServer)
+			break
+		case DisableCrawler:
+			addDisableCrawler(&args.DisableCrawler)
+			break
+		case DisableAnalyzer:
+			addDisableAnalyzer(&args.DisableAnalyzer)
 			break
 		case TxSearch:
 			addTxSearch(&args.TxSearch)
@@ -235,6 +245,14 @@ func addHttpServerPort(v *uint) {
 	flag.UintVar(v, "serverport", 8081, "Http server port (default: 8081)")
 }
 
-func addStartHttpServer(v *bool) {
-	flag.BoolVar(v, "startserver", false, "Start the http server (default: false)")
+func addDisableHttpServer(v *bool) {
+	flag.BoolVar(v, "disableserver", false, "Disable the http server (default: false)")
+}
+
+func addDisableCrawler(v *bool) {
+	flag.BoolVar(v, "disablecrawler", false, "Disable the crawler (default: false)")
+}
+
+func addDisableAnalyzer(v *bool) {
+	flag.BoolVar(v, "disableanalyzer", false, "Disable the analyzer (default: false)")
 }

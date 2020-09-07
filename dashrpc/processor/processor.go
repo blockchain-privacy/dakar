@@ -28,8 +28,6 @@ func info(v ...interface{}) {
 }
 
 const (
-	VersionString = "v0.0.1"
-
 	// average Dash block time
 	blockTime = 2*time.Minute + 30*time.Second
 

@@ -94,7 +94,9 @@ If the new flag needs some **simple** input verification, implement it in this m
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
 | logfile | < empty string > | Specify log file (default: none) |
-| startserver | false | Start the http server (default: false) |
+| disableserver | false | Disable the http server (default: false) |
+| disablecrawler | false | Disable the crawler (default: false) |
+| disableanalyzer | false | Disable the analyzer (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |
 | txsearch | < empty string > | Last PrivateSend transaction hash (default: none) |
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |
