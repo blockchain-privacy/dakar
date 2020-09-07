@@ -25,7 +25,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			prevblock: uid @reverse .
 			
 			id: int @index(int) .
-			ts: dateTime .
+			ts: dateTime @index(day) .
 			outputindex: int .
 			inputindex: int .
 			txtype: string .
