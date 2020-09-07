@@ -36,7 +36,7 @@
               <v-row>
                 <v-col v-if="data.fee || data.fee === 0">
                   <IconItem icon="mdi-cash" title="Fee">
-                    {{ Number.parseFloat(data.fee) }}
+                    {{ convertAmount(data.fee) }}
                   </IconItem>
                 </v-col>
                 <v-col>
