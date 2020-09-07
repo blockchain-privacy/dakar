@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 )
@@ -132,7 +133,7 @@ func main() {
 			return
 		}
 
-		if userAnswer != "yes" {
+		if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
 			info("Exiting program. Database has not been changed.")
 			return
 		}
