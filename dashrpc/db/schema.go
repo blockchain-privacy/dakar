@@ -32,7 +32,6 @@ func SetupSchema(c *dgo.Dgraph) error {
 			amount: int .
 			fee: int .
 			iscoinbase: bool .
-			#todo check if index is actually helpful
 			privacytype: string @index(hash) .
 
 			iscrawling: bool .

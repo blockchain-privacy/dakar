@@ -7,11 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"time"
 )
 
 // Searches for all potential origins up to depth. The returned string slice contains the uids of
 // the found transactions
-func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins []string, err error) {
+func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint, until time.Time) (origins []string, err error) {
 	if depth == 0 || depth > 30 {
 		err = fmt.Errorf("invalid depth")
 		return
@@ -28,18 +29,23 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins 
 	var queryMiddle string
 	var txUids string
 
+	timestamp := until.Format(time.RFC3339)
 	for i := uint(0); i < depth; i++ {
 		txUids += fmt.Sprintf("tx%d", i+1)
 		if i+1 < depth {
 			txUids += ","
 			queryMiddle += fmt.Sprintf(`
-		var(func: uid(inputs%d)){
-			~tx_outputs@filter(eq(privacytype, "mixing")){
-				tx_inputs{
-					inputs%d as uid
-				}
+		var(func: uid(inputs%d)){  
+			ftx%d as ~tx_outputs@filter(eq(privacytype, "mixing"))@cascade{ 
+				~transactions@filter(gt(ts, "%s"))
 			}
-		}`, i+1, i+2)
+		}
+    
+		var(func: uid(ftx%d)){
+			tx_inputs{
+				inputs%d as uid
+			}
+		}`, i+1, i+1, timestamp, i+1, i+2)
 		}
 
 		queryMiddle += fmt.Sprintf(`
