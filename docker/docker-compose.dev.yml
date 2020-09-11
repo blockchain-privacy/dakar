@@ -1,0 +1,28 @@
+version: '3.6'
+
+services:
+
+  web:
+      container_name: dakar_frontend
+      build:
+        context: ../app
+        dockerfile: Dockerfile
+      depends_on:
+        - api
+      tty: false
+      ports:
+        - 80:80
+      volumes:
+        - ../app:/app
+
+  api:
+      container_name: dakar_dashrpc
+      build:
+        context: ../dashrpc
+        dockerfile: Dockerfile
+      depends_on:
+        - dash
+        - alpha
+      tty: false
+      ports:
+        - 8081:8081

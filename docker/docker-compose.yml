@@ -5,7 +5,7 @@
 # container. You can change /tmp/data to a more appropriate location.
 # Run `docker-compose up` to start Dgraph.
 
-version: "3.2"
+version: "3.6"
 services:
   zero:
     image: dgraph/dgraph:latest
