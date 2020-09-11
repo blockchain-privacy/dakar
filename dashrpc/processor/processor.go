@@ -171,14 +171,6 @@ func createOutputUid(transaction string, outputId uint32) string {
 	return "_:" + transaction + strconv.FormatUint(uint64(outputId), 10)
 }
 
-func valtoInt(value float64) (int64, error) {
-	amount, err := btcutil.NewAmount(value)
-	if err != nil {
-		return 0, err
-	}
-	return int64(amount), nil
-}
-
 // processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
@@ -218,7 +210,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	// process all outputs
 	outputMappings := make(map[string]outputMapping)
 	for _, d := range rawTransaction.Vout {
-		amt, valErr := valtoInt(d.Value)
+		amt, valErr := btcutil.NewAmount(d.Value)
+		intAmount := int64(amt)
 		if valErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), valErr)
 			return
@@ -229,7 +222,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
 			Uid:         createOutputUid(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
-			Amount:      &amt,
+			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
 			OutputIndex: &index,
 		})
@@ -267,11 +260,12 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 
 	if v, ok := txHashMap[vin.Txid]; ok {
 		refOutput.Uid = createOutputUid(vin.Txid, vin.Vout)
-		amt, err := valtoInt(v.Vout[vin.Vout].Value)
+		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
+		intAmount := int64(amt)
 		if err != nil {
 			return err
 		}
-		refOutput.Amount = &amt
+		refOutput.Amount = &intAmount
 	} else {
 		output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
 		if err != nil {
