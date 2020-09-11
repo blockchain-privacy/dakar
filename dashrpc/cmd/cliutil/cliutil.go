@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"path"
 	"runtime"
@@ -77,17 +76,6 @@ func ShowCallInfo() string {
 	}
 
 	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
-}
-
-// creates a string in the format of "rpcHost:rpcPort"
-func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
-	// check if ip is valid
-	if ip := net.ParseIP(rpcHost); ip == nil {
-		return "", errors.New("IP is not valid")
-	}
-
-	// build endpoint string
-	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
 }
 
 func GetLogfile(fileName string) (f *os.File, err error) {
