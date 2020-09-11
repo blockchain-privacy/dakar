@@ -14,19 +14,19 @@
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
-                    {{ (this.amounts.received - this.amounts.spent).toFixed(2) }}
+                    {{ getAmount(this.amounts.received - this.amounts.spent) }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
-                    {{ this.amounts.received.toFixed(2) }}
+                    {{ getAmount(this.amounts.received) }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
-                    {{ this.amounts.spent.toFixed(2) }}
+                    {{ getAmount(this.amounts.spent) }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -36,7 +36,7 @@
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
                       <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
-                        Amount: {{ o.amount }}
+                        Amount: {{ getAmount(o.amount) }}
                         <br v-if="o.iscoinbase"/>
                         {{ o.iscoinbase ? 'Coinbase: ' + o.iscoinbase : '' }}
                         <br/>
@@ -63,7 +63,7 @@
 </template>
 
 <script>
-import {shortenHash} from "@/utilities";
+import {shortenHash, convertAmount} from "@/utilities";
 import {PAGE_TITLE} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
@@ -72,15 +72,16 @@ export default {
   components: {IconItem},
   methods: {
     shortenHash,
+    getAmount: convertAmount,
     calculateAmountReceived: function (outputs) {
       return outputs
-          .map(e => parseFloat(e.amount))
+          .map(e => parseInt(e.amount))
           .reduce((sum, e) => sum + e, 0);
     },
     calculateAmountSpent: function (outputs) {
       return outputs
           .filter(e => e.input_transaction !== '')
-          .map(e => parseFloat(e.amount))
+          .map(e => parseInt(e.amount))
           .reduce((sum, e) => sum + e, 0);
     }
   },

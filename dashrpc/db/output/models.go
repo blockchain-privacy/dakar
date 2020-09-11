@@ -10,16 +10,16 @@ const DType = "Output"
 
 type Output struct {
 	Uid         string   `json:"uid,omitempty"`
-	OutputIndex *uint64  `json:"outputindex,omitempty"`
-	InputIndex  *uint64  `json:"inputindex,omitempty"`
+	OutputIndex *uint32  `json:"outputindex,omitempty"`
+	InputIndex  *uint32  `json:"inputindex,omitempty"`
 	TxType      string   `json:"txtype,omitempty"`
-	Amount      string   `json:"amount,omitempty"`
+	Amount      *int64   `json:"amount,omitempty"`
 	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`
 	DType       []string `json:"dgraph.type,omitempty"`
 }
 
 func (o Output) String() string {
-	output := fmt.Sprintf("Uid: %s, Amount: %s", o.Uid, o.Amount)
+	output := fmt.Sprintf("Uid: %s, Amount: %d", o.Uid, *o.Amount)
 
 	if o.OutputIndex != nil {
 		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)
@@ -74,10 +74,10 @@ func (oq outputQuery) payload() (op Output, err error) {
 
 type VerboseOutput struct {
 	Uid               string
-	OutputIndex       *uint64
-	InputIndex        *uint64
+	OutputIndex       *uint32
+	InputIndex        *uint32
 	TxType            string
-	Amount            string
+	Amount            *int64
 	IsCoinbase        *bool
 	OutputTransaction string
 	InputTransaction  string

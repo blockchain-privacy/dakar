@@ -9,10 +9,15 @@
               Transaction {{ data.txhash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <div v-if="data.privacytype">
-              {{ data.origincount > 0 ? data.origincount : ""}}
-              <v-icon large>mdi-incognito-circle</v-icon>
-            </div>
+            <v-tooltip bottom>
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on" v-bind="attrs">
+                  <v-icon large>mdi-file-download-outline</v-icon>
+                </v-btn>
+              </template>
+              <span>Download potential origins of this transaction. {{ data.origincount }} origins found.</span>
+            </v-tooltip>
+            <v-icon large v-if="data.privacytype">mdi-incognito-circle</v-icon>
           </v-toolbar>
           <v-card-text>
             <v-container>
@@ -29,9 +34,9 @@
                 </v-col>
               </v-row>
               <v-row>
-                <v-col v-if="data.fee">
+                <v-col v-if="data.fee || data.fee === 0">
                   <IconItem icon="mdi-cash" title="Fee">
-                    {{ Number.parseFloat(data.fee) }}
+                    {{ convertAmount(data.fee) }}
                   </IconItem>
                 </v-col>
                 <v-col>
@@ -61,7 +66,7 @@
                         Address hash:
                         <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
                         <br>
-                        Amount: {{ i.amount }}<br>
+                        Amount: {{ convertAmount(i.amount) }}<br>
                         Spent: {{ i.inputindex != null }}<br>
                         Index: {{ i.outputindex }}<br>
                         Coinbase: {{ i.iscoinbase }}
@@ -79,7 +84,7 @@
                         Address hash:
                         <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
                         <br>
-                        Amount: {{ i.amount }}<br>
+                        Amount: {{ convertAmount(i.amount) }}<br>
                         Index: {{ i.inputindex }}<br>
                         Coinbase: {{ i.iscoinbase }}
                       </IconItem>
@@ -96,8 +101,8 @@
 </template>
 
 <script>
-import {shortenHash} from "@/utilities";
-import {PAGE_TITLE} from "@/constants";
+import {shortenHash,convertAmount} from "@/utilities";
+import {PAGE_TITLE, ROUTE_ORIGINS} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
 export default {
@@ -116,6 +121,7 @@ export default {
   },
   methods: {
     shortenHash,
+    convertAmount,
     sortByOutput(outputs) {
       if (outputs == null) return null;
       return outputs.sort((a, b) => {
@@ -127,7 +133,28 @@ export default {
       return inputs.sort((a, b) => {
         return a.inputindex > b.inputindex
       })
-    }
+    },
+    getCSV: function () {
+      const options = {
+        headers: {
+          // header for pass through
+          Accept: '*/*'
+        }
+      };
+      fetch(ROUTE_ORIGINS + this.data.txhash, options)
+          .then(res => res.blob())
+          .then(blob => {
+            // looks hacky, but it is the only way with good UX
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.setAttribute("download", `${this.data.txhash}.csv`);
+            a.click();
+            a.remove();
+          })
+          .catch(error => {
+            this.errorMsg = error;
+          });
+    },
   },
   mounted() {
     document.title = `Transaction - ${PAGE_TITLE}`;

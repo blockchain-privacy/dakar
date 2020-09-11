@@ -12,6 +12,7 @@ import (
 	"dashrpc/rpcclient"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"strconv"
@@ -27,8 +28,6 @@ func info(v ...interface{}) {
 }
 
 const (
-	VersionString = "v0.0.1"
-
 	// average Dash block time
 	blockTime = 2*time.Minute + 30*time.Second
 
@@ -66,7 +65,7 @@ func (p *crawlerProcessingState) increment(nextHash string) (err error) {
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
 	hash    string
-	indexes []uint64
+	indexes []uint32
 }
 
 // maps a address to one or more indexes of a transaction
@@ -76,7 +75,7 @@ type TransactionMapping struct {
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
-func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint64) map[string]outputMapping {
+func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint32) map[string]outputMapping {
 	if val, ok := mapping[addr]; ok {
 		val.indexes = append(val.indexes, indexOutput)
 		mapping[addr] = val
@@ -85,7 +84,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 
 	mapping[addr] = outputMapping{
 		hash:    addr,
-		indexes: []uint64{indexOutput},
+		indexes: []uint32{indexOutput},
 	}
 
 	return mapping
@@ -159,7 +158,7 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 		addrSlice = append(addrSlice, a)
 	}
 
-	if _, err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+	if err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -168,8 +167,8 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 }
 
 // creates a named uid, parsable by dgraph
-func createOutputUid(transaction string, outputId uint64) string {
-	return "_:" + transaction + strconv.FormatUint(outputId, 10)
+func createOutputUid(transaction string, outputId uint32) string {
+	return "_:" + transaction + strconv.FormatUint(uint64(outputId), 10)
 }
 
 // processes the transaction specified by 'txHashString'
@@ -185,7 +184,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	} else {
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
-			if err = processTxVin(dgraph, &txDetails, d, uint64(i), txHashMap); err != nil {
+			if err = processTxVin(dgraph, &txDetails, d, uint32(i), txHashMap); err != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
@@ -204,23 +203,32 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		}
 	} else {
 		// no fees for coinbase transactions
-		txDetails.Fee = "0.00000000"
+		nullAmount := int64(0)
+		txDetails.Fee = &nullAmount
 	}
 
 	// process all outputs
 	outputMappings := make(map[string]outputMapping)
 	for _, d := range rawTransaction.Vout {
-		uindex := uint64(d.N)
+		amt, valErr := btcutil.NewAmount(d.Value)
+		intAmount := int64(amt)
+		if valErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), valErr)
+			return
+		}
+
+		index := d.N
+
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			Uid:         createOutputUid(rawTransaction.Txid, uindex),
+			Uid:         createOutputUid(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
-			Amount:      strconv.FormatFloat(d.Value, 'f', 8, 64),
+			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
-			OutputIndex: &uindex,
+			OutputIndex: &index,
 		})
 
 		for _, e := range d.ScriptPubKey.Addresses {
-			outputMappings = addOutputToMapping(outputMappings, e, uindex)
+			outputMappings = addOutputToMapping(outputMappings, e, index)
 		}
 	}
 
@@ -239,7 +247,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 }
 
 // maps the input information to the output if it exists already in the database
-func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint64, txHashMap map[string]btcjson.TxRawResult) error {
+func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -251,8 +259,13 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
-		refOutput.Uid = createOutputUid(vin.Txid, uint64(vin.Vout))
-		refOutput.Amount = strconv.FormatFloat(v.Vout[vin.Vout].Value, 'f', 8, 64)
+		refOutput.Uid = createOutputUid(vin.Txid, vin.Vout)
+		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
+		intAmount := int64(amt)
+		if err != nil {
+			return err
+		}
+		refOutput.Amount = &intAmount
 	} else {
 		output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
 		if err != nil {
@@ -295,6 +308,8 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 	return
 }
 
+var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
+
 // Gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
 func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
@@ -317,8 +332,7 @@ func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	}
 
 	if *status.LastBlockId != highestBlockId {
-		err = fmt.Errorf("last crawled block and highest block are not the same! CrawlerStatus: %s", status)
-		return
+		err = errorBlockIdsDoNotMatch
 	}
 
 	startId = *status.LastBlockId
@@ -362,8 +376,11 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if continuous {
 		if state.id, err = getStartingId(dgraph); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+			if !errors.Is(err, errorBlockIdsDoNotMatch) {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
+			}
+			info(errorBlockIdsDoNotMatch.Error(), "continuing...")
 		}
 	} else {
 		state.id = startId
@@ -441,8 +458,7 @@ mainLoop:
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
 		} else {
-			info(err)
-			break
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		if state.id == stoppingBlockId || currentBlock.NextHash == "" {

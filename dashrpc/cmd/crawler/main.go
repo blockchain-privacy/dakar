@@ -16,9 +16,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 )
+
+const VersionString = "v1.0.0"
 
 func info(v ...interface{}) {
 	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
@@ -26,24 +29,25 @@ func info(v ...interface{}) {
 	log.SetPrefix("")
 }
 
-func fatal(v ...interface{}) {
-	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
-	log.Fatalln(v)
-	log.SetPrefix("")
-}
-
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard, cli.StartHttpServer, cli.HttpServerPort)
+		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
+		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if !cliArgs.IsPrintStatus && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
+	if !cliArgs.DisableCrawler && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
 		flag.PrintDefaults()
-		err = errors.New("missing block information")
+		err = errors.New("select crawling mode")
+		return
+	}
+
+	if cliArgs.DisableCrawler && (cliArgs.StartBlockID > 0 || cliArgs.StopBlockID > 0 || cliArgs.Continuous) {
+		flag.PrintDefaults()
+		err = errors.New("enable crawler to use additional arguments")
 		return
 	}
 
@@ -87,7 +91,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", processor.VersionString)
+	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)
@@ -129,7 +133,7 @@ func main() {
 			return
 		}
 
-		if userAnswer != "yes" {
+		if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
 			info("Exiting program. Database has not been changed.")
 			return
 		}
@@ -146,6 +150,10 @@ func main() {
 			return
 		}
 		info("setup new schema")
+	}
+
+	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
+		return
 	}
 
 	// check if schema exists
@@ -167,24 +175,27 @@ func main() {
 		}
 	}
 
-	// Setup the RPC connection
-	client, err := rpcclient.New(&rpcclient.ConnConfig{
-		Host:       cliArgs.RpcEndpoint,
-		User:       cliArgs.RpcUser,
-		Pass:       cliArgs.RpcPassword,
-		DisableTLS: true,
-	})
-	if err != nil {
-		info(err)
-		return
-	}
+	// Setup the RPC connection, only if needed
+	var client *rpcclient.Client
+	if !cliArgs.DisableHttpServer || !cliArgs.DisableCrawler {
+		client, err = rpcclient.New(&rpcclient.ConnConfig{
+			Host:       cliArgs.RpcEndpoint,
+			User:       cliArgs.RpcUser,
+			Pass:       cliArgs.RpcPassword,
+			DisableTLS: true,
+		})
+		if err != nil {
+			info(err)
+			return
+		}
 
-	count, err := client.GetBlockCount()
-	if err != nil {
-		info("Error: problem with count()", err.Error())
-		return
+		count, err := client.GetBlockCount()
+		if err != nil {
+			info("Error: problem with count()", err.Error())
+			return
+		}
+		info("Current block count in the chain of the RPC client:", count)
 	}
-	info("Current block count in the chain of the RPC client:", count)
 
 	// We will handle CTRL-C and CTRL-Z nicely
 	chSignal := make(chan os.Signal, 1)
@@ -196,39 +207,47 @@ func main() {
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
 
+	// the waitgroup which handles the modules of the crawler
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer func() {
-			chCrawlingStopped <- true
+	// activate crawler
+	if !cliArgs.DisableCrawler {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chCrawlingStopped <- true
+			}()
+			if cliArgs.Continuous {
+				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client)
+			} else {
+				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+			}
+
+			if err != nil {
+				info(err)
+			}
 		}()
-		if cliArgs.Continuous {
-			err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client)
-		} else {
-			err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
-		}
+	}
 
-		if err != nil {
-			fatal(err)
-		}
-	}()
+	// activate analyzer
+	if !cliArgs.DisableAnalyzer {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chAnalyzingStopped <- true
+			}()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer func() {
-			chAnalyzingStopped <- true
+			if err := analytics.StartPost(analyzerContext, dgraph); err != nil {
+				info(err)
+			}
 		}()
+	}
 
-		if err := analytics.StartPost(analyzerContext, dgraph); err != nil {
-			fatal(err)
-		}
-	}()
-
+	// activate server
 	var srv *http.Server
-	if cliArgs.StartHttpServer {
+	if !cliArgs.DisableHttpServer {
 		wg.Add(1)
 		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
 	}
@@ -253,8 +272,8 @@ func main() {
 		}
 	}
 
-	if cliArgs.StartHttpServer && crawlerStopped && analyzerStopped {
-		// if the crawler stopped working on his own accord, the server is still active at this point
+	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped {
+		// if the crawler and analyzer stopped working on his own accord, the server is still active at this point
 		select {
 		case <-chSignal:
 			shutdownServer(srv)

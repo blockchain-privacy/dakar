@@ -6,7 +6,7 @@
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
               <v-icon>mdi-database</v-icon>
-              Database Information
+              Server status
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn icon v-on:click="refreshData">
@@ -25,13 +25,8 @@
             <v-container v-if="data">
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-robot" title="Crawler status"
-                            :tooltip="tooltips.crawler" is-color :is-red="!data.status.iscrawling">
-                    {{ data.status.iscrawling ? "Active" : "Inactive" }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem icon="mdi-database-sync" title="Database synchronisation" :tooltip="tooltips.databaseSync">
+                  <IconItem icon="mdi-database-sync" title="Database synchronisation" :tooltip="tooltips.databaseSync"
+                            is-color :is-red="!data.status.iscrawling">
                     <v-progress-linear
                         :color="crawlerSyncProgress > 98?'green':crawlerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
@@ -41,17 +36,9 @@
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <IconItem icon="mdi-text-box-search-outline" title="Analyzer status"
-                            :tooltip="tooltips.analyzer" is-color :is-red="!data.status.isanalyzing">
-                    {{ data.status.isanalyzing ? "Active" : "Inactive" }}
-                  </IconItem>
-                </v-col>
                 <v-col>
                   <IconItem icon="mdi-database-search" title="Database analyzation"
-                            :tooltip="tooltips.databaseAnalyzation">
+                            :tooltip="tooltips.databaseAnalyzation" is-color :is-red="!data.status.isanalyzing">
                     <v-progress-linear
                         :color="analyzerSyncProgress > 98?'green':analyzerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
@@ -72,7 +59,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-timeline-clock-outline" title="Last fully crawled block"
+                  <IconItem icon="mdi-timeline-clock-outline" title="Last crawled block"
                             :tooltip="tooltips.lastBlockId">
                     <router-link :to="'search/' + data.status.lastblockid">
                       {{ data.status.lastblockid }}
@@ -131,12 +118,10 @@ export default {
   data: function () {
     return {
       tooltips: {
-        crawler: "Displays if the crawler is currently active",
-        analyzer: "Displays if the analyzer is currently active",
         lastBlockId: "Last block which was completely saved in the database",
         lowestBlockId: "Lowest block ID in the database",
-        databaseSync: "Percentage of blocks synced from the RPC client to the database",
-        databaseAnalyzation: "Percentage of analyzed blocks in the database",
+        databaseSync: "Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.",
+        databaseAnalyzation: "Percentage of analyzed blocks in the database. The analyzer is active if the icon is green.",
         rpcVersion: "Version of the RPC client",
         rpcProtocolVersion: "Version of the protocol",
         rpcBlockHeight: "Current block height of the RPC client",

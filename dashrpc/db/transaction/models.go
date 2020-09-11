@@ -4,7 +4,6 @@ import (
 	op "dashrpc/db/output"
 	"errors"
 	"fmt"
-	"strconv"
 )
 
 const (
@@ -22,7 +21,7 @@ var (
 type Transaction struct {
 	Uid         string        `json:"uid,omitempty"`
 	PrivacyType string        `json:"privacytype,omitempty"`
-	Fee         string        `json:"fee,omitempty"`
+	Fee         *int64        `json:"fee,omitempty"`
 	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
 	Hash        string        `json:"txhash,omitempty"`
@@ -31,7 +30,8 @@ type Transaction struct {
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s", t.Uid, t.Hash, t.PrivacyType)
+	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s, Fee: %d",
+		t.Uid, t.Hash, t.PrivacyType, *t.Fee)
 
 	if t.Outputs != nil {
 		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
@@ -77,8 +77,8 @@ func (t Transaction) CountOutputDenominations() []int {
 }
 
 // IsPrivacyOrigin checks if the TX creates denominations
-func (t Transaction) IsPrivacyOrigin(areAllInputAddressesDistinct bool) bool {
-	return !areAllInputAddressesDistinct && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
+func (t Transaction) IsPrivacyOrigin(areAllInputAddressesEqual bool) bool {
+	return len(t.Inputs) >= 1 && areAllInputAddressesEqual && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
 }
 
 // IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
@@ -88,27 +88,25 @@ func (t Transaction) IsPrivacyDestination() bool {
 
 // checks if the cumulative amount of inputs and outputs matches
 func (t *Transaction) CalculateTransactionFee() (err error) {
-	var amountInputs float64
-	var amountOutputs float64
+	var amountInputs int64
+	var amountOutputs int64
+
 	for _, e := range t.Inputs {
-		amt, err := strconv.ParseFloat(e.Amount, 64)
-		if err != nil {
-			err = fmt.Errorf("could not convert amount string to float for transaction: %s", t)
-			return err
+		if e.Amount == nil {
+			return errors.New("error amount is not set")
 		}
-		amountInputs += amt
+		amountInputs += *e.Amount
 	}
 
 	for _, e := range t.Outputs {
-		amt, err := strconv.ParseFloat(e.Amount, 64)
-		if err != nil {
-			err = fmt.Errorf("could not convert amount string to float for transaction: %s", t)
-			return err
+		if e.Amount == nil {
+			return errors.New("error amount is not set")
 		}
-		amountOutputs += amt
+		amountOutputs += *e.Amount
 	}
 
-	t.Fee = strconv.FormatFloat(amountInputs-amountOutputs, 'f', 8, 64)
+	fee := amountInputs - amountOutputs
+	t.Fee = &fee
 
 	return
 }
@@ -172,17 +170,17 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 }
 
 type FrontendOutput struct {
-	Amount      string `json:"amount"`
-	InputIndex  int    `json:"inputindex"`
-	OutputIndex int    `json:"outputindex"`
-	IsCoinbase  bool   `json:"iscoinbase"`
-	AddressHash string `json:"addresshash"`
+	Amount      *int64  `json:"amount"`
+	InputIndex  *uint32 `json:"inputindex"`
+	OutputIndex *uint32 `json:"outputindex"`
+	IsCoinbase  bool    `json:"iscoinbase"`
+	AddressHash string  `json:"addresshash"`
 }
 
 type FrontendTransaction struct {
 	Hash           string           `json:"txhash"`
 	BlockHash      string           `json:"bhash"`
-	Fee            string           `json:"fee"`
+	Fee            int64            `json:"fee"`
 	PrivacyType    string           `json:"privacytype"`
 	BlockId        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts"`
@@ -193,7 +191,21 @@ type FrontendTransaction struct {
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Fee: %s, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
+		"Fee: %d, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
+}
+
+type FrontendRequest struct {
+	Hash        string           `json:"txhash,omitempty"`
+	PrivacyType string           `json:"privacytype,omitempty"`
+	Fee         string           `json:"fee,omitempty"`
+	OriginCount uint64           `json:"origincount,omitempty"`
+	Outputs     []FrontendOutput `json:"outputs,omitempty"`
+	Inputs      []FrontendOutput `json:"inputs,omitempty"`
+	Block       []struct {
+		Hash string `json:"blockhash,omitempty"`
+		Ts   string `json:"ts,omitempty"`
+		Id   uint64 `json:"id,omitempty"`
+	} `json:"block,omitempty"`
 }

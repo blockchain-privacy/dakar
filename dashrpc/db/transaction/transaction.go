@@ -36,53 +36,8 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	var r transactionQuery
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
-// gets transaction information from the database including uids of origins
-func GetTransactionWithOrigins(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(txhash, $hash)){
-					uid
-					txhash
-					privacytype
-					fee
-					tx_inputs{
-						uid
-						amount
-						inputindex
-						outputindex
-						iscoinbase
-						txtype
-					}
-					tx_outputs{
-						uid
-						amount
-						inputindex
-						outputindex
-						iscoinbase
-						txtype
-					}
-					origins{
-						uid
-					}
-				}
-			  }
-				`
-
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -130,7 +85,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 			  	}
 			   }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$hash": txHash})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -141,8 +96,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType string           `json:"privacytype,omitempty"`
-			Fee         string           `json:"fee,omitempty"`
-			OriginCount uint64           `json:"origincount,omitempty"`
+			Fee         *int64           `json:"fee,omitempty"`
+			OriginCount *uint64          `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
@@ -161,7 +116,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	if len(r.Transaction) == 0 || len(r.Transaction[0].Block) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
-	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 ||
+		r.Transaction[0].Fee == nil || r.Transaction[0].OriginCount == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
@@ -171,8 +127,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	transaction = FrontendTransaction{
 		Hash:           t.Hash,
 		PrivacyType:    t.PrivacyType,
-		Fee:            t.Fee,
-		OriginCount:    t.OriginCount,
+		Fee:            *t.Fee,
+		OriginCount:    *t.OriginCount,
 		BlockHash:      t.Block[0].Hash,
 		BlockId:        t.Block[0].Id,
 		BlockTimestamp: t.Block[0].Ts,

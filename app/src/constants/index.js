@@ -6,11 +6,13 @@ export const ROUTE_TRANSACTION = routePrefix + 'tx/';
 export const ROUTE_BLOCK = routePrefix + 'blk/';
 export const ROUTE_ADDRESS = routePrefix + 'address/';
 export const ROUTE_META = routePrefix + 'meta/';
+export const ROUTE_ORIGINS = routePrefix + 'origins/';
 
 // frontend route names
 export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 
-// page title
+// application
 export const PAGE_TITLE = 'Dakar';
+export const APPLICATION_NAME = 'Dakar';

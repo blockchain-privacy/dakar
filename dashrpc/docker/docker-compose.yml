@@ -10,7 +10,7 @@ services:
   zero:
     image: dgraph/dgraph:latest
     volumes:
-      - /tmp/data:/dgraph
+      - ${DGRAPH_PATH}:/dgraph
     ports:
       - 5080:5080
       - 6080:6080
@@ -21,12 +21,12 @@ services:
   alpha:
     image: dgraph/dgraph:latest
     volumes:
-      - /tmp/data:/dgraph
+      - ${DGRAPH_PATH}:/dgraph
     ports:
       - 8080:8080
       - 9080:9080
     restart: on-failure
-    command: dgraph alpha --my=alpha:7080 --lru_mb=2048 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.0,192.168.188.0:192.168.188.255
+    command: dgraph alpha --my=alpha:7080 --lru_mb=2048 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.0,192.168.188.0:192.168.188.255 --query_edge_limit 10000000
     networks:
         - dgraph_default
   ratel:
@@ -39,7 +39,7 @@ services:
   dash:
     image: dashpay/dashd:latest
     volumes:
-      - /tmp/dash:/dash
+      - ${DASH_PATH}:/dash
     ports:
       - 9999:9999
       - 9998:9998

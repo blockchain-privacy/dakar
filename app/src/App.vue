@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app absolute  color="primary" dark>
+    <v-app-bar app absolute color="primary" dark>
       <v-img
           @click="goToRoot()" style="cursor:pointer"
           alt="Explorer Logo"
@@ -9,7 +9,8 @@
           src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
           transition="scale-transition"
           width="40"/>
-      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer">Dash Explorer</v-toolbar-title>
+      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer"> {{ applicationName }}
+      </v-toolbar-title>
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
@@ -46,6 +47,11 @@ export default {
   components: {
     MsgBox,
     QueryInput
+  },
+  data: function () {
+    return {
+      applicationName: Constants.APPLICATION_NAME,
+    }
   },
   methods: {
     changeTheme() {

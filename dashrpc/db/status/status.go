@@ -59,7 +59,8 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 				}
 				`
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -86,7 +87,8 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 				}
 				`
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -129,7 +131,8 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 				}
 			}`, order)
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -171,7 +174,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 				}
 			}`
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetContext(), query)
+	resp, err := c.NewReadOnlyTxn().Query(db.GetFrontendContext(), query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -249,8 +252,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(db.GetContext(), req)
-	return err
+	return db.TxWithRetry(c, db.GetBackendContext(), req)
 }
 
 // sets the new status
@@ -278,8 +280,7 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 		CommitNow: true,
 	}
 
-	_, err = c.NewTxn().Do(db.GetContext(), req)
-	return err
+	return db.TxWithRetry(c, db.GetBackendContext(), req)
 }
 
 // sets the crawling status

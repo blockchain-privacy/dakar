@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"math"
 	"strconv"
 )
 
@@ -40,7 +39,8 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, vars)
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -93,7 +93,8 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, vars)
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, vars)
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -104,10 +105,10 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 		GetOutput []struct {
 			Outputs []struct {
 				Uid                string   `json:"uid,omitempty"`
-				OutputIndex        *uint64  `json:"outputindex,omitempty"`
-				InputIndex         *uint64  `json:"inputindex,omitempty"`
+				OutputIndex        *uint32  `json:"outputindex,omitempty"`
+				InputIndex         *uint32  `json:"inputindex,omitempty"`
 				TxType             string   `json:"txtype,omitempty"`
-				Amount             string   `json:"amount,omitempty"`
+				Amount             *int64   `json:"amount,omitempty"`
 				IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
 				DType              []string `json:"dgraph.type,omitempty"`
 				OutputTransactions []struct {
@@ -190,7 +191,8 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 			  }
 				`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetContext(), query, map[string]string{"$id": uid})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$id": uid})
+
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -200,10 +202,10 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 	type queryOutput struct {
 		GetOutput []struct {
 			Uid                string   `json:"uid,omitempty"`
-			OutputIndex        *uint64  `json:"outputindex,omitempty"`
-			InputIndex         *uint64  `json:"inputindex,omitempty"`
+			OutputIndex        *uint32  `json:"outputindex,omitempty"`
+			InputIndex         *uint32  `json:"inputindex,omitempty"`
 			TxType             string   `json:"txtype,omitempty"`
-			Amount             string   `json:"amount,omitempty"`
+			Amount             *int64   `json:"amount,omitempty"`
 			IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
 			DType              []string `json:"dgraph.type,omitempty"`
 			OutputTransactions []struct {
@@ -264,36 +266,29 @@ func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
-func almostEqual(a, b float64) bool {
-	var delta float64
-	delta = 0.00001
-	return math.Abs(a-b) <= delta
-}
-
 func CountOutputDenominations(outputs []Output) []int {
 
-	var amounts []float64
+	var amounts []int64
 
 	for _, o := range outputs {
-		amt, err := strconv.ParseFloat(o.Amount, 64)
-		if err != nil {
-			log.Println("Error converting", o.Amount, "to string")
+		if o.Amount == nil {
+			log.Println("error amount not set")
 			return nil
 		}
-		amounts = append(amounts, amt)
+		amounts = append(amounts, *o.Amount)
 	}
 
 	return CountAmountDenominations(amounts)
 }
 
-func CountAmountDenominations(amounts []float64) []int {
-	denominationsTypes := []float64{1.00001, 0.100001, 0.0100001, 0.00100001, 10.0001}
+func CountAmountDenominations(amounts []int64) []int {
+	denominationsTypes := []int64{1000010000, 100001000, 10000100, 1000010, 100001}
 	denominations := make([]int, len(denominationsTypes))
 
 	for _, amt := range amounts {
 	inner:
 		for i, v := range denominationsTypes {
-			if almostEqual(amt, v) {
+			if amt == v {
 				denominations[i]++
 				break inner
 			}

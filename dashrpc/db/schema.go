@@ -25,14 +25,13 @@ func SetupSchema(c *dgo.Dgraph) error {
 			prevblock: uid @reverse .
 			
 			id: int @index(int) .
-			ts: dateTime .
+			ts: dateTime @index(day) .
 			outputindex: int .
 			inputindex: int .
 			txtype: string .
-			amount: string .
-			fee: string .
+			amount: int .
+			fee: int .
 			iscoinbase: bool .
-			#todo check if index is actually helpful
 			privacytype: string @index(hash) .
 
 			iscrawling: bool .
@@ -95,7 +94,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
 
-	resp, err := c.NewReadOnlyTxn().Query(GetContext(), query)
+	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
