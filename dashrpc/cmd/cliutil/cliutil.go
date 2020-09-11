@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"path"
 	"runtime"
@@ -77,17 +76,6 @@ func ShowCallInfo() string {
 	}
 
 	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
-}
-
-// creates a string in the format of "rpcHost:rpcPort"
-func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
-	// check if ip is valid
-	if ip := net.ParseIP(rpcHost); ip == nil {
-		return "", errors.New("IP is not valid")
-	}
-
-	// build endpoint string
-	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
 }
 
 func GetLogfile(fileName string) (f *os.File, err error) {
@@ -187,22 +175,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	// if host and port are not empty build the endpoint
 	if len(rpcHostString) > 0 && isRpcPortSet {
-		endpoint, err := buildEndpoint(rpcHostString, rpcPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.RpcEndpoint = endpoint
+		args.RpcEndpoint = rpcHostString + ":" + strconv.Itoa(int(rpcPortNumber))
 	}
 
 	// if host and port are not empty build the endpoint
 	if len(dbHostString) > 0 && isDBPortSet {
-		endpoint, err := buildEndpoint(dbHostString, dbPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.DBEndpoint = endpoint
+		args.DBEndpoint = dbHostString + ":" + strconv.Itoa(int(dbPortNumber))
 	}
 
 	return args, err
