@@ -21,7 +21,7 @@ var (
 type Transaction struct {
 	Uid         string        `json:"uid,omitempty"`
 	PrivacyType string        `json:"privacytype,omitempty"`
-	Fee         *uint64       `json:"fee,omitempty"`
+	Fee         *int64        `json:"fee,omitempty"`
 	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
 	Hash        string        `json:"txhash,omitempty"`
@@ -88,8 +88,8 @@ func (t Transaction) IsPrivacyDestination() bool {
 
 // checks if the cumulative amount of inputs and outputs matches
 func (t *Transaction) CalculateTransactionFee() (err error) {
-	var amountInputs uint64
-	var amountOutputs uint64
+	var amountInputs int64
+	var amountOutputs int64
 
 	for _, e := range t.Inputs {
 		if e.Amount == nil {
@@ -170,17 +170,17 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 }
 
 type FrontendOutput struct {
-	Amount      uint64 `json:"amount"`
-	InputIndex  *int   `json:"inputindex"`
-	OutputIndex *int   `json:"outputindex"`
-	IsCoinbase  bool   `json:"iscoinbase"`
-	AddressHash string `json:"addresshash"`
+	Amount      *int64  `json:"amount"`
+	InputIndex  *uint32 `json:"inputindex"`
+	OutputIndex *uint32 `json:"outputindex"`
+	IsCoinbase  bool    `json:"iscoinbase"`
+	AddressHash string  `json:"addresshash"`
 }
 
 type FrontendTransaction struct {
 	Hash           string           `json:"txhash"`
 	BlockHash      string           `json:"bhash"`
-	Fee            uint64           `json:"fee"`
+	Fee            int64            `json:"fee"`
 	PrivacyType    string           `json:"privacytype"`
 	BlockId        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts"`

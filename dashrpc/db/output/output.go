@@ -105,10 +105,10 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 		GetOutput []struct {
 			Outputs []struct {
 				Uid                string   `json:"uid,omitempty"`
-				OutputIndex        *uint64  `json:"outputindex,omitempty"`
-				InputIndex         *uint64  `json:"inputindex,omitempty"`
+				OutputIndex        *uint32  `json:"outputindex,omitempty"`
+				InputIndex         *uint32  `json:"inputindex,omitempty"`
 				TxType             string   `json:"txtype,omitempty"`
-				Amount             string   `json:"amount,omitempty"`
+				Amount             *int64   `json:"amount,omitempty"`
 				IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
 				DType              []string `json:"dgraph.type,omitempty"`
 				OutputTransactions []struct {
@@ -202,10 +202,10 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 	type queryOutput struct {
 		GetOutput []struct {
 			Uid                string   `json:"uid,omitempty"`
-			OutputIndex        *uint64  `json:"outputindex,omitempty"`
-			InputIndex         *uint64  `json:"inputindex,omitempty"`
+			OutputIndex        *uint32  `json:"outputindex,omitempty"`
+			InputIndex         *uint32  `json:"inputindex,omitempty"`
 			TxType             string   `json:"txtype,omitempty"`
-			Amount             string   `json:"amount,omitempty"`
+			Amount             *int64   `json:"amount,omitempty"`
 			IsCoinbase         *bool    `json:"iscoinbase,omitempty"`
 			DType              []string `json:"dgraph.type,omitempty"`
 			OutputTransactions []struct {
@@ -268,7 +268,7 @@ func GetCount(c *dgo.Dgraph) (uint64, error) {
 
 func CountOutputDenominations(outputs []Output) []int {
 
-	var amounts []uint64
+	var amounts []int64
 
 	for _, o := range outputs {
 		if o.Amount == nil {
@@ -281,8 +281,8 @@ func CountOutputDenominations(outputs []Output) []int {
 	return CountAmountDenominations(amounts)
 }
 
-func CountAmountDenominations(amounts []uint64) []int {
-	denominationsTypes := []uint64{1000010000, 100001000, 10000100, 1000010, 100001}
+func CountAmountDenominations(amounts []int64) []int {
+	denominationsTypes := []int64{1000010000, 100001000, 10000100, 1000010, 100001}
 	denominations := make([]int, len(denominationsTypes))
 
 	for _, amt := range amounts {

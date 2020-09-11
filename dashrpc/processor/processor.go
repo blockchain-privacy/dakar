@@ -12,9 +12,9 @@ import (
 	"dashrpc/rpcclient"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"math"
 	"strconv"
 	"time"
 
@@ -65,7 +65,7 @@ func (p *crawlerProcessingState) increment(nextHash string) (err error) {
 // maps a address to one or more indexes of a transaction
 type outputMapping struct {
 	hash    string
-	indexes []uint64
+	indexes []uint32
 }
 
 // maps a address to one or more indexes of a transaction
@@ -75,7 +75,7 @@ type TransactionMapping struct {
 }
 
 // adds indexOutput to an existing outputMapping in mapping. If none exists it inserts a new mapping
-func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint64) map[string]outputMapping {
+func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutput uint32) map[string]outputMapping {
 	if val, ok := mapping[addr]; ok {
 		val.indexes = append(val.indexes, indexOutput)
 		mapping[addr] = val
@@ -84,7 +84,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 
 	mapping[addr] = outputMapping{
 		hash:    addr,
-		indexes: []uint64{indexOutput},
+		indexes: []uint32{indexOutput},
 	}
 
 	return mapping
@@ -167,12 +167,16 @@ func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMappi
 }
 
 // creates a named uid, parsable by dgraph
-func createOutputUid(transaction string, outputId uint64) string {
-	return "_:" + transaction + strconv.FormatUint(outputId, 10)
+func createOutputUid(transaction string, outputId uint32) string {
+	return "_:" + transaction + strconv.FormatUint(uint64(outputId), 10)
 }
 
-func valtoInt(value float64) uint64 {
-	return uint64(math.RoundToEven(value * 1e8))
+func valtoInt(value float64) (int64, error) {
+	amount, err := btcutil.NewAmount(value)
+	if err != nil {
+		return 0, err
+	}
+	return int64(amount), nil
 }
 
 // processes the transaction specified by 'txHashString'
@@ -188,7 +192,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	} else {
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
-			if err = processTxVin(dgraph, &txDetails, d, uint64(i), txHashMap); err != nil {
+			if err = processTxVin(dgraph, &txDetails, d, uint32(i), txHashMap); err != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
@@ -207,25 +211,31 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		}
 	} else {
 		// no fees for coinbase transactions
-		nullAmount := uint64(0)
+		nullAmount := int64(0)
 		txDetails.Fee = &nullAmount
 	}
 
 	// process all outputs
 	outputMappings := make(map[string]outputMapping)
 	for _, d := range rawTransaction.Vout {
-		amt := valtoInt(d.Value)
-		uindex := uint64(d.N)
+		amt, valErr := valtoInt(d.Value)
+		if valErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), valErr)
+			return
+		}
+
+		index := d.N
+
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			Uid:         createOutputUid(rawTransaction.Txid, uindex),
+			Uid:         createOutputUid(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &amt,
 			TxType:      d.ScriptPubKey.Type,
-			OutputIndex: &uindex,
+			OutputIndex: &index,
 		})
 
 		for _, e := range d.ScriptPubKey.Addresses {
-			outputMappings = addOutputToMapping(outputMappings, e, uindex)
+			outputMappings = addOutputToMapping(outputMappings, e, index)
 		}
 	}
 
@@ -244,7 +254,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 }
 
 // maps the input information to the output if it exists already in the database
-func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint64, txHashMap map[string]btcjson.TxRawResult) error {
+func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -256,8 +266,11 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
-		refOutput.Uid = createOutputUid(vin.Txid, uint64(vin.Vout))
-		amt := valtoInt(v.Vout[vin.Vout].Value)
+		refOutput.Uid = createOutputUid(vin.Txid, vin.Vout)
+		amt, err := valtoInt(v.Vout[vin.Vout].Value)
+		if err != nil {
+			return err
+		}
 		refOutput.Amount = &amt
 	} else {
 		output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)

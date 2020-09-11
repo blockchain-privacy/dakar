@@ -96,8 +96,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType string           `json:"privacytype,omitempty"`
-			Fee         uint64           `json:"fee,omitempty"`
-			OriginCount uint64           `json:"origincount,omitempty"`
+			Fee         *int64           `json:"fee,omitempty"`
+			OriginCount *uint64          `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
@@ -116,7 +116,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	if len(r.Transaction) == 0 || len(r.Transaction[0].Block) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
-	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 ||
+		r.Transaction[0].Fee == nil || r.Transaction[0].OriginCount == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
@@ -126,8 +127,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	transaction = FrontendTransaction{
 		Hash:           t.Hash,
 		PrivacyType:    t.PrivacyType,
-		Fee:            t.Fee,
-		OriginCount:    t.OriginCount,
+		Fee:            *t.Fee,
+		OriginCount:    *t.OriginCount,
 		BlockHash:      t.Block[0].Hash,
 		BlockId:        t.Block[0].Id,
 		BlockTimestamp: t.Block[0].Ts,
