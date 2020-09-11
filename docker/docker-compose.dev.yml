@@ -14,6 +14,8 @@ services:
         - 80:80
       volumes:
         - ../app:/app
+      networks:
+        - dgraph_default
 
   api:
       container_name: dakar_dashrpc
@@ -22,7 +24,10 @@ services:
         dockerfile: Dockerfile
       depends_on:
         - dash
+        - zero
         - alpha
       tty: false
       ports:
         - 8081:8081
+      networks:
+        - dgraph_default
