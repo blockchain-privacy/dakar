@@ -93,6 +93,8 @@ If the new flag needs some **simple** input verification, implement it in this m
 | status | false | Prints current processing status (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |
+| dbhost | 0.0.0.0 | Dgraph host IP (default: 0.0.0.0) |
+| dbport | 9080 | Dgraph port (default: 9080) |
 | logfile | < empty string > | Specify log file (default: none) |
 | disableserver | false | Disable the http server (default: false) |
 | disablecrawler | false | Disable the crawler (default: false) |

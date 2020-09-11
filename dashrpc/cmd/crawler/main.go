@@ -32,7 +32,7 @@ func info(v ...interface{}) {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort)
+		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort, cli.DBHost)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -108,7 +108,7 @@ func main() {
 	}
 
 	// create dgraph client
-	dgraph, c, err := db.CreateDefaultClient()
+	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
 	if err != nil {
 		info(err)
 		return
