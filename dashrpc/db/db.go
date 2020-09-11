@@ -98,9 +98,8 @@ func DropAll(c *dgo.Dgraph) error {
 }
 
 // create a new dgraph client connecting to the specified host and port
-func CreateClient(host string, port uint) (*dgo.Dgraph, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:%d", host, port),
-		grpc.WithInsecure(),
+func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*50)))
 
 	if err != nil {
@@ -109,11 +108,6 @@ func CreateClient(host string, port uint) (*dgo.Dgraph, *grpc.ClientConn, error)
 	}
 
 	return dgo.NewDgraphClient(api.NewDgraphClient(conn)), conn, nil
-}
-
-// create a new dgraph client with default connection values
-func CreateDefaultClient() (*dgo.Dgraph, *grpc.ClientConn, error) {
-	return CreateClient("localhost", 9080)
 }
 
 // gets the number of instances of the given type in the database

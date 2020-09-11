@@ -25,6 +25,8 @@ const (
 	RpcPassword
 	RpcHost
 	RpcPort
+	DBHost
+	DBPort
 	StartBlockID
 	StopBlockID
 	IsPrintStatus
@@ -48,6 +50,7 @@ type Arguments struct {
 	StopBlockID       uint64
 	IsPrintStatus     bool
 	RpcEndpoint       string
+	DBEndpoint        string
 	Logfile           string
 	TxSearch          string
 	TxInfo            string
@@ -104,8 +107,11 @@ func GetLogfile(fileName string) (f *os.File, err error) {
 func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var rpcHostString string
 	var rpcPortNumber uint
+	var dbHostString string
+	var dbPortNumber uint
 
-	isPortSet := false
+	isRpcPortSet := false
+	isDBPortSet := false
 
 	for _, f := range flags {
 		switch f {
@@ -129,7 +135,14 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case RpcPort:
 			addRpcPort(&rpcPortNumber)
-			isPortSet = true
+			isRpcPortSet = true
+			break
+		case DBHost:
+			addDBHost(&dbHostString)
+			break
+		case DBPort:
+			addDBPort(&dbPortNumber)
+			isDBPortSet = true
 			break
 		case StartBlockID:
 			addStartBlockID(&args.StartBlockID)
@@ -173,13 +186,23 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	flag.Parse()
 
 	// if host and port are not empty build the endpoint
-	if len(rpcHostString) > 0 && isPortSet {
+	if len(rpcHostString) > 0 && isRpcPortSet {
 		endpoint, err := buildEndpoint(rpcHostString, rpcPortNumber)
 		if err != nil {
 			return args, err
 		}
 
 		args.RpcEndpoint = endpoint
+	}
+
+	// if host and port are not empty build the endpoint
+	if len(dbHostString) > 0 && isDBPortSet {
+		endpoint, err := buildEndpoint(dbHostString, dbPortNumber)
+		if err != nil {
+			return args, err
+		}
+
+		args.DBEndpoint = endpoint
 	}
 
 	return args, err
@@ -235,6 +258,14 @@ func addRpcHost(v *string) {
 
 func addRpcPort(v *uint) {
 	flag.UintVar(v, "rpcport", 9998, "Dash RPC port (default: 9998)")
+}
+
+func addDBHost(v *string) {
+	flag.StringVar(v, "dbhost", "0.0.0.0", "Dgraph host IP (default: 0.0.0.0)")
+}
+
+func addDBPort(v *uint) {
+	flag.UintVar(v, "dbport", 9080, "Dgraph port (default: 9080)")
 }
 
 func addLogfile(v *string) {
