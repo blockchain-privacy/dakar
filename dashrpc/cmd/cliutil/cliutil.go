@@ -187,22 +187,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	// if host and port are not empty build the endpoint
 	if len(rpcHostString) > 0 && isRpcPortSet {
-		endpoint, err := buildEndpoint(rpcHostString, rpcPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.RpcEndpoint = endpoint
+		args.RpcEndpoint = rpcHostString + ":" + strconv.Itoa(int(rpcPortNumber))
 	}
 
 	// if host and port are not empty build the endpoint
 	if len(dbHostString) > 0 && isDBPortSet {
-		endpoint, err := buildEndpoint(dbHostString, dbPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.DBEndpoint = endpoint
+		args.DBEndpoint = dbHostString + ":" + strconv.Itoa(int(dbPortNumber))
 	}
 
 	return args, err
