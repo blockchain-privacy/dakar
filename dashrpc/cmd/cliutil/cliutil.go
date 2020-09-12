@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 	"path"
 	"runtime"
@@ -80,14 +79,22 @@ func ShowCallInfo() string {
 }
 
 // creates a string in the format of "rpcHost:rpcPort"
-func buildEndpoint(rpcHost string, rpcPort uint) (string, error) {
+func buildEndpoint(host string, port uint) (string, error) {
+	// the host can be in a form of IP address, or in a form of Label (e.g. in Docker), or proper hostname
+	// it is complicated to actually validate it properly
+	//
 	// check if ip is valid
-	if ip := net.ParseIP(rpcHost); ip == nil {
-		return "", errors.New("IP is not valid")
+	// if ip := net.ParseIP(rpcHost); ip == nil {
+	//	return "", errors.New("IP is not valid")
+	// }
+
+	host = strings.TrimSpace(host)
+	response := host + ":" + strconv.Itoa(int(port))
+	if len(host) > 0 && port > 0 {
+		return response, nil
 	}
 
-	// build endpoint string
-	return rpcHost + ":" + strconv.Itoa(int(rpcPort)), nil
+	return response, errors.New("host or port is not valid")
 }
 
 func GetLogfile(fileName string) (f *os.File, err error) {
