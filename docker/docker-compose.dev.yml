@@ -2,13 +2,13 @@ version: '3.6'
 
 services:
 
-  web:
-      container_name: dakar_frontend
+  dakar_nginx:
+      container_name: dakar_nginx
       build:
         context: ../app
         dockerfile: Dockerfile
       depends_on:
-        - api
+        - dakar_dashrpc
       tty: false
       ports:
         - 80:80
@@ -17,17 +17,21 @@ services:
       networks:
         - dgraph_default
 
-  api:
+  dakar_dashrpc:
       container_name: dakar_dashrpc
       build:
         context: ../dashrpc
         dockerfile: Dockerfile
       depends_on:
-        - dash
         - zero
+        - ratel
+        - dakar_dashd
         - alpha
       tty: false
+      restart: unless-stopped
       ports:
         - 8081:8081
+      expose:
+        - 8081
       networks:
         - dgraph_default
