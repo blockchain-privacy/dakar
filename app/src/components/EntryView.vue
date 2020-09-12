@@ -25,7 +25,7 @@
             <v-container v-if="data">
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-database-sync" title="Database synchronisation" :tooltip="tooltips.databaseSync"
+                  <IconItem icon="mdi-database-sync" title="Chain Synchronisation" :tooltip="tooltips.databaseSync"
                             is-color :is-red="!data.status.iscrawling">
                     <v-progress-linear
                         :color="crawlerSyncProgress > 98?'green':crawlerSyncProgress > 90?'light-green':'light-blue'"
@@ -37,7 +37,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-database-search" title="Database analyzation"
+                  <IconItem icon="mdi-database-search" title="Database analysis"
                             :tooltip="tooltips.databaseAnalyzation" is-color :is-red="!data.status.isanalyzing">
                     <v-progress-linear
                         :color="analyzerSyncProgress > 98?'green':analyzerSyncProgress > 90?'light-green':'light-blue'"
