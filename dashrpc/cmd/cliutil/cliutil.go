@@ -78,7 +78,7 @@ func ShowCallInfo() string {
 	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
 }
 
-// creates a string in the format of "rpcHost:rpcPort"
+// creates a string in the format of "host:port"
 func buildEndpoint(host string, port uint) (string, error) {
 	// the host can be in a form of IP address, or in a form of Label (e.g. in Docker), or proper hostname
 	// it is complicated to actually validate it properly
@@ -117,9 +117,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var dbHostString string
 	var dbPortNumber uint
 
-	isRpcPortSet := false
-	isDBPortSet := false
-
 	for _, f := range flags {
 		switch f {
 		case Continuous:
@@ -142,14 +139,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case RpcPort:
 			addRpcPort(&rpcPortNumber)
-			isRpcPortSet = true
 			break
 		case DBHost:
 			addDBHost(&dbHostString)
 			break
 		case DBPort:
 			addDBPort(&dbPortNumber)
-			isDBPortSet = true
 			break
 		case StartBlockID:
 			addStartBlockID(&args.StartBlockID)
@@ -192,25 +187,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	flag.Parse()
 
-	// if host and port are not empty build the endpoint
-	if len(rpcHostString) > 0 && isRpcPortSet {
-		endpoint, err := buildEndpoint(rpcHostString, rpcPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.RpcEndpoint = endpoint
+	args.RpcEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
+	if err != nil {
+		return args, err
 	}
 
-	// if host and port are not empty build the endpoint
-	if len(dbHostString) > 0 && isDBPortSet {
-		endpoint, err := buildEndpoint(dbHostString, dbPortNumber)
-		if err != nil {
-			return args, err
-		}
-
-		args.DBEndpoint = endpoint
-	}
+	args.DBEndpoint, err = buildEndpoint(dbHostString, dbPortNumber)
 
 	return args, err
 }
