@@ -25,7 +25,11 @@ Your local environmental variables should be declared in `.env.local`
 docker-compose --env-file .env.local -f docker-compose.yml -f docker-compose.dev.yml up
 ```
 
-For convenience, the dev docker setup command is run through `docker-compose-all-local.sh` bash script.
+For convenience, the dev docker setup command is run through `dakar-run-local.sh` bash script. Usage:
+
+   * `./dakar-run-local.sh up`
+   * `./dakar-run-local.sh down`
+   * `./dakar-run-local.sh build`
 
 Once all the containers are instantiated you can point your browser to `http://localhost` for Dakar front-end.
 
