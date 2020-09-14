@@ -15,11 +15,11 @@ import (
 	"time"
 )
 
-// block id after which we start analysing
-const analyseStartBlock = 430000
+// block id after which we start analysing. found empirically.
+const analyseStartBlock = 206940
 
 // number of days we want to look back
-const numDaysReverseLookup = 14
+const numDaysReverseLookup = 360
 
 var errorInterrupted = errors.New("interrupted")
 
@@ -222,6 +222,9 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 		}
 
 		if transaction.PrivacyType != "" {
+			// todo remove
+			info("Found private send transaction", transaction.Hash, transaction.PrivacyType, *block.Id)
+
 			updatedTransaction := dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
@@ -237,6 +240,9 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
 				}
+
+				// todo remove
+				info("origins found:", len(origins))
 
 				for _, o := range origins {
 					updatedTransaction.Origins = append(updatedTransaction.Origins, dbtx.Transaction{Uid: o})
