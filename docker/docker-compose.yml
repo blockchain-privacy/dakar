@@ -5,10 +5,12 @@
 # container. You can change /tmp/data to a more appropriate location.
 # Run `docker-compose up` to start Dgraph.
 
-version: "3.2"
+version: "3.6"
 services:
+  
   zero:
     image: dgraph/dgraph:latest
+    container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
     ports:
@@ -18,37 +20,46 @@ services:
     command: dgraph zero --my=zero:5080
     networks:
         - dgraph_default
+  
   alpha:
     image: dgraph/dgraph:latest
+    container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
     ports:
       - 8080:8080
       - 9080:9080
+    expose:
+      - 9080
     restart: on-failure
-    command: dgraph alpha --my=alpha:7080 --lru_mb=2048 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.0,192.168.188.0:192.168.188.255 --query_edge_limit 10000000
+    command: dgraph alpha --my=alpha:7080 --lru_mb=2048 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.255,192.168.188.0:192.168.188.255 --query_edge_limit 10000000
     networks:
         - dgraph_default
+  
   ratel:
     image: dgraph/dgraph:latest
+    container_name: ratel
     ports:
       - 8000:8000
     command: dgraph-ratel
     networks:
         - dgraph_default
-  dash:
+  
+  dakar_dashd:
     image: dashpay/dashd:latest
+    container_name: dakar_dashd
     volumes:
       - ${DASH_PATH}:/dash
     ports:
       - 9999:9999
       - 9998:9998
+    expose:
+      - 9999
+      - 9998
     restart: on-failure
     networks:
-      - dash_default
+      - dgraph_default
 
 networks:
   dgraph_default:
-    external: true
-  dash_default:
     external: true

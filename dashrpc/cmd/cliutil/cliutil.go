@@ -78,6 +78,25 @@ func ShowCallInfo() string {
 	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
 }
 
+// creates a string in the format of "host:port"
+func buildEndpoint(host string, port uint) (string, error) {
+	// the host can be in a form of IP address, or in a form of Label (e.g. in Docker), or proper hostname
+	// it is complicated to actually validate it properly
+	//
+	// check if ip is valid
+	// if ip := net.ParseIP(rpcHost); ip == nil {
+	//	return "", errors.New("IP is not valid")
+	// }
+
+	host = strings.TrimSpace(host)
+	response := host + ":" + strconv.Itoa(int(port))
+	if len(host) > 0 && port > 0 {
+		return response, nil
+	}
+
+	return response, errors.New("host or port is not valid")
+}
+
 func GetLogfile(fileName string) (f *os.File, err error) {
 	if len(fileName) > 0 {
 		f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -97,9 +116,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var rpcPortNumber uint
 	var dbHostString string
 	var dbPortNumber uint
-
-	isRpcPortSet := false
-	isDBPortSet := false
 
 	for _, f := range flags {
 		switch f {
@@ -123,14 +139,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case RpcPort:
 			addRpcPort(&rpcPortNumber)
-			isRpcPortSet = true
 			break
 		case DBHost:
 			addDBHost(&dbHostString)
 			break
 		case DBPort:
 			addDBPort(&dbPortNumber)
-			isDBPortSet = true
 			break
 		case StartBlockID:
 			addStartBlockID(&args.StartBlockID)
@@ -173,15 +187,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	flag.Parse()
 
-	// if host and port are not empty build the endpoint
-	if len(rpcHostString) > 0 && isRpcPortSet {
-		args.RpcEndpoint = rpcHostString + ":" + strconv.Itoa(int(rpcPortNumber))
+	args.RpcEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
+	if err != nil {
+		return args, err
 	}
 
-	// if host and port are not empty build the endpoint
-	if len(dbHostString) > 0 && isDBPortSet {
-		args.DBEndpoint = dbHostString + ":" + strconv.Itoa(int(dbPortNumber))
-	}
+	args.DBEndpoint, err = buildEndpoint(dbHostString, dbPortNumber)
 
 	return args, err
 }
