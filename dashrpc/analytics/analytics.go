@@ -200,13 +200,6 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 
 func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct{}) (updatedBlock dbblk.Block, err error) {
 	updatedBlock.Uid = block.Uid
-	ts, err := time.Parse(time.RFC3339, block.Timestamp)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	until := ts.AddDate(0, 0, -numDaysReverseLookup)
 
 	for _, tx := range block.Transactions {
 		select {
@@ -239,7 +232,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16, until)
+				origins, originErr := reverseLookup(dgraph, transaction)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
@@ -256,6 +249,49 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 		}
 	}
 	return
+}
+
+func reverseLookup(dgraph *dgo.Dgraph, transaction dbtx.Transaction) (origins []string, err error) {
+	sourceTransactions, inputErr := dbtx.GetInputTransactions(dgraph, transaction.Hash)
+	if inputErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), inputErr)
+		return
+	}
+
+	allOrigins := make(map[string]bool)
+
+	for _, s := range sourceTransactions {
+		ts, timeErr := time.Parse(time.RFC3339, s.Timestamp)
+		if timeErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), timeErr)
+			return
+		}
+
+		until := ts.AddDate(0, 0, -numDaysReverseLookup)
+
+		originPart, originErr := dban.AnalyzeOrigins(dgraph, s.Hash, 16, until)
+		if originErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
+			return
+		}
+		addUidsToMap(allOrigins, originPart)
+	}
+
+	for k, _ := range allOrigins {
+		origins = append(origins, k)
+	}
+
+	return
+}
+
+func addUidsToMap(uids map[string]bool, newUids []string) {
+	for _, e := range newUids {
+		if uids[e] {
+			continue
+		}
+
+		uids[e] = true
+	}
 }
 
 // sets the privacy type of the transaction

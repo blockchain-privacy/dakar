@@ -52,6 +52,48 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 	return r.payload()
 }
 
+// gets the transactions which create the inputs for txHash
+func GetInputTransactions(c *dgo.Dgraph, txHash string) (transactions []SourceTransaction, err error) {
+	query := `query Q($hash: string){
+				q(func: eq(txhash, $hash))@normalize{
+					tx_inputs{
+						~tx_outputs{
+							txhash: txhash
+							~transactions{
+								ts: ts
+							}
+						}
+					}
+			  	}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []SourceTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transactions) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		return
+	}
+
+	transactions = r.Transactions
+
+	return
+}
+
 // gets transaction information for the frontend
 func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendTransaction, err error) {
 	query := `query Q($hash: string){
