@@ -9,7 +9,6 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
-	"log"
 	"time"
 )
 
@@ -32,21 +31,18 @@ func GetFrontendContext() context.Context {
 }
 
 // Execute the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) error {
-	var err error
+func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err error) {
 	for i := 0; i < maxRetries; i++ {
 		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
-			return nil
+			return
 		}
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
+
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
 	}
 
-	return err
+	return
 }
 
 // Execute the given request. In case the request fails repeat it
@@ -59,9 +55,6 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 			return resp, nil
 		}
 		err = txErr
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -79,9 +72,7 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*ap
 			return resp, nil
 		}
 		err = txErr
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
+
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
