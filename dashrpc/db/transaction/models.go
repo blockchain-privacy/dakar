@@ -209,8 +209,3 @@ type FrontendRequest struct {
 		Id   uint64 `json:"id,omitempty"`
 	} `json:"block,omitempty"`
 }
-
-type SourceTransaction struct {
-	Hash      string `json:"txhash,omitempty"`
-	Timestamp string `json:"ts,omitempty"`
-}
