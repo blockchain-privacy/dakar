@@ -9,6 +9,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"google.golang.org/grpc"
+	"log"
 	"time"
 )
 
@@ -19,6 +20,12 @@ const frontEndTimout = time.Second * 30
 const maxRetries = 5
 
 const retrySleepDuration = time.Second * 5
+
+func info(v ...interface{}) {
+	log.SetPrefix("\033[0;33mdb\u001B[0m\t")
+	log.Println(v)
+	log.SetPrefix("")
+}
 
 func GetBackendContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
@@ -36,7 +43,7 @@ func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err
 		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
 			return
 		}
-
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -55,6 +62,7 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 			return resp, nil
 		}
 		err = txErr
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -72,7 +80,7 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*ap
 			return resp, nil
 		}
 		err = txErr
-
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
