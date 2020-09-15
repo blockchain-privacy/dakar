@@ -34,7 +34,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins 
 			txUids += ","
 			queryMiddle += fmt.Sprintf(`
 		var(func: uid(inputs%d)){
-			~tx_outputs@filter(eq(privacytype, "mixing")){
+			~tx_outputs@filter(eq(privacytype, ["mixing","origin"])){
 				tx_inputs{
 					inputs%d as uid
 				}
