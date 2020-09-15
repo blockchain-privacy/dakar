@@ -136,6 +136,7 @@ mainLoop:
 		updatedBlock, err := analyseBlock(dgraph, currentBlock, ctx.Done())
 		if err != nil {
 			if errors.Is(err, errorInterrupted) {
+				analyzingInterrupted()
 				return nil
 			}
 
