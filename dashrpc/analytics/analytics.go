@@ -18,9 +18,6 @@ import (
 // block id after which we start analysing. found empirically.
 const analyseStartBlock = 206940
 
-// number of days we want to look back
-const numDaysReverseLookup = 360
-
 var errorInterrupted = errors.New("interrupted")
 
 func info(v ...interface{}) {
