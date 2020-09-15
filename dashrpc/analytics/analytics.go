@@ -222,9 +222,6 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 		}
 
 		if transaction.PrivacyType != "" {
-			// todo remove
-			info("Found private send transaction", transaction.Hash, transaction.PrivacyType, *block.Id)
-
 			updatedTransaction := dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
@@ -235,14 +232,11 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := reverseLookup(dgraph, transaction)
+				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
 				}
-
-				// todo remove
-				info("origins found:", len(origins))
 
 				for _, o := range origins {
 					updatedTransaction.Origins = append(updatedTransaction.Origins, dbtx.Transaction{Uid: o})
@@ -255,49 +249,6 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 		}
 	}
 	return
-}
-
-func reverseLookup(dgraph *dgo.Dgraph, transaction dbtx.Transaction) (origins []string, err error) {
-	sourceTransactions, inputErr := dbtx.GetInputTransactions(dgraph, transaction.Hash)
-	if inputErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), inputErr)
-		return
-	}
-
-	allOrigins := make(map[string]bool)
-
-	for _, s := range sourceTransactions {
-		ts, timeErr := time.Parse(time.RFC3339, s.Timestamp)
-		if timeErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), timeErr)
-			return
-		}
-
-		until := ts.AddDate(0, 0, -numDaysReverseLookup)
-
-		originPart, originErr := dban.AnalyzeOrigins(dgraph, s.Hash, 16, until)
-		if originErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
-			return
-		}
-		addUidsToMap(allOrigins, originPart)
-	}
-
-	for k, _ := range allOrigins {
-		origins = append(origins, k)
-	}
-
-	return
-}
-
-func addUidsToMap(uids map[string]bool, newUids []string) {
-	for _, e := range newUids {
-		if uids[e] {
-			continue
-		}
-
-		uids[e] = true
-	}
 }
 
 // sets the privacy type of the transaction
