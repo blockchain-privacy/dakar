@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"log"
 )
 
 // Searches for all potential origins up to depth. The returned string slice contains the uids of
@@ -86,6 +87,7 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(txhash, $hash)){
 					origins{
+						uid
 						txhash
 						privacytype
 						fee
@@ -109,6 +111,7 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 	var r struct {
 		Q []struct {
 			Origins []struct {
+				Uid   string `json:"uid,omitempty"`
 				Hash  string `json:"txhash,omitempty"`
 				Block []struct {
 					Hash string `json:"blockhash,omitempty"`
@@ -136,6 +139,7 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 		}
 
 		origins = append(origins, Origin{
+			Uid:            o.Uid,
 			Hash:           o.Hash,
 			BlockHash:      o.Block[0].Hash,
 			BlockId:        o.Block[0].Id,
@@ -144,4 +148,35 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 	}
 
 	return
+}
+
+// gets the shortest path between uidFrom and uidTo
+func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) {
+	query := fmt.Sprintf(`{
+				shortest(from: %s, to: %s){
+					tx_inputs
+					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+				# todo uncomment or remove; uncomment -> add "path as shortest"
+				#path(func: uid(path)) {
+				#	txhash
+				#	amount
+				#	inputindex
+				#	outputindex
+				#}
+			  }`, uidFrom, uidTo)
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query,
+		map[string]string{"$from": uidFrom, "$to": uidTo})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	log.Println(len(resp.Json))
+	//if err = json.Unmarshal(resp.Json, &r); err != nil {
+	//	err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//	return
+	//}
 }
