@@ -21,6 +21,12 @@ const maxRetries = 5
 
 const retrySleepDuration = time.Second * 5
 
+func info(v ...interface{}) {
+	log.SetPrefix("\033[0;33mdb\u001B[0m\t")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
 func GetBackendContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
 	return ctx
@@ -32,21 +38,18 @@ func GetFrontendContext() context.Context {
 }
 
 // Execute the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) error {
-	var err error
+func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err error) {
 	for i := 0; i < maxRetries; i++ {
 		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
-			return nil
+			return
 		}
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
 	}
 
-	return err
+	return
 }
 
 // Execute the given request. In case the request fails repeat it
@@ -59,9 +62,7 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 			return resp, nil
 		}
 		err = txErr
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -79,9 +80,7 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*ap
 			return resp, nil
 		}
 		err = txErr
-		// todo remove
-		err = fmt.Errorf("error when doing transaction, retrying: %w", err)
-		log.Println(err)
+		info("encountered error retrying:", err)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}

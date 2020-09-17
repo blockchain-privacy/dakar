@@ -65,7 +65,6 @@ func setDefaultHeader(w http.ResponseWriter) {
 
 // API pattern: "/api/v1/"
 func handlerRoot(w http.ResponseWriter, r *http.Request) {
-	serverInfo("Accessed", r.URL.Path)
 	setDefaultHeader(w)
 	// not handling possible errors
 	_, e := fmt.Fprintln(w, "Possible routes:")
@@ -107,7 +106,6 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 // API pattern: "/api/v1/blk/<hash>"
 func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		blkHashString := r.URL.Path[len(getRouteBlock()):]
@@ -141,7 +139,6 @@ func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Req
 // API pattern: "/api/v1/address/<hash>"
 func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		addressHashString := r.URL.Path[len(getRouteAddress()):]
@@ -175,7 +172,6 @@ func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.R
 // API pattern: "/api/v1/tx/<hash>"
 func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(getRouteTransaction()):]
@@ -209,7 +205,6 @@ func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reques
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
@@ -250,7 +245,6 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 // API pattern: "/api/v1/origins/"
 func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		serverInfo("Accessed", r.URL.Path)
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(getRouteOrigins()):]

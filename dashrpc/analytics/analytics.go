@@ -15,11 +15,8 @@ import (
 	"time"
 )
 
-// block id after which we start analysing
-const analyseStartBlock = 430000
-
-// number of days we want to look back
-const numDaysReverseLookup = 14
+// block id after which we start analysing. found empirically.
+const analyseStartBlock = 206940
 
 var errorInterrupted = errors.New("interrupted")
 
@@ -139,6 +136,7 @@ mainLoop:
 		updatedBlock, err := analyseBlock(dgraph, currentBlock, ctx.Done())
 		if err != nil {
 			if errors.Is(err, errorInterrupted) {
+				analyzingInterrupted()
 				return nil
 			}
 
@@ -200,13 +198,6 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 
 func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct{}) (updatedBlock dbblk.Block, err error) {
 	updatedBlock.Uid = block.Uid
-	ts, err := time.Parse(time.RFC3339, block.Timestamp)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	until := ts.AddDate(0, 0, -numDaysReverseLookup)
 
 	for _, tx := range block.Transactions {
 		select {
@@ -239,7 +230,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16, until)
+				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
