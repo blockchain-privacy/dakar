@@ -37,7 +37,7 @@ Write to a log file, reset the database, start the http server on the default po
 
 Write to a log file, reset the database and start crawling from block height 1268019 to 1269019. Also start the http server.
 ```shell script
-./crawler -start 1268019 -stop 1269019 -logfile /home/dark/crawler.log -reset
+./crawler -start 1268019 -stop 1269019 -logfile /tmp/crawler.log -reset
 ```
 
 Print the current status of the database
