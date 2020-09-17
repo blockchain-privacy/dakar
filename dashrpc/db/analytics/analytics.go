@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 )
 
 // Searches for all potential origins up to depth. The returned string slice contains the uids of
@@ -151,7 +150,7 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 }
 
 // gets the shortest path between uidFrom and uidTo
-func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) {
+func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) (p []PathElement, err error) {
 	query := fmt.Sprintf(`{
 				shortest(from: %s, to: %s){
 					tx_inputs
@@ -174,9 +173,46 @@ func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) {
 		return
 	}
 
-	log.Println(len(resp.Json))
-	//if err = json.Unmarshal(resp.Json, &r); err != nil {
-	//	err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//	return
-	//}
+	var r struct {
+		Path []transaction `json:"_path_,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Path) == 0 || r.Path[0].Uid == "" || r.Path[0].Input == nil {
+		err = errors.New("error invalid path")
+		return
+	}
+
+	var nextInput *input
+	var nextTransaction *transaction
+
+	// set start element
+	nextTransaction = &r.Path[0]
+
+	// add path elements
+	for {
+		if nextInput != nil {
+			p = append(p, PathElement{
+				uid:           nextInput.Uid,
+				isTransaction: false,
+			})
+			nextTransaction = nextInput.Transaction
+			nextInput = nil
+		} else if nextTransaction != nil {
+			p = append(p, PathElement{
+				uid:           nextTransaction.Uid,
+				isTransaction: true,
+			})
+			nextInput = nextTransaction.Input
+			nextTransaction = nil
+		} else {
+			break
+		}
+	}
+
+	return
 }

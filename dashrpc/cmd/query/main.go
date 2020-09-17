@@ -82,7 +82,13 @@ func main() {
 
 		fmt.Println("number of origins:", len(origins))
 		for _, o := range origins {
-			dban.GetShortestPath(dgraph, transaction.Uid, o.Uid)
+			elements, err := dban.GetShortestPath(dgraph, transaction.Uid, o.Uid)
+			if err != nil {
+				info(err)
+				return
+			}
+
+			fmt.Println(len(elements))
 		}
 
 		log.Println("Information is already available in the crawler tool. Query the database or use the frontend to find origins.")
