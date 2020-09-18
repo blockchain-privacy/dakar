@@ -165,7 +165,7 @@ mainLoop:
 		counterAnalysedBlocks++
 
 		if counterAnalysedBlocks%1000 == 0 {
-			metric("avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/int64(counterAnalysedBlocks), "ms/block")
+			metric("avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/1000, "ms/block")
 			timerGlobal = time.Now()
 		}
 	}
