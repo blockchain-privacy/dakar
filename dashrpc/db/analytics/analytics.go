@@ -156,17 +156,9 @@ func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) (p []PathEleme
 					tx_inputs
 					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
 				}
-				# todo uncomment or remove; uncomment -> add "path as shortest"
-				#path(func: uid(path)) {
-				#	txhash
-				#	amount
-				#	inputindex
-				#	outputindex
-				#}
 			  }`, uidFrom, uidTo)
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query,
-		map[string]string{"$from": uidFrom, "$to": uidTo})
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -187,11 +179,93 @@ func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) (p []PathEleme
 		return
 	}
 
+	p = convertPath(&r.Path[0])
+
+	return
+}
+
+// gets the weight of the shortest path between uidFrom and uidTo
+func GetShortestPathWeight(c *dgo.Dgraph, uidFrom string, uidTo string) (weight float64, err error) {
+	query := fmt.Sprintf(`{
+				shortest(from: %s, to: %s){
+					tx_inputs
+					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+			  }`, uidFrom, uidTo)
+
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Path []struct {
+			Weight float64 `json:"_weight_,omitempty"`
+		} `json:"_path_,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Path) == 0 {
+		err = errors.New("error invalid path")
+		return
+	}
+
+	weight = r.Path[0].Weight
+
+	return
+}
+
+// gets up to numPath paths between uidFrom and uidTo up to depth
+func GetPaths(c *dgo.Dgraph, uidFrom string, uidTo string, numPaths uint32, depth uint32) (paths [][]PathElement, err error) {
+	query := fmt.Sprintf(`{
+				shortest(from: %s, to: %s, numpaths: %d, depth: %d){
+					tx_inputs
+					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+			  }`, uidFrom, uidTo, numPaths, depth)
+
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Path []transaction `json:"_path_,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Path) == 0 {
+		err = errors.New("error invalid path")
+		return
+	}
+
+	// || r.Path[0].Uid == "" || r.Path[0].Input == nil
+
+	for _, p := range r.Path {
+		paths = append(paths, convertPath(&p))
+	}
+
+	return
+}
+
+func convertPath(firstTransaction *transaction) (p []PathElement) {
 	var nextInput *input
 	var nextTransaction *transaction
 
 	// set start element
-	nextTransaction = &r.Path[0]
+	nextTransaction = firstTransaction
 
 	// add path elements
 	for {
@@ -213,6 +287,5 @@ func GetShortestPath(c *dgo.Dgraph, uidFrom string, uidTo string) (p []PathEleme
 			break
 		}
 	}
-
 	return
 }

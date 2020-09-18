@@ -1,10 +1,9 @@
 package main
 
 import (
+	"dashrpc/analytics"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
-	dban "dashrpc/db/analytics"
-	dbtx "dashrpc/db/transaction"
 	"errors"
 	"flag"
 	"fmt"
@@ -65,30 +64,13 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		bigTransaction := "62cd8a10d62c42fa786bb2d897f48499bcbb58ee697a5e7bc0fe48cdec081efc"
+		//bigTransaction := "62cd8a10d62c42fa786bb2d897f48499bcbb58ee697a5e7bc0fe48cdec081efc"
+		biggerTransaction := "d3efe170dc1c1e8db2e8feb6fab76da2d9188176196d69b0055ca8e485233fd3"
 		//smallTransation := cliArgs.TxSearch
 
-		transaction, err := dbtx.GetTransaction(dgraph, bigTransaction)
-		if err != nil {
-			info(err)
+		if err := analytics.GetAllPaths(dgraph, biggerTransaction); err != nil {
+			log.Println(err)
 			return
-		}
-
-		origins, err := dban.GetOrigins(dgraph, bigTransaction)
-		if err != nil {
-			info(err)
-			return
-		}
-
-		fmt.Println("number of origins:", len(origins))
-		for _, o := range origins {
-			elements, err := dban.GetShortestPath(dgraph, transaction.Uid, o.Uid)
-			if err != nil {
-				info(err)
-				return
-			}
-
-			fmt.Println(len(elements))
 		}
 
 		log.Println("Information is already available in the crawler tool. Query the database or use the frontend to find origins.")
