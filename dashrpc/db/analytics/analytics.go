@@ -9,55 +9,22 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// Searches for all potential origins up to depth. The returned string slice contains the uids of
-// the found transactions
-func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins []string, err error) {
-	if depth == 0 || depth > 30 {
-		err = errors.New("invalid depth")
-		return
-	}
-
-	queryStart := `query Q($hash: string){
-		var(func: eq(txhash, $hash)){
-			tx_inputs{
-			  inputs1 as uid
-			}
-		}
-`
-
-	var queryMiddle string
-	var txUids string
-
-	for i := uint(0); i < depth; i++ {
-		txUids += fmt.Sprintf("tx%d", i+1)
-		if i+1 < depth {
-			txUids += ","
-			queryMiddle += fmt.Sprintf(`
-		var(func: uid(inputs%d)){
-			~tx_outputs@filter(eq(privacytype, ["mixing","origin"])){
-				tx_inputs{
-					inputs%d as uid
+// Searches for all potential origins. The returned string slice contains the uids of the found transactions
+func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
+	query := `query Q($hash: string) {
+				tx as var(func: eq(txhash, $hash))
+	
+				var(func: uid(tx))@recurse{
+					tx_inputs
+					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
 				}
-			}
-		}`, i+1, i+2)
-		}
 
-		queryMiddle += fmt.Sprintf(`
-		var(func: uid(inputs%d)){
-			tx%d as ~tx_outputs@filter(eq(privacytype, "origin")){}
-		}`, i+1, i+1)
-	}
-
-	queryEnd := fmt.Sprintf(`
-		filtertx(func: uid(%s)){
-			uid
-		}
-}`, txUids)
-
-	query := queryStart + queryMiddle + queryEnd
+				q(func: uid(v))@filter(eq(privacytype,"origin")){
+					uid
+				}
+			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
-
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -66,7 +33,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string, depth uint) (origins 
 	var r struct {
 		Transaction []struct {
 			Uid string `json:"uid,omitempty"`
-		} `json:"filtertx,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -97,8 +64,7 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []Origin, err error) {
 						}
 					}
 				}
-			  }
-				`
+			  }`
 
 	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
 

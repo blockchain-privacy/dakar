@@ -164,8 +164,8 @@ mainLoop:
 		state.id++
 		counterAnalysedBlocks++
 
-		if counterAnalysedBlocks%100 == 0 {
-			metric("moving avg 100 blocks:", time.Since(timerGlobal).Milliseconds()/int64(counterAnalysedBlocks), "ms/block")
+		if counterAnalysedBlocks%1000 == 0 {
+			metric("moving avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/int64(counterAnalysedBlocks), "ms/block")
 			timerGlobal = time.Now()
 		}
 	}
@@ -244,7 +244,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16)
+				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
