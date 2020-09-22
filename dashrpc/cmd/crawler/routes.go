@@ -253,7 +253,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		paths, err := dban.GetPathsAlternative(dgraph, txHashString)
+		paths, err := dban.GetPaths(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, "error getting paths", http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
