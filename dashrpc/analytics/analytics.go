@@ -26,6 +26,12 @@ func info(v ...interface{}) {
 	log.SetPrefix("")
 }
 
+func metric(v ...interface{}) {
+	log.SetPrefix("metric\t")
+	log.Println(v)
+	log.SetPrefix("")
+}
+
 // holds the current state of the analyzing processing loop
 type analyzerProcessingState struct {
 	// current block id
@@ -101,6 +107,8 @@ func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
 
 	info("Starting process")
 
+	counterAnalysedBlocks := 0
+	timerGlobal := time.Now()
 mainLoop:
 	for {
 		select {
@@ -154,6 +162,12 @@ mainLoop:
 		}
 
 		state.id++
+		counterAnalysedBlocks++
+
+		if counterAnalysedBlocks%1000 == 0 {
+			metric("avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/1000, "ms/block")
+			timerGlobal = time.Now()
+		}
 	}
 
 	return nil
@@ -230,7 +244,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 				info("Starting analyzing", transaction.Hash)
 				start := time.Now()
 
-				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash, 16)
+				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash)
 				if originErr != nil {
 					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
 					return
@@ -240,7 +254,7 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 					updatedTransaction.Origins = append(updatedTransaction.Origins, dbtx.Transaction{Uid: o})
 				}
 				t := time.Now()
-				info("Finished analyzing", transaction.Hash, "Elapsed time:", t.Sub(start))
+				info("Finished analyzing", transaction.Hash, "Elapsed time:", t.Sub(start), "Origins:", len(origins))
 			}
 
 			updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
@@ -293,4 +307,42 @@ func areALLAddressesEqual(addresses []dbaddr.Address) bool {
 	}
 
 	return true
+}
+
+func GetAllPaths(dgraph *dgo.Dgraph, transactionsHash string) (err error) {
+	transaction, err := dbtx.GetTransaction(dgraph, transactionsHash)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	origins, err := dban.GetOrigins(dgraph, transactionsHash)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for i, o := range origins {
+		weight, weightErr := dban.GetShortestPathWeight(dgraph, transaction.Uid, o.Uid)
+		if weightErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), weightErr)
+			return
+		}
+
+		fmt.Println(weight)
+
+		elements, pathError := dban.GetPaths(dgraph, transaction.Uid, o.Uid, 1, uint32(weight))
+		if pathError != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), pathError)
+			return
+		}
+
+		if len(elements) < 3 {
+			fmt.Println("Found element smaller 3")
+		}
+
+		fmt.Println(i)
+	}
+
+	return
 }

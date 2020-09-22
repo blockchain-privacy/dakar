@@ -117,6 +117,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var dbHostString string
 	var dbPortNumber uint
 
+	var isRPCused bool
+	var isDBused bool
+
 	for _, f := range flags {
 		switch f {
 		case Continuous:
@@ -127,12 +130,15 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case ResetDB:
 			addResetDB(&args.ResetDB)
+			isRPCused = true
 			break
 		case RpcUser:
 			addRpcUser(&args.RpcUser)
+			isRPCused = true
 			break
 		case RpcPassword:
 			addRpcPassword(&args.RpcPassword)
+			isRPCused = true
 			break
 		case RpcHost:
 			addRpcHost(&rpcHostString)
@@ -142,9 +148,11 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case DBHost:
 			addDBHost(&dbHostString)
+			isDBused = true
 			break
 		case DBPort:
 			addDBPort(&dbPortNumber)
+			isDBused = true
 			break
 		case StartBlockID:
 			addStartBlockID(&args.StartBlockID)
@@ -187,12 +195,16 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	flag.Parse()
 
-	args.RpcEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
-	if err != nil {
-		return args, err
+	if isRPCused {
+		args.RpcEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
+		if err != nil {
+			return args, err
+		}
 	}
 
-	args.DBEndpoint, err = buildEndpoint(dbHostString, dbPortNumber)
+	if isDBused {
+		args.DBEndpoint, err = buildEndpoint(dbHostString, dbPortNumber)
+	}
 
 	return args, err
 }

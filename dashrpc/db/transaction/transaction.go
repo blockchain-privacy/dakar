@@ -116,18 +116,23 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 	if len(r.Transaction) == 0 || len(r.Transaction[0].Block) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
-	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 ||
-		r.Transaction[0].Fee == nil || r.Transaction[0].OriginCount == nil {
+	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 || r.Transaction[0].OriginCount == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
 		return
 	}
 
 	t := r.Transaction[0]
 
+	// t.Fee can be nil in case we do -start to -stop crawling
+	fee := int64(-1)
+	if t.Fee != nil {
+		fee = *t.Fee
+	}
+
 	transaction = FrontendTransaction{
 		Hash:           t.Hash,
 		PrivacyType:    t.PrivacyType,
-		Fee:            *t.Fee,
+		Fee:            fee,
 		OriginCount:    *t.OriginCount,
 		BlockHash:      t.Block[0].Hash,
 		BlockId:        t.Block[0].Id,

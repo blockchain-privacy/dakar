@@ -21,7 +21,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			tx_outputs: [uid] @reverse .
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
-			origins: [uid] @reverse .
+			origins: [uid] @count @reverse .
 			prevblock: uid @reverse .
 			
 			id: int @index(int) .
