@@ -16,7 +16,6 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"net/http"
 	"regexp"
-	"strconv"
 )
 
 const (
@@ -250,19 +249,19 @@ func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request)
 		txHashString := r.URL.Path[len(getRouteOrigins()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+			http.Error(w, "error getting paths", http.StatusNotFound)
 			return
 		}
 
-		origins, err := dban.GetOrigins(dgraph, txHashString)
+		paths, err := dban.GetPathsAlternative(dgraph, txHashString)
 		if err != nil {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+			http.Error(w, "error getting paths", http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		if len(origins) == 0 {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+		if len(paths) == 0 {
+			http.Error(w, "error getting paths", http.StatusNotFound)
 			return
 		}
 
@@ -273,24 +272,38 @@ func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request)
 
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
-		headerRow := []string{"transaction hash", "block hash", "block height", "timestamp"}
 
-		if err = csvWriter.Write(headerRow); err != nil {
-			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+		longestPathLength := 0
+		for _, p := range paths {
+			if longestPathLength < len(p) {
+				longestPathLength = len(p)
+			}
 		}
 
-		for _, o := range origins {
+		for i := 0; i < longestPathLength; i++ {
 			var row []string
-			row = append(row, o.Hash)
-			row = append(row, o.BlockHash)
-			row = append(row, strconv.FormatUint(o.BlockId, 10))
-			row = append(row, o.BlockTimestamp)
+
+			for _, p := range paths {
+				if len(p) < i+1 {
+					row = append(row, "", "")
+					continue
+				}
+
+				row = append(row, p[i].Hash)
+				privacyType := "mixing"
+				if p[i].IsOrigin {
+					privacyType = "origin"
+				}
+
+				row = append(row, privacyType)
+			}
+
 			if err = csvWriter.Write(row); err != nil {
 				http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
 			}
 		}
+
 		csvWriter.Flush()
 	}
 }
