@@ -1,9 +1,9 @@
 package main
 
 import (
-	"dashrpc/analytics"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
+	dban "dashrpc/db/analytics"
 	"errors"
 	"flag"
 	"fmt"
@@ -64,16 +64,16 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
+		// some test transactions
 		//bigTransaction := "62cd8a10d62c42fa786bb2d897f48499bcbb58ee697a5e7bc0fe48cdec081efc"
-		biggerTransaction := "d3efe170dc1c1e8db2e8feb6fab76da2d9188176196d69b0055ca8e485233fd3"
-		//smallTransation := cliArgs.TxSearch
+		//biggerTransaction := "d3efe170dc1c1e8db2e8feb6fab76da2d9188176196d69b0055ca8e485233fd3"
+		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
+		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
 
-		if err := analytics.GetAllPaths(dgraph, biggerTransaction); err != nil {
+		if _, err := dban.GetPathsAlternative(dgraph, cliArgs.TxSearch); err != nil {
 			log.Println(err)
 			return
 		}
-
-		log.Println("Information is already available in the crawler tool. Query the database or use the frontend to find origins.")
 
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
