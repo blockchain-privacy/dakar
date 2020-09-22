@@ -82,16 +82,18 @@ func GetPathsAlternative(c *dgo.Dgraph, transactionHash string) (paths []Transac
 		return
 	}
 
-	paths = createTransactionsPaths(r.Transaction[0].Inputs)
+	paths = getTransactionsPaths(r.Transaction[0].Inputs)
 
 	return
 }
 
-func createTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
+// starting at inputs get all possible paths to PrivateSend origins
+func getTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
 	var paths []TransactionPath
 
-	traverseInputs(inputs, &paths, nil)
+	findPaths(inputs, &paths, nil)
 
+	// post processing of paths
 	pathMap := make(map[string]bool)
 	for _, p := range paths {
 		cutPath := p.cutTail()
@@ -105,7 +107,6 @@ func createTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
 		if pathMap[pathHash] {
 			continue
 		}
-
 		pathMap[pathHash] = true
 		filteredPaths = append(filteredPaths, cutPath)
 	}
@@ -114,7 +115,7 @@ func createTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
 }
 
 // saves all paths in inputs to paths; path holds the path of the curren recursion
-func traverseInputs(inputs []input, paths *[]TransactionPath, path TransactionPath) {
+func findPaths(inputs []input, paths *[]TransactionPath, path TransactionPath) {
 	for _, i := range inputs {
 		// transaction slice ALWAYS exists and has ALWAYS one element
 		tx := i.Transaction[0]
@@ -139,6 +140,6 @@ func traverseInputs(inputs []input, paths *[]TransactionPath, path TransactionPa
 			continue
 		}
 
-		traverseInputs(tx.Inputs, paths, newPath)
+		findPaths(tx.Inputs, paths, newPath)
 	}
 }

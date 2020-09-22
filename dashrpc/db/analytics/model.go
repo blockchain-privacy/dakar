@@ -36,10 +36,13 @@ type PathElement struct {
 
 type TransactionPath []PathElement
 
+// returns true if both PathElement's have the same transaction hash
 func (p PathElement) equal(a PathElement) bool {
 	return p.Hash == a.Hash
 }
 
+// returns true if all PathElement's of thisPath are equal to and have
+// the same order to all PathElement's of otherPath
 func (thisPath TransactionPath) equal(otherPath TransactionPath) bool {
 	if len(thisPath) != len(otherPath) {
 		return false
@@ -72,6 +75,7 @@ func (thisPath TransactionPath) cutTail() TransactionPath {
 	return newPath
 }
 
+// creates a sha256 hash from all transaction hashes in thisPath
 func (thisPath TransactionPath) hash() string {
 	var buffer bytes.Buffer
 	for _, p := range thisPath {
