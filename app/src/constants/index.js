@@ -6,7 +6,7 @@ export const ROUTE_TRANSACTION = routePrefix + 'tx/';
 export const ROUTE_BLOCK = routePrefix + 'blk/';
 export const ROUTE_ADDRESS = routePrefix + 'address/';
 export const ROUTE_META = routePrefix + 'meta/';
-export const ROUTE_ORIGINS = routePrefix + 'origins/';
+export const ROUTE_PATHS = routePrefix + 'paths/';
 
 // frontend route names
 export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';

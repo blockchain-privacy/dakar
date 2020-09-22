@@ -102,7 +102,7 @@
 
 <script>
 import {shortenHash,convertAmount} from "@/utilities";
-import {PAGE_TITLE, ROUTE_ORIGINS} from "@/constants";
+import {PAGE_TITLE, ROUTE_PATHS} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
 export default {
@@ -141,7 +141,7 @@ export default {
           Accept: '*/*'
         }
       };
-      fetch(ROUTE_ORIGINS + this.data.txhash, options)
+      fetch(ROUTE_PATHS + this.data.txhash, options)
           .then(res => res.blob())
           .then(blob => {
             // looks hacky, but it is the only way with good UX

@@ -24,7 +24,7 @@ const (
 	routeBlock       string = "blk/"
 	routeAddress     string = "address/"
 	routeMeta        string = "meta/"
-	routeOrigins     string = "origins/"
+	routePaths       string = "paths/"
 	routeRoot        string = ""
 )
 
@@ -53,7 +53,7 @@ func getRouteMeta() string {
 }
 
 func getRouteOrigins() string {
-	return getRoute(routeOrigins)
+	return getRoute(routePaths)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -241,8 +241,8 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 	}
 }
 
-// API pattern: "/api/v1/origins/"
-func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+// API pattern: "/api/v1/paths/"
+func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -325,6 +325,6 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
-	http.HandleFunc(getRouteOrigins(), handlerOrigins(dgraph))
+	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteRoot(), handlerRoot)
 }
