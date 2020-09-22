@@ -50,7 +50,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 }
 
 // Searches for all potential origins. The returned string slice contains the uids of the found transactions
-func GetPathsAlternative(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, err error) {
+func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, err error) {
 	query := `query Q($hash: string) {
 				tx as var(func: eq(txhash, $hash))
 	
@@ -62,7 +62,7 @@ func GetPathsAlternative(c *dgo.Dgraph, transactionHash string) (paths []Transac
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
