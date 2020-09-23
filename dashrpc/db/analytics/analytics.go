@@ -83,15 +83,24 @@ func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 }
 
 // Searches for all potential origins. The returned string slice contains the uids of the found transactions
-func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, err error) {
+func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
+	transactions map[string]dbtx.FrontendTransaction, err error) {
 	query := `query Q($hash: string) {
 				tx as var(func: eq(txhash, $hash))
 	
 				q(func: uid(tx))@recurse{
 					tx_inputs
 					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
-					txhash
+					txs as txhash
 					privacytype
+				}
+				x(func: uid(txs))@normalize{
+					txhash: txhash
+					~transactions{
+						bhash: blockhash
+						bid: id
+						bts: ts
+					}
 				}
 			  }`
 
@@ -102,7 +111,8 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, e
 	}
 
 	var r struct {
-		Transaction []transaction `json:"q,omitempty"`
+		Transaction          []transaction              `json:"q,omitempty"`
+		FrontendTransactions []dbtx.FrontendTransaction `json:"x,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -110,12 +120,17 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, e
 		return
 	}
 
-	if len(r.Transaction) != 1 || len(r.Transaction[0].Inputs) == 0 {
+	if len(r.Transaction) != 1 || len(r.Transaction[0].Inputs) == 0 || len(r.FrontendTransactions) == 0 {
 		err = errors.New("invalid response from database")
 		return
 	}
 
 	paths = getTransactionsPaths(r.Transaction[0].Inputs)
+
+	transactions = make(map[string]dbtx.FrontendTransaction)
+	for _, t := range r.FrontendTransactions {
+		transactions[t.Hash] = t
+	}
 
 	return
 }

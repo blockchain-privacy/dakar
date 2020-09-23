@@ -271,7 +271,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
-		paths, err := dban.GetPaths(dgraph, txHashString)
+		paths, transactions, err := dban.GetPaths(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorPath, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
@@ -291,15 +291,15 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
 
-		header := []string{"path id", "path step", "tx hash", "type"}
+		header := []string{"path id", "path step", "tx hash", "type", "block hash", "block height", "timestamp"}
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-		info("CSV: start")
-		// todo change csv output format: col4: block height
+
 		for i, p := range paths {
 			for j, e := range p {
+				tx := transactions[e.Hash]
 				var row []string
 				row = append(row, strconv.Itoa(i+1))
 				row = append(row, strconv.Itoa(j+1))
@@ -311,6 +311,9 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 					row = append(row, dbtx.PrivacyMixing)
 				}
 
+				row = append(row, tx.BlockHash)
+				row = append(row, strconv.FormatUint(tx.BlockId, 10))
+				row = append(row, tx.BlockTimestamp)
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 					serverInfo(cliutil.ShowCallInfo(), err)
@@ -318,8 +321,6 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			}
 			csvWriter.Flush()
 		}
-
-		info("CSV: Done")
 	}
 }
 
