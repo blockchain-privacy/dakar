@@ -16,6 +16,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"net/http"
 	"regexp"
+	"strconv"
 )
 
 const (
@@ -26,6 +27,10 @@ const (
 	routeMeta        string = "meta/"
 	routePaths       string = "paths/"
 	routeRoot        string = ""
+)
+
+var (
+	errorPath = "error getting paths"
 )
 
 func getRoute(r string) string {
@@ -86,7 +91,7 @@ func handlerRoot(w http.ResponseWriter, r *http.Request) {
 		serverInfo(e)
 	}
 
-	_, e = fmt.Fprintln(w, "/origins/<hash>\t\t-> Get CSV file of origins")
+	_, e = fmt.Fprintln(w, "/paths/<hash>\t\t-> Get CSV file of paths")
 	if e != nil {
 		serverInfo(e)
 	}
@@ -249,19 +254,32 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		txHashString := r.URL.Path[len(getRouteOrigins()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, "error getting paths", http.StatusNotFound)
+			http.Error(w, errorPath, http.StatusNotFound)
+			return
+		}
+
+		originCount, err := dban.GetOriginCount(dgraph, txHashString)
+		if err != nil {
+			http.Error(w, errorPath, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		// returned data is getting to big
+		if originCount > 700 {
+			http.Error(w, "getting paths is only supported up to 700 origins", http.StatusNotFound)
 			return
 		}
 
 		paths, err := dban.GetPaths(dgraph, txHashString)
 		if err != nil {
-			http.Error(w, "error getting paths", http.StatusNotFound)
+			http.Error(w, errorPath, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		if len(paths) == 0 {
-			http.Error(w, "error getting paths", http.StatusNotFound)
+			http.Error(w, errorPath, http.StatusNotFound)
 			return
 		}
 
@@ -273,38 +291,35 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
 
-		longestPathLength := 0
-		for _, p := range paths {
-			if longestPathLength < len(p) {
-				longestPathLength = len(p)
-			}
+		header := []string{"path id", "path step", "tx hash", "type"}
+		if err = csvWriter.Write(header); err != nil {
+			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
 		}
+		info("CSV: start")
+		// todo change csv output format: col4: block height
+		for i, p := range paths {
+			for j, e := range p {
+				var row []string
+				row = append(row, strconv.Itoa(i+1))
+				row = append(row, strconv.Itoa(j+1))
+				row = append(row, e.Hash)
 
-		for i := 0; i < longestPathLength; i++ {
-			var row []string
-
-			for _, p := range paths {
-				if len(p) < i+1 {
-					row = append(row, "", "")
-					continue
+				if e.IsOrigin {
+					row = append(row, dbtx.PrivacyOrigin)
+				} else {
+					row = append(row, dbtx.PrivacyMixing)
 				}
 
-				row = append(row, p[i].Hash)
-				privacyType := "mixing"
-				if p[i].IsOrigin {
-					privacyType = "origin"
+				if err = csvWriter.Write(row); err != nil {
+					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+					serverInfo(cliutil.ShowCallInfo(), err)
 				}
-
-				row = append(row, privacyType)
 			}
-
-			if err = csvWriter.Write(row); err != nil {
-				http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-				serverInfo(cliutil.ShowCallInfo(), err)
-			}
+			csvWriter.Flush()
 		}
 
-		csvWriter.Flush()
+		info("CSV: Done")
 	}
 }
 
