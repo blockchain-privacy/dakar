@@ -49,6 +49,39 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 	return
 }
 
+// gets the number of origins of a transaction
+func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(txhash, $hash)){
+					count(origins)
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			OriginCount int `json:"count(origins),omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+	originCount = r.Q[0].OriginCount
+	return
+}
+
 // Searches for all potential origins. The returned string slice contains the uids of the found transactions
 func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath, err error) {
 	query := `query Q($hash: string) {
