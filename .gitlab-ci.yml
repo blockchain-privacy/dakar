@@ -16,7 +16,10 @@ variables:
 
 dependencies:
   stage: dependencies
-  script: go mod download
+  script:
+  - go mod download
+  - go get -v -d ./...
+  - go get -u golang.org/x/lint/golint
   cache: *modcache
 
 
@@ -30,7 +33,6 @@ before_script:
   - cd dashrpc
   - git submodule update --init --recursive
   - cd cmd/crawler
-  - make dep
 
 unit_tests:
   stage: test
