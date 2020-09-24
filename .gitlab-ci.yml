@@ -62,4 +62,4 @@ build:
     - make
   artifacts:
     paths:
-    - demo-tools
+    - crawler
