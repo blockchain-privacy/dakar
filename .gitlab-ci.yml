@@ -5,16 +5,23 @@ default:
   tags:
     - main
 
-cache:
+variables:
+  GOFLAGS: -mod=readonly
+  GOPATH: ${CI_PROJECT_DIR}/vendor/go
+
+.modcache: &modcache
+  key: modcache
   paths:
-    - /apt-cache
-    - /go/src/github.com
-    - /go/src/golang.org
-    - /go/src/google.golang.org
-    - /go/src/gopkg.in
-    - /go
+    - vendor/go/pkg/mod/
+
+dependencies:
+  stage: dependencies
+  script: go mod download
+  cache: *modcache
+
 
 stages:
+  - dependencies
   - test
   - build
 
@@ -27,13 +34,17 @@ before_script:
 
 unit_tests:
   stage: test
-  script:
-    - make test
+  script: make test
+  cache:
+    <<: *modcache
+    policy: pull
 
 race_detector:
   stage: test
-  script:
-    - make race
+  script: make race
+  cache:
+    <<: *modcache
+    policy: pull
 
 #memory_sanitizer:
 #  stage: test
@@ -54,13 +65,17 @@ race_detector:
 
 lint_code:
   stage: test
-  script:
-    - make lint
+  script: make lint
+  cache:
+    <<: *modcache
+    policy: pull
 
 build:
   stage: build
-  script:
-    - make
+  script: make
+  cache:
+    <<: *modcache
+    policy: pull
 #  artifacts:
 #    paths:
 #    - dashrpc/cmd/crawler/crawler
