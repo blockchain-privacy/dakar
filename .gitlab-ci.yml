@@ -29,9 +29,7 @@ stages:
   - build
 
 before_script:
-#  - export CC=clang-5.0
-  - cd dashrpc
-  - cd cmd/crawler
+  - cd dashrpc/cmd/crawler
 
 unit_tests:
   stage: test
