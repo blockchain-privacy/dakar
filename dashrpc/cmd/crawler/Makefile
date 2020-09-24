@@ -7,7 +7,6 @@ all: build
 
 lint: # Lint the files
 	@go get -u golang.org/x/lint/golint
-
 	@${CI_PROJECT_DIR}/vendor/go/bin/golint -set_exit_status ${PKG_LIST}
 
 test: ## Run unittests
