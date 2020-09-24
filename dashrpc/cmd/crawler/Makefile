@@ -25,7 +25,7 @@ msan: dep ## Run memory sanitizer
 
 dep: ## Get the dependencies
 	@go get -v -d ./...
-	@go get -u github.com/golang/lint/golint
+	@go get -u golang.org/x/lint/golint
 
 build: dep ## Build the binary file
 	@go build -i -v
