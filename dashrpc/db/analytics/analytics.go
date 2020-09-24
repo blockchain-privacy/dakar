@@ -141,22 +141,45 @@ func getTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
 
 	findPaths(inputs, &paths, nil)
 
-	// post processing of paths
-	pathMap := make(map[string]bool)
+	var tailCutPaths []TransactionPath
+	lenPathMap := make(map[string]int)
+
+	// create lenPathMap which holds the shortest path length for each origin
 	for _, p := range paths {
 		cutPath := p.cutTail()
 		if len(cutPath) == 0 {
 			continue
 		}
 
-		pathHash := cutPath.hash()
+		thisHash := p[len(p)-1].Hash
+		prevLen := lenPathMap[thisHash]
+
+		if prevLen != 0 && prevLen < len(p) {
+			continue
+		}
+		lenPathMap[thisHash] = len(p)
+
+		tailCutPaths = append(tailCutPaths, p)
+	}
+
+	// post processing of paths
+	pathMap := make(map[string]bool)
+	for _, p := range tailCutPaths {
+
+		// filter out paths longer than shortest path found for origin
+		originHash := p[len(p)-1].Hash
+		if lenPathMap[originHash] < len(p) {
+			continue
+		}
+
+		pathHash := p.hash()
 
 		// if path is already in map then continue
 		if pathMap[pathHash] {
 			continue
 		}
 		pathMap[pathHash] = true
-		filteredPaths = append(filteredPaths, cutPath)
+		filteredPaths = append(filteredPaths, p)
 	}
 
 	return
