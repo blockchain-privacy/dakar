@@ -266,7 +266,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// returned data is getting to big
-		if originCount > 700 {
+		if originCount > 1000 {
 			http.Error(w, "getting paths is only supported up to 700 origins", http.StatusNotFound)
 			return
 		}

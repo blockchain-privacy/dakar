@@ -15,13 +15,13 @@
               <template v-slot:activator="{ on, attrs }">
                 <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px" outlined v-on:click="getCSV"
                        v-if="data.origincount > 0" v-on="on" v-bind="attrs"
-                       class="d-none d-sm-flex" :disabled="data.origincount > 700 || isLoading">
+                       class="d-none d-sm-flex" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">
                   <v-icon>mdi-download</v-icon>
                   {{ data.origincount }} origins
                 </v-btn>
                 <v-btn :loading="isLoading" icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on"
                        v-bind="attrs"
-                       class="d-flex d-sm-none" :disabled="data.origincount > 700 || isLoading">
+                       class="d-flex d-sm-none" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">
                   <v-icon large>mdi-download</v-icon>
                 </v-btn>
               </template>
@@ -111,7 +111,7 @@
 
 <script>
 import {shortenHash, convertAmount} from "@/utilities";
-import {PAGE_TITLE, ROUTE_PATHS} from "@/constants";
+import {PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS} from "@/constants";
 import IconItem from "@/components/common/IconItem";
 
 export default {
@@ -120,6 +120,7 @@ export default {
   data: function () {
     return {
       isLoading: false,
+      csvDownloadMaxOrigins: CSV_DOWNLOAD_MAX_ORIGINS,
     }
   },
   computed: {

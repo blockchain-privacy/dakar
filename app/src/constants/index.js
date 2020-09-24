@@ -16,3 +16,4 @@ export const ROUTE_NAME_404_PAGE = 'Page not found';
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
+export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
