@@ -12,6 +12,7 @@ cache:
     - /go/src/golang.org
     - /go/src/google.golang.org
     - /go/src/gopkg.in
+    - /go/mod
 
 stages:
   - test
