@@ -8,7 +8,7 @@ default:
 variables:
   GOFLAGS: -mod=readonly
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
-  PATH: ${PATH}:${CI_PROJECT_DIR}/vendor/go/bin
+  PATH: ${PATH:CI_PROJECT_DIR}/vendor/go/bin
   GIT_SUBMODULE_STRATEGY: recursive
 
 .modcache: &modcache
