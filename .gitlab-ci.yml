@@ -18,7 +18,7 @@ stages:
   - build
 
 before_script:
-  - export CC=clang-5.0
+#  - export CC=clang-5.0
   - cd dashrpc
   - git submodule update --init --recursive
   - cd cmd/crawler
