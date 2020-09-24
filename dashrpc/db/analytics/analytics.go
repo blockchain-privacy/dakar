@@ -135,17 +135,14 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 	return
 }
 
-// starting at inputs get all possible paths to PrivateSend origins
-func getTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
-	var paths []TransactionPath
-
-	findPaths(inputs, &paths, nil)
-
+//
+func filterPaths(paths []TransactionPath) (filteredPaths []TransactionPath) {
 	var tailCutPaths []TransactionPath
+	// holds for each 'end origin transaction hash' the shortest to number elements
 	lenPathMap := make(map[string]int)
 
-	// create lenPathMap which holds the shortest path length for each origin
 	for _, p := range paths {
+		// remove 'mixing' transactions at tail
 		cutPath := p.cutTail()
 		if len(cutPath) == 0 {
 			continue
@@ -182,6 +179,14 @@ func getTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
 		filteredPaths = append(filteredPaths, p)
 	}
 
+	return
+}
+
+// starting at inputs get all possible paths to PrivateSend origins
+func getTransactionsPaths(inputs []input) (filteredPaths []TransactionPath) {
+	var paths []TransactionPath
+	findPaths(inputs, &paths, nil)
+	filteredPaths = filterPaths(paths)
 	return
 }
 
