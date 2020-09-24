@@ -1,6 +1,10 @@
 # credits: https://about.gitlab.com/blog/2017/11/27/go-tools-and-gitlab-how-to-do-continuous-integration-like-a-boss/
 image: golang:latest
 
+default:
+  tags:
+    - main
+
 cache:
   paths:
     - /apt-cache
