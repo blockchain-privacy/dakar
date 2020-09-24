@@ -5,13 +5,14 @@ PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 
 all: build
 
-lint: ## Lint the files
+lint: # Lint the files
+	@go get -u golang.org/x/lint/golint
 	@golint -set_exit_status ${PKG_LIST}
 
 test: ## Run unittests
 	@go test -short ${PKG_LIST}
 
-race: dep ## Run data race detector
+race: ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
 # msan: dep ## Run memory sanitizer
@@ -23,11 +24,7 @@ race: dep ## Run data race detector
 #coverhtml: ## Generate global code coverage report in HTML
 #	./tools/coverage.sh html;
 
-dep: ## Get the dependencies
-	@go get -v -d ./...
-	@go get -u golang.org/x/lint/golint
-
-build: dep ## Build the binary file
+build: ## Build the binary file
 	@go build -i -v
 
 clean: ## Remove previous build
