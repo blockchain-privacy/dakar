@@ -21,6 +21,7 @@ import (
 	"syscall"
 )
 
+// Version of Crawler
 const VersionString = "v1.0.0"
 
 func info(v ...interface{}) {
