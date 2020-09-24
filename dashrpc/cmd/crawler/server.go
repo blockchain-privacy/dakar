@@ -14,14 +14,13 @@ import (
 
 func serverInfo(v ...interface{}) {
 	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Println(v)
+	log.Println(v...)
 	log.SetPrefix("")
 }
 
 func serverFatal(v ...interface{}) {
 	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Fatalln(v)
-	log.SetPrefix("")
+	log.Fatalln(v...)
 }
 
 // creates a http server on the given port

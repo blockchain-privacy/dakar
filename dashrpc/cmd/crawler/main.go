@@ -25,7 +25,7 @@ const VersionString = "v1.0.0"
 
 func info(v ...interface{}) {
 	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
-	log.Println(v)
+	log.Println(v...)
 	log.SetPrefix("")
 }
 
