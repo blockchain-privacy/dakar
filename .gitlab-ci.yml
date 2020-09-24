@@ -63,4 +63,4 @@ build:
     - make
   artifacts:
     paths:
-    - dashrpc/cmd/crawler
+    - dashrpc/cmd/crawler/crawler
