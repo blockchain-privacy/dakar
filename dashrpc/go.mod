@@ -8,6 +8,8 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/dgraph-io/dgo/v2 v2.2.0
 	github.com/kr/pretty v0.2.0 // indirect
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
+	golang.org/x/tools v0.0.0-20200923182640-463111b69878 // indirect
 	google.golang.org/grpc v1.30.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 )
