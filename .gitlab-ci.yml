@@ -61,6 +61,6 @@ build:
   stage: build
   script:
     - make
-  artifacts:
-    paths:
-    - dashrpc/cmd/crawler/crawler
+#  artifacts:
+#    paths:
+#    - dashrpc/cmd/crawler/crawler
