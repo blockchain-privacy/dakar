@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"sync"
 )
 
 const (
@@ -201,6 +202,8 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 	}
 }
 
+var lock sync.Mutex
+
 // API pattern: "/api/v1/paths/"
 func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -226,12 +229,14 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			return
 		}
 
+		lock.Lock()
 		paths, transactions, err := dban.GetPaths(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorPath, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
+		lock.Unlock()
 
 		if len(paths) == 0 {
 			http.Error(w, errorPath, http.StatusNotFound)
