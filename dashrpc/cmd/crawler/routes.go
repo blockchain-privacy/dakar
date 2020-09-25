@@ -29,6 +29,10 @@ const (
 	routePaths       string = "paths/"
 )
 
+const (
+	maxOrigins = 1000
+)
+
 var (
 	errorPath = "error getting paths"
 )
@@ -224,8 +228,8 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		}
 
 		// returned data is getting to big
-		if originCount > 1000 {
-			http.Error(w, "getting paths is only supported up to 700 origins", http.StatusNotFound)
+		if originCount > maxOrigins {
+			http.Error(w, "getting paths is only supported up to "+strconv.Itoa(maxOrigins)+" origins", http.StatusNotFound)
 			return
 		}
 
