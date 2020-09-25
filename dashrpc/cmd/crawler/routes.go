@@ -26,7 +26,6 @@ const (
 	routeAddress     string = "address/"
 	routeMeta        string = "meta/"
 	routePaths       string = "paths/"
-	routeRoot        string = ""
 )
 
 var (
@@ -49,10 +48,6 @@ func getRouteAddress() string {
 	return getRoute(routeAddress)
 }
 
-func getRouteRoot() string {
-	return getRoute(routeRoot)
-}
-
 func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
@@ -65,46 +60,6 @@ func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-}
-
-// API pattern: "/api/v1/"
-func handlerRoot(w http.ResponseWriter, r *http.Request) {
-	setDefaultHeader(w)
-	// not handling possible errors
-	_, e := fmt.Fprintln(w, "Possible routes:")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/\t\t-> This page")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/tx/<hash>\t-> Transaction details")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/address/<hash>\t-> Address details")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/paths/<hash>\t\t-> Get CSV file of paths")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
-	if e != nil {
-		serverInfo(e)
-	}
-	_, e = fmt.Fprintln(w, "/meta/\t\t-> Database meta information")
-	if e != nil {
-		serverInfo(e)
-	}
-
 }
 
 // API pattern: "/api/v1/blk/<hash>"
@@ -342,5 +297,4 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
-	http.HandleFunc(getRouteRoot(), handlerRoot)
 }
