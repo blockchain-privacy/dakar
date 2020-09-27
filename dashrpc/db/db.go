@@ -99,7 +99,7 @@ func DropAll(c *dgo.Dgraph) error {
 // create a new dgraph client connecting to the specified host and port
 func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*50)))
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

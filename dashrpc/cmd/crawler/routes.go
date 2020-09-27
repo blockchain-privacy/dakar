@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"sync"
 )
 
 const (
@@ -25,8 +26,15 @@ const (
 	routeBlock       string = "blk/"
 	routeAddress     string = "address/"
 	routeMeta        string = "meta/"
-	routeOrigins     string = "origins/"
-	routeRoot        string = ""
+	routePaths       string = "paths/"
+)
+
+const (
+	maxOrigins = 1000
+)
+
+var (
+	errorPath = "error getting paths"
 )
 
 func getRoute(r string) string {
@@ -45,62 +53,18 @@ func getRouteAddress() string {
 	return getRoute(routeAddress)
 }
 
-func getRouteRoot() string {
-	return getRoute(routeRoot)
-}
-
 func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
 func getRouteOrigins() string {
-	return getRoute(routeOrigins)
+	return getRoute(routePaths)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-}
-
-// API pattern: "/api/v1/"
-func handlerRoot(w http.ResponseWriter, r *http.Request) {
-	setDefaultHeader(w)
-	// not handling possible errors
-	_, e := fmt.Fprintln(w, "Possible routes:")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/\t\t-> This page")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/tx/<hash>\t-> Transaction details")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/address/<hash>\t-> Address details")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/origins/<hash>\t\t-> Get CSV file of origins")
-	if e != nil {
-		serverInfo(e)
-	}
-
-	_, e = fmt.Fprintln(w, "/blk/<hash>\t-> Block details")
-	if e != nil {
-		serverInfo(e)
-	}
-	_, e = fmt.Fprintln(w, "/meta/\t\t-> Database meta information")
-	if e != nil {
-		serverInfo(e)
-	}
-
 }
 
 // API pattern: "/api/v1/blk/<hash>"
@@ -242,27 +206,44 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 	}
 }
 
-// API pattern: "/api/v1/origins/"
-func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+var lock sync.Mutex
+
+// API pattern: "/api/v1/paths/"
+func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(getRouteOrigins()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+			http.Error(w, errorPath, http.StatusNotFound)
 			return
 		}
 
-		origins, err := dban.GetOrigins(dgraph, txHashString)
+		originCount, err := dban.GetOriginCount(dgraph, txHashString)
 		if err != nil {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+			http.Error(w, errorPath, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		if len(origins) == 0 {
-			http.Error(w, "error getting origins", http.StatusNotFound)
+		// returned data is getting to big
+		if originCount > maxOrigins {
+			http.Error(w, "getting paths is only supported up to "+strconv.Itoa(maxOrigins)+" origins", http.StatusNotFound)
+			return
+		}
+
+		lock.Lock()
+		paths, transactions, err := dban.GetPaths(dgraph, txHashString)
+		if err != nil {
+			http.Error(w, errorPath, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+		lock.Unlock()
+
+		if len(paths) == 0 {
+			http.Error(w, errorPath, http.StatusNotFound)
 			return
 		}
 
@@ -273,25 +254,37 @@ func handlerOrigins(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request)
 
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
-		headerRow := []string{"transaction hash", "block hash", "block height", "timestamp"}
 
-		if err = csvWriter.Write(headerRow); err != nil {
+		header := []string{"path id", "path step", "tx hash", "type", "block hash", "block height", "timestamp"}
+		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 
-		for _, o := range origins {
-			var row []string
-			row = append(row, o.Hash)
-			row = append(row, o.BlockHash)
-			row = append(row, strconv.FormatUint(o.BlockId, 10))
-			row = append(row, o.BlockTimestamp)
-			if err = csvWriter.Write(row); err != nil {
-				http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-				serverInfo(cliutil.ShowCallInfo(), err)
+		for i, p := range paths {
+			for j, e := range p {
+				tx := transactions[e.Hash]
+				var row []string
+				row = append(row, strconv.Itoa(i+1))
+				row = append(row, strconv.Itoa(j+1))
+				row = append(row, e.Hash)
+
+				if e.IsOrigin {
+					row = append(row, dbtx.PrivacyOrigin)
+				} else {
+					row = append(row, dbtx.PrivacyMixing)
+				}
+
+				row = append(row, tx.BlockHash)
+				row = append(row, strconv.FormatUint(tx.BlockId, 10))
+				row = append(row, tx.BlockTimestamp)
+				if err = csvWriter.Write(row); err != nil {
+					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+					serverInfo(cliutil.ShowCallInfo(), err)
+				}
 			}
+			csvWriter.Flush()
 		}
-		csvWriter.Flush()
 	}
 }
 
@@ -312,6 +305,5 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
-	http.HandleFunc(getRouteOrigins(), handlerOrigins(dgraph))
-	http.HandleFunc(getRouteRoot(), handlerRoot)
+	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 }

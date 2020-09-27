@@ -16,7 +16,6 @@ Routes supported by the REST API. Consume the endpoints via GET requests.
 
 | Route | Description |
 |----------| ------:|
-| /api/v1/ | Possible routes |
 | /api/v1/tx/ | Transaction details |
 | /api/v1/blk/ | Block details |
 | /api/v1/address/ | Address details |

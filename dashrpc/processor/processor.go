@@ -374,15 +374,15 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 
 // creates the initial state of the processing loop
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
-	if continuous {
-		if state.id, err = getStartingId(dgraph); err != nil {
-			if !errors.Is(err, errorBlockIdsDoNotMatch) {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-				return
-			}
-			info(errorBlockIdsDoNotMatch.Error(), "continuing...")
+	if state.id, err = getStartingId(dgraph); err != nil {
+		if !errors.Is(err, errorBlockIdsDoNotMatch) {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
-	} else {
+		info(errorBlockIdsDoNotMatch.Error(), "continuing...")
+	}
+
+	if !continuous && startId > state.id {
 		state.id = startId
 	}
 
