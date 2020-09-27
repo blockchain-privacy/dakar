@@ -1,0 +1,81 @@
+# credits: https://about.gitlab.com/blog/2017/11/27/go-tools-and-gitlab-how-to-do-continuous-integration-like-a-boss/
+image: golang:latest
+
+default:
+  tags:
+    - main
+
+variables:
+  GOFLAGS: -mod=readonly
+  GOPATH: ${CI_PROJECT_DIR}/vendor/go
+  GIT_SUBMODULE_STRATEGY: recursive
+
+.modcache: &modcache
+  key: modcache
+  paths:
+    - vendor/go/pkg/mod/
+
+dependencies:
+  stage: dependencies
+  script:
+    - cd ../..
+    - go mod download
+    - go get -v -d ./...
+  cache: *modcache
+
+
+stages:
+  - dependencies
+  - test
+  - build
+
+before_script:
+  - cd dashrpc/cmd/crawler
+
+unit_tests:
+  stage: test
+  script: make test
+  cache:
+    <<: *modcache
+    policy: pull
+
+race_detector:
+  stage: test
+  script: make race
+  cache:
+    <<: *modcache
+    policy: pull
+
+#memory_sanitizer:
+#  stage: test
+#  script:
+#    - make msan
+
+#code_coverage:
+#  stage: test
+#  script:
+#    - make coverage
+
+#code_coverage_report:
+#  stage: test
+#  script:
+#    - make coverhtml
+#  only:
+#  - master
+
+lint_code:
+  stage: test
+  script: make lint
+  cache:
+    <<: *modcache
+    policy: pull
+
+build:
+  stage: build
+  script: make
+  cache:
+    <<: *modcache
+    policy: pull
+#  artifacts:
+#    paths:
+#    - dashrpc/cmd/crawler/crawler
