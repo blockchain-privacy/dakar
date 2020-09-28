@@ -1,9 +1,9 @@
 package main
 
 import (
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
-	dban "dashrpc/db/analytics"
 	"errors"
 	"flag"
 	"fmt"
@@ -43,14 +43,12 @@ func main() {
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		if f, err := cli.GetLogfile(cliArgs.Logfile); err != nil {
-			defer func() {
-				if err = f.Close(); err != nil {
-					fmt.Println(err)
-				}
-			}()
-		}
+	if f, err := cli.GetLogfile(cliArgs.Logfile); err != nil {
+		defer func() {
+			if err = f.Close(); err != nil {
+				fmt.Println(err)
+			}
+		}()
 	}
 
 	// create dgraph client
@@ -72,28 +70,7 @@ func main() {
 		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
 		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
 
-		// heuristic test
-		//if err := heuristic.Exec(dgraph, cliArgs.TxSearch, heuristic.NewDummyHeuristic()); err != nil {
-		//	return
-		//}
-
-		// origin test
-		privTransactions, err := dban.GetPrivacyTransactions(dgraph, cliArgs.TxSearch)
-		if err != nil {
-			return
-		}
-
-		log.Println("Found", len(privTransactions))
-
-		for i, t := range privTransactions {
-			if err := dban.SameBlockTest(dgraph, t.Hash); err != nil {
-				panic(err)
-			}
-
-			if i%1000 == 0 {
-				log.Println("Processed 1000 transactions")
-			}
-		}
+		heuristic.DoHeuristic(dgraph, cliArgs.TxSearch)
 
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
