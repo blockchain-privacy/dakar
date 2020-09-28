@@ -22,7 +22,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
 			origins: [uid] @count @reverse .
+			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
+			transaction: uid @reverse .
 			
 			id: int @index(int) .
 			ts: dateTime @index(day) .
@@ -39,6 +41,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			lastblockid: int .
 			lowestblockid: int .
 			lastanalysedid: int . 
+
+			type: string .
 
 			type Block {
 				blockhash
@@ -85,6 +89,12 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type AnalyzerStatus {
 				isanalyzing
 				lastanalysedid
+			}
+
+			type TransactionHeuristic {
+				type
+				transaction
+				results
 			}
 		`,
 	})
