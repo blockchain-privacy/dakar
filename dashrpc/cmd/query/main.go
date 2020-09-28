@@ -1,9 +1,9 @@
 package main
 
 import (
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
-	dban "dashrpc/db/analytics"
 	"errors"
 	"flag"
 	"fmt"
@@ -70,10 +70,7 @@ func main() {
 		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
 		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
 
-		if _, err := dban.GetPaths(dgraph, cliArgs.TxSearch); err != nil {
-			log.Println(err)
-			return
-		}
+		heuristic.DoHeuristic(dgraph, cliArgs.TxSearch)
 
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
