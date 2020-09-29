@@ -49,6 +49,46 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 	return
 }
 
+// gets all origin uids of the transaction specified by txHash
+func GetOrigins(c *dgo.Dgraph, txHash string) (origins []string, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(txhash, $hash))@normalize{
+					origins{
+						uid: uid
+					}
+				}
+			  }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	for _, o := range r.Q {
+		origins = append(origins, o.Uid)
+	}
+
+	return
+}
+
 // gets the number of origins of a transaction
 func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 	query := `query Q($hash: string) {
