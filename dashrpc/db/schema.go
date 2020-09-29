@@ -24,7 +24,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			origins: [uid] @count @reverse .
 			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
-			transaction: uid @reverse .
+			h_transaction: uid @reverse .
 			
 			id: int @index(int) .
 			ts: dateTime @index(day) .
@@ -42,7 +42,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			lowestblockid: int .
 			lastanalysedid: int . 
 
-			type: string .
+			type: string @index(hash) .
 
 			type Block {
 				blockhash
@@ -93,7 +93,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type TransactionHeuristic {
 				type
-				transaction
+				h_transaction
 				results
 			}
 		`,
