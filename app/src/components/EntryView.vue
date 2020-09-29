@@ -187,9 +187,9 @@ export default {
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
-    refreshData: function () {
+    refreshData: async function () {
       this.resetTimers();
-      this.$store.dispatch('updateMetaData');
+      await this.$store.dispatch('updateMetaData');
       this.startTimer();
     },
   },
