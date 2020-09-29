@@ -1,12 +1,12 @@
-# dakar
+# Dakar
 
 [![pipeline status](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/badges/master/pipeline.svg)](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/-/commits/master)
 
-*Dakar Project* --
-Dash Analytics and Dash Transaction tracking. Research and Development.
+Dash analytics and transaction tracking. Research and development.
 
 # Repository structure
 
-* *data* -- Data, screenshots and non-code project files.
-* *dashrpc* -- Backend. Dash RPC client in Go.
-* *app* -- Frontend. Web frontend for the tools. Using Vuejs.
+* [dashrpc](dashrpc) - The backend, which is composed of a crawler, analyser and a REST API server.
+* [app](app) - The Frontend, which is written in Vue.js. It gets data from the backend.
+* [docker](docker) - Docker configuration and compose files.
+* [data](data) - Data, screenshots and non-code project files.
