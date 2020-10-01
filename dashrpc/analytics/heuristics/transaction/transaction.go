@@ -54,13 +54,8 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 
 	var dummyOrigins []dbtxh.DummyOrigin
 
-	i := 0
 	for _, o := range originUids {
 		dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
-		i++
-		if i == 1 {
-			break
-		}
 	}
 
 	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
