@@ -257,6 +257,45 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	return
 }
 
+// todo remove or rename
+func AnalyzeOriginsAlt(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
+	query := `query Q($hash: string) {
+				tx as var(func: eq(txhash, $hash))
+	
+				var(func: uid(tx))@recurse{
+					tx_inputs
+					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+
+				q(func: uid(v))@filter(eq(privacytype,"origin")){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, uid := range r.Transaction {
+		origins = append(origins, uid.Uid)
+	}
+
+	return
+}
+
 // gets all origin uids of the transaction specified by txHash
 func GetOrigins(c *dgo.Dgraph, txHash string) (origins []string, err error) {
 	query := `query Q($hash: string) {
