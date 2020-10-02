@@ -7,6 +7,18 @@ const mq = window.matchMedia('(prefers-color-scheme: dark)')
 
 const vuetify = new Vuetify({
     theme: {
+        themes: {
+            light: {
+                primary: '#3f51b5',
+                secondary: '#e8eaf6',
+                accent: '#304ffe',
+            },
+            dark: {
+                primary: '#3f51b5',
+                secondary: '#e8eaf6',
+                accent: '#304ffe',
+            },
+        },
         dark: mq.matches,
     },
 });

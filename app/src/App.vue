@@ -3,12 +3,12 @@
     <v-app-bar app absolute color="primary" dark>
       <v-img
           @click="goToRoot()" style="cursor:pointer"
-          alt="Explorer Logo"
+          alt="Dakar Logo"
           class="shrink mr-2"
           contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
+          src="./assets/dakar_dash.svg"
           transition="scale-transition"
-          width="40"/>
+          width="32"/>
       <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer"> {{ applicationName }}
       </v-toolbar-title>
       <v-spacer></v-spacer>
