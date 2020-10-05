@@ -8,6 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+	"log"
 )
 
 // Searches for all potential origins. The returned string slice contains the uids of the found transactions
@@ -44,6 +46,163 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 
 	for _, uid := range r.Transaction {
 		origins = append(origins, uid.Uid)
+	}
+
+	return
+}
+
+// Gets all direct origin transactions and the accumulated origins of all direct mixing and destination transactions
+func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
+	query := `query Q($hash: string) {
+				tx as var(func: eq(txhash, $hash))
+				
+				var(func: uid(tx)){
+					tx_inputs{
+						~tx_outputs@filter(eq(privacytype,"origin")){
+							u as uid
+						}
+					}
+				}
+				
+				var(func: uid(tx)){
+					tx_inputs{
+						~tx_outputs@filter(eq(privacytype,["mixing","destination"])){
+							o as origins
+						}
+					}
+				}
+				
+				q(func: uid(u,o)){
+					uid 
+				}
+			}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, uid := range r.Transaction {
+		origins = append(origins, uid.Uid)
+	}
+
+	return
+}
+
+// builds the request for the IRTL function. The request includes the mapped variables, query and mutations
+func buildIRTLRequest(transactionUids []string) *api.Request {
+	queryHeader := "query Q("
+	var query string
+	queryVars := make(map[string]string)
+
+	var mutations []*api.Mutation
+
+	// build query
+	for i, u := range transactionUids {
+
+		mutations = append(mutations, &api.Mutation{
+			Cond:      fmt.Sprintf("@if(gt(len(f%d), 0))", i),
+			SetNquads: []byte(fmt.Sprintf("uid(tx%d) <origins> uid(f%d) .", i, i)),
+		})
+
+		queryVars[fmt.Sprintf("$uid%d", i)] = u
+		queryHeader += fmt.Sprintf("$uid%d:string", i)
+
+		query += fmt.Sprintf(`
+				tx%d as var(func: uid($uid%d)){
+					tx_inputs{
+						u%d as ~tx_outputs@filter(eq(privacytype,"origin"))
+					}
+				}
+				
+				var(func: uid($uid%d)){
+					tx_inputs{
+						~tx_outputs@filter(eq(privacytype,["mixing","origin"])){
+							o%d as origins
+						}
+					}
+				}
+				
+				f%d as var(func: uid(o%d,u%d))`, i, i, i, i, i, i, i, i)
+
+		if i+1 < len(transactionUids) {
+			queryHeader += ","
+		}
+	}
+
+	queryHeader += "){"
+
+	return &api.Request{
+		Query:     queryHeader + query + "}",
+		Vars:      queryVars,
+		Mutations: mutations,
+		CommitNow: true,
+	}
+
+}
+
+// IRTL stands for "Incremental Reverse Transaction Lookup". It sets all direct origin transactions
+// and the accumulated origins of all direct mixing and destination transactions
+func IRTL(c *dgo.Dgraph, transactionUids []string) (err error) {
+	if len(transactionUids) == 0 {
+		return
+	}
+	req := buildIRTLRequest(transactionUids)
+	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
+
+// gets all origin uids of the transaction specified by txHash
+func GetOrigins(c *dgo.Dgraph, txHash string) (origins []string, err error) {
+	query := `query Q($hash: string) {
+				q(func: eq(txhash, $hash))@normalize{
+					origins{
+						uid: uid
+					}
+				}
+			  }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	for _, o := range r.Q {
+		origins = append(origins, o.Uid)
 	}
 
 	return
@@ -130,6 +289,63 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 	transactions = make(map[string]dbtx.FrontendTransaction)
 	for _, t := range r.FrontendTransactions {
 		transactions[t.Hash] = t
+	}
+
+	return
+}
+
+func GetPrivacyTransactions(c *dgo.Dgraph, transactionHash string) (transactions []transaction, err error) {
+	query := `query Q($hash: string) {
+				q(func: has(privacytype)){
+					txhash
+				}
+			  }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []transaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	transactions = r.Transaction
+
+	return
+}
+
+func SameBlockTest(c *dgo.Dgraph, transactionHash string) (err error) {
+	query := `query Q($hash: string) {
+				s as var(func: eq(txhash, $hash)){
+					block as ~transactions
+				}
+				
+				q(func: uid(s)){
+					tx_inputs {
+						~tx_outputs@filter(has(privacytype)){
+							~transactions@filter(uid(block)){
+								id
+							}
+						}
+					}
+				}
+			}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(resp.Json) != 8 {
+		log.Println(transactionHash, string(resp.Json))
 	}
 
 	return
