@@ -155,6 +155,16 @@ mainLoop:
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
+
+			// collect uids
+			var uids []string
+			for _, t := range updatedBlock.Transactions {
+				uids = append(uids, t.Uid)
+			}
+
+			if err := dban.IRTL(dgraph, uids); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
 		}
 
 		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
@@ -164,8 +174,8 @@ mainLoop:
 		state.id++
 		counterAnalysedBlocks++
 
-		if counterAnalysedBlocks%1000 == 0 {
-			metric("avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/1000, "ms/block")
+		if counterAnalysedBlocks%100 == 0 {
+			metric("avg 100 blocks:", time.Since(timerGlobal).Milliseconds()/100, "ms/block")
 			timerGlobal = time.Now()
 		}
 	}
@@ -234,30 +244,10 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 		}
 
 		if transaction.PrivacyType != "" {
-			updatedTransaction := dbtx.Transaction{
+			updatedBlock.Transactions = append(updatedBlock.Transactions, dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
-			}
-
-			// find all potential origins for transaction
-			if transaction.PrivacyType == dbtx.PrivacyDestination {
-				info("Starting analyzing", transaction.Hash)
-				start := time.Now()
-
-				origins, originErr := dban.AnalyzeOrigins(dgraph, transaction.Hash)
-				if originErr != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), originErr)
-					return
-				}
-
-				for _, o := range origins {
-					updatedTransaction.Origins = append(updatedTransaction.Origins, dbtx.Transaction{Uid: o})
-				}
-				t := time.Now()
-				info("Finished analyzing", transaction.Hash, "Elapsed time:", t.Sub(start), "Origins:", len(origins))
-			}
-
-			updatedBlock.Transactions = append(updatedBlock.Transactions, updatedTransaction)
+			})
 		}
 	}
 	return
@@ -279,7 +269,7 @@ func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transac
 	addresses, addErr := dbaddr.GetInputAddressesOfTransaction(dgraph, tx.Uid)
 	if addErr != nil && !errors.Is(addErr, dbaddr.ErrorAddressNotFound) {
 		// If the crawler is executed in range mode,
-		// it is possible for addressses not to be found
+		// it is possible for addresses not to be found
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
 		return
 	}
