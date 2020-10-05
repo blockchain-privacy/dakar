@@ -141,7 +141,7 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		updatedBlock, err := analyseBlock(dgraph, currentBlock, ctx.Done())
+		updatedBlock, err := processPrivacyType(dgraph, currentBlock, ctx.Done())
 		if err != nil {
 			if errors.Is(err, errorInterrupted) {
 				analyzingInterrupted()
@@ -152,17 +152,13 @@ mainLoop:
 		}
 
 		if len(updatedBlock.Transactions) > 0 {
+			// update the block in the database
+			// after that function call the privacy type of all transaction is set
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			// collect uids
-			var uids []string
-			for _, t := range updatedBlock.Transactions {
-				uids = append(uids, t.Uid)
-			}
-
-			if err := dban.IRTL(dgraph, uids); err != nil {
+			if err := processIRTL(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}
@@ -185,6 +181,65 @@ mainLoop:
 
 func analyzingInterrupted() {
 	info("Stopped")
+}
+
+func filterInputUnconfirmedInputTransactions(transactions map[string]map[string]bool,
+	processedTransactions map[string]bool) (confirmed map[string]bool) {
+	confirmed = make(map[string]bool)
+
+	for k, v := range transactions {
+
+		// do not check already processed transaction
+		if processedTransactions[k] {
+			continue
+		}
+		found := false
+		for t := range v {
+			if _, ok := transactions[t]; ok && !processedTransactions[t] {
+				found = true
+				break
+			}
+
+		}
+
+		if !found {
+			confirmed[k] = true
+		}
+	}
+
+	return
+}
+
+func processIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
+	inputTransactions, err := dban.GetInputTransactions(dgraph, block.Uid)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	confirmed := filterInputUnconfirmedInputTransactions(inputTransactions, nil)
+	if len(confirmed) == 0 {
+		return errors.New("error no transactions for IRTL found. block uid: " + block.Uid)
+	}
+
+	processedTransactions := make(map[string]bool)
+	for len(confirmed) > 0 {
+
+		if err := dban.IRTL(dgraph, confirmed); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(confirmed) == len(inputTransactions) {
+			break
+		}
+
+		for k := range confirmed {
+			processedTransactions[k] = true
+		}
+
+		confirmed = filterInputUnconfirmedInputTransactions(inputTransactions, processedTransactions)
+	}
+
+	return nil
 }
 
 // wait for the next block
@@ -220,7 +275,9 @@ func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
 	}
 }
 
-func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct{}) (updatedBlock dbblk.Block, err error) {
+// Sets the privacy type for all transaction in block. The resulting updateBlock only has PrivateSend transactions
+func processPrivacyType(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct{}) (
+	updatedBlock dbblk.Block, err error) {
 	updatedBlock.Uid = block.Uid
 
 	for _, tx := range block.Transactions {
@@ -232,17 +289,21 @@ func analyseBlock(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct
 			// we do nothing
 		}
 
+		// get transaction data
 		transaction, txErr := dbtx.GetTransaction(dgraph, tx.Hash)
 		if txErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
+
+		// set the appropriate privacy type
 		transaction, err = setPrivacyType(dgraph, transaction)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 
+		// append the transaction to the change set in case it is a PrivateSend transaction
 		if transaction.PrivacyType != "" {
 			updatedBlock.Transactions = append(updatedBlock.Transactions, dbtx.Transaction{
 				Uid:         transaction.Uid,

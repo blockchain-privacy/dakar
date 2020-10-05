@@ -102,7 +102,7 @@ func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []str
 }
 
 // builds the request for the IRTL function. The request includes the mapped variables, query and mutations
-func buildIRTLRequest(transactionUids []string) *api.Request {
+func buildIRTLRequest(transactionUids map[string]bool) *api.Request {
 	queryHeader := "query Q("
 	var query string
 	queryVars := make(map[string]string)
@@ -110,7 +110,8 @@ func buildIRTLRequest(transactionUids []string) *api.Request {
 	var mutations []*api.Mutation
 
 	// build query
-	for i, u := range transactionUids {
+	i := 0
+	for u := range transactionUids {
 
 		mutations = append(mutations, &api.Mutation{
 			Cond:      fmt.Sprintf("@if(gt(len(f%d), 0))", i),
@@ -140,6 +141,7 @@ func buildIRTLRequest(transactionUids []string) *api.Request {
 		if i+1 < len(transactionUids) {
 			queryHeader += ","
 		}
+		i++
 	}
 
 	queryHeader += "){"
@@ -150,12 +152,11 @@ func buildIRTLRequest(transactionUids []string) *api.Request {
 		Mutations: mutations,
 		CommitNow: true,
 	}
-
 }
 
 // IRTL stands for "Incremental Reverse Transaction Lookup". It sets all direct origin transactions
 // and the accumulated origins of all direct mixing and destination transactions
-func IRTL(c *dgo.Dgraph, transactionUids []string) (err error) {
+func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	if len(transactionUids) == 0 {
 		return
 	}
@@ -289,6 +290,62 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 	transactions = make(map[string]dbtx.FrontendTransaction)
 	for _, t := range r.FrontendTransactions {
 		transactions[t.Hash] = t
+	}
+
+	return
+}
+
+// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+func GetInputTransactions(c *dgo.Dgraph, blockUid string) (inputTransactions map[string]map[string]bool, err error) {
+	query := `query Q($uid: string) {
+				q(func: uid($uid)){
+					transactions@filter(has(privacytype)){
+						uid
+						input_transaction: tx_inputs@normalize{
+							~tx_outputs{
+								uid: uid
+							}
+						}
+					}
+				}
+			  }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": blockUid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Block []struct {
+			Transaction []struct {
+				Uid              string `json:"uid,omitempty"`
+				InputTransaction []struct {
+					Uid string `json:"uid,omitempty"`
+				} `json:"input_transaction,omitempty"`
+			} `json:"transactions,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Block) == 0 {
+		return
+	} else if len(r.Block) != 1 || len(r.Block[0].Transaction) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	inputTransactions = make(map[string]map[string]bool)
+
+	for _, t := range r.Block[0].Transaction {
+		inputTransactions[t.Uid] = make(map[string]bool)
+		for _, iT := range t.InputTransaction {
+			inputTransactions[t.Uid][iT.Uid] = true
+		}
 	}
 
 	return
