@@ -51,6 +51,62 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 	return
 }
 
+func buildAnalyzeAndSetOriginsRequest(transactionUids []string) *api.Request {
+	queryHeader := "query Q("
+	var query string
+	queryVars := make(map[string]string)
+
+	var mutations []*api.Mutation
+
+	// build query
+	for i, u := range transactionUids {
+
+		mutations = append(mutations, &api.Mutation{
+			Cond:      fmt.Sprintf("@if(gt(len(o%d), 0))", i),
+			SetNquads: []byte(fmt.Sprintf("uid(u%d) <origins> uid(o%d) .", i, i)),
+		})
+
+		queryVars[fmt.Sprintf("$uid%d", i)] = u
+		queryHeader += fmt.Sprintf("$uid%d:string", i)
+
+		query += fmt.Sprintf(`
+				u%d as var(func: uid($uid%d))
+				var(func: uid(u%d))@recurse{
+					tx_inputs
+					v%d as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+
+				o%d as var(func: uid(v%d))@filter(eq(privacytype,"origin"))`, i, i, i, i, i, i)
+
+		if i+1 < len(transactionUids) {
+			queryHeader += ","
+		}
+	}
+
+	queryHeader += "){"
+
+	return &api.Request{
+		Query:     queryHeader + query + "}",
+		Vars:      queryVars,
+		Mutations: mutations,
+		CommitNow: true,
+	}
+}
+
+func PartialReverseLookup(c *dgo.Dgraph, transactionUids []string) (err error) {
+	if len(transactionUids) == 0 {
+		return
+	}
+
+	req := buildAnalyzeAndSetOriginsRequest(transactionUids)
+	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
+
 // Searches for all potential origins and sets them.
 func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 	query := `query Q($uid: string) {
@@ -191,6 +247,7 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	if len(transactionUids) == 0 {
 		return
 	}
+
 	req := buildIRTLRequest(transactionUids)
 	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

@@ -227,10 +227,15 @@ func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		for _, i := range inputTransactions {
-			if err := dban.AnalyzeAndSetOrigins(dgraph, i); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
+		// todo: refactor into one function call per destination transaction (build query and so on)
+		//for _, i := range inputTransactions {
+		//	if err := dban.AnalyzeAndSetOrigins(dgraph, i); err != nil {
+		//		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//	}
+		//}
+
+		if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		destinationTransactions[t.Uid] = true
