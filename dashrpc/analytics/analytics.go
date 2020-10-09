@@ -158,9 +158,13 @@ mainLoop:
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			if err := processIRTL(dgraph, updatedBlock); err != nil {
+			if err := processPartialIRTL(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
+
+			//if err := processIRTL(dgraph, updatedBlock); err != nil {
+			//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			//}
 		}
 
 		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
@@ -208,6 +212,36 @@ func filterInputUnconfirmedInputTransactions(transactions map[string]map[string]
 	}
 
 	return
+}
+
+func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
+	destinationTransactions := make(map[string]bool)
+
+	for _, t := range block.Transactions {
+		if t.PrivacyType != dbtx.PrivacyDestination {
+			continue
+		}
+
+		inputTransactions, err := dban.GetNotAnalyzedInputTransactions(dgraph, t.Uid)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		for _, i := range inputTransactions {
+			if err := dban.AnalyzeAndSetOrigins(dgraph, i); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+		}
+
+		destinationTransactions[t.Uid] = true
+	}
+
+	// last step: do IRTL for all destination transactions
+	if err := dban.IRTL(dgraph, destinationTransactions); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return nil
 }
 
 func processIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {

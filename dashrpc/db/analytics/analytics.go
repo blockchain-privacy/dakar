@@ -51,6 +51,37 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 	return
 }
 
+// Searches for all potential origins and sets them.
+func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
+	query := `query Q($uid: string) {
+				u as var(func: uid($uid))
+				var(func: uid(u))@recurse{
+					tx_inputs
+					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+
+				o as var(func: uid(v))@filter(eq(privacytype,"origin"))
+			  }`
+
+	mu := &api.Mutation{
+		Cond:      "@if(gt(len(o), 0))",
+		SetNquads: []byte("uid(u) <origins> uid(o) ."),
+	}
+	req := &api.Request{
+		Query:     query,
+		Vars:      map[string]string{"$uid": txUid},
+		Mutations: []*api.Mutation{mu},
+		CommitNow: true,
+	}
+
+	if txErr := db.TxWithRetry(c, db.GetBackendContext(), req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	return
+}
+
 // Gets all direct origin transactions and the accumulated origins of all direct mixing and destination transactions
 func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
 	query := `query Q($hash: string) {
@@ -290,6 +321,48 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 	transactions = make(map[string]dbtx.FrontendTransaction)
 	for _, t := range r.FrontendTransactions {
 		transactions[t.Hash] = t
+	}
+
+	return
+}
+
+// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+func GetNotAnalyzedInputTransactions(c *dgo.Dgraph, txUid string) (inputTransactions []string, err error) {
+	query := `query Q($uid: string){
+				var(func: uid($uid)){
+					tx_inputs{
+						v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND eq(count(origins),0))
+					}
+				}
+				
+				q(func: uid(v)){
+					uid
+				}
+			   }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": txUid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		return
+	}
+
+	for _, u := range r.Transaction {
+		inputTransactions = append(inputTransactions, u.Uid)
 	}
 
 	return
