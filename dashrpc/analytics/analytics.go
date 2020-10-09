@@ -222,10 +222,10 @@ func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
 			continue
 		}
 
-		inputTransactions, err := dban.GetNotAnalyzedInputTransactions(dgraph, t.Uid)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		//inputTransactions, err := dban.GetNotAnalyzedInputTransactions(dgraph, t.Uid)
+		//if err != nil {
+		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//}
 
 		// todo: refactor into one function call per destination transaction (build query and so on)
 		//for _, i := range inputTransactions {
@@ -234,11 +234,20 @@ func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
 		//	}
 		//}
 
-		if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		//if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
+		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//}
 
 		destinationTransactions[t.Uid] = true
+	}
+
+	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, block.Uid)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// last step: do IRTL for all destination transactions

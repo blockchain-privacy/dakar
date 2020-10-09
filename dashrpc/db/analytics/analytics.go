@@ -384,6 +384,50 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 }
 
 // gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (inputTransactions []string, err error) {
+	query := `query Q($uid: string){
+				var(func: uid($uid)){
+					transactions@filter(eq(privacytype,"destination")){
+						tx_inputs{
+							v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND eq(count(origins),0))
+						}
+					} 
+				}
+				
+				q(func: uid(v)){
+					uid
+				}
+			   }`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": blockUid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		return
+	}
+
+	for _, u := range r.Transaction {
+		inputTransactions = append(inputTransactions, u.Uid)
+	}
+
+	return
+}
+
+// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
 func GetNotAnalyzedInputTransactions(c *dgo.Dgraph, txUid string) (inputTransactions []string, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
