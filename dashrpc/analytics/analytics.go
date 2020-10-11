@@ -17,6 +17,7 @@ import (
 
 // block id after which we start analysing. found empirically.
 const analyseStartBlock = 206940
+const batchSize = 10
 
 var errorInterrupted = errors.New("interrupted")
 
@@ -246,8 +247,12 @@ func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	// splitting into smaller batches so dgraph does not use too much memory
+	for i := 0; i < len(inputTransactions); i += batchSize {
+		batch := inputTransactions[i:min(i+batchSize, len(inputTransactions))]
+		if err := dban.PartialReverseLookup(dgraph, batch); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 	}
 
 	// last step: do IRTL for all destination transactions
@@ -288,6 +293,14 @@ func processIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
 	}
 
 	return nil
+}
+
+// returns the smaller of the two values
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
 }
 
 // wait for the next block
