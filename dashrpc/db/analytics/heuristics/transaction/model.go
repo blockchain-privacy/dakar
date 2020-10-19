@@ -19,3 +19,8 @@ type Heuristic struct {
 func (h *Heuristic) SetDType() {
 	h.DType = []string{DType}
 }
+
+type InputTransaction struct {
+	Uid       string `json:"uid,omitempty"`
+	Timestamp string `json:"ts,omitempty"`
+}
