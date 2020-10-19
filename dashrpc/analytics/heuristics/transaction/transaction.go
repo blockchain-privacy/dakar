@@ -5,32 +5,67 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"time"
 )
+
+// nLockback is the number of hours which limits the maximal lookback on origins
+const nLockback = -1 * 2 * time.Hour
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(txHash string, origins []string) []string
+	exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
 }
 
-type DummyHeuristic struct {
+type TimeConstraintHeuristic struct {
 	heuristicType string
 }
 
-// DummyHeuristic constructor
-func NewDummyHeuristic() DummyHeuristic {
-	return DummyHeuristic{
-		heuristicType: "dummy",
+// TimeConstraintHeuristic constructor
+func NewTimeConstraintHeuristic() TimeConstraintHeuristic {
+	return TimeConstraintHeuristic{
+		heuristicType: "timeconstraint",
 	}
 }
 
 // does nothing so far
-func (b DummyHeuristic) exec(txHash string, origins []string) []string {
-	return origins
+func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
+	uids, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	allUids := make(map[string]bool)
+
+	for _, u := range uids {
+		t, err := time.Parse(time.RFC3339, u.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+
+		t = t.Add(nLockback)
+		timeLimitedUids, err := dbtxh.GetOriginsByDate(dgraph, u.Uid, t.Format(time.RFC3339))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, uid := range timeLimitedUids {
+			allUids[uid] = true
+		}
+
+		log.Println(u.Uid, u.Timestamp, len(timeLimitedUids))
+	}
+
+	var filteredOrigins []string
+	for k := range allUids {
+		filteredOrigins = append(filteredOrigins, k)
+	}
+
+	return filteredOrigins, nil
 }
 
-func (b DummyHeuristic) getType() string {
+func (b TimeConstraintHeuristic) getType() string {
 	return b.heuristicType
 }
 
@@ -47,24 +82,28 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 	// todo remove
 	log.Println("Original origin count:", len(origins))
 
-	originUids := h.exec(txHash, origins)
+	originUids, err := h.exec(dgraph, txHash, origins)
+	if err != nil {
+		return err
+	}
 
 	// todo remove
 	log.Println("After heuristic origin count:", len(originUids))
 
-	var dummyOrigins []dbtxh.DummyOrigin
+	// do not upsert heuristic for now
+	//var dummyOrigins []dbtxh.DummyOrigin
+	//
+	//for _, o := range originUids {
+	//	dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
+	//}
 
-	for _, o := range originUids {
-		dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
-	}
-
-	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
-		HeuristicType: h.getType(),
-		Origins:       dummyOrigins,
-		TxHash:        txHash,
-	}); err != nil {
-		return err
-	}
+	//if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+	//	HeuristicType: h.getType(),
+	//	Origins:       dummyOrigins,
+	//	TxHash:        txHash,
+	//}); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
