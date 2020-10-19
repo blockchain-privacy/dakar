@@ -82,3 +82,92 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 
 	return
 }
+
+// Returns all origins which are created after the specified date
+func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (uids []string, err error) {
+	query := `
+			query Q($uid: string,$ts: string){
+					var (func: uid($uid))@cascade{
+						v as origins{
+							~transactions@filter(gt(ts,$ts))
+						}
+					}
+					
+					q(func: uid(v)){
+						uid
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid, "$ts": timestamp})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		return
+	}
+
+	for _, u := range r.Transaction {
+		uids = append(uids, u.Uid)
+	}
+
+	return
+}
+
+// Returns input transactions of the given transaction
+func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTransaction, err error) {
+	query := `
+			query Q($txhash: string){
+				var (func: eq(txhash,$txhash)){
+					tx_inputs{
+						v as ~tx_outputs
+					}
+				}
+				
+				q(func: uid(v))@normalize{
+					uid
+					~transactions{
+						ts:ts
+					}
+				}
+			}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []InputTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		return
+	}
+
+	inputTransactions = r.Transaction
+
+	return
+}
