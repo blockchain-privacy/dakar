@@ -461,7 +461,7 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if state.id == stoppingBlockId || currentBlock.NextHash == "" {
+		if state.id >= stoppingBlockId || currentBlock.NextHash == "" {
 			// finished
 			break
 		}
