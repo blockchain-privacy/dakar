@@ -1,8 +1,12 @@
 package transaction
 
 import (
+	"dashrpc/cmd/cliutil"
 	dban "dashrpc/db/analytics"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
+	dbop "dashrpc/db/output"
+	"errors"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"time"
@@ -29,32 +33,90 @@ func NewTimeConstraintHeuristic() TimeConstraintHeuristic {
 	}
 }
 
+// Returns the number of denominations.
+// An error is returned if more than one type of denominations is found
+func getNumberOfDenominations(it dbtxh.InputTransaction) (nDenominations int, denomIndex int, err error) {
+	var denominations []int64
+	for _, output := range it.Outputs {
+		denominations = append(denominations, output.Amount)
+	}
+
+	numDenominations := dbop.CountAmountDenominations(denominations)
+
+	found := false
+	for i, nd := range numDenominations {
+		if nd > 0 {
+			if found {
+				err = errors.New("found more than one type of denominations in input transaction")
+				return
+			}
+			denomIndex = i
+			found = true
+		}
+	}
+	nDenominations = numDenominations[denomIndex]
+	return
+}
+
+type superSource struct {
+	denomination int64
+	sources      []struct {
+		addressHash    string
+		nDenominations int
+	}
+}
+
+// todo: add description
+func buildSuperSources(it dbtxh.InputTransaction, denomination int64) (superSource superSource, err error) {
+
+	superSource.denomination = denomination
+
+	return
+}
+
 // does nothing so far
 func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
-	uids, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
 		return nil, err
 	}
 
+	inputAmountMap := make(map[string]int)
 	allUids := make(map[string]bool)
 
-	for _, u := range uids {
-		t, err := time.Parse(time.RFC3339, u.Timestamp)
+	for _, it := range inputTransactions {
+		// get input denominations
+		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		inputAmountMap[it.Uid] = nDenominations
+
+		// get time limited origins
+		t, err := time.Parse(time.RFC3339, it.Timestamp)
 		if err != nil {
 			return nil, err
 		}
 
 		t = t.Add(-1 * nLockback)
-		timeLimitedUids, err := dbtxh.GetOriginsByDate(dgraph, u.Uid, t.Format(time.RFC3339))
+		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
 		if err != nil {
 			return nil, err
 		}
 
-		for _, uid := range timeLimitedUids {
-			allUids[uid] = true
+		for _, o := range timeLimitedOrigins {
+			allUids[o.Uid] = true
 		}
 
-		log.Println(u.Uid, u.Timestamp, len(timeLimitedUids))
+		// find super sources
+		sSource, err := buildSuperSources(it, dbop.DenominationsTypes[denominationIndex])
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		log.Println(sSource)
+
+		//log.Println(it.Uid, it.Timestamp, len(timeLimitedOrigins))
 	}
 
 	var filteredOrigins []string

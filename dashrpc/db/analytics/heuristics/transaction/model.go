@@ -27,3 +27,8 @@ type InputTransaction struct {
 		Amount int64 `json:"amount,omitempty"`
 	} `json:"tx_outputs,omitempty"`
 }
+
+type OriginWithAddress struct {
+	Uid     string `json:"uid,omitempty"`
+	Address string `json:"addresshash,omitempty"`
+}
