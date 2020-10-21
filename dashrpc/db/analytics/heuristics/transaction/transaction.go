@@ -84,7 +84,7 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 }
 
 // Returns all origins which are created after the specified date
-func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []OriginWithAddress, err error) {
+func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Transaction, err error) {
 	query := `query Q($uid: string,$ts: string){
 				var (func: uid($uid))@cascade{
 					v as origins{
@@ -94,6 +94,9 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Or
 				
 				q(func: uid(v))@normalize{
 					uid
+					tx_outputs{
+						amount
+					}
 					tx_inputs{
 						~addr_outputs{
 							addresshash:addresshash
@@ -110,7 +113,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Or
 
 	// json struct
 	var r struct {
-		Origins []OriginWithAddress `json:"q,omitempty"`
+		Origins []Transaction `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -129,7 +132,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Or
 }
 
 // Returns input transactions of the given transaction
-func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTransaction, err error) {
+func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Transaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
@@ -182,7 +185,7 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTr
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
 			return
 		}
-		inputTransactions = append(inputTransactions, InputTransaction{
+		inputTransactions = append(inputTransactions, Transaction{
 			Uid:       t.Uid,
 			Timestamp: t.Block[0].Timestamp,
 			Outputs:   t.Outputs,

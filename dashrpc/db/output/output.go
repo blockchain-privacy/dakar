@@ -10,9 +10,9 @@ import (
 	"strconv"
 )
 
-const nDenominations = 5
+const NumDenominations = 5
 
-var DenominationsTypes = [nDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
+var DenominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
 
 // gets output information from the database
 func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Output, err error) {
@@ -270,14 +270,14 @@ func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
-func CountOutputDenominations(outputs []Output) [nDenominations]int {
+func CountOutputDenominations(outputs []Output) [NumDenominations]int {
 
 	var amounts []int64
 
 	for _, o := range outputs {
 		if o.Amount == nil {
 			log.Println("error amount not set")
-			return [nDenominations]int{}
+			return [NumDenominations]int{}
 		}
 		amounts = append(amounts, *o.Amount)
 	}
@@ -285,7 +285,7 @@ func CountOutputDenominations(outputs []Output) [nDenominations]int {
 	return CountAmountDenominations(amounts)
 }
 
-func CountAmountDenominations(amounts []int64) (denominations [nDenominations]int) {
+func CountAmountDenominations(amounts []int64) (denominations [NumDenominations]int) {
 	for _, amt := range amounts {
 	inner:
 		for i, v := range DenominationsTypes {

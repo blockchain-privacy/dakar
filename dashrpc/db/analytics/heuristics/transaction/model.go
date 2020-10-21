@@ -20,15 +20,11 @@ func (h *Heuristic) SetDType() {
 	h.DType = []string{DType}
 }
 
-type InputTransaction struct {
+type Transaction struct {
 	Uid       string `json:"uid,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
+	Address   string `json:"addresshash,omitempty"`
 	Outputs   []struct {
 		Amount int64 `json:"amount,omitempty"`
 	} `json:"tx_outputs,omitempty"`
-}
-
-type OriginWithAddress struct {
-	Uid     string `json:"uid,omitempty"`
-	Address string `json:"addresshash,omitempty"`
 }

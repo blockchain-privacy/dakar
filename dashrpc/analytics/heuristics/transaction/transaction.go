@@ -35,7 +35,7 @@ func NewTimeConstraintHeuristic() TimeConstraintHeuristic {
 
 // Returns the number of denominations.
 // An error is returned if more than one type of denominations is found
-func getNumberOfDenominations(it dbtxh.InputTransaction) (nDenominations int, denomIndex int, err error) {
+func getNumberOfDenominations(it dbtxh.Transaction) (nDenominations int, denomIndex int, err error) {
 	var denominations []int64
 	for _, output := range it.Outputs {
 		denominations = append(denominations, output.Amount)
@@ -67,8 +67,7 @@ type superSource struct {
 }
 
 // todo: add description
-func buildSuperSources(it dbtxh.InputTransaction, denomination int64) (superSource superSource, err error) {
-
+func buildSuperSources(origins []dbtxh.Transaction, denomination int64) (superSource superSource, err error) {
 	superSource.denomination = denomination
 
 	return
@@ -109,7 +108,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		}
 
 		// find super sources
-		sSource, err := buildSuperSources(it, dbop.DenominationsTypes[denominationIndex])
+		sSource, err := buildSuperSources(timeLimitedOrigins, dbop.DenominationsTypes[denominationIndex])
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
