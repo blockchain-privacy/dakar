@@ -72,10 +72,11 @@ func main() {
 		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
 		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
 
-		testTransation := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
+		testTransaction2 := "78d7d55ecd30c78ea91bffdff536e9c4476d44aa1e2d874663cfba3a547a0eef"
+		//testTransation := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
 
 		// heuristic test
-		if err := heuristic.Exec(dgraph, testTransation, heuristic.NewTimeConstraintHeuristic()); err != nil {
+		if err := heuristic.Exec(dgraph, testTransaction2, heuristic.NewTimeConstraintHeuristic()); err != nil {
 			log.Println(err)
 			return
 		}

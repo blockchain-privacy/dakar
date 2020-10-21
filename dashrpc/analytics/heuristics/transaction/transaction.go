@@ -35,13 +35,8 @@ func NewTimeConstraintHeuristic() TimeConstraintHeuristic {
 
 // Returns the number of denominations.
 // An error is returned if more than one type of denominations is found
-func getNumberOfDenominations(it dbtxh.Transaction) (nDenominations int, denomIndex int, err error) {
-	var denominations []int64
-	for _, output := range it.Outputs {
-		denominations = append(denominations, output.Amount)
-	}
-
-	numDenominations := dbop.CountAmountDenominations(denominations)
+func getNumberOfDenominations(it dbtxh.HeuristicTransaction) (nDenominations int, denomIndex int, err error) {
+	numDenominations := getDenominationCounts(it)
 
 	found := false
 	for i, nd := range numDenominations {
@@ -58,17 +53,14 @@ func getNumberOfDenominations(it dbtxh.Transaction) (nDenominations int, denomIn
 	return
 }
 
-// gets the number of denominations of the specified type included in the given transaction
-func getNumberOfDenominationsByIndex(it dbtxh.Transaction, denominationIndex int) (nDenominations int) {
+// gets the counts of each denomination type
+func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations]int {
 	var denominations []int64
 	for _, output := range it.Outputs {
 		denominations = append(denominations, output.Amount)
 	}
 
-	numDenominations := dbop.CountAmountDenominations(denominations)
-
-	nDenominations = numDenominations[denominationIndex]
-	return
+	return dbop.CountAmountDenominations(denominations)
 }
 
 type superSource struct {
@@ -78,22 +70,56 @@ type superSource struct {
 }
 
 // todo: add description
-func buildSuperSources(origins []dbtxh.Transaction, denominationIndex int) (superSource superSource, err error) {
+func buildSuperSources(origins []dbtxh.HeuristicTransaction, denominationIndex int) (superSource superSource, err error) {
 	superSource.denominationIndex = denominationIndex
 	superSource.sources = make(map[string]int)
 	for _, o := range origins {
-		nDenominations := getNumberOfDenominationsByIndex(o, denominationIndex)
+		nDenominations := getDenominationCounts(o)[denominationIndex]
 		superSource.sources[o.Address] += nDenominations
 	}
 
 	return
 }
 
+func buildSuperSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[string][dbop.NumDenominations]int {
+	superSourceAmounts := make(map[string][dbop.NumDenominations]int)
+
+	for _, o := range origins {
+		denominationSlice := getDenominationCounts(o)
+		for i := range denominationSlice {
+			denominationSlice[i] += superSourceAmounts[o.Address][i]
+			superSourceAmounts[o.Address] = denominationSlice
+		}
+	}
+	return superSourceAmounts
+}
+
+// returns true if all denominations with at least the same amount of denom1 are contained in denom2
+func containsDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] < d {
+			return false
+		}
+	}
+	return true
+}
+
 // does nothing so far
 func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
+
+	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// todo: use later
+	inputDenominationCounts := getDenominationCounts(transaction)
+
+	log.Println("Destination transaction denomination counts:", inputDenominationCounts)
+
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	inputAmountMap := make(map[string]int)
@@ -101,6 +127,9 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 
 	superSources := make(map[string]bool)
 	mRemovableSupersources := make(map[string]bool)
+	allOrigins := make(map[string]dbtxh.HeuristicTransaction)
+
+	var inputSuperSources []map[string]bool
 
 	for _, it := range inputTransactions {
 		// get input denominations
@@ -123,6 +152,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		}
 
 		for _, o := range timeLimitedOrigins {
+			allOrigins[o.Uid] = o
 			allUids[o.Uid] = true
 		}
 
@@ -132,9 +162,12 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
+		inputSuperSources = append(inputSuperSources, make(map[string]bool))
+		iSSIndex := len(inputSuperSources) - 1
 		var removableSuperSources int
 		for k, v := range sSource.sources {
 			superSources[k] = true
+			inputSuperSources[iSSIndex][k] = true
 			if v < inputAmountMap[it.Uid] {
 				mRemovableSupersources[k] = true
 				removableSuperSources++
@@ -146,7 +179,53 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		//log.Println(it.Uid, it.Timestamp, len(timeLimitedOrigins))
 	}
 
+	originAmounts := buildSuperSourceAmounts(allOrigins)
+
 	log.Println("global super sources", len(superSources), "removable super sources", len(mRemovableSupersources))
+
+	// remove super sources
+	for k := range mRemovableSupersources {
+		delete(superSources, k)
+	}
+
+	// save all addresses (super sources) which are part of all input transactions
+	var omniSource []string
+	for k := range superSources {
+
+		found := true
+		for _, inputTransactionSource := range inputSuperSources {
+			if !inputTransactionSource[k] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			omniSource = append(omniSource, k)
+		}
+	}
+
+	log.Println("Found", len(omniSource), "omni sources")
+
+	var filteredOmniSource []string
+	// real one, todo: uncomment
+	// todo: check if this actually works ...
+	//for _, o := range omniSource {
+	//	denominations := originAmounts[o]
+	//	if containsDenomination(inputDenominationCounts, denominations) {
+	//		filteredOmniSource = append(filteredOmniSource, o)
+	//	}
+	//}
+
+	// fake one, todo: remove
+	for k, o := range originAmounts {
+
+		if containsDenomination(inputDenominationCounts, o) {
+			filteredOmniSource = append(filteredOmniSource, k)
+		}
+	}
+
+	log.Println("Remanining omi sources after denomination amount filter:", len(filteredOmniSource))
 
 	var filteredOrigins []string
 	for k := range allUids {
