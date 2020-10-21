@@ -4,6 +4,7 @@ import (
 	"dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -92,12 +93,12 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 					}
 				}
 				
-				q(func: uid(v))@normalize{
+				q(func: uid(v)){
 					uid
 					tx_outputs{
 						amount
 					}
-					tx_inputs{
+					tx_inputs@normalize{
 						~addr_outputs{
 							addresshash:addresshash
 						}
@@ -113,7 +114,16 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 
 	// json struct
 	var r struct {
-		Origins []Transaction `json:"q,omitempty"`
+		Origins []struct {
+			Uid       string `json:"uid,omitempty"`
+			Timestamp string `json:"ts,omitempty"`
+			Inputs    []struct {
+				AddressHash string `json:"addresshash,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Outputs []struct {
+				Amount int64 `json:"amount,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -122,11 +132,22 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 	}
 
 	if len(r.Origins) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		err = errors.New("error invalid response")
 		return
 	}
 
-	origins = r.Origins
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			err = errors.New("error invalid response")
+			return
+		}
+		origins = append(origins, Transaction{
+			Uid:       o.Uid,
+			Timestamp: o.Timestamp,
+			Address:   o.Inputs[0].AddressHash,
+			Outputs:   o.Outputs,
+		})
+	}
 
 	return
 }
