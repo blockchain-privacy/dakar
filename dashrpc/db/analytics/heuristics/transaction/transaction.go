@@ -130,21 +130,23 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (uids []strin
 
 // Returns input transactions of the given transaction
 func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTransaction, err error) {
-	query := `
-			query Q($txhash: string){
+	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
 						v as ~tx_outputs
 					}
 				}
 				
-				q(func: uid(v))@normalize{
+				q(func: uid(v)){
 					uid
+					tx_outputs{
+						amount
+					}
 					~transactions{
-						ts:ts
+						ts
 					}
 				}
-			}`
+				}`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
 	if err != nil {
@@ -154,7 +156,15 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTr
 
 	// json struct
 	var r struct {
-		Transaction []InputTransaction `json:"q,omitempty"`
+		Transaction []struct {
+			Uid     string `json:"uid,omitempty"`
+			Outputs []struct {
+				Amount int64 `json:"amount,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+			Block []struct {
+				Timestamp string `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -167,7 +177,17 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []InputTr
 		return
 	}
 
-	inputTransactions = r.Transaction
+	for _, t := range r.Transaction {
+		if len(t.Block) != 1 || len(t.Outputs) == 0 {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+			return
+		}
+		inputTransactions = append(inputTransactions, InputTransaction{
+			Uid:       t.Uid,
+			Timestamp: t.Block[0].Timestamp,
+			Outputs:   t.Outputs,
+		})
+	}
 
 	return
 }

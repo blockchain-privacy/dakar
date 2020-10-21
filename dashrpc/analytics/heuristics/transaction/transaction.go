@@ -9,7 +9,7 @@ import (
 )
 
 // nLockback is the number of hours which limits the maximal lookback on origins
-const nLockback = -1 * 2 * time.Hour
+const nLockback = 1 * time.Hour
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
@@ -44,7 +44,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 			return nil, err
 		}
 
-		t = t.Add(nLockback)
+		t = t.Add(-1 * nLockback)
 		timeLimitedUids, err := dbtxh.GetOriginsByDate(dgraph, u.Uid, t.Format(time.RFC3339))
 		if err != nil {
 			return nil, err

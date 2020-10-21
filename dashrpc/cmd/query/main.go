@@ -76,6 +76,7 @@ func main() {
 
 		// heuristic test
 		if err := heuristic.Exec(dgraph, testTransation, heuristic.NewTimeConstraintHeuristic()); err != nil {
+			log.Println(err)
 			return
 		}
 
