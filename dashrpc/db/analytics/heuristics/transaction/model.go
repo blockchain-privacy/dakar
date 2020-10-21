@@ -23,4 +23,7 @@ func (h *Heuristic) SetDType() {
 type InputTransaction struct {
 	Uid       string `json:"uid,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
+	Outputs   []struct {
+		Amount int64 `json:"amount,omitempty"`
+	} `json:"tx_outputs,omitempty"`
 }
