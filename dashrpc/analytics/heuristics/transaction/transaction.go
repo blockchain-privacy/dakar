@@ -13,7 +13,7 @@ import (
 )
 
 // nLockback is the number of hours which limits the maximal lookback on origins
-const nLockback = 1 * time.Hour
+const nLockback = 500 * time.Hour
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
@@ -58,17 +58,33 @@ func getNumberOfDenominations(it dbtxh.Transaction) (nDenominations int, denomIn
 	return
 }
 
-type superSource struct {
-	denomination int64
-	sources      []struct {
-		addressHash    string
-		nDenominations int
+// gets the number of denominations of the specified type included in the given transaction
+func getNumberOfDenominationsByIndex(it dbtxh.Transaction, denominationIndex int) (nDenominations int) {
+	var denominations []int64
+	for _, output := range it.Outputs {
+		denominations = append(denominations, output.Amount)
 	}
+
+	numDenominations := dbop.CountAmountDenominations(denominations)
+
+	nDenominations = numDenominations[denominationIndex]
+	return
+}
+
+type superSource struct {
+	denominationIndex int
+	// key: address hash, value: number of denominations of type denominationIndex
+	sources map[string]int
 }
 
 // todo: add description
-func buildSuperSources(origins []dbtxh.Transaction, denomination int64) (superSource superSource, err error) {
-	superSource.denomination = denomination
+func buildSuperSources(origins []dbtxh.Transaction, denominationIndex int) (superSource superSource, err error) {
+	superSource.denominationIndex = denominationIndex
+	superSource.sources = make(map[string]int)
+	for _, o := range origins {
+		nDenominations := getNumberOfDenominationsByIndex(o, denominationIndex)
+		superSource.sources[o.Address] += nDenominations
+	}
 
 	return
 }
@@ -82,6 +98,9 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 
 	inputAmountMap := make(map[string]int)
 	allUids := make(map[string]bool)
+
+	superSources := make(map[string]bool)
+	mRemovableSupersources := make(map[string]bool)
 
 	for _, it := range inputTransactions {
 		// get input denominations
@@ -108,15 +127,26 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		}
 
 		// find super sources
-		sSource, err := buildSuperSources(timeLimitedOrigins, dbop.DenominationsTypes[denominationIndex])
+		sSource, err := buildSuperSources(timeLimitedOrigins, denominationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		log.Println(sSource)
+		var removableSuperSources int
+		for k, v := range sSource.sources {
+			superSources[k] = true
+			if v < inputAmountMap[it.Uid] {
+				mRemovableSupersources[k] = true
+				removableSuperSources++
+			}
+		}
+
+		log.Println("time limited origins:", len(timeLimitedOrigins), "number of supersources", len(sSource.sources), "removable:", removableSuperSources)
 
 		//log.Println(it.Uid, it.Timestamp, len(timeLimitedOrigins))
 	}
+
+	log.Println("global super sources", len(superSources), "removable super sources", len(mRemovableSupersources))
 
 	var filteredOrigins []string
 	for k := range allUids {

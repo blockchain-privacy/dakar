@@ -138,8 +138,15 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 
 	for _, o := range r.Origins {
 		if len(o.Inputs) != 1 {
-			err = errors.New("error invalid response")
-			return
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
 		}
 		origins = append(origins, Transaction{
 			Uid:       o.Uid,
@@ -150,6 +157,24 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 	}
 
 	return
+}
+
+// return true if all addresses are equal
+func areALLAddressesEqual(addresses []string) bool {
+	if len(addresses) < 2 {
+		return true
+	}
+
+	hashes := make(map[string]bool)
+
+	for _, a := range addresses {
+		hashes[a] = true
+		if len(hashes) > 1 {
+			return false
+		}
+	}
+
+	return true
 }
 
 // Returns input transactions of the given transaction
