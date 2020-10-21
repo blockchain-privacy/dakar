@@ -291,7 +291,7 @@ func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transac
 	return
 }
 
-// returns true if all addresses are different
+// returns true if all addresses are equal
 func areALLAddressesEqual(addresses []dbaddr.Address) bool {
 	if len(addresses) < 2 {
 		return true
