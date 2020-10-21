@@ -84,19 +84,23 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 }
 
 // Returns all origins which are created after the specified date
-func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (uids []string, err error) {
-	query := `
-			query Q($uid: string,$ts: string){
-					var (func: uid($uid))@cascade{
-						v as origins{
-							~transactions@filter(gt(ts,$ts))
+func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []OriginWithAddress, err error) {
+	query := `query Q($uid: string,$ts: string){
+				var (func: uid($uid))@cascade{
+					v as origins{
+						~transactions@filter(gt(ts,$ts))
+					}
+				}
+				
+				q(func: uid(v))@normalize{
+					uid
+					tx_inputs{
+						~addr_outputs{
+							addresshash:addresshash
 						}
 					}
-					
-					q(func: uid(v)){
-						uid
-					}
-				}`
+				}
+			   }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid, "$ts": timestamp})
 	if err != nil {
@@ -106,9 +110,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (uids []strin
 
 	// json struct
 	var r struct {
-		Transaction []struct {
-			Uid string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
+		Origins []OriginWithAddress `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -116,14 +118,12 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (uids []strin
 		return
 	}
 
-	if len(r.Transaction) == 0 {
+	if len(r.Origins) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
 		return
 	}
 
-	for _, u := range r.Transaction {
-		uids = append(uids, u.Uid)
-	}
+	origins = r.Origins
 
 	return
 }
