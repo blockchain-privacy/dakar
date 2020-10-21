@@ -20,7 +20,7 @@ func (h *Heuristic) SetDType() {
 	h.DType = []string{DType}
 }
 
-type Transaction struct {
+type HeuristicTransaction struct {
 	Uid       string `json:"uid,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
 	Address   string

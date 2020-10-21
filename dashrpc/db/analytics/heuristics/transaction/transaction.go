@@ -85,7 +85,7 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 }
 
 // Returns all origins which are created after the specified date
-func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Transaction, err error) {
+func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uid: string,$ts: string){
 				var (func: uid($uid))@cascade{
 					v as origins{
@@ -148,7 +148,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []Tr
 				return
 			}
 		}
-		origins = append(origins, Transaction{
+		origins = append(origins, HeuristicTransaction{
 			Uid:       o.Uid,
 			Timestamp: o.Timestamp,
 			Address:   o.Inputs[0].AddressHash,
@@ -177,8 +177,8 @@ func areALLAddressesEqual(addresses []string) bool {
 	return true
 }
 
-// Returns input transactions of the given transaction
-func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Transaction, err error) {
+// Returns the input transactions of the given transaction
+func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
@@ -231,11 +231,61 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Transac
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
 			return
 		}
-		inputTransactions = append(inputTransactions, Transaction{
+		inputTransactions = append(inputTransactions, HeuristicTransaction{
 			Uid:       t.Uid,
 			Timestamp: t.Block[0].Timestamp,
 			Outputs:   t.Outputs,
 		})
+	}
+
+	return
+}
+
+// get the amounts of the inputs
+func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction, err error) {
+	query := `query Q($txhash: string){
+				q(func: eq(txhash,$txhash)){
+					uid
+					tx_inputs{
+						amount
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Uid       string `json:"uid,omitempty"`
+			Timestamp string `json:"ts,omitempty"`
+			Address   string
+			Outputs   []struct {
+				Amount int64 `json:"amount,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		return
+	}
+
+	t := r.Transaction[0]
+	transaction = HeuristicTransaction{
+		Uid:       t.Uid,
+		Timestamp: t.Timestamp,
+		Address:   t.Address,
+		Outputs:   t.Outputs,
 	}
 
 	return
