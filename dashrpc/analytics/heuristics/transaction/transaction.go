@@ -246,7 +246,7 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 
 	origins, err := dban.GetOrigins(dgraph, txHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// todo remove
@@ -254,7 +254,7 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 
 	originUids, err := h.exec(dgraph, txHash, origins)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// todo remove
