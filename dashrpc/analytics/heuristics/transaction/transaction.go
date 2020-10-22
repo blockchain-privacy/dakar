@@ -148,7 +148,9 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		t = t.Add(-1 * nLockback)
 		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			log.Println("continued")
+			continue
+			//return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		for _, o := range timeLimitedOrigins {
