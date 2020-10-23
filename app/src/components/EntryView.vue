@@ -93,13 +93,6 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-row>
-                <v-col>
-                  <IconItem icon="mdi-lan" title="Connections" :tooltip="tooltips.rpcConnections">
-                    {{ data.rpcinfo.connections }}
-                  </IconItem>
-                </v-col>
-              </v-row>
             </v-container>
           </v-card-text>
         </v-card>
