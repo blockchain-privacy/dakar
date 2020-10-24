@@ -13,7 +13,7 @@ import (
 )
 
 // nLockback is the number of hours which limits the maximal lookback on origins
-const nLockback = 500 * time.Hour
+const nLockback = 5 * 24 * time.Hour
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
@@ -88,8 +88,8 @@ func buildSuperSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[
 		denominationSlice := getDenominationCounts(o)
 		for i := range denominationSlice {
 			denominationSlice[i] += superSourceAmounts[o.Address][i]
-			superSourceAmounts[o.Address] = denominationSlice
 		}
+		superSourceAmounts[o.Address] = denominationSlice
 	}
 	return superSourceAmounts
 }
@@ -98,6 +98,30 @@ func buildSuperSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[
 func containsDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {
+			return false
+		}
+	}
+	return true
+}
+
+// returns true if all denominations with the same amount of denom1 are contained in denom2
+func isEqualDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] != d {
+			return false
+		}
+	}
+	return true
+}
+
+// returns true if denom1 has only denominations for the same types as denom2
+func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] == d && d == 0 {
+			continue
+		}
+
+		if (denom2[i] > 0 && d == 0) || (denom2[i] == 0 && d > 0) {
 			return false
 		}
 	}
@@ -209,25 +233,29 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 
 	log.Println("Found", len(omniSource), "omni sources")
 
-	var filteredOmniSource []string
-	// real one, todo: uncomment
-	// todo: check if this actually works ...
-	//for _, o := range omniSource {
-	//	denominations := originAmounts[o]
-	//	if containsDenomination(inputDenominationCounts, denominations) {
-	//		filteredOmniSource = append(filteredOmniSource, o)
-	//	}
-	//}
-
-	// fake one, todo: remove
-	for k, o := range originAmounts {
-
-		if containsDenomination(inputDenominationCounts, o) {
-			filteredOmniSource = append(filteredOmniSource, k)
+	var atLeastOmniSource []string
+	var sameTypeOmniSource []string
+	var exactOmniSource []string
+	for _, o := range omniSource {
+		denominations := originAmounts[o]
+		if containsDenomination(inputDenominationCounts, denominations) {
+			if isEqualDenomination(inputDenominationCounts, denominations) {
+				exactOmniSource = append(exactOmniSource, o)
+			} else if hasSameDenominationTypes(inputDenominationCounts, denominations) {
+				sameTypeOmniSource = append(sameTypeOmniSource, o)
+			} else {
+				atLeastOmniSource = append(atLeastOmniSource, o)
+			}
 		}
-	}
 
-	log.Println("Remanining omi sources after denomination amount filter:", len(filteredOmniSource))
+	}
+	log.Println("Remaining omni sources after <at least> denomination amount filter:", len(atLeastOmniSource))
+	log.Println("Remaining omni sources after <same type> denomination amount filter:", len(sameTypeOmniSource))
+	log.Println("Remaining omni sources after <exact> denomination amount filter:", len(exactOmniSource))
+
+	for _, o := range sameTypeOmniSource {
+		log.Println(o)
+	}
 
 	var filteredOrigins []string
 	for k := range allUids {
