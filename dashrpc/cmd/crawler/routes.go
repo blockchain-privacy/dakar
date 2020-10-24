@@ -180,7 +180,7 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 			return
 		}
 
-		rpcInfo, err := client.GetInfo()
+		rpcInfo, err := client.GetBlockChainInfo()
 		if err != nil {
 			http.Error(w, "error getting status information", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
@@ -188,8 +188,8 @@ func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.Respons
 		}
 
 		type metaStatus struct {
-			Status  dbstat.FrontendStatus    `json:"status"`
-			RPCInfo btcjson.InfoWalletResult `json:"rpcinfo"`
+			Status  dbstat.FrontendStatus           `json:"status"`
+			RPCInfo btcjson.GetBlockChainInfoResult `json:"rpcinfo"`
 		}
 
 		stat := metaStatus{
