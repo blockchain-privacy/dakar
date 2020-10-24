@@ -1,5 +1,7 @@
 package transaction
 
+import "fmt"
+
 const DType = "TransactionHeuristic"
 
 type DummyOrigin struct {
@@ -27,4 +29,8 @@ type HeuristicTransaction struct {
 	Outputs   []struct {
 		Amount int64 `json:"amount,omitempty"`
 	} `json:"tx_outputs,omitempty"`
+}
+
+func (h HeuristicTransaction) String() string {
+	return fmt.Sprintf("Uid: %s, timestamp: %s, associated address: %s, output count: %d", h.Uid, h.Timestamp, h.Address, len(h.Outputs))
 }
