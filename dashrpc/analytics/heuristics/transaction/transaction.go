@@ -12,9 +12,6 @@ import (
 	"time"
 )
 
-// nLockback is the number of hours which limits the maximal lookback on origins
-const nLockback = 5 * 24 * time.Hour
-
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
 	exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error)
@@ -23,13 +20,19 @@ type heuristic interface {
 }
 
 type TimeConstraintHeuristic struct {
-	heuristicType string
+	heuristicType        string
+	parameterDescription string
+	lookBackTime         time.Duration
 }
 
 // TimeConstraintHeuristic constructor
-func NewTimeConstraintHeuristic() TimeConstraintHeuristic {
+// lookBackTime in hours
+func NewTimeConstraintHeuristic(hoursToLookBack time.Duration) TimeConstraintHeuristic {
+	lBackTime := hoursToLookBack * time.Hour
 	return TimeConstraintHeuristic{
-		heuristicType: "timeconstraint",
+		heuristicType:        "timeconstraint",
+		lookBackTime:         lBackTime,
+		parameterDescription: lBackTime.String(),
 	}
 }
 
@@ -128,8 +131,46 @@ func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.Nu
 	return true
 }
 
-// does nothing so far
+// time limitation
 func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
+	// gather input information
+	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	allTimeLimitedOrigins := make(map[string]bool)
+
+	for _, it := range inputTransactions {
+		// calculate look back time
+		t, err := time.Parse(time.RFC3339, it.Timestamp)
+		if err != nil {
+			return nil, err
+		}
+		// get time limited origins
+		t = t.Add(-1 * b.lookBackTime)
+		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		// save all origins only once
+		for _, t := range timeLimitedOrigins {
+			allTimeLimitedOrigins[t.Uid] = true
+		}
+	}
+
+	// convert map to string slice
+	var filteredOrigins []string
+	for k := range allTimeLimitedOrigins {
+		filteredOrigins = append(filteredOrigins, k)
+	}
+
+	return filteredOrigins, nil
+}
+
+// does nothing so far
+func (b TimeConstraintHeuristic) ALL_HEURISTICS(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
 	if err != nil {
@@ -170,7 +211,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 			return nil, err
 		}
 
-		t = t.Add(-1 * nLockback)
+		t = t.Add(-1 * b.lookBackTime)
 		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
 		if err != nil {
 			log.Println("continued")
