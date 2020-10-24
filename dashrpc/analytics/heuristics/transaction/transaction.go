@@ -136,7 +136,6 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	// todo: use later
 	inputDenominationCounts := getDenominationCounts(transaction)
 
 	log.Println("Destination transaction denomination counts:", inputDenominationCounts)
@@ -152,6 +151,8 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 	superSources := make(map[string]bool)
 	mRemovableSupersources := make(map[string]bool)
 	allOrigins := make(map[string]dbtxh.HeuristicTransaction)
+
+	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
 
 	var inputSuperSources []map[string]bool
 
@@ -180,6 +181,16 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 		for _, o := range timeLimitedOrigins {
 			allOrigins[o.Uid] = o
 			allUids[o.Uid] = true
+
+			// add transaction to sourceTransactionMap
+			transactions := sourceTransactionMap[o.Address]
+
+			if len(transactions) == 0 {
+				transactions = make(map[string]dbtxh.HeuristicTransaction)
+			}
+
+			transactions[o.Uid] = o
+			sourceTransactionMap[o.Address] = transactions
 		}
 
 		// find super sources
@@ -199,10 +210,6 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 				removableSuperSources++
 			}
 		}
-
-		log.Println("time limited origins:", len(timeLimitedOrigins), "number of supersources", len(sSource.sources), "removable:", removableSuperSources)
-
-		//log.Println(it.Uid, it.Timestamp, len(timeLimitedOrigins))
 	}
 
 	originAmounts := buildSuperSourceAmounts(allOrigins)
@@ -243,18 +250,17 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 				exactOmniSource = append(exactOmniSource, o)
 			} else if hasSameDenominationTypes(inputDenominationCounts, denominations) {
 				sameTypeOmniSource = append(sameTypeOmniSource, o)
-			} else {
-				atLeastOmniSource = append(atLeastOmniSource, o)
 			}
+			atLeastOmniSource = append(atLeastOmniSource, o)
 		}
-
 	}
+
 	log.Println("Remaining omni sources after <at least> denomination amount filter:", len(atLeastOmniSource))
-	log.Println("Remaining omni sources after <same type> denomination amount filter:", len(sameTypeOmniSource))
-	log.Println("Remaining omni sources after <exact> denomination amount filter:", len(exactOmniSource))
+	log.Println("Remaining omni sources after <at least> + <same type> denomination amount filter:", len(sameTypeOmniSource))
+	log.Println("Remaining omni sources after <at least> + <exact> denomination amount filter:", len(exactOmniSource))
 
 	for _, o := range sameTypeOmniSource {
-		log.Println(o)
+		log.Println(o, len(sourceTransactionMap[o]), originAmounts[o])
 	}
 
 	var filteredOrigins []string
