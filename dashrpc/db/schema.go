@@ -43,6 +43,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			lastanalysedid: int . 
 
 			type: string @index(hash) .
+			parameter: string .
 
 			type Block {
 				blockhash
@@ -93,6 +94,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type TransactionHeuristic {
 				type
+				parameter
 				h_transaction
 				results
 			}

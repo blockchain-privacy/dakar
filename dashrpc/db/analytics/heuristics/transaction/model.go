@@ -11,6 +11,7 @@ type DummyOrigin struct {
 type Heuristic struct {
 	Uid           string        `json:"uid,omitempty"`
 	HeuristicType string        `json:"type,omitempty"`
+	Parameter     string        `json:"parameter,omitempty"`
 	TxUid         string        `json:"h_transaction,omitempty"`
 	Origins       []DummyOrigin `json:"results,omitempty"`
 	DType         []string      `json:"dgraph.type,omitempty"`
