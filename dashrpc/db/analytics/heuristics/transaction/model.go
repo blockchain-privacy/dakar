@@ -23,10 +23,16 @@ func (h *Heuristic) SetDType() {
 }
 
 type HeuristicTransaction struct {
-	Uid       string `json:"uid,omitempty"`
+	// Uid holds the uid of the transaction
+	Uid string `json:"uid,omitempty"`
+	// Timestamp holds the timestamp of the corresponding block
 	Timestamp string `json:"ts,omitempty"`
-	Address   string
-	Outputs   []struct {
+	// Address holds the address associated with this transaction.
+	// Depending on the context this could be the address of an input or an output
+	Address string
+	// Outputs holds a slice of amounts.
+	// Depending on the context this could be the input or the output amounts.
+	Outputs []struct {
 		Amount int64 `json:"amount,omitempty"`
 	} `json:"tx_outputs,omitempty"`
 }
