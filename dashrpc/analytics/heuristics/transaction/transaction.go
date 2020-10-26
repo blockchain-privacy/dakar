@@ -332,13 +332,28 @@ func (b TimeConstraintHeuristic) ALL_HEURISTICS(dgraph *dgo.Dgraph, txHash strin
 }
 
 // Execute the heuristic on the transaction specified by txHash
-func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
+func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) error {
 	// todo remove
 	log.Println("Starting heuristic", h.getType(), "for tx", txHash)
 
-	origins, err := dban.GetOrigins(dgraph, txHash)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	var origins []string
+	if parentHeuristicUid == "" {
+		// get origins from transaction
+		txOrigins, err := dban.GetOrigins(dgraph, txHash)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		origins = txOrigins
+	} else {
+		// get origins from parent heuristic
+		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUid)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		for _, o := range parentHeuristic.Origins {
+			origins = append(origins, o.Uid)
+		}
 	}
 
 	// todo remove
@@ -359,11 +374,18 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 		dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
 	}
 
+	// only set parent heuristic if uid is provided
+	var pHeuristic []dbtxh.Heuristic
+	if parentHeuristicUid != "" {
+		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
+	}
+
 	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
-		HeuristicType: h.getType(),
-		Origins:       dummyOrigins,
-		Parameter:     h.getParameter(),
-		TxHash:        txHash,
+		HeuristicType:   h.getType(),
+		Origins:         dummyOrigins,
+		Parameter:       h.getParameter(),
+		ParentHeuristic: pHeuristic,
+		TxHash:          txHash,
 	}); err != nil {
 		return err
 	}

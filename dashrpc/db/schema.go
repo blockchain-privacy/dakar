@@ -25,6 +25,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
 			h_transaction: uid @reverse .
+			parent_heuristic: [uid] @reverse .
 			
 			id: int @index(int) .
 			ts: dateTime @index(day) .
@@ -97,6 +98,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 				parameter
 				h_transaction
 				results
+				ts
+				parent_heuristic
 			}
 		`,
 	})

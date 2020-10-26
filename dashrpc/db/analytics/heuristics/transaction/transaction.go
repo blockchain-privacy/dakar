@@ -13,15 +13,15 @@ import (
 
 // Upserts the given heuristic
 func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
+	// todo check if needed
 	// delete potential already existing edges of h
-	if err = deleteHeuristicEdges(c, h); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
+	//if err = deleteHeuristicEdges(c, h); err != nil {
+	//	err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//	return
+	//}
 
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
-	h.Uid = "uid(h)"
 	h.TxUid = "uid(tx)"
 
 	pb, err := json.Marshal(h)
@@ -31,19 +31,16 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
 	}
 
 	query := `
-		query Q($txhash: string, $type: string, $parameter: string) {
-			tx as var(func: eq(txhash, $txhash)){
-				h as ~h_transaction@filter(eq(type,$type) AND eq(parameter, $parameter))
-			}
+		query Q($txhash: string, $huid: string) {
+			tx as var(func: eq(txhash, $txhash))
 		}
 	`
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType, "$parameter": h.Parameter},
+		Vars:  map[string]string{"$txhash": h.TxHash},
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
-			Cond:    `@if(eq(len(tx), 1))`,
 		}},
 		CommitNow: true,
 	}
@@ -83,6 +80,52 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
+	return
+}
+
+// gets heuristic information from the database
+func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
+	query := `query Q($uid: string) {
+				q(func: uid($uid)){
+					uid
+					type
+					parameter
+					h_transaction
+					results{
+						uid
+					}
+					ts
+					parent_heuristic{
+						uid
+					}
+					~parent_heuristic{
+						uid
+					}
+				}
+			  }
+				`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": heuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Heuristics []Heuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+	h = r.Heuristics[0]
 	return
 }
 
