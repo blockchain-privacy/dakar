@@ -9,13 +9,16 @@ type DummyOrigin struct {
 }
 
 type Heuristic struct {
-	Uid           string        `json:"uid,omitempty"`
-	HeuristicType string        `json:"type,omitempty"`
-	Parameter     string        `json:"parameter,omitempty"`
-	TxUid         string        `json:"h_transaction,omitempty"`
-	Timestamp     string        `json:"ts,omitempty"`
-	Origins       []DummyOrigin `json:"results,omitempty"`
-	DType         []string      `json:"dgraph.type,omitempty"`
+	Uid             string        `json:"uid,omitempty"`
+	HeuristicType   string        `json:"type,omitempty"`
+	Parameter       string        `json:"parameter,omitempty"`
+	TxUid           string        `json:"h_transaction,omitempty"`
+	Timestamp       string        `json:"ts,omitempty"`
+	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic   `json:"~parent_heuristic,omitempty"`
+	Origins         []DummyOrigin `json:"results,omitempty"`
+
+	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
 	TxHash string `json:"-"`
 }
