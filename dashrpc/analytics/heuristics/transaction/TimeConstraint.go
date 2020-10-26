@@ -3,6 +3,7 @@ package transaction
 import (
 	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"time"
@@ -34,7 +35,25 @@ func (b TimeConstraintHeuristic) getParameter() string {
 }
 
 // time limitation
-func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
+func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+	var origins []string
+	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
+	if parentHeuristicSet {
+		// get origins from parent heuristic
+		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUid)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(parentHeuristic.Origins) == 0 {
+			return nil, errors.New(fmt.Sprintln("found no origins found for parent heuristic:", parentHeuristicUid))
+		}
+
+		for _, o := range parentHeuristic.Origins {
+			origins = append(origins, o.Uid)
+		}
+	}
+
 	// gather input information
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
@@ -42,22 +61,25 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins
 	}
 
 	allTimeLimitedOrigins := make(map[string]bool)
+	// holds all origins from either the parent heuristic or the associated destination transaction
+	originLimit := make(map[string]bool)
+
+	for _, o := range origins {
+		originLimit[o] = true
+	}
 
 	for _, it := range inputTransactions {
-		// calculate look back time
-		t, err := time.Parse(time.RFC3339, it.Timestamp)
-		if err != nil {
-			return nil, err
-		}
-		// get time limited origins
-		t = t.Add(-1 * b.lookBackTime)
-		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, b.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
+			// only save the uid also exists in the maximal origin set
+			if parentHeuristicSet && !originLimit[t.Uid] {
+				continue
+			}
 			allTimeLimitedOrigins[t.Uid] = true
 		}
 	}

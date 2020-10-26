@@ -45,3 +45,13 @@ type HeuristicTransaction struct {
 func (h HeuristicTransaction) String() string {
 	return fmt.Sprintf("Uid: %s, timestamp: %s, associated address: %s, output count: %d", h.Uid, h.Timestamp, h.Address, len(h.Outputs))
 }
+
+type queryHeuristicTransaction struct {
+	Uid     string `json:"uid,omitempty"`
+	Outputs []struct {
+		Amount int64 `json:"amount,omitempty"`
+	} `json:"tx_outputs,omitempty"`
+	Block []struct {
+		Timestamp string `json:"ts,omitempty"`
+	} `json:"~transactions,omitempty"`
+}

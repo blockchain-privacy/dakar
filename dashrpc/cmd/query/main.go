@@ -77,12 +77,25 @@ func main() {
 		interestTransaction := "6c3786e2a7b10319b2613236c3f5dbe0179d28e626989279b10c774c8bafeba1"
 
 		// heuristic test
-		if err := heuristic.Exec(dgraph, interestTransaction, "0x2eff4f", heuristic.NewTimeConstraintHeuristic(4*24)); err != nil {
+		//if err := heuristic.Exec(dgraph, interestTransaction, "",
+		//	heuristic.NewTimeConstraintHeuristic(2*24)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		if err := heuristic.Exec(dgraph, interestTransaction, "",
+			heuristic.NewTimeAmountConstraintHeuristic(2*24)); err != nil {
 			log.Println(err)
 			return
 		}
 
-		//if err := heuristic.Exec(dgraph, interestTransaction, heuristic.NewInputAmountHeuristic()); err != nil {
+		//if err := heuristic.Exec(dgraph, interestTransaction, "",
+		//	heuristic.NewAllHeuristics(20*24)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		//if err := heuristic.Exec(dgraph, interestTransaction, "", heuristic.NewInputAmountHeuristic()); err != nil {
 		//	log.Println(err)
 		//	return
 		//}

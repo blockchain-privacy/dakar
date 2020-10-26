@@ -129,6 +129,53 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 	return
 }
 
+func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []HeuristicTransaction, err error) {
+	query := `query Q($uid: string) {
+				q(func: uid($uid)){
+					uid
+					tx_outputs{
+						amount
+					}
+					~transactions{
+						ts
+					}
+				}
+			  }
+				`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": heuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, t := range r.Transaction {
+		if len(t.Block) != 1 || len(t.Outputs) == 0 {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+			return
+		}
+		results = append(results, HeuristicTransaction{
+			Uid:       t.Uid,
+			Timestamp: t.Block[0].Timestamp,
+			Outputs:   t.Outputs,
+		})
+	}
+
+	return
+}
+
 // Returns all origins which are created after the specified date
 func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uid: string,$ts: string){
@@ -173,11 +220,6 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Origins) == 0 {
-		err = errors.New("error invalid response")
 		return
 	}
 
@@ -250,15 +292,7 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 
 	// json struct
 	var r struct {
-		Transaction []struct {
-			Uid     string `json:"uid,omitempty"`
-			Outputs []struct {
-				Amount int64 `json:"amount,omitempty"`
-			} `json:"tx_outputs,omitempty"`
-			Block []struct {
-				Timestamp string `json:"ts,omitempty"`
-			} `json:"~transactions,omitempty"`
-		} `json:"q,omitempty"`
+		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
