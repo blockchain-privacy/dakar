@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"dashrpc/cmd/cliutil"
-	dban "dashrpc/db/analytics"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbop "dashrpc/db/output"
 	"errors"
@@ -14,10 +13,10 @@ import (
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error)
+	exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
-
+	// getParameter returns the used paramter for this heuristic
 	getParameter() string
 }
 
@@ -41,56 +40,8 @@ func (i InputAmountHeuristic) getParameter() string {
 }
 
 // filter by amount of input transactions
-func (i InputAmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []dbtxh.HeuristicTransaction) ([]string, error) {
-	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	inputAmountMap := make(map[string]int)
-	allUids := make(map[string]bool)
-
-	superSources := make(map[string]bool)
-	mRemovableSupersources := make(map[string]bool)
-
-	for _, it := range inputTransactions {
-		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-		inputAmountMap[it.Uid] = nDenominations
-
-		for _, o := range origins {
-			allUids[o.Uid] = true
-		}
-
-		// find super sources
-		sSource, err := buildSuperSources(origins, denominationIndex)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		for k, v := range sSource.sources {
-			superSources[k] = true
-			if v < inputAmountMap[it.Uid] {
-				mRemovableSupersources[k] = true
-			}
-		}
-	}
-	log.Println("global super sources", len(superSources), "removable super sources", len(mRemovableSupersources))
-
-	// remove super sources
-	for k := range mRemovableSupersources {
-		delete(superSources, k)
-	}
-
-	var filteredOrigins []string
-	for k := range allUids {
-		filteredOrigins = append(filteredOrigins, k)
-	}
-
-	return filteredOrigins, nil
+func (i InputAmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+	return nil, nil
 }
 
 // Returns the number of denominations.
@@ -188,8 +139,51 @@ func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.Nu
 	return true
 }
 
+func getTimeLimitedOrigins(dgraph *dgo.Dgraph, it dbtxh.HeuristicTransaction,
+	lookbackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	// calculate look back time
+	t, err := time.Parse(time.RFC3339, it.Timestamp)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	// get time limited origins
+	t = t.Add(-1 * lookbackTime)
+	origins, err = dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	return
+}
+
+type AllHeuristics struct {
+	heuristicType        string
+	parameterDescription string
+	lookBackTime         time.Duration
+}
+
+// NewAllHeuristics constructor
+// lookBackTime in hours
+func NewAllHeuristics(hoursToLookBack time.Duration) AllHeuristics {
+	lBackTime := hoursToLookBack * time.Hour
+	return AllHeuristics{
+		heuristicType:        "all",
+		lookBackTime:         lBackTime,
+		parameterDescription: lBackTime.String(),
+	}
+}
+
+func (b AllHeuristics) getType() string {
+	return b.heuristicType
+}
+
+func (b AllHeuristics) getParameter() string {
+	return b.parameterDescription
+}
+
 // does nothing so far
-func (b TimeConstraintHeuristic) ALL_HEURISTICS(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
+func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
 	if err != nil {
@@ -331,35 +325,16 @@ func (b TimeConstraintHeuristic) ALL_HEURISTICS(dgraph *dgo.Dgraph, txHash strin
 	return filteredOrigins, nil
 }
 
+func isParentHeuristicSet(parentHeuristicUid string) bool {
+	return parentHeuristicUid != ""
+}
+
 // Execute the heuristic on the transaction specified by txHash
 func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) error {
 	// todo remove
-	log.Println("Starting heuristic", h.getType(), "for tx", txHash)
+	log.Println("Starting heuristic <", h.getType(), "> for tx", txHash)
 
-	var origins []string
-	if parentHeuristicUid == "" {
-		// get origins from transaction
-		txOrigins, err := dban.GetOrigins(dgraph, txHash)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-		origins = txOrigins
-	} else {
-		// get origins from parent heuristic
-		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUid)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		for _, o := range parentHeuristic.Origins {
-			origins = append(origins, o.Uid)
-		}
-	}
-
-	// todo remove
-	log.Println("Original origin count:", len(origins))
-
-	originUids, err := h.exec(dgraph, txHash, origins)
+	originUids, err := h.exec(dgraph, txHash, parentHeuristicUid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
