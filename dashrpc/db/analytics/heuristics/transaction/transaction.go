@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
+	"time"
 )
 
 // Upserts the given heuristic
@@ -19,6 +20,7 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
 	}
 
 	h.SetDType()
+	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 	h.Uid = "uid(h)"
 	h.TxUid = "uid(tx)"
 

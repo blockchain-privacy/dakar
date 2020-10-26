@@ -13,6 +13,7 @@ type Heuristic struct {
 	HeuristicType string        `json:"type,omitempty"`
 	Parameter     string        `json:"parameter,omitempty"`
 	TxUid         string        `json:"h_transaction,omitempty"`
+	Timestamp     string        `json:"ts,omitempty"`
 	Origins       []DummyOrigin `json:"results,omitempty"`
 	DType         []string      `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
