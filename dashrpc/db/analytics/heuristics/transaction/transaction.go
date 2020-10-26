@@ -29,16 +29,16 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
 	}
 
 	query := `
-		query Q($txhash: string, $type: string) {
+		query Q($txhash: string, $type: string, $parameter: string) {
 			tx as var(func: eq(txhash, $txhash)){
-				h as ~h_transaction@filter(eq(type,$type))
+				h as ~h_transaction@filter(eq(type,$type) AND eq(parameter, $parameter))
 			}
 		}
 	`
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType},
+		Vars:  map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType, "$parameter": h.Parameter},
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 			Cond:    `@if(eq(len(tx), 1))`,
@@ -60,9 +60,9 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 	h.Uid = "uid(h)"
 
 	query := `
-		query Q($txhash: string, $type: string) {
+		query Q($txhash: string, $type: string, $parameter: string) {
 			var(func: eq(txhash, $txhash)){
-				h as ~h_transaction@filter(eq(type,$type))
+				h as ~h_transaction@filter(eq(type,$type) AND eq(parameter, $parameter))
 			}
 		}
 	`
@@ -72,7 +72,7 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 
 	req := &api.Request{
 		Query:     query,
-		Vars:      map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType},
+		Vars:      map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType, "$parameter": h.Parameter},
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}

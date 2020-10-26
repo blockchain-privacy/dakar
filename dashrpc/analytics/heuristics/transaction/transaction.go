@@ -17,23 +17,80 @@ type heuristic interface {
 	exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
+
+	getParameter() string
 }
 
-type TimeConstraintHeuristic struct {
-	heuristicType        string
-	parameterDescription string
-	lookBackTime         time.Duration
+type InputAmountHeuristic struct {
+	heuristicType string
 }
 
-// TimeConstraintHeuristic constructor
-// lookBackTime in hours
-func NewTimeConstraintHeuristic(hoursToLookBack time.Duration) TimeConstraintHeuristic {
-	lBackTime := hoursToLookBack * time.Hour
-	return TimeConstraintHeuristic{
-		heuristicType:        "timeconstraint",
-		lookBackTime:         lBackTime,
-		parameterDescription: lBackTime.String(),
+// NewInputAmountHeuristic constructor
+func NewInputAmountHeuristic() InputAmountHeuristic {
+	return InputAmountHeuristic{
+		heuristicType: "inputamount",
 	}
+}
+
+func (i InputAmountHeuristic) getType() string {
+	return i.heuristicType
+}
+
+func (i InputAmountHeuristic) getParameter() string {
+	return ""
+}
+
+// filter by amount of input transactions
+func (i InputAmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []dbtxh.HeuristicTransaction) ([]string, error) {
+	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	inputAmountMap := make(map[string]int)
+	allUids := make(map[string]bool)
+
+	superSources := make(map[string]bool)
+	mRemovableSupersources := make(map[string]bool)
+
+	for _, it := range inputTransactions {
+		// get input denominations
+		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		inputAmountMap[it.Uid] = nDenominations
+
+		for _, o := range origins {
+			allUids[o.Uid] = true
+		}
+
+		// find super sources
+		sSource, err := buildSuperSources(origins, denominationIndex)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		for k, v := range sSource.sources {
+			superSources[k] = true
+			if v < inputAmountMap[it.Uid] {
+				mRemovableSupersources[k] = true
+			}
+		}
+	}
+	log.Println("global super sources", len(superSources), "removable super sources", len(mRemovableSupersources))
+
+	// remove super sources
+	for k := range mRemovableSupersources {
+		delete(superSources, k)
+	}
+
+	var filteredOrigins []string
+	for k := range allUids {
+		filteredOrigins = append(filteredOrigins, k)
+	}
+
+	return filteredOrigins, nil
 }
 
 // Returns the number of denominations.
@@ -129,44 +186,6 @@ func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.Nu
 		}
 	}
 	return true
-}
-
-// time limitation
-func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, origins []string) ([]string, error) {
-	// gather input information
-	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	allTimeLimitedOrigins := make(map[string]bool)
-
-	for _, it := range inputTransactions {
-		// calculate look back time
-		t, err := time.Parse(time.RFC3339, it.Timestamp)
-		if err != nil {
-			return nil, err
-		}
-		// get time limited origins
-		t = t.Add(-1 * b.lookBackTime)
-		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		// save all origins only once
-		for _, t := range timeLimitedOrigins {
-			allTimeLimitedOrigins[t.Uid] = true
-		}
-	}
-
-	// convert map to string slice
-	var filteredOrigins []string
-	for k := range allTimeLimitedOrigins {
-		filteredOrigins = append(filteredOrigins, k)
-	}
-
-	return filteredOrigins, nil
 }
 
 // does nothing so far
@@ -312,10 +331,6 @@ func (b TimeConstraintHeuristic) ALL_HEURISTICS(dgraph *dgo.Dgraph, txHash strin
 	return filteredOrigins, nil
 }
 
-func (b TimeConstraintHeuristic) getType() string {
-	return b.heuristicType
-}
-
 // Execute the heuristic on the transaction specified by txHash
 func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 	// todo remove
@@ -338,19 +353,20 @@ func Exec(dgraph *dgo.Dgraph, txHash string, h heuristic) error {
 	log.Println("After heuristic origin count:", len(originUids))
 
 	// do not upsert heuristic for now
-	//var dummyOrigins []dbtxh.DummyOrigin
-	//
-	//for _, o := range originUids {
-	//	dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
-	//}
+	var dummyOrigins []dbtxh.DummyOrigin
 
-	//if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
-	//	HeuristicType: h.getType(),
-	//	Origins:       dummyOrigins,
-	//	TxHash:        txHash,
-	//}); err != nil {
-	//	return err
-	//}
+	for _, o := range originUids {
+		dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{Uid: o})
+	}
+
+	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+		HeuristicType: h.getType(),
+		Origins:       dummyOrigins,
+		Parameter:     h.getParameter(),
+		TxHash:        txHash,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
