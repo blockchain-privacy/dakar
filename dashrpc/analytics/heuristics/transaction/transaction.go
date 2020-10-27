@@ -45,29 +45,9 @@ func (i InputAmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeur
 }
 
 // Returns the number of denominations.
+// If filterTx is set, it only counts outputs with input transactions equal to filterTx
 // An error is returned if more than one type of denominations is found
-func getNumberOfDenominations(it dbtxh.HeuristicTransaction) (nDenominations int, denomIndex int, err error) {
-	numDenominations := getDenominationCounts(it)
-
-	found := false
-	for i, nd := range numDenominations {
-		if nd > 0 {
-			if found {
-				err = errors.New("found more than one type of denominations in input transaction")
-				return
-			}
-			denomIndex = i
-			found = true
-		}
-	}
-	nDenominations = numDenominations[denomIndex]
-	return
-}
-
-// todo
-// Returns the number of denominations.
-// An error is returned if more than one type of denominations is found
-func getNumberOfDenominationsWithFilter(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int, denomIndex int, err error) {
+func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int, denomIndex int, err error) {
 	numDenominations := getDenominationCountsWithFilter(it, destinationTransaction)
 
 	found := false
@@ -85,12 +65,12 @@ func getNumberOfDenominationsWithFilter(it dbtxh.HeuristicTransaction, destinati
 	return
 }
 
-// todo
-// gets the counts of each denomination type
+// gets the counts of each denomination type.
+// If filterTx is set, it only counts outputs with input transactions equal to filterTx
 func getDenominationCountsWithFilter(it dbtxh.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
 	var denominations []int64
 	for _, output := range it.Outputs {
-		if output.InputTransaction != filterTx {
+		if filterTx != "" && output.InputTransaction != filterTx {
 			continue
 		}
 		denominations = append(denominations, output.Amount)
@@ -257,7 +237,7 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 
 	for _, it := range inputTransactions {
 		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominationsWithFilter(it, txHash)
+		nDenominations, denominationIndex, err := getNumberOfDenominations(it, txHash)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -334,7 +314,6 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 	for _, o := range omniSource {
 		denominations := originAmounts[o]
 		if containsDenomination(inputDenominationCounts, denominations) {
-			log.Println(o)
 			if isEqualDenomination(inputDenominationCounts, denominations) {
 				exactOmniSource = append(exactOmniSource, o)
 			} else if hasSameDenominationTypes(inputDenominationCounts, denominations) {
