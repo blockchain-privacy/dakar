@@ -80,8 +80,18 @@ type superSource struct {
 	sources map[string]int
 }
 
-// todo: add description
-func buildSuperSources(origins []dbtxh.HeuristicTransaction, denominationIndex int) (superSource superSource, err error) {
+// returns a map of super sources
+func buildSuperSources(origins []dbtxh.HeuristicTransaction) map[string]bool {
+	superSources := make(map[string]bool)
+	for _, o := range origins {
+		superSources[o.Address] = true
+	}
+
+	return superSources
+}
+
+// creates an array of super sources with the number of denominations of the specified denomination type
+func buildSuperSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (superSource superSource, err error) {
 	superSource.denominationIndex = denominationIndex
 	superSource.sources = make(map[string]int)
 	for _, o := range origins {
@@ -248,20 +258,18 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 		}
 
 		// find super sources
-		sSource, err := buildSuperSources(timeLimitedOrigins, denominationIndex)
+		sSource, err := buildSuperSourcesWithAmount(timeLimitedOrigins, denominationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		inputSuperSources = append(inputSuperSources, make(map[string]bool))
 		iSSIndex := len(inputSuperSources) - 1
-		var removableSuperSources int
 		for k, v := range sSource.sources {
 			superSources[k] = true
 			inputSuperSources[iSSIndex][k] = true
 			if v < inputAmountMap[it.Uid] {
 				mRemovableSupersources[k] = true
-				removableSuperSources++
 			}
 		}
 	}

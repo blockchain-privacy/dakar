@@ -83,14 +83,20 @@ func main() {
 		//	return
 		//}
 
-		if err := heuristic.Exec(dgraph, interestTransaction, "",
-			heuristic.NewTimeAmountConstraintHeuristic(2*24)); err != nil {
+		//if err := heuristic.Exec(dgraph, interestTransaction, "",
+		//	heuristic.NewTimeAmountConstraintHeuristic(2*24)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		if err := heuristic.Exec(dgraph, interestTransaction, "0x2eff90",
+			heuristic.NewOmniSourceHeuristic()); err != nil {
 			log.Println(err)
 			return
 		}
 
 		//if err := heuristic.Exec(dgraph, interestTransaction, "",
-		//	heuristic.NewAllHeuristics(20*24)); err != nil {
+		//	heuristic.NewAllHeuristics(2*24)); err != nil {
 		//	log.Println(err)
 		//	return
 		//}

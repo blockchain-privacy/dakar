@@ -246,6 +246,74 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 	return
 }
 
+// Returns all origins
+func GetOrigins(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($uid: string){
+				var (func: uid($uid)){
+					v as origins
+				}
+				
+				q(func: uid(v)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []struct {
+			Uid       string `json:"uid,omitempty"`
+			Timestamp string `json:"ts,omitempty"`
+			Inputs    []struct {
+				AddressHash string `json:"addresshash,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+			Outputs []struct {
+				Amount int64 `json:"amount,omitempty"`
+			} `json:"tx_outputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		origins = append(origins, HeuristicTransaction{
+			Uid:       o.Uid,
+			Timestamp: o.Timestamp,
+			Address:   o.Inputs[0].AddressHash,
+			Outputs:   o.Outputs,
+		})
+	}
+
+	return
+}
+
 // return true if all addresses are equal
 func areALLAddressesEqual(addresses []string) bool {
 	if len(addresses) < 2 {

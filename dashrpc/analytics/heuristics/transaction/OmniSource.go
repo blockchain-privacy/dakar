@@ -7,36 +7,31 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"time"
 )
 
-type TimeAmountConstraintHeuristic struct {
+type OmniSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	lookBackTime         time.Duration
 }
 
-// TimeAmountConstraintHeuristic constructor
+// OmniSourceHeuristic constructor
 // lookBackTime in hours
-func NewTimeAmountConstraintHeuristic(hoursToLookBack time.Duration) TimeAmountConstraintHeuristic {
-	lBackTime := hoursToLookBack * time.Hour
-	return TimeAmountConstraintHeuristic{
-		heuristicType:        "timeamountconstraint",
-		lookBackTime:         lBackTime,
-		parameterDescription: lBackTime.String(),
+func NewOmniSourceHeuristic() OmniSourceHeuristic {
+	return OmniSourceHeuristic{
+		heuristicType: "omnisource",
 	}
 }
 
-func (b TimeAmountConstraintHeuristic) getType() string {
+func (b OmniSourceHeuristic) getType() string {
 	return b.heuristicType
 }
 
-func (b TimeAmountConstraintHeuristic) getParameter() string {
+func (b OmniSourceHeuristic) getParameter() string {
 	return b.parameterDescription
 }
 
 // time limitation
-func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (b OmniSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {
@@ -61,11 +56,14 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	inputAmountMap := make(map[string]int)
 	originMap := make(map[string]bool)
 
-	mRemovableSupersources := make(map[string]bool)
+	// inputSuperSources holds a map per input transaction.
+	// Each map holds a all super sources of the associated input transaction
 	var inputSuperSources []map[string]bool
+
+	// superSources holds all superSources found in all input transactions
+	superSources := make(map[string]bool)
 
 	// maps a address to its origin transactions
 	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
@@ -74,20 +72,13 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 	}
 
 	for _, it := range inputTransactions {
-		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-		inputAmountMap[it.Uid] = nDenominations
-
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, b.lookBackTime)
+		inputOrigins, err := dbtxh.GetOrigins(dgraph, it.Uid)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		// save in global address->origin map
-		for _, t := range timeLimitedOrigins {
+		for _, t := range inputOrigins {
 			// add transaction to sourceTransactionMap
 			transactions := sourceTransactionMap[t.Address]
 
@@ -99,34 +90,46 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 			sourceTransactionMap[t.Address] = transactions
 		}
 
-		// find super sources
-		sSource, err := buildSuperSourcesWithAmount(timeLimitedOrigins, denominationIndex)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		// get super sources
+		sSource := buildSuperSources(inputOrigins)
 
 		// add new element
 		inputSuperSources = append(inputSuperSources, make(map[string]bool))
 		iSSIndex := len(inputSuperSources) - 1
 
-		for k, v := range sSource.sources {
+		for k := range sSource {
+			superSources[k] = true
 			inputSuperSources[iSSIndex][k] = true
-			if v < inputAmountMap[it.Uid] {
-				mRemovableSupersources[k] = true
-			}
 		}
 	}
 
-	log.Println("global super sources", len(sourceTransactionMap), "removable super sources", len(mRemovableSupersources))
+	// save all addresses (super sources) which are part of all input transactions
+	omniSource := make(map[string]bool)
+	for k := range superSources {
 
-	// remove super sources
+		found := true
+		for _, inputTransactionSource := range inputSuperSources {
+			if !inputTransactionSource[k] {
+				found = false
+				break
+			}
+		}
+
+		if found {
+			omniSource[k] = true
+		}
+	}
+
+	// filter out origins which are not part of supersources
 	superSourceCounter := 0
 	filteredOriginMap := make(map[string]bool)
 	for k, origins := range sourceTransactionMap {
-		if mRemovableSupersources[k] {
+		if !omniSource[k] {
 			continue
 		}
 		superSourceCounter++
+
+		// TODO IS WRONG, PROBABLY HAVE TO DO ALL THE STEPS UNTIL THE FILTERS IN THE SAME STEP :(
 		for _, o := range origins {
 			if parentHeuristicSet && !originMap[o.Uid] {
 				continue
@@ -134,7 +137,9 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 			filteredOriginMap[o.Uid] = true
 		}
 	}
+
 	log.Println("Found supersources:", superSourceCounter)
+
 	// convert map to string slice
 	var filteredOrigins []string
 	for k := range filteredOriginMap {
