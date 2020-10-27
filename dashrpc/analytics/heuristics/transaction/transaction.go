@@ -64,6 +64,41 @@ func getNumberOfDenominations(it dbtxh.HeuristicTransaction) (nDenominations int
 	return
 }
 
+// todo
+// Returns the number of denominations.
+// An error is returned if more than one type of denominations is found
+func getNumberOfDenominationsWithFilter(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int, denomIndex int, err error) {
+	numDenominations := getDenominationCountsWithFilter(it, destinationTransaction)
+
+	found := false
+	for i, nd := range numDenominations {
+		if nd > 0 {
+			if found {
+				err = errors.New("found more than one type of denominations in input transaction")
+				return
+			}
+			denomIndex = i
+			found = true
+		}
+	}
+	nDenominations = numDenominations[denomIndex]
+	return
+}
+
+// todo
+// gets the counts of each denomination type
+func getDenominationCountsWithFilter(it dbtxh.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
+	var denominations []int64
+	for _, output := range it.Outputs {
+		if output.InputTransaction != filterTx {
+			continue
+		}
+		denominations = append(denominations, output.Amount)
+	}
+
+	return dbop.CountAmountDenominations(denominations)
+}
+
 // gets the counts of each denomination type
 func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations]int {
 	var denominations []int64
@@ -222,24 +257,15 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 
 	for _, it := range inputTransactions {
 		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
+		nDenominations, denominationIndex, err := getNumberOfDenominationsWithFilter(it, txHash)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 		inputAmountMap[it.Uid] = nDenominations
 
-		// get time limited origins
-		t, err := time.Parse(time.RFC3339, it.Timestamp)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, b.lookBackTime)
 		if err != nil {
-			return nil, err
-		}
-
-		t = t.Add(-1 * b.lookBackTime)
-		timeLimitedOrigins, err := dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
-		if err != nil {
-			log.Println("continued")
-			continue
-			//return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		for _, o := range timeLimitedOrigins {
@@ -308,6 +334,7 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 	for _, o := range omniSource {
 		denominations := originAmounts[o]
 		if containsDenomination(inputDenominationCounts, denominations) {
+			log.Println(o)
 			if isEqualDenomination(inputDenominationCounts, denominations) {
 				exactOmniSource = append(exactOmniSource, o)
 			} else if hasSameDenominationTypes(inputDenominationCounts, denominations) {
@@ -317,9 +344,9 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 		}
 	}
 
-	log.Println("Remaining omni sources after <at least> denomination amount filter:", len(atLeastOmniSource))
-	log.Println("Remaining omni sources after <at least> + <same type> denomination amount filter:", len(sameTypeOmniSource))
-	log.Println("Remaining omni sources after <at least> + <exact> denomination amount filter:", len(exactOmniSource))
+	log.Println("Remaining omni sources after <at least> denomination filter:", len(atLeastOmniSource))
+	log.Println("Remaining omni sources after <at least> + <same type> denomination filter:", len(sameTypeOmniSource))
+	log.Println("Remaining omni sources after <at least> + <exact> denomination filter:", len(exactOmniSource))
 
 	for _, o := range sameTypeOmniSource {
 		log.Println(o, len(sourceTransactionMap[o]), originAmounts[o])

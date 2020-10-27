@@ -37,9 +37,12 @@ type HeuristicTransaction struct {
 	Address string
 	// Outputs holds a slice of amounts.
 	// Depending on the context this could be the input or the output amounts.
-	Outputs []struct {
-		Amount int64 `json:"amount,omitempty"`
-	} `json:"tx_outputs,omitempty"`
+	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+}
+
+type HeuristicOutput struct {
+	Amount           int64  `json:"amount,omitempty"`
+	InputTransaction string `json:"input_tx,omitempty"`
 }
 
 func (h HeuristicTransaction) String() string {
@@ -47,11 +50,9 @@ func (h HeuristicTransaction) String() string {
 }
 
 type queryHeuristicTransaction struct {
-	Uid     string `json:"uid,omitempty"`
-	Outputs []struct {
-		Amount int64 `json:"amount,omitempty"`
-	} `json:"tx_outputs,omitempty"`
-	Block []struct {
+	Uid     string            `json:"uid,omitempty"`
+	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+	Block   []struct {
 		Timestamp string `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
 }
