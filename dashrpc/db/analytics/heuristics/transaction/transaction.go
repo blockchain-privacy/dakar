@@ -212,9 +212,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 			Inputs    []struct {
 				AddressHash string `json:"addresshash,omitempty"`
 			} `json:"tx_inputs,omitempty"`
-			Outputs []struct {
-				Amount int64 `json:"amount,omitempty"`
-			} `json:"tx_outputs,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -280,9 +278,7 @@ func GetOrigins(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction, err 
 			Inputs    []struct {
 				AddressHash string `json:"addresshash,omitempty"`
 			} `json:"tx_inputs,omitempty"`
-			Outputs []struct {
-				Amount int64 `json:"amount,omitempty"`
-			} `json:"tx_outputs,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -343,8 +339,11 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 				
 				q(func: uid(v)){
 					uid
-					tx_outputs{
-						amount
+					tx_outputs@normalize{
+						amount:amount
+						~tx_inputs{
+							input_tx:txhash
+						}
 					}
 					~transactions{
 						ts
@@ -411,9 +410,7 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 			Uid       string `json:"uid,omitempty"`
 			Timestamp string `json:"ts,omitempty"`
 			Address   string
-			Outputs   []struct {
-				Amount int64 `json:"amount,omitempty"`
-			} `json:"tx_inputs,omitempty"`
+			Outputs   []HeuristicOutput `json:"tx_inputs,omitempty"`
 		} `json:"q,omitempty"`
 	}
 

@@ -75,7 +75,7 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 
 	for _, it := range inputTransactions {
 		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominations(it)
+		nDenominations, denominationIndex, err := getNumberOfDenominationsWithFilter(it, txHash)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
