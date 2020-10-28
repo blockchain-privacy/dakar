@@ -36,7 +36,7 @@ func (h OneSourceHeuristic) getParameter() string {
 
 // OneSourceHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-// - filter all origins of sources, which do not enough denominations to fund all of their respective
+// - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
