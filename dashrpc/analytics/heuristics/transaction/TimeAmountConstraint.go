@@ -67,7 +67,7 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 	mRemovableSupersources := make(map[string]bool)
 	var inputSuperSources []map[string]bool
 
-	// maps a address to its origin transactions
+	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
 	for _, o := range origins {
 		originMap[o] = true
@@ -86,21 +86,11 @@ func (b TimeAmountConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, p
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		// save in global address->origin map
-		for _, t := range timeLimitedOrigins {
-			// add transaction to sourceTransactionMap
-			transactions := sourceTransactionMap[t.Address]
-
-			if len(transactions) == 0 {
-				transactions = make(map[string]dbtxh.HeuristicTransaction)
-			}
-
-			transactions[t.Uid] = t
-			sourceTransactionMap[t.Address] = transactions
-		}
+		// save origins in global address->origin map
+		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, timeLimitedOrigins)
 
 		// find super sources
-		sSource, err := buildSuperSourcesWithAmount(timeLimitedOrigins, denominationIndex)
+		sSource, err := buildSourcesWithAmount(timeLimitedOrigins, denominationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
