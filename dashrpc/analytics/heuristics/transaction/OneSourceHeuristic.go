@@ -36,10 +36,13 @@ func (h OneSourceHeuristic) getParameter() string {
 
 // OneSourceHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-// - filter all origins of sources, which do not enough denominations to fund all of their respective input transaction
+// - filter all origins of sources, which do not enough denominations to fund all of their respective
+//		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
 func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+	// Get all transactions which are connected via the inputs of the destination
+	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -76,8 +79,13 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuris
 		// save origins in global address->origin map
 		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, timeLimitedOrigins)
 
+		// add element inputSources and set index of current element
 		inputSources = append(inputSources, make(map[string]bool))
 		iSSIndex := len(inputSources) - 1
+
+		// Loop through all sources of the current input transaction and mark
+		// the sources which do not have enough denominations to fund all outputs of
+		// the input transaction which are used as input in the destination transaction
 		for k, v := range oSource.sources {
 			sources[k] = true
 			inputSources[iSSIndex][k] = true

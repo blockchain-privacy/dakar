@@ -72,7 +72,7 @@ func (b OmniSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuri
 	}
 
 	for _, it := range inputTransactions {
-		inputOrigins, err := dbtxh.GetOrigins(dgraph, it.Uid)
+		inputOrigins, err := dbtxh.GetOriginsByUid(dgraph, it.Uid)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
