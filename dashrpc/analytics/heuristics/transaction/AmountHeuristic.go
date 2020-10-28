@@ -29,8 +29,8 @@ func (h AmountHeuristic) getParameter() string {
 	return h.parameterDescription
 }
 
-// todo remove
-// does it all
+// AmountHeuristic applies the following heuristic:
+// - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
 func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
@@ -80,12 +80,6 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristic
 
 	originAmounts := buildSourceAmounts(origins)
 
-	// plan:
-	// - input a number of origins
-	// do:
-	// - find all sources of these outputs
-	// - calculate the cumulative denominations per source with buildSourceAmounts
-
 	log.Println("Sources found:", len(originAmounts), "Origins found:", len(origins))
 	var filteredOrigins []string
 	var atLeastOmniSource []string
@@ -101,7 +95,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristic
 		}
 	}
 
-	log.Println("Remaining sources after <at least> denomination filter:", len(atLeastOmniSource),
+	log.Println("Remaining sources after filter:", len(atLeastOmniSource),
 		"Remaining origins:", len(filteredOrigins))
 
 	return filteredOrigins, nil
