@@ -125,7 +125,7 @@ func addOriginsToMap(sourceTransactionMap map[string]map[string]dbtxh.HeuristicT
 	return sourceTransactionMap
 }
 
-// creates an array of super sources with the number of denominations of the specified denomination type
+// buildSourcesWithAmount creates an array of sources with the number of denominations of the specified denomination type
 func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource originSource, err error) {
 	oSource.denominationIndex = denominationIndex
 	oSource.sources = make(map[string]int)
@@ -227,7 +227,8 @@ func (b AllHeuristics) getParameter() string {
 	return b.parameterDescription
 }
 
-// does nothing so far
+// todo remove
+// does it all
 func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
