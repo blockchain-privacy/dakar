@@ -102,8 +102,7 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 						uid
 					}
 				}
-			  }
-				`
+			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
 		query, map[string]string{"$uid": heuristicUid})
@@ -131,13 +130,19 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 
 func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
-				q(func: uid($uid)){
+				var (func: uid($uid)){
+					x as results
+				}
+				
+				q(func: uid(x)){
 					uid
 					tx_outputs{
 						amount
 					}
-					~transactions{
-						ts
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
 					}
 				}
 			  }
@@ -162,14 +167,21 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 	}
 
 	for _, t := range r.Transaction {
-		if len(t.Block) != 1 || len(t.Outputs) == 0 {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
-			return
+		if len(t.Inputs) != 1 {
+			var addresses []string
+			for _, a := range t.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
 		}
 		results = append(results, HeuristicTransaction{
-			Uid:       t.Uid,
-			Timestamp: t.Block[0].Timestamp,
-			Outputs:   t.Outputs,
+			Uid:     t.Uid,
+			Address: t.Inputs[0].AddressHash,
+			Outputs: t.Outputs,
 		})
 	}
 
@@ -206,14 +218,7 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 
 	// json struct
 	var r struct {
-		Origins []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"ts,omitempty"`
-			Inputs    []struct {
-				AddressHash string `json:"addresshash,omitempty"`
-			} `json:"tx_inputs,omitempty"`
-			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-		} `json:"q,omitempty"`
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -234,10 +239,9 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 			}
 		}
 		origins = append(origins, HeuristicTransaction{
-			Uid:       o.Uid,
-			Timestamp: o.Timestamp,
-			Address:   o.Inputs[0].AddressHash,
-			Outputs:   o.Outputs,
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
 		})
 	}
 
@@ -272,14 +276,7 @@ func GetOriginsByUid(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction,
 
 	// json struct
 	var r struct {
-		Origins []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"ts,omitempty"`
-			Inputs    []struct {
-				AddressHash string `json:"addresshash,omitempty"`
-			} `json:"tx_inputs,omitempty"`
-			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-		} `json:"q,omitempty"`
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -300,10 +297,9 @@ func GetOriginsByUid(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction,
 			}
 		}
 		origins = append(origins, HeuristicTransaction{
-			Uid:       o.Uid,
-			Timestamp: o.Timestamp,
-			Address:   o.Inputs[0].AddressHash,
-			Outputs:   o.Outputs,
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
 		})
 	}
 
@@ -338,14 +334,7 @@ func GetOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, e
 
 	// json struct
 	var r struct {
-		Origins []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"ts,omitempty"`
-			Inputs    []struct {
-				AddressHash string `json:"addresshash,omitempty"`
-			} `json:"tx_inputs,omitempty"`
-			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-		} `json:"q,omitempty"`
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -366,10 +355,9 @@ func GetOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, e
 			}
 		}
 		origins = append(origins, HeuristicTransaction{
-			Uid:       o.Uid,
-			Timestamp: o.Timestamp,
-			Address:   o.Inputs[0].AddressHash,
-			Outputs:   o.Outputs,
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
 		})
 	}
 
@@ -473,10 +461,8 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"ts,omitempty"`
-			Address   string
-			Outputs   []HeuristicOutput `json:"tx_inputs,omitempty"`
+			Uid     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -492,10 +478,8 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 
 	t := r.Transaction[0]
 	transaction = HeuristicTransaction{
-		Uid:       t.Uid,
-		Timestamp: t.Timestamp,
-		Address:   t.Address,
-		Outputs:   t.Outputs,
+		Uid:     t.Uid,
+		Outputs: t.Outputs,
 	}
 
 	return
