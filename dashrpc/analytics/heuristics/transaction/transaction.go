@@ -89,7 +89,7 @@ func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations
 	return dbop.CountAmountDenominations(denominations)
 }
 
-type superSource struct {
+type originSource struct {
 	denominationIndex int
 	// key: address hash, value: number of denominations of type denominationIndex
 	sources map[string]int
@@ -105,29 +105,49 @@ func buildSuperSources(origins []dbtxh.HeuristicTransaction) map[string]bool {
 	return superSources
 }
 
+// addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
+// The returned map contains the provided origins
+func addOriginsToMap(sourceTransactionMap map[string]map[string]dbtxh.HeuristicTransaction,
+	origins []dbtxh.HeuristicTransaction) map[string]map[string]dbtxh.HeuristicTransaction {
+
+	for _, o := range origins {
+		// add transaction to sourceTransactionMap
+		transactions := sourceTransactionMap[o.Address]
+
+		if len(transactions) == 0 {
+			transactions = make(map[string]dbtxh.HeuristicTransaction)
+		}
+
+		transactions[o.Uid] = o
+		sourceTransactionMap[o.Address] = transactions
+	}
+
+	return sourceTransactionMap
+}
+
 // creates an array of super sources with the number of denominations of the specified denomination type
-func buildSuperSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (superSource superSource, err error) {
-	superSource.denominationIndex = denominationIndex
-	superSource.sources = make(map[string]int)
+func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource originSource, err error) {
+	oSource.denominationIndex = denominationIndex
+	oSource.sources = make(map[string]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
-		superSource.sources[o.Address] += nDenominations
+		oSource.sources[o.Address] += nDenominations
 	}
 
 	return
 }
 
-func buildSuperSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[string][dbop.NumDenominations]int {
-	superSourceAmounts := make(map[string][dbop.NumDenominations]int)
+func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[string][dbop.NumDenominations]int {
+	sourceAmounts := make(map[string][dbop.NumDenominations]int)
 
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)
 		for i := range denominationSlice {
-			denominationSlice[i] += superSourceAmounts[o.Address][i]
+			denominationSlice[i] += sourceAmounts[o.Address][i]
 		}
-		superSourceAmounts[o.Address] = denominationSlice
+		sourceAmounts[o.Address] = denominationSlice
 	}
-	return superSourceAmounts
+	return sourceAmounts
 }
 
 // returns true if all denominations with at least the same amount of denom1 are contained in denom2
@@ -264,7 +284,7 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 		}
 
 		// find super sources
-		sSource, err := buildSuperSourcesWithAmount(timeLimitedOrigins, denominationIndex)
+		sSource, err := buildSourcesWithAmount(timeLimitedOrigins, denominationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -280,7 +300,7 @@ func (b AllHeuristics) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUi
 		}
 	}
 
-	originAmounts := buildSuperSourceAmounts(allOrigins)
+	originAmounts := buildSourceAmounts(allOrigins)
 
 	log.Println("global super sources", len(superSources), "removable super sources", len(mRemovableSupersources))
 
@@ -369,15 +389,19 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
 	}
 
-	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
-		HeuristicType:   h.getType(),
-		Origins:         dummyOrigins,
-		Parameter:       h.getParameter(),
-		ParentHeuristic: pHeuristic,
-		TxHash:          txHash,
-	}); err != nil {
-		return err
-	}
+	// todo
+	_ = pHeuristic
+
+	// todo
+	//if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+	//	HeuristicType:   h.getType(),
+	//	Origins:         dummyOrigins,
+	//	Parameter:       h.getParameter(),
+	//	ParentHeuristic: pHeuristic,
+	//	TxHash:          txHash,
+	//}); err != nil {
+	//	return err
+	//}
 
 	return nil
 }
