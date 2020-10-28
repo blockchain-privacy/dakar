@@ -107,6 +107,12 @@ func main() {
 			return
 		}
 
+		//if err := heuristic.Exec(dgraph, testOneSource, "",
+		//	heuristic.NewAmountHeuristic()); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
 		//if err := heuristic.Exec(dgraph, interestTransaction, "", heuristic.NewInputAmountHeuristic()); err != nil {
 		//	log.Println(err)
 		//	return
