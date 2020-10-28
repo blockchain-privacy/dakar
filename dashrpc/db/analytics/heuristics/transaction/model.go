@@ -52,7 +52,10 @@ func (h HeuristicTransaction) String() string {
 type queryHeuristicTransaction struct {
 	Uid     string            `json:"uid,omitempty"`
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-	Block   []struct {
+	Inputs  []struct {
+		AddressHash string `json:"addresshash,omitempty"`
+	} `json:"tx_inputs,omitempty"`
+	Block []struct {
 		Timestamp string `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
 }

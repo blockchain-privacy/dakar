@@ -390,19 +390,15 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
 	}
 
-	// todo
-	_ = pHeuristic
-
-	// todo
-	//if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
-	//	HeuristicType:   h.getType(),
-	//	Origins:         dummyOrigins,
-	//	Parameter:       h.getParameter(),
-	//	ParentHeuristic: pHeuristic,
-	//	TxHash:          txHash,
-	//}); err != nil {
-	//	return err
-	//}
+	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+		HeuristicType:   h.getType(),
+		Origins:         dummyOrigins,
+		Parameter:       h.getParameter(),
+		ParentHeuristic: pHeuristic,
+		TxHash:          txHash,
+	}); err != nil {
+		return err
+	}
 
 	return nil
 }
