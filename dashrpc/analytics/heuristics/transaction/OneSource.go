@@ -34,40 +34,41 @@ func (h OneSourceHeuristic) getParameter() string {
 	return h.parameterDescription
 }
 
-// time limitation
+// OneSourceHeuristic applies the following heuristics:
+// - filter all origins, which are not created in the time span defined by lookBackTime
+// - filter all origins of sources, which do not enough denominations to fund all of their respective input transaction
+// - filter all origins of sources, which do not occur in sets of input transaction origins
+// This heuristic does not use the results from its parent heuristic
 func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
-	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	inputDenominationCounts := getDenominationCounts(transaction)
-
-	log.Println("Destination transaction denomination counts:", inputDenominationCounts)
-
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	inputAmountMap := make(map[string]int)
-
+	// sources holds all sources found in all input transactions
 	sources := make(map[string]bool)
+	// mRemovableSources holds all sources which can be removed,
+	// due to not being able to fund all connected input transactions
 	mRemovableSources := make(map[string]bool)
-
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
-
+	// for each input transaction to the destination transaction,
+	// inputSources holds one map with all its occurring sources
 	var inputSources []map[string]bool
+
 	for _, it := range inputTransactions {
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
 		// get input denominations
 		nDenominations, denominationIndex, err := getNumberOfDenominations(it, txHash)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-		inputAmountMap[it.Uid] = nDenominations
 
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		oSource, err := buildSourcesWithAmount(timeLimitedOrigins, denominationIndex)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -75,18 +76,12 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuris
 		// save origins in global address->origin map
 		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, timeLimitedOrigins)
 
-		// find super sources
-		oSource, err := buildSourcesWithAmount(timeLimitedOrigins, denominationIndex)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
 		inputSources = append(inputSources, make(map[string]bool))
 		iSSIndex := len(inputSources) - 1
 		for k, v := range oSource.sources {
 			sources[k] = true
 			inputSources[iSSIndex][k] = true
-			if v < inputAmountMap[it.Uid] {
+			if v < nDenominations {
 				mRemovableSources[k] = true
 			}
 		}
@@ -94,18 +89,21 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuris
 
 	log.Println("sources:", len(sources), "-- removable sources:", len(mRemovableSources))
 
-	// remove sources
+	// Remove sources which do not have enough denominations to
+	// fund all input transaction to which they are connected
 	for k := range mRemovableSources {
 		delete(sources, k)
 	}
 
 	log.Println("remaining sources", len(sources))
 
-	// save all addresses (sources) which are part of all input transactions
+	// save all addresses (sources) which are not part of all input transactions
 	var omniSources []string
 	for k := range sources {
 
 		found := true
+		// check for each input transaction if the the source k exists. In the case it does
+		// not set the flag to false
 		for _, inputTransactionSource := range inputSources {
 			if !inputTransactionSource[k] {
 				found = false
