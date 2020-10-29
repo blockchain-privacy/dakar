@@ -66,15 +66,8 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		// some test transactions
-		//bigTransaction := "62cd8a10d62c42fa786bb2d897f48499bcbb58ee697a5e7bc0fe48cdec081efc"
-		//biggerTransaction := "d3efe170dc1c1e8db2e8feb6fab76da2d9188176196d69b0055ca8e485233fd3"
-		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
-		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
-		testOneSource := "cfb95252da737464c9b37fcd294e1b19b3903b84ae7dd7a045bcb9765c0fb570"
-		//testTransaction2 := "78d7d55ecd30c78ea91bffdff536e9c4476d44aa1e2d874663cfba3a547a0eef"
-		//testTransation := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
-		//interestTransaction := "6c3786e2a7b10319b2613236c3f5dbe0179d28e626989279b10c774c8bafeba1"
+		// test transactions upper part
+		//testOneSource := "cfb95252da737464c9b37fcd294e1b19b3903b84ae7dd7a045bcb9765c0fb570"
 
 		// heuristic test
 		//if err := heuristic.Exec(dgraph, interestTransaction, "",
@@ -95,20 +88,93 @@ func main() {
 		//	return
 		//}
 
-		//if err := heuristic.Exec(dgraph, testOneSource, "",
-		//	heuristic.NewAllHeuristics(3*24)); err != nil {
+		// interest transaction
+		//interestTransaction := "6c3786e2a7b10319b2613236c3f5dbe0179d28e626989279b10c774c8bafeba1"
+		//if err := heuristic.Exec(dgraph, interestTransaction, "",
+		//	heuristic.NewAllHeuristics(7*24)); err != nil {
 		//	log.Println(err)
 		//	return
 		//}
 
-		if err := heuristic.Exec(dgraph, testOneSource, "",
-			heuristic.NewOneSourceHeuristic(3*24)); err != nil {
+		//test transactions lower part
+		//twoSources := "78d7d55ecd30c78ea91bffdff536e9c4476d44aa1e2d874663cfba3a547a0eef"
+		//fourSources := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
+		//threeSources := "f0db46cc9ca20502bd8265df9b201b38337511d825a3ffe93bdb708ddbc85b01"
+		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
+		hours := uint32(7 * 24)
+
+		//if _, err := heuristic.Exec(dgraph, oneSource, "",
+		//	heuristic.NewAllHeuristics(hours)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		//if err := heuristic.Exec(dgraph, two_sources, "",
+		//	heuristic.NewAllHeuristics(hours)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+		//
+		//if err := heuristic.Exec(dgraph, three_sources, "",
+		//	heuristic.NewAllHeuristics(hours)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+		//
+		//if err := heuristic.Exec(dgraph, four_sources, "",
+		//	heuristic.NewAllHeuristics(hours)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		/////////////////////// Executor test start
+		typeHX := heuristic.HeuristicExecutor{
+			ThisHeuristic:  heuristic.NewDenominationTypeHeuristic(),
+			NextHeuristics: nil,
+		}
+
+		matchHX := heuristic.HeuristicExecutor{
+			ThisHeuristic:  heuristic.NewPerfectMatchHeuristic(),
+			NextHeuristics: nil,
+		}
+
+		amountHX := heuristic.HeuristicExecutor{
+			ThisHeuristic:  heuristic.NewAmountHeuristic(),
+			NextHeuristics: []heuristic.HeuristicExecutor{matchHX, typeHX},
+		}
+
+		oneSourceHX := heuristic.HeuristicExecutor{
+			ThisHeuristic:  heuristic.NewOneSourceHeuristic(hours),
+			NextHeuristics: []heuristic.HeuristicExecutor{amountHX},
+		}
+
+		if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
 			log.Println(err)
 			return
 		}
 
+		/////////////////////// Executor test end
+
 		//if err := heuristic.Exec(dgraph, testOneSource, "",
+		//	heuristic.NewOneSourceHeuristic(3*24)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		//if err := heuristic.Exec(dgraph, testOneSource, "0x37b1e6",
 		//	heuristic.NewAmountHeuristic()); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		//if err := heuristic.Exec(dgraph, testOneSource, "0x37b1e4",
+		//	heuristic.NewDenominationTypeHeuristic()); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+
+		//if err := heuristic.Exec(dgraph, testOneSource, "0x37b1e6",
+		//	heuristic.NewPerfectMatchHeuristic()); err != nil {
 		//	log.Println(err)
 		//	return
 		//}

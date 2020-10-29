@@ -52,6 +52,21 @@ func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err
 	return
 }
 
+// Execute the given request. In case the request fails repeat it. Also returns the response
+func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (resp *api.Response, err error) {
+	for i := 0; i < maxRetries; i++ {
+		if resp, err = dgraph.NewTxn().Do(ctx, req); err == nil {
+			return
+		}
+		info("encountered error retrying:", err)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
 // Execute the given request. In case the request fails repeat it
 func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 	vars map[string]string) (*api.Response, error) {
