@@ -369,15 +369,25 @@ type HeuristicExecutor struct {
 	NextHeuristics []HeuristicExecutor
 }
 
+// BuildExecutor is a convenience function for build heuristic executors
+func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
+	return HeuristicExecutor{
+		ThisHeuristic:  thisHeuristic,
+		NextHeuristics: nextHeuristics,
+	}
+}
+
+// Run runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the Run function of the NextHeuristics
 func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
 	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	for _, executor := range hx.NextHeuristics {
 		if err := executor.Run(dgraph, txHash, newUid); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 	}
 
