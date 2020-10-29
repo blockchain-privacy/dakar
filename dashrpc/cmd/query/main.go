@@ -103,11 +103,11 @@ func main() {
 		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
 		hours := uint32(7 * 24)
 
-		if _, err := heuristic.Exec(dgraph, oneSource, "",
-			heuristic.NewAllHeuristics(hours)); err != nil {
-			log.Println(err)
-			return
-		}
+		//if _, err := heuristic.Exec(dgraph, oneSource, "",
+		//	heuristic.NewAllHeuristics(hours)); err != nil {
+		//	log.Println(err)
+		//	return
+		//}
 
 		//if _, err := heuristic.Exec(dgraph, twoSources, "",
 		//	heuristic.NewAllHeuristics(hours)); err != nil {

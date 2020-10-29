@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -384,14 +385,35 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
+	errChannel := make(chan error, len(hx.NextHeuristics))
 
+	waitGroup := sync.WaitGroup{}
 	for _, executor := range hx.NextHeuristics {
-		if err := executor.Run(dgraph, txHash, newUid); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		waitGroup.Add(1)
+		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
+			defer wg.Done()
+			if err := e.Run(dgraph, txHash, newUid); err != nil {
+				errChannel <- err
+				return
+			}
+			errChannel <- nil
+		}(executor, &waitGroup, errChannel)
+	}
+
+	waitGroup.Wait()
+	var returnError error
+	close(errChannel)
+	for errs := range errChannel {
+		if errs != nil {
+			if returnError != nil {
+				returnError = fmt.Errorf("%s, %s", returnError, errs)
+			} else {
+				returnError = errs
+			}
 		}
 	}
 
-	return nil
+	return returnError
 }
 
 // Execute the heuristic on the transaction specified by txHash
