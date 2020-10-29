@@ -103,50 +103,36 @@ func main() {
 		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
 		hours := uint32(7 * 24)
 
-		//if _, err := heuristic.Exec(dgraph, oneSource, "",
-		//	heuristic.NewAllHeuristics(hours)); err != nil {
-		//	log.Println(err)
-		//	return
-		//}
+		if _, err := heuristic.Exec(dgraph, oneSource, "",
+			heuristic.NewAllHeuristics(hours)); err != nil {
+			log.Println(err)
+			return
+		}
 
-		//if err := heuristic.Exec(dgraph, two_sources, "",
+		//if _, err := heuristic.Exec(dgraph, twoSources, "",
 		//	heuristic.NewAllHeuristics(hours)); err != nil {
 		//	log.Println(err)
 		//	return
 		//}
 		//
-		//if err := heuristic.Exec(dgraph, three_sources, "",
+		//if _, err := heuristic.Exec(dgraph, threeSources, "",
 		//	heuristic.NewAllHeuristics(hours)); err != nil {
 		//	log.Println(err)
 		//	return
 		//}
 		//
-		//if err := heuristic.Exec(dgraph, four_sources, "",
+		//if _, err := heuristic.Exec(dgraph, fourSources, "",
 		//	heuristic.NewAllHeuristics(hours)); err != nil {
 		//	log.Println(err)
 		//	return
 		//}
 
 		/////////////////////// Executor test start
-		typeHX := heuristic.HeuristicExecutor{
-			ThisHeuristic:  heuristic.NewDenominationTypeHeuristic(),
-			NextHeuristics: nil,
-		}
 
-		matchHX := heuristic.HeuristicExecutor{
-			ThisHeuristic:  heuristic.NewPerfectMatchHeuristic(),
-			NextHeuristics: nil,
-		}
-
-		amountHX := heuristic.HeuristicExecutor{
-			ThisHeuristic:  heuristic.NewAmountHeuristic(),
-			NextHeuristics: []heuristic.HeuristicExecutor{matchHX, typeHX},
-		}
-
-		oneSourceHX := heuristic.HeuristicExecutor{
-			ThisHeuristic:  heuristic.NewOneSourceHeuristic(hours),
-			NextHeuristics: []heuristic.HeuristicExecutor{amountHX},
-		}
+		typeHX := heuristic.BuildExecutor(heuristic.NewDenominationTypeHeuristic())
+		matchHX := heuristic.BuildExecutor(heuristic.NewPerfectMatchHeuristic())
+		amountHX := heuristic.BuildExecutor(heuristic.NewAmountHeuristic(), matchHX, typeHX)
+		oneSourceHX := heuristic.BuildExecutor(heuristic.NewOneSourceHeuristic(hours), amountHX)
 
 		if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
 			log.Println(err)
