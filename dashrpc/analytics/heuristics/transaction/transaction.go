@@ -210,8 +210,8 @@ type AllHeuristics struct {
 
 // NewAllHeuristics constructor
 // lookBackTime in hours
-func NewAllHeuristics(hoursToLookBack time.Duration) AllHeuristics {
-	lBackTime := hoursToLookBack * time.Hour
+func NewAllHeuristics(hoursToLookBack uint32) AllHeuristics {
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return AllHeuristics{
 		heuristicType:        "all",
 		lookBackTime:         lBackTime,
@@ -364,14 +364,35 @@ func isParentHeuristicSet(parentHeuristicUid string) bool {
 	return parentHeuristicUid != ""
 }
 
+type HeuristicExecutor struct {
+	ThisHeuristic  heuristic
+	NextHeuristics []HeuristicExecutor
+}
+
+func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
+	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
+	if err != nil {
+		return err
+	}
+
+	for _, executor := range hx.NextHeuristics {
+		if err := executor.Run(dgraph, txHash, newUid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Execute the heuristic on the transaction specified by txHash
-func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) error {
+func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) (thisUid string, err error) {
 	// todo remove
 	log.Println("Starting heuristic <", h.getType(), "> for tx", txHash)
 
 	originUids, err := h.exec(dgraph, txHash, parentHeuristicUid)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	// todo remove
@@ -390,15 +411,18 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
 	}
 
-	if err := dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+	thisUid, err = dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
 		HeuristicType:   h.getType(),
 		Origins:         dummyOrigins,
 		Parameter:       h.getParameter(),
 		ParentHeuristic: pHeuristic,
 		TxHash:          txHash,
-	}); err != nil {
-		return err
+	})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
-	return nil
+	return
 }

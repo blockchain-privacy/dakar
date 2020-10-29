@@ -12,7 +12,7 @@ import (
 )
 
 // Upserts the given heuristic
-func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
+func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 	// todo check if needed
 	// delete potential already existing edges of h
 	//if err = deleteHeuristicEdges(c, h); err != nil {
@@ -44,10 +44,22 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (err error) {
 		}},
 		CommitNow: true,
 	}
-
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	resp, err := db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
+	}
+
+	uids := resp.GetUids()
+	if len(uids) != 1 {
+		err = errors.New(fmt.Sprintln("invalid number of heuristics inserted. Heuristic count:",
+			len(resp.GetUids())))
+		return
+	}
+
+	// uids has only one element, so insertUid is only set once
+	for _, u := range uids {
+		insertUid = u
 	}
 
 	return
