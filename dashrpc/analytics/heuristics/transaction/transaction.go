@@ -383,7 +383,9 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
 	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameter(), err))
 	}
 	errChannel := make(chan error, len(hx.NextHeuristics))
 
@@ -406,7 +408,7 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 	for errs := range errChannel {
 		if errs != nil {
 			if returnError != nil {
-				returnError = fmt.Errorf("%s, %s", returnError, errs)
+				returnError = fmt.Errorf("%s, next error: %s", returnError, errs)
 			} else {
 				returnError = errs
 			}
