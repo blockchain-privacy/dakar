@@ -21,7 +21,7 @@ type heuristic interface {
 	exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameter returns the used paramter for this heuristic
+	// getParameter returns the used parameter for this heuristic
 	getParameter() string
 }
 
