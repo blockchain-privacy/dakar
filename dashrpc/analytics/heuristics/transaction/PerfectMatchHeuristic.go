@@ -3,6 +3,7 @@ package transaction
 import (
 	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
+	dbop "dashrpc/db/output"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
@@ -100,4 +101,14 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeu
 		"Remaining origins:", len(filteredOrigins))
 
 	return filteredOrigins, nil
+}
+
+// returns true if all denominations with the same amount of denom1 are contained in denom2
+func isEqualDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] != d {
+			return false
+		}
+	}
+	return true
 }
