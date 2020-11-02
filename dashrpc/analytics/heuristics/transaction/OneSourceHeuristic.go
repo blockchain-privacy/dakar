@@ -5,7 +5,6 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 	"time"
 )
 
@@ -95,15 +94,11 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuris
 		}
 	}
 
-	log.Println("sources:", len(sources), "-- removable sources:", len(mRemovableSources))
-
 	// Remove sources which do not have enough denominations to
 	// fund all input transaction to which they are connected
 	for k := range mRemovableSources {
 		delete(sources, k)
 	}
-
-	log.Println("remaining sources", len(sources))
 
 	// save all addresses (sources) which are not part of all input transactions
 	var omniSources []string
@@ -123,8 +118,6 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuris
 			omniSources = append(omniSources, k)
 		}
 	}
-
-	log.Println("Found", len(omniSources), "omni sources")
 
 	remainingOrigins := make(map[string]bool)
 	// collect all transactions from omni sources

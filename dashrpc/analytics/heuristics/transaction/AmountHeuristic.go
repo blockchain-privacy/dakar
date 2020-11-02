@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 )
 
 type AmountHeuristic struct {
@@ -77,27 +76,16 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristic
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 
-	log.Println("Destination transaction denomination counts:", inputDenominationCounts)
-
 	originAmounts := buildSourceAmounts(origins)
 
-	log.Println("Sources found:", len(originAmounts), "Origins found:", len(origins))
 	var filteredOrigins []string
-	var atLeastOmniSource []string
 	for k, o := range originAmounts {
 		if containsDenomination(inputDenominationCounts, o) {
-
-			atLeastOmniSource = append(atLeastOmniSource, k)
-
 			for _, tx := range sourceTransactionMap[k] {
 				filteredOrigins = append(filteredOrigins, tx.Uid)
 			}
-
 		}
 	}
-
-	log.Println("Remaining sources after filter:", len(atLeastOmniSource),
-		"Remaining origins:", len(filteredOrigins))
 
 	return filteredOrigins, nil
 }

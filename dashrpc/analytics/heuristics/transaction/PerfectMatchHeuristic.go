@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 )
 
 type PerfectMatchHeuristic struct {
@@ -78,27 +77,16 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeu
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 
-	log.Println("Destination transaction denomination counts:", inputDenominationCounts)
-
 	originAmounts := buildSourceAmounts(origins)
 
-	log.Println("Sources found:", len(originAmounts), "Origins found:", len(origins))
 	var filteredOrigins []string
-	var atLeastOmniSource []string
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {
-
-			atLeastOmniSource = append(atLeastOmniSource, k)
-
 			for _, tx := range sourceTransactionMap[k] {
 				filteredOrigins = append(filteredOrigins, tx.Uid)
 			}
-
 		}
 	}
-
-	log.Println("Remaining sources after filter:", len(atLeastOmniSource),
-		"Remaining origins:", len(filteredOrigins))
 
 	return filteredOrigins, nil
 }
