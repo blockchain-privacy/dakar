@@ -37,7 +37,7 @@ func (h OneSourceHeuristic) getParameter() string {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 // - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //		outputs of input transaction which are used as inputs in the destination transaction
-// - filter all origins of sources, which do not occur in sets of input transaction origins
+// - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
 func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	// Get all transactions which are connected via the inputs of the destination
