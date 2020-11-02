@@ -1,9 +1,9 @@
 package main
 
 import (
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
-	dban "dashrpc/db/analytics"
 	"errors"
 	"flag"
 	"fmt"
@@ -66,35 +66,44 @@ func main() {
 	}()
 
 	if len(cliArgs.TxSearch) > 0 {
-		// some test transactions
-		//bigTransaction := "62cd8a10d62c42fa786bb2d897f48499bcbb58ee697a5e7bc0fe48cdec081efc"
-		//biggerTransaction := "d3efe170dc1c1e8db2e8feb6fab76da2d9188176196d69b0055ca8e485233fd3"
-		//tx := "7336d112b9a2b838ea6fcedb0d55345308952f4dc67a8ff76ff3eba179ed31d4"
-		//other := "fdaad37eb8cd68291cc54089e63b75ad01df3c90d10fde26226875dbefc49cdb"
+		//interestTransaction := "6c3786e2a7b10319b2613236c3f5dbe0179d28e626989279b10c774c8bafeba1"
 
-		// heuristic test
-		//if err := heuristic.Exec(dgraph, cliArgs.TxSearch, heuristic.NewDummyHeuristic()); err != nil {
-		//	return
-		//}
+		// test transactions upper part
+		//testOneSource := "cfb95252da737464c9b37fcd294e1b19b3903b84ae7dd7a045bcb9765c0fb570"
 
-		// origin test
-		privTransactions, err := dban.GetPrivacyTransactions(dgraph, cliArgs.TxSearch)
-		if err != nil {
+		//test transactions lower part
+		twoSources := "78d7d55ecd30c78ea91bffdff536e9c4476d44aa1e2d874663cfba3a547a0eef"
+		fourSources := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
+		threeSources := "f0db46cc9ca20502bd8265df9b201b38337511d825a3ffe93bdb708ddbc85b01"
+		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
+		hours := uint32(2 * 24)
+
+		typeHX := heuristic.BuildExecutor(heuristic.NewDenominationTypeHeuristic())
+		matchHX := heuristic.BuildExecutor(heuristic.NewPerfectMatchHeuristic())
+		amountHX := heuristic.BuildExecutor(heuristic.NewAmountHeuristic(), matchHX, typeHX)
+		oneSourceHX := heuristic.BuildExecutor(heuristic.NewOneSourceHeuristic(hours), amountHX)
+
+		if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
+			log.Println(err)
 			return
 		}
 
-		log.Println("Found", len(privTransactions))
+		log.Println("----------")
 
-		for i, t := range privTransactions {
-			if err := dban.SameBlockTest(dgraph, t.Hash); err != nil {
-				panic(err)
-			}
-
-			if i%1000 == 0 {
-				log.Println("Processed 1000 transactions")
-			}
+		if err := oneSourceHX.Run(dgraph, twoSources, ""); err != nil {
+			log.Println(err)
+			return
 		}
-
+		log.Println("----------")
+		if err := oneSourceHX.Run(dgraph, threeSources, ""); err != nil {
+			log.Println(err)
+			return
+		}
+		log.Println("----------")
+		if err := oneSourceHX.Run(dgraph, fourSources, ""); err != nil {
+			log.Println(err)
+			return
+		}
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
 	}

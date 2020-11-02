@@ -16,7 +16,7 @@ services:
     ports:
       - 5080:5080
       - 6080:6080
-    restart: on-failure
+    restart: ${RESTART_POLICY}
     command: dgraph zero --my=zero:5080 --enable_sentry=false
     networks:
         - dgraph_default
@@ -31,8 +31,8 @@ services:
       - 9080:9080
     expose:
       - 9080
-    restart: on-failure
-    command: dgraph alpha --my=alpha:7080 --lru_mb=2048 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.255,192.168.188.0:192.168.188.255 --query_edge_limit 10000000 --enable_sentry=false
+    restart: ${RESTART_POLICY}
+    command: dgraph alpha --my=alpha:7080 --lru_mb=${MEMORY_LIMIT} --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.255,192.168.188.0:192.168.188.255 --query_edge_limit 10000000 --enable_sentry=false
     networks:
         - dgraph_default
   
@@ -56,7 +56,7 @@ services:
     expose:
       - 9999
       - 9998
-    restart: on-failure
+    restart: ${RESTART_POLICY}
     networks:
       - dgraph_default
 

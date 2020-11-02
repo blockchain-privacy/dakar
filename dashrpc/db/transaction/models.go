@@ -68,11 +68,11 @@ func (t Transaction) IsComplete() bool {
 	return t.Uid != "" && t.Hash != "" && t.DType != nil
 }
 
-func (t Transaction) CountInputDenominations() []int {
+func (t Transaction) CountInputDenominations() [op.NumDenominations]int {
 	return op.CountOutputDenominations(t.Inputs)
 }
 
-func (t Transaction) CountOutputDenominations() []int {
+func (t Transaction) CountOutputDenominations() [op.NumDenominations]int {
 	return op.CountOutputDenominations(t.Outputs)
 }
 
@@ -111,7 +111,7 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	return
 }
 
-func IsPrivacyTransaction(denom []int) bool {
+func IsPrivacyTransaction(denom [op.NumDenominations]int) bool {
 	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2 || denom[4] > 2
 }
 

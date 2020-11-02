@@ -93,13 +93,6 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-row>
-                <v-col>
-                  <IconItem icon="mdi-lan" title="Connections" :tooltip="tooltips.rpcConnections">
-                    {{ data.rpcinfo.connections }}
-                  </IconItem>
-                </v-col>
-              </v-row>
             </v-container>
           </v-card-text>
         </v-card>
@@ -187,9 +180,9 @@ export default {
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
-    refreshData: function () {
+    refreshData: async function () {
       this.resetTimers();
-      this.$store.dispatch('updateMetaData');
+      await this.$store.dispatch('updateMetaData');
       this.startTimer();
     },
   },

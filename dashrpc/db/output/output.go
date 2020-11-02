@@ -10,6 +10,10 @@ import (
 	"strconv"
 )
 
+const NumDenominations = 5
+
+var DenominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
+
 // gets output information from the database
 func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Output, err error) {
 	// build query
@@ -266,14 +270,14 @@ func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
-func CountOutputDenominations(outputs []Output) []int {
+func CountOutputDenominations(outputs []Output) [NumDenominations]int {
 
 	var amounts []int64
 
 	for _, o := range outputs {
 		if o.Amount == nil {
 			log.Println("error amount not set")
-			return nil
+			return [NumDenominations]int{}
 		}
 		amounts = append(amounts, *o.Amount)
 	}
@@ -281,13 +285,10 @@ func CountOutputDenominations(outputs []Output) []int {
 	return CountAmountDenominations(amounts)
 }
 
-func CountAmountDenominations(amounts []int64) []int {
-	denominationsTypes := []int64{1000010000, 100001000, 10000100, 1000010, 100001}
-	denominations := make([]int, len(denominationsTypes))
-
+func CountAmountDenominations(amounts []int64) (denominations [NumDenominations]int) {
 	for _, amt := range amounts {
 	inner:
-		for i, v := range denominationsTypes {
+		for i, v := range DenominationsTypes {
 			if amt == v {
 				denominations[i]++
 				break inner
@@ -295,5 +296,5 @@ func CountAmountDenominations(amounts []int64) []int {
 		}
 	}
 
-	return denominations
+	return
 }
