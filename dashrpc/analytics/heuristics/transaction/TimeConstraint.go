@@ -3,7 +3,6 @@ package transaction
 import (
 	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"time"
@@ -47,7 +46,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentH
 		}
 
 		if len(parentHeuristic.Origins) == 0 {
-			return nil, errors.New(fmt.Sprintln("found no origins found for parent heuristic:", parentHeuristicUid))
+			return nil, ErrorNoOriginsAtStart
 		}
 
 		for _, o := range parentHeuristic.Origins {
