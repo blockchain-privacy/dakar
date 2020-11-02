@@ -72,14 +72,14 @@ type originSource struct {
 	sources map[string]int
 }
 
-// returns a map of super sources
-func buildSuperSources(origins []dbtxh.HeuristicTransaction) map[string]bool {
-	superSources := make(map[string]bool)
+// returns a map of sources
+func buildSources(origins []dbtxh.HeuristicTransaction) map[string]bool {
+	sources := make(map[string]bool)
 	for _, o := range origins {
-		superSources[o.Address] = true
+		sources[o.Address] = true
 	}
 
-	return superSources
+	return sources
 }
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
@@ -202,19 +202,30 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 	return returnError
 }
 
+// fetchHeuristicSources returns the sources based on the results of the specified heuristic
+func fetchHeuristicSources(dgraph *dgo.Dgraph, heuristicUid string) (sources map[string]bool, err error) {
+	results, err := dbtxh.GetHeuristicResults(dgraph, heuristicUid)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	sources = buildSources(results)
+	return
+}
+
 // Execute the heuristic on the transaction specified by txHash
 func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) (thisUid string, err error) {
+	heuristicString := fmt.Sprintf("heuristic <%s> for tx %s", h.getType(), txHash)
+
 	// todo remove
-	log.Println("Starting heuristic <", h.getType(), "> for tx", txHash)
+	log.Println(heuristicString, "starting")
 
 	originUids, err := h.exec(dgraph, txHash, parentHeuristicUid)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
-
-	// todo remove
-	log.Println("After heuristic origin count:", len(originUids))
 
 	// do not upsert heuristic for now
 	var dummyOrigins []dbtxh.DummyOrigin
@@ -241,6 +252,16 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
+
+	// todo remove
+	sources, err := fetchHeuristicSources(dgraph, thisUid)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// todo remove
+	log.Println(heuristicString, "After heuristic origin count:", len(originUids), "sources count:", len(sources))
 
 	return
 }
