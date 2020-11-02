@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
+)
+
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
 	exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error)
@@ -222,7 +226,7 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 	log.Println(heuristicString, "starting")
 
 	originUids, err := h.exec(dgraph, txHash, parentHeuristicUid)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -262,6 +266,8 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 
 	// todo remove
 	log.Println(heuristicString, "After heuristic origin count:", len(originUids), "sources count:", len(sources))
-
+	//for k := range sources {
+	//	log.Println(k)
+	//}
 	return
 }

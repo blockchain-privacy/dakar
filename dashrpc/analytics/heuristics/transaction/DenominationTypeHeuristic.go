@@ -4,7 +4,6 @@ import (
 	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbop "dashrpc/db/output"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 )
@@ -67,7 +66,7 @@ func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, txHash string, paren
 	}
 
 	if len(origins) == 0 {
-		return nil, errors.New(fmt.Sprintln("found no origins:", parentHeuristicUid))
+		return nil, ErrorNoOriginsAtStart
 	}
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
