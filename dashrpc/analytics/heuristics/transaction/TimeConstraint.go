@@ -16,9 +16,9 @@ type TimeConstraintHeuristic struct {
 }
 
 // TimeConstraintHeuristic constructor
-// lookBackTime in hours
-func NewTimeConstraintHeuristic(hoursToLookBack time.Duration) TimeConstraintHeuristic {
-	lBackTime := hoursToLookBack * time.Hour
+// hoursToLookBack in hours
+func NewTimeConstraintHeuristic(hoursToLookBack uint32) TimeConstraintHeuristic {
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return TimeConstraintHeuristic{
 		heuristicType:        "timeconstraint",
 		lookBackTime:         lBackTime,
@@ -34,7 +34,8 @@ func (b TimeConstraintHeuristic) getParameter() string {
 	return b.parameterDescription
 }
 
-// time limitation
+// TimeConstraintHeuristic applies the following heuristics:
+// - filter all origins, which are not created in the time span defined by lookBackTime
 func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
