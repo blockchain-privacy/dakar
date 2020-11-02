@@ -3,6 +3,7 @@ package transaction
 import (
 	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
+	dbop "dashrpc/db/output"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
@@ -100,4 +101,18 @@ func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, txHash string, paren
 		"Remaining origins:", len(filteredOrigins))
 
 	return filteredOrigins, nil
+}
+
+// returns true if denom1 has only denominations for the same types as denom2
+func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+	for i, d := range denom1 {
+		if denom2[i] == d && d == 0 {
+			continue
+		}
+
+		if (denom2[i] > 0 && d == 0) || (denom2[i] == 0 && d > 0) {
+			return false
+		}
+	}
+	return true
 }
