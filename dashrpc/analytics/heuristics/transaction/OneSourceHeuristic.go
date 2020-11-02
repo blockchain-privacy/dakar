@@ -16,7 +16,7 @@ type OneSourceHeuristic struct {
 }
 
 // OneSourceHeuristic constructor
-// lookBackTime in hours
+// hoursToLookBack in hours
 func NewOneSourceHeuristic(hoursToLookBack uint32) OneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return OneSourceHeuristic{
