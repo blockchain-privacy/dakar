@@ -498,9 +498,13 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 }
 
 // GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHeuristic, err error) {
+func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string){
 					q(func: eq(txhash,$hash)){
+						uid
+						~transactions{
+							ts
+						}
 						~h_transaction{
 							ts
 							type
@@ -530,6 +534,10 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHe
 	// json struct
 	var r struct {
 		Transaction []struct {
+			Uid   string `json:"uid,omitempty"`
+			Block []struct {
+				Timestamp string `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
 			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
 		} `json:"q,omitempty"`
 	}
@@ -539,12 +547,16 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHe
 		return
 	}
 
-	if len(r.Transaction) != 1 {
+	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
 		err = errors.New("invalid response from database")
 		return
 	}
 
-	heuristics = r.Transaction[0].Heuristics
+	completeHeuristic = FrontendHeuristicComplete{
+		Uid:        r.Transaction[0].Uid,
+		Timestamp:  r.Transaction[0].Block[0].Timestamp,
+		Heuristics: r.Transaction[0].Heuristics,
+	}
 
 	return
 }

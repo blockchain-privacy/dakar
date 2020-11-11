@@ -60,6 +60,12 @@ type queryHeuristicTransaction struct {
 	} `json:"~transactions,omitempty"`
 }
 
+type FrontendHeuristicComplete struct {
+	Uid        string              `json:"uid,omitempty"`
+	Timestamp  string              `json:"ts,omitempty"`
+	Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+}
+
 type FrontendHeuristic struct {
 	Timestamp string `json:"ts,omitempty"`
 	Type      string `json:"type,omitempty"`

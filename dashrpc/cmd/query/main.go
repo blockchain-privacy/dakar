@@ -105,13 +105,15 @@ func main() {
 		//	return
 		//}
 
-		heuristics, err := transaction.GetFrontendHeuristic(dgraph, oneSource)
+		cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, oneSource)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		for _, h := range heuristics {
+		log.Println("Analysed transactions:", cHeuristic.Uid, cHeuristic.Timestamp)
+
+		for _, h := range cHeuristic.Heuristics {
 			for _, r := range h.Results {
 				pathLen, err := transaction.GetShortestPathLength(dgraph, "0x37ddef", r.Uid)
 				if err != nil {
