@@ -1,9 +1,9 @@
 package main
 
 import (
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
-	"dashrpc/db/analytics/heuristics/transaction"
 	"errors"
 	"flag"
 	"fmt"
@@ -76,17 +76,17 @@ func main() {
 		//fourSources := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
 		//threeSources := "f0db46cc9ca20502bd8265df9b201b38337511d825a3ffe93bdb708ddbc85b01"
 		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
-		//hours := uint32(7 * 24)
+		hours := uint32(0.25 * 24)
+
+		typeHX := heuristic.BuildExecutor(heuristic.NewDenominationTypeHeuristic())
+		matchHX := heuristic.BuildExecutor(heuristic.NewPerfectMatchHeuristic())
+		amountHX := heuristic.BuildExecutor(heuristic.NewAmountHeuristic(), matchHX, typeHX)
+		oneSourceHX := heuristic.BuildExecutor(heuristic.NewOneSourceHeuristic(hours), amountHX)
 		//
-		//typeHX := heuristic.BuildExecutor(heuristic.NewDenominationTypeHeuristic())
-		//matchHX := heuristic.BuildExecutor(heuristic.NewPerfectMatchHeuristic())
-		//amountHX := heuristic.BuildExecutor(heuristic.NewAmountHeuristic(), matchHX, typeHX)
-		//oneSourceHX := heuristic.BuildExecutor(heuristic.NewOneSourceHeuristic(hours), amountHX)
-		//
-		//if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
-		//	log.Println(err)
-		//	return
-		//}
+		if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
+			log.Println(err)
+			return
+		}
 		//
 		//log.Println("----------")
 		//
@@ -106,34 +106,34 @@ func main() {
 		//}
 
 		// heuristic evaluation
-		cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, oneSource)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		log.Println("Analysed transactions:", cHeuristic.Uid, cHeuristic.Timestamp)
-
-		inputTransactions, err := transaction.GetInputTransactions(dgraph, oneSource)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		for _, it := range inputTransactions {
-			log.Println(it.Uid, it.Timestamp)
-		}
-
-		for _, h := range cHeuristic.Heuristics {
-
-			for _, r := range h.Results {
-				pathLen, err := transaction.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				log.Println("path length:", pathLen)
-			}
-		}
+		//cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, oneSource)
+		//if err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+		//log.Println("Analysed transactions:", cHeuristic.Uid, cHeuristic.Timestamp)
+		//
+		//inputTransactions, err := transaction.GetInputTransactions(dgraph, oneSource)
+		//if err != nil {
+		//	log.Println(err)
+		//	return
+		//}
+		//
+		//for _, it := range inputTransactions {
+		//	log.Println(it.Uid, it.Timestamp)
+		//}
+		//
+		//for _, h := range cHeuristic.Heuristics {
+		//
+		//	for _, r := range h.Results {
+		//		pathLen, err := transaction.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
+		//		if err != nil {
+		//			log.Println(err)
+		//			return
+		//		}
+		//		log.Println("path length:", pathLen)
+		//	}
+		//}
 
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")

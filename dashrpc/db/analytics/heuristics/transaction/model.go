@@ -67,6 +67,7 @@ type FrontendHeuristicComplete struct {
 }
 
 type FrontendHeuristic struct {
+	Uid             string      `json:"uid,omitempty"`
 	Timestamp       string      `json:"ts,omitempty"`
 	Type            string      `json:"type,omitempty"`
 	Parameter       string      `json:"parameter,omitempty"`

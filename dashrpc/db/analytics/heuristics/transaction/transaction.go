@@ -506,6 +506,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 							ts
 						}
 						~h_transaction{
+							uid
 							ts
 							type
 							parameter
@@ -559,10 +560,33 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 	}
 
 	completeHeuristic = FrontendHeuristicComplete{
-		Uid:        r.Transaction[0].Uid,
-		Timestamp:  r.Transaction[0].Block[0].Timestamp,
-		Heuristics: r.Transaction[0].Heuristics,
+		Uid:       r.Transaction[0].Uid,
+		Timestamp: r.Transaction[0].Block[0].Timestamp,
 	}
+
+	var filteredHeuristics []FrontendHeuristic
+
+	for _, h := range r.Transaction[0].Heuristics {
+		transactions := make(map[string]bool)
+		var newHeuristic FrontendHeuristic
+		newHeuristic.Uid = h.Uid
+		newHeuristic.Timestamp = h.Timestamp
+		newHeuristic.Parameter = h.Parameter
+		newHeuristic.Type = h.Type
+		newHeuristic.ChildHeuristics = h.ChildHeuristics
+		newHeuristic.ParentHeuristic = h.ParentHeuristic
+		for _, r := range h.Results {
+			if transactions[r.Uid] {
+				continue
+			}
+			newHeuristic.Results = append(newHeuristic.Results, r)
+			transactions[r.Uid] = true
+		}
+
+		filteredHeuristics = append(filteredHeuristics, newHeuristic)
+	}
+
+	completeHeuristic.Heuristics = filteredHeuristics
 
 	return
 }
