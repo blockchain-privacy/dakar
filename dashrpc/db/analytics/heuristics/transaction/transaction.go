@@ -547,3 +547,43 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHe
 
 	return
 }
+
+// GetShortestPathLength returns the number of transactions in the shortest path between the given
+// transactions specified by fromUid and toUid. The returned number is the count of transactions in
+// the path between fromUid and toUid. A shortest path lik the following would return the number 3.
+// Example path: fromUid -> tx1 -> output1 -> tx2 -> output2 -> tx3 -> output3 -> toUid
+func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLength int, err error) {
+	query := fmt.Sprintf(`{
+				shortest(from: %s, to: %s){
+					tx_inputs
+					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+			  }`, fromUid, toUid)
+
+	resp, err := c.NewReadOnlyTxn().Query(db.GetFrontendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Path []struct {
+			Weight float64 `json:"_weight_,omitempty"`
+		} `json:"_path_,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Path) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	pathLength = (int(r.Path[0].Weight) - 2) / 2
+
+	return
+}
