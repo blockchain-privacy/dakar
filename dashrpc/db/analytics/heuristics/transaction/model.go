@@ -67,10 +67,12 @@ type FrontendHeuristicComplete struct {
 }
 
 type FrontendHeuristic struct {
-	Timestamp string `json:"ts,omitempty"`
-	Type      string `json:"type,omitempty"`
-	Parameter string `json:"parameter,omitempty"`
-	Results   []struct {
+	Timestamp       string      `json:"ts,omitempty"`
+	Type            string      `json:"type,omitempty"`
+	Parameter       string      `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic `json:"~parent_heuristic,omitempty"`
+	Results         []struct {
 		Uid         string `json:"uid,omitempty"`
 		Timestamp   string `json:"ts,omitempty"`
 		AddressHash string `json:"addresshash,omitempty"`

@@ -509,6 +509,12 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 							ts
 							type
 							parameter
+							parent_heuristic{
+								uid
+							}
+							~parent_heuristic{
+								uid
+							}
 							results@normalize{
 								uid:uid
 								txhash:txhash
