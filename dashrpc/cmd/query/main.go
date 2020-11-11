@@ -111,14 +111,17 @@ func main() {
 			return
 		}
 
-		_ = heuristics
-
-		pathLen, err := transaction.GetShortestPathLength(dgraph, "0x37ddef", "0x32c751")
-		if err != nil {
-			log.Println(err)
-			return
+		for _, h := range heuristics {
+			for _, r := range h.Results {
+				pathLen, err := transaction.GetShortestPathLength(dgraph, "0x37ddef", r.Uid)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				log.Println("path length:", pathLen)
+			}
 		}
-		log.Println("path length:", pathLen)
+
 	} else if len(cliArgs.ClusterAddr) > 0 {
 		log.Println("Clustering is not yet implemented")
 	}
