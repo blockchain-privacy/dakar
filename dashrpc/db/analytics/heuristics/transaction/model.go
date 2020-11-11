@@ -59,3 +59,14 @@ type queryHeuristicTransaction struct {
 		Timestamp string `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
 }
+
+type FrontendHeuristic struct {
+	Timestamp string `json:"ts,omitempty"`
+	Type      string `json:"type,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
+	Results   []struct {
+		Timestamp   string `json:"ts,omitempty"`
+		AddressHash string `json:"addresshash,omitempty"`
+		TxHash      string `json:"txhash,omitempty"`
+	} `json:"results,omitempty"`
+}
