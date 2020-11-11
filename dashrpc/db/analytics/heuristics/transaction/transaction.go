@@ -506,6 +506,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHe
 							type
 							parameter
 							results@normalize{
+								uid:uid
 								txhash:txhash
 								~transactions{
 									ts:ts

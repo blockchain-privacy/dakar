@@ -65,6 +65,7 @@ type FrontendHeuristic struct {
 	Type      string `json:"type,omitempty"`
 	Parameter string `json:"parameter,omitempty"`
 	Results   []struct {
+		Uid         string `json:"uid,omitempty"`
 		Timestamp   string `json:"ts,omitempty"`
 		AddressHash string `json:"addresshash,omitempty"`
 		TxHash      string `json:"txhash,omitempty"`
