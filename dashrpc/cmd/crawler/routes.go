@@ -347,7 +347,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
-			"origin address hash"}
+			"origin address hash", "origin shortest path"}
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
@@ -383,6 +383,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 				row = append(row, r.TxHash)
 				row = append(row, r.Timestamp)
 				row = append(row, r.AddressHash)
+				row = append(row, strconv.Itoa(shortestPaths[r.Uid]))
 
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
