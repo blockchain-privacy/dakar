@@ -9,6 +9,7 @@ const state = {
     address: null,
     block: null,
     meta: null,
+    heuristic: null,
 }
 
 function getMsg(context) {
@@ -34,6 +35,9 @@ const mutations = {
     },
     UPDATE_META_DATA(state, payload) {
         state.meta = payload;
+    },
+    UPDATE_HEURISTIC_DATA(state, payload) {
+        state.heuristic = payload;
     },
 }
 
@@ -70,29 +74,38 @@ const actions = {
     setBlockData(context, payload) {
         context.commit('SET_BLOCK_DATA', payload);
     },
-    updateMetaData(context) {
+    updateMetaData(context, payload) {
         console.log("Fetching meta data");
-        return fetch(Constants.ROUTE_META)
-            .then(response => {
-                if (!response.ok) throw new Error(response.status + " " + response.statusText)
-                return response
-            })
-            .then(response => response.json())
-            .then(data => {
-                context.commit('UPDATE_META_DATA', data);
-                this.dispatch('resetMsg');
-            })
-            .catch(e => {
-                let errMsg;
-                if (e.message === '500 Internal Server Error'){
-                    errMsg = 'Server ist not reachable';
-                } else {
-                    errMsg = `Error getting meta data: ${e}`
-                }
-
-                this.dispatch('setErrorMsg', errMsg);
-            });
+        return doUpdate(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
     },
+    updateHeuristicData(context,payload) {
+        console.log("Fetching heuristic data");
+        return doUpdate(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
+    },
+}
+
+function doUpdate(context, route, mutation, parameter) {
+
+    return fetch(route + parameter)
+        .then(response => {
+            if (!response.ok) throw new Error(response.status + " " + response.statusText)
+            return response
+        })
+        .then(response => response.json())
+        .then(data => {
+            context.commit(mutation, data);
+            context.dispatch('resetMsg');
+        })
+        .catch(e => {
+            let errMsg;
+            if (e.message === '500 Internal Server Error') {
+                errMsg = 'Server ist not reachable';
+            } else {
+                errMsg = `Error getting meta data: ${e}`
+            }
+
+            context.dispatch('setErrorMsg', errMsg);
+        });
 }
 
 const getters = {
