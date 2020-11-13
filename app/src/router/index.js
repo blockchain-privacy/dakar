@@ -4,6 +4,7 @@ import SearchView from '../components/SearchView';
 import EntryView from '../components/EntryView';
 import PageNotFound from '../components/PageNotFound';
 import * as Constants from '../constants';
+import HeuristicEditor from "@/components/HeuristicEditor";
 
 Vue.use(Router)
 
@@ -21,6 +22,12 @@ export default new Router({
             name: Constants.ROUTE_NAME_SEARCH_PAGE,
             component: SearchView,
             meta: {title: 'Search'},
+        },
+        {
+            path: '/heuristic/:id',
+            name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
+            component: HeuristicEditor,
+            meta: {title: 'Heuristic'},
         },
         {
             path: '*',
