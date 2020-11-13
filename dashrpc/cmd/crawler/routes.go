@@ -23,13 +23,14 @@ import (
 )
 
 const (
-	routePrefix      string = "/api/v1/"
-	routeTransaction string = "tx/"
-	routeBlock       string = "blk/"
-	routeAddress     string = "address/"
-	routeMeta        string = "meta/"
-	routePaths       string = "paths/"
-	routeHeuristics  string = "heuristics/"
+	routePrefix            string = "/api/v1/"
+	routeTransaction       string = "tx/"
+	routeBlock             string = "blk/"
+	routeAddress           string = "address/"
+	routeMeta              string = "meta/"
+	routePaths             string = "paths/"
+	routeHeuristics        string = "heuristics/"
+	routeHeuristicsSummary string = "heuristicssummary/"
 )
 
 const (
@@ -66,6 +67,9 @@ func getRouteOrigins() string {
 
 func getRouteHeuristics() string {
 	return getRoute(routeHeuristics)
+}
+func getRouteHeuristicsSummary() string {
+	return getRoute(routeHeuristicsSummary)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -295,12 +299,12 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-// API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+// API pattern: "/api/v1/heuristicssummary/<hash>"
+func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristics()):]
+		txHashString := r.URL.Path[len(getRouteHeuristicsSummary()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorPath, http.StatusNotFound)
@@ -395,6 +399,38 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 	}
 }
 
+// API pattern: "/api/v1/heuristics/<hash>"
+func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristics()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorPath, http.StatusNotFound)
+			return
+		}
+
+		heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if len(heuristics) == 0 {
+			http.Error(w, errorPath, http.StatusNotFound)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(heuristics)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 
 func isValid(input string) bool {
@@ -413,5 +449,6 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
+	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
 }

@@ -66,6 +66,10 @@ type FrontendHeuristicComplete struct {
 	Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
 }
 
+func (f FrontendHeuristicComplete) String() string {
+	return fmt.Sprintf("Uid:%s, timestamp:%s, heuristic count:%d", f.Uid, f.Timestamp, len(f.Heuristics))
+}
+
 type FrontendHeuristic struct {
 	Uid             string      `json:"uid,omitempty"`
 	Timestamp       string      `json:"ts,omitempty"`
@@ -73,6 +77,7 @@ type FrontendHeuristic struct {
 	Parameter       string      `json:"parameter,omitempty"`
 	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
 	ChildHeuristics []Heuristic `json:"~parent_heuristic,omitempty"`
+	ResultCount     int         `json:"num_results,omitempty"`
 	Results         []struct {
 		Uid         string `json:"uid,omitempty"`
 		Timestamp   string `json:"ts,omitempty"`

@@ -497,6 +497,54 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 	return
 }
 
+// GetBasicFrontendHeuristic returns all heuristics for a given transaction. Basic information only
+func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHeuristic, err error) {
+	query := `query Q($hash: string){
+					q(func: eq(txhash,$hash)){
+						~h_transaction{
+							uid
+							ts
+							type
+							parameter
+							parent_heuristic{
+								uid
+							}
+							~parent_heuristic{
+								uid
+							}
+							num_results: count(results)
+						}
+					}
+				}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	heuristics = r.Transaction[0].Heuristics
+
+	return
+}
+
 // GetFrontendHeuristic returns all heuristics for a given transaction
 func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string){
