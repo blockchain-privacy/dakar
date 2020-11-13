@@ -7,10 +7,12 @@
 import * as Constants from '../constants';
 import * as Utility from '../utilities';
 
-function newRouting(context, id) {
-  if (id === undefined) {
+function newRouting(context) {
+  const id = context.$route.params.id;
+  if (id === undefined || context.$route.name !== Constants.ROUTE_NAME_SEARCH_PAGE) {
     return;
   }
+
   context.handleQuery(id);
 }
 
@@ -152,13 +154,11 @@ export default {
     }
   },
   created: function () {
-    newRouting(this, this.$route.params.id);
+    newRouting(this);
   },
   watch: {
-    '$route'(to) {
-      if (to.name !== Constants.ROUTE_NAME_SEARCH_PAGE) return;
-
-      newRouting(this, to.params.id);
+    '$route'() {
+      newRouting(this);
     }
   }
 }
