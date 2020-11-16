@@ -509,7 +509,7 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 							parent_heuristic{
 								uid
 							}
-							~parent_heuristic{
+							children: ~parent_heuristic{
 								uid
 							}
 							num_results: count(results)
@@ -561,7 +561,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 							parent_heuristic{
 								uid
 							}
-							~parent_heuristic{
+							children: ~parent_heuristic{
 								uid
 							}
 							results@normalize{
