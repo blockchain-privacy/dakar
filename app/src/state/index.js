@@ -78,7 +78,7 @@ const actions = {
         console.log("Fetching meta data");
         return doUpdate(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
     },
-    updateHeuristicData(context,payload) {
+    updateHeuristicData(context, payload) {
         console.log("Fetching heuristic data");
         return doUpdate(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
     },
@@ -101,7 +101,7 @@ function doUpdate(context, route, mutation, parameter) {
             if (e.message === '500 Internal Server Error') {
                 errMsg = 'Server ist not reachable';
             } else {
-                errMsg = `Error getting meta data: ${e}`
+                errMsg = `Error getting data: ${e}`
             }
 
             context.dispatch('setErrorMsg', errMsg);
@@ -121,6 +121,7 @@ const getters = {
     getAddressData: state => state.address,
     getBlockData: state => state.block,
     getMetaData: state => state.meta,
+    getHeuristicData: state => state.heuristic,
 }
 
 export default new Vuex.Store({
