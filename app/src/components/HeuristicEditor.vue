@@ -3,7 +3,7 @@
     <v-btn @click="refreshData">Refresh</v-btn>
     <v-row align="center" justify="center">
       <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">
-        <svg id="test_canvas"></svg>
+        <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
       </v-col>
     </v-row>
   </v-container>
@@ -19,32 +19,58 @@ const svgMargin = {top: 20, right: 200, bottom: 20, left: 200},
     svgWidth = 1000 - svgMargin.left - svgMargin.right,
     svgHeight = 750 - svgMargin.top - svgMargin.bottom;
 
+// graph dimensions
 const graphWidth = 600, graphHeight = 800;
 
+// phantom node id
 const rootIdentifier = 'root';
 
+// click switch
+let isClicked = false;
+
+// root svg elements
+let rootSvg, rootGroup;
+
+let treeMap;
+
+function dragstarted() {
+  d3.select(this).raise();
+}
+
+function dragged(event) {
+  const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
+  d3.select(this)
+      .attr("transform",
+          "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
+}
+
 function drawRect(rootElement) {
-  const textAreaHeight = 50, textPadding = 10, rectHeight = textAreaHeight + 2 * textPadding,
+  const textAreaHeight = 50, textPadding = 0, rectHeight = textAreaHeight + 2 * textPadding,
       borderRadius = 5, strokeWidth = 2, textHeight = 10;
+
   rootElement
       .append("rect")
       .attr("x", -rectWidth / 2)
       .attr("y", -rectHeight / 2)
-      .attr("width", rectWidth)
+      .attr("class", "rect")
+      .attr("width", (d) => {
+        if (d.data.data.uid === rootIdentifier)
+          return 0;
+        return rectWidth;
+      })
       .attr("height", rectHeight)
       .attr("rx", borderRadius)
       .attr("ry", borderRadius)
-      .attr("fill-opacity", 0)
       .attr("stroke-width", strokeWidth)
       .attr("stroke-opacity", d => {
         // only draw rect if it is not the root node
         if (d.data.data.uid !== rootIdentifier)
           return 1;
-        return 0;
+        return 1;
       });
 
 
-  rootElement.append("svg:text")
+  rootElement.append("text")
       .attr("x", function () {
         return -rectWidth / 2 + strokeWidth + 2;
       })
@@ -64,7 +90,7 @@ function drawRect(rootElement) {
         return outText;
       });
 
-  rootElement.append("svg:text")
+  rootElement.append("text")
       .attr("x", function () {
         return -rectWidth / 2 + strokeWidth + 2;
       })
@@ -77,24 +103,32 @@ function drawRect(rootElement) {
 
 function drawNodes(group, nodeData) {
   // adds each node as a group
-  const n = group.selectAll(".node")
+  return group.selectAll(".node")
       .data(nodeData.descendants(), d => d.data.data.uid)
       .join(enter => {
-        const g = enter.append("g");
-        drawRect(g);
-        return g;
-      })
+            const g = enter.append("g")
+                .attr("transform", function (d) {
+                  return "translate(" + d.y + "," + d.x + ")";
+                })
+                // set click handler
+                .on('click', nodeClicked)
+                // set drag handler
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged));
+            // draw outline and text
+            drawRect(g);
+            return g;
+          }
+      )
       .attr("class", function (d) {
+        if (d.data.data.uid === rootIdentifier)
+          return null;
+
         return "node" +
             (d.children ? " node--internal" : " node--leaf");
       })
-      .attr("transform", function (d) {
-        return "translate(" + d.y + "," + d.x + ")";
-      });
-
-  // console.log(perElement);
-
-  return n;
+      ;
 }
 
 function drawLinks(group, nodeData) {
@@ -106,7 +140,7 @@ function drawLinks(group, nodeData) {
       .attr("stroke-opacity", d => {
         // only draw link if parent is not the root node
         if (d.parent.data.data.uid !== rootIdentifier)
-          return 0.5;
+          return 1;
         return 0;
       })
       .attr("d", function (d) {
@@ -141,12 +175,25 @@ function processGraphData(graphData, treeHeight, treeWidth) {
   let nodes = d3.hierarchy(treeData, function (d) {
     return d.children;
   });
+  let levelWidth = [1];
+  const childCount = function (level, n) {
+
+    if (n.children && n.children.length > 0) {
+      if (levelWidth.length <= level + 1) levelWidth.push(0);
+
+      levelWidth[level + 1] += n.children.length;
+      n.children.forEach(function (d) {
+        childCount(level + 1, d);
+      });
+    }
+  };
+
+  childCount(0, treeData);
 
   // declares a tree layout and assigns the size
-  const treemap = d3.tree().size([treeHeight, treeWidth]);
-  console.log(document.body.clientHeight, document.body.clientWidth);
+  treeMap = d3.tree().size([d3.max(levelWidth) * 100, treeWidth]);
   // maps the node data to the tree layout
-  nodes = treemap(nodes);
+  nodes = treeMap(nodes);
   return nodes;
 }
 
@@ -154,22 +201,47 @@ function createInitialGraph(height, width, margin) {
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
-  const svg = d3.select("#test_canvas")
-          .attr("width", width + margin.left + margin.right)
-          .attr("height", height + margin.top + margin.bottom)
-          .attr("class", "graph-canvas"),
-      g = svg
-          .append("g")
-          .attr("class", "root-group")
-          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
+  rootSvg = d3.select("#test_canvas")
+      // .attr("width", width + margin.left + margin.right)
+      // .attr("height", height + margin.top + margin.bottom)
+      .attr("class", "graph-canvas")
+      .on("click", resetClick);
+  rootGroup = rootSvg
+      .append("g")
+      .attr("class", "root-group")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+  console.log(height, width, margin);
   // add zoom and drag
-  svg.call(d3.zoom()
+  rootSvg.call(d3.zoom()
       .on("zoom", (event) => {
-        g.attr('transform', event.transform);
+        rootGroup.attr('transform', event.transform);
       })
-      .scaleExtent([1, 3])
+      .scaleExtent([0.5, 8])
   );
+}
+
+function resetClick() {
+  // only do work if needed
+  if (!isClicked)
+    return;
+
+  // reset click representation
+  d3.selectAll(".rect").classed("clicked", false);
+  // set not clicked
+  isClicked = false;
+}
+
+function nodeClicked(e) {
+  const thisElement = d3.select(this);
+  if (thisElement.data()[0].data.data.uid === rootIdentifier)
+    return;
+
+  resetClick();
+  e.stopPropagation();
+  // set click representation
+  thisElement.select(".rect").classed("clicked", true);
+  // set clicked
+  isClicked = true;
 }
 
 export default {
@@ -186,36 +258,20 @@ export default {
   },
   methods: {
     createGraph() {
-      const g = d3.select(".root-group");
-
       // maps the node data to the tree layout
       const nodeData = processGraphData(this.data, graphHeight, graphWidth);
-
-      drawLinks(g, nodeData);
-
-      drawNodes(g, nodeData);
-
-      // drawRectangle(nodes);
+      drawLinks(rootGroup, nodeData);
+      drawNodes(rootGroup, nodeData);
     },
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.$route.params.id);
       this.createGraph();
     }
-  },
-  created() {
-
-
-  },
+  }
 }
 </script>
 
 <style>
-.node circle {
-  fill: #fff;
-  stroke: steelblue;
-  stroke-width: 3px;
-}
-
 .node text {
   font: 12px sans-serif;
 }
@@ -226,16 +282,28 @@ export default {
 
 .link {
   fill: none;
-  stroke: black;
+  stroke: darkslategrey;
   stroke-width: 2px;
 }
 
 rect {
   stroke: #008ee5;
+  fill-opacity: 0;
+}
+
+.clicked {
+  stroke: #FDD835;
+  fill: antiquewhite;
+  fill-opacity: 1;
+  stroke-dasharray: 10;
 }
 
 .graph-canvas {
   background-color: whitesmoke;
+}
+
+#test_canvas {
+  width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
 }
 
 </style>
