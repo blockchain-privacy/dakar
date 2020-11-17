@@ -1,6 +1,7 @@
 <template>
   <v-container class="fill-height" fluid>
     <v-btn @click="refreshData">Refresh</v-btn>
+    <v-btn @click="changeData">Change</v-btn>
     <v-row align="center" justify="center">
       <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">
         <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
@@ -33,15 +34,50 @@ let rootSvg, rootGroup;
 
 let treeMap;
 
-function dragstarted() {
-  d3.select(this).raise();
+// dragging
+let dragActive = false, dragNode, setPointer = false;
+
+// mouseOver
+let activeMouseOverNode = null, lastMouseOverNode;
+
+function dragStart() {
+  dragNode = d3.select(this);
+  dragActive = true;
 }
 
-function dragged(event) {
+function dragEvent(event) {
+  // originally done in dragStart, but that caused the click event to not propagate
+  if (!setPointer) {
+    setPointer = true;
+    dragNode.attr("pointer-events", "none");
+  }
+
   const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
+
   d3.select(this)
+      .raise()  // causes bug in chrome: click is only recognized on second time. move here from dragStart
       .attr("transform",
           "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
+}
+
+function dragEnd() {
+  dragActive = false;
+  dragNode = dragNode.attr("pointer-events", null);
+
+  setPointer = false;
+  rootGroup.selectAll(".selected").classed("selected", false);
+  lastMouseOverNode = null;
+
+  if (activeMouseOverNode !== null) {
+    moveNode(activeMouseOverNode, dragNode);
+  }
+  dragNode = null;
+}
+
+function moveNode(parent, child) {
+  let parentData = parent.data()[0].data.data, childData = child.data()[0].data.data;
+  console.log("parent:", parentData.uid, parentData.type);
+  console.log("child:", childData.uid, childData.type);
 }
 
 function drawRect(rootElement) {
@@ -100,6 +136,23 @@ function drawRect(rootElement) {
       });
 }
 
+function mouseOverNode(_, d) {
+  if (dragActive) {
+    if (d !== lastMouseOverNode) {
+      lastMouseOverNode = d;
+      activeMouseOverNode = d3.select(this);
+      activeMouseOverNode.select(".rect").classed("selected", true);
+    }
+  }
+}
+
+function mouseOutNode() {
+  if (dragActive) {
+    d3.select(this).select(".rect").classed("selected", false);
+    lastMouseOverNode = null;
+    activeMouseOverNode = null;
+  }
+}
 
 function drawNodes(group, nodeData) {
   // adds each node as a group
@@ -107,20 +160,22 @@ function drawNodes(group, nodeData) {
       .data(nodeData.descendants(), d => d.data.data.uid)
       .join(enter => {
             const g = enter.append("g")
-                .attr("transform", function (d) {
-                  return "translate(" + d.y + "," + d.x + ")";
-                })
+                .on('mouseover', mouseOverNode)
+                .on('mouseout', mouseOutNode)
                 // set click handler
                 .on('click', nodeClicked)
                 // set drag handler
                 .call(d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged));
+                    .on("start", dragStart)
+                    .on("drag", dragEvent)
+                    .on("end", dragEnd));
             // draw outline and text
             drawRect(g);
             return g;
           }
-      )
+      ).attr("transform", function (d) {
+        return "translate(" + d.y + "," + d.x + ")";
+      })
       .attr("class", function (d) {
         if (d.data.data.uid === rootIdentifier)
           return null;
@@ -152,8 +207,6 @@ function drawLinks(group, nodeData) {
 }
 
 function processGraphData(graphData, treeHeight, treeWidth) {
-  let dataWithRoot = graphData;
-
   const stratifyData = d3.stratify()
       .id(function (d) {
         return d.uid;
@@ -167,9 +220,7 @@ function processGraphData(graphData, treeHeight, treeWidth) {
         return d.parent_heuristic[0].uid;
       });
 
-  dataWithRoot.push({'uid': 'root'});
-
-  const treeData = stratifyData(dataWithRoot);
+  const treeData = stratifyData(graphData);
 
   //  assigns the data to a hierarchy using parent-child relationships
   let nodes = d3.hierarchy(treeData, function (d) {
@@ -210,7 +261,7 @@ function createInitialGraph(height, width, margin) {
       .append("g")
       .attr("class", "root-group")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-  console.log(height, width, margin);
+
   // add zoom and drag
   rootSvg.call(d3.zoom()
       .on("zoom", (event) => {
@@ -244,6 +295,10 @@ function nodeClicked(e) {
   isClicked = true;
 }
 
+function addRootElement(data) {
+  data.push({'uid': 'root'});
+}
+
 export default {
   name: "HeuristicEditor",
   computed: {
@@ -257,7 +312,7 @@ export default {
     this.refreshData();
   },
   methods: {
-    createGraph() {
+    updateGraph() {
       // maps the node data to the tree layout
       const nodeData = processGraphData(this.data, graphHeight, graphWidth);
       drawLinks(rootGroup, nodeData);
@@ -265,7 +320,11 @@ export default {
     },
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.$route.params.id);
-      this.createGraph();
+      addRootElement(this.data);
+      this.updateGraph();
+    },
+    changeData: function () {
+      this.updateGraph();
     }
   }
 }
@@ -274,10 +333,6 @@ export default {
 <style>
 .node text {
   font: 12px sans-serif;
-}
-
-.node--internal text {
-  text-shadow: 0 1px 0 #fff, 0 -1px 0 #fff, 1px 0 0 #fff, -1px 0 0 #fff;
 }
 
 .link {
@@ -300,6 +355,11 @@ rect {
 
 .graph-canvas {
   background-color: whitesmoke;
+}
+
+.selected {
+  fill: #9CCC65;
+  fill-opacity: 1;
 }
 
 #test_canvas {
