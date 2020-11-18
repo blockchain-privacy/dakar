@@ -1,5 +1,27 @@
 <template>
   <v-container class="fill-height" fluid>
+    <v-menu v-model="displayContextMenu"
+            origin="center center"
+            transition="scale-transition"
+            :position-x="x"
+            :position-y="y"
+            absolute
+            offset-y
+            :close-on-click="true"
+            style="max-width: 600px">
+      <v-list>
+        <v-list-item>
+          <v-list-item-title @click="this.deleteSubTree">{{ "Delete sub tree" }}</v-list-item-title>
+
+        </v-list-item>
+        <!--        <v-list-item-->
+        <!--            v-for="(item, index) in items"-->
+        <!--            :key="index"-->
+        <!--        >-->
+        <!--          <v-list-item-title @click="item.action">{{ item.title }}</v-list-item-title>-->
+        <!--        </v-list-item>-->
+      </v-list>
+    </v-menu>
     <v-btn @click="refreshData">Refresh</v-btn>
     <v-btn @click="changeData">Change</v-btn>
     <v-row align="center" justify="center">
@@ -38,6 +60,10 @@ let dragActive = false, dragNode, dragLayoutData = null, setPointer = false;
 // mouseOver
 let activeMouseOverNode = null, lastMouseOverNode;
 
+// context menu
+let activeContextMenuNode = null;
+
+
 function dragStart(_, d) {
   dragNode = d3.select(this);
   dragActive = true;
@@ -51,15 +77,15 @@ function dragEvent(event) {
     dragNode.attr("pointer-events", "none");
 
     // filter out the dragged node, so it does not get removed
-    const nodesToRemove = dragLayoutData.descendants()
-        .filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
+    const linksToRemove = dragLayoutData.descendants(),
+        nodesToRemove = linksToRemove.filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
 
     // remove the nodes
     rootSvg.selectAll(".node")
         .data(nodesToRemove, d => d.data.data.uid)
         .remove();
     rootSvg.selectAll(".link")
-        .data(dragLayoutData.descendants(), d => d.data.data.uid)
+        .data(linksToRemove, d => d.data.data.uid)
         .remove();
   }
 
@@ -71,7 +97,7 @@ function dragEvent(event) {
           "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
 }
 
-function dragEnd(context) {
+function dragEnd(event, context) {
   dragNode = dragNode.attr("pointer-events", null);
   rootGroup.selectAll(".selected").classed("selected", false);
 
@@ -193,6 +219,11 @@ function mouseOutNode() {
   }
 }
 
+function contextMenuHandler(context, event, d) {
+  context.showContextMenu(event);
+  activeContextMenuNode = d;
+}
+
 function drawNodes(group, nodeData, context) {
   // adds each node as a group
   return group.selectAll(".node")
@@ -203,11 +234,13 @@ function drawNodes(group, nodeData, context) {
                 .on('mouseout', mouseOutNode)
                 // set click handler
                 .on('click', nodeClicked)
+                // set context menu handler
+                .on("contextmenu", (e, d) => contextMenuHandler(context, e, d))
                 // set drag handler
                 .call(d3.drag()
                     .on("start", dragStart)
                     .on("drag", dragEvent)
-                    .on("end", () => dragEnd(context)));
+                    .on("end", (e) => dragEnd(e, context)));
             // draw outline and text
             drawRect(g);
             return g;
@@ -290,7 +323,7 @@ function processGraphData(graphData) {
   return nodes;
 }
 
-function createInitialGraph(height, width, margin) {
+function createInitialGraph(context, height, width, margin) {
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
@@ -307,6 +340,7 @@ function createInitialGraph(height, width, margin) {
   // add zoom and drag
   rootSvg.call(d3.zoom()
       .on("zoom", (event) => {
+        context.displayContextMenu = false;
         rootGroup.attr('transform', event.transform);
       })
       .scaleExtent([0.5, 8])
@@ -348,6 +382,14 @@ function drawGraph(g, data, context) {
 
 export default {
   name: "HeuristicEditor",
+  data: () => ({
+    displayContextMenu: false,
+    x: 0,
+    y: 0,
+    items: [
+      {title: 'Dummy', action: null},
+    ],
+  }),
   computed: {
     data() {
       return this.$store.getters.getHeuristicData;
@@ -355,10 +397,47 @@ export default {
   },
   mounted() {
     document.title = `Heuristic - ${this.$route.params.id}`;
-    createInitialGraph(svgHeight, svgWidth, svgMargin);
+    createInitialGraph(this, svgHeight, svgWidth, svgMargin);
     this.refreshData();
   },
   methods: {
+    // called by context menu handler
+    deleteSubTree() {
+      const nodesToRemove = activeContextMenuNode.descendants();
+
+      let toBeRemoved = [];
+
+      nodesToRemove.forEach(e => {
+        toBeRemoved.push(e.data.data.uid);
+      });
+      const updatedData = this.data.filter(e =>
+          !toBeRemoved.includes(e.uid)
+      );
+      console.log(this.data);
+
+      this.$store.dispatch('setHeuristicData', updatedData);
+
+
+      console.log(toBeRemoved);
+      // remove the nodes
+      rootSvg.selectAll(".node")
+          .data(nodesToRemove, d => d.data.data.uid)
+          .remove();
+      rootSvg.selectAll(".link")
+          .data(nodesToRemove, d => d.data.data.uid)
+          .remove();
+    },
+    showContextMenu(e) {
+      this.displayContextMenu = false;
+
+      e.preventDefault();
+      this.x = e.clientX;
+      this.y = e.clientY;
+
+      this.$nextTick(() => {
+        this.displayContextMenu = true;
+      })
+    },
     updateGraph() {
       // maps the node data to the tree layout
       const nodeData = processGraphData(this.data);
