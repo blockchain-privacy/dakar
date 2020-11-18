@@ -58,6 +58,9 @@ function dragEvent(event) {
     rootSvg.selectAll(".node")
         .data(nodesToRemove, d => d.data.data.uid)
         .remove();
+    rootSvg.selectAll(".link")
+        .data(dragLayoutData.descendants(), d => d.data.data.uid)
+        .remove();
   }
 
   const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
@@ -107,7 +110,7 @@ function moveNode(context, parent, child) {
       dataElement.parent_heuristic = [];
       dataElement.parent_heuristic.push({'uid': parentData.uid});
     } else if (dataElement.uid === formerParentUid) {
-      dataElement.children = dataElement.children.filter(c => c !== childData.uid)
+      dataElement.children = dataElement.children.filter(c => c.uid !== childData.uid);
     }
   }
 }
