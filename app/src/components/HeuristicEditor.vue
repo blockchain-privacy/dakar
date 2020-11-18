@@ -20,9 +20,6 @@ const svgMargin = {top: 20, right: 200, bottom: 20, left: 200},
     svgWidth = 1000 - svgMargin.left - svgMargin.right,
     svgHeight = 750 - svgMargin.top - svgMargin.bottom;
 
-// graph dimensions
-const graphWidth = 600, graphHeight = 800;
-
 // phantom node id
 const rootIdentifier = 'root';
 
@@ -32,17 +29,19 @@ let isClicked = false;
 // root svg elements
 let rootSvg, rootGroup;
 
-let treeMap;
+// tree layout function
+let treeLayout;
 
 // dragging
-let dragActive = false, dragNode, setPointer = false;
+let dragActive = false, dragNode, dragLayoutData, setPointer = false;
 
 // mouseOver
 let activeMouseOverNode = null, lastMouseOverNode;
 
-function dragStart() {
+function dragStart(_, d) {
   dragNode = d3.select(this);
   dragActive = true;
+  dragLayoutData = d;
 }
 
 function dragEvent(event) {
@@ -50,6 +49,15 @@ function dragEvent(event) {
   if (!setPointer) {
     setPointer = true;
     dragNode.attr("pointer-events", "none");
+
+    // filter out the dragged node, so it does not get removed
+    const nodesToRemove = dragLayoutData.descendants()
+        .filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
+
+    // remove the nodes
+    rootSvg.selectAll(".node")
+        .data(nodesToRemove, d => d.data.data.uid)
+        .remove();
   }
 
   const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
@@ -60,7 +68,7 @@ function dragEvent(event) {
           "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
 }
 
-function dragEnd() {
+function dragEnd(context) {
   dragActive = false;
   dragNode = dragNode.attr("pointer-events", null);
 
@@ -69,15 +77,39 @@ function dragEnd() {
   lastMouseOverNode = null;
 
   if (activeMouseOverNode !== null) {
-    moveNode(activeMouseOverNode, dragNode);
+    moveNode(context, activeMouseOverNode, dragNode);
   }
   dragNode = null;
+  context.updateGraph();
 }
 
-function moveNode(parent, child) {
-  let parentData = parent.data()[0].data.data, childData = child.data()[0].data.data;
-  console.log("parent:", parentData.uid, parentData.type);
-  console.log("child:", childData.uid, childData.type);
+function moveNode(context, parent, child) {
+  if (context.data === null)
+    return;
+  let parentData = parent.data()[0].data.data, childData = child.data()[0].data.data,
+      formerParentUid = null;
+
+  if (childData.parent_heuristic !== undefined) {
+    formerParentUid = childData.parent_heuristic[0].uid;
+  }
+
+  for (let i = 0; i < context.data.length; i++) {
+    let dataElement = context.data[i];
+    if (dataElement.uid === parentData.uid) {
+      if (dataElement.children === undefined) {
+        dataElement.children = [];
+      }
+      dataElement.children.push({'uid': childData.uid});
+    } else if (dataElement.uid === childData.uid) {
+      if (dataElement.parent_heuristic === undefined) {
+        dataElement.parent_heuristic = [];
+      }
+      dataElement.parent_heuristic = [];
+      dataElement.parent_heuristic.push({'uid': parentData.uid});
+    } else if (dataElement.uid === formerParentUid) {
+      dataElement.children = dataElement.children.filter(c => c !== childData.uid)
+    }
+  }
 }
 
 function drawRect(rootElement) {
@@ -154,7 +186,7 @@ function mouseOutNode() {
   }
 }
 
-function drawNodes(group, nodeData) {
+function drawNodes(group, nodeData, context) {
   // adds each node as a group
   return group.selectAll(".node")
       .data(nodeData.descendants(), d => d.data.data.uid)
@@ -168,7 +200,7 @@ function drawNodes(group, nodeData) {
                 .call(d3.drag()
                     .on("start", dragStart)
                     .on("drag", dragEvent)
-                    .on("end", dragEnd));
+                    .on("end", () => dragEnd(context)));
             // draw outline and text
             drawRect(g);
             return g;
@@ -182,8 +214,7 @@ function drawNodes(group, nodeData) {
 
         return "node" +
             (d.children ? " node--internal" : " node--leaf");
-      })
-      ;
+      });
 }
 
 function drawLinks(group, nodeData) {
@@ -206,7 +237,7 @@ function drawLinks(group, nodeData) {
       });
 }
 
-function processGraphData(graphData, treeHeight, treeWidth) {
+function processGraphData(graphData) {
   const stratifyData = d3.stratify()
       .id(function (d) {
         return d.uid;
@@ -226,11 +257,15 @@ function processGraphData(graphData, treeHeight, treeWidth) {
   let nodes = d3.hierarchy(treeData, function (d) {
     return d.children;
   });
-  let levelWidth = [1];
+  let levelWidth = [1], levelDepth = 0;
   const childCount = function (level, n) {
-
+    if (levelDepth < level) {
+      levelDepth = level;
+    }
     if (n.children && n.children.length > 0) {
-      if (levelWidth.length <= level + 1) levelWidth.push(0);
+      if (levelWidth.length <= level + 1)
+        levelWidth.push(0);
+
 
       levelWidth[level + 1] += n.children.length;
       n.children.forEach(function (d) {
@@ -242,9 +277,9 @@ function processGraphData(graphData, treeHeight, treeWidth) {
   childCount(0, treeData);
 
   // declares a tree layout and assigns the size
-  treeMap = d3.tree().size([d3.max(levelWidth) * 100, treeWidth]);
+  treeLayout = d3.tree().size([d3.max(levelWidth) * 150, levelDepth * 200]);
   // maps the node data to the tree layout
-  nodes = treeMap(nodes);
+  nodes = treeLayout(nodes);
   return nodes;
 }
 
@@ -299,6 +334,11 @@ function addRootElement(data) {
   data.push({'uid': 'root'});
 }
 
+function drawGraph(g, data, context) {
+  drawLinks(g, data);
+  drawNodes(g, data, context);
+}
+
 export default {
   name: "HeuristicEditor",
   computed: {
@@ -314,9 +354,10 @@ export default {
   methods: {
     updateGraph() {
       // maps the node data to the tree layout
-      const nodeData = processGraphData(this.data, graphHeight, graphWidth);
-      drawLinks(rootGroup, nodeData);
-      drawNodes(rootGroup, nodeData);
+      const nodeData = processGraphData(this.data);
+      drawGraph(rootGroup, nodeData, this);
+      // drawLinks(rootGroup, nodeData);
+      // drawNodes(rootGroup, nodeData, this);
     },
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.$route.params.id);
