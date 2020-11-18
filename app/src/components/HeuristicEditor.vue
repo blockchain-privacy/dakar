@@ -33,7 +33,7 @@ let rootSvg, rootGroup;
 let treeLayout;
 
 // dragging
-let dragActive = false, dragNode, dragLayoutData, setPointer = false;
+let dragActive = false, dragNode, dragLayoutData = null, setPointer = false;
 
 // mouseOver
 let activeMouseOverNode = null, lastMouseOverNode;
@@ -72,16 +72,20 @@ function dragEvent(event) {
 }
 
 function dragEnd(context) {
-  dragActive = false;
   dragNode = dragNode.attr("pointer-events", null);
-
-  setPointer = false;
   rootGroup.selectAll(".selected").classed("selected", false);
-  lastMouseOverNode = null;
 
-  if (activeMouseOverNode !== null) {
+  // only move node if drag was active before --> not clicked and activeMouseOverNode is set
+  if (activeMouseOverNode !== null && setPointer) {
     moveNode(context, activeMouseOverNode, dragNode);
   }
+
+  lastMouseOverNode = null;
+  dragLayoutData = null;
+  setPointer = false;
+  dragActive = false;
+
+
   dragNode = null;
   context.updateGraph();
 }
