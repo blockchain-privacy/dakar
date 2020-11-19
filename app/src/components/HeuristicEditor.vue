@@ -47,8 +47,8 @@
           v-for="(item, index) in heuristicTypes"
           :key="index"
       >
-        <v-list-item link>
-          <v-list-item-icon>
+        <v-list-item @drag="item.fun" draggable="true" >
+          <v-list-item-icon >
             <v-icon>mdi-shape-square-rounded-plus</v-icon>
           </v-list-item-icon>
           <v-list-item-title>{{ item.title }}</v-list-item-title>
@@ -73,11 +73,6 @@
 import * as d3 from "d3";
 
 const rectWidth = 150;
-
-// set the dimensions and margins of the diagram
-const svgMargin = {top: 20, right: 200, bottom: 20, left: 200},
-    svgWidth = 1000 - svgMargin.left - svgMargin.right,
-    svgHeight = 750 - svgMargin.top - svgMargin.bottom;
 
 // phantom node id
 const rootIdentifier = 'root';
@@ -256,9 +251,9 @@ function mouseOverNode(_, d) {
 function mouseOutNode() {
   if (dragActive) {
     d3.select(this).select(".rect").classed("selected", false);
-    lastMouseOverNode = null;
-    activeMouseOverNode = null;
   }
+  lastMouseOverNode = null;
+  activeMouseOverNode = null;
 }
 
 function contextMenuHandler(context, event, d) {
@@ -365,7 +360,7 @@ function processGraphData(graphData) {
   return nodes;
 }
 
-function createInitialGraph(context, height, width, margin) {
+function createInitialGraph(context) {
   // append the svg object to the body of the page
   // appends a 'group' element to 'svg'
   // moves the 'group' element to the top left margin
@@ -376,8 +371,10 @@ function createInitialGraph(context, height, width, margin) {
       .on("click", resetClick);
   rootGroup = rootSvg
       .append("g")
-      .attr("class", "root-group")
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      .attr("class", "root-group");
+
+  // .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+
 
   // add zoom and drag
   rootSvg.call(d3.zoom()
@@ -422,6 +419,10 @@ function drawGraph(g, data, context) {
   drawNodes(g, data, context);
 }
 
+function navDrag(){
+  console.log("dragged");
+}
+
 export default {
   name: "HeuristicEditor",
   data: () => ({
@@ -429,18 +430,22 @@ export default {
       {
         id: "one_source",
         title: "one source",
+        fun: navDrag,
       },
       {
         id: "global_amount",
         title: "global amount",
+        fun: navDrag,
       },
       {
         id: "perfect_match",
         title: "perfect match",
+        fun: navDrag,
       },
       {
         id: "denomination_type",
         title: "denomination type",
+        fun: navDrag,
       },
     ],
     contextMenu: {
@@ -460,7 +465,7 @@ export default {
   mounted() {
     document.title = `Heuristic - ${this.$route.params.id}`;
     this.heuristicTypes.forEach(e => heuristicTypeMap.set(e.id, e.title));
-    createInitialGraph(this, svgHeight, svgWidth, svgMargin);
+    createInitialGraph(this);
     this.refreshData();
   },
   methods: {
