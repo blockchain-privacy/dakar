@@ -1,18 +1,20 @@
 <template>
   <v-container class="fill-height" fluid>
-    <v-menu v-model="displayContextMenu"
+    <v-menu v-model="contextMenu.display"
             origin="center center"
             transition="scale-transition"
-            :position-x="x"
-            :position-y="y"
+            :position-x="contextMenu.x"
+            :position-y="contextMenu.y"
             absolute
             offset-y
             :close-on-click="true"
             style="max-width: 600px">
       <v-list>
-        <v-list-item>
-          <v-list-item-title @click="this.deleteSubTree">{{ "Delete sub tree" }}</v-list-item-title>
-
+        <v-list-item @click="this.deleteSubTree" link>
+          <v-list-item-icon>
+            <v-icon>mdi-delete</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>{{ "Delete sub tree" }}</v-list-item-title>
         </v-list-item>
         <!--        <v-list-item-->
         <!--            v-for="(item, index) in items"-->
@@ -22,13 +24,48 @@
         <!--        </v-list-item>-->
       </v-list>
     </v-menu>
-    <v-btn @click="refreshData">Refresh</v-btn>
-    <v-btn @click="changeData">Change</v-btn>
-    <v-row align="center" justify="center">
-      <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">
-        <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
-      </v-col>
-    </v-row>
+
+    <v-navigation-drawer
+        absolute
+        permanent
+        expand-on-hover
+    >
+      <v-list-item>
+        <v-list-item-icon>
+          <v-icon>mdi-shape-outline</v-icon>
+        </v-list-item-icon>
+        <v-list-item-title class="title">
+          Heuristic Types
+        </v-list-item-title>
+      </v-list-item>
+
+      <v-divider></v-divider>
+
+      <v-list
+          nav
+          dense
+          v-for="(item, index) in heuristicTypes"
+          :key="index"
+      >
+        <v-list-item link>
+          <v-list-item-icon>
+            <v-icon>mdi-shape-square-rounded-plus</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>{{ item.title }}</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
+
+
+    <!--    <v-btn @click="refreshData">Refresh</v-btn>-->
+    <!--    <v-btn @click="changeData">Change</v-btn>-->
+    <!--    <v-row align="center" justify="center">-->
+    <!--      <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">-->
+    <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
+    <!--      </v-col>-->
+    <!--    </v-row>-->
+
+
   </v-container>
 </template>
 
@@ -62,6 +99,9 @@ let activeMouseOverNode = null, lastMouseOverNode;
 
 // context menu
 let activeContextMenuNode = null;
+
+// heuristic type map
+let heuristicTypeMap = new Map();
 
 
 function dragStart(_, d) {
@@ -185,7 +225,9 @@ function drawRect(rootElement) {
         if (d.data.data.uid === rootIdentifier) {
           outText = null;
         } else {
-          outText = `Type: ${d.data.data.type}`;
+          const title = heuristicTypeMap.get(d.data.data.type);
+          if (title !== undefined)
+            outText = `Type: ${title}`;
         }
 
         return outText;
@@ -383,12 +425,32 @@ function drawGraph(g, data, context) {
 export default {
   name: "HeuristicEditor",
   data: () => ({
-    displayContextMenu: false,
-    x: 0,
-    y: 0,
-    items: [
-      {title: 'Dummy', action: null},
+    heuristicTypes: [
+      {
+        id: "one_source",
+        title: "one source",
+      },
+      {
+        id: "global_amount",
+        title: "global amount",
+      },
+      {
+        id: "perfect_match",
+        title: "perfect match",
+      },
+      {
+        id: "denomination_type",
+        title: "denomination type",
+      },
     ],
+    contextMenu: {
+      display: false,
+      x: 0,
+      y: 0,
+      items: [
+        {title: 'Dummy', action: null},
+      ],
+    },
   }),
   computed: {
     data() {
@@ -397,6 +459,7 @@ export default {
   },
   mounted() {
     document.title = `Heuristic - ${this.$route.params.id}`;
+    this.heuristicTypes.forEach(e => heuristicTypeMap.set(e.id, e.title));
     createInitialGraph(this, svgHeight, svgWidth, svgMargin);
     this.refreshData();
   },
@@ -413,12 +476,9 @@ export default {
       const updatedData = this.data.filter(e =>
           !toBeRemoved.includes(e.uid)
       );
-      console.log(this.data);
 
       this.$store.dispatch('setHeuristicData', updatedData);
 
-
-      console.log(toBeRemoved);
       // remove the nodes
       rootSvg.selectAll(".node")
           .data(nodesToRemove, d => d.data.data.uid)
@@ -428,14 +488,14 @@ export default {
           .remove();
     },
     showContextMenu(e) {
-      this.displayContextMenu = false;
+      this.contextMenu.display = false;
 
       e.preventDefault();
-      this.x = e.clientX;
-      this.y = e.clientY;
+      this.contextMenu.x = e.clientX;
+      this.contextMenu.y = e.clientY;
 
       this.$nextTick(() => {
-        this.displayContextMenu = true;
+        this.contextMenu.display = true;
       })
     },
     updateGraph() {
@@ -491,6 +551,7 @@ rect {
 
 #test_canvas {
   width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
+  /*height: 100%;*/
 }
 
 </style>
