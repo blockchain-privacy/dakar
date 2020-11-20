@@ -14,7 +14,7 @@
           <v-list-item-icon>
             <v-icon>mdi-delete</v-icon>
           </v-list-item-icon>
-          <v-list-item-title>{{ "Delete sub tree" }}</v-list-item-title>
+          <v-list-item-title>Delete sub tree</v-list-item-title>
         </v-list-item>
         <!--        <v-list-item-->
         <!--            v-for="(item, index) in items"-->
@@ -24,43 +24,87 @@
         <!--        </v-list-item>-->
       </v-list>
     </v-menu>
-
-    <v-navigation-drawer
+    <v-toolbar
+        style="width: 100%; left:0;"
         absolute
-        permanent
-        expand-on-hover
+        dense
     >
-      <v-list-item>
-        <v-list-item-icon>
-          <v-icon>mdi-shape-outline</v-icon>
-        </v-list-item-icon>
+      <v-toolbar-items>
+        <v-icon>mdi-transfer</v-icon>
         <v-list-item-title class="title">
-          Heuristic Types
+          Transaction {{ this.shortTransactionHash }}
         </v-list-item-title>
-      </v-list-item>
-
-      <v-divider></v-divider>
-
-      <v-list
-          nav
-          dense
-          v-for="(item, index) in heuristicTypes"
-          :key="index"
-      >
-        <v-list-item @drag="item.fun" draggable="true" >
-          <v-list-item-icon >
+        <v-btn icon @click="goToTransactionPage">
+          <v-icon>mdi-open-in-new</v-icon>
+        </v-btn>
+      </v-toolbar-items>
+      <v-spacer></v-spacer>
+      <v-bottom-sheet>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+              outlined
+              v-bind="attrs"
+              v-on="on"
+          >
             <v-icon>mdi-shape-square-rounded-plus</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>{{ item.title }}</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-navigation-drawer>
+            Add Heuristic
+          </v-btn>
+        </template>
+        <v-list>
+          <v-subheader>Add heuristic</v-subheader>
+          <div
+
+              v-for="(item, index) in heuristicTypes"
+              :key="index"
+          >
+            <v-list-item @drag="item.fun" draggable="true">
+              <v-list-item-icon>
+                <v-icon>mdi-shape-square-rounded-plus</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>{{ item.title }}</v-list-item-title>
+            </v-list-item>
+          </div>
+        </v-list>
+      </v-bottom-sheet>
+    </v-toolbar>
+
+    <!--    <v-navigation-drawer-->
+    <!--        absolute-->
+    <!--        permanent-->
+    <!--        expand-on-hover-->
+    <!--    >-->
+    <!--      <v-list-item>-->
+    <!--        <v-list-item-icon>-->
+    <!--          <v-icon>mdi-shape-outline</v-icon>-->
+    <!--        </v-list-item-icon>-->
+    <!--        <v-list-item-title class="title">-->
+    <!--          Heuristic Types-->
+    <!--        </v-list-item-title>-->
+    <!--      </v-list-item>-->
+
+    <!--      <v-divider></v-divider>-->
+
+    <!--      <v-list-->
+    <!--          nav-->
+    <!--          dense-->
+    <!--          v-for="(item, index) in heuristicTypes"-->
+    <!--          :key="index"-->
+    <!--      >-->
+    <!--        <v-list-item @drag="item.fun" draggable="true">-->
+    <!--          <v-list-item-icon>-->
+    <!--            <v-icon>mdi-shape-square-rounded-plus</v-icon>-->
+    <!--          </v-list-item-icon>-->
+    <!--          <v-list-item-title>{{ item.title }}</v-list-item-title>-->
+    <!--        </v-list-item>-->
+    <!--      </v-list>-->
+    <!--    </v-navigation-drawer>-->
 
 
     <!--    <v-btn @click="refreshData">Refresh</v-btn>-->
     <!--    <v-btn @click="changeData">Change</v-btn>-->
     <!--    <v-row align="center" justify="center">-->
     <!--      <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">-->
+
     <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
     <!--      </v-col>-->
     <!--    </v-row>-->
@@ -71,6 +115,8 @@
 
 <script>
 import * as d3 from "d3";
+import {shortenHash} from "@/utilities";
+import {ROUTE_NAME_SEARCH_PAGE} from "@/constants";
 
 const rectWidth = 150;
 
@@ -419,13 +465,15 @@ function drawGraph(g, data, context) {
   drawNodes(g, data, context);
 }
 
-function navDrag(){
+function navDrag() {
   console.log("dragged");
 }
 
 export default {
   name: "HeuristicEditor",
   data: () => ({
+    transactionHash: "",
+    shortTransactionHash: "",
     heuristicTypes: [
       {
         id: "one_source",
@@ -462,14 +510,11 @@ export default {
       return this.$store.getters.getHeuristicData;
     },
   },
-  mounted() {
-    document.title = `Heuristic - ${this.$route.params.id}`;
-    this.heuristicTypes.forEach(e => heuristicTypeMap.set(e.id, e.title));
-    createInitialGraph(this);
-    this.refreshData();
-  },
   methods: {
     // called by context menu handler
+    goToTransactionPage() {
+      this.$router.push({name: ROUTE_NAME_SEARCH_PAGE})
+    },
     deleteSubTree() {
       const nodesToRemove = activeContextMenuNode.descendants();
 
@@ -511,14 +556,22 @@ export default {
       // drawNodes(rootGroup, nodeData, this);
     },
     refreshData: async function () {
-      await this.$store.dispatch('updateHeuristicData', this.$route.params.id);
+      await this.$store.dispatch('updateHeuristicData', this.transactionHash);
       addRootElement(this.data);
       this.updateGraph();
     },
     changeData: function () {
       this.updateGraph();
     }
-  }
+  },
+  mounted() {
+    this.transactionHash = this.$route.params.id;
+    this.shortTransactionHash = shortenHash(this.transactionHash);
+    document.title = `Heuristic - ${this.transactionHash}`;
+    this.heuristicTypes.forEach(e => heuristicTypeMap.set(e.id, e.title));
+    createInitialGraph(this);
+    this.refreshData();
+  },
 }
 </script>
 
@@ -555,6 +608,10 @@ rect {
 }
 
 #test_canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
   width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
   /*height: 100%;*/
 }
