@@ -183,7 +183,7 @@ function dragEnd(event, context) {
   rootGroup.selectAll(".selected").classed("selected", false);
 
   // only move node if drag was active before --> not clicked and activeMouseOverNode is set
-  if (activeMouseOverNode !== null && setPointer) {
+  if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr("opacity") > 0) {
     moveNode(context, activeMouseOverNode, dragNode);
   }
 
@@ -330,28 +330,19 @@ function drawNodes(group, nodeData, context) {
                     .on("end", (e) => dragEnd(e, context)));
             // draw outline and text
             drawRect(g);
-            g.transition(t)
-                .attr("opacity", 1)
-                .attr("transform", function (d) {
-                  return "translate(" + d.y + "," + d.x + ")";
-                })
             return g;
           },
-          update => {
-            update.transition(t)
-                .attr("opacity", 1)
-                .attr("transform", function (d) {
-                  return "translate(" + d.y + "," + d.x + ")";
-                })
-            return update;
-          }
       )
+      .attr("opacity", 1)
       .attr("class", function (d) {
         if (d.data.data.uid === rootIdentifier)
           return null;
 
         return "node" +
             (d.children ? " node--internal" : " node--leaf");
+      }).transition(t)
+      .attr("transform", function (d) {
+        return "translate(" + d.y + "," + d.x + ")";
       });
 }
 
