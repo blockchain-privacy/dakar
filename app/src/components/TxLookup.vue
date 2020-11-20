@@ -11,29 +11,29 @@
             <v-spacer></v-spacer>
             <v-tooltip bottom>
               <template v-slot:activator="{ on, attrs }">
-              <v-btn  outlined icon @click="goToHeuristicPage" v-on="on" v-bind="attrs">
-                <v-icon>mdi-graph</v-icon>
-              </v-btn>
+                <v-btn style="margin-right: 0px" outlined icon @click="goToHeuristicPage" v-on="on" v-bind="attrs">
+                  <v-icon>mdi-graph</v-icon>
+                </v-btn>
               </template>
               <span>Open the heuristic editor for this transaction.</span>
             </v-tooltip>
-<!--            todo remove?-->
-<!--            <v-tooltip bottom>-->
-<!--              <template v-slot:activator="{ on, attrs }">-->
-<!--                <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px" outlined v-on:click="getCSV"-->
-<!--                       v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
-<!--                       class="d-none d-sm-flex" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-<!--                  <v-icon>mdi-download</v-icon>-->
-<!--                  {{ data.origincount }} origins-->
-<!--                </v-btn>-->
-<!--                <v-btn :loading="isLoading" icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on"-->
-<!--                       v-bind="attrs"-->
-<!--                       class="d-flex d-sm-none" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-<!--                  <v-icon large>mdi-download</v-icon>-->
-<!--                </v-btn>-->
-<!--              </template>-->
-<!--              <span>Download potential origins of this transaction. {{ data.origincount }} origins found.</span>-->
-<!--            </v-tooltip>-->
+            <!--            todo remove?-->
+            <!--            <v-tooltip bottom>-->
+            <!--              <template v-slot:activator="{ on, attrs }">-->
+            <!--                <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px" outlined v-on:click="getCSV"-->
+            <!--                       v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
+            <!--                       class="d-none d-sm-flex" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+            <!--                  <v-icon>mdi-download</v-icon>-->
+            <!--                  {{ data.origincount }} origins-->
+            <!--                </v-btn>-->
+            <!--                <v-btn :loading="isLoading" icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on"-->
+            <!--                       v-bind="attrs"-->
+            <!--                       class="d-flex d-sm-none" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+            <!--                  <v-icon large>mdi-download</v-icon>-->
+            <!--                </v-btn>-->
+            <!--              </template>-->
+            <!--              <span>Download potential origins of this transaction. {{ data.origincount }} origins found.</span>-->
+            <!--            </v-tooltip>-->
           </v-toolbar>
           <v-card-text>
             <v-container>
