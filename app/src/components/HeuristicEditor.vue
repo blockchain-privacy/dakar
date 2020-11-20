@@ -69,7 +69,7 @@
                 </template>
                 <v-img
                     height="200"
-                    src="https://cdn.vuetifyjs.com/images/cards/cooking.png"
+                    src="https://images.idgesg.net/images/article/2017/09/networking-100735059-large.jpg"
                 ></v-img>
                 <v-card-title>
                   {{ item.title }}
@@ -482,26 +482,34 @@ export default {
     heuristicTypes: [
       {
         id: "one_source",
-        title: "one source",
-        description: "lorem ipsum",
+        title: "One Source",
+        description: "Filters by time, direct input transaction amount filter and omni sources",
         fun: navDrag,
       },
       {
         id: "global_amount",
-        title: "global amount",
-        description: "lorem ipsum",
+        title: "Global Amount",
+        description: "The amount heuristic filters all origins of sources, which do not have equal or " +
+            "more denominations to fund the destination transaction. " +
+            "Note that this is different from the direct input transaction amount filter, as " +
+            "this heuristic only checks the set of origin transactions and sources per destina- " +
+            "tion transaction, not per direct input transaction.",
         fun: navDrag,
       },
       {
         id: "perfect_match",
-        title: "perfect match",
-        description: "lorem ipsum",
+        title: "Perfect Match",
+        description: "The perfect match heuristic filters all origins of sources, which have denominations " +
+            "without a perfect match for the denominations of the destination transaction.",
         fun: navDrag,
       },
       {
         id: "denomination_type",
-        title: "denomination type",
-        description: "lorem ipsum",
+        title: "Denomination Type",
+        description: "The denomination type heuristic filters all origins of sources, which have denominations " +
+            "of types which do not occur in the denominations of the destination transaction." +
+            "For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. " +
+            "Now all sources are excluded which do not have these exact two types of denominations.",
         fun: navDrag,
       },
     ],
