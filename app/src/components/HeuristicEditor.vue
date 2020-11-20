@@ -316,7 +316,6 @@ function drawNodes(group, nodeData, context) {
   return group.selectAll(".node")
       .data(nodeData.descendants(), d => d.data.data.uid)
       .join(enter => {
-            console.log("in enter", enter);
             const g = enter.append("g")
                 .on('mouseover', mouseOverNode)
                 .on('mouseout', mouseOutNode)
@@ -339,7 +338,6 @@ function drawNodes(group, nodeData, context) {
             return g;
           },
           update => {
-            console.log("update", update);
             update.transition(t)
                 .attr("opacity", 1)
                 .attr("transform", function (d) {
