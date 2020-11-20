@@ -44,26 +44,19 @@
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down"> Add Heuristic</div>
       </v-btn>
-      <v-bottom-sheet scrollable v-model="sheetOpen" >
+      <v-bottom-sheet scrollable v-model="sheetOpen">
         <v-card v-touch="{
       down: () => {this.sheetOpen = false;}
     }">
           <v-subheader>Add heuristic</v-subheader>
           <v-card-text style="height: 80%">
-            <div class="d-flex flex-wrap">
+            <div class="d-flex flex-wrap" style="align-items: flex-start;">
               <v-card
                   class="mx-auto my-12"
                   v-for="(item, index) in heuristicTypes"
                   :key="index"
                   max-width="300"
               >
-                <template slot="progress">
-                  <v-progress-linear
-                      color="deep-purple"
-                      height="10"
-                      indeterminate
-                  ></v-progress-linear>
-                </template>
                 <v-img
                     height="200"
                     src="https://images.idgesg.net/images/article/2017/09/networking-100735059-large.jpg"
@@ -74,6 +67,9 @@
                 <v-card-subtitle>
                   {{ item.description }}
                 </v-card-subtitle>
+                <v-card-actions class="pt-0">
+                  <v-btn color="primary" @click="sheetOpen = false">Add Heuristic</v-btn>
+                </v-card-actions>
               </v-card>
             </div>
           </v-card-text>
