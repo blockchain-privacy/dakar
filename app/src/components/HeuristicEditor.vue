@@ -164,10 +164,10 @@ function dragEvent(event) {
     // remove the nodes
     rootSvg.selectAll(".node")
         .data(nodesToRemove, d => d.data.data.uid)
-        .remove();
+        .attr("opacity", 0);
     rootSvg.selectAll(".link")
         .data(linksToRemove, d => d.data.data.uid)
-        .remove();
+        .attr("stroke-opacity", 0);
   }
 
   const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
@@ -309,9 +309,14 @@ function contextMenuHandler(context, event, d) {
 
 function drawNodes(group, nodeData, context) {
   // adds each node as a group
+  const t = d3.transition()
+      .duration(300)
+      .ease(d3.easeLinear);
+
   return group.selectAll(".node")
       .data(nodeData.descendants(), d => d.data.data.uid)
       .join(enter => {
+            console.log("in enter", enter);
             const g = enter.append("g")
                 .on('mouseover', mouseOverNode)
                 .on('mouseout', mouseOutNode)
@@ -326,11 +331,23 @@ function drawNodes(group, nodeData, context) {
                     .on("end", (e) => dragEnd(e, context)));
             // draw outline and text
             drawRect(g);
+            g.transition(t)
+                .attr("opacity", 1)
+                .attr("transform", function (d) {
+                  return "translate(" + d.y + "," + d.x + ")";
+                })
             return g;
+          },
+          update => {
+            console.log("update", update);
+            update.transition(t)
+                .attr("opacity", 1)
+                .attr("transform", function (d) {
+                  return "translate(" + d.y + "," + d.x + ")";
+                })
+            return update;
           }
-      ).attr("transform", function (d) {
-        return "translate(" + d.y + "," + d.x + ")";
-      })
+      )
       .attr("class", function (d) {
         if (d.data.data.uid === rootIdentifier)
           return null;
@@ -342,10 +359,14 @@ function drawNodes(group, nodeData, context) {
 
 function drawLinks(group, nodeData) {
   // adds the links between the nodes
+  const t = d3.transition()
+      .duration(300)
+      .ease(d3.easeLinear);
   group.selectAll(".link")
       .data(nodeData.descendants().slice(1), d => d.data.data.uid)
       .join("path")
       .attr("class", "link")
+      .transition(t)
       .attr("stroke-opacity", d => {
         // only draw link if parent is not the root node
         if (d.parent.data.data.uid !== rootIdentifier)
@@ -529,13 +550,8 @@ export default {
 
       this.$store.dispatch('setHeuristicData', updatedData);
 
-      // remove the nodes
-      rootSvg.selectAll(".node")
-          .data(nodesToRemove, d => d.data.data.uid)
-          .remove();
-      rootSvg.selectAll(".link")
-          .data(nodesToRemove, d => d.data.data.uid)
-          .remove();
+      // update displayed graph
+      this.updateGraph();
     },
     showContextMenu(e) {
       this.contextMenu.display = false;
