@@ -29,17 +29,15 @@
         absolute
         dense
     >
-      <v-toolbar-items>
-        <v-icon>mdi-transfer</v-icon>
-        <v-list-item-title class="title">
-          Transaction {{ this.shortTransactionHash }}
-        </v-list-item-title>
-        <v-btn icon @click="goToTransactionPage">
-          <v-icon>mdi-open-in-new</v-icon>
-        </v-btn>
-      </v-toolbar-items>
+      <v-toolbar-title>
+        <v-icon class="hidden-sm-and-down">mdi-transfer</v-icon>
+        Transaction {{ this.shortTransactionHash }}
+      </v-toolbar-title>
+      <v-btn icon @click="goToTransactionPage">
+        <v-icon>mdi-open-in-new</v-icon>
+      </v-btn>
       <v-spacer></v-spacer>
-      <v-bottom-sheet>
+      <v-bottom-sheet scrollable>
         <template v-slot:activator="{ on, attrs }">
           <v-btn
               outlined
@@ -47,69 +45,47 @@
               v-on="on"
           >
             <v-icon>mdi-shape-square-rounded-plus</v-icon>
-            Add Heuristic
-          </v-btn>
-        </template>
-        <v-list>
-          <v-subheader>Add heuristic</v-subheader>
-          <div
+            <div class="hidden-sm-and-down"> Add Heuristic</div>
 
-              v-for="(item, index) in heuristicTypes"
-              :key="index"
-          >
-            <v-list-item @drag="item.fun" draggable="true">
-              <v-list-item-icon>
-                <v-icon>mdi-shape-square-rounded-plus</v-icon>
-              </v-list-item-icon>
-              <v-list-item-title>{{ item.title }}</v-list-item-title>
-            </v-list-item>
-          </div>
-        </v-list>
+          </v-btn>
+
+        </template>
+        <v-card>
+          <v-subheader>Add heuristic</v-subheader>
+          <v-card-text style="height: 80%">
+            <div class="d-flex flex-wrap">
+              <v-card
+                  class="mx-auto my-12"
+                  v-for="(item, index) in heuristicTypes"
+                  :key="index"
+                  max-width="300"
+              >
+                <template slot="progress">
+                  <v-progress-linear
+                      color="deep-purple"
+                      height="10"
+                      indeterminate
+                  ></v-progress-linear>
+                </template>
+                <v-img
+                    height="200"
+                    src="https://cdn.vuetifyjs.com/images/cards/cooking.png"
+                ></v-img>
+                <v-card-title>
+                  {{ item.title }}
+                </v-card-title>
+                <v-card-subtitle>
+                  {{ item.description }}
+                </v-card-subtitle>
+              </v-card>
+            </div>
+          </v-card-text>
+        </v-card>
       </v-bottom-sheet>
     </v-toolbar>
-
-    <!--    <v-navigation-drawer-->
-    <!--        absolute-->
-    <!--        permanent-->
-    <!--        expand-on-hover-->
-    <!--    >-->
-    <!--      <v-list-item>-->
-    <!--        <v-list-item-icon>-->
-    <!--          <v-icon>mdi-shape-outline</v-icon>-->
-    <!--        </v-list-item-icon>-->
-    <!--        <v-list-item-title class="title">-->
-    <!--          Heuristic Types-->
-    <!--        </v-list-item-title>-->
-    <!--      </v-list-item>-->
-
-    <!--      <v-divider></v-divider>-->
-
-    <!--      <v-list-->
-    <!--          nav-->
-    <!--          dense-->
-    <!--          v-for="(item, index) in heuristicTypes"-->
-    <!--          :key="index"-->
-    <!--      >-->
-    <!--        <v-list-item @drag="item.fun" draggable="true">-->
-    <!--          <v-list-item-icon>-->
-    <!--            <v-icon>mdi-shape-square-rounded-plus</v-icon>-->
-    <!--          </v-list-item-icon>-->
-    <!--          <v-list-item-title>{{ item.title }}</v-list-item-title>-->
-    <!--        </v-list-item>-->
-    <!--      </v-list>-->
-    <!--    </v-navigation-drawer>-->
-
-
     <!--    <v-btn @click="refreshData">Refresh</v-btn>-->
     <!--    <v-btn @click="changeData">Change</v-btn>-->
-    <!--    <v-row align="center" justify="center">-->
-    <!--      <v-col align="center" cols="12" sm="12" md="10" lg="9" xl="8">-->
-
     <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
-    <!--      </v-col>-->
-    <!--    </v-row>-->
-
-
   </v-container>
 </template>
 
@@ -133,7 +109,8 @@ let rootSvg, rootGroup;
 let treeLayout;
 
 // dragging
-let dragActive = false, dragNode, dragLayoutData = null, setPointer = false;
+let dragActive = false, dragNode, dragLayoutData = null, setPointer = false,
+    dragLayoutHiddenNodes = null;
 
 // mouseOver
 let activeMouseOverNode = null, lastMouseOverNode;
@@ -158,40 +135,58 @@ function dragEvent(event) {
     dragNode.attr("pointer-events", "none");
 
     // filter out the dragged node, so it does not get removed
-    const linksToRemove = dragLayoutData.descendants(),
-        nodesToRemove = linksToRemove.filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
+    const linksToHide = dragLayoutData.descendants();
+    dragLayoutHiddenNodes = linksToHide.filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
 
-    // remove the nodes
+    // hide the nodes
     rootSvg.selectAll(".node")
-        .data(nodesToRemove, d => d.data.data.uid)
+        .data(dragLayoutHiddenNodes, d => d.data.data.uid)
+        .attr("pointer-events", "none")
         .attr("opacity", 0);
     rootSvg.selectAll(".link")
-        .data(linksToRemove, d => d.data.data.uid)
+        .data(linksToHide, d => d.data.data.uid)
         .attr("stroke-opacity", 0);
   }
 
   const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
 
   d3.select(this)
-      .raise()  // causes bug in chrome: click is only recognized on second time. move here from dragStart
+      .raise()  // causes bug in chrome: click is only recognized on second time. moved here from dragStart
       .attr("transform",
           "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
+
+  // Move hidden nodes to the same position as the parent node,
+  // so when they get displayed the have a nice transition animation
+  if (dragLayoutHiddenNodes !== null) {
+    rootSvg.selectAll(".node")
+        .data(dragLayoutHiddenNodes, d => d.data.data.uid)
+        .attr("transform",
+            "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
+  }
 }
 
 function dragEnd(event, context) {
   dragNode = dragNode.attr("pointer-events", null);
   rootGroup.selectAll(".selected").classed("selected", false);
 
+  if (dragLayoutHiddenNodes !== null) {
+    rootSvg.selectAll(".node")
+        .data(dragLayoutHiddenNodes, d => d.data.data.uid)
+        .attr("pointer-events", null);
+  }
+
   // only move node if drag was active before --> not clicked and activeMouseOverNode is set
   if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr("opacity") > 0) {
     moveNode(context, activeMouseOverNode, dragNode);
   }
 
+  // house keeping
+  activeMouseOverNode = null;
   lastMouseOverNode = null;
   dragLayoutData = null;
   setPointer = false;
   dragActive = false;
-
+  dragLayoutHiddenNodes = null;
 
   dragNode = null;
   context.updateGraph();
@@ -285,7 +280,7 @@ function drawRect(rootElement) {
 }
 
 function mouseOverNode(_, d) {
-  if (dragActive) {
+  if (dragActive && d !== dragLayoutData) {
     if (d !== lastMouseOverNode) {
       lastMouseOverNode = d;
       activeMouseOverNode = d3.select(this);
@@ -488,21 +483,25 @@ export default {
       {
         id: "one_source",
         title: "one source",
+        description: "lorem ipsum",
         fun: navDrag,
       },
       {
         id: "global_amount",
         title: "global amount",
+        description: "lorem ipsum",
         fun: navDrag,
       },
       {
         id: "perfect_match",
         title: "perfect match",
+        description: "lorem ipsum",
         fun: navDrag,
       },
       {
         id: "denomination_type",
         title: "denomination type",
+        description: "lorem ipsum",
         fun: navDrag,
       },
     ],
