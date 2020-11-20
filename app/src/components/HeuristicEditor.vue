@@ -37,20 +37,17 @@
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-      <v-bottom-sheet scrollable>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              outlined
-              v-bind="attrs"
-              v-on="on"
-          >
-            <v-icon>mdi-shape-square-rounded-plus</v-icon>
-            <div class="hidden-sm-and-down"> Add Heuristic</div>
-
-          </v-btn>
-
-        </template>
-        <v-card>
+      <v-btn
+          outlined
+          @click="sheetOpen = !sheetOpen"
+      >
+        <v-icon>mdi-shape-square-rounded-plus</v-icon>
+        <div class="hidden-sm-and-down"> Add Heuristic</div>
+      </v-btn>
+      <v-bottom-sheet scrollable v-model="sheetOpen" >
+        <v-card v-touch="{
+      down: () => {this.sheetOpen = false;}
+    }">
           <v-subheader>Add heuristic</v-subheader>
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap">
@@ -477,6 +474,7 @@ function navDrag() {
 export default {
   name: "HeuristicEditor",
   data: () => ({
+    sheetOpen: false,
     transactionHash: "",
     shortTransactionHash: "",
     heuristicTypes: [
