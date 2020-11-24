@@ -41,10 +41,34 @@
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
-      <v-btn outlined @click="executeHeuristics" style="margin-left: 3px">
-        <v-icon>mdi-source-branch-check</v-icon>
-        <div class="hidden-sm-and-down">Execute Heuristics</div>
-      </v-btn>
+      <v-menu
+          bottom
+          left
+      >
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+              icon
+              v-bind="attrs"
+              v-on="on"
+          >
+            <v-icon>mdi-dots-vertical</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="downloadHeuristicSummary">
+            <v-list-item-icon>
+              <v-icon>mdi-file-download-outline</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Download Summary</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="executeHeuristics">
+            <v-list-item-icon>
+              <v-icon>mdi-source-branch-check</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Execute Heuristics</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-bottom-sheet scrollable v-model="sheetOpen">
         <v-card v-touch="{
       down: () => {this.sheetOpen = false;}
@@ -150,7 +174,7 @@ export default {
   },
   methods: {
     executeHeuristics() {
-      fetch(ROUTE_EXECUTE_HEURISTICS, {
+      fetch(ROUTE_EXECUTE_HEURISTICS + this.transactionHash, {
         method: 'POST', // or 'PUT'
         headers: {
           'Content-Type': 'application/json',
@@ -164,6 +188,16 @@ export default {
           .catch((error) => {
             console.error('Error:', error);
           });
+    },
+    downloadHeuristicSummary() {
+      // fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
+      //     .then(response => response.json())
+      //     .then(data => {
+      //       console.log('Success:', data);
+      //     })
+      //     .catch((error) => {
+      //       console.error('Error:', error);
+      //     });
     },
     // called by context menu handler
     goToTransactionPage() {
