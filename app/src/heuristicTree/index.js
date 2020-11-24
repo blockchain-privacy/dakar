@@ -397,7 +397,6 @@ function getRemovableNodes() {
 
 async function centerGraph() {
     const svgRect = rootSvg.node().getBoundingClientRect();
-    console.log(svgRect.width, svgRect.height);
     let bbRect = null;
     while (true) {
         bbRect = rootGroup.node().getBoundingClientRect();
@@ -410,13 +409,9 @@ async function centerGraph() {
         }
     }
 
-    console.log(bbRect.width, bbRect.height);
-    console.log((svgRect.height-100)/bbRect.height);
-
-
     const transform = d3.zoomIdentity
-        .translate(bbRect.width*2, 200)
-        .scale((svgRect.height-200)/bbRect.height);
+        .translate(bbRect.width * 2, 200)
+        .scale((svgRect.height - 200) / bbRect.height);
 
     rootSvg.transition().duration(750).call(zoom.transform, transform);
 }
