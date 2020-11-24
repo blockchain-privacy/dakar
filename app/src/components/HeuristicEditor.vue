@@ -37,12 +37,13 @@
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-      <v-btn
-          outlined
-          @click="sheetOpen = !sheetOpen"
-      >
+      <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
-        <div class="hidden-sm-and-down"> Add Heuristic</div>
+        <div class="hidden-sm-and-down">Add Heuristic</div>
+      </v-btn>
+      <v-btn outlined @click="executeHeuristics" style="margin-left: 3px">
+        <v-icon>mdi-source-branch-check</v-icon>
+        <div class="hidden-sm-and-down">Execute Heuristics</div>
       </v-btn>
       <v-bottom-sheet scrollable v-model="sheetOpen">
         <v-card v-touch="{
@@ -84,8 +85,14 @@
 
 <script>
 import {shortenHash} from "@/utilities";
-import {ROUTE_NAME_SEARCH_PAGE} from "@/constants";
+import {ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS} from "@/constants";
 import * as ht from "@/heuristicTree";
+
+// prepareData prepares the heuristic data so it can be sent to be executed
+function prepareData(data) {
+  // filter out the dummy element
+  return data.filter(d => d.uid !== ht.rootIdentifier);
+}
 
 export default {
   name: "HeuristicEditor",
@@ -142,12 +149,28 @@ export default {
     },
   },
   methods: {
+    executeHeuristics() {
+      fetch(ROUTE_EXECUTE_HEURISTICS, {
+        method: 'POST', // or 'PUT'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(prepareData(this.data)),
+      })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Success:', data);
+          })
+          .catch((error) => {
+            console.error('Error:', error);
+          });
+    },
     // called by context menu handler
     goToTransactionPage() {
       this.$router.push({name: ROUTE_NAME_SEARCH_PAGE})
     },
     deleteSubTree() {
-      const toBeRemoved =  ht.getRemovableNodes();
+      const toBeRemoved = ht.getRemovableNodes();
       const updatedData = this.data.filter(e =>
           !toBeRemoved.includes(e.uid)
       );
@@ -186,7 +209,7 @@ export default {
     this.transactionHash = this.$route.params.id;
     this.shortTransactionHash = shortenHash(this.transactionHash);
     document.title = `Heuristic - ${this.transactionHash}`;
-    ht.setupSvg(this,this.heuristicTypes);
+    ht.setupSvg(this, this.heuristicTypes);
     this.refreshData();
   },
 }

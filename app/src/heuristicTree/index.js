@@ -393,5 +393,5 @@ function getRemovableNodes() {
 
 export {
     drawGraph, processGraphData, navDrag, setupSvg,
-    addRootElement, getRemovableNodes
+    addRootElement, getRemovableNodes,rootIdentifier
 };
