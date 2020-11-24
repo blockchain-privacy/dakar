@@ -23,14 +23,15 @@ import (
 )
 
 const (
-	routePrefix            string = "/api/v1/"
-	routeTransaction       string = "tx/"
-	routeBlock             string = "blk/"
-	routeAddress           string = "address/"
-	routeMeta              string = "meta/"
-	routePaths             string = "paths/"
-	routeHeuristics        string = "heuristics/"
-	routeHeuristicsSummary string = "heuristicssummary/"
+	routePrefix              string = "/api/v1/"
+	routeTransaction         string = "tx/"
+	routeBlock               string = "blk/"
+	routeAddress             string = "address/"
+	routeMeta                string = "meta/"
+	routePaths               string = "paths/"
+	routeHeuristics          string = "heuristics/"
+	routeHeuristicsSummary   string = "heuristicsSummary/"
+	routeHeuristicsExecution string = "executeHeuristics/"
 )
 
 const (
@@ -38,7 +39,8 @@ const (
 )
 
 var (
-	errorPath = "error getting paths"
+	errorPath       = "error getting paths"
+	errorHeuristics = "error getting heuristics"
 )
 
 func getRoute(r string) string {
@@ -70,6 +72,10 @@ func getRouteHeuristics() string {
 }
 func getRouteHeuristicsSummary() string {
 	return getRoute(routeHeuristicsSummary)
+}
+
+func getRouteHeuristicsExecution() string {
+	return getRoute(routeHeuristicsExecution)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -299,7 +305,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
-// API pattern: "/api/v1/heuristicssummary/<hash>"
+// API pattern: "/api/v1/heuristicsSummary/<hash>"
 func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -407,18 +413,19 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 		txHashString := r.URL.Path[len(getRouteHeuristics()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristics, http.StatusNotFound)
 			return
 		}
 
 		heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
 		if err != nil {
-			log.Println(err)
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		if len(heuristics) == 0 {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristics, http.StatusNotFound)
 			return
 		}
 
@@ -428,6 +435,44 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
+	}
+}
+
+// API pattern: "/api/v1/executeHeuristics/<hash>"
+func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicsExecution()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		var frontendHeuristics []transaction.FrontendHeuristic
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&frontendHeuristics)
+		if err != nil {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if len(frontendHeuristics) == 0 {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		log.Println("Received", len(frontendHeuristics), "heuristics")
+
+		// todo remove?
+		// encoding
+		//err = json.NewEncoder(w).Encode(heuristics)
+		//if err != nil {
+		//	http.Error(w, "encoding error", http.StatusInternalServerError)
+		//	serverInfo(cliutil.ShowCallInfo(), err)
+		//}
 	}
 }
 
@@ -451,4 +496,5 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
+	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph))
 }
