@@ -1,3 +1,4 @@
+/* eslint-disable no-constant-condition */
 import * as d3 from "d3";
 
 
@@ -28,6 +29,9 @@ let activeContextMenuNode = null;
 
 // heuristic type map
 let heuristicTypeMap = new Map();
+
+// zoom
+let zoom = null;
 
 function dragStart(_, d) {
     dragNode = d3.select(this);
@@ -332,13 +336,13 @@ function setupSvg(context, heuristicDescriptions) {
         .attr("class", "root-group");
 
     // add zoom and drag
-    rootSvg.call(d3.zoom()
+    zoom = d3.zoom()
         .on("zoom", (event) => {
             context.displayContextMenu = false;
             rootGroup.attr('transform', event.transform);
         })
-        .scaleExtent([0.5, 8])
-    );
+        .scaleExtent([0.5, 8]);
+    rootSvg.call(zoom);
 }
 
 function resetClick() {
@@ -391,7 +395,34 @@ function getRemovableNodes() {
     return toBeRemoved;
 }
 
+async function centerGraph() {
+    const svgRect = rootSvg.node().getBoundingClientRect();
+    console.log(svgRect.width, svgRect.height);
+    let bbRect = null;
+    while (true) {
+        bbRect = rootGroup.node().getBoundingClientRect();
+
+        // wait until group has a size
+        if (bbRect.height !== 0) {
+            break
+        } else {
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    console.log(bbRect.width, bbRect.height);
+    console.log((svgRect.height-100)/bbRect.height);
+
+
+    const transform = d3.zoomIdentity
+        .translate(bbRect.width*2, 200)
+        .scale((svgRect.height-200)/bbRect.height);
+
+    rootSvg.transition().duration(750).call(zoom.transform, transform);
+}
+
 export {
     drawGraph, processGraphData, navDrag, setupSvg,
-    addRootElement, getRemovableNodes,rootIdentifier
+    addRootElement, getRemovableNodes, centerGraph,
+    rootIdentifier
 };

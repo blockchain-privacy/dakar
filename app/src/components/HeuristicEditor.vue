@@ -235,16 +235,21 @@ export default {
       ht.addRootElement(this.data);
       this.updateGraph();
     },
-    changeData: function () {
+    changeData() {
       this.updateGraph();
-    }
+    },
   },
   mounted() {
+    // set transaction hashes for this page view
     this.transactionHash = this.$route.params.id;
     this.shortTransactionHash = shortenHash(this.transactionHash);
+
+    // set page title
     document.title = `Heuristic - ${this.transactionHash}`;
+
     ht.setupSvg(this, this.heuristicTypes);
     this.refreshData();
+    ht.centerGraph();
   },
 }
 </script>
