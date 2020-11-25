@@ -101,9 +101,10 @@
         </v-card>
       </v-bottom-sheet>
     </v-toolbar>
+    <!--    todo: remove?-->
     <!--    <v-btn @click="refreshData">Refresh</v-btn>-->
     <!--    <v-btn @click="changeData">Change</v-btn>-->
-    <svg id="test_canvas" viewBox="0 0 2000 2000"></svg>
+    <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
 </template>
 
@@ -269,7 +270,7 @@ export default {
     // set page title
     document.title = `Heuristic - ${this.transactionHash}`;
 
-    ht.setupSvg(this, this.heuristicTypes);
+    ht.setupSvg(this, "svg_canvas", this.heuristicTypes);
     this.refreshData();
     ht.centerGraph();
   },
@@ -308,7 +309,7 @@ rect {
   fill-opacity: 1;
 }
 
-#test_canvas {
+#svg_canvas {
   position: fixed;
   top: 0;
   left: 0;
