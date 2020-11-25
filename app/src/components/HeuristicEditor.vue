@@ -10,18 +10,16 @@
             :close-on-click="true"
             style="max-width: 600px">
       <v-list>
-        <v-list-item @click="this.deleteSubTree" link>
+        <v-list-item
+            v-for="(item, index) in contextMenu.items"
+            :key="index"
+            @click="item.action"
+        >
           <v-list-item-icon>
-            <v-icon>mdi-delete</v-icon>
+            <v-icon>{{ item.icon }}</v-icon>
           </v-list-item-icon>
-          <v-list-item-title>Delete sub tree</v-list-item-title>
+          <v-list-item-title>{{ item.title }}</v-list-item-title>
         </v-list-item>
-        <!--        <v-list-item-->
-        <!--            v-for="(item, index) in items"-->
-        <!--            :key="index"-->
-        <!--        >-->
-        <!--          <v-list-item-title @click="item.action">{{ item.title }}</v-list-item-title>-->
-        <!--        </v-list-item>-->
       </v-list>
     </v-menu>
     <v-toolbar
@@ -140,9 +138,9 @@ export default {
   name: "HeuristicEditor",
   data() {
     return {
-      sheetOpen: false,
       transactionHash: "",
       shortTransactionHash: "",
+      sheetOpen: false,
       heuristicTypes: [
         {
           id: "one_source",
@@ -182,7 +180,9 @@ export default {
         x: 0,
         y: 0,
         items: [
-          {title: 'Dummy', action: null},
+          {title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree},
+          {title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree},
+          {title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree},
         ],
       },
     };
