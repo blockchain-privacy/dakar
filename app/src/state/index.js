@@ -39,7 +39,7 @@ const mutations = {
     UPDATE_HEURISTIC_DATA(state, payload) {
         state.heuristic = payload;
     },
-    SET_META_DATA(state, payload) {
+    SET_HEURISTIC_DATA(state, payload) {
         mutations.UPDATE_HEURISTIC_DATA(state, payload);
     },
 }
@@ -86,7 +86,7 @@ const actions = {
         return doUpdate(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
     },
     setHeuristicData(context, payload) {
-        context.commit('SET_META_DATA', payload);
+        context.commit('SET_HEURISTIC_DATA', payload);
     },
 }
 
