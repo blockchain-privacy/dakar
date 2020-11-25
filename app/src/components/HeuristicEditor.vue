@@ -296,6 +296,7 @@ export default {
       if (item.action) {
         item.action()
       }
+      this.contextMenu.display = false;
     }
   },
   mounted() {
