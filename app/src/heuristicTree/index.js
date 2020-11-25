@@ -378,8 +378,12 @@ function drawGraph(data, context) {
     drawNodes(rootGroup, data, context);
 }
 
-function navDrag() {
-    console.log("dragged");
+// adds a heuristic with the given id and parameter
+function addHeuristic(id, parameter) {
+    if (parameter)
+        console.log("adding heuristic " + id + " with paramter " + parameter);
+    else
+        console.log("adding heuristic " + id);
 }
 
 // getRemovableNodes returns elements which can be removed based on the position saved in activeContextMenuNode
@@ -417,7 +421,7 @@ async function centerGraph() {
 }
 
 export {
-    drawGraph, processGraphData, navDrag, setupSvg,
+    drawGraph, processGraphData, addHeuristic, setupSvg,
     addRootElement, getRemovableNodes, centerGraph,
     rootIdentifier
 };

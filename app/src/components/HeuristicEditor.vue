@@ -93,7 +93,7 @@
                   {{ item.description }}
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="sheetOpen = false">Add Heuristic</v-btn>
+                  <v-btn color="primary" @click="sheetOpen = false; item.action()">Add Heuristic</v-btn>
                 </v-card-actions>
               </v-card>
             </div>
@@ -138,53 +138,55 @@ function prepareData(data) {
 
 export default {
   name: "HeuristicEditor",
-  data: () => ({
-    sheetOpen: false,
-    transactionHash: "",
-    shortTransactionHash: "",
-    heuristicTypes: [
-      {
-        id: "one_source",
-        title: "One Source",
-        description: "Filters by time, direct input transaction amount filter and omni sources",
-        fun: ht.navDrag,
-      },
-      {
-        id: "global_amount",
-        title: "Global Amount",
-        description: "The amount heuristic filters all origins of sources, which do not have equal or " +
-            "more denominations to fund the destination transaction. " +
-            "Note that this is different from the direct input transaction amount filter, as " +
-            "this heuristic only checks the set of origin transactions and sources per destina- " +
-            "tion transaction, not per direct input transaction.",
-        fun: ht.navDrag,
-      },
-      {
-        id: "perfect_match",
-        title: "Perfect Match",
-        description: "The perfect match heuristic filters all origins of sources, which have denominations " +
-            "without a perfect match for the denominations of the destination transaction.",
-        fun: ht.navDrag,
-      },
-      {
-        id: "denomination_type",
-        title: "Denomination Type",
-        description: "The denomination type heuristic filters all origins of sources, which have denominations " +
-            "of types which do not occur in the denominations of the destination transaction." +
-            "For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. " +
-            "Now all sources are excluded which do not have these exact two types of denominations.",
-        fun: ht.navDrag,
-      },
-    ],
-    contextMenu: {
-      display: false,
-      x: 0,
-      y: 0,
-      items: [
-        {title: 'Dummy', action: null},
+  data() {
+    return {
+      sheetOpen: false,
+      transactionHash: "",
+      shortTransactionHash: "",
+      heuristicTypes: [
+        {
+          id: "one_source",
+          title: "One Source",
+          description: "Filters by time, direct input transaction amount filter and omni sources",
+          action: () => ht.addHeuristic("one_source", "24h"),
+        },
+        {
+          id: "global_amount",
+          title: "Global Amount",
+          description: "The amount heuristic filters all origins of sources, which do not have equal or " +
+              "more denominations to fund the destination transaction. " +
+              "Note that this is different from the direct input transaction amount filter, as " +
+              "this heuristic only checks the set of origin transactions and sources per destina- " +
+              "tion transaction, not per direct input transaction.",
+          action: () => ht.addHeuristic("global_amount"),
+        },
+        {
+          id: "perfect_match",
+          title: "Perfect Match",
+          description: "The perfect match heuristic filters all origins of sources, which have denominations " +
+              "without a perfect match for the denominations of the destination transaction.",
+          action: () => ht.addHeuristic("perfect_match"),
+        },
+        {
+          id: "denomination_type",
+          title: "Denomination Type",
+          description: "The denomination type heuristic filters all origins of sources, which have denominations " +
+              "of types which do not occur in the denominations of the destination transaction." +
+              "For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. " +
+              "Now all sources are excluded which do not have these exact two types of denominations.",
+          action: () => ht.addHeuristic("denomination_type"),
+        },
       ],
-    },
-  }),
+      contextMenu: {
+        display: false,
+        x: 0,
+        y: 0,
+        items: [
+          {title: 'Dummy', action: null},
+        ],
+      },
+    };
+  },
   computed: {
     data() {
       return this.$store.getters.getHeuristicData;
