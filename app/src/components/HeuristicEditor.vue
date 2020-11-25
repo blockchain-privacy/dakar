@@ -61,7 +61,7 @@
             </v-list-item-icon>
             <v-list-item-title>Download Summary</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="executeHeuristics" :disabled="this.data.length < 2">
+          <v-list-item @click="executeHeuristics" :disabled="this.data && this.data.length < 2">
             <v-list-item-icon>
               <v-icon>mdi-source-branch-check</v-icon>
             </v-list-item-icon>
