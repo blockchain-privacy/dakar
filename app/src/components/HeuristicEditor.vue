@@ -1,27 +1,15 @@
 <template>
   <v-container class="fill-height" fluid>
-    <v-menu v-model="contextMenu.display"
-            origin="center center"
-            transition="scale-transition"
-            :position-x="contextMenu.x"
-            :position-y="contextMenu.y"
-            absolute
-            offset-y
-            :close-on-click="true"
-            style="max-width: 600px">
-      <v-list>
-        <v-list-item
-            v-for="(item, index) in contextMenu.items"
-            :key="index"
-            @click="item.action"
-        >
-          <v-list-item-icon>
-            <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>{{ item.title }}</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
+    <nested-menu
+        v-model="contextMenu.display"
+        origin="center center"
+        :positionX="contextMenu.x"
+        :positionY="contextMenu.y"
+        absolute
+        offset-y
+        :close-on-click="true"
+        style="max-width: 600px"
+        name='File' :menu-items='fileMenuItems' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
         style="width: 100%; left:0;"
         absolute
@@ -110,6 +98,7 @@
 import {shortenHash} from "@/utilities";
 import {ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE} from "@/constants";
 import * as ht from "@/heuristicTree";
+import NestedMenu from "@/components/common/NestedMenu";
 
 // prepareData prepares the heuristic data so it can be sent to be executed
 function prepareData(data) {
@@ -145,6 +134,7 @@ function newRouting(context) {
 
 export default {
   name: "HeuristicEditor",
+  components: {NestedMenu},
   data() {
     return {
       transactionHash: "",
@@ -194,6 +184,19 @@ export default {
           {title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree},
         ],
       },
+      fileMenuItems: [
+        {title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree},
+        {title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree},
+        {title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree},
+        {isDivider: true},
+        {
+          title: 'Sub-menu 1',
+          menu: [
+            {title: '1.1', icon: 'mdi-bug', action: () => console.log("test")},
+            {title: '1.2', icon: 'mdi-bug',},
+          ]
+        }
+      ]
     };
   },
   computed: {
@@ -287,6 +290,12 @@ export default {
       ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
       this.refreshData();
       ht.centerGraph();
+    },
+    onMenuItemClick(item) {
+      console.log(`onMenuItemClick(), item=${item}`)
+      if (item.action) {
+        item.action()
+      }
     }
   },
   mounted() {
