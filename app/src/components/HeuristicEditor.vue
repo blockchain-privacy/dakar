@@ -114,8 +114,25 @@ import * as ht from "@/heuristicTree";
 
 // prepareData prepares the heuristic data so it can be sent to be executed
 function prepareData(data) {
-  // filter out the dummy element
-  return data.filter(d => d.uid !== ht.rootIdentifier);
+  let filteredData = [];
+
+  // filter properties which do not need to be sent over the wire: timestamp and result count
+  data.forEach(d => {
+    // filter out the dummy element
+    if (d.uid === ht.rootIdentifier) {
+      return;
+    }
+
+    filteredData.push({
+      uid: d.uid,
+      type: d.type,
+      parameter: d.parameter,
+      children: d.children,
+      parent_heuristic: d.parent_heuristic
+    });
+  });
+
+  return filteredData;
 }
 
 export default {
