@@ -1,3 +1,4 @@
+<!-- source: https://github.com/vuetifyjs/vuetify/issues/1877#issuecomment-593273676  -->
 <template>
   <v-menu
       v-model="inputVal"
