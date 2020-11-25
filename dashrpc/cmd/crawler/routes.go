@@ -39,8 +39,9 @@ const (
 )
 
 var (
-	errorPath       = "error getting paths"
-	errorHeuristics = "error getting heuristics"
+	errorPath               = "error getting paths"
+	errorHeuristics         = "error getting heuristics"
+	errorHeuristicExecution = "error executing heuristics"
 )
 
 func getRoute(r string) string {
@@ -446,7 +447,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 		txHashString := r.URL.Path[len(getRouteHeuristicsExecution()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			return
 		}
 
@@ -454,25 +455,30 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&frontendHeuristics)
 		if err != nil {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		if len(frontendHeuristics) == 0 {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			return
 		}
 
 		log.Println("Received", len(frontendHeuristics), "heuristics")
 
-		// todo remove?
+		type reply struct {
+			Message string `json:"msg,omitempty"`
+		}
+
+		msg := reply{Message: fmt.Sprintf("Received %d heuristics", len(frontendHeuristics))}
+
 		// encoding
-		//err = json.NewEncoder(w).Encode(heuristics)
-		//if err != nil {
-		//	http.Error(w, "encoding error", http.StatusInternalServerError)
-		//	serverInfo(cliutil.ShowCallInfo(), err)
-		//}
+		err = json.NewEncoder(w).Encode(msg)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
 	}
 }
 
