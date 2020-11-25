@@ -61,7 +61,7 @@
             </v-list-item-icon>
             <v-list-item-title>Download Summary</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="executeHeuristics">
+          <v-list-item @click="executeHeuristics" :disabled="this.data.length < 2">
             <v-list-item-icon>
               <v-icon>mdi-source-branch-check</v-icon>
             </v-list-item-icon>
@@ -187,10 +187,15 @@ export default {
   computed: {
     data() {
       return this.$store.getters.getHeuristicData;
-    },
+    }
   },
   methods: {
     executeHeuristics() {
+      // prevent execution if not data is available
+      if (this.data.length < 2) {
+        return
+      }
+
       fetch(ROUTE_EXECUTE_HEURISTICS + this.transactionHash, {
         method: 'POST', // or 'PUT'
         headers: {
