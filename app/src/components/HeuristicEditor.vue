@@ -108,7 +108,7 @@
 
 <script>
 import {shortenHash} from "@/utilities";
-import {ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS} from "@/constants";
+import {ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE} from "@/constants";
 import * as ht from "@/heuristicTree";
 
 // prepareData prepares the heuristic data so it can be sent to be executed
@@ -132,6 +132,15 @@ function prepareData(data) {
   });
 
   return filteredData;
+}
+
+function newRouting(context) {
+  const id = context.$route.params.id;
+  if (id === undefined || context.$route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
+    return;
+  }
+
+  context.onMounted();
 }
 
 export default {
@@ -263,19 +272,31 @@ export default {
     changeData() {
       this.updateGraph();
     },
+    onMounted() {
+      const svgCanvasId = 'svg_canvas';
+      // remove previous svg children
+      document.getElementById(svgCanvasId).innerHTML = '';
+
+      // set transaction hashes for this page view
+      this.transactionHash = this.$route.params.id;
+      this.shortTransactionHash = shortenHash(this.transactionHash);
+
+      // set page title
+      document.title = `Heuristic - ${this.transactionHash}`;
+
+      ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
+      this.refreshData();
+      ht.centerGraph();
+    }
   },
   mounted() {
-    // set transaction hashes for this page view
-    this.transactionHash = this.$route.params.id;
-    this.shortTransactionHash = shortenHash(this.transactionHash);
-
-    // set page title
-    document.title = `Heuristic - ${this.transactionHash}`;
-
-    ht.setupSvg(this, "svg_canvas", this.heuristicTypes);
-    this.refreshData();
-    ht.centerGraph();
+    this.onMounted();
   },
+  watch: {
+    '$route'() {
+      newRouting(this);
+    }
+  }
 }
 </script>
 

@@ -399,6 +399,7 @@ function getRemovableNodes() {
     return toBeRemoved;
 }
 
+// centerGraph centers the graph in the center of the svg
 async function centerGraph() {
     const svgRect = rootSvg.node().getBoundingClientRect();
     let bbRect = null;
