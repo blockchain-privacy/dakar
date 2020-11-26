@@ -11,7 +11,7 @@
             <v-spacer></v-spacer>
             <v-tooltip bottom>
               <template v-slot:activator="{ on, attrs }">
-                <v-btn style="margin-right: 0px" outlined icon @click="goToHeuristicPage" v-on="on" v-bind="attrs">
+                <v-btn  v-if="data.privacytype === 'destination'" style="margin-right: 0px" outlined icon @click="goToHeuristicPage" v-on="on" v-bind="attrs">
                   <v-icon>mdi-graph</v-icon>
                 </v-btn>
               </template>
