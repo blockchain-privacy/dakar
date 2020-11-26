@@ -25,6 +25,8 @@ type heuristic interface {
 	getParameterDescription() string
 	// hasParameter returns true if this heuristic has a parameter
 	hasParameter() bool
+	// setParameter sets the parameter
+	setParameter(string) error
 }
 
 // Returns the number of denominations.

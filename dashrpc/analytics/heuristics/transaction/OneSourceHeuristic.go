@@ -5,6 +5,7 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"strconv"
 	"time"
 )
 
@@ -35,6 +36,17 @@ func (h OneSourceHeuristic) getParameterDescription() string {
 
 func (h OneSourceHeuristic) hasParameter() bool {
 	return true
+}
+
+func (h OneSourceHeuristic) setParameter(p string) error {
+	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+	if err != nil {
+		return err
+	}
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
+	h.lookBackTime = lBackTime
+	h.parameterDescription = lBackTime.String()
+	return nil
 }
 
 // OneSourceHeuristic applies the following heuristics:

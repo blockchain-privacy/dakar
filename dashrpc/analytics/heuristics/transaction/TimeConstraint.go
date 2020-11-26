@@ -25,21 +25,25 @@ func NewTimeConstraintHeuristic(hoursToLookBack uint32) TimeConstraintHeuristic 
 	}
 }
 
-func (b TimeConstraintHeuristic) getType() string {
-	return b.heuristicType
+func (h TimeConstraintHeuristic) getType() string {
+	return h.heuristicType
 }
 
-func (b TimeConstraintHeuristic) getParameterDescription() string {
-	return b.parameterDescription
+func (h TimeConstraintHeuristic) getParameterDescription() string {
+	return h.parameterDescription
 }
 
-func (b TimeConstraintHeuristic) hasParameter() bool {
+func (h TimeConstraintHeuristic) hasParameter() bool {
 	return true
+}
+
+func (h TimeConstraintHeuristic) setParameter(p string) error {
+	return nil
 }
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {
@@ -73,7 +77,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentH
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, b.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

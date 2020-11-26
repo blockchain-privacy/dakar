@@ -32,6 +32,10 @@ func (h DenominationTypeHeuristic) hasParameter() bool {
 	return false
 }
 
+func (h DenominationTypeHeuristic) setParameter(p string) error {
+	return nil
+}
+
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction

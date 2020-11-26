@@ -32,6 +32,10 @@ func (h PerfectMatchHeuristic) hasParameter() bool {
 	return false
 }
 
+func (h PerfectMatchHeuristic) setParameter(p string) error {
+	return nil
+}
+
 // PerfectMatchHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction
