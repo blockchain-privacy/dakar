@@ -1,23 +1,25 @@
 package transaction
 
 import (
+	"dashrpc/cmd/cliutil"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"errors"
+	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+)
+
+var (
+	errHeuristicTypeNotFound = errors.New("error heuristic type not found")
+	errHeuristicNotValid     = errors.New("heuristics are not valid")
 )
 
 var validHeuristics = []heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
 	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic()}
 
-func isValid(heuristics []dbtxh.FrontendHeuristic) bool {
+// isValid checks if the given heuristics are all valid
+func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bool {
 	if len(heuristics) == 0 {
 		return false
-	}
-
-	typeToParameter := make(map[string]heuristic)
-
-	for _, h := range validHeuristics {
-		typeToParameter[h.getType()] = h
 	}
 
 	for _, h := range heuristics {
@@ -32,7 +34,7 @@ func isValid(heuristics []dbtxh.FrontendHeuristic) bool {
 		}
 
 		// type must by in valid set; parameter must be set if the map has a parameter
-		if heuristic, ok := typeToParameter[h.Type]; !ok || (heuristic.hasParameter() && len(h.Parameter) == 0) {
+		if heuristic, ok := hMap[h.Type]; !ok || (heuristic.hasParameter() && len(h.Parameter) == 0) {
 			return false
 		}
 	}
@@ -40,10 +42,46 @@ func isValid(heuristics []dbtxh.FrontendHeuristic) bool {
 	return true
 }
 
-func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic) error {
-	if !isValid(heuristics) {
-		return errors.New("heuristics are not valid")
+func buildHeuristics(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) (builtHeuristics []heuristic,
+	err error) {
+	for _, h := range heuristics {
+		if newHeuristic, ok := hMap[h.Type]; ok {
+			if newHeuristic.hasParameter() {
+				err = newHeuristic.setParameter(h.Parameter)
+				if err != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+					return
+				}
+			}
+
+			builtHeuristics = append(builtHeuristics, newHeuristic)
+
+		} else {
+			err = errHeuristicTypeNotFound
+			return
+		}
 	}
+
+	return
+}
+
+func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic) error {
+	heuristicMap := make(map[string]heuristic)
+
+	for _, h := range validHeuristics {
+		heuristicMap[h.getType()] = h
+	}
+
+	if !isValid(heuristicMap, heuristics) {
+		return errHeuristicNotValid
+	}
+
+	newHeuristics, err := buildHeuristics(heuristicMap, heuristics)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	fmt.Println(newHeuristics)
 
 	return nil
 }
