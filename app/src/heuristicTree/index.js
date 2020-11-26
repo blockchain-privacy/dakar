@@ -119,7 +119,16 @@ function moveNode(context, parent, child) {
             if (dataElement.children === undefined) {
                 dataElement.children = [];
             }
-            dataElement.children.push({'uid': childData.uid});
+
+            let alreadyExists = false;
+            dataElement.children.forEach(c => {
+                if (c.uid === childData.uid)
+                    alreadyExists = true;
+            });
+
+            if (!alreadyExists) {
+                dataElement.children.push({'uid': childData.uid});
+            }
         } else if (dataElement.uid === childData.uid) {
             if (dataElement.parent_heuristic === undefined) {
                 dataElement.parent_heuristic = [];
