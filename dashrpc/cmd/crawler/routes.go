@@ -1,11 +1,12 @@
 package main
 
 import (
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dban "dashrpc/db/analytics"
-	"dashrpc/db/analytics/heuristics/transaction"
+	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
@@ -318,7 +319,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 			return
 		}
 
-		cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString)
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString)
 		if err != nil {
 			log.Println(err)
 			return
@@ -336,7 +337,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 
 			for _, r := range h.Results {
 				if _, ok := shortestPaths[r.Uid]; !ok {
-					pathLen, err := transaction.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
+					pathLen, err := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
 					if err != nil {
 						log.Println(err)
 						return
@@ -418,7 +419,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 			return
 		}
 
-		heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+		heuristics, err := dbtxh.GetBasicFrontendHeuristic(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
@@ -451,7 +452,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 			return
 		}
 
-		var frontendHeuristics []transaction.FrontendHeuristic
+		var frontendHeuristics []dbtxh.FrontendHeuristic
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&frontendHeuristics)
 		if err != nil {
@@ -466,6 +467,12 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 		}
 
 		log.Println("Received", len(frontendHeuristics), "heuristics")
+
+		if err := heuristic.DoExecution(dgraph, frontendHeuristics); err != nil {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
 
 		type reply struct {
 			Message string `json:"msg,omitempty"`
