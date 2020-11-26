@@ -5,6 +5,7 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"strconv"
 	"time"
 )
 
@@ -16,10 +17,10 @@ type TimeConstraintHeuristic struct {
 
 // TimeConstraintHeuristic constructor
 // hoursToLookBack in hours
-func NewTimeConstraintHeuristic(hoursToLookBack uint32) TimeConstraintHeuristic {
+func NewTimeConstraintHeuristic(hoursToLookBack uint32) *TimeConstraintHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return TimeConstraintHeuristic{
-		heuristicType:        "timeconstraint",
+	return &TimeConstraintHeuristic{
+		heuristicType:        "time_constraint",
 		lookBackTime:         lBackTime,
 		parameterDescription: lBackTime.String(),
 	}
@@ -37,12 +38,19 @@ func (h TimeConstraintHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h TimeConstraintHeuristic) setParameter(p string) error {
+func (h *TimeConstraintHeuristic) setParameter(p string) error {
+	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+	if err != nil {
+		return err
+	}
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
+	h.lookBackTime = lBackTime
+	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
 	return nil
 }
 
 func (h TimeConstraintHeuristic) String() string {
-	return h.heuristicType
+	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
 // TimeConstraintHeuristic applies the following heuristics:

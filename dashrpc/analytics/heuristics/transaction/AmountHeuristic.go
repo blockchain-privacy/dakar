@@ -37,7 +37,7 @@ func (h AmountHeuristic) setParameter(p string) error {
 }
 
 func (h AmountHeuristic) String() string {
-	return h.heuristicType
+	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
 // AmountHeuristic applies the following heuristic:

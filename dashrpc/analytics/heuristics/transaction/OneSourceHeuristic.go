@@ -50,7 +50,7 @@ func (h *OneSourceHeuristic) setParameter(p string) error {
 }
 
 func (h OneSourceHeuristic) String() string {
-	return h.heuristicType
+	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
 // OneSourceHeuristic applies the following heuristics:

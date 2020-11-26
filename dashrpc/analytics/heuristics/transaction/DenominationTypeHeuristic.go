@@ -37,7 +37,7 @@ func (h DenominationTypeHeuristic) setParameter(p string) error {
 }
 
 func (h DenominationTypeHeuristic) String() string {
-	return h.heuristicType
+	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
 // DenominationTypeHeuristic applies the following heuristic:

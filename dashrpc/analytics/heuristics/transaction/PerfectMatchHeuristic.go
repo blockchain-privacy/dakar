@@ -37,7 +37,7 @@ func (h PerfectMatchHeuristic) setParameter(p string) error {
 }
 
 func (h PerfectMatchHeuristic) String() string {
-	return h.heuristicType
+	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
 // PerfectMatchHeuristic applies the following heuristic:
