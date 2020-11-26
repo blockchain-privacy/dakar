@@ -29,8 +29,12 @@ func (h OneSourceHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h OneSourceHeuristic) getParameter() string {
+func (h OneSourceHeuristic) getParameterDescription() string {
 	return h.parameterDescription
+}
+
+func (h OneSourceHeuristic) hasParameter() bool {
+	return true
 }
 
 // OneSourceHeuristic applies the following heuristics:

@@ -24,8 +24,12 @@ func (h PerfectMatchHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h PerfectMatchHeuristic) getParameter() string {
+func (h PerfectMatchHeuristic) getParameterDescription() string {
 	return h.parameterDescription
+}
+
+func (h PerfectMatchHeuristic) hasParameter() bool {
+	return false
 }
 
 // PerfectMatchHeuristic applies the following heuristic:

@@ -21,8 +21,10 @@ type heuristic interface {
 	exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameter returns the used parameter for this heuristic
-	getParameter() string
+	// getParameterDescription returns the used parameter for this heuristic
+	getParameterDescription() string
+	// hasParameter returns true if this heuristic has a parameter
+	hasParameter() bool
 }
 
 // Returns the number of denominations.
@@ -173,7 +175,7 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
-				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameter(), err))
+				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterDescription(), err))
 	}
 	errChannel := make(chan error, len(hx.NextHeuristics))
 
@@ -247,7 +249,7 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 	thisUid, err = dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
 		HeuristicType:   h.getType(),
 		Origins:         dummyOrigins,
-		Parameter:       h.getParameter(),
+		Parameter:       h.getParameterDescription(),
 		ParentHeuristic: pHeuristic,
 		TxHash:          txHash,
 	})

@@ -29,8 +29,12 @@ func (b TimeConstraintHeuristic) getType() string {
 	return b.heuristicType
 }
 
-func (b TimeConstraintHeuristic) getParameter() string {
+func (b TimeConstraintHeuristic) getParameterDescription() string {
 	return b.parameterDescription
+}
+
+func (b TimeConstraintHeuristic) hasParameter() bool {
+	return true
 }
 
 // TimeConstraintHeuristic applies the following heuristics:

@@ -24,8 +24,12 @@ func (h DenominationTypeHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h DenominationTypeHeuristic) getParameter() string {
+func (h DenominationTypeHeuristic) getParameterDescription() string {
 	return h.parameterDescription
+}
+
+func (h DenominationTypeHeuristic) hasParameter() bool {
+	return false
 }
 
 // DenominationTypeHeuristic applies the following heuristic:

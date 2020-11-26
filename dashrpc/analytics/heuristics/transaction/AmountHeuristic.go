@@ -24,8 +24,12 @@ func (h AmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h AmountHeuristic) getParameter() string {
+func (h AmountHeuristic) getParameterDescription() string {
 	return h.parameterDescription
+}
+
+func (h AmountHeuristic) hasParameter() bool {
+	return false
 }
 
 // AmountHeuristic applies the following heuristic:
