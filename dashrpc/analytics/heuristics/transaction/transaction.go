@@ -172,9 +172,13 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 	}
 }
 
-// Run runs the given heuristic executor. The executor runs initial heuristic and
-// triggers the Run function of the NextHeuristics
-func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
+// RunAsync runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the Run function of all NextHeuristics.
+// WARNING: This will throw errors in certain cases while upserting a heuristic. This is the result
+// of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
+// is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
+// For a cleaner version, function use RunSynchronous
+func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
 	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
@@ -188,7 +192,7 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 		waitGroup.Add(1)
 		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
 			defer wg.Done()
-			if err := e.Run(dgraph, txHash, newUid); err != nil {
+			if err := e.RunAsync(dgraph, txHash, newUid); err != nil {
 				errChannel <- err
 				return
 			}
@@ -208,6 +212,30 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 			}
 		}
 	}
+
+	return returnError
+}
+
+// RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the RunSynchronous function of all NextHeuristics
+func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
+	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
+	}
+
+	for _, executor := range hx.NextHeuristics {
+		if err := executor.RunSynchronous(dgraph, txHash, newUid); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+					executor.ThisHeuristic.getType(), executor.ThisHeuristic.getParameterString(), err))
+		}
+
+	}
+
+	var returnError error
 
 	return returnError
 }
