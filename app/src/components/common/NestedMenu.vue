@@ -17,7 +17,7 @@
         {{ name }}
         <v-icon>mdi-chevron-right</v-icon>
       </v-list-item>
-      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>
+<!--      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>-->
     </template>
     <v-list>
       <template v-for="(item, index) in menuItems">
