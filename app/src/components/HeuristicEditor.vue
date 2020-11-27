@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid>
+  <v-container class="fill-height">
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"
@@ -11,8 +11,8 @@
         style="max-width: 600px"
         name='File' :menu-items='fileMenuItems' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
-        style="width: 100%; left:0;"
-        absolute
+        style="width: 100%; left:0;position:fixed; z-index: 99"
+
         dense
     >
       <v-toolbar-title>
@@ -56,9 +56,7 @@
         </v-list>
       </v-menu>
       <v-bottom-sheet scrollable v-model="sheetOpen">
-        <v-card v-touch="{
-      down: () => {this.sheetOpen = false;}
-    }">
+        <v-card>
           <v-subheader>Add heuristic</v-subheader>
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
@@ -200,9 +198,25 @@ export default {
     };
   },
   computed: {
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
+      }
+    },
     data() {
       return this.$store.getters.getHeuristicData;
-    }
+    },
+    successMsg: {
+      get() {
+        return this.$store.getters.getSuccessMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setSuccessMsg', value);
+      }
+    },
   },
   methods: {
     executeHeuristics() {
@@ -220,10 +234,10 @@ export default {
       })
           .then(response => response.json())
           .then(data => {
-            console.log('Success:', data);
+            this.successMsg = data;
           })
           .catch((error) => {
-            console.error('Error:', error);
+            this.errMsg = error;
           });
     },
     downloadHeuristicSummary() {
@@ -360,7 +374,6 @@ rect {
   left: 0;
   height: 100%;
   width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
-  /*height: 100%;*/
 }
 
 </style>

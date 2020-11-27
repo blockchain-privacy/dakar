@@ -15,9 +15,22 @@ const state = {
 function getMsg(context) {
     let msgObj = context.state.msg;
     if (msgObj === null) {
-        msgObj = {};
+        msgObj = getResetMsgState();
     }
     return msgObj;
+}
+
+function getResetMsgState() {
+    return {
+        error: null,
+        errorActive: false,
+        info: null,
+        infoActive: false,
+        success: null,
+        successActive: false,
+        warning: null,
+        warningActive: false,
+    };
 }
 
 const mutations = {
@@ -46,26 +59,50 @@ const mutations = {
 
 const actions = {
     resetMsg(context) {
-        context.commit('SET_MSG', null);
+        context.commit('SET_MSG', getResetMsgState());
     },
     setErrorMsg(context, payload) {
         const msgObj = getMsg(context);
         msgObj.error = payload;
+        msgObj.errorActive = true;
         context.commit('SET_MSG', msgObj);
     },
     setInfoMsg(context, payload) {
         const msgObj = getMsg(context);
         msgObj.info = payload;
+        msgObj.infoActive = true;
         context.commit('SET_MSG', msgObj);
     },
     setSuccessMsg(context, payload) {
         const msgObj = getMsg(context);
         msgObj.success = payload;
+        msgObj.successActive = true;
         context.commit('SET_MSG', msgObj);
     },
     setWarningMsg(context, payload) {
         const msgObj = getMsg(context);
         msgObj.warning = payload;
+        msgObj.warningActive = true;
+        context.commit('SET_MSG', msgObj);
+    },
+    setErrorActive(context, payload) {
+        const msgObj = getMsg(context);
+        msgObj.errorActive = payload;
+        context.commit('SET_MSG', msgObj);
+    },
+    setInfoActive(context, payload) {
+        const msgObj = getMsg(context);
+        msgObj.infoActive = payload;
+        context.commit('SET_MSG', msgObj);
+    },
+    setSuccessActive(context, payload) {
+        const msgObj = getMsg(context);
+        msgObj.successActive = payload;
+        context.commit('SET_MSG', msgObj);
+    },
+    setWarningActive(context, payload) {
+        const msgObj = getMsg(context);
+        msgObj.warningActive = payload;
         context.commit('SET_MSG', msgObj);
     },
     setTransactionData(context, payload) {
@@ -123,6 +160,10 @@ const getters = {
         state.msg.success : null,
     getWarningMsg: state => state.msg !== null && state.msg.warning != null ?
         state.msg.warning : null,
+    isErrorActive: state => state.msg !== null ? state.msg.errorActive : false,
+    isInfoActive: state => state.msg !== null ? state.msg.infoActive : false,
+    isSuccessActive: state => state.msg !== null ? state.msg.successActive : false,
+    isWarningActive: state => state.msg !== null ? state.msg.warningActive : false,
     getTransactionData: state => state.transaction,
     getAddressData: state => state.address,
     getBlockData: state => state.block,
