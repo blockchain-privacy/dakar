@@ -242,9 +242,21 @@ export default {
     },
     deleteSubTree() {
       const toBeRemoved = ht.getRemovableNodes();
-      const updatedData = this.data.filter(e =>
-          !toBeRemoved.includes(e.uid)
-      );
+      const rel = ht.getRemovableRelationship();
+
+      let updatedData = [];
+
+      this.data.forEach(e => {
+        // update children set of parent
+        if (rel.parentUid !== '' && e.uid === rel.parentUid) {
+          e.children = e.children.filter(c => c.uid !== rel.childUid);
+        }
+
+        // remove removable nodes
+        if (!toBeRemoved.includes(e.uid)) {
+          updatedData.push(e);
+        }
+      });
 
       this.$store.dispatch('setHeuristicData', updatedData);
 

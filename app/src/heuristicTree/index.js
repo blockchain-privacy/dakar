@@ -408,6 +408,19 @@ function getRemovableNodes() {
     return toBeRemoved;
 }
 
+// getRemovableRelationship returns the uid and parent uid of the node to be removed
+function getRemovableRelationship() {
+    let ret = {};
+    ret.childUid = activeContextMenuNode.data.data.uid;
+    if (activeContextMenuNode.data.data.parent_heuristic)
+        ret.parentUid = activeContextMenuNode.data.data.parent_heuristic[0].uid;
+    else
+        ret.parentUid = '';
+
+
+    return ret;
+}
+
 // centerGraph centers the graph in the center of the svg
 async function centerGraph() {
     const svgRect = rootSvg.node().getBoundingClientRect();
@@ -432,6 +445,6 @@ async function centerGraph() {
 
 export {
     drawGraph, processGraphData, addHeuristic, setupSvg,
-    addRootElement, getRemovableNodes, centerGraph,
+    addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
     rootIdentifier
 };
