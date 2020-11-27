@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 )
 
 // validHeuristics includes all heuristics which are possible to receive from the frontend.
@@ -233,7 +232,7 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 	return
 }
 
-func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic) error {
+func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic, transactionHash string) error {
 	heuristicMap := make(map[string]heuristic)
 
 	for _, h := range validHeuristics {
@@ -254,7 +253,12 @@ func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic) error
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	log.Println(executors)
+	for _, e := range executors {
+
+		if err := e.RunSynchronous(dgraph, transactionHash, ""); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
 
 	return nil
 }

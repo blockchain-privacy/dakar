@@ -468,7 +468,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 
 		log.Println("Received", len(frontendHeuristics), "heuristics")
 
-		if err := heuristic.DoExecution(dgraph, frontendHeuristics); err != nil {
+		if err := heuristic.DoExecution(dgraph, frontendHeuristics, txHashString); err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
