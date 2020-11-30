@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -247,7 +246,7 @@ func main() {
 	}
 
 	// activate server
-	var srv *http.Server
+	var srv Server
 	if !cliArgs.DisableHttpServer {
 		wg.Add(1)
 		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
@@ -263,7 +262,7 @@ func main() {
 			interrupted = true
 			cancelCrawler()
 			cancelAnalyzer()
-			shutdownServer(srv)
+			srv.shutdownServer()
 		case <-chCrawlingStopped:
 			cancelCrawler()
 			crawlerStopped = true
@@ -274,10 +273,10 @@ func main() {
 	}
 
 	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped {
-		// if the crawler and analyzer stopped working on his own accord, the server is still active at this point
+		// if the crawler and analyzer stopped working on there own accord, the server is still active at this point
 		select {
 		case <-chSignal:
-			shutdownServer(srv)
+			srv.shutdownServer()
 		}
 	}
 

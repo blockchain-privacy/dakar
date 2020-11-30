@@ -232,7 +232,7 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 	return
 }
 
-func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic, transactionHash string) error {
+func ConstructExecutors(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic, transactionHash string) (executors []HeuristicExecutor, err error) {
 	heuristicMap := make(map[string]heuristic)
 
 	for _, h := range validHeuristics {
@@ -240,25 +240,21 @@ func DoExecution(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic, trans
 	}
 
 	if !isValid(heuristicMap, heuristics) {
-		return errHeuristicNotValid
+		err = errHeuristicNotValid
+		return
 	}
 
 	newHeuristics, err := buildHeuristicTreeElements(heuristicMap, heuristics)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
-	executors, err := buildExecutors(newHeuristics)
+	executors, err = buildExecutors(newHeuristics)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
-	for _, e := range executors {
-
-		if err := e.RunSynchronous(dgraph, transactionHash, ""); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
-
-	return nil
+	return
 }

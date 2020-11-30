@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
@@ -441,7 +442,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -467,12 +468,14 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph) func(http.ResponseWriter, *h
 		}
 
 		log.Println("Received", len(frontendHeuristics), "heuristics")
-
-		if err := heuristic.DoExecution(dgraph, frontendHeuristics, txHashString); err != nil {
+		executors, err := heuristic.ConstructExecutors(dgraph, frontendHeuristics, txHashString)
+		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
+
+		log.Println("Added work:", worker.AddWork(txHashString, executors))
 
 		type reply struct {
 			Message string `json:"msg,omitempty"`
@@ -500,7 +503,10 @@ func isValid(input string) bool {
 }
 
 // creates endpoint handlers
-func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
+func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
+	worker := heuristic.NewWorker()
+	worker.StartWorking(ctx, dgraph)
+
 	// API end points
 	http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph))
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
@@ -509,5 +515,5 @@ func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
-	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph))
+	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
 }
