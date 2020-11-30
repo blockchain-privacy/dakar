@@ -5,7 +5,6 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 )
 
 // validHeuristics includes all heuristics which are possible to receive from the frontend.
@@ -232,7 +231,7 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 	return
 }
 
-func ConstructExecutors(dgraph *dgo.Dgraph, heuristics []dbtxh.FrontendHeuristic, transactionHash string) (executors []HeuristicExecutor, err error) {
+func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []HeuristicExecutor, err error) {
 	heuristicMap := make(map[string]heuristic)
 
 	for _, h := range validHeuristics {

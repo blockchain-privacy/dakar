@@ -468,7 +468,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 		}
 
 		log.Println("Received", len(frontendHeuristics), "heuristics")
-		executors, err := heuristic.ConstructExecutors(dgraph, frontendHeuristics, txHashString)
+		executors, err := heuristic.ConstructExecutors(frontendHeuristics)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
