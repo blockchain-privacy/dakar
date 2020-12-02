@@ -9,10 +9,12 @@ type DummyOrigin struct {
 }
 
 type Heuristic struct {
-	Uid             string        `json:"uid,omitempty"`
-	HeuristicType   string        `json:"type,omitempty"`
-	Parameter       string        `json:"parameter,omitempty"`
-	TxUid           string        `json:"h_transaction,omitempty"`
+	Uid           string `json:"uid,omitempty"`
+	HeuristicType string `json:"type,omitempty"`
+	Parameter     string `json:"parameter,omitempty"`
+	Transaction   struct {
+		Uid string `json:"uid,omitempty"`
+	} `json:"h_transaction,omitempty"`
 	Timestamp       string        `json:"ts,omitempty"`
 	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
 	ChildHeuristics []Heuristic   `json:"~parent_heuristic,omitempty"`

@@ -144,13 +144,14 @@ func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUid str
 	for _, n := range treeNodes {
 		level := n.level
 		twoDimLength := len(levelToNode)
-		// add elements to first dimension of array if not exist
+		// add elements to first dimension of array if it not exist
 		if twoDimLength < level+1 {
 			for i := 0; i < level+1-twoDimLength; i++ {
 				levelToNode = append(levelToNode, []heuristicTreeElement{})
 			}
 		}
 
+		// don't worry, the slice is not nil. It is always initialised in the above if clause
 		levelToNode[level] = append(levelToNode[level], nodes[n.uid])
 	}
 

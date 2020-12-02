@@ -8,10 +8,79 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
+	"strconv"
 	"time"
 )
 
-// Upserts the given heuristic
+// CopyHeuristicTree copies the complete heuristic tree starting at rootHeuristicUid.
+// The heuristic results stay the same.
+func CopyHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (err error) {
+	hTree, treeErr := GetHeuristicTree(c, rootHeuristicUid)
+	if treeErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), treeErr)
+		return
+	}
+
+	// create map to slice
+	heuristicMap := make(map[string]Heuristic)
+	for i, h := range hTree {
+		uid := h.Uid
+
+		// save changes
+		h.Uid = "_:" + strconv.Itoa(i)
+		hTree[i] = h
+		heuristicMap[uid] = h
+	}
+
+	for i, h := range hTree {
+		if len(h.ParentHeuristic) > 0 {
+			parent, ok := heuristicMap[h.ParentHeuristic[0].Uid]
+			if !ok {
+				return errors.New("error heuristic uid not found")
+			}
+			h.ParentHeuristic[0].Uid = parent.Uid
+			// save change
+			hTree[i] = h
+		}
+	}
+
+	if insertionError := insertHeuristics(c, hTree); insertionError != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), insertionError)
+		return
+	}
+
+	return
+}
+
+// insertHeuristics inserts all given heuristics into the database
+func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
+	for i, h := range heuristics {
+		h.SetDType()
+		heuristics[i] = h
+	}
+
+	pb, err := json.Marshal(heuristics)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	_, err = db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
+
+// UpsertHeuristic upserts the given heuristic
 func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 	// todo check if needed
 	// delete potential already existing edges of h
@@ -22,19 +91,22 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
-	h.TxUid = "uid(tx)"
+
+	var query string
+
+	// if TxHash is not empty we have to search for the transaction uid
+	if h.TxHash != "" {
+		h.Transaction.Uid = "uid(tx)"
+		query = `query Q($txhash: string) {
+					tx as var(func: eq(txhash, $txhash))
+				  }`
+	}
 
 	pb, err := json.Marshal(h)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
-
-	query := `
-		query Q($txhash: string, $huid: string) {
-			tx as var(func: eq(txhash, $txhash))
-		}
-	`
 
 	req := &api.Request{
 		Query: query,
@@ -65,7 +137,7 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 	return
 }
 
-// Deletes all edges of the result predicate of h
+// deleteHeuristicEdges deletes all edges of the result predicate of h
 func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 	h.SetDType()
 	h.Uid = "uid(h)"
@@ -95,18 +167,20 @@ func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
 	return
 }
 
-// gets heuristic information from the database
+// GetHeuristic gets heuristic information from the database
 func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
 					uid
 					type
 					parameter
-					h_transaction
 					results{
 						uid
 					}
 					ts
+					h_transaction{
+						uid
+					}
 					parent_heuristic{
 						uid
 					}
@@ -137,6 +211,55 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 		return
 	}
 	h = r.Heuristics[0]
+	return
+}
+
+// GetHeuristicTree gets a complete heuristic tree descending from rootHeuristicUid
+func GetHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (h []Heuristic, err error) {
+	query := `query Q($uid: string){
+					var(func: uid($uid))@recurse{
+						h_uid as uid
+						~parent_heuristic
+					}
+					
+					q(func: uid(h_uid)){
+						uid
+						type
+						parameter
+						h_transaction{
+							uid
+						}
+						results{
+							uid
+						}
+						ts
+						parent_heuristic{
+							uid
+						}
+					}
+				  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": rootHeuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Heuristics []Heuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+	h = r.Heuristics
 	return
 }
 
