@@ -82,11 +82,21 @@ function dragEvent(event) {
     }
 }
 
+// checkType checks the passed heuristic can be a child based on the type
+function checkType(node) {
+    console.log(node.type);
+    return node.type !== 'one_source';
+}
+
 // isValidMoveTarget returns true if the potential new parent is a valid target
 function isValidMoveTarget(node, newParentNode) {
     const nodeData = node.data();
     if (nodeData.length === 0)
         return false;
+
+    if (!checkType(nodeData[0].data.data)) {
+        return false
+    }
 
     const thisUid = nodeData[0].data.data.uid;
 

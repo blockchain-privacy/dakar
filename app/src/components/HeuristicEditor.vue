@@ -370,7 +370,7 @@ rect {
 
 .valid-target {
   stroke: #2E7D32;
-  stroke-width: 3px;
+  stroke-width: 4px;
 }
 
 #svg_canvas {
