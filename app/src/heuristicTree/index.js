@@ -57,6 +57,12 @@ function dragEvent(event) {
         rootSvg.selectAll(".link")
             .data(linksToHide, d => d.data.data.uid)
             .attr("stroke-opacity", 0);
+
+        // color all nodes which are valid targets
+        rootSvg.selectAll(".rect")
+            .classed("valid-target", d => {
+                return isValidMoveTarget(dragNode, d);
+            });
     }
 
     const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
@@ -76,9 +82,40 @@ function dragEvent(event) {
     }
 }
 
+// isValidMoveTarget returns true if the potential new parent is a valid target
+function isValidMoveTarget(node, newParentNode) {
+    const nodeData = node.data();
+    if (nodeData.length === 0)
+        return false;
+
+    const thisUid = nodeData[0].data.data.uid;
+
+    if (nodeData[0].data.data.parent_heuristic === undefined) {
+        // check if newParentNode is not a selection
+        if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
+            return thisUid !== newParentNode.data.data.uid;
+        }
+
+        return thisUid !== newParentNode.data()[0].data.data.uid;
+    }
+
+
+    const thisParentUid = nodeData[0].data.data.parent_heuristic[0].uid;
+
+    // check if newParentNode is not a selection
+    if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
+        return thisParentUid !== newParentNode.data.data.uid && thisUid !== newParentNode.data.data.uid;
+    }
+
+    return thisParentUid !== newParentNode.data()[0].data.data.uid && thisUid !== newParentNode.data()[0].data.data.uid;
+}
+
+// dragEnd gets called when the drag event ends. If applicable it moves a dragged subtree to its new parent
 function dragEnd(event, context) {
     dragNode = dragNode.attr("pointer-events", null);
     rootGroup.selectAll(".selected").classed("selected", false);
+    rootSvg.selectAll(".rect").classed("valid-target", false);
+
 
     if (dragLayoutHiddenNodes !== null) {
         rootSvg.selectAll(".node")
@@ -87,7 +124,8 @@ function dragEnd(event, context) {
     }
 
     // only move node if drag was active before --> not clicked and activeMouseOverNode is set
-    if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr("opacity") > 0) {
+    if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr("opacity") > 0
+        && isValidMoveTarget(dragNode, activeMouseOverNode)) {
         moveNode(context, activeMouseOverNode, dragNode);
     }
 
@@ -202,9 +240,12 @@ function drawRect(rootElement) {
 function mouseOverNode(_, d) {
     if (dragActive && d !== dragLayoutData) {
         if (d !== lastMouseOverNode) {
-            lastMouseOverNode = d;
-            activeMouseOverNode = d3.select(this);
-            activeMouseOverNode.select(".rect").classed("selected", true);
+            let tmpMouseOverNode = d3.select(this);
+            if (isValidMoveTarget(dragNode, tmpMouseOverNode)) {
+                lastMouseOverNode = d;
+                activeMouseOverNode = tmpMouseOverNode;
+                activeMouseOverNode.select(".rect").classed("selected", true);
+            }
         }
     }
 }

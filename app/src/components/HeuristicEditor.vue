@@ -12,9 +12,7 @@
         name='File' :menu-items='fileMenuItems' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
         style="width: 100%; left:0;position:fixed; z-index: 99"
-
-        dense
-    >
+        dense>
       <v-toolbar-title>
         <v-icon class="hidden-sm-and-down">mdi-transfer</v-icon>
         Transaction {{ this.shortTransactionHash }}
@@ -23,6 +21,11 @@
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
+
+      <!--    todo: remove?-->
+      <v-btn @click="refreshData">Refresh</v-btn>
+      <v-btn @click="changeData">Change</v-btn>
+
       <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
@@ -85,9 +88,6 @@
         </v-card>
       </v-bottom-sheet>
     </v-toolbar>
-    <!--    todo: remove?-->
-    <!--    <v-btn @click="refreshData">Refresh</v-btn>-->
-    <!--    <v-btn @click="changeData">Change</v-btn>-->
     <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
 </template>
@@ -366,6 +366,11 @@ rect {
 .selected {
   fill: #9CCC65;
   fill-opacity: 1;
+}
+
+.valid-target {
+  stroke: #2E7D32;
+  stroke-width: 3px;
 }
 
 #svg_canvas {
