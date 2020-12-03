@@ -363,6 +363,11 @@ rect {
   background-color: whitesmoke;
 }
 
+.modified {
+  fill: red;
+  fill-opacity: 1;
+}
+
 .selected {
   fill: #9CCC65;
   fill-opacity: 1;

@@ -151,6 +151,7 @@ function dragEnd(event, context) {
     context.updateGraph();
 }
 
+// moveNode sets parent as the parent node of the child subgraph
 function moveNode(context, parent, child) {
     if (context.data === null)
         return;
@@ -160,6 +161,8 @@ function moveNode(context, parent, child) {
     if (childData.parent_heuristic !== undefined) {
         formerParentUid = childData.parent_heuristic[0].uid;
     }
+
+    rootSvg.selectAll("rect").data(child.data()[0].descendants(), d => d.data.data.uid).classed("modified", true);
 
     for (let i = 0; i < context.data.length; i++) {
         let dataElement = context.data[i];
