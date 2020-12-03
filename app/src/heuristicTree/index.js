@@ -84,7 +84,6 @@ function dragEvent(event) {
 
 // checkType checks the passed heuristic can be a child based on the type
 function checkType(node) {
-    console.log(node.type);
     return node.type !== 'one_source';
 }
 
@@ -126,7 +125,7 @@ function dragEnd(event, context) {
     rootGroup.selectAll(".selected").classed("selected", false);
     rootSvg.selectAll(".rect").classed("valid-target", false);
 
-
+    // reset pointer events
     if (dragLayoutHiddenNodes !== null) {
         rootSvg.selectAll(".node")
             .data(dragLayoutHiddenNodes, d => d.data.data.uid)
@@ -151,6 +150,16 @@ function dragEnd(event, context) {
     context.updateGraph();
 }
 
+function setNodesChanged(changedNodes) {
+    // reset
+    rootSvg.selectAll("rect")
+        .classed("modified", false);
+    // set changes
+    rootSvg.selectAll("rect")
+        .data(changedNodes, d => d.data.data.uid)
+        .classed("modified", true);
+}
+
 // moveNode sets parent as the parent node of the child subgraph
 function moveNode(context, parent, child) {
     if (context.data === null)
@@ -162,10 +171,14 @@ function moveNode(context, parent, child) {
         formerParentUid = childData.parent_heuristic[0].uid;
     }
 
-    rootSvg.selectAll("rect").data(child.data()[0].descendants(), d => d.data.data.uid).classed("modified", true);
+    // // set class for changed nodes
+    // // todo remove
+    // rootSvg.selectAll("rect").data(child.data()[0].descendants(), d => d.data.data.uid).classed("modified", true);
 
-    for (let i = 0; i < context.data.length; i++) {
-        let dataElement = context.data[i];
+    let newData = context.data;
+
+    for (let i = 0; i < newData.length; i++) {
+        let dataElement = newData[i];
         if (dataElement.uid === parentData.uid) {
             if (dataElement.children === undefined) {
                 dataElement.children = [];
@@ -190,6 +203,32 @@ function moveNode(context, parent, child) {
             dataElement.children = dataElement.children.filter(c => c.uid !== childData.uid);
         }
     }
+
+    // set new state
+    context.data = newData;
+
+    context.updateChangeSet()
+}
+
+// getDescendants returns all descendants of the node with the given uid
+function getDescendants(uid) {
+    // find the node
+    let changedNode = null;
+    for (const d of rootSvg.selectAll("g").data()) {
+        if (d === undefined) {
+            continue;
+        }
+        if (uid === d.data.data.uid) {
+            changedNode = d;
+            break;
+        }
+    }
+
+    if (changedNode === null) {
+        return [];
+    }
+
+    return changedNode.descendants();
 }
 
 function drawRect(rootElement) {
@@ -500,5 +539,5 @@ async function centerGraph() {
 export {
     drawGraph, processGraphData, addHeuristic, setupSvg,
     addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
-    rootIdentifier
+    getDescendants, setNodesChanged, rootIdentifier
 };

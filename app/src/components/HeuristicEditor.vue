@@ -130,6 +130,28 @@ function newRouting(context) {
   context.onMounted();
 }
 
+function dataToMap(data) {
+  let dataMap = new Map();
+  data.forEach(d => dataMap.set(d.uid, d));
+  return dataMap
+}
+
+function areDataElementsEqual(a, b) {
+  if (a.uid !== b.uid || a.parameter !== b.parameter || a.type !== b.type) {
+    return false;
+  }
+
+  if (a.parent_heuristic !== undefined && b.parent_heuristic !== undefined) {
+    return a.parent_heuristic[0].uid === b.parent_heuristic[0].uid;
+  } else if ((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
+      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined)) {
+    // if one is set but not the other
+    return false;
+  }
+
+  return true;
+}
+
 export default {
   name: "HeuristicEditor",
   components: {NestedMenu},
@@ -137,6 +159,10 @@ export default {
     return {
       transactionHash: "",
       shortTransactionHash: "",
+      // dbState holds the state of the database. It is used to detect changes in this.data (computed)
+      dbState: null,
+      // changeSet holds all changes based on dbState and this.data(computed)
+      changeSet: [],
       sheetOpen: false,
       heuristicTypes: [
         {
@@ -206,8 +232,13 @@ export default {
         this.$store.dispatch('setErrorMsg', value);
       }
     },
-    data() {
-      return this.$store.getters.getHeuristicData;
+    data: {
+      get() {
+        return this.$store.getters.getHeuristicData;
+      },
+      set(value) {
+        this.$store.dispatch('setHeuristicData', value);
+      },
     },
     successMsg: {
       get() {
@@ -249,6 +280,45 @@ export default {
       //     .catch((error) => {
       //       console.error('Error:', error);
       //     });
+    },
+    // updateChangeSet updates the change set this.changeSet based on the differences of this.data and this.dbState
+    updateChangeSet() {
+      this.changeSet = [];
+      let originChangeSet = [];
+      this.data.forEach(d => {
+        if (this.dbState.has(d.uid)) {
+          const thisElement = this.dbState.get(d.uid);
+          if (!areDataElementsEqual(thisElement, d)) {
+            // changed element
+            originChangeSet.push(d);
+          }
+        } else {
+          // new element
+          originChangeSet.push(d);
+        }
+      });
+
+      // this set will have some duplicates, if changes are nested we get overlapping descendants
+      let descendantSet = [];
+      // find descendants for each changed root element
+      originChangeSet.forEach(d => {
+        // get subtree
+        const descendants = ht.getDescendants(d.uid);
+        descendantSet.push(...descendants);
+      });
+
+      // remove duplicates
+      const descendantMap = new Map(descendantSet.map(
+          tempObject => [tempObject.data.data.uid, tempObject]));
+
+      console.log(descendantMap);
+
+      // save in global changeSet
+      descendantMap.forEach(e => this.changeSet.push(e.data.data.uid));
+
+      ht.setNodesChanged(descendantSet);
+
+      console.log(this.changeSet);
     },
     // called by context menu handler
     goToTransactionPage() {
@@ -296,6 +366,10 @@ export default {
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
       ht.addRootElement(this.data);
+      // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
+      // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
+      // functions (complex types like function are not allowed):
+      this.dbState = dataToMap(JSON.parse(JSON.stringify(this.data)));
       this.updateGraph();
     },
     changeData() {
