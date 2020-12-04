@@ -99,11 +99,18 @@ import * as ht from "@/heuristicTree";
 import NestedMenu from "@/components/common/NestedMenu";
 
 // prepareData prepares the heuristic data so it can be sent to be executed
-function prepareData(data) {
-  let filteredData = [];
+function prepareData(oldStateMap, newState, changeSet) {
+  const newStateMap = new Map(newState.map(d => [d.uid, d]));
+  const deletedData = getDeletedData(oldStateMap, newStateMap);
 
+  let changedItems = [];
+  for (let changedUid of changeSet) {
+    changedItems.push(newStateMap.get(changedUid));
+  }
+
+  let filteredData = [];
   // filter properties which do not need to be sent over the wire: timestamp and result count
-  data.forEach(d => {
+  changedItems.forEach(d => {
     // filter out the dummy element
     if (d.uid === ht.rootIdentifier) {
       return;
@@ -118,7 +125,19 @@ function prepareData(data) {
     });
   });
 
-  return filteredData;
+  return {changed: filteredData, deleted: deletedData};
+}
+
+function getDeletedData(oldStateMap, newStateMap) {
+  // search for deleted items
+  let deletedUids = [];
+  for (let key of oldStateMap.keys()) {
+    if (!newStateMap.has(key)) {
+      deletedUids.push({uid: key});
+    }
+  }
+
+  return deletedUids;
 }
 
 function newRouting(context) {
@@ -128,12 +147,6 @@ function newRouting(context) {
   }
 
   context.onMounted();
-}
-
-function dataToMap(data) {
-  let dataMap = new Map();
-  data.forEach(d => dataMap.set(d.uid, d));
-  return dataMap
 }
 
 function areDataElementsEqual(a, b) {
@@ -261,7 +274,7 @@ export default {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(prepareData(this.data)),
+        body: JSON.stringify(prepareData(this.dbState, this.data, this.changeSet)),
       })
           .then(response => response.json())
           .then(data => {
@@ -311,14 +324,10 @@ export default {
       const descendantMap = new Map(descendantSet.map(
           tempObject => [tempObject.data.data.uid, tempObject]));
 
-      console.log(descendantMap);
-
       // save in global changeSet
       descendantMap.forEach(e => this.changeSet.push(e.data.data.uid));
 
       ht.setNodesChanged(descendantSet);
-
-      console.log(this.changeSet);
     },
     // called by context menu handler
     goToTransactionPage() {
@@ -343,9 +352,11 @@ export default {
       });
 
       this.$store.dispatch('setHeuristicData', updatedData);
-
       // update displayed graph
       this.updateGraph();
+      // updateChangeSet should only be called after a graph update,
+      // because it gets a not up to date descendant state
+      this.updateChangeSet();
     },
     showContextMenu(e) {
       this.contextMenu.display = false;
@@ -369,7 +380,8 @@ export default {
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
       // functions (complex types like function are not allowed):
-      this.dbState = dataToMap(JSON.parse(JSON.stringify(this.data)));
+
+      this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map(d => [d.uid, d]));
       this.updateGraph();
     },
     changeData() {
@@ -430,7 +442,6 @@ rect {
   stroke: #FDD835;
   fill: antiquewhite;
   fill-opacity: 1;
-  stroke-dasharray: 10;
 }
 
 .graph-canvas {
@@ -438,8 +449,7 @@ rect {
 }
 
 .modified {
-  fill: red;
-  fill-opacity: 1;
+  stroke-dasharray: 5;
 }
 
 .selected {
