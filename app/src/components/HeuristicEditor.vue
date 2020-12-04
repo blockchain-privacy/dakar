@@ -133,7 +133,7 @@ function getDeletedData(oldStateMap, newStateMap) {
   let deletedUids = [];
   for (let key of oldStateMap.keys()) {
     if (!newStateMap.has(key)) {
-      deletedUids.push({uid: key});
+      deletedUids.push(key);
     }
   }
 
