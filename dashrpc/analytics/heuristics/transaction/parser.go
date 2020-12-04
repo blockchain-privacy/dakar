@@ -232,6 +232,7 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 	return
 }
 
+// ConstructExecutors creates executors based on heuristics
 func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []HeuristicExecutor, err error) {
 	heuristicMap := make(map[string]heuristic)
 
@@ -255,6 +256,25 @@ func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []Heuri
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
+
+	return
+}
+
+type Work struct {
+	executors           []HeuristicExecutor
+	removableHeuristics []string
+}
+
+func CreateWork(changed []dbtxh.FrontendHeuristic, removed []string) (w Work, err error) {
+	// todo add changed items to removableHeuristics
+
+	w.executors, err = ConstructExecutors(changed)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	w.removableHeuristics = removed
 
 	return
 }

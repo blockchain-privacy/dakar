@@ -453,35 +453,44 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			return
 		}
 
-		var frontendHeuristics []dbtxh.FrontendHeuristic
+		type request struct {
+			Changed []dbtxh.FrontendHeuristic `json:"changed,omitempty"`
+			Deleted []string                  `json:"deleted,omitempty"`
+		}
+
+		var heuristicRequest request
+
 		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&frontendHeuristics)
+		err := decoder.Decode(&heuristicRequest)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		if len(frontendHeuristics) == 0 {
+		if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			return
 		}
 
-		log.Println("Received", len(frontendHeuristics), "heuristics")
-		executors, err := heuristic.ConstructExecutors(frontendHeuristics)
+		log.Println("Received", len(heuristicRequest.Changed), "changed heuristics")
+		log.Println("Received", len(heuristicRequest.Deleted), "deleted heuristics")
+
+		work, err := heuristic.CreateWork(heuristicRequest.Changed, heuristicRequest.Deleted)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		log.Println("Added work:", worker.AddWork(txHashString, executors))
+		log.Println("Added work:", worker.AddWork(txHashString, work))
 
 		type reply struct {
 			Message string `json:"msg,omitempty"`
 		}
 
-		msg := reply{Message: fmt.Sprintf("Received %d heuristics", len(frontendHeuristics))}
+		msg := reply{Message: fmt.Sprintf("Received %d changed and %d deleted heuristics",
+			len(heuristicRequest.Changed), len(heuristicRequest.Deleted))}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(msg)

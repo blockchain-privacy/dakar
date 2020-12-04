@@ -3,6 +3,7 @@ package transaction
 import (
 	"context"
 	"dashrpc/cmd/cliutil"
+	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
@@ -11,11 +12,11 @@ import (
 )
 
 type Worker struct {
-	executionMap map[string][]HeuristicExecutor
+	executionMap map[string]Work
 	mapLock      *sync.Mutex
 }
 
-func (w *Worker) AddWork(transactionHash string, executors []HeuristicExecutor) bool {
+func (w *Worker) AddWork(transactionHash string, work Work) bool {
 	w.mapLock.Lock()
 	defer w.mapLock.Unlock()
 
@@ -23,7 +24,7 @@ func (w *Worker) AddWork(transactionHash string, executors []HeuristicExecutor) 
 		return false
 	}
 
-	w.executionMap[transactionHash] = executors
+	w.executionMap[transactionHash] = work
 
 	for k, v := range w.executionMap {
 		log.Println(k, v)
@@ -33,7 +34,7 @@ func (w *Worker) AddWork(transactionHash string, executors []HeuristicExecutor) 
 
 func NewWorker() Worker {
 	var mLock sync.Mutex
-	return Worker{executionMap: make(map[string][]HeuristicExecutor), mapLock: &mLock}
+	return Worker{executionMap: make(map[string]Work), mapLock: &mLock}
 }
 
 func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph) {
@@ -46,7 +47,7 @@ func stoppingWorker() {
 
 func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
 
-	var work []HeuristicExecutor
+	var work Work
 	var currentTransactionHash string
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
@@ -66,14 +67,17 @@ mainLoop:
 			}
 			w.mapLock.Unlock()
 
-			if len(work) == 0 {
-				log.Println("Found nothing. Sleeping ...")
+			if len(work.executors) == 0 && len(work.removableHeuristics) == 0 {
 				continue
 			}
 
-			for _, e := range work {
-				if runErr := e.RunSynchronous(dgraph, currentTransactionHash, ""); runErr != nil {
-					log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), runErr))
+			if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
+				log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+			} else {
+				for _, e := range work.executors {
+					if err = e.RunSynchronous(dgraph, currentTransactionHash, ""); err != nil {
+						log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+					}
 				}
 			}
 
@@ -83,7 +87,7 @@ mainLoop:
 
 			// reset memory
 			currentTransactionHash = ""
-			work = nil
+			work = Work{}
 		}
 	}
 }

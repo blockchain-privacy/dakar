@@ -137,33 +137,37 @@ func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 	return
 }
 
-// deleteHeuristicEdges deletes all edges of the result predicate of h
-func deleteHeuristicEdges(c *dgo.Dgraph, h Heuristic) (err error) {
-	h.SetDType()
-	h.Uid = "uid(h)"
+// DeleteHeuristics deletes all given uids
+func DeleteHeuristics(c *dgo.Dgraph, uids []string) (err error) {
+	// This query gets built for multiple uids
+	//`query Q($uid: string) {
+	//		 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DType + `"))
+	//}`
 
-	query := `
-		query Q($txhash: string, $type: string, $parameter: string) {
-			var(func: eq(txhash, $txhash)){
-				h as ~h_transaction@filter(eq(type,$type) AND eq(parameter, $parameter))
-			}
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
 		}
-	`
+	}
 
-	mu := &api.Mutation{}
-	dgo.DeleteEdges(mu, "uid(h)", "results")
+	query := "{h as var(func: uid(" +
+		queryPart + "))@filter(eq(dgraph.type," + DType + "))}"
 
 	req := &api.Request{
-		Query:     query,
-		Vars:      map[string]string{"$txhash": h.TxHash, "$type": h.HeuristicType, "$parameter": h.Parameter},
-		Mutations: []*api.Mutation{mu},
+		Query: query,
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) * * ."),
+		}},
 		CommitNow: true,
 	}
 
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	if txErr := db.TxWithRetry(c, db.GetBackendContext(), req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
 	}
-
 	return
 }
 
