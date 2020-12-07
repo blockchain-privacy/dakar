@@ -476,7 +476,8 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 		log.Println("Received", len(heuristicRequest.Changed), "changed heuristics")
 		log.Println("Received", len(heuristicRequest.Deleted), "deleted heuristics")
 
-		work, err := heuristic.CreateWork(heuristicRequest.Changed, heuristicRequest.Deleted)
+		work, err := heuristic.CreateWork(dgraph, heuristicRequest.Changed,
+			heuristicRequest.Deleted)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)

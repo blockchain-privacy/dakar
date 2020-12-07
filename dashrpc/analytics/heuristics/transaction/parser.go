@@ -5,6 +5,8 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"errors"
 	"fmt"
+	"github.com/dgraph-io/dgo/v2"
+	"log"
 )
 
 // validHeuristics includes all heuristics which are possible to receive from the frontend.
@@ -260,21 +262,66 @@ func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []Heuri
 	return
 }
 
-type Work struct {
-	executors           []HeuristicExecutor
-	removableHeuristics []string
+// areSetsValid checks if the uids of removed are appearing in changed
+func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
+	// if both are empty there is an error
+	if len(changed) == 0 && len(removed) == 0 {
+		return false
+	}
+
+	// if one is empty we have nothing to check against
+	if len(changed) == 0 || len(removed) == 0 {
+		return true
+	}
+
+	// copy uids into map
+	changeMap := make(map[string]bool)
+	for _, c := range changed {
+		changeMap[c.Uid] = true
+	}
+
+	for _, r := range removed {
+		if ok := changeMap[r]; ok {
+			return false
+		}
+	}
+
+	return true
 }
 
-func CreateWork(changed []dbtxh.FrontendHeuristic, removed []string) (w Work, err error) {
-	// todo add changed items to removableHeuristics
+// mergeRemoveList adds the uids of
+func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []string {
+	for _, c := range changed {
+		removed = append(removed, c.Uid)
+	}
 
+	return removed
+}
+
+// CreateWork does some checks changed and toRemove
+func CreateWork(dgraph *dgo.Dgraph, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
+	if !areSetsValid(changed, toRemove) {
+		err = errors.New("error sets are not valid")
+		return
+	}
+
+	// create HeuristicExecutor trees
 	w.executors, err = ConstructExecutors(changed)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
+	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
-	w.removableHeuristics = removed
+	if len(changed) > 0 && copyOnModify {
+		// find heuristic roots
+		w.treeRoots, err = dbtxh.GetRootUids(dgraph, w.removableHeuristics)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+		log.Println(w.treeRoots)
+	}
 
 	return
 }

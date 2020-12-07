@@ -11,6 +11,18 @@ import (
 	"time"
 )
 
+// copyOnModify is true when existing heuristic trees should be copied before modification
+const copyOnModify = true
+
+type Work struct {
+	// executors contains the HeuristicExecutor trees
+	executors []HeuristicExecutor
+	// removableHeuristics contains the uids of all heuristics are ready for deletion
+	removableHeuristics []string
+	// treeRoots contains the uids of the roots of all trees modified by the heuristics in executors
+	treeRoots []string
+}
+
 type Worker struct {
 	executionMap map[string]Work
 	mapLock      *sync.Mutex
@@ -59,6 +71,7 @@ mainLoop:
 			stoppingWorker()
 			break mainLoop
 		case <-ticker.C:
+			// get work for this cycle
 			w.mapLock.Lock()
 			for k, v := range w.executionMap {
 				work = v
@@ -67,16 +80,34 @@ mainLoop:
 			}
 			w.mapLock.Unlock()
 
-			if len(work.executors) == 0 && len(work.removableHeuristics) == 0 {
-				continue
-			}
+			// do we have something to do?
+			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
+				log.Print("processing work package")
+				// copy tree
+				wasCopingErrorFree := true
+				if copyOnModify {
+					for _, root := range work.treeRoots {
+						if err := dbtxh.CopyHeuristicTree(dgraph, root); err != nil {
+							log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+							wasCopingErrorFree = false
+							break
+						}
+					}
+				}
 
-			if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
-				log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-			} else {
-				for _, e := range work.executors {
-					if err = e.RunSynchronous(dgraph, currentTransactionHash, ""); err != nil {
+				if wasCopingErrorFree {
+					// delete changed or removable heuristics
+					if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
 						log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+						// no return/break because we want keep working even if we are failing
+						// no continue because we still need to do the deletion of this (faulty) job and reset the memory
+					} else {
+						// if no error occurred -> execute the new heuristics
+						for _, e := range work.executors {
+							if err = e.RunSynchronous(dgraph, currentTransactionHash, ""); err != nil {
+								log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+							}
+						}
 					}
 				}
 			}

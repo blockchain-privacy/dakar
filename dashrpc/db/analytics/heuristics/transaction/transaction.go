@@ -52,6 +52,67 @@ func CopyHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (err error) {
 	return
 }
 
+// GetRootUids returns the root heuristic uids of the provided heuristics
+func GetRootUids(c *dgo.Dgraph, uids []string) (roots []string, err error) {
+	// This query gets built for multiple uids
+	// {var(func: uid(0x42ae75,0x42ae76,0x42ae77))@recurse{
+	//		v as uid
+	//			parent_heuristic
+	//		}
+	//
+	//		q(func: uid(v))@filter(not has(parent_heuristic)){
+	//			uid
+	//		}
+	// }
+
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
+		}
+	}
+
+	query := "{var(func: uid(" + queryPart + `))@recurse{
+					v as uid
+				parent_heuristic
+				}
+				
+				q(func: uid(v))@filter(not has(parent_heuristic)){
+					uid
+				}
+			}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Roots []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Roots) == 0 {
+		err = errors.New("error no heuristic tree root found")
+		return
+	}
+
+	for _, u := range r.Roots {
+		roots = append(roots, u.Uid)
+	}
+
+	return
+}
+
 // insertHeuristics inserts all given heuristics into the database
 func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
 	for i, h := range heuristics {
@@ -80,15 +141,8 @@ func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
 	return
 }
 
-// UpsertHeuristic upserts the given heuristic
-func UpsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
-	// todo check if needed
-	// delete potential already existing edges of h
-	//if err = deleteHeuristicEdges(c, h); err != nil {
-	//	err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//	return
-	//}
-
+// InsertHeuristic inserts the given heuristic
+func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 

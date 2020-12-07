@@ -278,7 +278,7 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
 	}
 
-	thisUid, err = dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+	thisUid, err = dbtxh.InsertHeuristic(dgraph, dbtxh.Heuristic{
 		HeuristicType:   h.getType(),
 		Origins:         dummyOrigins,
 		Parameter:       h.getParameterString(),
