@@ -274,15 +274,17 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 		return true
 	}
 
-	// copy uids into map
-	changeMap := make(map[string]bool)
-	for _, c := range changed {
-		changeMap[c.Uid] = true
-	}
+	if len(changed) > 0 {
+		// copy uids into map
+		changeMap := make(map[string]bool)
+		for _, c := range changed {
+			changeMap[c.Uid] = true
+		}
 
-	for _, r := range removed {
-		if ok := changeMap[r]; ok {
-			return false
+		for _, r := range removed {
+			if ok := changeMap[r]; ok {
+				return false
+			}
 		}
 	}
 
@@ -305,15 +307,18 @@ func CreateWork(dgraph *dgo.Dgraph, changed []dbtxh.FrontendHeuristic, toRemove 
 		return
 	}
 
-	// create HeuristicExecutor trees
-	w.executors, err = ConstructExecutors(changed)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+	if len(changed) > 0 {
+		// create HeuristicExecutor trees
+		w.executors, err = ConstructExecutors(changed)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
 	}
+
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
-	if len(changed) > 0 && copyOnModify {
+	if (len(changed) > 0 || len(w.removableHeuristics) > 0) && copyOnModify {
 		// find heuristic roots
 		w.treeRoots, err = dbtxh.GetRootUids(dgraph, w.removableHeuristics)
 		if err != nil {
