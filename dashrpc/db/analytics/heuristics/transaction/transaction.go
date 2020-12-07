@@ -716,12 +716,12 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 		return
 	}
 
-	if len(r.Transaction) != 1 {
+	if len(r.Transaction) > 1 {
 		err = errors.New("invalid response from database")
 		return
+	} else if len(r.Transaction) == 1 {
+		heuristics = r.Transaction[0].Heuristics
 	}
-
-	heuristics = r.Transaction[0].Heuristics
 
 	return
 }

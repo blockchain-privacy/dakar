@@ -46,6 +46,10 @@ var (
 	errorHeuristicExecution = "error executing heuristics"
 )
 
+type reply struct {
+	Message string `json:"msg,omitempty"`
+}
+
 func getRoute(r string) string {
 	return routePrefix + r
 }
@@ -427,11 +431,6 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 			return
 		}
 
-		if len(heuristics) == 0 {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			return
-		}
-
 		// encoding
 		err = json.NewEncoder(w).Encode(heuristics)
 		if err != nil {
@@ -485,10 +484,6 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 		}
 
 		log.Println("Added work:", worker.AddWork(txHashString, work))
-
-		type reply struct {
-			Message string `json:"msg,omitempty"`
-		}
 
 		msg := reply{Message: fmt.Sprintf("Received %d changed and %d deleted heuristics",
 			len(heuristicRequest.Changed), len(heuristicRequest.Deleted))}
