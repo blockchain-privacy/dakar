@@ -9,7 +9,7 @@ import * as Constants from '../constants';
 import * as Utility from '../utilities';
 
 function newRouting(context) {
-1  const { id } = context.$route.params;
+  const { id } = context.$route.params;
   if (id === undefined || context.$route.name !== Constants.ROUTE_NAME_SEARCH_PAGE) {
     return;
   }
