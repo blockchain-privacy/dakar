@@ -128,7 +128,6 @@ const actions = {
 }
 
 function doUpdate(context, route, mutation, parameter) {
-
     return fetch(route + parameter)
         .then(response => {
             if (!response.ok) throw new Error(response.status + " " + response.statusText)

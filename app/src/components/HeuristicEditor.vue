@@ -24,7 +24,7 @@
 
       <!--    todo: remove?-->
       <v-btn @click="refreshData">Refresh</v-btn>
-      <v-btn @click="changeData">Change</v-btn>
+      <v-btn @click="changeData" :disabled="!isDataSet()">Change</v-btn>
 
       <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
@@ -44,13 +44,13 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item @click="downloadHeuristicSummary">
+          <v-list-item @click="downloadHeuristicSummary" :disabled="!isDataSet()">
             <v-list-item-icon>
               <v-icon>mdi-file-download-outline</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Download Summary</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="executeHeuristics" :disabled="this.data && this.data.length < 2">
+          <v-list-item @click="executeHeuristics" :disabled="!isDataSet() && !wasDataDeleted">
             <v-list-item-icon>
               <v-icon>mdi-source-branch-check</v-icon>
             </v-list-item-icon>
@@ -177,6 +177,8 @@ export default {
       // changeSet holds all changes based on dbState and this.data(computed)
       changeSet: [],
       sheetOpen: false,
+      // wasDataDeleted is set to true if any data was deleted
+      wasDataDeleted: false,
       heuristicTypes: [
         {
           id: "one_source",
@@ -263,9 +265,12 @@ export default {
     },
   },
   methods: {
+    isDataSet() {
+      return !(this.data === null || this.data === undefined || this.data.length < 2);
+    },
     executeHeuristics() {
       // prevent execution if not data is available
-      if (this.data.length < 2) {
+      if (!this.isDataSet()) {
         return
       }
 
@@ -285,6 +290,8 @@ export default {
           });
     },
     downloadHeuristicSummary() {
+      if (!this.isDataSet())
+        return;
       // fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
       //     .then(response => response.json())
       //     .then(data => {
@@ -351,6 +358,8 @@ export default {
         }
       });
 
+      this.wasDataDeleted = true;
+
       this.$store.dispatch('setHeuristicData', updatedData);
       // update displayed graph
       this.updateGraph();
@@ -376,11 +385,16 @@ export default {
     },
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+
+      // if the transaction has not yet any heuristics associated
+      if (this.data === null)
+        return;
+
       ht.addRootElement(this.data);
+
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
       // functions (complex types like function are not allowed):
-
       this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map(d => [d.uid, d]));
       this.updateGraph();
     },
@@ -404,7 +418,6 @@ export default {
       ht.centerGraph();
     },
     onMenuItemClick(item) {
-      console.log(`onMenuItemClick(), item=${item}`)
       if (item.action) {
         item.action()
       }
