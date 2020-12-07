@@ -1,15 +1,15 @@
-const apiVersion = 'v1'
+const apiVersion = 'v1';
 const routePrefix = `/api/${apiVersion}/`;
 
 // backend routes
-export const ROUTE_TRANSACTION = routePrefix + 'tx/';
-export const ROUTE_BLOCK = routePrefix + 'blk/';
-export const ROUTE_ADDRESS = routePrefix + 'address/';
-export const ROUTE_META = routePrefix + 'meta/';
-export const ROUTE_PATHS = routePrefix + 'paths/';
-export const ROUTE_HEURISTICS = routePrefix + 'heuristics/';
-export const ROUTE_HEURISTICS_SUMMARY = routePrefix + 'heuristicsSummary/';
-export const ROUTE_EXECUTE_HEURISTICS = routePrefix + 'executeHeuristics/';
+export const ROUTE_TRANSACTION = `${routePrefix}tx/`;
+export const ROUTE_BLOCK = `${routePrefix}blk/`;
+export const ROUTE_ADDRESS = `${routePrefix}address/`;
+export const ROUTE_META = `${routePrefix}meta/`;
+export const ROUTE_PATHS = `${routePrefix}paths/`;
+export const ROUTE_HEURISTICS = `${routePrefix}heuristics/`;
+export const ROUTE_HEURISTICS_SUMMARY = `${routePrefix}heuristicsSummary/`;
+export const ROUTE_EXECUTE_HEURISTICS = `${routePrefix}executeHeuristics/`;
 
 // frontend route names
 export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';
