@@ -527,7 +527,7 @@ async function centerGraph() {
         .translate(bbRect.width * 2, 200)
         .scale((svgRect.height - 200) / bbRect.height);
 
-    rootSvg.transition().duration(750).call(zoom.transform, transform);
+    rootSvg.transition().duration(250).call(zoom.transform, transform);
 }
 
 export {

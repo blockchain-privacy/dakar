@@ -23,8 +23,7 @@
       <v-spacer></v-spacer>
 
       <!--    todo: remove?-->
-      <v-btn @click="refreshData">Refresh</v-btn>
-      <v-btn @click="changeData" :disabled="!doesDataExist()">Change</v-btn>
+      <v-btn outlined style="margin-right: 2px" @click="refreshData">Refresh</v-btn>
 
       <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
@@ -399,9 +398,6 @@ export default {
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
       // functions (complex types like function are not allowed):
       this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map(d => [d.uid, d]));
-      this.updateGraph();
-    },
-    changeData() {
       this.updateGraph();
     },
     onMounted() {
