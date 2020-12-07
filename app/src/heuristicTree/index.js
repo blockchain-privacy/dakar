@@ -202,8 +202,6 @@ function moveNode(context, parent, child) {
 
     // set new state
     context.data = newData;
-
-    context.updateChangeSet()
 }
 
 // getDescendants returns all descendants of the node with the given uid

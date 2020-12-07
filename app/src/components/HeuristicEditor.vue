@@ -366,9 +366,6 @@ export default {
       this.$store.dispatch('setHeuristicData', updatedData);
       // update displayed graph
       this.updateGraph();
-      // updateChangeSet should only be called after a graph update,
-      // because it gets a not up to date descendant state
-      this.updateChangeSet();
     },
     showContextMenu(e) {
       this.contextMenu.display = false;
@@ -385,6 +382,9 @@ export default {
       // maps the node data to the tree layout
       const nodeData = ht.processGraphData(this.data);
       ht.drawGraph(nodeData, this);
+      // updateChangeSet is called after a graph update,
+      // because otherwise it gets a not up to date descendant state
+      this.updateChangeSet();
     },
     refreshData: async function () {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
