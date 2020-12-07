@@ -13,5 +13,10 @@ parserOptions:
 plugins:
   - vue
 rules: {
-  no-param-reassign: [error , {"props": false}]
+  no-param-reassign: [ error , { "props": false } ],
+  no-mixed-operators: [ error, {
+    groups: [
+      [ "+", "-", "*", "/", "%", "**" ],
+    ]
+  } ]
 }

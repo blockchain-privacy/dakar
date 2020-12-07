@@ -25,10 +25,12 @@
             <v-container v-if="data">
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-database-sync" title="Chain Synchronisation" :tooltip="tooltips.databaseSync"
+                  <IconItem icon="mdi-database-sync" title="Chain Synchronisation"
+                            :tooltip="tooltips.databaseSync"
                             is-color :is-red="!data.status.iscrawling">
                     <v-progress-linear
-                        :color="crawlerSyncProgress > 98?'green':crawlerSyncProgress > 90?'light-green':'light-blue'"
+                        :color="crawlerSyncProgress > 98?'green'
+                        :crawlerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
                         :value="crawlerSyncProgress"
                         rounded>
@@ -38,9 +40,11 @@
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-database-search" title="Database analysis"
-                            :tooltip="tooltips.databaseAnalyzation" is-color :is-red="!data.status.isanalyzing">
+                            :tooltip="tooltips.databaseAnalysation" is-color
+                            :is-red="!data.status.isanalyzing">
                     <v-progress-linear
-                        :color="analyzerSyncProgress > 98?'green':analyzerSyncProgress > 90?'light-green':'light-blue'"
+                        :color="analyzerSyncProgress > 98?'green'
+                        :analyzerSyncProgress > 90?'light-green':'light-blue'"
                         height="17"
                         :value="analyzerSyncProgress"
                         rounded>
@@ -70,7 +74,8 @@
               <v-divider v-if="data.rpcinfo"></v-divider>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-message-text-clock-outline" title="RPC Version" :tooltip="tooltips.rpcVersion">
+                  <IconItem icon="mdi-message-text-clock-outline"
+                            title="RPC Version" :tooltip="tooltips.rpcVersion">
                     {{ data.rpcinfo.version }}
                   </IconItem>
                 </v-col>
@@ -83,7 +88,8 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-format-list-numbered" title="Block Height" :tooltip="tooltips.rpcBlockHeight">
+                  <IconItem icon="mdi-format-list-numbered"
+                            title="Block Height" :tooltip="tooltips.rpcBlockHeight">
                     {{ data.rpcinfo.blocks }}
                   </IconItem>
                 </v-col>
@@ -102,24 +108,24 @@
 </template>
 
 <script>
-import {PAGE_TITLE} from "@/constants";
-import IconItem from "@/components/common/IconItem";
+import { PAGE_TITLE } from '../constants';
+import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'EntryView',
-  components: {IconItem},
-  data: function () {
+  components: { IconItem },
+  data() {
     return {
       tooltips: {
-        lastBlockId: "Last block which was completely saved in the database",
-        lowestBlockId: "Lowest block ID in the database",
-        databaseSync: "Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.",
-        databaseAnalyzation: "Percentage of analyzed blocks in the database. The analyzer is active if the icon is green.",
-        rpcVersion: "Version of the RPC client",
-        rpcProtocolVersion: "Version of the protocol",
-        rpcBlockHeight: "Current block height of the RPC client",
-        rpcConnections: "Number of Nodes connected to the RPC client",
-        rpcDifficulty: "Current mining difficulty",
+        lastBlockId: 'Last block which was completely saved in the database',
+        lowestBlockId: 'Lowest block ID in the database',
+        databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
+        databaseAnalysation: 'Percentage of analyzed blocks in the database. The analyzer is active if the icon is green.',
+        rpcVersion: 'Version of the RPC client',
+        rpcProtocolVersion: 'Version of the protocol',
+        rpcBlockHeight: 'Current block height of the RPC client',
+        rpcConnections: 'Number of Nodes connected to the RPC client',
+        rpcDifficulty: 'Current mining difficulty',
       },
       timeoutData: {
         start: 0,
@@ -139,7 +145,8 @@ export default {
         return 0.0;
       }
 
-      return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid)) / this.data.rpcinfo.blocks * 100;
+      return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))
+          / this.data.rpcinfo.blocks * 100;
     },
     analyzerSyncProgress() {
       if (!this.data) {
@@ -149,11 +156,11 @@ export default {
           / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
 
       return percentage > 100 ? 100 : percentage;
-    }
+    },
   },
 
   methods: {
-    startTimer: function () {
+    startTimer() {
       this.startProgressTimer();
 
       this.timer = setInterval(async () => {
@@ -162,25 +169,26 @@ export default {
         this.startProgressTimer();
       }, this.timeoutData.refreshStep);
     },
-    startProgressTimer: function () {
+    startProgressTimer() {
       this.timeoutData.percent = 100;
       this.timeoutData.start = new Date().getTime();
       this.remainderTimer = setInterval(this.updateRemainingTime, this.timeoutData.progressStep);
     },
-    updateRemainingTime: function () {
-      this.timeoutData.remaining = this.timeoutData.refreshStep - (new Date().getTime() - this.timeoutData.start);
+    updateRemainingTime() {
+      this.timeoutData.remaining = this.timeoutData.refreshStep
+          - (new Date().getTime() - this.timeoutData.start);
       if (this.timeoutData.remaining < 0) {
         this.timeoutData.percent = 0;
-        return
+        return;
       }
       this.timeoutData.percent = this.timeoutData.remaining / this.timeoutData.refreshStep * 100;
     },
-    resetTimers: function () {
+    resetTimers() {
       this.timeoutData.percent = 100;
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
-    refreshData: async function () {
+    async refreshData() {
       this.resetTimers();
       await this.$store.dispatch('updateMetaData');
       this.startTimer();
@@ -194,8 +202,8 @@ export default {
   },
   beforeDestroy() {
     this.resetTimers();
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
