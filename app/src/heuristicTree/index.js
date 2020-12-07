@@ -171,10 +171,6 @@ function moveNode(context, parent, child) {
         formerParentUid = childData.parent_heuristic[0].uid;
     }
 
-    // // set class for changed nodes
-    // // todo remove
-    // rootSvg.selectAll("rect").data(child.data()[0].descendants(), d => d.data.data.uid).classed("modified", true);
-
     let newData = context.data;
 
     for (let i = 0; i < newData.length; i++) {
