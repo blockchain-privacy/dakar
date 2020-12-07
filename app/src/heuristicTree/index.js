@@ -1,6 +1,5 @@
 /* eslint-disable no-constant-condition */
-import * as d3 from "d3";
-
+import * as d3 from 'd3';
 
 const rectWidth = 150;
 
@@ -11,527 +10,507 @@ const rootIdentifier = 'root';
 let isClicked = false;
 
 // root svg elements
-let rootSvg, rootGroup;
+let rootSvg; let rootGroup;
 
 // tree layout function
 let treeLayout;
 
 // dragging
-let dragActive = false, dragNode, dragLayoutData = null, setPointer = false,
-    dragLayoutHiddenNodes = null;
+let dragActive = false; let dragNode; let dragLayoutData = null; let setPointer = false;
+let dragLayoutHiddenNodes = null;
 
 // mouseOver
-let activeMouseOverNode = null, lastMouseOverNode;
-
+let activeMouseOverNode = null; let lastMouseOverNode;
 
 // context menu
 let activeContextMenuNode = null;
 
 // heuristic type map
-let heuristicTypeMap = new Map();
+const heuristicTypeMap = new Map();
 
 // zoom
 let zoom = null;
 
 function dragStart(_, d) {
-    dragNode = d3.select(this);
-    dragActive = true;
-    dragLayoutData = d;
-}
-
-function dragEvent(event) {
-    // originally done in dragStart, but that caused the click event to not propagate
-    if (!setPointer) {
-        setPointer = true;
-        dragNode.attr("pointer-events", "none");
-
-        // filter out the dragged node, so it does not get removed
-        const linksToHide = dragLayoutData.descendants();
-        dragLayoutHiddenNodes = linksToHide.filter(d => d.data.data.uid !== dragLayoutData.data.data.uid);
-
-        // hide the nodes
-        rootSvg.selectAll(".node")
-            .data(dragLayoutHiddenNodes, d => d.data.data.uid)
-            .attr("pointer-events", "none")
-            .attr("opacity", 0);
-        rootSvg.selectAll(".link")
-            .data(linksToHide, d => d.data.data.uid)
-            .attr("stroke-opacity", 0);
-
-        // color all nodes which are valid targets
-        rootSvg.selectAll(".rect")
-            .classed("valid-target", d => {
-                return isValidMoveTarget(dragNode, d);
-            });
-    }
-
-    const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
-
-    d3.select(this)
-        .raise()  // causes bug in chrome: click is only recognized on second time. moved here from dragStart
-        .attr("transform",
-            "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
-
-    // Move hidden nodes to the same position as the parent node,
-    // so when they get displayed the have a nice transition animation
-    if (dragLayoutHiddenNodes !== null) {
-        rootSvg.selectAll(".node")
-            .data(dragLayoutHiddenNodes, d => d.data.data.uid)
-            .attr("transform",
-                "translate(" + (transformationMatrix.e + event.dx) + "," + (transformationMatrix.f + event.dy) + ")");
-    }
+  dragNode = d3.select(this);
+  dragActive = true;
+  dragLayoutData = d;
 }
 
 // checkType checks the passed heuristic can be a child based on the type
 function checkType(node) {
-    return node.type !== 'one_source';
+  return node.type !== 'one_source';
 }
 
 // isValidMoveTarget returns true if the potential new parent is a valid target
 function isValidMoveTarget(node, newParentNode) {
-    const nodeData = node.data();
-    if (nodeData.length === 0)
-        return false;
+  const nodeData = node.data();
+  if (nodeData.length === 0) return false;
 
-    if (!checkType(nodeData[0].data.data)) {
-        return false
-    }
+  if (!checkType(nodeData[0].data.data)) {
+    return false;
+  }
 
-    const thisUid = nodeData[0].data.data.uid;
+  const thisUid = nodeData[0].data.data.uid;
 
-    if (nodeData[0].data.data.parent_heuristic === undefined) {
-        // check if newParentNode is not a selection
-        if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
-            return thisUid !== newParentNode.data.data.uid;
-        }
-
-        return thisUid !== newParentNode.data()[0].data.data.uid;
-    }
-
-
-    const thisParentUid = nodeData[0].data.data.parent_heuristic[0].uid;
-
+  if (nodeData[0].data.data.parent_heuristic === undefined) {
     // check if newParentNode is not a selection
     if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
-        return thisParentUid !== newParentNode.data.data.uid && thisUid !== newParentNode.data.data.uid;
+      return thisUid !== newParentNode.data.data.uid;
     }
 
-    return thisParentUid !== newParentNode.data()[0].data.data.uid && thisUid !== newParentNode.data()[0].data.data.uid;
+    return thisUid !== newParentNode.data()[0].data.data.uid;
+  }
+
+  const thisParentUid = nodeData[0].data.data.parent_heuristic[0].uid;
+
+  // check if newParentNode is not a selection
+  if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
+    return thisParentUid !== newParentNode.data.data.uid && thisUid !== newParentNode.data.data.uid;
+  }
+
+  return thisParentUid !== newParentNode.data()[0].data.data.uid
+      && thisUid !== newParentNode.data()[0].data.data.uid;
 }
 
-// dragEnd gets called when the drag event ends. If applicable it moves a dragged subtree to its new parent
-function dragEnd(event, context) {
-    dragNode = dragNode.attr("pointer-events", null);
-    rootGroup.selectAll(".selected").classed("selected", false);
-    rootSvg.selectAll(".rect").classed("valid-target", false);
+function dragEvent(event) {
+  // originally done in dragStart, but that caused the click event to not propagate
+  if (!setPointer) {
+    setPointer = true;
+    dragNode.attr('pointer-events', 'none');
 
-    // reset pointer events
-    if (dragLayoutHiddenNodes !== null) {
-        rootSvg.selectAll(".node")
-            .data(dragLayoutHiddenNodes, d => d.data.data.uid)
-            .attr("pointer-events", null);
-    }
+    // filter out the dragged node, so it does not get removed
+    const linksToHide = dragLayoutData.descendants();
+    dragLayoutHiddenNodes = linksToHide.filter(
+      (d) => d.data.data.uid !== dragLayoutData.data.data.uid,
+    );
 
-    // only move node if drag was active before --> not clicked and activeMouseOverNode is set
-    if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr("opacity") > 0
-        && isValidMoveTarget(dragNode, activeMouseOverNode)) {
-        moveNode(context, activeMouseOverNode, dragNode);
-    }
+    // hide the nodes
+    rootSvg.selectAll('.node')
+      .data(dragLayoutHiddenNodes, (d) => d.data.data.uid)
+      .attr('pointer-events', 'none')
+      .attr('opacity', 0);
+    rootSvg.selectAll('.link')
+      .data(linksToHide, (d) => d.data.data.uid)
+      .attr('stroke-opacity', 0);
 
-    // house keeping
-    activeMouseOverNode = null;
-    lastMouseOverNode = null;
-    dragLayoutData = null;
-    setPointer = false;
-    dragActive = false;
-    dragLayoutHiddenNodes = null;
+    // color all nodes which are valid targets
+    rootSvg.selectAll('.rect')
+      .classed('valid-target', (d) => isValidMoveTarget(dragNode, d));
+  }
 
-    dragNode = null;
-    context.updateGraph();
-}
+  const transformationMatrix = this.transform.baseVal.getItem(0).matrix;
 
-function setNodesChanged(changedNodes) {
-    // reset
-    rootSvg.selectAll("rect")
-        .classed("modified", false);
-    // set changes
-    rootSvg.selectAll("rect")
-        .data(changedNodes, d => d.data.data.uid)
-        .classed("modified", true);
+  d3.select(this)
+  // raise() causes bug in chrome: click is only
+  // recognized on second time. moved here from dragStart
+    .raise()
+    .attr('transform',
+      `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
+
+  // Move hidden nodes to the same position as the parent node,
+  // so when they get displayed the have a nice transition animation
+  if (dragLayoutHiddenNodes !== null) {
+    rootSvg.selectAll('.node')
+      .data(dragLayoutHiddenNodes, (d) => d.data.data.uid)
+      .attr('transform',
+        `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
+  }
 }
 
 // moveNode sets parent as the parent node of the child subgraph
 function moveNode(context, parent, child) {
-    if (context.data === null)
-        return;
-    let parentData = parent.data()[0].data.data, childData = child.data()[0].data.data,
-        formerParentUid = null;
+  if (context.data === null) return;
+  const parentData = parent.data()[0].data.data; const childData = child.data()[0].data.data;
+  let formerParentUid = null;
 
-    if (childData.parent_heuristic !== undefined) {
-        formerParentUid = childData.parent_heuristic[0].uid;
+  if (childData.parent_heuristic !== undefined) {
+    formerParentUid = childData.parent_heuristic[0].uid;
+  }
+
+  const newData = context.data;
+
+  for (let i = 0; i < newData.length; i += 1) {
+    const dataElement = newData[i];
+    if (dataElement.uid === parentData.uid) {
+      if (dataElement.children === undefined) {
+        dataElement.children = [];
+      }
+
+      let alreadyExists = false;
+      dataElement.children.forEach((c) => {
+        if (c.uid === childData.uid) alreadyExists = true;
+      });
+
+      if (!alreadyExists) {
+        dataElement.children.push({ uid: childData.uid });
+      }
+    } else if (dataElement.uid === childData.uid) {
+      if (dataElement.parent_heuristic === undefined) {
+        dataElement.parent_heuristic = [];
+      }
+      dataElement.parent_heuristic = [];
+      dataElement.parent_heuristic.push({ uid: parentData.uid });
+    } else if (dataElement.uid === formerParentUid) {
+      dataElement.children = dataElement.children.filter((c) => c.uid !== childData.uid);
     }
+  }
 
-    let newData = context.data;
+  // set new state
+  context.data = newData;
+}
 
-    for (let i = 0; i < newData.length; i++) {
-        let dataElement = newData[i];
-        if (dataElement.uid === parentData.uid) {
-            if (dataElement.children === undefined) {
-                dataElement.children = [];
-            }
+// dragEnd gets called when the drag event ends.
+// If applicable it moves a dragged subtree to its new parent
+function dragEnd(event, context) {
+  dragNode = dragNode.attr('pointer-events', null);
+  rootGroup.selectAll('.selected').classed('selected', false);
+  rootSvg.selectAll('.rect').classed('valid-target', false);
 
-            let alreadyExists = false;
-            dataElement.children.forEach(c => {
-                if (c.uid === childData.uid)
-                    alreadyExists = true;
-            });
+  // reset pointer events
+  if (dragLayoutHiddenNodes !== null) {
+    rootSvg.selectAll('.node')
+      .data(dragLayoutHiddenNodes, (d) => d.data.data.uid)
+      .attr('pointer-events', null);
+  }
 
-            if (!alreadyExists) {
-                dataElement.children.push({'uid': childData.uid});
-            }
-        } else if (dataElement.uid === childData.uid) {
-            if (dataElement.parent_heuristic === undefined) {
-                dataElement.parent_heuristic = [];
-            }
-            dataElement.parent_heuristic = [];
-            dataElement.parent_heuristic.push({'uid': parentData.uid});
-        } else if (dataElement.uid === formerParentUid) {
-            dataElement.children = dataElement.children.filter(c => c.uid !== childData.uid);
-        }
-    }
+  // only move node if drag was active before --> not clicked and activeMouseOverNode is set
+  if (activeMouseOverNode !== null && setPointer && activeMouseOverNode.attr('opacity') > 0
+        && isValidMoveTarget(dragNode, activeMouseOverNode)) {
+    moveNode(context, activeMouseOverNode, dragNode);
+  }
 
-    // set new state
-    context.data = newData;
+  // house keeping
+  activeMouseOverNode = null;
+  lastMouseOverNode = null;
+  dragLayoutData = null;
+  setPointer = false;
+  dragActive = false;
+  dragLayoutHiddenNodes = null;
+
+  dragNode = null;
+  context.updateGraph();
+}
+
+function setNodesChanged(changedNodes) {
+  // reset
+  rootSvg.selectAll('rect')
+    .classed('modified', false);
+  // set changes
+  rootSvg.selectAll('rect')
+    .data(changedNodes, (d) => d.data.data.uid)
+    .classed('modified', true);
 }
 
 // getDescendants returns all descendants of the node with the given uid
 function getDescendants(uid) {
-    // find the node
-    let changedNode = null;
-    for (const d of rootSvg.selectAll("g").data()) {
-        if (d === undefined) {
-            continue;
-        }
-        if (uid === d.data.data.uid) {
-            changedNode = d;
-            break;
-        }
-    }
+  // find the node
+  let changedNode = null;
 
-    if (changedNode === null) {
-        return [];
+  // use some() instead of a proper for loop to comply with eslint
+  rootSvg.selectAll('g').data().some((d) => {
+    if (d !== undefined && uid === d.data.data.uid) {
+      changedNode = d;
+      return true;
     }
+    return false;
+  });
 
-    return changedNode.descendants();
+  if (changedNode === null) {
+    return [];
+  }
+
+  return changedNode.descendants();
 }
 
 function drawRect(rootElement) {
-    const textAreaHeight = 50, textPadding = 0, rectHeight = textAreaHeight + 2 * textPadding,
-        borderRadius = 5, strokeWidth = 2, textHeight = 10;
+  const textAreaHeight = 50; const textPadding = 0;
+  const rectHeight = textAreaHeight + 2 * textPadding;
+  const borderRadius = 5; const strokeWidth = 2; const
+    textHeight = 10;
 
-    rootElement
-        .append("rect")
-        .attr("x", -rectWidth / 2)
-        .attr("y", -rectHeight / 2)
-        .attr("class", "rect")
-        .attr("width", (d) => {
-            if (d.data.data.uid === rootIdentifier)
-                return 0;
-            return rectWidth;
-        })
-        .attr("height", rectHeight)
-        .attr("rx", borderRadius)
-        .attr("ry", borderRadius)
-        .attr("stroke-width", strokeWidth)
-        .attr("stroke-opacity", d => {
-            // only draw rect if it is not the root node
-            if (d.data.data.uid !== rootIdentifier)
-                return 1;
-            return 1;
-        });
+  rootElement
+    .append('rect')
+    .attr('x', -rectWidth / 2)
+    .attr('y', -rectHeight / 2)
+    .attr('class', 'rect')
+    .attr('width', (d) => {
+      if (d.data.data.uid === rootIdentifier) return 0;
+      return rectWidth;
+    })
+    .attr('height', rectHeight)
+    .attr('rx', borderRadius)
+    .attr('ry', borderRadius)
+    .attr('stroke-width', strokeWidth)
+    .attr('stroke-opacity', (d) => {
+      // only draw rect if it is not the root node
+      if (d.data.data.uid !== rootIdentifier) return 1;
+      return 1;
+    });
 
+  rootElement.append('text')
+    .attr('x', () => -rectWidth / 2 + strokeWidth + 2)
+  // if parameter is not set, position text at center
+    .attr('y', (d) => (
+      d.data.data.parameter !== undefined ? -textAreaHeight / 2 + textHeight * 2 : textHeight / 2))
+    .text((d) => {
+      let outText;
+      // only draw text if it is not the root node
+      if (d.data.data.uid === rootIdentifier) {
+        outText = null;
+      } else {
+        const title = heuristicTypeMap.get(d.data.data.type);
+        if (title !== undefined) outText = `Type: ${title}`;
+      }
 
-    rootElement.append("text")
-        .attr("x", function () {
-            return -rectWidth / 2 + strokeWidth + 2;
-        })
-        .attr("y", function (d) {
-            // is parameter is not set, position text at center
-            return d.data.data.parameter !== undefined ? -textAreaHeight / 2 + textHeight * 2 : textHeight / 2;
-        })
-        .text(function (d) {
-            let outText;
-            // only draw text if it is not the root node
-            if (d.data.data.uid === rootIdentifier) {
-                outText = null;
-            } else {
-                const title = heuristicTypeMap.get(d.data.data.type);
-                if (title !== undefined)
-                    outText = `Type: ${title}`;
-            }
+      return outText;
+    });
 
-            return outText;
-        });
-
-    rootElement.append("text")
-        .attr("x", function () {
-            return -rectWidth / 2 + strokeWidth + 2;
-        })
-        .attr("y", textAreaHeight / 2 - textHeight)
-        .text(function (d) {
-            return d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : null;
-        });
+  rootElement.append('text')
+    .attr('x', () => -rectWidth / 2 + strokeWidth + 2)
+    .attr('y', textAreaHeight / 2 - textHeight)
+    .text((d) => (d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : null));
 }
 
 function mouseOverNode(_, d) {
-    if (dragActive && d !== dragLayoutData) {
-        if (d !== lastMouseOverNode) {
-            let tmpMouseOverNode = d3.select(this);
-            if (isValidMoveTarget(dragNode, tmpMouseOverNode)) {
-                lastMouseOverNode = d;
-                activeMouseOverNode = tmpMouseOverNode;
-                activeMouseOverNode.select(".rect").classed("selected", true);
-            }
-        }
+  if (dragActive && d !== dragLayoutData) {
+    if (d !== lastMouseOverNode) {
+      const tmpMouseOverNode = d3.select(this);
+      if (isValidMoveTarget(dragNode, tmpMouseOverNode)) {
+        lastMouseOverNode = d;
+        activeMouseOverNode = tmpMouseOverNode;
+        activeMouseOverNode.select('.rect').classed('selected', true);
+      }
     }
+  }
 }
 
 function mouseOutNode() {
-    if (dragActive) {
-        d3.select(this).select(".rect").classed("selected", false);
-    }
-    lastMouseOverNode = null;
-    activeMouseOverNode = null;
+  if (dragActive) {
+    d3.select(this).select('.rect').classed('selected', false);
+  }
+  lastMouseOverNode = null;
+  activeMouseOverNode = null;
 }
 
 function contextMenuHandler(context, event, d) {
-    context.showContextMenu(event);
-    activeContextMenuNode = d;
+  context.showContextMenu(event);
+  activeContextMenuNode = d;
+}
+
+function resetClick() {
+  // only do work if needed
+  if (!isClicked) return;
+
+  // reset click representation
+  d3.selectAll('.rect').classed('clicked', false);
+  // set not clicked
+  isClicked = false;
+}
+
+function nodeClicked(e) {
+  const thisElement = d3.select(this);
+  if (thisElement.data()[0].data.data.uid === rootIdentifier) return;
+
+  resetClick();
+  e.stopPropagation();
+  // set click representation
+  thisElement.select('.rect').classed('clicked', true);
+  // set clicked
+  isClicked = true;
 }
 
 function drawNodes(group, nodeData, context) {
-    // adds each node as a group
-    const t = d3.transition()
-        .duration(300)
-        .ease(d3.easeLinear);
+  // adds each node as a group
+  const t = d3.transition()
+    .duration(300)
+    .ease(d3.easeLinear);
 
-    return group.selectAll(".node")
-        .data(nodeData.descendants(), d => d.data.data.uid)
-        .join(enter => {
-                const g = enter.append("g")
-                    .on('mouseover', mouseOverNode)
-                    .on('mouseout', mouseOutNode)
-                    // set click handler
-                    .on('click', nodeClicked)
-                    // set context menu handler
-                    .on("contextmenu", (e, d) => contextMenuHandler(context, e, d))
-                    // set drag handler
-                    .call(d3.drag()
-                        .on("start", dragStart)
-                        .on("drag", dragEvent)
-                        .on("end", (e) => dragEnd(e, context)));
-                // draw outline and text
-                drawRect(g);
-                return g;
-            },
-        )
-        .attr("opacity", 1)
-        .attr("class", function (d) {
-            if (d.data.data.uid === rootIdentifier)
-                return null;
+  return group.selectAll('.node')
+    .data(nodeData.descendants(), (d) => d.data.data.uid)
+    .join((enter) => {
+      const g = enter.append('g')
+        .on('mouseover', mouseOverNode)
+        .on('mouseout', mouseOutNode)
+      // set click handler
+        .on('click', nodeClicked)
+      // set context menu handler
+        .on('contextmenu', (e, d) => contextMenuHandler(context, e, d))
+      // set drag handler
+        .call(d3.drag()
+          .on('start', dragStart)
+          .on('drag', dragEvent)
+          .on('end', (e) => dragEnd(e, context)));
+      // draw outline and text
+      drawRect(g);
+      return g;
+    })
+    .attr('opacity', 1)
+    .attr('class', (d) => {
+      if (d.data.data.uid === rootIdentifier) return null;
 
-            return "node" +
-                (d.children ? " node--internal" : " node--leaf");
-        }).transition(t)
-        .attr("transform", function (d) {
-            return "translate(" + d.y + "," + d.x + ")";
-        });
+      return `node${
+        d.children ? ' node--internal' : ' node--leaf'}`;
+    })
+    .transition(t)
+    .attr('transform', (d) => `translate(${d.y},${d.x})`);
 }
 
 function drawLinks(group, nodeData) {
-    // adds the links between the nodes
-    const t = d3.transition()
-        .duration(300)
-        .ease(d3.easeLinear);
-    group.selectAll(".link")
-        .data(nodeData.descendants().slice(1), d => d.data.data.uid)
-        .join("path")
-        .attr("class", "link")
-        .transition(t)
-        .attr("stroke-opacity", d => {
-            // only draw link if parent is not the root node
-            if (d.parent.data.data.uid !== rootIdentifier)
-                return 1;
-            return 0;
-        })
-        .attr("d", function (d) {
-            return "M" + (d.y - rectWidth / 2) + "," + d.x
-                + "C" + (d.y + d.parent.y) / 2 + "," + d.x
-                + " " + (d.y + d.parent.y) / 2 + "," + d.parent.x
-                + " " + (d.parent.y + rectWidth / 2) + "," + d.parent.x;
-        });
+  // adds the links between the nodes
+  const t = d3.transition()
+    .duration(300)
+    .ease(d3.easeLinear);
+  group.selectAll('.link')
+    .data(nodeData.descendants().slice(1), (d) => d.data.data.uid)
+    .join('path')
+    .attr('class', 'link')
+    .transition(t)
+    .attr('stroke-opacity', (d) => {
+      // only draw link if parent is not the root node
+      if (d.parent.data.data.uid !== rootIdentifier) return 1;
+      return 0;
+    })
+    .attr('d', (d) => `M${d.y - rectWidth / 2},${d.x
+    }C${(d.y + d.parent.y) / 2},${d.x
+    } ${(d.y + d.parent.y) / 2},${d.parent.x
+    } ${d.parent.y + rectWidth / 2},${d.parent.x}`);
 }
 
 function processGraphData(graphData) {
-    const stratifyData = d3.stratify()
-        .id(function (d) {
-            return d.uid;
-        })
-        .parentId(function (d) {
-            if (d.uid === rootIdentifier) {
-                return null;
-            } else if (d.parent_heuristic == null) {
-                return rootIdentifier;
-            }
-            return d.parent_heuristic[0].uid;
-        });
-
-    const treeData = stratifyData(graphData);
-
-    //  assigns the data to a hierarchy using parent-child relationships
-    let nodes = d3.hierarchy(treeData, function (d) {
-        return d.children;
+  const stratifyData = d3.stratify()
+    .id((d) => d.uid)
+    .parentId((d) => {
+      if (d.uid === rootIdentifier) {
+        return null;
+      } if (d.parent_heuristic == null) {
+        return rootIdentifier;
+      }
+      return d.parent_heuristic[0].uid;
     });
-    let levelWidth = [1], levelDepth = 0;
-    const childCount = function (level, n) {
-        if (levelDepth < level) {
-            levelDepth = level;
-        }
-        if (n.children && n.children.length > 0) {
-            if (levelWidth.length <= level + 1)
-                levelWidth.push(0);
 
+  const treeData = stratifyData(graphData);
 
-            levelWidth[level + 1] += n.children.length;
-            n.children.forEach(function (d) {
-                childCount(level + 1, d);
-            });
-        }
-    };
+  //  assigns the data to a hierarchy using parent-child relationships
+  let nodes = d3.hierarchy(treeData, (d) => d.children);
+  const levelWidth = [1]; let
+    levelDepth = 0;
+  const childCount = function (level, n) {
+    if (levelDepth < level) {
+      levelDepth = level;
+    }
+    if (n.children && n.children.length > 0) {
+      if (levelWidth.length <= level + 1) levelWidth.push(0);
 
-    childCount(0, treeData);
+      levelWidth[level + 1] += n.children.length;
+      n.children.forEach((d) => {
+        childCount(level + 1, d);
+      });
+    }
+  };
 
-    // declares a tree layout and assigns the size
-    treeLayout = d3.tree().size([d3.max(levelWidth) * 150, levelDepth * 200]);
-    // maps the node data to the tree layout
-    nodes = treeLayout(nodes);
-    return nodes;
+  childCount(0, treeData);
+
+  // declares a tree layout and assigns the size
+  treeLayout = d3.tree().size([d3.max(levelWidth) * 150, levelDepth * 200]);
+  // maps the node data to the tree layout
+  nodes = treeLayout(nodes);
+  return nodes;
 }
 
 // setupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
 function setupSvg(context, canvasId, heuristicDescriptions) {
-    // titles to map
-    heuristicDescriptions.forEach(e => heuristicTypeMap.set(e.id, e.title));
+  // titles to map
+  heuristicDescriptions.forEach((e) => heuristicTypeMap.set(e.id, e.title));
 
-    // add attributes to root svg
-    rootSvg = d3.select("#" + canvasId)
-        .attr("class", "graph-canvas")
-        .on("click", resetClick);
-    rootGroup = rootSvg
-        .append("g")
-        .attr("class", "root-group");
+  // add attributes to root svg
+  rootSvg = d3.select(`#${canvasId}`)
+    .attr('class', 'graph-canvas')
+    .on('click', resetClick);
+  rootGroup = rootSvg
+    .append('g')
+    .attr('class', 'root-group');
 
-    // add zoom and drag
-    zoom = d3.zoom()
-        .on("zoom", (event) => {
-            context.displayContextMenu = false;
-            rootGroup.attr('transform', event.transform);
-        })
-        .scaleExtent([0.5, 8]);
-    rootSvg.call(zoom);
-}
-
-function resetClick() {
-    // only do work if needed
-    if (!isClicked)
-        return;
-
-    // reset click representation
-    d3.selectAll(".rect").classed("clicked", false);
-    // set not clicked
-    isClicked = false;
-}
-
-function nodeClicked(e) {
-    const thisElement = d3.select(this);
-    if (thisElement.data()[0].data.data.uid === rootIdentifier)
-        return;
-
-    resetClick();
-    e.stopPropagation();
-    // set click representation
-    thisElement.select(".rect").classed("clicked", true);
-    // set clicked
-    isClicked = true;
+  // add zoom and drag
+  zoom = d3.zoom()
+    .on('zoom', (event) => {
+      context.displayContextMenu = false;
+      rootGroup.attr('transform', event.transform);
+    })
+    .scaleExtent([0.5, 8]);
+  rootSvg.call(zoom);
 }
 
 function addRootElement(data) {
-    data.push({'uid': 'root'});
+  data.push({ uid: 'root' });
 }
 
 function drawGraph(data, context) {
-    drawLinks(rootGroup, data);
-    drawNodes(rootGroup, data, context);
+  drawLinks(rootGroup, data);
+  drawNodes(rootGroup, data, context);
 }
 
 // adds a heuristic with the given id and parameter
 function addHeuristic(id, parameter) {
-    if (parameter)
-        console.log("adding heuristic " + id + " with paramter " + parameter);
-    else
-        console.log("adding heuristic " + id);
+  if (parameter) console.log(`adding heuristic ${id} with paramter ${parameter}`);
+  else console.log(`adding heuristic ${id}`);
 }
 
-// getRemovableNodes returns elements which can be removed based on the position saved in activeContextMenuNode
+// getRemovableNodes returns elements which can be removed based on
+// the position saved in activeContextMenuNode
 function getRemovableNodes() {
-    const nodesToRemove = activeContextMenuNode.descendants();
+  const nodesToRemove = activeContextMenuNode.descendants();
 
-    let toBeRemoved = [];
+  const toBeRemoved = [];
 
-    nodesToRemove.forEach(e => {
-        toBeRemoved.push(e.data.data.uid);
-    });
+  nodesToRemove.forEach((e) => {
+    toBeRemoved.push(e.data.data.uid);
+  });
 
-    return toBeRemoved;
+  return toBeRemoved;
 }
 
 // getRemovableRelationship returns the uid and parent uid of the node to be removed
 function getRemovableRelationship() {
-    let ret = {};
-    ret.childUid = activeContextMenuNode.data.data.uid;
-    if (activeContextMenuNode.data.data.parent_heuristic)
-        ret.parentUid = activeContextMenuNode.data.data.parent_heuristic[0].uid;
-    else
-        ret.parentUid = '';
+  const ret = {};
+  ret.childUid = activeContextMenuNode.data.data.uid;
+  if (activeContextMenuNode.data.data.parent_heuristic) {
+    ret.parentUid = activeContextMenuNode.data.data.parent_heuristic[0].uid;
+  } else ret.parentUid = '';
 
+  return ret;
+}
 
-    return ret;
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // centerGraph centers the graph in the center of the svg
 async function centerGraph() {
-    const svgRect = rootSvg.node().getBoundingClientRect();
-    let bbRect = null;
-    while (true) {
-        bbRect = rootGroup.node().getBoundingClientRect();
+  const svgRect = rootSvg.node().getBoundingClientRect();
+  let bbRect = null;
+  while (true) {
+    bbRect = rootGroup.node().getBoundingClientRect();
 
-        // wait until group has a size
-        if (bbRect.height !== 0) {
-            break
-        } else {
-            await new Promise(r => setTimeout(r, 200));
-        }
+    // wait until group has a size
+    if (bbRect.height !== 0) {
+      break;
+    } else {
+      // we have to use await here
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(200);
     }
+  }
 
-    const transform = d3.zoomIdentity
-        .translate(bbRect.width * 2, 200)
-        .scale((svgRect.height - 200) / bbRect.height);
+  const transform = d3.zoomIdentity
+    .translate(bbRect.width * 2, 200)
+    .scale((svgRect.height - 200) / bbRect.height);
 
-    rootSvg.transition().duration(250).call(zoom.transform, transform);
+  rootSvg.transition().duration(250).call(zoom.transform, transform);
 }
 
 export {
-    drawGraph, processGraphData, addHeuristic, setupSvg,
-    addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
-    getDescendants, setNodesChanged, rootIdentifier
+  drawGraph, processGraphData, addHeuristic, setupSvg,
+  addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
+  getDescendants, setNodesChanged, rootIdentifier,
 };
