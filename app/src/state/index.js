@@ -3,14 +3,6 @@ import Vuex from 'vuex';
 import * as Constants from '../constants';
 
 Vue.use(Vuex);
-const globalState = {
-  msg: null,
-  transaction: null,
-  address: null,
-  block: null,
-  meta: null,
-  heuristic: null,
-};
 
 function getResetMsgState() {
   return {
@@ -170,8 +162,17 @@ const getters = {
   getHeuristicData: (state) => state.heuristic,
 };
 
+const state = {
+  msg: null,
+  transaction: null,
+  address: null,
+  block: null,
+  meta: null,
+  heuristic: null,
+};
+
 export default new Vuex.Store({
-  globalState,
+  state,
   mutations,
   actions,
   getters,

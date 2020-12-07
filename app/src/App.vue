@@ -9,7 +9,8 @@
           src="./assets/dakar_dash.svg"
           transition="scale-transition"
           width="32"/>
-      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer"> {{ applicationName }}
+      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer">
+        {{ applicationName }}
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
@@ -37,8 +38,8 @@
 </template>
 
 <script>
-import QueryInput from "./components/QueryInput";
-import MsgBox from "./components/MsgBox";
+import QueryInput from './components/QueryInput.vue';
+import MsgBox from './components/MsgBox.vue';
 import * as Utility from './utilities';
 import * as Constants from './constants';
 
@@ -46,12 +47,12 @@ export default {
   name: 'App',
   components: {
     MsgBox,
-    QueryInput
+    QueryInput,
   },
-  data: function () {
+  data() {
     return {
       applicationName: Constants.APPLICATION_NAME,
-    }
+    };
   },
   methods: {
     changeTheme() {
@@ -59,17 +60,16 @@ export default {
     },
     goToRoot() {
       // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE)
-        return;
-      this.$router.push({name: Constants.ROUTE_NAME_ENTRY_PAGE});
-    }
+      if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE) return;
+      this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
+    },
   },
   watch: {
     // global route watcher
-    '$route'() {
+    $route() {
       // reset data on every route change
       Utility.resetData(this);
-    }
-  }
+    },
+  },
 };
 </script>

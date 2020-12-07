@@ -39,27 +39,27 @@
 
 <script>
 export default {
-  name: "NestedMenu",
+  name: 'NestedMenu',
   props: {
     value: Boolean,
     name: String,
     icon: String,
     menuItems: Array,
-    absolute: {type: Boolean, default: false},
-    color: {type: String, default: 'secondary'},
-    positionX: {type: Number, default: 0},
-    positionY: {type: Number, default: 0},
-    isOffsetX: {type: Boolean, default: false},
-    isOffsetY: {type: Boolean, default: true},
-    isOpenOnHover: {type: Boolean, default: false},
-    isSubMenu: {type: Boolean, default: false},
-    transition: {type: String, default: 'scale-transition'}
+    absolute: { type: Boolean, default: false },
+    color: { type: String, default: 'secondary' },
+    positionX: { type: Number, default: 0 },
+    positionY: { type: Number, default: 0 },
+    isOffsetX: { type: Boolean, default: false },
+    isOffsetY: { type: Boolean, default: true },
+    isOpenOnHover: { type: Boolean, default: false },
+    isSubMenu: { type: Boolean, default: false },
+    transition: { type: String, default: 'scale-transition' },
   },
   methods: {
     emitClickEvent(item) {
       // this.closeAllMenus() // Theoretically, create a method that does this as a workaround
-      this.$emit('nested-menu-click', item)
-    }
+      this.$emit('nested-menu-click', item);
+    },
   },
   computed: {
     inputVal: {
@@ -68,10 +68,10 @@ export default {
       },
       set(val) {
         this.$emit('input', val);
-      }
-    }
+      },
+    },
   },
-}
+};
 </script>
 
 <style scoped>

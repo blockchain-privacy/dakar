@@ -1,16 +1,20 @@
 <template>
   <v-layout row>
     <v-flex style="z-index: 100">
-      <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info" dense dismissible v-model="isInfoActive">
+      <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info"
+               dense dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
-      <v-alert xs6 :value="errorMsg && errorMsg !== ''" type="error" dense dismissible v-model="isErrorActive">
+      <v-alert xs6 :value="errorMsg && errorMsg !== ''" type="error"
+               dense dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
-      <v-alert xs6 :value="successMsg && successMsg !== ''" type="success" dense dismissible v-model="isSuccessActive">
+      <v-alert xs6 :value="successMsg && successMsg !== ''" type="success"
+               dense dismissible v-model="isSuccessActive">
         {{ successMsg }}
       </v-alert>
-      <v-alert xs6 :value="warningMsg && warningMsg !== ''" type="warning" dense dismissible v-model="isWarningActive">
+      <v-alert xs6 :value="warningMsg && warningMsg !== ''" type="warning"
+               dense dismissible v-model="isWarningActive">
         {{ warningMsg }}
       </v-alert>
     </v-flex>
@@ -39,7 +43,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setErrorActive', value);
-      }
+      },
     },
     isInfoActive: {
       get() {
@@ -47,7 +51,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setInfoActive', value);
-      }
+      },
     },
     isSuccessActive: {
       get() {
@@ -55,7 +59,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setSuccessActive', value);
-      }
+      },
     },
     isWarningActive: {
       get() {
@@ -63,11 +67,11 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setWarningActive', value);
-      }
+      },
     },
 
-  }
-}
+  },
+};
 </script>
 
 <style scoped>
