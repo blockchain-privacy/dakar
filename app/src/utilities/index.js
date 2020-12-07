@@ -1,3 +1,4 @@
+/* eslint-disable no-mixed-operators */
 export function resetData(context) {
   context.$store.dispatch('resetMsg');
   context.$store.dispatch('setBlockData', null);
@@ -7,9 +8,9 @@ export function resetData(context) {
 }
 
 export function shortenHash(hash) {
-  const elementLen = 17;
+  const elementLen = 17 * 2 + 3;
 
-  if (hash.length < elementLen * 2 + 3) {
+  if (hash.length < elementLen) {
     return hash;
   }
 

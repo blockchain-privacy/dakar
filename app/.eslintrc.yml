@@ -15,8 +15,8 @@ plugins:
 rules: {
   no-param-reassign: [ error , { "props": false } ],
   no-mixed-operators: [ error, {
-    groups: [
+    "groups": [
       [ "+", "-", "*", "/", "%", "**" ],
-    ]
-  } ]
+    ],
+  }, ]
 }
