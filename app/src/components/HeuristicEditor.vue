@@ -23,7 +23,7 @@
       <v-spacer></v-spacer>
 
       <!--    todo: remove?-->
-      <v-btn outlined style="margin-right: 2px" @click="refreshData">Refresh</v-btn>
+      <v-btn outlined style="margin-right: 2px" @click="refreshData">Reload</v-btn>
 
       <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
@@ -79,7 +79,9 @@
                   {{ item.description }}
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="sheetOpen = false; item.action()">Add Heuristic</v-btn>
+                  <v-btn color="primary" @click="sheetOpen = false; item.action()">
+                    Add Heuristic
+                  </v-btn>
                 </v-card-actions>
               </v-card>
             </div>
@@ -92,24 +94,37 @@
 </template>
 
 <script>
-import {shortenHash} from "@/utilities";
-import {ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE} from "@/constants";
-import * as ht from "@/heuristicTree";
-import NestedMenu from "@/components/common/NestedMenu";
+import { ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE } from '../constants';
+import NestedMenu from './common/NestedMenu.vue';
+import * as ht from '../heuristicTree';
+import { shortenHash } from '../utilities';
+
+function getDeletedData(oldStateMap, newStateMap) {
+  // search for deleted items
+  const deletedUids = [];
+  oldStateMap.forEach((value, key) => {
+    if (!newStateMap.has(key)) {
+      deletedUids.push(key);
+    }
+  });
+
+  return deletedUids;
+}
 
 // prepareData prepares the heuristic data so it can be sent to be executed
 function prepareData(oldStateMap, newState, changeSet) {
-  const newStateMap = new Map(newState.map(d => [d.uid, d]));
+  const newStateMap = new Map(newState.map((d) => [d.uid, d]));
   const deletedData = getDeletedData(oldStateMap, newStateMap);
 
-  let changedItems = [];
-  for (let changedUid of changeSet) {
-    changedItems.push(newStateMap.get(changedUid));
-  }
+  const changedItems = [];
 
-  let filteredData = [];
+  changeSet.forEach((changedUid) => {
+    changedItems.push(newStateMap.get(changedUid));
+  });
+
+  const filteredData = [];
   // filter properties which do not need to be sent over the wire: timestamp and result count
-  changedItems.forEach(d => {
+  changedItems.forEach((d) => {
     // filter out the dummy element
     if (d.uid === ht.rootIdentifier) {
       return;
@@ -120,27 +135,15 @@ function prepareData(oldStateMap, newState, changeSet) {
       type: d.type,
       parameter: d.parameter,
       children: d.children,
-      parent_heuristic: d.parent_heuristic
+      parent_heuristic: d.parent_heuristic,
     });
   });
 
-  return {changed: filteredData, deleted: deletedData};
-}
-
-function getDeletedData(oldStateMap, newStateMap) {
-  // search for deleted items
-  let deletedUids = [];
-  for (let key of oldStateMap.keys()) {
-    if (!newStateMap.has(key)) {
-      deletedUids.push(key);
-    }
-  }
-
-  return deletedUids;
+  return { changed: filteredData, deleted: deletedData };
 }
 
 function newRouting(context) {
-  const id = context.$route.params.id;
+  const { id } = context.$route.params;
   if (id === undefined || context.$route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
     return;
   }
@@ -155,7 +158,8 @@ function areDataElementsEqual(a, b) {
 
   if (a.parent_heuristic !== undefined && b.parent_heuristic !== undefined) {
     return a.parent_heuristic[0].uid === b.parent_heuristic[0].uid;
-  } else if ((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
+  }
+  if ((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
       || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined)) {
     // if one is set but not the other
     return false;
@@ -165,13 +169,14 @@ function areDataElementsEqual(a, b) {
 }
 
 export default {
-  name: "HeuristicEditor",
-  components: {NestedMenu},
+  name: 'HeuristicEditor',
+  components: { NestedMenu },
   data() {
     return {
-      transactionHash: "",
-      shortTransactionHash: "",
-      // dbState holds the state of the database. It is used to detect changes in this.data (computed)
+      transactionHash: '',
+      shortTransactionHash: '',
+      // dbState holds the state of the database.
+      // It is used to detect changes in this.data (computed)
       dbState: null,
       // changeSet holds all changes based on dbState and this.data(computed)
       changeSet: [],
@@ -180,36 +185,36 @@ export default {
       wasDataDeleted: false,
       heuristicTypes: [
         {
-          id: "one_source",
-          title: "One Source",
-          description: "Filters by time, direct input transaction amount filter and omni sources",
-          action: () => ht.addHeuristic("one_source", "24h"),
+          id: 'one_source',
+          title: 'One Source',
+          description: 'Filters by time, direct input transaction amount filter and omni sources',
+          action: () => ht.addHeuristic('one_source', '24h'),
         },
         {
-          id: "global_amount",
-          title: "Global Amount",
-          description: "The amount heuristic filters all origins of sources, which do not have equal or " +
-              "more denominations to fund the destination transaction. " +
-              "Note that this is different from the direct input transaction amount filter, as " +
-              "this heuristic only checks the set of origin transactions and sources per destina- " +
-              "tion transaction, not per direct input transaction.",
-          action: () => ht.addHeuristic("global_amount"),
+          id: 'global_amount',
+          title: 'Global Amount',
+          description: 'The amount heuristic filters all origins of sources, which do not have equal or '
+              + 'more denominations to fund the destination transaction. '
+              + 'Note that this is different from the direct input transaction amount filter, as '
+              + 'this heuristic only checks the set of origin transactions and sources per destina- '
+              + 'tion transaction, not per direct input transaction.',
+          action: () => ht.addHeuristic('global_amount'),
         },
         {
-          id: "perfect_match",
-          title: "Perfect Match",
-          description: "The perfect match heuristic filters all origins of sources, which have denominations " +
-              "without a perfect match for the denominations of the destination transaction.",
-          action: () => ht.addHeuristic("perfect_match"),
+          id: 'perfect_match',
+          title: 'Perfect Match',
+          description: 'The perfect match heuristic filters all origins of sources, which have denominations '
+              + 'without a perfect match for the denominations of the destination transaction.',
+          action: () => ht.addHeuristic('perfect_match'),
         },
         {
-          id: "denomination_type",
-          title: "Denomination Type",
-          description: "The denomination type heuristic filters all origins of sources, which have denominations " +
-              "of types which do not occur in the denominations of the destination transaction." +
-              "For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. " +
-              "Now all sources are excluded which do not have these exact two types of denominations.",
-          action: () => ht.addHeuristic("denomination_type"),
+          id: 'denomination_type',
+          title: 'Denomination Type',
+          description: 'The denomination type heuristic filters all origins of sources, which have denominations '
+              + 'of types which do not occur in the denominations of the destination transaction.'
+              + 'For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. '
+              + 'Now all sources are excluded which do not have these exact two types of denominations.',
+          action: () => ht.addHeuristic('denomination_type'),
         },
       ],
       contextMenu: {
@@ -217,24 +222,24 @@ export default {
         x: 0,
         y: 0,
         items: [
-          {title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree},
-          {title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree},
-          {title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree},
+          { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
+          { title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree },
+          { title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree },
         ],
       },
       fileMenuItems: [
-        {title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree},
-        {title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree},
-        {title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree},
-        {isDivider: true},
+        { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
+        { title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree },
+        { title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree },
+        { isDivider: true },
         {
           title: 'Sub-menu 1',
           menu: [
-            {title: '1.1', icon: 'mdi-bug', action: () => console.log("test")},
-            {title: '1.2', icon: 'mdi-bug',},
-          ]
-        }
-      ]
+            { title: '1.1', icon: 'mdi-bug', action: () => console.log('test') },
+            { title: '1.2', icon: 'mdi-bug' },
+          ],
+        },
+      ],
     };
   },
   computed: {
@@ -244,7 +249,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setErrorMsg', value);
-      }
+      },
     },
     data: {
       get() {
@@ -260,12 +265,13 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setSuccessMsg', value);
-      }
+      },
     },
   },
   methods: {
     isExecutable() {
-      return this.dbState !== null && ((this.changeSet !== null && this.changeSet.length > 0) || this.wasDataDeleted);
+      return this.dbState !== null
+          && ((this.changeSet !== null && this.changeSet.length > 0) || this.wasDataDeleted);
     },
     doesDataExist() {
       return !(this.data === null || this.data === undefined || this.data.length < 2);
@@ -273,7 +279,7 @@ export default {
     executeHeuristics() {
       // prevent execution if not data is available
       if (!this.isExecutable()) {
-        return
+        return;
       }
 
       fetch(ROUTE_EXECUTE_HEURISTICS + this.transactionHash, {
@@ -283,17 +289,16 @@ export default {
         },
         body: JSON.stringify(prepareData(this.dbState, this.data, this.changeSet)),
       })
-          .then(response => response.json())
-          .then(data => {
-            this.successMsg = data;
-          })
-          .catch((error) => {
-            this.errMsg = error;
-          });
+        .then((response) => response.json())
+        .then((data) => {
+          this.successMsg = data;
+        })
+        .catch((error) => {
+          this.errMsg = error;
+        });
     },
     downloadHeuristicSummary() {
-      if (!this.doesDataExist())
-        return;
+      // if (!this.doesDataExist()) return;
       // fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
       //     .then(response => response.json())
       //     .then(data => {
@@ -303,11 +308,12 @@ export default {
       //       console.error('Error:', error);
       //     });
     },
-    // updateChangeSet updates the change set this.changeSet based on the differences of this.data and this.dbState
+    // updateChangeSet updates the change set <this.changeSet> based
+    // on the differences of this.data and this.dbState
     updateChangeSet() {
       this.changeSet = [];
-      let originChangeSet = [];
-      this.data.forEach(d => {
+      const originChangeSet = [];
+      this.data.forEach((d) => {
         if (this.dbState.has(d.uid)) {
           const thisElement = this.dbState.get(d.uid);
           if (!areDataElementsEqual(thisElement, d)) {
@@ -321,9 +327,9 @@ export default {
       });
 
       // this set will have some duplicates, if changes are nested we get overlapping descendants
-      let descendantSet = [];
+      const descendantSet = [];
       // find descendants for each changed root element
-      originChangeSet.forEach(d => {
+      originChangeSet.forEach((d) => {
         // get subtree
         const descendants = ht.getDescendants(d.uid);
         descendantSet.push(...descendants);
@@ -331,27 +337,28 @@ export default {
 
       // remove duplicates
       const descendantMap = new Map(descendantSet.map(
-          tempObject => [tempObject.data.data.uid, tempObject]));
+        (tempObject) => [tempObject.data.data.uid, tempObject],
+      ));
 
       // save in global changeSet
-      descendantMap.forEach(e => this.changeSet.push(e.data.data.uid));
+      descendantMap.forEach((e) => this.changeSet.push(e.data.data.uid));
 
       ht.setNodesChanged(descendantSet);
     },
     // called by context menu handler
     goToTransactionPage() {
-      this.$router.push({name: ROUTE_NAME_SEARCH_PAGE})
+      this.$router.push({ name: ROUTE_NAME_SEARCH_PAGE });
     },
     deleteSubTree() {
       const toBeRemoved = ht.getRemovableNodes();
       const rel = ht.getRemovableRelationship();
 
-      let updatedData = [];
+      const updatedData = [];
 
-      this.data.forEach(e => {
+      this.data.forEach((e) => {
         // update children set of parent
         if (rel.parentUid !== '' && e.uid === rel.parentUid) {
-          e.children = e.children.filter(c => c.uid !== rel.childUid);
+          e.children = e.children.filter((c) => c.uid !== rel.childUid);
         }
 
         // remove removable nodes
@@ -375,7 +382,7 @@ export default {
 
       this.$nextTick(() => {
         this.contextMenu.display = true;
-      })
+      });
     },
     updateGraph() {
       // maps the node data to the tree layout
@@ -385,19 +392,18 @@ export default {
       // because otherwise it gets a not up to date descendant state
       this.updateChangeSet();
     },
-    refreshData: async function () {
+    async refreshData() {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
 
       // if the transaction has not yet any heuristics associated
-      if (this.data === null)
-        return;
+      if (this.data === null) return;
 
       ht.addRootElement(this.data);
 
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
       // functions (complex types like function are not allowed):
-      this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map(d => [d.uid, d]));
+      this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map((d) => [d.uid, d]));
       this.updateGraph();
     },
     onMounted() {
@@ -418,20 +424,20 @@ export default {
     },
     onMenuItemClick(item) {
       if (item.action) {
-        item.action()
+        item.action();
       }
       this.contextMenu.display = false;
-    }
+    },
   },
   mounted() {
     this.onMounted();
   },
   watch: {
-    '$route'() {
+    $route() {
       newRouting(this);
-    }
-  }
-}
+    },
+  },
+};
 </script>
 
 <style>
