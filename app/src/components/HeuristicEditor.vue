@@ -24,7 +24,7 @@
 
       <!--    todo: remove?-->
       <v-btn @click="refreshData">Refresh</v-btn>
-      <v-btn @click="changeData" :disabled="!isDataSet()">Change</v-btn>
+      <v-btn @click="changeData" :disabled="!doesDataExist()">Change</v-btn>
 
       <v-btn outlined @click="sheetOpen = !sheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
@@ -44,13 +44,13 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item @click="downloadHeuristicSummary" :disabled="!isDataSet()">
+          <v-list-item @click="downloadHeuristicSummary" :disabled="!doesDataExist()">
             <v-list-item-icon>
               <v-icon>mdi-file-download-outline</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Download Summary</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="executeHeuristics" :disabled="!isDataSet() && !wasDataDeleted">
+          <v-list-item @click="executeHeuristics" :disabled="!isExecutable()">
             <v-list-item-icon>
               <v-icon>mdi-source-branch-check</v-icon>
             </v-list-item-icon>
@@ -265,12 +265,15 @@ export default {
     },
   },
   methods: {
-    isDataSet() {
+    isExecutable() {
+      return this.dbState !== null && ((this.changeSet !== null && this.changeSet.length > 0) || this.wasDataDeleted);
+    },
+    doesDataExist() {
       return !(this.data === null || this.data === undefined || this.data.length < 2);
     },
     executeHeuristics() {
       // prevent execution if not data is available
-      if (!this.isDataSet()) {
+      if (!this.isExecutable()) {
         return
       }
 
@@ -290,7 +293,7 @@ export default {
           });
     },
     downloadHeuristicSummary() {
-      if (!this.isDataSet())
+      if (!this.doesDataExist())
         return;
       // fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
       //     .then(response => response.json())
