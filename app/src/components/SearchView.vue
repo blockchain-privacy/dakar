@@ -7,18 +7,18 @@
 </template>
 
 <script>
-    import TxLookup from "./TxLookup";
-    import AddressLookup from "./AddressLookup";
-    import BlockLookup from "./BlockLookup";
+import TxLookup from './TxLookup.vue';
+import AddressLookup from './AddressLookup.vue';
+import BlockLookup from './BlockLookup.vue';
 
-    export default {
-        name: 'SearchView',
-        components: {
-            TxLookup,
-            AddressLookup,
-            BlockLookup
-        }
-    }
+export default {
+  name: 'SearchView',
+  components: {
+    TxLookup,
+    AddressLookup,
+    BlockLookup,
+  },
+};
 </script>
 
 <style scoped>

@@ -11,29 +11,34 @@
             <v-spacer></v-spacer>
             <v-tooltip bottom>
               <template v-slot:activator="{ on, attrs }">
-                <v-btn  v-if="data.privacytype === 'destination'" style="margin-right: 0px" outlined icon @click="goToHeuristicPage" v-on="on" v-bind="attrs">
+                <v-btn  v-if="data.privacytype === 'destination'"
+                        style="margin-right: 0" outlined icon
+                        @click="goToHeuristicPage" v-on="on" v-bind="attrs">
                   <v-icon>mdi-graph</v-icon>
                 </v-btn>
               </template>
               <span>Open the heuristic editor for this transaction.</span>
             </v-tooltip>
-            <!--            todo remove?-->
-            <!--            <v-tooltip bottom>-->
-            <!--              <template v-slot:activator="{ on, attrs }">-->
-            <!--                <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px" outlined v-on:click="getCSV"-->
-            <!--                       v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
-            <!--                       class="d-none d-sm-flex" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-            <!--                  <v-icon>mdi-download</v-icon>-->
-            <!--                  {{ data.origincount }} origins-->
-            <!--                </v-btn>-->
-            <!--                <v-btn :loading="isLoading" icon v-on:click="getCSV" v-if="data.origincount > 0" v-on="on"-->
-            <!--                       v-bind="attrs"-->
-            <!--                       class="d-flex d-sm-none" :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-            <!--                  <v-icon large>mdi-download</v-icon>-->
-            <!--                </v-btn>-->
-            <!--              </template>-->
-            <!--              <span>Download potential origins of this transaction. {{ data.origincount }} origins found.</span>-->
-            <!--            </v-tooltip>-->
+        <!--            todo remove?-->
+<!--<v-tooltip bottom>-->
+<!--  <template v-slot:activator="{ on, attrs }">-->
+<!--    <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px"-->
+<!--           outlined v-on:click="getCSV" v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
+<!--           class="d-none d-sm-flex"-->
+<!--           :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+<!--      <v-icon>mdi-download</v-icon>-->
+<!--      {{ data.origincount }} origins-->
+<!--    </v-btn>-->
+<!--    <v-btn :loading="isLoading" icon v-on:click="getCSV"-->
+<!--           v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
+<!--           class="d-flex d-sm-none"-->
+<!--           :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+<!--      <v-icon large>mdi-download</v-icon>-->
+<!--    </v-btn>-->
+<!--  </template>-->
+<!--  <span>Download potential origins of this transaction.-->
+<!--    {{ data.origincount }} origins found.</span>-->
+<!--</v-tooltip>-->
           </v-toolbar>
           <v-card-text>
             <v-container>
@@ -117,18 +122,20 @@
 </template>
 
 <script>
-import {shortenHash, convertAmount} from "@/utilities";
-import {PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE} from "@/constants";
-import IconItem from "@/components/common/IconItem";
+import { shortenHash, convertAmount } from '../utilities';
+import {
+  PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
+} from '../constants';
+import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'TxLookup',
-  components: {IconItem},
-  data: function () {
+  components: { IconItem },
+  data() {
     return {
       isLoading: false,
       csvDownloadMaxOrigins: CSV_DOWNLOAD_MAX_ORIGINS,
-    }
+    };
   },
   computed: {
     data() {
@@ -139,49 +146,45 @@ export default {
     },
     outputs() {
       return this.sortByOutput(this.data.outputs);
-    }
+    },
   },
   methods: {
     shortenHash,
     convertAmount,
     goToHeuristicPage() {
-      this.$router.push({name: ROUTE_NAME_HEURISTIC_PAGE})
+      this.$router.push({ name: ROUTE_NAME_HEURISTIC_PAGE });
     },
     sortByOutput(outputs) {
       if (outputs == null) return null;
-      return outputs.sort((a, b) => {
-        return a.outputindex > b.outputindex
-      })
+      return outputs.sort((a, b) => a.outputindex > b.outputindex);
     },
     sortByInput(inputs) {
       if (inputs == null) return null;
-      return inputs.sort((a, b) => {
-        return a.inputindex > b.inputindex
-      })
+      return inputs.sort((a, b) => a.inputindex > b.inputindex);
     },
-    getCSV: function () {
+    getCSV() {
       const options = {
         headers: {
           // header for pass through
-          Accept: '*/*'
-        }
+          Accept: '*/*',
+        },
       };
       this.isLoading = true;
       fetch(ROUTE_PATHS + this.data.txhash, options)
-          .then(res => res.blob())
-          .then(blob => {
-            // looks hacky, but it is the only way with good UX
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.setAttribute("download", `${this.data.txhash}.csv`);
-            a.click();
-            a.remove();
-            this.isLoading = false;
-          })
-          .catch(error => {
-            this.errorMsg = error;
-            this.isLoading = false;
-          });
+        .then((res) => res.blob())
+        .then((blob) => {
+          // looks hacky, but it is the only way with good UX
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.setAttribute('download', `${this.data.txhash}.csv`);
+          a.click();
+          a.remove();
+          this.isLoading = false;
+        })
+        .catch((error) => {
+          this.errorMsg = error;
+          this.isLoading = false;
+        });
     },
   },
   mounted() {
@@ -190,9 +193,9 @@ export default {
   updated() {
     let h = ' ';
     if (this.data && this.data.txhash) {
-      h = ` ${this.data.txhash} `
+      h = ` ${this.data.txhash} `;
     }
     document.title = `Transaction${h}- ${PAGE_TITLE}`;
   },
-}
+};
 </script>
