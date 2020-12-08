@@ -12,7 +12,7 @@ import (
 )
 
 // copyOnModify is true when existing heuristic trees should be copied before modification
-const copyOnModify = true
+const copyOnModify = false
 
 type Work struct {
 	// executors contains the HeuristicExecutor trees
@@ -84,18 +84,18 @@ mainLoop:
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
 				log.Print("processing work package")
 				// copy tree
-				wasCopingErrorFree := true
+				wasCopyingErrorFree := true
 				if copyOnModify {
 					for _, root := range work.treeRoots {
 						if err := dbtxh.CopyHeuristicTree(dgraph, root); err != nil {
 							log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-							wasCopingErrorFree = false
+							wasCopyingErrorFree = false
 							break
 						}
 					}
 				}
 
-				if wasCopingErrorFree {
+				if wasCopyingErrorFree {
 					// delete changed or removable heuristics
 					if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
 						log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
@@ -110,6 +110,7 @@ mainLoop:
 						}
 					}
 				}
+				log.Print("processing work done")
 			}
 
 			w.mapLock.Lock()

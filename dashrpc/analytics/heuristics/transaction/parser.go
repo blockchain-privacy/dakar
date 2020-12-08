@@ -9,18 +9,22 @@ import (
 	"log"
 )
 
-// validHeuristics includes all heuristics which are possible to receive from the frontend.
+// validHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
-var validHeuristics = []heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
+var validHeuristicTypes = []heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
 	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic()}
+
+// typeMap K: heuristic types, v: heuristics
+var typeMap = make(map[string]heuristic)
 
 // errors for this file
 var (
-	errHeuristicTypeNotFound  = errors.New("error heuristic type not found")
-	errHeuristicDuplicateUid  = errors.New("error duplicate uids found")
-	errHeuristicUidNotFound   = errors.New("error uid not found")
-	errHeuristicMultipleRoots = errors.New("error multiple roots found")
-	errHeuristicNotValid      = errors.New("error heuristics are not valid")
+	errHeuristicTypeNotFound     = errors.New("error heuristic type not found")
+	errHeuristicDuplicateUid     = errors.New("error duplicate uids found")
+	errHeuristicUidNotFound      = errors.New("error uid not found")
+	errHeuristicMultipleRoots    = errors.New("error multiple roots found")
+	errHeuristicNotValid         = errors.New("error heuristics are not valid")
+	errHeuristicNoExecutorsBuilt = errors.New("error no executors have been built")
 )
 
 type heuristicTreeElement struct {
@@ -43,7 +47,7 @@ func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bo
 		}
 
 		// type must by in valid set; parameter must be set if the map has a parameter
-		if heuristic, ok := hMap[h.Type]; !ok || (heuristic.hasParameter() && len(h.Parameter) == 0) {
+		if modelHeuristic, ok := hMap[h.Type]; !ok || (modelHeuristic.hasParameter() && len(h.Parameter) == 0) {
 			return false
 		}
 	}
@@ -60,6 +64,7 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.Fr
 	for _, h := range heuristics {
 		// create new heuristic
 		if newHeuristic, ok := hMap[h.Type]; ok {
+			// check heuristic was already built
 			if _, ok := builtHeuristics[h.Uid]; ok {
 				err = errHeuristicDuplicateUid
 				return
@@ -199,14 +204,23 @@ func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecuto
 	return
 }
 
-func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []HeuristicExecutor, err error) {
-	//processedElements := make(map[string]heuristicTreeElement)
+func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTreeElement) bool {
+	// no parent uid -> must be a root element
+	if h.parentHeuristicUid == "" {
+		return true
+	}
 
-	var roots []heuristicTreeElement
+	// parentuid does not exist in change set -> must be a root element in this context
+	if _, ok := heuristics[h.parentHeuristicUid]; !ok {
+		return true
+	}
+
+	return false
+}
+
+func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []HeuristicExecutor, err error) {
 	for k, v := range heuristics {
-		// start with root nodes
-		if v.parentHeuristicUid == "" {
-			roots = append(roots, v)
+		if isRootHeuristic(v, heuristics) {
 
 			if len(v.childHeuristicUid) == 0 {
 				executors = append(executors, HeuristicExecutor{
@@ -236,18 +250,19 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 
 // ConstructExecutors creates executors based on heuristics
 func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []HeuristicExecutor, err error) {
-	heuristicMap := make(map[string]heuristic)
-
-	for _, h := range validHeuristics {
-		heuristicMap[h.getType()] = h
+	// only set values for global type map once
+	if len(typeMap) == 0 {
+		for _, h := range validHeuristicTypes {
+			typeMap[h.getType()] = h
+		}
 	}
 
-	if !isValid(heuristicMap, heuristics) {
+	if !isValid(typeMap, heuristics) {
 		err = errHeuristicNotValid
 		return
 	}
 
-	newHeuristics, err := buildHeuristicTreeElements(heuristicMap, heuristics)
+	newHeuristics, err := buildHeuristicTreeElements(typeMap, heuristics)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -312,6 +327,9 @@ func CreateWork(dgraph *dgo.Dgraph, changed []dbtxh.FrontendHeuristic, toRemove 
 		w.executors, err = ConstructExecutors(changed)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		} else if len(w.executors) == 0 {
+			err = errHeuristicNoExecutorsBuilt
 			return
 		}
 	}
