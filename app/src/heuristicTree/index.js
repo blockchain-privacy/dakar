@@ -395,7 +395,7 @@ function processGraphData(graphData) {
   let nodes = d3.hierarchy(treeData, (d) => d.children);
   const levelWidth = [1]; let
     levelDepth = 0;
-  const childCount = function (level, n) {
+  const childCount = (level, n) => {
     if (levelDepth < level) {
       levelDepth = level;
     }
