@@ -160,11 +160,12 @@ func isParentHeuristicSet(parentHeuristicUid string) bool {
 }
 
 type HeuristicExecutor struct {
+	RootUid        string
 	ThisHeuristic  heuristic
 	NextHeuristics []HeuristicExecutor
 }
 
-// BuildExecutor is a convenience function for build heuristic executors
+// BuildExecutor is a convenience function for building heuristic executors
 func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
 	return HeuristicExecutor{
 		ThisHeuristic:  thisHeuristic,
@@ -217,9 +218,15 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, txHash string, parentHe
 }
 
 // RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
-// triggers the RunSynchronous function of all NextHeuristics
+// triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUid is not
+// set (e.g. "") than the HeuristicExecutor.RootUid is used
 func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
-	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
+	thisRootUid := hx.RootUid
+	if parentHeuristicUid != "" {
+		thisRootUid = parentHeuristicUid
+	}
+
+	newUid, err := Exec(dgraph, txHash, thisRootUid, hx.ThisHeuristic)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 			fmt.Errorf("heuristic type: %s, parameter: %s, %s",

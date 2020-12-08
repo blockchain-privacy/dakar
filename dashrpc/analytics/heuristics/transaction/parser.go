@@ -173,7 +173,7 @@ func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecuto
 	for i := len(levelToNode) - 1; i >= 0; i-- {
 		for _, n := range levelToNode[i] {
 			thisExec := BuildExecutor(n.heuristic)
-
+			thisExec.RootUid = n.parentHeuristicUid
 			for _, childUid := range n.childHeuristicUid {
 				if child, ok := executorStack[childUid]; ok {
 					// add child to this executor tree and delete it from the map
@@ -225,6 +225,7 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 			if len(v.childHeuristicUid) == 0 {
 				executors = append(executors, HeuristicExecutor{
 					ThisHeuristic: v.heuristic,
+					RootUid:       v.parentHeuristicUid,
 				})
 				// no children -> no work
 				continue
