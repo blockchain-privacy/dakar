@@ -678,6 +678,65 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 	return
 }
 
+// DoesHeuristicUidExist checks if the given uids exist
+func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
+	// This query gets built for multiple uids
+	//{
+	//	x as var(func: uid(0x43239f,0x4323b4))@filter(eq(dgraph.type, "TransactionHeuristic"))@cascade{
+	//		h_transaction@filter(eq(txhash, "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"))
+	//	}
+	//
+	//	q(func: uid(x)){
+	//		uid
+	//	}
+	//}
+
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
+		}
+	}
+
+	query := "{x as var(func: uid(" + queryPart + `))@filter(eq(dgraph.type, "` + DType + `"))@cascade{
+					h_transaction@filter(eq(txhash, "` + txhash + `"))
+				}
+				
+				q(func: uid(x)){
+					count(uid)
+				}
+			}`
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Count []struct {
+			Number int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Count) == 0 || len(r.Count) > 1 {
+		err = errors.New("error invalid response from database")
+		return
+	} else if r.Count[0].Number != len(uids) {
+		err = errors.New("error received number of uids does not match")
+		return
+	}
+
+	allExist = true
+	return
+}
+
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction. Basic information only
 func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHeuristic, err error) {
 	query := `query Q($hash: string){

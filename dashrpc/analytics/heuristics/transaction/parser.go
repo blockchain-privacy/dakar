@@ -23,6 +23,7 @@ var (
 	errHeuristicDuplicateUid     = errors.New("error duplicate uids found")
 	errHeuristicUidNotFound      = errors.New("error uid not found")
 	errHeuristicMultipleRoots    = errors.New("error multiple roots found")
+	errHeuristicNoRoots          = errors.New("error no roots") // ♩ ♬ no roots ♬ ♪
 	errHeuristicNotValid         = errors.New("error heuristics are not valid")
 	errHeuristicNoExecutorsBuilt = errors.New("error no executors have been built")
 )
@@ -218,31 +219,43 @@ func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTree
 	return false
 }
 
-func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []HeuristicExecutor, err error) {
-	for k, v := range heuristics {
-		if isRootHeuristic(v, heuristics) {
+func doesRootExist() (exists bool, err error) {
 
-			if len(v.childHeuristicUid) == 0 {
-				executors = append(executors, HeuristicExecutor{
-					ThisHeuristic: v.heuristic,
-					RootUid:       v.parentHeuristicUid,
-				})
-				// no children -> no work
-				continue
-			}
+	exists = true
+	return
+}
 
-			levelDistribution, childErr := getNodeLevelDistribution(heuristics, k, v)
-			if childErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), childErr)
-				return
-			}
+// buildExecutors builds HeuristicExecutor trees from heuristics starting at the given rootHeuristicUids.
+// Each element of the returned slice is one HeuristicExecutor tree.
+func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicTreeElement) (
+	executors []HeuristicExecutor, err error) {
+	for _, uid := range rootHeuristicUids {
+		v, ok := heuristics[uid]
+		if !ok {
+			err = errHeuristicUidNotFound
+			return
+		}
 
-			if newRootExecutor, buildErr := buildExecutorsFromLevels(levelDistribution); buildErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
-				return
-			} else {
-				executors = append(executors, newRootExecutor)
-			}
+		if len(v.childHeuristicUid) == 0 {
+			executors = append(executors, HeuristicExecutor{
+				ThisHeuristic: v.heuristic,
+				RootUid:       v.parentHeuristicUid,
+			})
+			// no children -> no work
+			continue
+		}
+
+		levelDistribution, childErr := getNodeLevelDistribution(heuristics, v.uid, v)
+		if childErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), childErr)
+			return
+		}
+
+		if newRootExecutor, buildErr := buildExecutorsFromLevels(levelDistribution); buildErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
+			return
+		} else {
+			executors = append(executors, newRootExecutor)
 		}
 	}
 
@@ -250,7 +263,8 @@ func buildExecutors(heuristics map[string]heuristicTreeElement) (executors []Heu
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []HeuristicExecutor, err error) {
+func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.FrontendHeuristic) (
+	executors []HeuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
 		for _, h := range validHeuristicTypes {
@@ -269,7 +283,29 @@ func ConstructExecutors(heuristics []dbtxh.FrontendHeuristic) (executors []Heuri
 		return
 	}
 
-	executors, err = buildExecutors(newHeuristics)
+	// collect root uids
+	var rootUids []string
+	for _, v := range newHeuristics {
+		if isRootHeuristic(v, newHeuristics) {
+			rootUids = append(rootUids, v.uid)
+		}
+	}
+
+	if len(rootUids) == 0 {
+		err = errHeuristicNoRoots
+		return
+	}
+
+	// check if all parent heuristics of contextual roots actually exists in the db
+	if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootUids); checkErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
+		return
+	} else if !exists {
+		err = errHeuristicUidNotFound
+		return
+	}
+
+	executors, err = buildExecutors(rootUids, newHeuristics)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -317,7 +353,7 @@ func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []stri
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph *dgo.Dgraph, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph *dgo.Dgraph, transactionHash string, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return
@@ -325,7 +361,7 @@ func CreateWork(dgraph *dgo.Dgraph, changed []dbtxh.FrontendHeuristic, toRemove 
 
 	if len(changed) > 0 {
 		// create HeuristicExecutor trees
-		w.executors, err = ConstructExecutors(changed)
+		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
