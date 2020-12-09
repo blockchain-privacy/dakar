@@ -9,7 +9,7 @@
         offset-y
         :close-on-click="true"
         style="max-width: 600px"
-        name='File' :menu-items='fileMenuItems' @nested-menu-click='onMenuItemClick'/>
+        name='File' :menu-items='contextMenu.items' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
         style="width: 100%; left:0;position:fixed; z-index: 99"
         dense>
@@ -25,7 +25,7 @@
       <!--    todo: remove?-->
       <v-btn outlined style="margin-right: 2px" @click="refreshData">Reload</v-btn>
 
-      <v-btn outlined @click="sheetOpen = !sheetOpen">
+      <v-btn outlined @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
@@ -57,7 +57,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-bottom-sheet scrollable v-model="sheetOpen">
+      <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
           <v-subheader>Add heuristic</v-subheader>
           <v-card-text style="height: 80%">
@@ -66,8 +66,7 @@
                   class="mx-auto my-12"
                   v-for="(item, index) in heuristicTypes"
                   :key="index"
-                  max-width="300"
-              >
+                  max-width="300">
                 <v-img
                     height="200"
                     src="https://images.idgesg.net/images/article/2017/09/networking-100735059-large.jpg"
@@ -79,11 +78,29 @@
                   {{ item.description }}
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="sheetOpen = false; item.action()">
+                  <v-btn color="primary" @click="isAddHeuristicSheetOpen = false; item.action()">
                     Add Heuristic
                   </v-btn>
                 </v-card-actions>
               </v-card>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-bottom-sheet>
+      <v-bottom-sheet scrollable v-model="heuristicSheet.isOpen">
+        <v-card style="max-height: 400px">
+          <v-subheader>Heuristic Properties</v-subheader>
+          <v-card-text style="height: 80%">
+            <div class="d-flex flex-wrap" style="align-items: flex-start;">
+              <div>
+              <p>Type: {{ heuristicSheet.heuristicType}}</p>
+              <p v-if="heuristicSheet.heuristicParameter">
+                Parameter: {{heuristicSheet.heuristicParameter}}
+              </p>
+              <p v-if="heuristicSheet.resultCount">
+                Number of results: {{heuristicSheet.resultCount}}
+              </p>
+              </div>
             </div>
           </v-card-text>
         </v-card>
@@ -180,7 +197,13 @@ export default {
       dbState: null,
       // changeSet holds all changes based on dbState and this.data(computed)
       changeSet: [],
-      sheetOpen: false,
+      isAddHeuristicSheetOpen: false,
+      heuristicSheet: {
+        isOpen: false,
+        heuristicType: '',
+        heuristicParameter: '',
+        resultCount: null,
+      },
       // wasDataDeleted is set to true if any data was deleted
       wasDataDeleted: false,
       heuristicTypes: [
@@ -222,24 +245,19 @@ export default {
         x: 0,
         y: 0,
         items: [
+          { title: 'Show properties', icon: 'mdi-dock-bottom', action: ht.simulateClick },
           { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
-          { title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree },
-          { title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree },
+          { title: 'Dummy', icon: 'mdi-bug-outline', action: this.deleteSubTree },
+          // { isDivider: true },
+          {
+            title: 'Sub-menu 1',
+            menu: [
+              { title: '1.1', icon: 'mdi-bug', action: () => console.log('test') },
+              { title: '1.2', icon: 'mdi-bug' },
+            ],
+          },
         ],
       },
-      fileMenuItems: [
-        { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
-        { title: 'Dummy 1', icon: 'mdi-bug', action: this.deleteSubTree },
-        { title: 'Dummy 2', icon: 'mdi-bug-outline', action: this.deleteSubTree },
-        { isDivider: true },
-        {
-          title: 'Sub-menu 1',
-          menu: [
-            { title: '1.1', icon: 'mdi-bug', action: () => console.log('test') },
-            { title: '1.2', icon: 'mdi-bug' },
-          ],
-        },
-      ],
     };
   },
   computed: {
@@ -269,6 +287,16 @@ export default {
     },
   },
   methods: {
+    openPropertySheet(heuristic) {
+      const sheet = this.heuristicSheet;
+      console.log(heuristic);
+
+      sheet.heuristicParameter = heuristic.parameter;
+      sheet.heuristicType = heuristic.type;
+      sheet.resultCount = heuristic.num_results;
+
+      sheet.isOpen = true;
+    },
     isExecutable() {
       return this.dbState !== null
           && ((this.changeSet !== null && this.changeSet.length > 0) || this.wasDataDeleted);
@@ -418,6 +446,13 @@ export default {
       // set page title
       document.title = `Heuristic - ${this.transactionHash}`;
 
+      if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
+        this.errMsg = 'error setting heuristic click handler';
+      }
+      if (!ht.setContextMenuCallback(this.showContextMenu)) {
+        this.errMsg = 'error setting context menu handler';
+      }
+
       ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
       this.refreshData();
       ht.centerGraph();
@@ -443,6 +478,7 @@ export default {
 <style>
 .node text {
   font: 12px sans-serif;
+  cursor: pointer;
 }
 
 .link {
@@ -454,6 +490,7 @@ export default {
 rect {
   stroke: #008ee5;
   fill-opacity: 0;
+  cursor:pointer;
 }
 
 .clicked {

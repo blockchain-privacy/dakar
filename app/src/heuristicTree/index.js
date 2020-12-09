@@ -23,13 +23,17 @@ let dragLayoutHiddenNodes = null;
 let activeMouseOverNode = null; let lastMouseOverNode;
 
 // context menu
-let activeContextMenuNode = null;
+let activeContextMenuNode = null; let activeContextMenuSelection = null;
 
 // heuristic type map
 const heuristicTypeMap = new Map();
 
 // zoom
 let zoom = null;
+
+// callbacks
+let heuristicClickCallback = null;
+let contextMenuCallback = null;
 
 function dragStart(_, d) {
   dragNode = d3.select(this);
@@ -293,9 +297,11 @@ function mouseOutNode() {
   activeMouseOverNode = null;
 }
 
-function contextMenuHandler(context, event, d) {
-  context.showContextMenu(event);
+// contextMenuHandler is called when a context menu event for a node occurs
+function contextMenuHandler(event, d) {
+  contextMenuCallback(event);
   activeContextMenuNode = d;
+  activeContextMenuSelection = d3.select(this);
 }
 
 function resetClick() {
@@ -308,16 +314,31 @@ function resetClick() {
   isClicked = false;
 }
 
-function nodeClicked(e) {
-  const thisElement = d3.select(this);
-  if (thisElement.data()[0].data.data.uid === rootIdentifier) return;
+// drawClickedState sets the correct class so it looks clicked
+function drawClickedState(node) {
+  if (node.data()[0].data.data.uid === rootIdentifier) return false;
 
   resetClick();
-  e.stopPropagation();
   // set click representation
-  thisElement.select('.rect').classed('clicked', true);
+  node.select('.rect').classed('clicked', true);
   // set clicked
   isClicked = true;
+
+  // execute clickHandler
+  heuristicClickCallback(node.data()[0].data.data);
+  return true;
+}
+
+// simulateClick simulates a click and executes the click handler
+function simulateClick() {
+  drawClickedState(activeContextMenuSelection);
+}
+
+function nodeClicked(e) {
+  const thisElement = d3.select(this);
+  if (!drawClickedState(thisElement)) return;
+
+  e.stopPropagation();
 }
 
 function drawNodes(group, nodeData, context) {
@@ -335,7 +356,7 @@ function drawNodes(group, nodeData, context) {
       // set click handler
         .on('click', nodeClicked)
       // set context menu handler
-        .on('contextmenu', (e, d) => contextMenuHandler(context, e, d))
+        .on('contextmenu', contextMenuHandler)
       // set drag handler
         .call(d3.drag()
           .on('start', dragStart)
@@ -508,9 +529,37 @@ async function centerGraph() {
 
   rootSvg.transition().duration(250).call(zoom.transform, transform);
 }
+// isFunction returns true if the provided argument is a function
+// credits: https://stackoverflow.com/questions/5999998/check-if-a-variable-is-of-function-type
+function isFunction(functionToCheck) {
+  return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
+// setHeuristicClickHandler receives a function as an argument.
+// The function is going to be called each time a heuristic is clicked.
+function setHeuristicClickHandler(callback) {
+  if (!isFunction(callback)) {
+    return false;
+  }
+
+  heuristicClickCallback = callback;
+  return true;
+}
+
+// setContextMenuCallback receives a function as an argument.
+// The function is going to be called each time the context menu is activated.
+function setContextMenuCallback(callback) {
+  if (!isFunction(callback)) {
+    return false;
+  }
+
+  contextMenuCallback = callback;
+  return true;
+}
 
 export {
   drawGraph, processGraphData, addHeuristic, setupSvg,
   addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
-  getDescendants, setNodesChanged, rootIdentifier,
+  getDescendants, setNodesChanged, setHeuristicClickHandler, setContextMenuCallback,
+  simulateClick, rootIdentifier,
 };
