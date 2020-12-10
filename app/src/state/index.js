@@ -51,7 +51,7 @@ const mutations = {
     state.heuristicDetails = payload;
   },
   ADD_HEURISTIC_DETAILS(state, payload) {
-    state.heuristicDetails.push(payload);
+    state.heuristicDetails.set(payload.uid, payload);
   },
 };
 
@@ -172,7 +172,7 @@ const actions = {
       payload.parameter, payload.body);
   },
   resetHeuristicDetails(context) {
-    context.commit('SET_HEURISTIC_DETAILS', []);
+    context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
   setHeuristicDetails(context, payload) {
     context.commit('SET_HEURISTIC_DETAILS', payload);
@@ -210,7 +210,7 @@ const state = {
   block: null,
   meta: null,
   heuristic: null,
-  heuristicDetails: [],
+  heuristicDetails: new Map(),
 };
 
 export default new Vuex.Store({

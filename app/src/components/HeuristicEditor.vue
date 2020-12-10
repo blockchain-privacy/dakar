@@ -93,14 +93,27 @@
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
               <div>
-              <p>Type: {{ heuristicSheet.heuristicType}}</p>
-              <p v-if="heuristicSheet.heuristicParameter">
-                Parameter: {{heuristicSheet.heuristicParameter}}
-              </p>
-              <p v-if="heuristicSheet.resultCount">
-                Number of results: {{heuristicSheet.resultCount}}
-              </p>
+                <p>Type: {{ heuristicSheet.heuristicType }}</p>
+                <p v-if="heuristicSheet.heuristicParameter">
+                  Parameter: {{ heuristicSheet.heuristicParameter }}
+                </p>
+                <p v-if="heuristicSheet.resultCount">
+                  Number of results: {{ heuristicSheet.resultCount }}
+                </p>
               </div>
+              <v-card
+                  class="mx-auto my-12"
+                  v-for="[key, value] of heuristicDetailsMap.get(heuristicSheet.heuristicUid)"
+                  :key="key"
+                  max-width="300">
+
+                <v-card-title>
+                  {{ key }}
+                </v-card-title>
+                <v-card-subtitle>
+                  Number of origins: {{ value.length }}
+                </v-card-subtitle>
+              </v-card>
             </div>
           </v-card-text>
         </v-card>
@@ -198,8 +211,11 @@ export default {
       // changeSet holds all changes based on dbState and this.data(computed)
       changeSet: [],
       isAddHeuristicSheetOpen: false,
+      // heuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
+      heuristicDetailsMap: new Map(),
       heuristicSheet: {
         isOpen: false,
+        heuristicUid: '',
         heuristicType: '',
         heuristicParameter: '',
         resultCount: null,
@@ -305,19 +321,45 @@ export default {
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicType = heuristic.type;
       sheet.resultCount = heuristic.num_results;
+      sheet.heuristicUid = heuristic.uid;
 
-      // only request data if there is any
-      if (heuristic.num_results > 0) {
-        this.$store.dispatch('updateHeuristicDetails', {
-          parameter: this.transactionHash,
-          body: { uid: heuristic.uid },
-        }).then(() => {
-          if (this.heuristicDetails === null) return;
-          sheet.isOpen = true;
-        });
-      } else {
+      // check if data must be loaded from backend
+      if (heuristic.num_results === undefined || heuristic.num_results === 0
+          || this.heuristicDetails.has(heuristic.uid)) {
         sheet.isOpen = true;
+        return;
       }
+
+      // request data from backend
+      this.$store.dispatch('updateHeuristicDetails', {
+        parameter: this.transactionHash,
+        body: { uid: heuristic.uid },
+      }).then(() => {
+        if (this.heuristicDetails === null || this.heuristicDetails.length === 0
+            || !this.heuristicDetails.has(heuristic.uid)) return;
+
+        // results format: [{ts, addresshash, txhash}, ...]
+        const { results } = this.heuristicDetails.get(heuristic.uid);
+
+        if (results.length === 0) return;
+
+        const addressMap = new Map();
+        results.forEach((d) => {
+          // if key already exists
+          if (addressMap.has(d.addresshash)) {
+            const origins = addressMap.get(d.addresshash);
+            origins.push({ txhash: d.txhash, ts: d.ts });
+            addressMap.set(d.addresshash, origins);
+            return;
+          }
+          // new entry
+          addressMap.set(d.addresshash, [{ txhash: d.txhash, ts: d.ts }]);
+        });
+        // append values to context variable
+        this.heuristicDetailsMap.set(heuristic.uid, addressMap);
+
+        sheet.isOpen = true;
+      });
     },
     isExecutable() {
       return this.dbState !== null
@@ -516,7 +558,7 @@ export default {
 rect {
   stroke: #008ee5;
   fill-opacity: 0;
-  cursor:pointer;
+  cursor: pointer;
 }
 
 .clicked {
