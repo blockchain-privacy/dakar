@@ -10,6 +10,7 @@ export const ROUTE_PATHS = `${routePrefix}paths/`;
 export const ROUTE_HEURISTICS = `${routePrefix}heuristics/`;
 export const ROUTE_HEURISTICS_SUMMARY = `${routePrefix}heuristicsSummary/`;
 export const ROUTE_EXECUTE_HEURISTICS = `${routePrefix}executeHeuristics/`;
+export const ROUTE_HEURISTIC_DETAILS = `${routePrefix}heuristicDetails/`;
 
 // frontend route names
 export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';

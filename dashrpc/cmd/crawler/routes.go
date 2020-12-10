@@ -34,6 +34,7 @@ const (
 	routeHeuristics          string = "heuristics/"
 	routeHeuristicsSummary   string = "heuristicsSummary/"
 	routeHeuristicsExecution string = "executeHeuristics/"
+	routeHeuristicDetails    string = "heuristicDetails/"
 )
 
 const (
@@ -44,6 +45,7 @@ var (
 	errorPath               = "error getting paths"
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
+	errorHeuristicDetails   = "error getting heuristic details"
 )
 
 type reply struct {
@@ -83,6 +85,10 @@ func getRouteHeuristicsSummary() string {
 
 func getRouteHeuristicsExecution() string {
 	return getRoute(routeHeuristicsExecution)
+}
+
+func getRouteHeuristicDetails() string {
+	return getRoute(routeHeuristicDetails)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -440,6 +446,52 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 	}
 }
 
+// API pattern: "/api/v1/heuristicDetails/<hash>"
+func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicDetails()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			return
+		}
+
+		type request struct {
+			HeuristicUid string `json:"uid,omitempty"`
+		}
+
+		var heuristicRequest request
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&heuristicRequest)
+		if err != nil {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if len(heuristicRequest.HeuristicUid) == 0 {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			return
+		}
+
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
+		if err != nil {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(frontendHeuristic)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
 // API pattern: "/api/v1/executeHeuristics/<hash>"
 func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -521,4 +573,5 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
 	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
+	http.HandleFunc(getRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
 }

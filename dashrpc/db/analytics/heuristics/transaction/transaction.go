@@ -785,6 +785,57 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 	return
 }
 
+// GetFrontendHeuristicByUid the heuristic for the given heuristicUid
+func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string) (
+	frontendHeuristic FrontendHeuristic, err error) {
+	query := `query Q($uid: string, $hash: string){
+					q(func: uid($uid))@cascade{
+						h_transaction@filter(eq(txhash, $hash))
+						uid
+						ts
+						type
+						parameter
+						results@normalize{
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+							tx_inputs{ 
+								~addr_outputs{
+									addresshash:addresshash
+								}
+							}
+						}
+					}
+				}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query,
+		map[string]string{"$uid": heuristicUid, "$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Heuristics []FrontendHeuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	frontendHeuristic = r.Heuristics[0]
+
+	return
+}
+
 // GetFrontendHeuristic returns all heuristics for a given transaction
 func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string){
@@ -794,25 +845,25 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 							ts
 						}
 						~h_transaction{
-							uid
-							ts
-							type
-							parameter
+						uid
+						ts
+						type
+						parameter
 							parent_heuristic{
 								uid
 							}
 							children: ~parent_heuristic{
 								uid
 							}
-							results@normalize{
-								uid:uid
-								txhash:txhash
-								~transactions{
-									ts:ts
-								}
-								tx_inputs{ 
-									~addr_outputs{
-										addresshash:addresshash
+						results@normalize{
+							uid:uid
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+							tx_inputs{ 
+								~addr_outputs{
+									addresshash:addresshash
 									}
 								}
 							}
