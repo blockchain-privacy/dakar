@@ -252,7 +252,7 @@ export default {
           {
             title: 'Sub-menu 1',
             menu: [
-              { title: '1.1', icon: 'mdi-bug', action: () => console.log('test') },
+              { title: '1.1', icon: 'mdi-bug' },
               { title: '1.2', icon: 'mdi-bug' },
             ],
           },
@@ -306,13 +306,18 @@ export default {
       sheet.heuristicType = heuristic.type;
       sheet.resultCount = heuristic.num_results;
 
-      this.$store.dispatch('updateHeuristicDetails', {
-        parameter: this.transactionHash,
-        body: { uid: heuristic.uid },
-      }).then(() => {
-        if (this.heuristicDetails === null) return;
+      // only request data if there is any
+      if (heuristic.num_results > 0) {
+        this.$store.dispatch('updateHeuristicDetails', {
+          parameter: this.transactionHash,
+          body: { uid: heuristic.uid },
+        }).then(() => {
+          if (this.heuristicDetails === null) return;
+          sheet.isOpen = true;
+        });
+      } else {
         sheet.isOpen = true;
-      });
+      }
     },
     isExecutable() {
       return this.dbState !== null
