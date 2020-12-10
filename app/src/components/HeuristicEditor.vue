@@ -277,6 +277,18 @@ export default {
         this.$store.dispatch('setHeuristicData', value);
       },
     },
+    heuristicDetails: {
+      get() {
+        return this.$store.getters.getHeuristicDetails;
+      },
+      set(value) {
+        if (value === [] || value === null) {
+          this.$store.dispatch('resetHeuristicDetails');
+          return;
+        }
+        this.$store.dispatch('setHeuristicDetails', value);
+      },
+    },
     successMsg: {
       get() {
         return this.$store.getters.getSuccessMsg;
@@ -289,13 +301,18 @@ export default {
   methods: {
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
-      console.log(heuristic);
 
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicType = heuristic.type;
       sheet.resultCount = heuristic.num_results;
 
-      sheet.isOpen = true;
+      this.$store.dispatch('updateHeuristicDetails', {
+        parameter: this.transactionHash,
+        body: { uid: heuristic.uid },
+      }).then(() => {
+        if (this.heuristicDetails === null) return;
+        sheet.isOpen = true;
+      });
     },
     isExecutable() {
       return this.dbState !== null
@@ -463,6 +480,10 @@ export default {
       }
       this.contextMenu.display = false;
     },
+  },
+  beforeDestroy() {
+    // reset memory
+    this.heuristicDetails = [];
   },
   mounted() {
     this.onMounted();

@@ -47,9 +47,26 @@ const mutations = {
   SET_HEURISTIC_DATA(state, payload) {
     mutations.UPDATE_HEURISTIC_DATA(state, payload);
   },
+  SET_HEURISTIC_DETAILS(state, payload) {
+    state.heuristicDetails = payload;
+  },
+  ADD_HEURISTIC_DETAILS(state, payload) {
+    state.heuristicDetails.push(payload);
+  },
 };
 
-function doUpdate(context, route, mutation, parameter) {
+function handleError(context, error) {
+  let errMsg;
+  if (error.message === '500 Internal Server Error') {
+    errMsg = 'Server is not reachable';
+  } else {
+    errMsg = `Error getting data: ${error}`;
+  }
+
+  context.dispatch('setErrorMsg', errMsg);
+}
+
+function doGet(context, route, mutation, parameter) {
   return fetch(route + parameter)
     .then((response) => {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
@@ -61,14 +78,29 @@ function doUpdate(context, route, mutation, parameter) {
       context.dispatch('resetMsg');
     })
     .catch((e) => {
-      let errMsg;
-      if (e.message === '500 Internal Server Error') {
-        errMsg = 'Server ist not reachable';
-      } else {
-        errMsg = `Error getting data: ${e}`;
-      }
+      handleError(context, e);
+    });
+}
 
-      context.dispatch('setErrorMsg', errMsg);
+function doPost(context, route, mutation, parameter, body) {
+  return fetch(route + parameter, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    body: JSON.stringify(body),
+  }).then((response) => {
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return response;
+  }).then((response) => response.json())
+    .then((data) => {
+      context.commit(mutation, data);
+      context.dispatch('resetMsg');
+    })
+    .catch((e) => {
+      handleError(context, e);
     });
 }
 
@@ -130,12 +162,20 @@ const actions = {
     context.commit('SET_BLOCK_DATA', payload);
   },
   updateMetaData(context, payload) {
-    console.log('Fetching meta data');
-    return doUpdate(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
+    return doGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
   },
   updateHeuristicData(context, payload) {
-    console.log('Fetching heuristic data');
-    return doUpdate(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
+    return doGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
+  },
+  updateHeuristicDetails(context, payload) {
+    return doPost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
+      payload.parameter, payload.body);
+  },
+  resetHeuristicDetails(context) {
+    context.commit('SET_HEURISTIC_DETAILS', []);
+  },
+  setHeuristicDetails(context, payload) {
+    context.commit('SET_HEURISTIC_DETAILS', payload);
   },
   setHeuristicData(context, payload) {
     context.commit('SET_HEURISTIC_DATA', payload);
@@ -160,6 +200,7 @@ const getters = {
   getBlockData: (state) => state.block,
   getMetaData: (state) => state.meta,
   getHeuristicData: (state) => state.heuristic,
+  getHeuristicDetails: (state) => state.heuristicDetails,
 };
 
 const state = {
@@ -169,6 +210,7 @@ const state = {
   block: null,
   meta: null,
   heuristic: null,
+  heuristicDetails: [],
 };
 
 export default new Vuex.Store({
