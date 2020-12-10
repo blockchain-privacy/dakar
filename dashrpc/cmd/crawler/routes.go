@@ -454,7 +454,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 		txHashString := r.URL.Path[len(getRouteHeuristicDetails()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			return
 		}
 
@@ -467,7 +467,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&heuristicRequest)
 		if err != nil {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -480,6 +480,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
 			return
 		}
 
