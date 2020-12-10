@@ -792,9 +792,6 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string
 					q(func: uid($uid))@cascade{
 						h_transaction@filter(eq(txhash, $hash))
 						uid
-						ts
-						type
-						parameter
 						results@normalize{
 							txhash:txhash
 							~transactions{
