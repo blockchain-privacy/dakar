@@ -87,43 +87,15 @@
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
-      <v-bottom-sheet scrollable v-model="heuristicSheet.isOpen">
-        <v-card style="max-height: 400px">
-          <v-subheader>Heuristic Properties</v-subheader>
-          <v-card-text style="height: 80%">
-            <div class="d-flex flex-wrap" style="align-items: flex-start;">
-              <div>
-                <p>Type: {{ heuristicSheet.heuristicType }}</p>
-                <p v-if="heuristicSheet.heuristicParameter">
-                  Parameter: {{ heuristicSheet.heuristicParameter }}
-                </p>
-                <p v-if="heuristicSheet.resultCount">
-                  Number of results: {{ heuristicSheet.resultCount }}
-                </p>
-              </div>
-              <v-card
-                  class="mx-auto my-12"
-                  v-for="[key, value] of heuristicDetailsMap.get(heuristicSheet.heuristicUid)"
-                  :key="key"
-                  max-width="300">
-
-                <v-card-title>
-                  {{ key }}
-                </v-card-title>
-                <v-card-subtitle>
-                  Number of origins: {{ value.length }}
-                </v-card-subtitle>
-              </v-card>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-bottom-sheet>
+      <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
+      :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
 </template>
 
 <script>
+import HeuristicDetails from './HeuristicDetails.vue';
 import { ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE } from '../constants';
 import NestedMenu from './common/NestedMenu.vue';
 import * as ht from '../heuristicTree';
@@ -200,7 +172,7 @@ function areDataElementsEqual(a, b) {
 
 export default {
   name: 'HeuristicEditor',
-  components: { NestedMenu },
+  components: { HeuristicDetails, NestedMenu },
   data() {
     return {
       transactionHash: '',
