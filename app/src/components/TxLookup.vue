@@ -122,7 +122,7 @@
 </template>
 
 <script>
-import { shortenHash, convertAmount } from '../utilities';
+import { shortenHash, convertAmount, getCurrentDate } from '../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
 } from '../constants';
@@ -176,7 +176,7 @@ export default {
           // looks hacky, but it is the only way with good UX
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
-          a.setAttribute('download', `${this.data.txhash}.csv`);
+          a.setAttribute('download', `paths_${getCurrentDate}_${this.data.txhash}.csv`);
           a.click();
           a.remove();
           this.isLoading = false;
