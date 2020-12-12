@@ -20,3 +20,12 @@ export function shortenHash(hash) {
 export function convertAmount(val) {
   return val / 1e8;
 }
+
+// getCurrentDate returns the current date as a string in the form dd-mm-yyyy
+export function getCurrentDate() {
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, '0');
+  const mm = String(now.getMonth() + 1).padStart(2, '0'); // January is 0!
+  const yyyy = now.getFullYear();
+  return `${dd}-${mm}-${yyyy}`;
+}

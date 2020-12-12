@@ -341,23 +341,23 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 			return
 		}
 
-		shortestPaths := make(map[string]int)
-
-		lock.Lock()
-		for _, h := range cHeuristic.Heuristics {
-
-			for _, r := range h.Results {
-				if _, ok := shortestPaths[r.Uid]; !ok {
-					pathLen, err := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
-					if err != nil {
-						log.Println(err)
-						return
-					}
-					shortestPaths[r.Uid] = pathLen
-				}
-			}
-		}
-		lock.Unlock()
+		// calculate shortest path
+		//shortestPaths := make(map[string]int)
+		//lock.Lock()
+		//for _, h := range cHeuristic.Heuristics {
+		//
+		//	for _, r := range h.Results {
+		//		if _, ok := shortestPaths[r.Uid]; !ok {
+		//			pathLen, pathErr := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
+		//			if pathErr != nil {
+		//				log.Println(pathErr)
+		//				return
+		//			}
+		//			shortestPaths[r.Uid] = pathLen
+		//		}
+		//	}
+		//}
+		//lock.Unlock()
 
 		// headers for streaming data to client
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
@@ -370,14 +370,18 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
-			"origin address hash", "origin shortest path"}
+			"origin address hash"}
+		//header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
+		//	"heuristic type", "heuristic parameter", "heuristic timestamp",
+		//	"origin uid", "origin transaction hash", "origin timestamp",
+		//	"origin address hash", "origin shortest path"}
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 
 		for _, h := range cHeuristic.Heuristics {
-			for _, r := range h.Results {
+			for _, result := range h.Results {
 				var row []string
 				// per heuristic information
 				row = append(row, h.Uid)
@@ -402,11 +406,11 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 				row = append(row, h.Timestamp)
 
 				// per origin information
-				row = append(row, r.Uid)
-				row = append(row, r.TxHash)
-				row = append(row, r.Timestamp)
-				row = append(row, r.AddressHash)
-				row = append(row, strconv.Itoa(shortestPaths[r.Uid]))
+				row = append(row, result.Uid)
+				row = append(row, result.TxHash)
+				row = append(row, result.Timestamp)
+				row = append(row, result.AddressHash)
+				//row = append(row, strconv.Itoa(shortestPaths[result.Uid]))
 
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)

@@ -96,10 +96,13 @@
 
 <script>
 import HeuristicDetails from './HeuristicDetails.vue';
-import { ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS, ROUTE_NAME_HEURISTIC_PAGE } from '../constants';
+import {
+  ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS,
+  ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
+} from '../constants';
 import NestedMenu from './common/NestedMenu.vue';
 import * as ht from '../heuristicTree';
-import { shortenHash } from '../utilities';
+import { shortenHash, getCurrentDate } from '../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
   // search for deleted items
@@ -270,7 +273,7 @@ export default {
         return this.$store.getters.getHeuristicDetails;
       },
       set(value) {
-        if (value === [] || value === null) {
+        if (value === null) {
           this.$store.dispatch('resetHeuristicDetails');
           return;
         }
@@ -362,15 +365,32 @@ export default {
         });
     },
     downloadHeuristicSummary() {
-      // if (!this.doesDataExist()) return;
-      // fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
-      //     .then(response => response.json())
-      //     .then(data => {
-      //       console.log('Success:', data);
-      //     })
-      //     .catch((error) => {
-      //       console.error('Error:', error);
-      //     });
+      if (!this.doesDataExist()) return;
+      fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
+        .then((res) => res.blob())
+        .then((blob) => {
+          // looks hacky, but it is the only way with good UX
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+
+          a.setAttribute('download',
+            `heuristic_summary_${getCurrentDate()}_${this.transactionHash}.csv`);
+          a.click();
+          a.remove();
+          this.isLoading = false;
+        })
+        .catch((error) => {
+          this.errorMsg = error;
+          this.isLoading = false;
+        });
+
+      // .then((response) => response.json())
+      // .then((data) => {
+      //   console.log('Success:', data);
+      // })
+      // .catch((error) => {
+      //   console.error('Error:', error);
+      // });
     },
     // updateChangeSet updates the change set <this.changeSet> based
     // on the differences of this.data and this.dbState
@@ -502,7 +522,7 @@ export default {
   },
   beforeDestroy() {
     // reset memory
-    this.heuristicDetails = [];
+    this.heuristicDetails = null;
   },
   mounted() {
     this.onMounted();
