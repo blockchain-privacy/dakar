@@ -377,11 +377,9 @@ export default {
             `heuristic_summary_${getCurrentDate()}_${this.transactionHash}.csv`);
           a.click();
           a.remove();
-          this.isLoading = false;
         })
         .catch((error) => {
           this.errorMsg = error;
-          this.isLoading = false;
         });
 
       // .then((response) => response.json())
