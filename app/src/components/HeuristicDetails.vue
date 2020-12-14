@@ -223,7 +223,7 @@ export default {
         .style('text-anchor', 'middle')
         .text('Occurrences');
 
-      let title = 'Number of origins each ';
+      let title = 'Number of origins per ';
 
       if (numTicks > 1) {
         title += `${numTicks} hours`;
