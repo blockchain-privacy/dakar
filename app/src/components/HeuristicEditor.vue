@@ -65,24 +65,22 @@
                   v-for="(item, index) in heuristicTypes"
                   :key="index"
                   max-width="300">
-                <v-img
-                    height="200"
-                    src="https://images.idgesg.net/images/article/2017/09/networking-100735059-large.jpg"
-                ></v-img>
                 <v-card-title>
                   {{ item.title }}
                 </v-card-title>
                 <v-card-subtitle>
                   {{ item.description }}
                 </v-card-subtitle>
-                <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
-                  <v-text-field
-                                v-model="item.parameter.value"
-                                :rules="item.parameter.rule"
-                                :label="item.parameter.description"
-                                required>
-                  </v-text-field>
-                </v-form>
+                <v-card-subtitle>
+                  <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
+                    <v-text-field
+                        v-model="item.parameter.value"
+                        :rules="item.parameter.rule"
+                        :label="item.parameter.description"
+                        required>
+                    </v-text-field>
+                  </v-form>
+                </v-card-subtitle>
                 <v-card-actions class="pt-0">
                   <v-btn color="primary" @click="() => {
                     if (item.parameter !== undefined && !item.parameter.valid) {
@@ -101,7 +99,7 @@
         </v-card>
       </v-bottom-sheet>
       <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
-      :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+                        :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
@@ -567,7 +565,7 @@ export default {
 };
 </script>
 
-<style >
+<style>
 .node text {
   font: 12px sans-serif;
   cursor: pointer;
