@@ -263,8 +263,8 @@ export default {
         x: 0,
         y: 0,
         items: [
-          { title: 'Show properties', icon: 'mdi-dock-bottom', action: ht.simulateClick },
           { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
+          { title: 'Show properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
           { isDivider: true },
           {
             title: 'Add heuristic',

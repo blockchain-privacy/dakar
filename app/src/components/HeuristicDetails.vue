@@ -1,36 +1,56 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
-    <v-card style="max-height: 400px">
-      <v-subheader>Heuristic Properties</v-subheader>
+    <v-card style="max-height: 500px">
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
           <v-card
               class="mx-auto my-12"
-              max-width="300">
+              max-width="500">
             <v-card-title>
               Heuristic Properties
             </v-card-title>
             <v-card-subtitle>
-              <p>Type: {{ heuristicData.heuristicType }}</p>
-              <p v-if="heuristicData.heuristicParameter">
-                Parameter: {{ heuristicData.heuristicParameter }}
-              </p>
-              <p v-if="heuristicData.resultCount">
-                Number of results: {{ heuristicData.resultCount }}
-              </p>
-              <p v-if="addressMap !== undefined">
-                Number of sources: {{ addressMap.size}}
-              </p>
+              <v-row>
+                <v-col>
+                  <IconItem title="Type" icon="mdi-iframe-variable-outline">
+                    {{ heuristicData.heuristicType }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem v-if="heuristicData.heuristicParameter"
+                            title="Parameter"
+                            icon="mdi-tune">
+                    {{ heuristicData.heuristicParameter }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem title="Number of results"
+                            icon="mdi-pound-box-outline">
+                    {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem title="Number of sources"
+                            icon="mdi-pound-box-outline">
+                    {{ addressMap === undefined ? 0 : addressMap.size }}
+                  </IconItem>
+                </v-col>
+              </v-row>
             </v-card-subtitle>
           </v-card>
-          <svg id="heuristic_details_canvas" ></svg>
+          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+            <svg id="heuristic_details_canvas"></svg>
+          </v-card>
+          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+            <v-data-table :headers="dataHeaders"
+                          :items="dataItems"
+                          :items-per-page="5"
+                          class="elevation-1"
+            ></v-data-table>
+          </v-card>
 
-          <v-data-table v-if="dataItems.length > 0"
-              :headers="dataHeaders"
-              :items="dataItems"
-              :items-per-page="5"
-              class="elevation-1"
-          ></v-data-table>
         </div>
       </v-card-text>
     </v-card>
@@ -40,6 +60,7 @@
 <script>
 
 import * as d3 from 'd3';
+import IconItem from './common/IconItem.vue';
 
 // addPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -50,6 +71,7 @@ function addPercentageToDate(date, duration, percentage) {
 
 export default {
   name: 'HeuristicDetails',
+  components: { IconItem },
   props: {
     // v-model
     value: Boolean,
@@ -60,8 +82,6 @@ export default {
   data() {
     return {
       chart: null,
-      chartData: [{ letter: 'A', frequency: 3 }, { letter: 'B', frequency: 10 },
-        { letter: 'C', frequency: 15 }, { letter: 'D', frequency: 8 }, { letter: 'E', frequency: 1 }],
       dataHeaders: [
         {
           text: 'Address', align: 'start', sortable: false, value: 'address',
@@ -199,7 +219,6 @@ export default {
     this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
   },
 };
-
 </script>
 
 <style>
