@@ -130,12 +130,9 @@ function getDeletedData(oldStateMap, newStateMap) {
 }
 
 // prepareData prepares the heuristic data so it can be sent to be executed
-function prepareData(oldStateMap, newState, changeSet) {
-  const newStateMap = new Map(newState.map((d) => [d.uid, d]));
-  const deletedData = getDeletedData(oldStateMap, newStateMap);
-
+function prepareData(oldStateMap, newState, changeSet, deletedData) {
   const changedItems = [];
-
+  const newStateMap = new Map(newState.map((d) => [d.uid, d]));
   changeSet.forEach((changedUid) => {
     changedItems.push(newStateMap.get(changedUid));
   });
@@ -200,6 +197,8 @@ export default {
       dbState: null,
       // changeSet holds all changes based on dbState and this.data(computed)
       changeSet: [],
+      // deletedData holds all uids of the heuristic which are deleted
+      deletedData: [],
       isAddHeuristicSheetOpen: false,
       // heuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
       heuristicDetailsMap: new Map(),
@@ -374,15 +373,7 @@ export default {
         return true;
       }
 
-      if (this.data !== null && this.dbState !== null) {
-        // todo refactor to update global toDelete array
-        // so we do not have to do the calculation each time
-        const newStateMap = new Map(this.data.map((d) => [d.uid, d]));
-        const toDelete = getDeletedData(this.dbState, newStateMap);
-        if (toDelete.length > 0) return true;
-      }
-
-      return false;
+      return this.deletedData.length > 0;
     },
     doesDataExist() {
       return !(this.data === null || this.data === undefined || this.data.length < 2);
@@ -398,7 +389,8 @@ export default {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(prepareData(this.dbState, this.data, this.changeSet)),
+        body: JSON.stringify(prepareData(this.dbState, this.data,
+          this.changeSet, this.deletedData)),
       })
         .then((response) => response.json())
         .then((data) => {
@@ -486,6 +478,10 @@ export default {
       });
 
       this.$store.dispatch('setHeuristicData', updatedData);
+
+      const newStateMap = new Map(this.data.map((d) => [d.uid, d]));
+      this.deletedData = getDeletedData(this.dbState, newStateMap);
+
       // update displayed graph
       this.updateGraph();
     },
@@ -515,8 +511,10 @@ export default {
       if (this.data === null) {
         this.data = [];
       }
-
       this.data.push({ uid: 'root' });
+
+      // reset deleted data
+      this.deletedData = [];
 
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
