@@ -23,7 +23,7 @@
       <v-spacer></v-spacer>
 
       <!--    todo: remove?-->
-      <v-btn outlined style="margin-right: 2px" @click="refreshData">Reload</v-btn>
+      <v-btn outlined class="mr-1" @click="refreshData">Reload</v-btn>
 
       <v-btn outlined @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
@@ -57,7 +57,14 @@
       </v-menu>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
-          <v-subheader>Add heuristic</v-subheader>
+          <div>
+            <v-subheader class="float-left">Add heuristic</v-subheader>
+            <v-switch
+                class="float-right mr-2"
+                v-model="isHeuristicSheetFixed"
+                label="Fixed"
+            ></v-switch>
+          </div>
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
               <v-card
@@ -86,8 +93,7 @@
                     if (item.parameter !== undefined && !item.parameter.valid) {
                       return;
                     }
-
-                    // isAddHeuristicSheetOpen = false;
+                    if (!isHeuristicSheetFixed) isAddHeuristicSheetOpen = false;
                     item.action(item);
                   }">
                     Add Heuristic
@@ -197,6 +203,7 @@ export default {
       changeSet: [],
       // deletedData holds all uids of the heuristic which are deleted
       deletedData: [],
+      isHeuristicSheetFixed: false,
       isAddHeuristicSheetOpen: false,
       // heuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
       heuristicDetailsMap: new Map(),
@@ -259,7 +266,13 @@ export default {
           { title: 'Show properties', icon: 'mdi-dock-bottom', action: ht.simulateClick },
           { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
           { isDivider: true },
-          { title: 'Add heuristic', icon: 'mdi-shape-square-rounded-plus', action: () => { this.isAddHeuristicSheetOpen = true; } },
+          {
+            title: 'Add heuristic',
+            icon: 'mdi-shape-square-rounded-plus',
+            action: () => {
+              this.isAddHeuristicSheetOpen = true;
+            },
+          },
 
           {
             title: 'Actions',
