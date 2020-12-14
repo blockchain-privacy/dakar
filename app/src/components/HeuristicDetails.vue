@@ -198,8 +198,9 @@ export default {
         .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
-      // add xtitle
+      // add x title
       svgGroup.append('text')
+        .attr('fill', 'currentColor')
         .attr('font-family', 'sans-serif')
         .attr('font-size', 10)
         .attr('transform',
@@ -214,6 +215,7 @@ export default {
 
       // add y title
       svgGroup.append('text')
+        .attr('fill', 'currentColor')
         .attr('font-family', 'sans-serif')
         .attr('font-size', 10)
         .attr('transform', 'rotate(-90)')
@@ -233,6 +235,7 @@ export default {
 
       // title
       svgGroup.append('text')
+        .attr('fill', 'currentColor')
         .attr('font-family', 'sans-serif')
         .attr('font-size', 12)
         .attr('y', -5)
