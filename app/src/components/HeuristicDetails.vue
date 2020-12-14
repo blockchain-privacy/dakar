@@ -149,7 +149,7 @@ export default {
 
       const svg = d3.select(`#${svgCanvasId}`);
       const margin = {
-        top: 10, right: 30, bottom: 30, left: 40,
+        top: 20, right: 30, bottom: 30, left: 40,
       };
       const width = 600 - margin.left - margin.right;
       const height = 300 - margin.top - margin.bottom;
@@ -198,9 +198,30 @@ export default {
         .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x));
 
+      // add xtitle
+      svgGroup.append('text')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('transform',
+          `translate(${width / 2} ,${
+            height + margin.top + 10})`)
+        .style('text-anchor', 'middle')
+        .text('Time');
+
       // add the y Axis
       svgGroup.append('g')
         .call(d3.axisLeft(y));
+
+      // add y title
+      svgGroup.append('text')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (height / 2) - 20)
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .text('Occurrences');
     },
   },
   updated() {
