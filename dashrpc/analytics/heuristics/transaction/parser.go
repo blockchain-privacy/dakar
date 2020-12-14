@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
+	"strings"
 )
 
 // validHeuristicTypes includes all heuristics which are possible to receive from the frontend.
@@ -16,6 +17,9 @@ var validHeuristicTypes = []heuristic{NewOneSourceHeuristic(0), NewAmountHeurist
 
 // typeMap K: heuristic types, v: heuristics
 var typeMap = make(map[string]heuristic)
+
+// newUidPrefix is the prefix of the uid of all newly created heuristics on the frontend
+const newUidPrefix = "newUid_"
 
 // errors for this file
 var (
@@ -64,7 +68,11 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.Fr
 	// add elements to map
 	for _, h := range heuristics {
 		// create new heuristic
-		if newHeuristic, ok := hMap[h.Type]; ok {
+
+		if modelHeuristic, ok := hMap[h.Type]; ok {
+			newHeuristic := modelHeuristic.clone()
+
+			//newHeuristic := *modelHeuristic
 			// check heuristic was already built
 			if _, ok := builtHeuristics[h.Uid]; ok {
 				err = errHeuristicDuplicateUid
@@ -285,9 +293,14 @@ func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.Fr
 
 	// collect root uids
 	var rootUids []string
+	var rootsToCheck []string
 	for _, v := range newHeuristics {
 		if isRootHeuristic(v, newHeuristics) {
 			rootUids = append(rootUids, v.uid)
+			// no need to check roots which are newly created and thus have no valid uid
+			if !strings.HasPrefix(newUidPrefix, newUidPrefix) {
+				rootsToCheck = append(rootsToCheck, v.uid)
+			}
 		}
 	}
 
@@ -296,13 +309,15 @@ func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.Fr
 		return
 	}
 
-	// check if all parent heuristics of contextual roots actually exists in the db
-	if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootUids); checkErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
-		return
-	} else if !exists {
-		err = errHeuristicUidNotFound
-		return
+	if len(rootsToCheck) > 0 {
+		// check if all parent heuristics of contextual roots actually exists in the db
+		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootUids); checkErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
+			return
+		} else if !exists {
+			err = errHeuristicUidNotFound
+			return
+		}
 	}
 
 	executors, err = buildExecutors(rootUids, newHeuristics)
@@ -346,7 +361,10 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 // mergeRemoveList adds the uids of
 func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []string {
 	for _, c := range changed {
-		removed = append(removed, c.Uid)
+		// only add heuristics which actually exist in the database
+		if !strings.HasPrefix(c.Uid, newUidPrefix) {
+			removed = append(removed, c.Uid)
+		}
 	}
 
 	return removed

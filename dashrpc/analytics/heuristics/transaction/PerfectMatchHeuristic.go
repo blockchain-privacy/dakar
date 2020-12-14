@@ -40,6 +40,11 @@ func (h PerfectMatchHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
+func (h PerfectMatchHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
+}
+
 // PerfectMatchHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction

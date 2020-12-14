@@ -53,6 +53,11 @@ func (h OneSourceHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
+func (h OneSourceHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
+}
+
 // OneSourceHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 // - filter all origins of sources, which do not have enough denominations to fund all of their respective

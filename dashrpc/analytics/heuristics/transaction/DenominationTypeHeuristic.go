@@ -40,6 +40,11 @@ func (h DenominationTypeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
+func (h DenominationTypeHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
+}
+
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction

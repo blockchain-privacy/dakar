@@ -53,6 +53,11 @@ func (h TimeConstraintHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
+func (h TimeConstraintHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
+}
+
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {

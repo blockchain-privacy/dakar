@@ -29,6 +29,10 @@ type heuristic interface {
 	setParameter(string) error
 	// String returns the heurostic in string format
 	String() string
+	// clone clones an instance of this interface. This method is needed because
+	// instances of interfaces can not be easily copied-by-value.
+	// More information: https://stackoverflow.com/questions/37851500/how-to-copy-an-interface-value-in-go
+	clone() heuristic
 }
 
 // Returns the number of denominations.

@@ -40,6 +40,11 @@ func (h AmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
+func (h AmountHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
+}
+
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
 func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
