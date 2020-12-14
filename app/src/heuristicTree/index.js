@@ -462,19 +462,9 @@ function setupSvg(context, canvasId, heuristicDescriptions) {
   rootSvg.call(zoom);
 }
 
-function addRootElement(data) {
-  data.push({ uid: 'root' });
-}
-
 function drawGraph(data, context) {
   drawLinks(rootGroup, data);
   drawNodes(rootGroup, data, context);
-}
-
-// adds a heuristic with the given id and parameter
-function addHeuristic(id, parameter) {
-  if (parameter) console.log(`adding heuristic ${id} with paramter ${parameter}`);
-  else console.log(`adding heuristic ${id}`);
 }
 
 // getRemovableNodes returns elements which can be removed based on
@@ -558,8 +548,8 @@ function setContextMenuCallback(callback) {
 }
 
 export {
-  drawGraph, processGraphData, addHeuristic, setupSvg,
-  addRootElement, getRemovableNodes, centerGraph, getRemovableRelationship,
-  getDescendants, setNodesChanged, setHeuristicClickHandler, setContextMenuCallback,
+  drawGraph, processGraphData, setupSvg, getRemovableNodes,
+  centerGraph, getRemovableRelationship, getDescendants,
+  setNodesChanged, setHeuristicClickHandler, setContextMenuCallback,
   simulateClick, rootIdentifier,
 };

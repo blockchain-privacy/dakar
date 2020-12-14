@@ -31,14 +31,12 @@
       </v-btn>
       <v-menu
           bottom
-          left
-      >
+          left>
         <template v-slot:activator="{ on, attrs }">
           <v-btn
               icon
               v-bind="attrs"
-              v-on="on"
-          >
+              v-on="on">
             <v-icon>mdi-dots-vertical</v-icon>
           </v-btn>
         </template>
@@ -77,8 +75,23 @@
                 <v-card-subtitle>
                   {{ item.description }}
                 </v-card-subtitle>
+                <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
+                  <v-text-field
+                                v-model="item.parameter.value"
+                                :rules="item.parameter.rule"
+                                :label="item.parameter.description"
+                                required>
+                  </v-text-field>
+                </v-form>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="isAddHeuristicSheetOpen = false; item.action()">
+                  <v-btn color="primary" @click="() => {
+                    if (item.parameter !== undefined && !item.parameter.valid) {
+                      return;
+                    }
+
+                    isAddHeuristicSheetOpen = false;
+                    item.action(item);
+                  }">
                     Add Heuristic
                   </v-btn>
                 </v-card-actions>
@@ -178,6 +191,8 @@ export default {
   components: { HeuristicDetails, NestedMenu },
   data() {
     return {
+      newUidPrefix: 'newUid_',
+      uidCounter: 1,
       transactionHash: '',
       shortTransactionHash: '',
       // dbState holds the state of the database.
@@ -195,14 +210,22 @@ export default {
         heuristicParameter: '',
         resultCount: null,
       },
-      // wasDataDeleted is set to true if any data was deleted
-      wasDataDeleted: false,
       heuristicTypes: [
         {
           id: 'one_source',
+          parameter: {
+            value: 48,
+            description: 'Look back time in hours',
+            rule: [(v) => {
+              if (!/^\d+$/.test(v)) return false;
+              const num = parseInt(v, 10);
+              return Number.isInteger(num) && num > 0;
+            }],
+            valid: false,
+          },
           title: 'One Source',
           description: 'Filters by time, direct input transaction amount filter and omni sources',
-          action: () => ht.addHeuristic('one_source', '24h'),
+          action: this.addNewHeuristic,
         },
         {
           id: 'global_amount',
@@ -212,14 +235,14 @@ export default {
               + 'Note that this is different from the direct input transaction amount filter, as '
               + 'this heuristic only checks the set of origin transactions and sources per destina- '
               + 'tion transaction, not per direct input transaction.',
-          action: () => ht.addHeuristic('global_amount'),
+          action: this.addNewHeuristic,
         },
         {
           id: 'perfect_match',
           title: 'Perfect Match',
           description: 'The perfect match heuristic filters all origins of sources, which have denominations '
               + 'without a perfect match for the denominations of the destination transaction.',
-          action: () => ht.addHeuristic('perfect_match'),
+          action: this.addNewHeuristic,
         },
         {
           id: 'denomination_type',
@@ -228,7 +251,7 @@ export default {
               + 'of types which do not occur in the denominations of the destination transaction.'
               + 'For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. '
               + 'Now all sources are excluded which do not have these exact two types of denominations.',
-          action: () => ht.addHeuristic('denomination_type'),
+          action: this.addNewHeuristic,
         },
       ],
       contextMenu: {
@@ -290,6 +313,16 @@ export default {
     },
   },
   methods: {
+    addNewHeuristic(heuristic) {
+      const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
+      if (heuristic.parameter) {
+        newHeuristic.parameter = `${heuristic.parameter.value}`;
+      }
+      this.uidCounter = this.uidCounter + 1;
+
+      this.data.push(newHeuristic);
+      this.updateGraph();
+    },
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
 
@@ -337,8 +370,19 @@ export default {
       });
     },
     isExecutable() {
-      return this.dbState !== null
-          && ((this.changeSet !== null && this.changeSet.length > 0) || this.wasDataDeleted);
+      if (this.dbState !== null && ((this.changeSet !== null && this.changeSet.length > 0))) {
+        return true;
+      }
+
+      if (this.data !== null && this.dbState !== null) {
+        // todo refactor to update global toDelete array
+        // so we do not have to do the calculation each time
+        const newStateMap = new Map(this.data.map((d) => [d.uid, d]));
+        const toDelete = getDeletedData(this.dbState, newStateMap);
+        if (toDelete.length > 0) return true;
+      }
+
+      return false;
     },
     doesDataExist() {
       return !(this.data === null || this.data === undefined || this.data.length < 2);
@@ -381,14 +425,6 @@ export default {
         .catch((error) => {
           this.errorMsg = error;
         });
-
-      // .then((response) => response.json())
-      // .then((data) => {
-      //   console.log('Success:', data);
-      // })
-      // .catch((error) => {
-      //   console.error('Error:', error);
-      // });
     },
     // updateChangeSet updates the change set <this.changeSet> based
     // on the differences of this.data and this.dbState
@@ -449,8 +485,6 @@ export default {
         }
       });
 
-      this.wasDataDeleted = true;
-
       this.$store.dispatch('setHeuristicData', updatedData);
       // update displayed graph
       this.updateGraph();
@@ -478,9 +512,11 @@ export default {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
 
       // if the transaction has not yet any heuristics associated
-      if (this.data === null) return;
+      if (this.data === null) {
+        this.data = [];
+      }
 
-      ht.addRootElement(this.data);
+      this.data.push({ uid: 'root' });
 
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
       // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
@@ -533,7 +569,7 @@ export default {
 };
 </script>
 
-<style>
+<style >
 .node text {
   font: 12px sans-serif;
   cursor: pointer;
@@ -545,7 +581,7 @@ export default {
   stroke-width: 2px;
 }
 
-rect {
+.rect {
   stroke: #008ee5;
   fill-opacity: 0;
   cursor: pointer;

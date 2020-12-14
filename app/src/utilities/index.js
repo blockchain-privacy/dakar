@@ -8,9 +8,9 @@ export function resetData(context) {
 }
 
 export function shortenHash(hash) {
-  const elementLen = 17 * 2 + 3;
+  const elementLen = 17;
 
-  if (hash.length < elementLen) {
+  if (hash.length < elementLen * 2 + 3) {
     return hash;
   }
 

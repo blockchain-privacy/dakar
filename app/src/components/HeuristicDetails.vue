@@ -18,21 +18,19 @@
               <p v-if="heuristicData.resultCount">
                 Number of results: {{ heuristicData.resultCount }}
               </p>
+              <p v-if="addressMap !== undefined">
+                Number of sources: {{ addressMap.size}}
+              </p>
             </v-card-subtitle>
           </v-card>
           <svg id="heuristic_details_canvas" ></svg>
-          <v-card
-              class="mx-auto my-12"
-              v-for="[key, v] of addressMap"
-              :key="key"
-              max-width="300">
-            <v-card-title>
-              {{ key }}
-            </v-card-title>
-            <v-card-subtitle>
-              Number of origins: {{ v.length }}
-            </v-card-subtitle>
-          </v-card>
+
+          <v-data-table v-if="dataItems.length > 0"
+              :headers="dataHeaders"
+              :items="dataItems"
+              :items-per-page="5"
+              class="elevation-1"
+          ></v-data-table>
         </div>
       </v-card-text>
     </v-card>
@@ -42,6 +40,13 @@
 <script>
 
 import * as d3 from 'd3';
+
+// addPercentageToDate returns a new date which has a percentage of duration added
+function addPercentageToDate(date, duration, percentage) {
+  const newDate = new Date(date);
+  newDate.setTime(newDate.getTime() + duration * percentage);
+  return newDate;
+}
 
 export default {
   name: 'HeuristicDetails',
@@ -57,9 +62,25 @@ export default {
       chart: null,
       chartData: [{ letter: 'A', frequency: 3 }, { letter: 'B', frequency: 10 },
         { letter: 'C', frequency: 15 }, { letter: 'D', frequency: 8 }, { letter: 'E', frequency: 1 }],
+      dataHeaders: [
+        {
+          text: 'Address', align: 'start', sortable: false, value: 'address',
+        },
+        { text: 'Number of Origins', value: 'len' },
+      ],
     };
   },
   computed: {
+    dataItems() {
+      const dataItems = [];
+      if (this.addressMap !== undefined) {
+        this.addressMap.forEach((v, k) => {
+          dataItems.push({ address: k, len: v.length });
+        });
+      }
+
+      return dataItems;
+    },
     inputVal: {
       get() {
         return this.value;
@@ -81,105 +102,110 @@ export default {
       },
     },
   },
+  methods: {
+    updateData(graphData) {
+      const svgCanvasId = 'heuristic_details_canvas';
+      const detailArray = [];
+      let lowestDate = null;
+      let highestDate = null;
+
+      graphData.forEach((v) => {
+        v.dateTime = new Date(v.ts);
+        if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
+        if (highestDate === null || highestDate < v.dateTime) highestDate = v.dateTime;
+
+        detailArray.push(v);
+      });
+
+      // add a percentage of time to the date limitations,
+      // so all rectangle can be displayed in their full width
+      const duration = highestDate - lowestDate;
+      const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
+      const highestRange = addPercentageToDate(highestDate, duration, 0.03);
+
+      let numTicks = 1;
+      // 1000*60*60*24*5 = 5 days
+      if (duration > 1000 * 60 * 60 * 24 * 5) numTicks = 3;
+
+      const svg = d3.select(`#${svgCanvasId}`);
+      const margin = {
+        top: 10, right: 30, bottom: 30, left: 40,
+      };
+      const width = 600 - margin.left - margin.right;
+      const height = 300 - margin.top - margin.bottom;
+
+      // set the ranges
+      const x = d3.scaleTime()
+        .domain([lowestRange, highestRange])
+        .rangeRound([0, width]);
+      const y = d3.scaleLinear()
+        .range([height, 0]);
+
+      // set the parameters for the histogram
+      const histogram = d3.bin()
+        .value((d) => d.dateTime)
+        .domain(x.domain())
+        .thresholds(x.ticks(d3.timeHour.every(numTicks)));
+
+      // append the svg object to the body of the page
+      // append a 'group' element to 'svg'
+      // moves the 'group' element to the top left margin
+      const svgGroup = svg
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform',
+          `translate(${margin.left},${margin.top})`);
+
+      // group the data for the bars
+      const bins = histogram(detailArray);
+
+      // Scale the range of the data in the y domain
+      y.domain([0, d3.max(bins, (d) => d.length)]);
+
+      // append the bar rectangles to the svg element
+      svgGroup.selectAll('rect')
+        .data(bins)
+        .enter().append('rect')
+        .attr('class', 'bar')
+        .attr('x', 1)
+        .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`)
+        .attr('width', (d) => x(d.x1) - x(d.x0) - 1)
+        .attr('height', (d) => height - y(d.length));
+
+      // add the x Axis
+      svgGroup.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+      // add the y Axis
+      svgGroup.append('g')
+        .call(d3.axisLeft(y));
+    },
+  },
   updated() {
     // do nothing if sheet is not open
-    if (!this.value) return;
+    if (!this.value || this.details.size === 0) return;
     const svgCanvasId = 'heuristic_details_canvas';
-    const detailArray = [];
-    this.details.get(this.heuristicData.heuristicUid).results.forEach((v) => {
-      v.dateTime = new Date(v.ts);
-      detailArray.push(v);
-    });
 
-    console.log(detailArray);
+    // check if svg exists yet
+    const documentSvg = document.getElementById(svgCanvasId);
+    if (documentSvg === null) return;
+    // reset svg
+    documentSvg.innerHTML = '';
+    if (!this.details.has(this.heuristicData.heuristicUid)) return;
 
-    const margin = {
-      top: 10, right: 30, bottom: 30, left: 50,
-    };
-    const width = 960 - margin.left - margin.right;
-    const height = 500 - margin.top - margin.bottom;
-
-    const parseDate = d3.isoParse;
-    const formatDate = d3.isoFormat;
-
-    const x = d3.scaleTime().domain([]).range([0, width]);
-    const y = d3.scaleLinear().range([height, 0]);
-
-    const xAxis = (g) => g
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(x).tickFormat(formatDate));
-
-    const yAxis = (g) => g
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(y).ticks(6))
-      .call((d) => d.select('.domain').remove());
-
-    // Create the SVG drawing area
-    const svg = d3.select(`#${svgCanvasId}`)
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
-
-    // Parse the date strings into javascript dates
-    detailArray.forEach((d) => {
-      d.created_date = parseDate(d.ts);
-    });
-
-    // Determine the first and list dates in the data set
-    const monthExtent = d3.extent(detailArray, (d) => d.created_date);
-
-    // Create one bin per month, use an offset to include the first and last months
-    const monthBins = d3.timeMonth(d3.timeMonth.offset(monthExtent[0], -1),
-      d3.timeMonth.offset(monthExtent[1], 1));
-
-    // Use the histogram layout to create a function that will bin the data
-    const binByMonth = d3.layout.histogram()
-      .value((d) => d.created_date)
-      .bins(monthBins);
-
-    // Bin the data by month
-    const histData = binByMonth(detailArray);
-
-    // Scale the range of the data by setting the domain
-    x.domain(d3.extent(monthBins));
-    y.domain([0, d3.max(histData, (d) => d.y)]);
-
-    // Set up one bar for each bin
-    // Months have slightly different lengths so calculate the width for each bin
-    // Note: dx, the width of the histogram bin, is in milliseconds so convert the x value
-    // into UTC time and convert the sum back to a date in order to help calculate the width
-    // Thanks to npdoty for pointing this out in this stack overflow post:
-    // http://stackoverflow.com/questions/17745682/d3-histogram-date-based
-    svg.selectAll('.bar')
-      .data(histData)
-      .enter().append('rect')
-      .attr('class', 'bar')
-      .attr('x', (d) => x(d.x))
-      .attr('width', (d) => x(new Date(d.x.getTime() + d.dx)) - x(d.x) - 1)
-      .attr('y', (d) => y(d.y))
-      .attr('height', (d) => height - y(d.y));
-
-    // Add the X Axis
-    svg.append('g')
-      .attr('class', 'x axis')
-      .attr('transform', `translate(0,${height})`)
-      .call(xAxis);
-
-    // Add the Y Axis and label
-    svg.append('g')
-      .attr('class', 'y axis')
-      .call(yAxis)
-      .append('text')
-      .attr('transform', 'rotate(-90)')
-      .attr('y', 6)
-      .attr('dy', '.71em')
-      .style('text-anchor', 'end')
-      .text('Number of Sightings');
+    // this.updateData(this.addressMap.entries().next().value[1]);
+    this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
   },
 };
+
 </script>
 
-<style scoped>
+<style>
+
+.bar {
+  fill: #008ee5;
+}
 
 </style>
