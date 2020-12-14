@@ -143,9 +143,9 @@ export default {
       const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
       const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
-      let numTicks = 1;
-      // 1000*60*60*24*5 = 5 days
-      if (duration > 1000 * 60 * 60 * 24 * 5) numTicks = 3;
+      // 1000*60*60*24*2.5 = 2.5 days
+      let numTicks = Math.floor(duration / (1000 * 60 * 60 * 24 * 2.5));
+      if (numTicks === 0) numTicks = 1;
 
       const svg = d3.select(`#${svgCanvasId}`);
       const margin = {
@@ -222,6 +222,22 @@ export default {
         .attr('dy', '1em')
         .style('text-anchor', 'middle')
         .text('Occurrences');
+
+      let title = 'Number of origins each ';
+
+      if (numTicks > 1) {
+        title += `${numTicks} hours`;
+      } else {
+        title += 'hour';
+      }
+
+      // title
+      svgGroup.append('text')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 12)
+        .attr('y', -5)
+        .attr('x', width / 2 - 50)
+        .text(title);
     },
   },
   updated() {
