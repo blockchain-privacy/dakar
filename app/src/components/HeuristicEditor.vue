@@ -87,7 +87,7 @@
                       return;
                     }
 
-                    isAddHeuristicSheetOpen = false;
+                    // isAddHeuristicSheetOpen = false;
                     item.action(item);
                   }">
                     Add Heuristic
@@ -258,13 +258,24 @@ export default {
         items: [
           { title: 'Show properties', icon: 'mdi-dock-bottom', action: ht.simulateClick },
           { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
-          { title: 'Dummy', icon: 'mdi-bug-outline', action: this.deleteSubTree },
-          // { isDivider: true },
+          { isDivider: true },
+          { title: 'Add heuristic', icon: 'mdi-shape-square-rounded-plus', action: () => { this.isAddHeuristicSheetOpen = true; } },
+
           {
-            title: 'Sub-menu 1',
+            title: 'Actions',
             menu: [
-              { title: '1.1', icon: 'mdi-bug' },
-              { title: '1.2', icon: 'mdi-bug' },
+              {
+                title: 'Download summary',
+                icon: 'mdi-file-download-outline',
+                action: this.downloadHeuristicSummary,
+                disabled: this.doesDataExist,
+              },
+              {
+                title: 'Execute heuristics',
+                icon: 'mdi-source-branch-check',
+                action: this.executeHeuristics,
+                disabled: this.isExecutable,
+              },
             ],
           },
         ],

@@ -17,7 +17,7 @@
         {{ name }}
         <v-icon>mdi-chevron-right</v-icon>
       </v-list-item>
-<!--      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>-->
+      <!--      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>-->
     </template>
     <v-list>
       <template v-for="(item, index) in menuItems">
@@ -26,7 +26,8 @@
                      @nested-menu-click='emitClickEvent'
                      :is-open-on-hover=false :is-offset-x=true :is-offset-y=false :is-sub-menu=true
         />
-        <v-list-item v-else :key='index' @click='emitClickEvent(item)'>
+        <v-list-item v-else :key='index' @click='emitClickEvent(item)'
+                     :disabled="item.disabled && !item.disabled()">
           <v-list-item-icon v-if="item.icon">
             <v-icon>{{ item.icon }}</v-icon>
           </v-list-item-icon>
