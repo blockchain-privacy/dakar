@@ -71,21 +71,7 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-divider v-if="data.rpcinfo"></v-divider>
-              <v-row>
-                <v-col>
-                  <IconItem icon="mdi-message-text-clock-outline"
-                            title="RPC Version" :tooltip="tooltips.rpcVersion">
-                    {{ data.rpcinfo.version }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem icon="mdi-file-clock-outline" title="Protocol version"
-                            :tooltip="tooltips.rpcProtocolVersion">
-                    {{ data.rpcinfo.protocolversion }}
-                  </IconItem>
-                </v-col>
-              </v-row>
+              <v-divider v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-format-list-numbered"
