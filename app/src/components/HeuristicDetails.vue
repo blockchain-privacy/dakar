@@ -26,13 +26,13 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem title="Number of results"
+                  <IconItem title="Number of origins"
                             icon="mdi-pound-box-outline">
                     {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem title="Number of sources"
+                  <IconItem title="Number of addresses"
                             icon="mdi-pound-box-outline">
                     {{ addressMap === undefined ? 0 : addressMap.size }}
                   </IconItem>
