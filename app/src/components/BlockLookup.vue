@@ -69,7 +69,7 @@ export default {
   },
   computed: {
     data() {
-      return this.$store.getters.getBlockData;
+      return this.$store.getters.getSearchResult.payload;
     },
   },
   mounted() {

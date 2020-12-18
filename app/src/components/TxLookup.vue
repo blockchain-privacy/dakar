@@ -139,7 +139,7 @@ export default {
   },
   computed: {
     data() {
-      return this.$store.getters.getTransactionData;
+      return this.$store.getters.getSearchResult.payload;
     },
     inputs() {
       return this.sortByInput(this.data.inputs);

@@ -53,6 +53,9 @@ const mutations = {
   ADD_HEURISTIC_DETAILS(state, payload) {
     state.heuristicDetails.set(payload.uid, payload);
   },
+  UPDATE_SEARCH_RESULT(state, payload) {
+    state.searchResult = payload;
+  },
 };
 
 function handleError(context, error) {
@@ -67,7 +70,9 @@ function handleError(context, error) {
 }
 
 function doGet(context, route, mutation, parameter) {
-  return fetch(route + parameter)
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para)
     .then((response) => {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return response;
@@ -161,6 +166,9 @@ const actions = {
   setBlockData(context, payload) {
     context.commit('SET_BLOCK_DATA', payload);
   },
+  updateSearchResult(context, payload) {
+    return doGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
+  },
   updateMetaData(context, payload) {
     return doGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
   },
@@ -201,6 +209,7 @@ const getters = {
   getMetaData: (state) => state.meta,
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
+  getSearchResult: (state) => state.searchResult,
 };
 
 const state = {
@@ -209,6 +218,7 @@ const state = {
   address: null,
   block: null,
   meta: null,
+  searchResult: null,
   heuristic: null,
   heuristicDetails: new Map(),
 };

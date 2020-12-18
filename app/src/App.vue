@@ -13,7 +13,7 @@
         {{ applicationName }}
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <QueryInput class="mx-4"/>
+      <QueryInput2 class="mx-4"/>
       <v-spacer></v-spacer>
       <v-btn icon v-on:click="changeTheme()">
         <v-icon dark>mdi-invert-colors</v-icon>
@@ -38,7 +38,7 @@
 </template>
 
 <script>
-import QueryInput from './components/QueryInput.vue';
+import QueryInput2 from './components/QueryInput2.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Utility from './utilities';
 import * as Constants from './constants';
@@ -47,7 +47,7 @@ export default {
   name: 'App',
   components: {
     MsgBox,
-    QueryInput,
+    QueryInput2,
   },
   data() {
     return {
