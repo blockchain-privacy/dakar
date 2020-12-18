@@ -80,6 +80,24 @@ const mutations = {
         state.transaction = null;
     }
   },
+  UPDATE_BLOCK_DATA(state, payload) {
+    state.searchResultType = payload.type;
+    state.address = null;
+    state.transaction = null;
+    state.block = payload.payload;
+  },
+  UPDATE_TRANSACTION_DATA(state, payload) {
+    state.searchResultType = payload.type;
+    state.address = null;
+    state.transaction = payload.payload;
+    state.block = null;
+  },
+  UPDATE_ADDRESS_DATA(state, payload) {
+    state.searchResultType = payload.type;
+    state.address = payload.payload;
+    state.transaction = null;
+    state.block = null;
+  },
 };
 
 function handleError(context, error) {
@@ -189,6 +207,15 @@ const actions = {
   },
   setBlockData(context, payload) {
     context.commit('SET_BLOCK_DATA', payload);
+  },
+  updateBlockData(context, payload) {
+    return doGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
+  },
+  updateTransactionData(context, payload) {
+    return doGet(context, Constants.ROUTE_TRANSACTION, 'UPDATE_TRANSACTION_DATA', payload);
+  },
+  updateAddressData(context, payload) {
+    return doGet(context, Constants.ROUTE_ADDRESS, 'UPDATE_ADDRESS_DATA', payload);
   },
   updateSearchResult(context, payload) {
     return doGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
