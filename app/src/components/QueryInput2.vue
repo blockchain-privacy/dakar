@@ -68,7 +68,8 @@ export default {
   },
   methods: {
     async handleInput(q, origin) {
-      const query = q.trim();
+      // template string in case it is a number
+      const query = `${q}`.trim();
       // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
         if (!this.isValidData(query)) {
@@ -120,7 +121,8 @@ export default {
       //   // do nothing -> route is already up to date
       // }
       this.query = '';
-      const query = q.trim();
+      // template string in case it is a number
+      const query = `${q}`.trim();
       if (this.lastQuery !== '' && this.lastQuery === query) return false;
 
       this.lastQuery = query;

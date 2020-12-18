@@ -27,14 +27,16 @@
               <v-row>
                 <v-col v-if="data.prevblockhash">
                   <IconItem icon="mdi-format-header-pound" title="Previous Block">
-                    <router-link :to="data.prevblockhash">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.prevblockhash }}">
                       {{ shortenHash(data.prevblockhash) }}
                     </router-link>
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.nextblockhash">
                   <IconItem icon="mdi-format-header-pound" title="Next Block">
-                    <router-link :to="data.nextblockhash">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.nextblockhash }}">
                       {{ shortenHash(data.nextblockhash) }}
                     </router-link>
                   </IconItem>
@@ -44,7 +46,10 @@
               <v-row v-if="data.txhashes">
                 <v-col v-for="tx in data.txhashes" v-bind:key="tx">
                   <IconItem icon="mdi-transfer" title="Transaction">
-                    <router-link :to="tx">{{ shortenHash(tx) }}</router-link>
+                    <router-link :to="{ name: transactionRoute,
+                    params: { id: tx }}">
+                      {{ shortenHash(tx) }}
+                    </router-link>
                   </IconItem>
                 </v-col>
               </v-row>
@@ -58,7 +63,7 @@
 
 <script>
 import { shortenHash } from '../utilities';
-import { PAGE_TITLE } from '../constants';
+import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
@@ -66,6 +71,12 @@ export default {
   components: { IconItem },
   methods: {
     shortenHash,
+  },
+  data() {
+    return {
+      blockRoute: ROUTE_NAME_BLOCK_PAGE,
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+    };
   },
   computed: {
     data() {

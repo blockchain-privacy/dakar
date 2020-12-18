@@ -57,7 +57,7 @@
                 <v-col>
                   <IconItem icon="mdi-arrow-down-circle-outline" title="Lowest block ID"
                             :tooltip="tooltips.lowestBlockId">
-                    <router-link :to="'search/' + data.status.lowestblockid">
+                    <router-link :to="'block/' + data.status.lowestblockid">
                       {{ data.status.lowestblockid }}
                     </router-link>
                   </IconItem>
@@ -65,7 +65,8 @@
                 <v-col>
                   <IconItem icon="mdi-timeline-clock-outline" title="Last crawled block"
                             :tooltip="tooltips.lastBlockId">
-                    <router-link :to="'search/' + data.status.lastblockid">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastblockid }}">
                       {{ data.status.lastblockid }}
                     </router-link>
                   </IconItem>
@@ -94,7 +95,7 @@
 </template>
 
 <script>
-import { PAGE_TITLE } from '../constants';
+import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
@@ -102,6 +103,7 @@ export default {
   components: { IconItem },
   data() {
     return {
+      blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
         lastBlockId: 'Last block which was completely saved in the database',
         lowestBlockId: 'Lowest block ID in the database',

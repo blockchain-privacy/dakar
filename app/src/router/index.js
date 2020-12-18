@@ -5,7 +5,6 @@ import BlockLookup from '../components/BlockLookup.vue';
 import AddressLookup from '../components/AddressLookup.vue';
 import NoResults from '../components/NoResults.vue';
 import HeuristicEditor from '../components/HeuristicEditor.vue';
-import SearchView from '../components/SearchView.vue';
 import EntryView from '../components/EntryView.vue';
 import PageNotFound from '../components/PageNotFound.vue';
 import * as Constants from '../constants';
@@ -20,12 +19,6 @@ export default new Router({
       name: Constants.ROUTE_NAME_ENTRY_PAGE,
       component: EntryView,
       meta: { title: 'Status' },
-    },
-    {
-      path: '/search/:id',
-      name: Constants.ROUTE_NAME_SEARCH_PAGE,
-      component: SearchView,
-      meta: { title: 'Search' },
     },
     {
       path: '/block/:id',
