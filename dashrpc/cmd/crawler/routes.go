@@ -111,37 +111,34 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 
 		query := r.URL.Path[len(getRouteSearch()):]
 
-		if !isValid(query) {
-			http.Error(w, "query: "+query, http.StatusNotFound)
-			return
-		}
-
 		resp := searchResponse{
 			Type:    "response_empty",
 			Payload: nil,
 		}
 
-		searchOrder := []interface{}{GetTransaction, GetBlock, GetAddress}
+		if isValid(query) {
+			searchOrder := []interface{}{GetTransaction, GetBlock, GetAddress}
 
-		if isLikelyABlock(query) {
-			searchOrder = []interface{}{GetBlock, GetTransaction, GetAddress}
-		}
-
-		// iterate over db access functions
-		for _, fn := range searchOrder {
-			data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
-			if err != nil {
-				http.Error(w, "query: "+query, http.StatusNotFound)
-				return
-			}
-			// nothing found -> next try
-			if !ok {
-				continue
+			if isLikelyABlock(query) {
+				searchOrder = []interface{}{GetBlock, GetTransaction, GetAddress}
 			}
 
-			resp.Payload = data.result
-			resp.Type = data.resultType
-			break
+			// iterate over db access functions
+			for _, fn := range searchOrder {
+				data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
+				if err != nil {
+					http.Error(w, "query: "+query, http.StatusNotFound)
+					return
+				}
+				// nothing found -> next try
+				if !ok {
+					continue
+				}
+
+				resp.Payload = data.result
+				resp.Type = data.resultType
+				break
+			}
 		}
 
 		// encoding
@@ -160,28 +157,25 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.
 
 		query := r.URL.Path[len(route):]
 
-		if !isValid(query) {
-			http.Error(w, "query: "+query, http.StatusNotFound)
-			return
-		}
-
 		resp := searchResponse{
 			Type:    "response_empty",
 			Payload: nil,
 		}
 
-		data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
-		if err != nil {
-			http.Error(w, "query: "+query, http.StatusNotFound)
-			return
-		}
-		if ok {
-			resp.Payload = data.result
-			resp.Type = data.resultType
+		if isValid(query) {
+			data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
+			if err != nil {
+				http.Error(w, "query: "+query, http.StatusNotFound)
+				return
+			}
+			if ok {
+				resp.Payload = data.result
+				resp.Type = data.resultType
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "Search error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
