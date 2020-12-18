@@ -16,8 +16,20 @@ function newRouting(context) {
       || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
     return;
   }
-  console.log('new routing', context.$route.name);
-  context.handleQuery(id);
+
+  switch (context.$route.name) {
+    case Constants.ROUTE_NAME_TRANSACTION_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_TRANSACTION);
+      break;
+    case Constants.ROUTE_NAME_BLOCK_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_BLOCK);
+      break;
+    case Constants.ROUTE_NAME_ADDRESS_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_ADDRESS);
+      break;
+    default:
+      context.handleQuery(id);
+  }
 }
 
 export default {
@@ -100,7 +112,7 @@ export default {
         // do nothing -> route is already up to date
       }
     },
-    async handleQuery(q) {
+    async handleQuery(q, type) {
       // if (origin === 'user' && q !== this.lastQuery) {
       //   // update route only when input is from user and query is different
       //   this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
@@ -120,7 +132,20 @@ export default {
         return false;
       }
 
-      await this.$store.dispatch('updateSearchResult', query);
+      switch (type) {
+        case Constants.RESPONSE_TYPE_TRANSACTION:
+          await this.$store.dispatch('updateTransactionData', query);
+          break;
+        case Constants.RESPONSE_TYPE_BLOCK:
+          await this.$store.dispatch('updateBlockData', query);
+          break;
+        case Constants.RESPONSE_TYPE_ADDRESS:
+          await this.$store.dispatch('updateAddressData', query);
+          break;
+        default:
+          await this.$store.dispatch('updateSearchResult', query);
+      }
+
       return true;
     },
     isValidData(str) {
