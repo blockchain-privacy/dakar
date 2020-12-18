@@ -11,41 +11,44 @@
             <v-spacer></v-spacer>
             <v-tooltip bottom>
               <template v-slot:activator="{ on, attrs }">
-                <v-btn  v-if="data.privacytype === 'destination'"
-                        style="margin-right: 0" outlined icon
-                        @click="goToHeuristicPage" v-on="on" v-bind="attrs">
+                <v-btn v-if="data.privacytype === 'destination'"
+                       style="margin-right: 0" outlined icon
+                       @click="goToHeuristicPage" v-on="on" v-bind="attrs">
                   <v-icon>mdi-graph</v-icon>
                 </v-btn>
               </template>
               <span>Open the heuristic editor for this transaction.</span>
             </v-tooltip>
-        <!--            todo remove?-->
-<!--<v-tooltip bottom>-->
-<!--  <template v-slot:activator="{ on, attrs }">-->
-<!--    <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px"-->
-<!--           outlined v-on:click="getCSV" v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
-<!--           class="d-none d-sm-flex"-->
-<!--           :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-<!--      <v-icon>mdi-download</v-icon>-->
-<!--      {{ data.origincount }} origins-->
-<!--    </v-btn>-->
-<!--    <v-btn :loading="isLoading" icon v-on:click="getCSV"-->
-<!--           v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
-<!--           class="d-flex d-sm-none"-->
-<!--           :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-<!--      <v-icon large>mdi-download</v-icon>-->
-<!--    </v-btn>-->
-<!--  </template>-->
-<!--  <span>Download potential origins of this transaction.-->
-<!--    {{ data.origincount }} origins found.</span>-->
-<!--</v-tooltip>-->
+  <!--            todo remove?-->
+<!--  <v-tooltip bottom>-->
+<!--    <template v-slot:activator="{ on, attrs }">-->
+<!--      <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px"-->
+<!--             outlined v-on:click="getCSV" v-if="data.origincount > 0" -->
+<!--             v-on="on" v-bind="attrs"-->
+<!--             class="d-none d-sm-flex"-->
+<!--             :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+<!--        <v-icon>mdi-download</v-icon>-->
+<!--        {{ data.origincount }} origins-->
+<!--      </v-btn>-->
+<!--      <v-btn :loading="isLoading" icon v-on:click="getCSV"-->
+<!--             v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
+<!--             class="d-flex d-sm-none"-->
+<!--             :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
+<!--        <v-icon large>mdi-download</v-icon>-->
+<!--      </v-btn>-->
+<!--    </template>-->
+<!--    <span>Download potential origins of this transaction.-->
+<!--      {{ data.origincount }} origins found.</span>-->
+<!--  </v-tooltip>-->
           </v-toolbar>
           <v-card-text>
             <v-container>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-format-list-numbered" title="Block Height">
-                    <router-link :to="data.bid.toString()"> {{ data.bid }}</router-link>
+                    <router-link :to="{ name: blockRoute, params: { id: data.bid }}">
+                      {{ data.bid }}
+                    </router-link>
                   </IconItem>
                 </v-col>
                 <v-col>
@@ -62,7 +65,9 @@
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-format-header-pound" title="Block">
-                    <router-link :to="data.bhash">{{ shortenHash(data.bhash) }}</router-link>
+                    <router-link :to="{ name: blockRoute, params: { id: data.bhash }}">
+                      {{ shortenHash(data.bhash) }}
+                    </router-link>
                   </IconItem>
                 </v-col>
               </v-row>
@@ -85,7 +90,9 @@
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
                       <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
                         Address hash:
-                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
+                          {{ i.addresshash }}
+                        </router-link>
                         <br>
                         Amount: {{ convertAmount(i.amount) }}<br>
                         Spent: {{ i.inputindex != null }}<br>
@@ -103,7 +110,9 @@
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
                       <IconItem icon="mdi-currency-usd-circle" title="Input">
                         Address hash:
-                        <router-link :to="i.addresshash">{{ i.addresshash }}</router-link>
+                        <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
+                          {{ i.addresshash }}
+                        </router-link>
                         <br>
                         Amount: {{ convertAmount(i.amount) }}<br>
                         Index: {{ i.inputindex }}<br>
@@ -125,6 +134,7 @@
 import { shortenHash, convertAmount, getCurrentDate } from '../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
+  ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_ADDRESS_PAGE,
 } from '../constants';
 import IconItem from './common/IconItem.vue';
 
@@ -133,6 +143,8 @@ export default {
   components: { IconItem },
   data() {
     return {
+      blockRoute: ROUTE_NAME_BLOCK_PAGE,
+      addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       isLoading: false,
       csvDownloadMaxOrigins: CSV_DOWNLOAD_MAX_ORIGINS,
     };
