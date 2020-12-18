@@ -10,11 +10,26 @@ import * as Utility from '../utilities';
 
 function newRouting(context) {
   const { id } = context.$route.params;
-  if (id === undefined || context.$route.name !== Constants.ROUTE_NAME_SEARCH_PAGE) {
+
+  if (id === undefined || !(context.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
+      || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
+      || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
     return;
   }
 
-  context.handleQuery(id);
+  switch (context.$route.name) {
+    case Constants.ROUTE_NAME_TRANSACTION_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_TRANSACTION);
+      break;
+    case Constants.ROUTE_NAME_BLOCK_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_BLOCK);
+      break;
+    case Constants.ROUTE_NAME_ADDRESS_PAGE:
+      context.handleQuery(id, Constants.RESPONSE_TYPE_ADDRESS);
+      break;
+    default:
+      context.handleQuery(id);
+  }
 }
 
 export default {
@@ -25,6 +40,7 @@ export default {
       // as it only needs to be accessed by this component
       query: '',
       lastQuery: '',
+      lastRoute: '',
     };
   },
   computed: {
@@ -44,114 +60,98 @@ export default {
         this.$store.dispatch('setWarningMsg', value);
       },
     },
-    transaction: {
+    searchResultType: {
       get() {
-        return this.$store.getters.getTransactionData;
-      },
-      set(value) {
-        this.$store.dispatch('setTransactionData', value);
-      },
-    },
-    address: {
-      get() {
-        return this.$store.getters.getAddressData;
-      },
-      set(value) {
-        this.$store.dispatch('setAddressData', value);
-      },
-    },
-    block: {
-      get() {
-        return this.$store.getters.getBlockData;
-      },
-      set(value) {
-        this.$store.dispatch('setBlockData', value);
+        return this.$store.getters.getSearchResultType;
       },
     },
   },
   methods: {
-    handleInput(q, origin) {
-      const query = q.trim();
+    async handleInput(q, origin) {
+      // template string in case it is a number
+      const query = `${q}`.trim();
+      // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
-        // update route only when input is from user and query is different
-
         if (!this.isValidData(query)) {
           this.warningMsg = 'Input was not valid!';
           return;
         }
 
-        this.$router.push({ name: Constants.ROUTE_NAME_SEARCH_PAGE, params: { id: query } });
+        if (!await this.handleQuery(query)) {
+          return;
+        }
+
+        switch (this.searchResultType) {
+          case Constants.RESPONSE_EMPTY:
+            this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
+            break;
+          case Constants.RESPONSE_TYPE_ADDRESS:
+            this.$router.push({
+              name: Constants.ROUTE_NAME_ADDRESS_PAGE,
+              params: { id: query },
+            });
+            break;
+          case Constants.RESPONSE_TYPE_BLOCK:
+            this.$router.push({
+              name: Constants.ROUTE_NAME_BLOCK_PAGE,
+              params: { id: query },
+            });
+            break;
+          case Constants.RESPONSE_TYPE_TRANSACTION:
+            this.$router.push({
+              name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
+              params: { id: query },
+            });
+            break;
+          default:
+            this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
+            break;
+        }
+
+        // this.$router.push({ name: Constants.ROUTE_NAME_SEARCH_PAGE, params: { id: query } });
       } else if (origin === 'route') {
         // do nothing -> route is already up to date
       }
     },
-    handleQuery(q) {
+    async handleQuery(q, type) {
       // if (origin === 'user' && q !== this.lastQuery) {
       //   // update route only when input is from user and query is different
       //   this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
       // } else if (origin === 'route') {
       //   // do nothing -> route is already up to date
       // }
-      const query = q.trim();
+      this.query = '';
+      // template string in case it is a number
+      const query = `${q}`.trim();
+      if (this.lastQuery !== '' && this.lastQuery === query) return false;
+
       this.lastQuery = query;
 
-      this.query = '';
       Utility.resetData(this);
 
       if (!this.isValidData(query)) {
         this.warningMsg = 'Input was not valid!';
-        return;
+        return false;
       }
 
-      this.searchBlock(query).catch(() => {
-        // if block query fails, search for transaction
-        this.searchTx(query).catch(() => {
-          // if transaction query fails, search for address
-          this.searchAddress(query);
-        });
-      });
+      switch (type) {
+        case Constants.RESPONSE_TYPE_TRANSACTION:
+          await this.$store.dispatch('updateTransactionData', query);
+          break;
+        case Constants.RESPONSE_TYPE_BLOCK:
+          await this.$store.dispatch('updateBlockData', query);
+          break;
+        case Constants.RESPONSE_TYPE_ADDRESS:
+          await this.$store.dispatch('updateAddressData', query);
+          break;
+        default:
+          await this.$store.dispatch('updateSearchResult', query);
+      }
+
+      return true;
     },
     isValidData(str) {
       return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/);
-    },
-    searchBlock(q) {
-      console.log(`Block search: ${q}`);
-      return fetch(Constants.ROUTE_BLOCK + q)
-        .then((response) => {
-          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-          return response;
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          this.block = data;
-        });
-    },
-    searchTx(q) {
-      console.log(`Tx search: ${q}`);
-      return fetch(Constants.ROUTE_TRANSACTION + q)
-        .then((response) => {
-          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-          return response;
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          this.transaction = data;
-        });
-    },
-    searchAddress(q) {
-      console.log(`Address search: ${q}`);
-      fetch(Constants.ROUTE_ADDRESS + q)
-        .then((response) => {
-          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-          return response;
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          this.address = data;
-        })
-        .catch((error) => {
-          this.errorMsg = error;
-        });
     },
   },
   created() {
@@ -159,7 +159,7 @@ export default {
   },
   watch: {
     $route() {
-      this.lastQuery = '';
+      if (this.lastQuery !== this.$route.name) this.lastQuery = '';
       newRouting(this);
     },
   },

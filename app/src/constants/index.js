@@ -20,7 +20,6 @@ export const RESPONSE_TYPE_ADDRESS = 'addr';
 export const RESPONSE_TYPE_BLOCK = 'block';
 
 // frontend route names
-export const ROUTE_NAME_SEARCH_PAGE = 'Search Page';
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
