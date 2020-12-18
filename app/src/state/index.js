@@ -53,8 +53,32 @@ const mutations = {
   ADD_HEURISTIC_DETAILS(state, payload) {
     state.heuristicDetails.set(payload.uid, payload);
   },
+  SET_SEARCH_RESULT_TYPE(state, payload) {
+    state.searchResultType = payload;
+  },
   UPDATE_SEARCH_RESULT(state, payload) {
-    state.searchResult = payload;
+    state.searchResultType = payload.type;
+    switch (payload.type) {
+      case Constants.RESPONSE_TYPE_TRANSACTION:
+        state.transaction = payload.payload;
+        state.block = null;
+        state.address = null;
+        break;
+      case Constants.RESPONSE_TYPE_BLOCK:
+        state.block = payload.payload;
+        state.address = null;
+        state.transaction = null;
+        break;
+      case Constants.RESPONSE_TYPE_ADDRESS:
+        state.address = payload.payload;
+        state.transaction = null;
+        state.block = null;
+        break;
+      default:
+        state.block = null;
+        state.address = null;
+        state.transaction = null;
+    }
   },
 };
 
@@ -188,6 +212,9 @@ const actions = {
   setHeuristicData(context, payload) {
     context.commit('SET_HEURISTIC_DATA', payload);
   },
+  setSearchResultType(context, payload) {
+    context.commit('SET_SEARCH_RESULT_TYPE', payload);
+  },
 };
 
 const getters = {
@@ -209,16 +236,16 @@ const getters = {
   getMetaData: (state) => state.meta,
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
-  getSearchResult: (state) => state.searchResult,
+  getSearchResultType: (state) => state.searchResultType,
 };
 
 const state = {
   msg: null,
   transaction: null,
+  searchResultType: null,
   address: null,
   block: null,
   meta: null,
-  searchResult: null,
   heuristic: null,
   heuristicDetails: new Map(),
 };

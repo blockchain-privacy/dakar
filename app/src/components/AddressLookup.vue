@@ -88,7 +88,7 @@ export default {
   },
   computed: {
     data() {
-      return this.$store.getters.getSearchResult.payload;
+      return this.$store.getters.getAddressData;
     },
     amounts() {
       return {

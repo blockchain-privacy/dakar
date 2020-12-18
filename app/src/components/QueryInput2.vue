@@ -48,9 +48,9 @@ export default {
         this.$store.dispatch('setWarningMsg', value);
       },
     },
-    searchResult: {
+    searchResultType: {
       get() {
-        return this.$store.getters.getSearchResult;
+        return this.$store.getters.getSearchResultType;
       },
     },
   },
@@ -68,7 +68,7 @@ export default {
           return;
         }
 
-        switch (this.searchResult.type) {
+        switch (this.searchResultType) {
           case Constants.RESPONSE_EMPTY:
             this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
             break;
