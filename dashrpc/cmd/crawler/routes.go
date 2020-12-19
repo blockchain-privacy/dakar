@@ -117,10 +117,12 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 		}
 
 		if isValid(query) {
-			searchOrder := []interface{}{GetTransaction, GetBlock, GetAddress}
+			searchOrder := []interface{}{GetTransaction, GetAddress, GetBlock}
 
-			if isLikelyABlock(query) {
+			if isLikelyBlock(query) {
 				searchOrder = []interface{}{GetBlock, GetTransaction, GetAddress}
+			} else if isLikelyAddress(query) {
+				searchOrder = []interface{}{GetAddress, GetTransaction, GetBlock}
 			}
 
 			// iterate over db access functions
@@ -150,7 +152,10 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 	}
 }
 
-// API pattern: "/api/v1/<type>/<hash>"
+// API pattern: "/api/v1/<type>/<query>"
+// API pattern: "/api/v1/blk/<query>"
+// API pattern: "/api/v1/address/<query>"
+// API pattern: "/api/v1/tx/<query>"
 func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)

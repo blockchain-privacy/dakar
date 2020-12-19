@@ -8,9 +8,14 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// isLikelyABlock returns true if the given query string is likely a block hash
-func isLikelyABlock(query string) bool {
+// isLikelyBlock returns true if the given query string is likely a block hash
+func isLikelyBlock(query string) bool {
 	return query[0:1] == "0"
+}
+
+// isLikelyAddress returns true if the given query string is likely a address hash
+func isLikelyAddress(query string) bool {
+	return query[0:1] == "X"
 }
 
 type SearchResult struct {
