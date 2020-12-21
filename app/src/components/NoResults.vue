@@ -3,7 +3,7 @@
     <v-row align="center" justify="center">
       <v-col></v-col>
       <v-col>
-        <v-img src="../assets/bugs.webp" max-height="500px" max-width="600px">
+        <v-img src="../assets/no_results.webp" max-height="500px" max-width="600px">
         </v-img>
       </v-col>
       <v-col></v-col>
@@ -11,9 +11,9 @@
     <v-row align="center" justify="center">
       <v-col class="col-12" sm="8" md="6" lg="4">
         <v-card style="top: -100px;">
-          <v-card-title class="headline">404 - Page not found!</v-card-title>
+          <v-card-title class="headline">No results found</v-card-title>
           <v-card-subtitle>
-            The requested page does not exist.
+            Your search query did not return any results.
             Either navigate back or click below to get back to the entry page.
           </v-card-subtitle>
           <v-card-actions v-on:click="toEntryPage">
@@ -29,14 +29,14 @@
 import * as Constants from '../constants';
 
 export default {
-  name: 'PageNotFound',
+  name: 'NoResults',
   methods: {
     toEntryPage() {
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
     },
   },
   mounted() {
-    document.title = '404 - Page not found';
+    document.title = 'No results found';
   },
 };
 </script>

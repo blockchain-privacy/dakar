@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
-	"log"
 	"strings"
 )
 
@@ -227,12 +226,6 @@ func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTree
 	return false
 }
 
-func doesRootExist() (exists bool, err error) {
-
-	exists = true
-	return
-}
-
 // buildExecutors builds HeuristicExecutor trees from heuristics starting at the given rootHeuristicUids.
 // Each element of the returned slice is one HeuristicExecutor tree.
 func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicTreeElement) (
@@ -391,14 +384,13 @@ func CreateWork(dgraph *dgo.Dgraph, transactionHash string, changed []dbtxh.Fron
 
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
-	if (len(changed) > 0 || len(w.removableHeuristics) > 0) && copyOnModify {
+	if copyOnModify && (len(changed) > 0 || len(w.removableHeuristics) > 0) {
 		// find heuristic roots
 		w.treeRoots, err = dbtxh.GetRootUids(dgraph, w.removableHeuristics)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
-		log.Println(w.treeRoots)
 	}
 
 	return

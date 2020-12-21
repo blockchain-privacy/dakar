@@ -5,16 +5,13 @@ import (
 	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
-	dbaddr "dashrpc/db/address"
 	dban "dashrpc/db/analytics"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
-	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
@@ -26,6 +23,7 @@ import (
 
 const (
 	routePrefix              string = "/api/v1/"
+	routeSearch              string = "search/"
 	routeTransaction         string = "tx/"
 	routeBlock               string = "blk/"
 	routeAddress             string = "address/"
@@ -91,106 +89,100 @@ func getRouteHeuristicDetails() string {
 	return getRoute(routeHeuristicDetails)
 }
 
+func getRouteSearch() string {
+	return getRoute(routeSearch)
+}
+
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 }
 
-// API pattern: "/api/v1/blk/<hash>"
-func handlerBlockDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+type searchResponse struct {
+	Type    string      `json:"type,omitempty"`
+	Payload interface{} `json:"payload,omitempty"`
+}
+
+// API pattern: "/api/v1/search/<hash>"
+func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		blkHashString := r.URL.Path[len(getRouteBlock()):]
+		query := r.URL.Path[len(getRouteSearch()):]
 
-		if !isValid(blkHashString) {
-			http.Error(w, "Block hash: "+blkHashString, http.StatusNotFound)
-			return
+		resp := searchResponse{
+			Type:    "response_empty",
+			Payload: nil,
 		}
 
-		block, err := dbblk.GetFrontendBlock(dgraph, blkHashString)
-		if err != nil {
-			http.Error(w, "Block hash: "+blkHashString, http.StatusNotFound)
+		if isValid(query) {
+			searchOrder := []interface{}{GetTransaction, GetAddress, GetBlock}
 
-			// only print error if it is not expected
-			if !errors.Is(err, dbblk.ErrorBlockNotFound) {
-				serverInfo(cliutil.ShowCallInfo(), err)
+			if isLikelyBlock(query) {
+				searchOrder = []interface{}{GetBlock, GetTransaction, GetAddress}
+			} else if isLikelyAddress(query) {
+				searchOrder = []interface{}{GetAddress, GetTransaction, GetBlock}
 			}
 
-			return
+			// iterate over db access functions
+			for _, fn := range searchOrder {
+				data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
+				if err != nil {
+					http.Error(w, "query: "+query, http.StatusNotFound)
+					return
+				}
+				// nothing found -> next try
+				if !ok {
+					continue
+				}
+
+				resp.Payload = data.result
+				resp.Type = data.resultType
+				break
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(block)
+		err := json.NewEncoder(w).Encode(resp)
 		if err != nil {
-			http.Error(w, "Block: "+block.String(), http.StatusInternalServerError)
+			http.Error(w, "Search error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
 }
 
-// API pattern: "/api/v1/address/<hash>"
-func handlerAddressDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+// API pattern: "/api/v1/<type>/<query>"
+// API pattern: "/api/v1/blk/<query>"
+// API pattern: "/api/v1/address/<query>"
+// API pattern: "/api/v1/tx/<query>"
+func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		addressHashString := r.URL.Path[len(getRouteAddress()):]
+		query := r.URL.Path[len(route):]
 
-		if !isValid(addressHashString) {
-			http.Error(w, "Address: "+addressHashString, http.StatusNotFound)
-			return
+		resp := searchResponse{
+			Type:    "response_empty",
+			Payload: nil,
 		}
 
-		address, err := dbaddr.GetFrontendAddress(dgraph, addressHashString)
-		if err != nil {
-			http.Error(w, "Address: "+addressHashString, http.StatusNotFound)
-
-			// only print error if it is not expected
-			if !errors.Is(err, dbaddr.ErrorAddressNotFound) {
-				serverInfo(cliutil.ShowCallInfo(), err)
+		if isValid(query) {
+			data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
+			if err != nil {
+				http.Error(w, "query: "+query, http.StatusNotFound)
+				return
 			}
-
-			return
+			if ok {
+				resp.Payload = data.result
+				resp.Type = data.resultType
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(address)
+		err := json.NewEncoder(w).Encode(resp)
 		if err != nil {
-			http.Error(w, "AddressData: "+address.String(), http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
-		}
-	}
-}
-
-// API pattern: "/api/v1/tx/<hash>"
-func handlerTxDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		txHashString := r.URL.Path[len(getRouteTransaction()):]
-
-		if !isValid(txHashString) {
-			http.Error(w, "Transaction: "+txHashString, http.StatusNotFound)
-			return
-		}
-
-		vTx, err := dbtx.GetFrontendTransaction(dgraph, txHashString)
-		if err != nil {
-			http.Error(w, "Transaction: "+txHashString, http.StatusNotFound)
-
-			// only print error if it is not expected
-			if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
-				serverInfo(cliutil.ShowCallInfo(), err)
-			}
-
-			return
-		}
-
-		// encoding
-		err = json.NewEncoder(w).Encode(vTx)
-		if err != nil {
-			http.Error(w, "TxDetails: "+vTx.String(), http.StatusInternalServerError)
+			http.Error(w, "Search error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
@@ -570,9 +562,10 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	worker.StartWorking(ctx, dgraph)
 
 	// API end points
-	http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph))
-	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
-	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
+	http.HandleFunc(getRouteSearch(), handlerSearch(dgraph))
+	http.HandleFunc(getRouteTransaction(), handlerDetails(dgraph, getRouteTransaction(), GetTransaction))
+	http.HandleFunc(getRouteAddress(), handlerDetails(dgraph, getRouteAddress(), GetAddress))
+	http.HandleFunc(getRouteBlock(), handlerDetails(dgraph, getRouteBlock(), GetBlock))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))

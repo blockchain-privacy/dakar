@@ -114,7 +114,7 @@
 <script>
 import HeuristicDetails from './HeuristicDetails.vue';
 import {
-  ROUTE_NAME_SEARCH_PAGE, ROUTE_EXECUTE_HEURISTICS,
+  ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
 } from '../constants';
 import NestedMenu from './common/NestedMenu.vue';
@@ -192,6 +192,7 @@ export default {
   components: { HeuristicDetails, NestedMenu },
   data() {
     return {
+      routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
       newUidPrefix: 'newUid_',
       uidCounter: 1,
       transactionHash: '',
@@ -479,7 +480,7 @@ export default {
     },
     // called by context menu handler
     goToTransactionPage() {
-      this.$router.push({ name: ROUTE_NAME_SEARCH_PAGE });
+      this.$router.push({ name: this.routeTransaction });
     },
     deleteSubTree() {
       const toBeRemoved = ht.getRemovableNodes();

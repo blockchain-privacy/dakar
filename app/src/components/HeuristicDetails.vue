@@ -144,7 +144,9 @@ export default {
       const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
       // 1000*60*60*24*2.5 = 2.5 days
-      let numTicks = Math.floor(duration / (1000 * 60 * 60 * 24 * 2.5));
+      // 216000000 = 2.5 days
+      const smallestDuration = 216000000;
+      let numTicks = Math.floor(duration / (smallestDuration));
       if (numTicks === 0) numTicks = 1;
 
       const svg = d3.select(`#${svgCanvasId}`);

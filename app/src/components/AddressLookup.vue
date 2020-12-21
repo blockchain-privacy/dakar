@@ -42,12 +42,14 @@
                         {{ o.iscoinbase ? 'Coinbase: ' + o.iscoinbase : '' }}
                         <br/>
                         Output Transaction:
-                        <router-link :to="o.output_transaction">
+                        <router-link :to="{ name: transactionRoute,
+                        params: { id: o.output_transaction }}">
                           {{ shortenHash(o.output_transaction) }}
                         </router-link>
                         <br v-if="o.input_transaction"/>
                         {{ o.input_transaction ? 'Input transaction:' : '' }}
-                        <router-link :to="o.input_transaction" v-if="o.input_transaction">
+                        <router-link :to="{ name: transactionRoute,
+                        params: { id: o.input_transaction }}" v-if="o.input_transaction">
                           {{ shortenHash(o.input_transaction) }}
                         </router-link>
                       </IconItem>
@@ -65,7 +67,7 @@
 
 <script>
 import { shortenHash, convertAmount } from '../utilities';
-import { PAGE_TITLE } from '../constants';
+import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
@@ -85,6 +87,11 @@ export default {
         .map((e) => parseInt(e.amount, 10))
         .reduce((sum, e) => sum + e, 0);
     },
+  },
+  data() {
+    return {
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+    };
   },
   computed: {
     data() {
