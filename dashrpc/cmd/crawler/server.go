@@ -23,10 +23,17 @@ func serverFatal(v ...interface{}) {
 	log.Fatalln(v...)
 }
 
+type Server struct {
+	server  *http.Server
+	context context.Context
+	cancel  context.CancelFunc
+}
+
 // creates a http server on the given port
-func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) *http.Server {
+func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) Server {
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	// setup REST API
-	setupHandlers(dgraph, client)
+	setupHandlers(ctx, dgraph, client)
 
 	// create server
 	srv := &http.Server{
@@ -41,15 +48,18 @@ func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 	}()
 
 	serverInfo(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
-	return srv
+
+	return Server{server: srv, context: ctx, cancel: cancelFunc}
 }
 
 // sends a shutdown signal to the server with a timout of 5 seconds
-func shutdownServer(server *http.Server) {
-	if server == nil {
+func (s *Server) shutdownServer() {
+	if s.server == nil {
 		return
 	}
 	serverInfo("### Shutting down server###")
+
+	s.cancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer func() {
@@ -57,7 +67,7 @@ func shutdownServer(server *http.Server) {
 		cancel()
 	}()
 
-	if err := server.Shutdown(ctx); err != nil {
+	if err := s.server.Shutdown(ctx); err != nil {
 		serverInfo("Server Shutdown Failed:", err)
 	}
 }

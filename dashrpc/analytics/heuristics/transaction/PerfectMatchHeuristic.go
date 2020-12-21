@@ -24,8 +24,25 @@ func (h PerfectMatchHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h PerfectMatchHeuristic) getParameter() string {
+func (h PerfectMatchHeuristic) getParameterString() string {
 	return h.parameterDescription
+}
+
+func (h PerfectMatchHeuristic) hasParameter() bool {
+	return false
+}
+
+func (h PerfectMatchHeuristic) setParameter(p string) error {
+	return nil
+}
+
+func (h PerfectMatchHeuristic) String() string {
+	return fmt.Sprintf("Type: %s", h.heuristicType)
+}
+
+func (h PerfectMatchHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
 }
 
 // PerfectMatchHeuristic applies the following heuristic:

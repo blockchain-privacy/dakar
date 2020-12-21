@@ -9,10 +9,12 @@ type DummyOrigin struct {
 }
 
 type Heuristic struct {
-	Uid             string        `json:"uid,omitempty"`
-	HeuristicType   string        `json:"type,omitempty"`
-	Parameter       string        `json:"parameter,omitempty"`
-	TxUid           string        `json:"h_transaction,omitempty"`
+	Uid           string `json:"uid,omitempty"`
+	HeuristicType string `json:"type,omitempty"`
+	Parameter     string `json:"parameter,omitempty"`
+	Transaction   struct {
+		Uid string `json:"uid,omitempty"`
+	} `json:"h_transaction,omitempty"`
 	Timestamp       string        `json:"ts,omitempty"`
 	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
 	ChildHeuristics []Heuristic   `json:"~parent_heuristic,omitempty"`
@@ -58,4 +60,30 @@ type queryHeuristicTransaction struct {
 	Block []struct {
 		Timestamp string `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
+}
+
+type FrontendHeuristicComplete struct {
+	Uid        string              `json:"uid,omitempty"`
+	Timestamp  string              `json:"ts,omitempty"`
+	Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+}
+
+func (f FrontendHeuristicComplete) String() string {
+	return fmt.Sprintf("Uid:%s, timestamp:%s, heuristic count:%d", f.Uid, f.Timestamp, len(f.Heuristics))
+}
+
+type FrontendHeuristic struct {
+	Uid             string      `json:"uid,omitempty"`
+	Timestamp       string      `json:"ts,omitempty"`
+	Type            string      `json:"type,omitempty"`
+	Parameter       string      `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic `json:"children,omitempty"`
+	ResultCount     int         `json:"num_results,omitempty"`
+	Results         []struct {
+		Uid         string `json:"uid,omitempty"`
+		Timestamp   string `json:"ts,omitempty"`
+		AddressHash string `json:"addresshash,omitempty"`
+		TxHash      string `json:"txhash,omitempty"`
+	} `json:"results,omitempty"`
 }

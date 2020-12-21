@@ -13,7 +13,8 @@
             <v-container>
               <v-row>
                 <v-col v-if="data.id">
-                  <IconItem icon="mdi-format-list-numbered" title="Block Height" :subtitle="data.id">
+                  <IconItem icon="mdi-format-list-numbered"
+                            title="Block Height" :subtitle="data.id">
                     {{ data.id }}
                   </IconItem>
                 </v-col>
@@ -26,12 +27,16 @@
               <v-row>
                 <v-col v-if="data.prevblockhash">
                   <IconItem icon="mdi-format-header-pound" title="Previous Block">
-                    <router-link :to="data.prevblockhash">{{ shortenHash(data.prevblockhash) }}</router-link>
+                    <router-link :to="data.prevblockhash">
+                      {{ shortenHash(data.prevblockhash) }}
+                    </router-link>
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.nextblockhash">
                   <IconItem icon="mdi-format-header-pound" title="Next Block">
-                    <router-link :to="data.nextblockhash">{{ shortenHash(data.nextblockhash) }}</router-link>
+                    <router-link :to="data.nextblockhash">
+                      {{ shortenHash(data.nextblockhash) }}
+                    </router-link>
                   </IconItem>
                 </v-col>
               </v-row>
@@ -52,20 +57,20 @@
 </template>
 
 <script>
-import {shortenHash} from "@/utilities";
-import {PAGE_TITLE} from "@/constants";
-import IconItem from "@/components/common/IconItem";
+import { shortenHash } from '../utilities';
+import { PAGE_TITLE } from '../constants';
+import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'BlockLookup',
-  components: {IconItem},
+  components: { IconItem },
   methods: {
     shortenHash,
   },
   computed: {
     data() {
       return this.$store.getters.getBlockData;
-    }
+    },
   },
   mounted() {
     document.title = `Block - ${PAGE_TITLE}`;
@@ -73,9 +78,9 @@ export default {
   updated() {
     let id = ' ';
     if (this.data && this.data.id) {
-      id = ` ${this.data.id} `
+      id = ` ${this.data.id} `;
     }
     document.title = `Block${id}- ${PAGE_TITLE}`;
   },
-}
+};
 </script>

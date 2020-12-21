@@ -21,8 +21,18 @@ type heuristic interface {
 	exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
-	// getParameter returns the used parameter for this heuristic
-	getParameter() string
+	// getParameterString returns the used parameter for this heuristic as a string
+	getParameterString() string
+	// hasParameter returns true if this heuristic has a parameter
+	hasParameter() bool
+	// setParameter sets the parameter
+	setParameter(string) error
+	// String returns the heurostic in string format
+	String() string
+	// clone clones an instance of this interface. This method is needed because
+	// instances of interfaces can not be easily copied-by-value.
+	// More information: https://stackoverflow.com/questions/37851500/how-to-copy-an-interface-value-in-go
+	clone() heuristic
 }
 
 // Returns the number of denominations.
@@ -154,11 +164,12 @@ func isParentHeuristicSet(parentHeuristicUid string) bool {
 }
 
 type HeuristicExecutor struct {
+	RootUid        string
 	ThisHeuristic  heuristic
 	NextHeuristics []HeuristicExecutor
 }
 
-// BuildExecutor is a convenience function for build heuristic executors
+// BuildExecutor is a convenience function for building heuristic executors
 func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
 	return HeuristicExecutor{
 		ThisHeuristic:  thisHeuristic,
@@ -166,14 +177,18 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 	}
 }
 
-// Run runs the given heuristic executor. The executor runs initial heuristic and
-// triggers the Run function of the NextHeuristics
-func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
+// RunAsync runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the Run function of all NextHeuristics.
+// WARNING: This will throw errors in certain cases while upserting a heuristic. This is the result
+// of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
+// is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
+// For a cleaner version, function use RunSynchronous
+func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
 	newUid, err := Exec(dgraph, txHash, parentHeuristicUid, hx.ThisHeuristic)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
-				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameter(), err))
+				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
 	}
 	errChannel := make(chan error, len(hx.NextHeuristics))
 
@@ -182,7 +197,7 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 		waitGroup.Add(1)
 		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
 			defer wg.Done()
-			if err := e.Run(dgraph, txHash, newUid); err != nil {
+			if err := e.RunAsync(dgraph, txHash, newUid); err != nil {
 				errChannel <- err
 				return
 			}
@@ -202,6 +217,36 @@ func (hx HeuristicExecutor) Run(dgraph *dgo.Dgraph, txHash string, parentHeurist
 			}
 		}
 	}
+
+	return returnError
+}
+
+// RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUid is not
+// set (e.g. "") than the HeuristicExecutor.RootUid is used
+func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) error {
+	thisRootUid := hx.RootUid
+	if parentHeuristicUid != "" {
+		thisRootUid = parentHeuristicUid
+	}
+
+	newUid, err := Exec(dgraph, txHash, thisRootUid, hx.ThisHeuristic)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
+	}
+
+	for _, executor := range hx.NextHeuristics {
+		if err := executor.RunSynchronous(dgraph, txHash, newUid); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+					executor.ThisHeuristic.getType(), executor.ThisHeuristic.getParameterString(), err))
+		}
+
+	}
+
+	var returnError error
 
 	return returnError
 }
@@ -244,10 +289,10 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		pHeuristic = []dbtxh.Heuristic{{Uid: parentHeuristicUid}}
 	}
 
-	thisUid, err = dbtxh.UpsertHeuristic(dgraph, dbtxh.Heuristic{
+	thisUid, err = dbtxh.InsertHeuristic(dgraph, dbtxh.Heuristic{
 		HeuristicType:   h.getType(),
 		Origins:         dummyOrigins,
-		Parameter:       h.getParameter(),
+		Parameter:       h.getParameterString(),
 		ParentHeuristic: pHeuristic,
 		TxHash:          txHash,
 	})

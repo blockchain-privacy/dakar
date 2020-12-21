@@ -32,7 +32,8 @@
               </v-row>
               <v-divider></v-divider>
               <v-row>
-                <v-col v-for="o in data.addr_outputs" v-bind:key="o.input_transaction + o.output_transaction">
+                <v-col v-for="o in data.addr_outputs"
+                       v-bind:key="o.input_transaction + o.output_transaction">
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
                       <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
@@ -63,27 +64,27 @@
 </template>
 
 <script>
-import {shortenHash, convertAmount} from "@/utilities";
-import {PAGE_TITLE} from "@/constants";
-import IconItem from "@/components/common/IconItem";
+import { shortenHash, convertAmount } from '../utilities';
+import { PAGE_TITLE } from '../constants';
+import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
-  components: {IconItem},
+  components: { IconItem },
   methods: {
     shortenHash,
     getAmount: convertAmount,
-    calculateAmountReceived: function (outputs) {
+    calculateAmountReceived(outputs) {
       return outputs
-          .map(e => parseInt(e.amount))
-          .reduce((sum, e) => sum + e, 0);
+        .map((e) => parseInt(e.amount, 10))
+        .reduce((sum, e) => sum + e, 0);
     },
-    calculateAmountSpent: function (outputs) {
+    calculateAmountSpent(outputs) {
       return outputs
-          .filter(e => e.input_transaction !== '')
-          .map(e => parseInt(e.amount))
-          .reduce((sum, e) => sum + e, 0);
-    }
+        .filter((e) => e.input_transaction !== '')
+        .map((e) => parseInt(e.amount, 10))
+        .reduce((sum, e) => sum + e, 0);
+    },
   },
   computed: {
     data() {
@@ -94,7 +95,7 @@ export default {
         received: this.calculateAmountReceived(this.data.addr_outputs),
         spent: this.calculateAmountSpent(this.data.addr_outputs),
       };
-    }
+    },
   },
   mounted() {
     document.title = `Address - ${PAGE_TITLE}`;
@@ -102,9 +103,9 @@ export default {
   updated() {
     let h = ' ';
     if (this.data && this.data.addresshash) {
-      h = ` ${this.data.addresshash} `
+      h = ` ${this.data.addresshash} `;
     }
     document.title = `Address${h}- ${PAGE_TITLE}`;
   },
-}
+};
 </script>

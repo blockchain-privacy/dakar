@@ -1,0 +1,15 @@
+version: "3.6"
+services:
+
+  bulk:
+    image: dgraph/dgraph:latest
+    container_name: bulk
+    volumes:
+      - ${BULK_PATH}:/dgraph
+    command: dgraph bulk -f g01.rdf.gz -s g01.schema --map_shards=1 --reduce_shards=1 --zero=zero:5080 --num_go_routines=1
+    networks:
+      - dgraph_default
+
+networks:
+  dgraph_default:
+    external: true

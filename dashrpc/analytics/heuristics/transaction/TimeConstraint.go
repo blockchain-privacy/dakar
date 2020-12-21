@@ -5,6 +5,7 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"strconv"
 	"time"
 )
 
@@ -16,26 +17,50 @@ type TimeConstraintHeuristic struct {
 
 // TimeConstraintHeuristic constructor
 // hoursToLookBack in hours
-func NewTimeConstraintHeuristic(hoursToLookBack uint32) TimeConstraintHeuristic {
+func NewTimeConstraintHeuristic(hoursToLookBack uint32) *TimeConstraintHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return TimeConstraintHeuristic{
-		heuristicType:        "timeconstraint",
+	return &TimeConstraintHeuristic{
+		heuristicType:        "time_constraint",
 		lookBackTime:         lBackTime,
 		parameterDescription: lBackTime.String(),
 	}
 }
 
-func (b TimeConstraintHeuristic) getType() string {
-	return b.heuristicType
+func (h TimeConstraintHeuristic) getType() string {
+	return h.heuristicType
 }
 
-func (b TimeConstraintHeuristic) getParameter() string {
-	return b.parameterDescription
+func (h TimeConstraintHeuristic) getParameterString() string {
+	return h.parameterDescription
+}
+
+func (h TimeConstraintHeuristic) hasParameter() bool {
+	return true
+}
+
+func (h *TimeConstraintHeuristic) setParameter(p string) error {
+	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+	if err != nil {
+		return err
+	}
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
+	h.lookBackTime = lBackTime
+	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
+	return nil
+}
+
+func (h TimeConstraintHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
+}
+
+func (h TimeConstraintHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
 }
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {
@@ -69,7 +94,7 @@ func (b TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentH
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, b.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

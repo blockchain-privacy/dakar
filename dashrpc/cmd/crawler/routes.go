@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
+	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dban "dashrpc/db/analytics"
+	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbblk "dashrpc/db/block"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
@@ -14,6 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -21,12 +25,16 @@ import (
 )
 
 const (
-	routePrefix      string = "/api/v1/"
-	routeTransaction string = "tx/"
-	routeBlock       string = "blk/"
-	routeAddress     string = "address/"
-	routeMeta        string = "meta/"
-	routePaths       string = "paths/"
+	routePrefix              string = "/api/v1/"
+	routeTransaction         string = "tx/"
+	routeBlock               string = "blk/"
+	routeAddress             string = "address/"
+	routeMeta                string = "meta/"
+	routePaths               string = "paths/"
+	routeHeuristics          string = "heuristics/"
+	routeHeuristicsSummary   string = "heuristicsSummary/"
+	routeHeuristicsExecution string = "executeHeuristics/"
+	routeHeuristicDetails    string = "heuristicDetails/"
 )
 
 const (
@@ -34,8 +42,15 @@ const (
 )
 
 var (
-	errorPath = "error getting paths"
+	errorPath               = "error getting paths"
+	errorHeuristics         = "error getting heuristics"
+	errorHeuristicExecution = "error executing heuristics"
+	errorHeuristicDetails   = "error getting heuristic details"
 )
+
+type reply struct {
+	Message string `json:"msg,omitempty"`
+}
 
 func getRoute(r string) string {
 	return routePrefix + r
@@ -59,6 +74,21 @@ func getRouteMeta() string {
 
 func getRouteOrigins() string {
 	return getRoute(routePaths)
+}
+
+func getRouteHeuristics() string {
+	return getRoute(routeHeuristics)
+}
+func getRouteHeuristicsSummary() string {
+	return getRoute(routeHeuristicsSummary)
+}
+
+func getRouteHeuristicsExecution() string {
+	return getRoute(routeHeuristicsExecution)
+}
+
+func getRouteHeuristicDetails() string {
+	return getRoute(routeHeuristicDetails)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -288,6 +318,242 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	}
 }
 
+// API pattern: "/api/v1/heuristicsSummary/<hash>"
+func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicsSummary()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorPath, http.StatusNotFound)
+			return
+		}
+
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if len(cHeuristic.Heuristics) == 0 {
+			http.Error(w, errorPath, http.StatusNotFound)
+			return
+		}
+
+		// calculate shortest path
+		//shortestPaths := make(map[string]int)
+		//lock.Lock()
+		//for _, h := range cHeuristic.Heuristics {
+		//
+		//	for _, r := range h.Results {
+		//		if _, ok := shortestPaths[r.Uid]; !ok {
+		//			pathLen, pathErr := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
+		//			if pathErr != nil {
+		//				log.Println(pathErr)
+		//				return
+		//			}
+		//			shortestPaths[r.Uid] = pathLen
+		//		}
+		//	}
+		//}
+		//lock.Unlock()
+
+		// headers for streaming data to client
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+		w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+		csvWriter := csv.NewWriter(w)
+		csvWriter.Comma = ';'
+
+		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
+			"heuristic type", "heuristic parameter", "heuristic timestamp",
+			"origin uid", "origin transaction hash", "origin timestamp",
+			"origin address hash"}
+		//header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
+		//	"heuristic type", "heuristic parameter", "heuristic timestamp",
+		//	"origin uid", "origin transaction hash", "origin timestamp",
+		//	"origin address hash", "origin shortest path"}
+		if err = csvWriter.Write(header); err != nil {
+			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+
+		for _, h := range cHeuristic.Heuristics {
+			for _, result := range h.Results {
+				var row []string
+				// per heuristic information
+				row = append(row, h.Uid)
+				var parentHeuristic string
+				if len(h.ParentHeuristic) > 0 {
+					// only one parent heuristic is possible
+					parentHeuristic = h.ParentHeuristic[0].Uid
+				}
+				row = append(row, parentHeuristic)
+
+				var childHeuristics string
+				for i, c := range h.ChildHeuristics {
+					childHeuristics += c.Uid
+					if i+1 < len(h.ChildHeuristics) {
+						childHeuristics += ","
+					}
+				}
+
+				row = append(row, childHeuristics)
+				row = append(row, h.Type)
+				row = append(row, h.Parameter)
+				row = append(row, h.Timestamp)
+
+				// per origin information
+				row = append(row, result.Uid)
+				row = append(row, result.TxHash)
+				row = append(row, result.Timestamp)
+				row = append(row, result.AddressHash)
+				//row = append(row, strconv.Itoa(shortestPaths[result.Uid]))
+
+				if err = csvWriter.Write(row); err != nil {
+					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+					serverInfo(cliutil.ShowCallInfo(), err)
+				}
+			}
+			csvWriter.Flush()
+		}
+	}
+}
+
+// API pattern: "/api/v1/heuristics/<hash>"
+func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristics()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		heuristics, err := dbtxh.GetBasicFrontendHeuristic(dgraph, txHashString)
+		if err != nil {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(heuristics)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
+// API pattern: "/api/v1/heuristicDetails/<hash>"
+func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicDetails()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			return
+		}
+
+		type request struct {
+			HeuristicUid string `json:"uid,omitempty"`
+		}
+
+		var heuristicRequest request
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&heuristicRequest)
+		if err != nil {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if len(heuristicRequest.HeuristicUid) == 0 {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			return
+		}
+
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
+		if err != nil {
+			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(frontendHeuristic)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
+// API pattern: "/api/v1/executeHeuristics/<hash>"
+func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicsExecution()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			return
+		}
+
+		type request struct {
+			Changed []dbtxh.FrontendHeuristic `json:"changed,omitempty"`
+			Deleted []string                  `json:"deleted,omitempty"`
+		}
+
+		var heuristicRequest request
+
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&heuristicRequest)
+		if err != nil {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			return
+		}
+
+		log.Println("Received", len(heuristicRequest.Changed), "changed heuristics")
+		log.Println("Received", len(heuristicRequest.Deleted), "deleted heuristics")
+
+		work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
+			heuristicRequest.Deleted)
+		if err != nil {
+			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+			serverInfo(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		log.Println("Added work:", worker.AddWork(txHashString, work))
+
+		msg := reply{Message: fmt.Sprintf("Received %d changed and %d deleted heuristics",
+			len(heuristicRequest.Changed), len(heuristicRequest.Deleted))}
+
+		// encoding
+		err = json.NewEncoder(w).Encode(msg)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 
 func isValid(input string) bool {
@@ -299,11 +565,18 @@ func isValid(input string) bool {
 }
 
 // creates endpoint handlers
-func setupHandlers(dgraph *dgo.Dgraph, client *rpcclient.Client) {
+func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
+	worker := heuristic.NewWorker()
+	worker.StartWorking(ctx, dgraph)
+
 	// API end points
 	http.HandleFunc(getRouteTransaction(), handlerTxDetails(dgraph))
 	http.HandleFunc(getRouteAddress(), handlerAddressDetails(dgraph))
 	http.HandleFunc(getRouteBlock(), handlerBlockDetails(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
+	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
+	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
+	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
+	http.HandleFunc(getRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
 }

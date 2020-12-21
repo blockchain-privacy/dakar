@@ -28,11 +28,16 @@ func info(v ...interface{}) {
 }
 
 const (
-	// average Dash block time
+	// blockTime is the average Dash block time
 	blockTime = 2*time.Minute + 30*time.Second
 
-	// time interval in which the processor checks if a new block is available
+	// newBlockIntervalTime is the time interval in which the processor checks if a new block is available
 	newBlockIntervalTime = blockTime / 3
+
+	// forkRangeLimit is the number of blocks which the RPC client must
+	// be ahead of the crawler, for the crawler to include new blocks
+	// in the database. This is done so potential chain forks/reordering do not need to be handled
+	forkRangeLimit = 2000
 )
 
 // holds the current state of the crawling processing loop
@@ -347,7 +352,8 @@ func processingInterrupted() {
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash,
+	rpcNumBlocks uint64) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(newBlockIntervalTime)
 	defer ticker.Stop()
 	for {
@@ -364,7 +370,13 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 			}
 		}
 
-		if currentBlock.NextHash != "" {
+		numBlocks, rpcErr := getRPCNumberOfBlocks(client)
+		if rpcErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+			return
+		}
+		// check if block is available and and if it is an actual new block
+		if currentBlock.NextHash != "" && numBlocks > rpcNumBlocks {
 			break
 		}
 	}
@@ -372,7 +384,21 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 	return
 }
 
-// creates the initial state of the processing loop
+// getRPCNumberOfBlocks returns the number of blocks currently processed by the RPC client
+func getRPCNumberOfBlocks(client *rpcclient.Client) (uint64, error) {
+	rpcInfo, err := client.GetBlockChainInfo()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if rpcInfo.Blocks < 0 {
+		return 0, errors.New("error RPC client block count is negativ")
+	}
+
+	return uint64(rpcInfo.Blocks), nil
+}
+
+// getInitialState creates the initial state of the processing loop
 func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if state.id, err = getStartingId(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
@@ -542,12 +568,17 @@ mainLoop:
 		}
 
 		if !firstLoop {
+			// get RPC client block count
+			numBlocks, rpcErr := getRPCNumberOfBlocks(client)
+			if rpcErr != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+			}
 			// set values for this round
-			if currentBlock.NextHash == "" {
+			if currentBlock.NextHash == "" || numBlocks < state.id+forkRangeLimit {
 				info("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash)
+				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash, numBlocks)
 				if err != nil {
 					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				}
@@ -560,7 +591,7 @@ mainLoop:
 			}
 		}
 
-		// if not the first round increment state
+		// if not first round -> increment state
 		if !firstLoop {
 			if err = state.increment(currentBlock.NextHash); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -575,13 +606,13 @@ mainLoop:
 		}
 
 		// do the actual processing and aggregate the resulting metrics
-		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, true); err == nil {
+		if rBlockCounter, rTransactionCounter, processErr := ProcessRound(dgraph, client, state, currentBlock,
+			isEmptyDatabase, true); processErr == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
 		} else {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
 			return err
 		}
 	}

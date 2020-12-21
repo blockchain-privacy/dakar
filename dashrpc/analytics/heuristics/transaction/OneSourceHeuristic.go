@@ -5,6 +5,7 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"strconv"
 	"time"
 )
 
@@ -16,12 +17,12 @@ type OneSourceHeuristic struct {
 
 // OneSourceHeuristic constructor
 // hoursToLookBack in hours
-func NewOneSourceHeuristic(hoursToLookBack uint32) OneSourceHeuristic {
+func NewOneSourceHeuristic(hoursToLookBack uint32) *OneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return OneSourceHeuristic{
+	return &OneSourceHeuristic{
 		heuristicType:        "one_source",
 		lookBackTime:         lBackTime,
-		parameterDescription: lBackTime.String(),
+		parameterDescription: strconv.FormatUint(uint64(hoursToLookBack), 10),
 	}
 }
 
@@ -29,8 +30,32 @@ func (h OneSourceHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h OneSourceHeuristic) getParameter() string {
+func (h OneSourceHeuristic) getParameterString() string {
 	return h.parameterDescription
+}
+
+func (h OneSourceHeuristic) hasParameter() bool {
+	return true
+}
+
+func (h *OneSourceHeuristic) setParameter(p string) error {
+	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+	if err != nil {
+		return err
+	}
+	lBackTime := time.Duration(hoursToLookBack) * time.Hour
+	h.lookBackTime = lBackTime
+	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
+	return nil
+}
+
+func (h OneSourceHeuristic) String() string {
+	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
+}
+
+func (h OneSourceHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
 }
 
 // OneSourceHeuristic applies the following heuristics:

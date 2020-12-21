@@ -1,5 +1,6 @@
 <template>
-  <v-text-field @keydown.enter="handleInput(query, 'user')" class="d-flex" full-width v-model="query"
+  <v-text-field @keydown.enter="handleInput(query, 'user')"
+                class="d-flex" full-width v-model="query"
                 label="Search for blocks, transactions and addresses"/>
 </template>
 
@@ -7,21 +8,23 @@
 import * as Constants from '../constants';
 import * as Utility from '../utilities';
 
-function newRouting(context, id) {
-  if (id === undefined) {
+function newRouting(context) {
+  const { id } = context.$route.params;
+  if (id === undefined || context.$route.name !== Constants.ROUTE_NAME_SEARCH_PAGE) {
     return;
   }
+
   context.handleQuery(id);
 }
 
 export default {
-  name: "QueryInput",
+  name: 'QueryInput',
   data() {
     return {
       // query is not managed by the vuex store
       // as it only needs to be accessed by this component
-      query: "",
-      lastQuery: ""
+      query: '',
+      lastQuery: '',
     };
   },
   computed: {
@@ -31,7 +34,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setErrorMsg', value);
-      }
+      },
     },
     warningMsg: {
       get() {
@@ -39,7 +42,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setWarningMsg', value);
-      }
+      },
     },
     transaction: {
       get() {
@@ -47,7 +50,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setTransactionData', value);
-      }
+      },
     },
     address: {
       get() {
@@ -55,7 +58,7 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setAddressData', value);
-      }
+      },
     },
     block: {
       get() {
@@ -63,105 +66,104 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setBlockData', value);
-      }
+      },
     },
   },
   methods: {
-    handleInput: function (q, origin) {
-      q = q.trim();
-      if (origin === 'user' && q !== this.lastQuery) {
+    handleInput(q, origin) {
+      const query = q.trim();
+      if (origin === 'user' && query !== this.lastQuery) {
         // update route only when input is from user and query is different
 
-        if (!this.isValidData(q)) {
+        if (!this.isValidData(query)) {
           this.warningMsg = 'Input was not valid!';
           return;
         }
 
-        this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
+        this.$router.push({ name: Constants.ROUTE_NAME_SEARCH_PAGE, params: { id: query } });
       } else if (origin === 'route') {
         // do nothing -> route is already up to date
       }
     },
-    handleQuery: function (q) {
+    handleQuery(q) {
       // if (origin === 'user' && q !== this.lastQuery) {
       //   // update route only when input is from user and query is different
       //   this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
       // } else if (origin === 'route') {
       //   // do nothing -> route is already up to date
       // }
-      q = q.trim();
-      this.lastQuery = q;
+      const query = q.trim();
+      this.lastQuery = query;
 
       this.query = '';
       Utility.resetData(this);
 
-      if (!this.isValidData(q)) {
+      if (!this.isValidData(query)) {
         this.warningMsg = 'Input was not valid!';
         return;
       }
 
-      this.searchBlock(q).catch(() => {
+      this.searchBlock(query).catch(() => {
         // if block query fails, search for transaction
-        this.searchTx(q).catch(() => {
+        this.searchTx(query).catch(() => {
           // if transaction query fails, search for address
-          this.searchAddress(q);
-        })
+          this.searchAddress(query);
+        });
       });
     },
-    isValidData: function (str) {
-      return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/)
+    isValidData(str) {
+      return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/);
     },
-    searchBlock: function (q) {
-      console.log('Block search: ' + q);
+    searchBlock(q) {
+      console.log(`Block search: ${q}`);
       return fetch(Constants.ROUTE_BLOCK + q)
-          .then(response => {
-            if (!response.ok) throw new Error(response.status + " " + response.statusText)
-            return response
-          })
-          .then(response => response.json())
-          .then(data => {
-            this.block = data;
-          });
+        .then((response) => {
+          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+          return response;
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          this.block = data;
+        });
     },
-    searchTx: function (q) {
-      console.log('Tx search: ' + q);
+    searchTx(q) {
+      console.log(`Tx search: ${q}`);
       return fetch(Constants.ROUTE_TRANSACTION + q)
-          .then(response => {
-            if (!response.ok) throw new Error(response.status + " " + response.statusText)
-            return response
-          })
-          .then(response => response.json())
-          .then(data => {
-            this.transaction = data;
-          });
+        .then((response) => {
+          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+          return response;
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          this.transaction = data;
+        });
     },
-    searchAddress: function (q) {
-      console.log('Address search: ' + q);
+    searchAddress(q) {
+      console.log(`Address search: ${q}`);
       fetch(Constants.ROUTE_ADDRESS + q)
-          .then(response => {
-            if (!response.ok) throw new Error(response.status + " " + response.statusText)
-            return response
-          })
-          .then(response => response.json())
-          .then(data => {
-            this.address = data;
-          })
-          .catch(error => {
-            this.errorMsg = error;
-          });
-    }
+        .then((response) => {
+          if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+          return response;
+        })
+        .then((response) => response.json())
+        .then((data) => {
+          this.address = data;
+        })
+        .catch((error) => {
+          this.errorMsg = error;
+        });
+    },
   },
-  created: function () {
-    newRouting(this, this.$route.params.id);
+  created() {
+    newRouting(this);
   },
   watch: {
-    '$route'(to) {
-      if (to.name !== Constants.ROUTE_NAME_SEARCH_PAGE) return;
-
-      newRouting(this, to.params.id);
-    }
-  }
-}
+    $route() {
+      this.lastQuery = '';
+      newRouting(this);
+    },
+  },
+};
 </script>
 
 <style scoped>

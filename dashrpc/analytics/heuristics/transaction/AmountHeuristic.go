@@ -24,8 +24,25 @@ func (h AmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h AmountHeuristic) getParameter() string {
+func (h AmountHeuristic) getParameterString() string {
 	return h.parameterDescription
+}
+
+func (h AmountHeuristic) hasParameter() bool {
+	return false
+}
+
+func (h AmountHeuristic) setParameter(p string) error {
+	return nil
+}
+
+func (h AmountHeuristic) String() string {
+	return fmt.Sprintf("Type: %s", h.heuristicType)
+}
+
+func (h AmountHeuristic) clone() heuristic {
+	newHeuristic := h
+	return &newHeuristic
 }
 
 // AmountHeuristic applies the following heuristic:

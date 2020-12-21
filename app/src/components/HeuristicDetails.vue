@@ -1,0 +1,270 @@
+<template>
+  <v-bottom-sheet scrollable v-model="inputVal">
+    <v-card style="max-height: 500px">
+      <v-card-text style="height: 80%">
+        <div class="d-flex flex-wrap" style="align-items: flex-start;">
+          <v-card
+              class="mx-auto my-12"
+              max-width="500">
+            <v-card-title>
+              Heuristic Properties
+            </v-card-title>
+            <v-card-subtitle>
+              <v-row>
+                <v-col>
+                  <IconItem title="Type" icon="mdi-iframe-variable-outline">
+                    {{ heuristicData.heuristicType }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem v-if="heuristicData.heuristicParameter"
+                            title="Parameter"
+                            icon="mdi-tune">
+                    {{ heuristicData.heuristicParameter }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem title="Number of origins"
+                            icon="mdi-pound-box-outline">
+                    {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem title="Number of addresses"
+                            icon="mdi-pound-box-outline">
+                    {{ addressMap === undefined ? 0 : addressMap.size }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+            </v-card-subtitle>
+          </v-card>
+          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+            <svg id="heuristic_details_canvas"></svg>
+          </v-card>
+          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+            <v-data-table :headers="dataHeaders"
+                          :items="dataItems"
+                          :items-per-page="5"
+                          class="elevation-1"
+            ></v-data-table>
+          </v-card>
+
+        </div>
+      </v-card-text>
+    </v-card>
+  </v-bottom-sheet>
+</template>
+
+<script>
+
+import * as d3 from 'd3';
+import IconItem from './common/IconItem.vue';
+
+// addPercentageToDate returns a new date which has a percentage of duration added
+function addPercentageToDate(date, duration, percentage) {
+  const newDate = new Date(date);
+  newDate.setTime(newDate.getTime() + duration * percentage);
+  return newDate;
+}
+
+export default {
+  name: 'HeuristicDetails',
+  components: { IconItem },
+  props: {
+    // v-model
+    value: Boolean,
+    heuristicData: Object,
+    // map[addresshash]array[origins]
+    addressMap: Map,
+  },
+  data() {
+    return {
+      chart: null,
+      dataHeaders: [
+        {
+          text: 'Address', align: 'start', sortable: false, value: 'address',
+        },
+        { text: 'Number of Origins', value: 'len' },
+      ],
+    };
+  },
+  computed: {
+    dataItems() {
+      const dataItems = [];
+      if (this.addressMap !== undefined) {
+        this.addressMap.forEach((v, k) => {
+          dataItems.push({ address: k, len: v.length });
+        });
+      }
+
+      return dataItems;
+    },
+    inputVal: {
+      get() {
+        return this.value;
+      },
+      set(val) {
+        this.$emit('input', val);
+      },
+    },
+    details: {
+      get() {
+        return this.$store.getters.getHeuristicDetails;
+      },
+      set(value) {
+        if (value === null) {
+          this.$store.dispatch('resetHeuristicDetails');
+          return;
+        }
+        this.$store.dispatch('setHeuristicDetails', value);
+      },
+    },
+  },
+  methods: {
+    updateData(graphData) {
+      const svgCanvasId = 'heuristic_details_canvas';
+      const detailArray = [];
+      let lowestDate = null;
+      let highestDate = null;
+
+      graphData.forEach((v) => {
+        v.dateTime = new Date(v.ts);
+        if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
+        if (highestDate === null || highestDate < v.dateTime) highestDate = v.dateTime;
+
+        detailArray.push(v);
+      });
+
+      // add a percentage of time to the date limitations,
+      // so all rectangle can be displayed in their full width
+      const duration = highestDate - lowestDate;
+      const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
+      const highestRange = addPercentageToDate(highestDate, duration, 0.03);
+
+      // 1000*60*60*24*2.5 = 2.5 days
+      let numTicks = Math.floor(duration / (1000 * 60 * 60 * 24 * 2.5));
+      if (numTicks === 0) numTicks = 1;
+
+      const svg = d3.select(`#${svgCanvasId}`);
+      const margin = {
+        top: 20, right: 30, bottom: 30, left: 40,
+      };
+      const width = 600 - margin.left - margin.right;
+      const height = 300 - margin.top - margin.bottom;
+
+      // set the ranges
+      const x = d3.scaleTime()
+        .domain([lowestRange, highestRange])
+        .rangeRound([0, width]);
+      const y = d3.scaleLinear()
+        .range([height, 0]);
+
+      // set the parameters for the histogram
+      const histogram = d3.bin()
+        .value((d) => d.dateTime)
+        .domain(x.domain())
+        .thresholds(x.ticks(d3.timeHour.every(numTicks)));
+
+      // append the svg object to the body of the page
+      // append a 'group' element to 'svg'
+      // moves the 'group' element to the top left margin
+      const svgGroup = svg
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform',
+          `translate(${margin.left},${margin.top})`);
+
+      // group the data for the bars
+      const bins = histogram(detailArray);
+
+      // Scale the range of the data in the y domain
+      y.domain([0, d3.max(bins, (d) => d.length)]);
+
+      // append the bar rectangles to the svg element
+      svgGroup.selectAll('rect')
+        .data(bins)
+        .enter().append('rect')
+        .attr('class', 'bar')
+        .attr('x', 1)
+        .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`)
+        .attr('width', (d) => x(d.x1) - x(d.x0) - 1)
+        .attr('height', (d) => height - y(d.length));
+
+      // add the x Axis
+      svgGroup.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(d3.axisBottom(x));
+
+      // add x title
+      svgGroup.append('text')
+        .attr('fill', 'currentColor')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('transform',
+          `translate(${width / 2} ,${
+            height + margin.top + 10})`)
+        .style('text-anchor', 'middle')
+        .text('Time');
+
+      // add the y Axis
+      svgGroup.append('g')
+        .call(d3.axisLeft(y));
+
+      // add y title
+      svgGroup.append('text')
+        .attr('fill', 'currentColor')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('transform', 'rotate(-90)')
+        .attr('y', 0 - margin.left)
+        .attr('x', 0 - (height / 2) - 20)
+        .attr('dy', '1em')
+        .style('text-anchor', 'middle')
+        .text('Occurrences');
+
+      let title = 'Number of origins per ';
+
+      if (numTicks > 1) {
+        title += `${numTicks} hours`;
+      } else {
+        title += 'hour';
+      }
+
+      // title
+      svgGroup.append('text')
+        .attr('fill', 'currentColor')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 12)
+        .attr('y', -5)
+        .attr('x', width / 2 - 50)
+        .text(title);
+    },
+  },
+  updated() {
+    // do nothing if sheet is not open
+    if (!this.value || this.details.size === 0) return;
+    const svgCanvasId = 'heuristic_details_canvas';
+
+    // check if svg exists yet
+    const documentSvg = document.getElementById(svgCanvasId);
+    if (documentSvg === null) return;
+    // reset svg
+    documentSvg.innerHTML = '';
+    if (!this.details.has(this.heuristicData.heuristicUid)) return;
+
+    // this.updateData(this.addressMap.entries().next().value[1]);
+    this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
+  },
+};
+</script>
+
+<style>
+
+.bar {
+  fill: #008ee5;
+}
+
+</style>
