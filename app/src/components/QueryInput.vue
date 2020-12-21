@@ -9,9 +9,10 @@ import * as Constants from '../constants';
 import * as Utility from '../utilities';
 
 function newRouting(context) {
-  const { id } = context.$route.params;
+  const { id, pushFromUserInput } = context.$route.params;
 
-  if (id === undefined || !(context.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
+  if (pushFromUserInput !== undefined || id === undefined
+      || !(context.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
       || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
       || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
     return;
@@ -40,7 +41,6 @@ export default {
       // as it only needs to be accessed by this component
       query: '',
       lastQuery: '',
-      lastRoute: '',
     };
   },
   computed: {
@@ -88,19 +88,19 @@ export default {
           case Constants.RESPONSE_TYPE_ADDRESS:
             this.$router.push({
               name: Constants.ROUTE_NAME_ADDRESS_PAGE,
-              params: { id: query },
+              params: { id: query, pushFromUserInput: true },
             });
             break;
           case Constants.RESPONSE_TYPE_BLOCK:
             this.$router.push({
               name: Constants.ROUTE_NAME_BLOCK_PAGE,
-              params: { id: query },
+              params: { id: query, pushFromUserInput: true },
             });
             break;
           case Constants.RESPONSE_TYPE_TRANSACTION:
             this.$router.push({
               name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
-              params: { id: query },
+              params: { id: query, pushFromUserInput: true },
             });
             break;
           default:
@@ -123,7 +123,8 @@ export default {
       this.query = '';
       // template string in case it is a number
       const query = `${q}`.trim();
-      if (this.lastQuery !== '' && this.lastQuery === query) return false;
+
+      if (this.lastQuery !== '' && this.lastQuery === query || this.$route.params.id === query) return false;
 
       this.lastQuery = query;
 
@@ -159,7 +160,7 @@ export default {
   },
   watch: {
     $route() {
-      if (this.lastQuery !== this.$route.name) this.lastQuery = '';
+      this.lastQuery = '';
       newRouting(this);
     },
   },

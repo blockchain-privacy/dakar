@@ -40,7 +40,6 @@
 <script>
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
-import * as Utility from './utilities';
 import * as Constants from './constants';
 
 export default {
@@ -62,13 +61,6 @@ export default {
       // only change route if not already on entry page
       if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE) return;
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
-    },
-  },
-  watch: {
-    // global route watcher
-    $route() {
-      // reset data on every route change
-      Utility.resetData(this);
     },
   },
 };
