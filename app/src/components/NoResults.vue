@@ -3,7 +3,7 @@
     <v-row align="center" justify="center">
       <v-col></v-col>
       <v-col>
-        <v-img src="../assets/found_nothing.png" max-height="500px" max-width="600px">
+        <v-img src="../assets/no_results.webp" max-height="500px" max-width="600px">
         </v-img>
       </v-col>
       <v-col></v-col>
