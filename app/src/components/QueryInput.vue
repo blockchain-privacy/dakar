@@ -124,7 +124,7 @@ export default {
       // template string in case it is a number
       const query = `${q}`.trim();
 
-      if (this.lastQuery !== '' && this.lastQuery === query || this.$route.params.id === query) return false;
+      if (this.lastQuery !== '' && this.lastQuery === query) return false;
 
       this.lastQuery = query;
 
