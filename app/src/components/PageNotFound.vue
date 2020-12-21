@@ -29,7 +29,7 @@
 import * as Constants from '../constants';
 
 export default {
-  name: '404',
+  name: 'PageNotFound',
   methods: {
     toEntryPage() {
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
