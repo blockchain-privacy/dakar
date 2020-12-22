@@ -6,7 +6,7 @@
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
               <v-icon>mdi-card-bulleted-outline</v-icon>
-              Address {{ data.addresshash }}
+              Address {{ this.data.addresshash }}
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text>
@@ -32,11 +32,27 @@
               </v-row>
               <v-divider></v-divider>
               <v-row>
-                <v-col v-for="o in data.addr_outputs"
-                       v-bind:key="o.input_transaction + o.output_transaction + o.amount">
-                  <OutputComponent :address="o"/>
+                <v-col>
+                  <v-select
+                      style="max-width: 300px;"
+                      v-model="combobox.selected"
+                      :items="combobox.items"
+                      label="Sort addresses by"
+                      v-on:change="sortItems"
+                  ></v-select>
                 </v-col>
               </v-row>
+              <v-sheet min-height="50" class="fill-height" color="transparent">
+                <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
+                  <v-row>
+
+                    <v-col v-for="o in outputData"
+                           v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                      <OutputComponent :address="o"/>
+                    </v-col>
+                  </v-row>
+                </v-lazy>
+              </v-sheet>
             </v-container>
           </v-card-text>
         </v-card>
@@ -53,15 +69,34 @@ import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { OutputComponent, IconItem },
+  components: { IconItem, OutputComponent },
   methods: {
+    sortItems() {
+      switch (this.combobox.selected) {
+        case 'ascending by input date':
+          this.outputData = this.outputData.sort((a, b) => (a.inputDate < b.inputDate ? -1 : 1));
+          break;
+        case 'descending by input date':
+          this.outputData = this.outputData.sort((a, b) => (a.inputDate > b.inputDate ? -1 : 1));
+          break;
+        case 'ascending by output date':
+          this.outputData = this.outputData.sort((a, b) => (a.outputDate < b.outputDate ? -1 : 1));
+          break;
+        case 'descending by output date':
+          this.outputData = this.outputData.sort((a, b) => (a.outputDate > b.outputDate ? -1 : 1));
+          break;
+        default:
+      }
+    },
     convertAmount,
     calculateAmountReceived(outputs) {
+      if (outputs === undefined) return 0;
       return outputs
         .map((e) => parseInt(e.amount, 10))
         .reduce((sum, e) => sum + e, 0);
     },
     calculateAmountSpent(outputs) {
+      if (outputs === undefined) return 0;
       return outputs
         .filter((e) => e.input_transaction !== '')
         .map((e) => parseInt(e.amount, 10))
@@ -70,6 +105,14 @@ export default {
   },
   data() {
     return {
+      combobox: {
+        selected: [],
+        items: ['ascending by input date',
+          'descending by input date',
+          'ascending by output date',
+          'descending by output date'],
+      },
+      outputData: [],
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
@@ -89,8 +132,14 @@ export default {
   },
   updated() {
     let h = ' ';
-    if (this.data && this.data.addresshash) {
+    if (this.data && this.outputData.length === 0 && this.data.addresshash) {
       h = ` ${this.data.addresshash} `;
+
+      this.outputData = this.data.addr_outputs.map((d) => {
+        d.inputDate = new Date(d.input_ts);
+        d.outputDate = new Date(d.output_ts);
+        return d;
+      });
     }
     document.title = `Address${h}- ${PAGE_TITLE}`;
   },
