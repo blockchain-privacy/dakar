@@ -14,47 +14,27 @@
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
-                    {{ getAmount(this.amounts.received - this.amounts.spent) }}
+                    {{ convertAmount(this.amounts.received - this.amounts.spent) }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
-                    {{ getAmount(this.amounts.received) }}
+                    {{ convertAmount(this.amounts.received) }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
-                    {{ getAmount(this.amounts.spent) }}
+                    {{ convertAmount(this.amounts.spent) }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-divider></v-divider>
               <v-row>
                 <v-col v-for="o in data.addr_outputs"
-                       v-bind:key="o.input_transaction + o.output_transaction">
-                  <v-sheet min-height="50" class="fill-height" color="transparent">
-                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
-                        Amount: {{ getAmount(o.amount) }}
-                        <br v-if="o.iscoinbase"/>
-                        {{ o.iscoinbase ? 'Coinbase: ' + o.iscoinbase : '' }}
-                        <br/>
-                        Output Transaction:
-                        <router-link :to="{ name: transactionRoute,
-                        params: { id: o.output_transaction }}">
-                          {{ shortenHash(o.output_transaction) }}
-                        </router-link>
-                        <br v-if="o.input_transaction"/>
-                        {{ o.input_transaction ? 'Input transaction:' : '' }}
-                        <router-link :to="{ name: transactionRoute,
-                        params: { id: o.input_transaction }}" v-if="o.input_transaction">
-                          {{ shortenHash(o.input_transaction) }}
-                        </router-link>
-                      </IconItem>
-                    </v-lazy>
-                  </v-sheet>
+                       v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                  <OutputComponent :address="o"/>
                 </v-col>
               </v-row>
             </v-container>
@@ -66,16 +46,16 @@
 </template>
 
 <script>
-import { shortenHash, convertAmount } from '../utilities';
+import OutputComponent from './OutputComponent.vue';
+import { convertAmount } from '../utilities';
 import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { IconItem },
+  components: { OutputComponent, IconItem },
   methods: {
-    shortenHash,
-    getAmount: convertAmount,
+    convertAmount,
     calculateAmountReceived(outputs) {
       return outputs
         .map((e) => parseInt(e.amount, 10))

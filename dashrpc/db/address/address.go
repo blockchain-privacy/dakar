@@ -11,41 +11,7 @@ import (
 	"strconv"
 )
 
-// gets address information from the database
-func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(addresshash, $hash)){
-					uid
-					addresshash
-					addr_outputs{
-						uid
-						amount
-						index
-						iscoinbase
-						txtype
-					}
-				}
-			  }
-				`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$hash": addrHash})
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	var r addressQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
-// gets address information for the frontend
+// GetFrontendAddress returns address information for the frontend
 func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
 	// todo remove first: 200 limit
 	query := `query Q($hash: string) {
@@ -57,9 +23,15 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 						iscoinbase:iscoinbase
 						~tx_outputs{
 							output_transaction: txhash
+							~transactions{
+								output_ts: ts
+							}
 						}
 						~tx_inputs{
 							input_transaction: txhash
+							~transactions{
+								input_ts: ts
+							}
 						}
 					}
 				}
@@ -141,22 +113,6 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 
 	for _, e := range r.Transaction[0].Inputs {
 		addresses = append(addresses, Address{Hash: e.AddressHash})
-	}
-
-	return
-}
-
-// gets address information from the database and checks if it is complete
-func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err error) {
-	addr, err = GetAddress(c, addressHash)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if !addr.isComplete() {
-		err = errors.New("address is not complete")
-		return
 	}
 
 	return

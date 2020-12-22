@@ -39,32 +39,15 @@ func (a Address) isComplete() bool {
 	return a.Uid != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
 }
 
-type addressQuery struct {
-	Q []Address `json:"q"`
-}
-
-func (aq addressQuery) payload() (a Address, err error) {
-	lenQ := len(aq.Q)
-
-	if lenQ == 0 {
-		err = errors.New("no addresses found")
-		return a, err
-	} else if lenQ > 1 {
-		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one address")
-		return a, err
-	}
-	a = aq.Q[0]
-	return a, err
-}
-
 type FrontendAddress struct {
 	Hash    string `json:"addresshash"`
 	Outputs []struct {
 		Amount                uint64 `json:"amount"`
 		IsCoinbase            bool   `json:"iscoinbase"`
 		InputTransactionHash  string `json:"input_transaction"`
+		InputTimestamp        string `json:"input_ts"`
 		OutputTransactionHash string `json:"output_transaction"`
+		OutputTimestamp       string `json:"output_ts"`
 	} `json:"addr_outputs"`
 }
 
