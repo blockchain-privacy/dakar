@@ -2,7 +2,7 @@
 
   <v-card outlined max-width="470px">
     <v-row align="center" justify="center">
-      <v-col class="text-caption" style="text-align: center">
+      <v-col class="text--accent-1" style="text-align: center">
         {{ convertAmount(address.amount) }}
         DASH
       </v-col>
@@ -12,7 +12,7 @@
             max-width="400px"
             flat>
           <v-list-item>
-            <v-list-item-avatar>
+            <v-list-item-avatar style="margin: 0">
               <v-icon>mdi-bank-transfer-in</v-icon>
             </v-list-item-avatar>
             <v-list-item-content>
@@ -29,7 +29,7 @@
           </v-list-item>
         </v-card>
         <v-row v-if="address.input_transaction">
-          <v-col style="text-align: center">
+          <v-col style="text-align: center; padding: 0">
             <v-icon>mdi-arrow-down</v-icon>
           </v-col>
         </v-row>
@@ -38,7 +38,7 @@
                 max-width="400px"
                 flat>
           <v-list-item>
-            <v-list-item-avatar>
+            <v-list-item-avatar style="margin: 0">
               <v-icon>mdi-bank-transfer-out</v-icon>
             </v-list-item-avatar>
             <v-list-item-content>

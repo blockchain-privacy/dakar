@@ -31,7 +31,7 @@
                 </v-col>
               </v-row>
               <v-divider></v-divider>
-              <v-row>
+              <v-row v-if="this.outputData.length > 1">
                 <v-col>
                   <v-select
                       style="max-width: 300px;"
