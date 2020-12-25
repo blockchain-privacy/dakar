@@ -5,6 +5,7 @@ import (
 	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
+	dbaddr "dashrpc/db/address"
 	dban "dashrpc/db/analytics"
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbstat "dashrpc/db/status"
@@ -12,6 +13,7 @@ import (
 	"dashrpc/rpcclient"
 	"encoding/csv"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
@@ -33,6 +35,7 @@ const (
 	routeHeuristicsSummary   string = "heuristicsSummary/"
 	routeHeuristicsExecution string = "executeHeuristics/"
 	routeHeuristicDetails    string = "heuristicDetails/"
+	routeAddressOutputRange  string = "addressoutputrange/"
 )
 
 const (
@@ -44,6 +47,8 @@ var (
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
 	errorHeuristicDetails   = "error getting heuristic details"
+	errorInvalidSortOrder   = "error invalid sort order"
+	errorInvalidOffset      = "error invalid offset"
 )
 
 type reply struct {
@@ -91,6 +96,10 @@ func getRouteHeuristicDetails() string {
 
 func getRouteSearch() string {
 	return getRoute(routeSearch)
+}
+
+func getRouteAddressOutputRange() string {
+	return getRoute(routeAddressOutputRange)
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
@@ -173,6 +182,70 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.
 			if err != nil {
 				http.Error(w, "query: "+query, http.StatusNotFound)
 				serverInfo(cliutil.ShowCallInfo(), err)
+				return
+			}
+			if ok {
+				resp.Payload = data.result
+				resp.Type = data.resultType
+			}
+		}
+
+		// encoding
+		err := json.NewEncoder(w).Encode(resp)
+		if err != nil {
+			http.Error(w, "Search error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
+// API pattern: "/api/v1/addressoutputrange/<address_hash>"
+func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		query := r.URL.Path[len(getRouteAddressOutputRange()):]
+
+		resp := searchResponse{
+			Type:    "response_empty",
+			Payload: nil,
+		}
+
+		if isValid(query) {
+
+			type request struct {
+				Offset int `json:"offset"`
+				Order  int `json:"order"`
+			}
+
+			var addressRequest request
+			addressRequest.Offset = -1
+			addressRequest.Order = -1
+
+			decoder := json.NewDecoder(r.Body)
+			err := decoder.Decode(&addressRequest)
+			if err != nil {
+				http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), err)
+				return
+			}
+
+			if !dbaddr.IsValidSortOrder(addressRequest.Order) {
+				http.Error(w, errorInvalidSortOrder, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidSortOrder))
+				return
+			}
+
+			if addressRequest.Offset < 0 {
+				http.Error(w, errorInvalidOffset, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidOffset))
+				return
+			}
+
+			data, ok, addrErr := GetAddressWithOptions(dgraph, query, addressRequest.Order, addressRequest.Offset)
+			if addrErr != nil {
+				http.Error(w, "query: "+query, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), addrErr)
 				return
 			}
 			if ok {
@@ -568,6 +641,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(getRouteTransaction(), handlerDetails(dgraph, getRouteTransaction(), GetTransaction))
 	http.HandleFunc(getRouteAddress(), handlerDetails(dgraph, getRouteAddress(), GetAddress))
 	http.HandleFunc(getRouteBlock(), handlerDetails(dgraph, getRouteBlock(), GetBlock))
+	http.HandleFunc(getRouteAddressOutputRange(), handlerAddressOutputRange(dgraph))
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))

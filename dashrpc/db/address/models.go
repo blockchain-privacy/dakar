@@ -19,6 +19,12 @@ const (
 	SortDescendingByOutputTime
 )
 
+// IsValidSortOrder return true if sortOrder has a valid sort order value
+func IsValidSortOrder(sortOrder int) bool {
+	return sortOrder == SortAscendingByInputTime || sortOrder == SortDescendingByInputTime ||
+		sortOrder == SortAscendingByOutputTime || sortOrder == SortDescendingByOutputTime
+}
+
 var (
 	ErrorAddressNotFound = errors.New("no address found")
 	ErrorInvalidResult   = errors.New("invalid result")
