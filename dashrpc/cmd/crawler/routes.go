@@ -130,6 +130,7 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 				data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
 				if err != nil {
 					http.Error(w, "query: "+query, http.StatusNotFound)
+					serverInfo(cliutil.ShowCallInfo(), err)
 					return
 				}
 				// nothing found -> next try
@@ -171,6 +172,7 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.
 			data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
 			if err != nil {
 				http.Error(w, "query: "+query, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), err)
 				return
 			}
 			if ok {
