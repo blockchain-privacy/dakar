@@ -8,6 +8,17 @@ import (
 
 const DType = "Address"
 
+const (
+	// SortAscendingByInputTime sort addresses ascending by the input transaction timestamp
+	SortAscendingByInputTime int = iota
+	// SortDescendingByInputTime sort addresses descending by the input transaction timestamp
+	SortDescendingByInputTime
+	// SortAscendingByOutputTime sort addresses ascending by the output transaction timestamp
+	SortAscendingByOutputTime
+	// SortDescendingByOutputTime sort addresses descending by the output transaction timestamp
+	SortDescendingByOutputTime
+)
+
 var (
 	ErrorAddressNotFound = errors.New("no address found")
 	ErrorInvalidResult   = errors.New("invalid result")
@@ -39,16 +50,23 @@ func (a Address) isComplete() bool {
 	return a.Uid != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
 }
 
+type FrontendOutput struct {
+	Amount                uint64 `json:"amount"`
+	IsCoinbase            bool   `json:"iscoinbase"`
+	InputTransactionHash  string `json:"input_transaction"`
+	InputTimestamp        string `json:"input_ts"`
+	OutputTransactionHash string `json:"output_transaction"`
+	OutputTimestamp       string `json:"output_ts"`
+}
+
+func (o FrontendOutput) String() string {
+	return fmt.Sprintf("Amount: %d", o.Amount)
+}
+
 type FrontendAddress struct {
-	Hash    string `json:"addresshash"`
-	Outputs []struct {
-		Amount                uint64 `json:"amount"`
-		IsCoinbase            bool   `json:"iscoinbase"`
-		InputTransactionHash  string `json:"input_transaction"`
-		InputTimestamp        string `json:"input_ts"`
-		OutputTransactionHash string `json:"output_transaction"`
-		OutputTimestamp       string `json:"output_ts"`
-	} `json:"addr_outputs"`
+	Hash       string           `json:"addresshash"`
+	NumOutputs int64            `json:"num_outputs"`
+	Outputs    []FrontendOutput `json:"addr_outputs"`
 }
 
 func (f FrontendAddress) String() string {

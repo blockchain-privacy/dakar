@@ -11,31 +11,71 @@ import (
 	"strconv"
 )
 
-// GetFrontendAddress returns address information for the frontend
-func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
-	// todo remove first: 200 limit
-	query := `query Q($hash: string) {
-				q(func: eq(addresshash, $hash)){
-					addresshash
-					addr_outputs(first: 200)@normalize{
-						amount:amount
-						index:index
-						iscoinbase:iscoinbase
-						~tx_outputs{
-							output_transaction: txhash
-							~transactions{
-								output_ts: ts
-							}
-						}
-						~tx_inputs{
-							input_transaction: txhash
-							~transactions{
-								input_ts: ts
-							}
-						}
+// GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
+// Use one of the constants like SortAscendingByInputTime to set the sortOrder
+func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int) (addr FrontendAddress,
+	err error) {
+	const maxOutputsPerQuery = 20
+	sortDirection := "asc"
+	sortBy := "ots"
+
+	switch sortOrder {
+	case SortAscendingByInputTime:
+		sortBy = "its"
+		break
+	case SortDescendingByInputTime:
+		sortDirection = "desc"
+		sortBy = "its"
+		break
+	case SortAscendingByOutputTime:
+		// do nothing, values are already correctly set
+		break
+	case SortDescendingByOutputTime:
+		sortDirection = "desc"
+		break
+	default:
+		err = errors.New("error unrecognized sort order")
+		return
+	}
+
+	// fill variables
+	query := `query Q($hash: string){
+		var(func: eq(addresshash, $hash)){
+			addr_outputs{
+				a as uid
+				~tx_outputs{
+					~transactions{
+						obts as ts
 					}
+					otts as min(val(obts))
 				}
-			  }`
+				ots as min(val(otts))
+				~tx_inputs{
+					~transactions{
+						ibts as ts
+					}
+					itts as min(val(ibts))
+				}
+				its as min(val(itts))
+			}
+		}
+		c(func:uid(a), orderdesc: val(` + sortBy + `)){
+          count(uid)
+        }
+		q(func: uid(a), order` + sortDirection + ": val(" + sortBy + "), first:" +
+		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
+			amount:amount
+			iscoinbase:iscoinbase
+			output_ts:val(ots)
+			input_ts:val(its)
+			~tx_outputs{
+				output_transaction: txhash
+			}
+			~tx_inputs{
+				input_transaction: txhash
+			}
+		}
+	}`
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
@@ -46,7 +86,10 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 	}
 
 	var r struct {
-		Address []FrontendAddress `json:"q"`
+		Outputs []FrontendOutput `json:"q"`
+		Counts  []struct {
+			Count int64 `json:"count"`
+		} `json:"c"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -54,20 +97,26 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 		return addr, err
 	}
 
-	if len(r.Address) == 0 || len(r.Address[0].Outputs) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
-		return
-	} else if len(r.Address) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+	if len(r.Counts) != 1 {
+		err = ErrorInvalidResult
 		return
 	}
 
-	addr = r.Address[0]
+	if len(r.Outputs) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+		return
+	}
+
+	addr = FrontendAddress{
+		Hash:       addrHash,
+		NumOutputs: r.Counts[0].Count,
+		Outputs:    r.Outputs,
+	}
 
 	return
 }
 
-// gets all input addresses of the transaction specified by uid
+// GetInputAddressesOfTransaction gets all input addresses of the transaction specified by uid
 func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Address, err error) {
 	query := `query Q($uid: string){
 				q(func: uid($uid)){
