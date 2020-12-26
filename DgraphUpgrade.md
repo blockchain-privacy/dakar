@@ -45,4 +45,4 @@ More information [here](https://dgraph.io/docs/deploy/fast-data-loading/bulk-loa
    │       └── MANIFEST
    ```
 1. Move the `p` directory to the new folder from Step 2.
-1. Start the Dgraph as usual
+1. Start Dgraph as usual
