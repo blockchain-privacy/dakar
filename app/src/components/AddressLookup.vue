@@ -30,6 +30,18 @@
                   </IconItem>
                 </v-col>
               </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Outputs">
+                    {{ this.data.output_count }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Unspent outputs">
+                    {{ this.data.output_count - this.data.input_count }}
+                  </IconItem>
+                </v-col>
+              </v-row>
               <v-divider></v-divider>
               <v-row v-if="this.data.addr_outputs.length > 1">
                 <v-col>
@@ -95,7 +107,7 @@ export default {
       this.offset += 20;
 
       // do nothing if all data is already loaded
-      if (this.offset >= this.data.num_outputs) return;
+      if (this.offset >= this.data.query_max_count) return;
       this.isLoadingMore = true;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
