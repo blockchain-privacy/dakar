@@ -43,6 +43,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		var(func: eq(addresshash, $hash)){
 			addr_outputs{
 				a as uid
+				oamt as amount
 				~tx_outputs{
 					~transactions{
 						obts as ts
@@ -59,9 +60,18 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 				its as min(val(itts))
 			}
 		}
+		var(func: uid(a))@filter(has(~tx_inputs)){
+    		iamt as amount
+  		}
 		c(func:uid(a), orderdesc: val(` + sortBy + `)){
-          count(uid)
+			count(uid)
         }
+		input_sum(){
+			sum:sum(val(iamt))
+		}
+		output_sum(){
+			sum:sum(val(oamt))
+		}
 		q(func: uid(a), order` + sortDirection + ": val(" + sortBy + "), first:" +
 		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
 			amount:amount
@@ -90,6 +100,12 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		Counts  []struct {
 			Count int64 `json:"count"`
 		} `json:"c"`
+		InputSum []struct {
+			Sum int64 `json:"sum"`
+		} `json:"input_sum"`
+		OutputSum []struct {
+			Sum int64 `json:"sum"`
+		} `json:"output_sum"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -97,7 +113,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return addr, err
 	}
 
-	if len(r.Counts) != 1 {
+	if len(r.Counts) != 1 || len(r.InputSum) != 1 || len(r.OutputSum) != 1 {
 		err = ErrorInvalidResult
 		return
 	}
@@ -110,6 +126,8 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	addr = FrontendAddress{
 		Hash:       addrHash,
 		NumOutputs: r.Counts[0].Count,
+		InputSum:   r.InputSum[0].Sum,
+		OutputSum:  r.OutputSum[0].Sum,
 		Outputs:    r.Outputs,
 	}
 

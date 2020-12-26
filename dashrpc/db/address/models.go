@@ -72,6 +72,8 @@ func (o FrontendOutput) String() string {
 type FrontendAddress struct {
 	Hash       string           `json:"addresshash"`
 	NumOutputs int64            `json:"num_outputs"`
+	InputSum   int64            `json:"input_sum"`
+	OutputSum  int64            `json:"output_sum"`
 	Outputs    []FrontendOutput `json:"addr_outputs"`
 }
 
