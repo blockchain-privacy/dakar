@@ -9,7 +9,7 @@ More information [here](https://dgraph.io/docs/deploy/dgraph-administration/#exp
 
 1. Stop the crawler to not get an inconsistent database state
 
-1. With the current version export the database issue the following GraphQL request to the admin endpoint of the alpha
+1. With the current version export the database. Issue the following GraphQL request to the admin endpoint of the alpha
    node ``http://localhost:8080/admin``.
 
     ```graphql
@@ -22,7 +22,7 @@ More information [here](https://dgraph.io/docs/deploy/dgraph-administration/#exp
       }
     }
     ```
-1. Follow the export process in the docker log via ``docker logs -f dakar_alpha``.
+1. Follow the export process in the docker log via ``docker logs -f alpha``.
 1. After the export process is finished the new directory `export` contains the exported data.
 
 ## Import data via bulk loader
