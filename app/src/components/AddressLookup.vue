@@ -57,6 +57,14 @@
                       v-on:change="handleSort"
                   ></v-select>
                 </v-col>
+                <v-col>
+                  <v-alert
+                      v-if="this.isSortingByInput"
+                      type="info"
+                      text
+                  >Only spent outputs are shown.
+                  </v-alert>
+                </v-col>
               </v-row>
               <v-row v-if="this.isLoading">
                 <v-col v-for="i in [1,2,3]" :key="i">
@@ -127,6 +135,9 @@ export default {
       this.sortOrder = this.combobox.selected.id;
       this.offset = 0;
       this.isLoading = true;
+
+      this.isSortingByInput = this.sortOrder < 2;
+
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
         { offset: this.offset, order: this.sortOrder })
         .then((data) => {
@@ -188,6 +199,7 @@ export default {
       addressHash: '',
       isLoading: false,
       isLoadingMore: false,
+      isSortingByInput: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
