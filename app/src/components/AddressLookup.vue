@@ -65,6 +65,12 @@
                   </v-row>
                 </v-lazy>
               </v-sheet>
+              <v-progress-linear
+                  v-if="this.isLoadingMore"
+                  indeterminate
+                  rounded
+                  height="6"
+              ></v-progress-linear>
             </v-container>
           </v-card-text>
         </v-card>
@@ -84,10 +90,37 @@ export default {
   components: { IconItem, OutputComponent },
   methods: {
     addNewData() {
+      if (!this.data) return;
 
+      this.offset += 20;
+
+      // do nothing if all data is already loaded
+      if (this.offset > this.data.num_outputs) return;
+      this.isLoadingMore = true;
+
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
+        { offset: this.offset, order: this.sortOrder })
+        .then((data) => {
+          const newData = {
+            addresshash: this.data.addresshash,
+            num_outputs: this.data.num_outputs,
+          };
+
+          newData.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
+          this.data = newData;
+          // this.data.addr_outputs = [this.data.addr_outputs, ...data.payload.addr_outputs];
+          this.$store.dispatch('resetMsg');
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoadingMore = false;
+        });
     },
-    // getData fetches data from the server with the set offset and sort order
-    getData() {
+    handleSort() {
+      this.sortOrder = this.combobox.selected.id;
+      this.offset = 0;
       this.isLoading = true;
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
         { offset: this.offset, order: this.sortOrder })
@@ -102,11 +135,6 @@ export default {
           this.isLoading = false;
         });
     },
-    handleSort() {
-      this.sortOrder = this.combobox.selected.id;
-      this.offset = 0;
-      this.getData();
-    },
     convertAmount,
     calculateAmountReceived(outputs) {
       if (outputs === undefined) return 0;
@@ -120,6 +148,12 @@ export default {
         .filter((e) => e.input_transaction !== '')
         .map((e) => parseInt(e.amount, 10))
         .reduce((sum, e) => sum + e, 0);
+    },
+    handleScroll() {
+      // return if not bottom of page
+      if (this.isLoadingMore || document.documentElement.scrollTop + window.innerHeight
+          !== document.documentElement.offsetHeight) return;
+      this.addNewData();
     },
   },
   data() {
@@ -140,6 +174,7 @@ export default {
       sortOrder: 2,
       addressHash: '',
       isLoading: false,
+      isLoadingMore: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
@@ -162,6 +197,7 @@ export default {
   },
   mounted() {
     document.title = `Address - ${PAGE_TITLE}`;
+    window.onscroll = this.handleScroll;
   },
   updated() {
     let h = ' ';
