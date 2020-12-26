@@ -187,7 +187,6 @@ export default {
       set(value) {
         this.$store.dispatch('setAddressData', value);
       },
-
     },
   },
   mounted() {
