@@ -1,10 +1,10 @@
 <template>
-  <v-container class="fill-height" fluid v-if="data">
+  <v-container class="fill-height" fluid v-if="this.data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>
+            <v-toolbar-title v-if="this.data">
               <v-icon>mdi-card-bulleted-outline</v-icon>
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
@@ -31,22 +31,34 @@
                 </v-col>
               </v-row>
               <v-divider></v-divider>
-              <v-row v-if="this.outputData.length > 1">
+              <v-row v-if="this.data.addr_outputs.length > 1">
                 <v-col>
                   <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
                       style="max-width: 300px;"
-                      v-model="combobox.selected"
+                      v-model="combobox.selected.id"
                       :items="combobox.items"
-                      label="Sort addresses by"
-                      v-on:change="sortItems"
+                      item-value="id"
+                      item-text="text"
+                      label="Sort by"
+                      v-on:change="handleSort"
                   ></v-select>
                 </v-col>
               </v-row>
-              <v-sheet min-height="50" class="fill-height" color="transparent">
+              <v-row v-if="this.isLoading">
+                <v-col v-for="i in [1,2,3]" :key="i">
+                  <v-skeleton-loader type="image"></v-skeleton-loader>
+                </v-col>
+              </v-row>
+              <v-sheet
+                  v-if="!this.isLoading"
+                  min-height="50"
+                  class="fill-height"
+                  color="transparent">
                 <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
                   <v-row>
-
-                    <v-col v-for="o in outputData"
+                    <v-col v-for="o in this.data.addr_outputs"
                            v-bind:key="o.input_transaction + o.output_transaction + o.amount">
                       <OutputComponent :address="o"/>
                     </v-col>
@@ -63,30 +75,37 @@
 
 <script>
 import OutputComponent from './OutputComponent.vue';
-import { convertAmount } from '../utilities';
-import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
+import { convertAmount, doPost, handleError } from '../utilities';
+import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_ADDRESS_OUTPUT_RANGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
   components: { IconItem, OutputComponent },
   methods: {
-    sortItems() {
-      switch (this.combobox.selected) {
-        case 'ascending by input date':
-          this.outputData = this.outputData.sort((a, b) => (a.inputDate < b.inputDate ? -1 : 1));
-          break;
-        case 'descending by input date':
-          this.outputData = this.outputData.sort((a, b) => (a.inputDate > b.inputDate ? -1 : 1));
-          break;
-        case 'ascending by output date':
-          this.outputData = this.outputData.sort((a, b) => (a.outputDate < b.outputDate ? -1 : 1));
-          break;
-        case 'descending by output date':
-          this.outputData = this.outputData.sort((a, b) => (a.outputDate > b.outputDate ? -1 : 1));
-          break;
-        default:
-      }
+    addNewData() {
+
+    },
+    // getData fetches data from the server with the set offset and sort order
+    getData() {
+      this.isLoading = true;
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
+        { offset: this.offset, order: this.sortOrder })
+        .then((data) => {
+          this.data = data.payload;
+          this.$store.dispatch('resetMsg');
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    handleSort() {
+      this.sortOrder = this.combobox.selected.id;
+      this.offset = 0;
+      this.getData();
     },
     convertAmount,
     calculateAmountReceived(outputs) {
@@ -106,19 +125,33 @@ export default {
   data() {
     return {
       combobox: {
-        selected: [],
-        items: ['ascending by input date',
-          'descending by input date',
-          'ascending by output date',
-          'descending by output date'],
+        selected: {
+          id: 2,
+        },
+        items: [
+          { id: 0, text: 'ascending by input date' },
+          { id: 1, text: 'descending by input date' },
+          { id: 2, text: 'ascending by output date' },
+          { id: 3, text: 'descending by output date' },
+        ],
       },
-      outputData: [],
+      offset: 0,
+      // default sort order: ascending by output timestamp
+      sortOrder: 2,
+      addressHash: '',
+      isLoading: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
   computed: {
-    data() {
-      return this.$store.getters.getAddressData;
+    data: {
+      get() {
+        return this.$store.getters.getAddressData;
+      },
+      set(value) {
+        this.$store.dispatch('setAddressData', value);
+      },
+
     },
     amounts() {
       return {
@@ -132,14 +165,9 @@ export default {
   },
   updated() {
     let h = ' ';
-    if (this.data && this.outputData.length === 0 && this.data.addresshash) {
-      h = ` ${this.data.addresshash} `;
-
-      this.outputData = this.data.addr_outputs.map((d) => {
-        d.inputDate = new Date(d.input_ts);
-        d.outputDate = new Date(d.output_ts);
-        return d;
-      });
+    if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
+      this.addressHash = this.data.addresshash;
+      h = ` ${this.addressHash} `;
     }
     document.title = `Address${h}- ${PAGE_TITLE}`;
   },

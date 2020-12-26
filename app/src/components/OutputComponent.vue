@@ -23,7 +23,7 @@
                     <div v-on="on">{{ shortenHash(address.output_transaction) }}</div>
                   </router-link>
                 </template>
-                <span>{{ address.outputDate.toLocaleString() }}</span>
+                <span>{{ new Date(address.output_ts).toLocaleString() }}</span>
               </v-tooltip>
             </v-list-item-content>
           </v-list-item>
@@ -49,7 +49,7 @@
                     <div v-on="on"> {{ shortenHash(address.input_transaction) }}</div>
                   </router-link>
                 </template>
-                <span>{{ address.inputDate.toLocaleString() }}</span>
+                <span>{{ new Date(address.input_ts).toLocaleString() }}</span>
               </v-tooltip>
             </v-list-item-content>
           </v-list-item>
