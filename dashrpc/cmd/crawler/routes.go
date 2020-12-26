@@ -35,7 +35,7 @@ const (
 	routeHeuristicsSummary   string = "heuristicsSummary/"
 	routeHeuristicsExecution string = "executeHeuristics/"
 	routeHeuristicDetails    string = "heuristicDetails/"
-	routeAddressOutputRange  string = "addressoutputrange/"
+	routeAddressOutputRange  string = "addressOutputRange/"
 )
 
 const (
@@ -199,7 +199,7 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.
 	}
 }
 
-// API pattern: "/api/v1/addressoutputrange/<address_hash>"
+// API pattern: "/api/v1/addressOutputRange/<address_hash>"
 func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
