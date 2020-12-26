@@ -66,6 +66,12 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		c(func:uid(a), orderdesc: val(` + sortBy + `)){
 			count(uid)
         }
+		ci(func: uid(iamt)){
+			count(uid)
+		}
+		co(func: uid(oamt)){
+			count(uid)
+		}
 		input_sum(){
 			sum:sum(val(iamt))
 		}
@@ -96,10 +102,16 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	}
 
 	var r struct {
-		Outputs []FrontendOutput `json:"q"`
-		Counts  []struct {
+		Outputs       []FrontendOutput `json:"q"`
+		QueryMaxCount []struct {
 			Count int64 `json:"count"`
 		} `json:"c"`
+		InputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"ci"`
+		OutputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"co"`
 		InputSum []struct {
 			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
 			// Because of this we have to first save it as a string and after that convert it to an int64.
@@ -115,7 +127,8 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return addr, err
 	}
 
-	if len(r.Counts) != 1 || len(r.InputSum) != 1 || len(r.OutputSum) != 1 {
+	if len(r.QueryMaxCount) != 1 || len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
+		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
 		err = ErrorInvalidResult
 		return
 	}
@@ -139,11 +152,13 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	}
 
 	addr = FrontendAddress{
-		Hash:       addrHash,
-		NumOutputs: r.Counts[0].Count,
-		InputSum:   inputSum,
-		OutputSum:  r.OutputSum[0].Sum,
-		Outputs:    r.Outputs,
+		Hash:          addrHash,
+		QueryMaxCount: r.QueryMaxCount[0].Count,
+		InputCount:    r.InputCount[0].Count,
+		OutputCount:   r.OutputCount[0].Count,
+		InputSum:      inputSum,
+		OutputSum:     r.OutputSum[0].Sum,
+		Outputs:       r.Outputs,
 	}
 
 	return

@@ -70,11 +70,13 @@ func (o FrontendOutput) String() string {
 }
 
 type FrontendAddress struct {
-	Hash       string           `json:"addresshash"`
-	NumOutputs int64            `json:"num_outputs"`
-	InputSum   int64            `json:"input_sum"`
-	OutputSum  int64            `json:"output_sum"`
-	Outputs    []FrontendOutput `json:"addr_outputs"`
+	Hash          string           `json:"addresshash"`
+	QueryMaxCount int64            `json:"query_max_count"`
+	OutputCount   int64            `json:"output_count"`
+	InputCount    int64            `json:"input_count"`
+	InputSum      int64            `json:"input_sum"`
+	OutputSum     int64            `json:"output_sum"`
+	Outputs       []FrontendOutput `json:"addr_outputs"`
 }
 
 func (f FrontendAddress) String() string {
