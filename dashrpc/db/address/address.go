@@ -101,7 +101,9 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 			Count int64 `json:"count"`
 		} `json:"c"`
 		InputSum []struct {
-			Sum int64 `json:"sum"`
+			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
+			// Because of this we have to first save it as a string and after that convert it to an int64.
+			Sum json.Number `json:"sum"`
 		} `json:"input_sum"`
 		OutputSum []struct {
 			Sum int64 `json:"sum"`
@@ -123,10 +125,23 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return
 	}
 
+	// try to convert input sum to int64
+	inputSum, intErr := r.InputSum[0].Sum.Int64()
+	if intErr != nil {
+		// try to convert input sum to float64
+		floatInputSum, floatErr := r.InputSum[0].Sum.Float64()
+		if floatErr != nil || floatInputSum != 0 {
+			err = ErrorInvalidResult
+			return
+		}
+
+		inputSum = int64(floatInputSum)
+	}
+
 	addr = FrontendAddress{
 		Hash:       addrHash,
 		NumOutputs: r.Counts[0].Count,
-		InputSum:   r.InputSum[0].Sum,
+		InputSum:   inputSum,
 		OutputSum:  r.OutputSum[0].Sum,
 		Outputs:    r.Outputs,
 	}
