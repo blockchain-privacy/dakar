@@ -14,19 +14,19 @@
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
-                    {{ convertAmount(this.amounts.received - this.amounts.spent) }}
+                    {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
-                    {{ convertAmount(this.amounts.received) }}
+                    {{ convertAmount(this.data.output_sum) }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
-                    {{ convertAmount(this.amounts.spent) }}
+                    {{ convertAmount(this.data.input_sum) }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -95,20 +95,13 @@ export default {
       this.offset += 20;
 
       // do nothing if all data is already loaded
-      if (this.offset > this.data.num_outputs) return;
+      if (this.offset >= this.data.num_outputs) return;
       this.isLoadingMore = true;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
         { offset: this.offset, order: this.sortOrder })
         .then((data) => {
-          const newData = {
-            addresshash: this.data.addresshash,
-            num_outputs: this.data.num_outputs,
-          };
-
-          newData.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
-          this.data = newData;
-          // this.data.addr_outputs = [this.data.addr_outputs, ...data.payload.addr_outputs];
+          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMsg');
         })
         .catch((e) => {
@@ -155,6 +148,14 @@ export default {
           !== document.documentElement.offsetHeight) return;
       this.addNewData();
     },
+    setAddressHash() {
+      let h = ' ';
+      if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
+        this.addressHash = this.data.addresshash;
+        h = ` ${this.addressHash} `;
+      }
+      document.title = `Address${h}- ${PAGE_TITLE}`;
+    },
   },
   data() {
     return {
@@ -188,24 +189,13 @@ export default {
       },
 
     },
-    amounts() {
-      return {
-        received: this.calculateAmountReceived(this.data.addr_outputs),
-        spent: this.calculateAmountSpent(this.data.addr_outputs),
-      };
-    },
   },
   mounted() {
-    document.title = `Address - ${PAGE_TITLE}`;
+    this.setAddressHash();
     window.onscroll = this.handleScroll;
   },
   updated() {
-    let h = ' ';
-    if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
-      this.addressHash = this.data.addresshash;
-      h = ` ${this.addressHash} `;
-    }
-    document.title = `Address${h}- ${PAGE_TITLE}`;
+    this.setAddressHash();
   },
 };
 </script>
