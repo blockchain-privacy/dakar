@@ -17,21 +17,28 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	err error) {
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
-	sortBy := "ots"
+	sortBy := "val(ots)"
 
 	switch sortOrder {
 	case SortAscendingByInputTime:
-		sortBy = "its"
+		sortBy = "val(its)"
 		break
 	case SortDescendingByInputTime:
 		sortDirection = "desc"
-		sortBy = "its"
+		sortBy = "val(its)"
 		break
 	case SortAscendingByOutputTime:
 		// do nothing, values are already correctly set
 		break
 	case SortDescendingByOutputTime:
 		sortDirection = "desc"
+		break
+	case SortAscendingByAmount:
+		sortBy = "amount"
+		break
+	case SortDescendingByAmount:
+		sortDirection = "desc"
+		sortBy = "amount"
 		break
 	default:
 		err = errors.New("error unrecognized sort order")
@@ -63,7 +70,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		var(func: uid(a))@filter(has(~tx_inputs)){
     		iamt as amount
   		}
-		c(func:uid(a), orderdesc: val(` + sortBy + `)){
+		c(func:uid(a), orderdesc: ` + sortBy + `){
 			count(uid)
         }
 		ci(func: uid(iamt)){
@@ -78,7 +85,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		output_sum(){
 			sum:sum(val(oamt))
 		}
-		q(func: uid(a), order` + sortDirection + ": val(" + sortBy + "), first:" +
+		q(func: uid(a), order` + sortDirection + ":" + sortBy + ", first:" +
 		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
 			amount:amount
 			iscoinbase:iscoinbase

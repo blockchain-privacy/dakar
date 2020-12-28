@@ -9,20 +9,25 @@ import (
 const DType = "Address"
 
 const (
-	// SortAscendingByInputTime sort addresses ascending by the input transaction timestamp
-	SortAscendingByInputTime int = iota
-	// SortDescendingByInputTime sort addresses descending by the input transaction timestamp
-	SortDescendingByInputTime
 	// SortAscendingByOutputTime sort addresses ascending by the output transaction timestamp
-	SortAscendingByOutputTime
+	SortAscendingByOutputTime int = iota
 	// SortDescendingByOutputTime sort addresses descending by the output transaction timestamp
 	SortDescendingByOutputTime
+	// SortAscendingByInputTime sort addresses ascending by the input transaction timestamp
+	SortAscendingByInputTime
+	// SortDescendingByInputTime sort addresses descending by the input transaction timestamp
+	SortDescendingByInputTime
+	// SortAscendingByAmount sort addresses ascending by the output amount
+	SortAscendingByAmount
+	// SortDescendingByAmount sort addresses ascending by the output amount
+	SortDescendingByAmount
 )
 
 // IsValidSortOrder return true if sortOrder has a valid sort order value
 func IsValidSortOrder(sortOrder int) bool {
 	return sortOrder == SortAscendingByInputTime || sortOrder == SortDescendingByInputTime ||
-		sortOrder == SortAscendingByOutputTime || sortOrder == SortDescendingByOutputTime
+		sortOrder == SortAscendingByOutputTime || sortOrder == SortDescendingByOutputTime ||
+		sortOrder == SortAscendingByAmount || sortOrder == SortDescendingByAmount
 }
 
 var (

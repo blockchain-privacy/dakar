@@ -55,6 +55,7 @@
                       item-text="text"
                       label="Sort by"
                       v-on:change="handleSort"
+                      dense
                   ></v-select>
                 </v-col>
                 <v-col>
@@ -136,7 +137,7 @@ export default {
       this.offset = 0;
       this.isLoading = true;
 
-      this.isSortingByInput = this.sortOrder < 2;
+      this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
         { offset: this.offset, order: this.sortOrder })
@@ -186,13 +187,17 @@ export default {
     return {
       combobox: {
         selected: {
-          id: 2,
+          id: 0,
         },
         items: [
-          { id: 0, text: 'ascending by input date' },
-          { id: 1, text: 'descending by input date' },
-          { id: 2, text: 'ascending by output date' },
-          { id: 3, text: 'descending by output date' },
+          { id: 0, text: 'ascending by output date' },
+          { id: 1, text: 'descending by output date' },
+          { divider: true },
+          { id: 2, text: 'ascending by input date' },
+          { id: 3, text: 'descending by input date' },
+          { divider: true },
+          { id: 4, text: 'ascending by amount' },
+          { id: 5, text: 'descending by amount' },
         ],
       },
       offset: 0,
