@@ -88,9 +88,11 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		q(func: uid(a), order` + sortDirection + ":" + sortBy + ", first:" +
 		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
 			amount:amount
-			iscoinbase:iscoinbase
+			is_coinbase:iscoinbase
 			output_ts:val(ots)
 			input_ts:val(its)
+			input_index:inputindex
+			output_index:outputindex
 			~tx_outputs{
 				output_transaction: txhash
 			}

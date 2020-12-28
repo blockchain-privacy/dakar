@@ -63,9 +63,11 @@ func (a Address) isComplete() bool {
 
 type FrontendOutput struct {
 	Amount                uint64 `json:"amount"`
-	IsCoinbase            bool   `json:"iscoinbase"`
+	IsCoinbase            bool   `json:"is_coinbase"`
+	InputIndex            int    `json:"input_index"`
 	InputTransactionHash  string `json:"input_transaction"`
 	InputTimestamp        string `json:"input_ts"`
+	OutputIndex           int    `json:"output_index"`
 	OutputTransactionHash string `json:"output_transaction"`
 	OutputTimestamp       string `json:"output_ts"`
 }
