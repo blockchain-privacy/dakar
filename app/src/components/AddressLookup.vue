@@ -176,6 +176,8 @@ export default {
       if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
         this.addressHash = this.data.addresshash;
         h = ` ${this.addressHash} `;
+      } else if (this.addressHash) {
+        h = ` ${this.addressHash} `;
       }
       document.title = `Address${h}- ${PAGE_TITLE}`;
     },
