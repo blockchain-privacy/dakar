@@ -17,8 +17,6 @@
                     {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
                   </IconItem>
                 </v-col>
-              </v-row>
-              <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
                     {{ convertAmount(this.data.output_sum) }}
@@ -41,9 +39,14 @@
                     {{ this.data.output_count - this.data.input_count }}
                   </IconItem>
                 </v-col>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Coinbase outputs">
+                    {{ this.data.coinbase_count }}
+                  </IconItem>
+                </v-col>
               </v-row>
               <v-divider></v-divider>
-              <v-row v-if="this.data.addr_outputs.length > 1">
+              <v-row v-if="this.data.output_count > 1">
                 <v-col>
                   <v-select
                       :disabled="this.isLoading"
@@ -54,9 +57,28 @@
                       item-value="id"
                       item-text="text"
                       label="Sort by"
-                      v-on:change="handleSort"
-                      dense
+                      v-on:change="handleSortAndFilter"
                   ></v-select>
+                </v-col>
+                <v-col>
+                  <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
+                      style="max-width: 300px;"
+                      v-model="filter.selected"
+                      :items="filter.items"
+                      item-value="id"
+                      item-text="text"
+                      label="Filter"
+                      v-on:change="handleSortAndFilter"
+                      multiple
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip small>
+                        <span>{{ item.chip }}</span>
+                      </v-chip>
+                    </template>
+                  </v-select>
                 </v-col>
                 <v-col>
                   <v-alert
@@ -79,8 +101,9 @@
                   color="transparent">
                 <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
                   <v-row>
-                    <v-col v-for="o in this.data.addr_outputs"
-                           v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                    <v-col
+                        v-for="o in this.data.addr_outputs"
+                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
                       <OutputComponent :address="o"/>
                     </v-col>
                   </v-row>
@@ -132,15 +155,64 @@ export default {
           this.isLoadingMore = false;
         });
     },
-    handleSort() {
+    updateSortState() {
+      let isUnspentFilterSelected = false;
+
+      if (this.data && this.data.input_count === 0) {
+        isUnspentFilterSelected = true;
+      } else {
+        this.filter.selected.some((d) => {
+          if (d === 1) {
+            isUnspentFilterSelected = true;
+            // break
+            return true;
+          }
+          return false;
+        });
+      }
+      this.combobox.items.forEach((d) => {
+        if (d.id === 2 || d.id === 3) {
+          d.disabled = isUnspentFilterSelected;
+        }
+      });
+    },
+    updateFilterState() {
+      let disableUnspentFilter = false;
+      if (this.data && this.data.output_count - this.data.input_count === 0) {
+        disableUnspentFilter = true;
+      } else {
+        const selection = this.combobox.selected.id;
+        if (selection === 2 || selection === 3) {
+          disableUnspentFilter = true;
+        }
+      }
+
+      let disableCoinbaseFilter = false;
+      if (this.data && (this.data.coinbase_count === 0
+          || this.data.coinbase_count === this.data.output_count)) {
+        disableCoinbaseFilter = true;
+      }
+
+      this.filter.items.forEach((d) => {
+        if (d.id === 0) {
+          d.disabled = disableCoinbaseFilter;
+        } else if (d.id === 1) {
+          d.disabled = disableUnspentFilter;
+        }
+      });
+    },
+    handleSortAndFilter() {
+      this.updateSortState();
+      this.updateFilterState();
       this.sortOrder = this.combobox.selected.id;
       this.offset = 0;
+      const filter = this.filter.selected;
       this.isLoading = true;
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder })
+        { offset: this.offset, order: this.sortOrder, filter })
         .then((data) => {
           this.data = data.payload;
           this.$store.dispatch('resetMsg');
@@ -190,14 +262,25 @@ export default {
           id: 0,
         },
         items: [
-          { id: 0, text: 'ascending by output date' },
-          { id: 1, text: 'descending by output date' },
+          { id: 0, text: 'ascending by output date', disabled: false },
+          { id: 1, text: 'descending by output date', disabled: false },
           { divider: true },
-          { id: 2, text: 'ascending by input date' },
-          { id: 3, text: 'descending by input date' },
+          { id: 2, text: 'ascending by input date', disabled: false },
+          { id: 3, text: 'descending by input date', disabled: false },
           { divider: true },
-          { id: 4, text: 'ascending by amount' },
-          { id: 5, text: 'descending by amount' },
+          { id: 4, text: 'ascending by amount', disabled: false },
+          { id: 5, text: 'descending by amount', disabled: false },
+        ],
+      },
+      filter: {
+        selected: [],
+        items: [
+          {
+            id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+          },
+          {
+            id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+          },
         ],
       },
       offset: 0,
@@ -219,6 +302,9 @@ export default {
         this.$store.dispatch('setAddressData', value);
       },
     },
+    isFilterEmpty() {
+      return this.filter.selected.length === 0;
+    },
   },
   mounted() {
     this.setAddressHash();
@@ -226,6 +312,8 @@ export default {
   },
   updated() {
     this.setAddressHash();
+    this.updateSortState();
+    this.updateFilterState();
   },
 };
 </script>
