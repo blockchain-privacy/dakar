@@ -56,14 +56,14 @@ func GetTransaction(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
 func GetAddress(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
-	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0)
+	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, []int{})
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
 // A maximum of 20 elements is returned.
-func GetAddressWithOptions(dgraph *dgo.Dgraph, query string, sortOrder int, offset int) (SearchResult, bool, error) {
-	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset)
+func GetAddressWithOptions(dgraph *dgo.Dgraph, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
+	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 
 		// only print error if it is not expected

@@ -13,7 +13,7 @@ import (
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
-func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int) (addr FrontendAddress,
+func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
 	err error) {
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
@@ -44,6 +44,28 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		err = errors.New("error unrecognized sort order")
 		return
 	}
+	var filter string
+	for i, f := range filters {
+		switch f {
+		case FilterByCoinbase:
+			filter += "eq(iscoinbase, true)"
+			break
+		case FilterByUnspent:
+			filter += " NOT has(~tx_inputs)"
+			break
+		default:
+			err = errors.New("error unrecognized filter")
+			return
+		}
+
+		if i+1 < len(filters) {
+			filter += " AND "
+		}
+	}
+
+	if len(filters) > 0 {
+		filter = fmt.Sprintf("@filter(%s)", filter)
+	}
 
 	// fill variables
 	query := `query Q($hash: string){
@@ -70,6 +92,9 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		var(func: uid(a))@filter(has(~tx_inputs)){
     		iamt as amount
   		}
+		coinbase(func: uid(a))@filter(eq(iscoinbase, true)){
+			count(uid)
+		}
 		c(func:uid(a), orderdesc: ` + sortBy + `){
 			count(uid)
         }
@@ -86,7 +111,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 			sum:sum(val(oamt))
 		}
 		q(func: uid(a), order` + sortDirection + ":" + sortBy + ", first:" +
-		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + `)@normalize{
+		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + ")" + filter + `@normalize{
 			amount:amount
 			is_coinbase:iscoinbase
 			output_ts:val(ots)
@@ -115,6 +140,9 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		QueryMaxCount []struct {
 			Count int64 `json:"count"`
 		} `json:"c"`
+		CoinbaseCount []struct {
+			Count int64 `json:"count"`
+		} `json:"coinbase"`
 		InputCount []struct {
 			Count int64 `json:"count"`
 		} `json:"ci"`
@@ -136,7 +164,8 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return addr, err
 	}
 
-	if len(r.QueryMaxCount) != 1 || len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
+	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
+		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
 		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
 		err = ErrorInvalidResult
 		return
@@ -168,6 +197,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		InputSum:      inputSum,
 		OutputSum:     r.OutputSum[0].Sum,
 		Outputs:       r.Outputs,
+		CoinbaseCount: r.CoinbaseCount[0].Count,
 	}
 
 	return

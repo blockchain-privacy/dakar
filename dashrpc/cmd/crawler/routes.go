@@ -48,6 +48,7 @@ var (
 	errorHeuristicExecution = "error executing heuristics"
 	errorHeuristicDetails   = "error getting heuristic details"
 	errorInvalidSortOrder   = "error invalid sort order"
+	errorInvalidFilter      = "error invalid filter"
 	errorInvalidOffset      = "error invalid offset"
 )
 
@@ -212,10 +213,10 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *ht
 		}
 
 		if isValid(query) {
-
 			type request struct {
-				Offset int `json:"offset"`
-				Order  int `json:"order"`
+				Offset int   `json:"offset"`
+				Order  int   `json:"order"`
+				Filter []int `json:"filter"`
 			}
 
 			var addressRequest request
@@ -225,7 +226,7 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *ht
 			decoder := json.NewDecoder(r.Body)
 			err := decoder.Decode(&addressRequest)
 			if err != nil {
-				http.Error(w, errorHeuristicExecution, http.StatusNotFound)
+				http.Error(w, "invalid request", http.StatusNotFound)
 				serverInfo(cliutil.ShowCallInfo(), err)
 				return
 			}
@@ -236,13 +237,20 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *ht
 				return
 			}
 
+			if !dbaddr.IsValidFilter(addressRequest.Filter) {
+				http.Error(w, errorInvalidFilter, http.StatusNotFound)
+				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidFilter))
+				return
+			}
+
 			if addressRequest.Offset < 0 {
 				http.Error(w, errorInvalidOffset, http.StatusNotFound)
 				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidOffset))
 				return
 			}
 
-			data, ok, addrErr := GetAddressWithOptions(dgraph, query, addressRequest.Order, addressRequest.Offset)
+			data, ok, addrErr := GetAddressWithOptions(dgraph, query,
+				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 			if addrErr != nil {
 				http.Error(w, "query: "+query, http.StatusNotFound)
 				serverInfo(cliutil.ShowCallInfo(), addrErr)
