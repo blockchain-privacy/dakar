@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	heuristic "dashrpc/analytics/heuristics/transaction"
-	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dban "dashrpc/db/analytics"
@@ -15,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"net/http"

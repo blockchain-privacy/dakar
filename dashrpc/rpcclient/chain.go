@@ -10,7 +10,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"dashrpc/btcjson"
+	//"dashrpc/btcjson"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 )
@@ -32,29 +33,6 @@ func (r FutureEstimateSmartFeeResult) Receive() (*btcjson.EstimateSmartFeeResult
 		return nil, err
 	}
 	return &estimateSmartFee, nil
-}
-
-// EstimateSmartFeeAsync returns an instance of a type that can be used to get
-// the result of the RPC at some future time by invoking the Receive function on
-// the returned instance.
-//
-// See EstimateSmartFee and EstimateSmartFeeWithMode for the blocking versions
-// and more details.
-func (c *Client) EstimateSmartFeeAsync(confTarget uint32, estimateMode btcjson.EstimateMode) FutureEstimateSmartFeeResult {
-	cmd := btcjson.NewEstimateSmartFeeCmd(confTarget, estimateMode)
-	return c.sendCmd(cmd)
-}
-
-// EstimateSmartFee estimates the approximate fee per kilobyte needed for a
-// transaction using the UNSET mode
-func (c *Client) EstimateSmartFee(confTarget uint32) (*btcjson.EstimateSmartFeeResult, error) {
-	return c.EstimateSmartFeeWithMode(confTarget, btcjson.UnsetEstimateMode)
-}
-
-// EstimateSmartFeeWithMode estimates the approximate fee per kilobyte needed
-// for a transaction
-func (c *Client) EstimateSmartFeeWithMode(confTarget uint32, estimateMode btcjson.EstimateMode) (*btcjson.EstimateSmartFeeResult, error) {
-	return c.EstimateSmartFeeAsync(confTarget, estimateMode).Receive()
 }
 
 // FutureGetBestBlockHashResult is a future promise to deliver the result of a
@@ -139,7 +117,7 @@ func (c *Client) GetBlockAsync(blockHash *chainhash.Hash) FutureGetBlockResult {
 		hash = blockHash.String()
 	}
 
-	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Bool(false), nil)
+	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Int(0))
 	return c.sendCmd(cmd)
 }
 
@@ -183,7 +161,7 @@ func (c *Client) GetBlockVerboseAsync(blockHash *chainhash.Hash) FutureGetBlockV
 		hash = blockHash.String()
 	}
 
-	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Bool(true), nil)
+	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Int(1))
 	return c.sendCmd(cmd)
 }
 
@@ -207,7 +185,7 @@ func (c *Client) GetBlockVerboseTxAsync(blockHash *chainhash.Hash) FutureGetBloc
 		hash = blockHash.String()
 	}
 
-	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Bool(true), btcjson.Bool(true))
+	cmd := btcjson.NewGetBlockCmd(hash, btcjson.Int(2))
 	return c.sendCmd(cmd)
 }
 

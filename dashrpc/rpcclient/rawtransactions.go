@@ -9,51 +9,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/btcsuite/btcd/wire"
-
-	"dashrpc/btcjson"
-
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 )
 
 // SigHashType enumerates the available signature hashing types that the
 // SignRawTransaction function accepts.
 type SigHashType string
-
-// Constants used to indicate the signature hash type for SignRawTransaction.
-const (
-	// SigHashAll indicates ALL of the outputs should be signed.
-	SigHashAll SigHashType = "ALL"
-
-	// SigHashNone indicates NONE of the outputs should be signed.  This
-	// can be thought of as specifying the signer does not care where the
-	// bitcoins go.
-	SigHashNone SigHashType = "NONE"
-
-	// SigHashSingle indicates that a SINGLE output should be signed.  This
-	// can be thought of specifying the signer only cares about where ONE of
-	// the outputs goes, but not any of the others.
-	SigHashSingle SigHashType = "SINGLE"
-
-	// SigHashAllAnyoneCanPay indicates that signer does not care where the
-	// other inputs to the transaction come from, so it allows other people
-	// to add inputs.  In addition, it uses the SigHashAll signing method
-	// for outputs.
-	SigHashAllAnyoneCanPay SigHashType = "ALL|ANYONECANPAY"
-
-	// SigHashNoneAnyoneCanPay indicates that signer does not care where the
-	// other inputs to the transaction come from, so it allows other people
-	// to add inputs.  In addition, it uses the SigHashNone signing method
-	// for outputs.
-	SigHashNoneAnyoneCanPay SigHashType = "NONE|ANYONECANPAY"
-
-	// SigHashSingleAnyoneCanPay indicates that signer does not care where
-	// the other inputs to the transaction come from, so it allows other
-	// people to add inputs.  In addition, it uses the SigHashSingle signing
-	// method for outputs.
-	SigHashSingleAnyoneCanPay SigHashType = "SINGLE|ANYONECANPAY"
-)
 
 // String returns the SighHashType in human-readable form.
 func (s SigHashType) String() string {

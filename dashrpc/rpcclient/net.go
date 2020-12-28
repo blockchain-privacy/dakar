@@ -7,26 +7,12 @@ package rpcclient
 import (
 	"encoding/json"
 
-	"dashrpc/btcjson"
+	"github.com/btcsuite/btcd/btcjson"
 )
 
 // AddNodeCommand enumerates the available commands that the AddNode function
 // accepts.
 type AddNodeCommand string
-
-// Constants used to indicate the command for the AddNode function.
-const (
-	// ANAdd indicates the specified host should be added as a persistent
-	// peer.
-	ANAdd AddNodeCommand = "add"
-
-	// ANRemove indicates the specified peer should be removed.
-	ANRemove AddNodeCommand = "remove"
-
-	// ANOneTry indicates the specified host should try to connect once,
-	// but it should not be made persistent.
-	ANOneTry AddNodeCommand = "onetry"
-)
 
 // String returns the AddNodeCommand in human-readable form.
 func (cmd AddNodeCommand) String() string {

@@ -2,7 +2,6 @@ package processor
 
 import (
 	"context"
-	"dashrpc/btcjson"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
@@ -10,12 +9,16 @@ import (
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 	"dashrpc/rpcclient"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcutil"
 	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -232,8 +235,26 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			OutputIndex: &index,
 		})
 
-		for _, e := range d.ScriptPubKey.Addresses {
-			outputMappings = addOutputToMapping(outputMappings, e, index)
+		if d.ScriptPubKey.Type == "pubkey" {
+			asms := strings.Split(d.ScriptPubKey.Asm, " ")
+
+			decodeString, decodeErr := hex.DecodeString(asms[0])
+			if decodeErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+				return
+			}
+			address, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &chaincfg.MainNetParams)
+			if addressConversionErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addressConversionErr)
+				return
+			}
+
+			outputMappings = addOutputToMapping(outputMappings, address.EncodeAddress(), index)
+
+		} else {
+			for _, e := range d.ScriptPubKey.Addresses {
+				outputMappings = addOutputToMapping(outputMappings, e, index)
+			}
 		}
 	}
 

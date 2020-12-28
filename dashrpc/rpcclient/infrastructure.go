@@ -8,10 +8,10 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
-	"dashrpc/btcjson"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/btcsuite/btcd/btcjson"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -20,24 +20,6 @@ import (
 )
 
 var (
-	// ErrInvalidAuth is an error to describe the condition where the client
-	// is either unable to authenticate or the specified endpoint is
-	// incorrect.
-	ErrInvalidAuth = errors.New("authentication failure")
-
-	// ErrClientNotConnected is an error to describe the condition where a
-	// websocket client has been created, but the connection was never
-	// established.  This condition differs from ErrClientDisconnect, which
-	// represents an established connection that was lost.
-	ErrClientNotConnected = errors.New("the client was never connected")
-
-	// ErrClientDisconnect is an error to describe the condition where the
-	// client has been disconnected from the RPC server.  When the
-	// DisableAutoReconnect option is not set, any outstanding futures
-	// when a client disconnect occurs will return this error as will
-	// any new requests.
-	ErrClientDisconnect = errors.New("the client has been disconnected")
-
 	// ErrClientShutdown is an error to describe the condition where the
 	// client is either already shutdown, or in the process of shutting
 	// down.  Any outstanding futures when a client shutdown occurs will
@@ -257,9 +239,9 @@ func (c *Client) sendPost(jReq *jsonRequest) {
 	if !c.config.DisableTLS {
 		protocol = "https"
 	}
-	url := protocol + "://" + c.config.Host
+	requestUrl := protocol + "://" + c.config.Host
 	bodyReader := bytes.NewReader(jReq.marshalledJSON)
-	httpReq, err := http.NewRequest("POST", url, bodyReader)
+	httpReq, err := http.NewRequest("POST", requestUrl, bodyReader)
 	if err != nil {
 		jReq.responseChan <- &Response{Result: nil, Err: err}
 		return
