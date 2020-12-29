@@ -1,10 +1,16 @@
 <template>
-
   <v-card outlined max-width="470px">
     <v-row align="center" justify="center">
       <v-col class="text--accent-1" style="text-align: center">
         {{ convertAmount(address.amount) }}
         DASH
+
+        <v-tooltip bottom v-if="address.is_coinbase">
+          <template v-slot:activator="{ on }">
+            <v-icon v-on="on">mdi-pickaxe</v-icon>
+          </template>
+          <span>Coinbase</span>
+        </v-tooltip>
       </v-col>
       <v-col>
         <v-card
@@ -57,7 +63,6 @@
       </v-col>
     </v-row>
   </v-card>
-
 </template>
 
 <script>
