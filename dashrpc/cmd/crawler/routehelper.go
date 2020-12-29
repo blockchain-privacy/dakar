@@ -13,9 +13,9 @@ func isLikelyBlock(query string) bool {
 	return query[0:1] == "0"
 }
 
-// isLikelyAddress returns true if the given query string is likely a address hash
+// isLikelyAddress returns true if the given query string is likely an address hash
 func isLikelyAddress(query string) bool {
-	return query[0:1] == "X"
+	return query[0:1] == "X" || query[0:1] == "7"
 }
 
 type SearchResult struct {
