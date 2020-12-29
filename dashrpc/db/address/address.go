@@ -95,7 +95,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		coinbase(func: uid(a))@filter(eq(iscoinbase, true)){
 			count(uid)
 		}
-		c(func:uid(a), orderdesc: ` + sortBy + `){
+		c(func:uid(a), orderdesc: ` + sortBy + ")" + filter + `{
 			count(uid)
         }
 		ci(func: uid(iamt)){
