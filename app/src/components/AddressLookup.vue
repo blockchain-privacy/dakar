@@ -203,9 +203,9 @@ export default {
     handleSortAndFilter() {
       this.updateSortState();
       this.updateFilterState();
+      this.isLoading = true;
       this.sortOrder = this.combobox.selected.id;
       this.offset = 0;
-      this.isLoading = true;
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
@@ -225,7 +225,9 @@ export default {
     convertAmount,
     handleScroll() {
       // return if not bottom of page
-      if (this.isLoadingMore || document.documentElement.scrollTop + window.innerHeight
+      if (this.isLoadingMore
+          || this.loading
+          || document.documentElement.scrollTop + window.innerHeight
           !== document.documentElement.offsetHeight) return;
       this.addNewData();
     },
