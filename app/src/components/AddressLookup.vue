@@ -51,7 +51,7 @@
                   <v-select
                       :disabled="this.isLoading"
                       :loading="this.isLoading?'primary':false"
-                      style="max-width: 300px;"
+                      style="max-width: 300px; min-width: 200px;"
                       v-model="combobox.selected.id"
                       :items="combobox.items"
                       item-value="id"
@@ -64,7 +64,7 @@
                   <v-select
                       :disabled="this.isLoading"
                       :loading="this.isLoading?'primary':false"
-                      style="max-width: 300px;"
+                      style="max-width: 300px; min-width: 200px;"
                       v-model="filter.selected"
                       :items="filter.items"
                       item-value="id"
@@ -80,9 +80,8 @@
                     </template>
                   </v-select>
                 </v-col>
-                <v-col>
+                <v-col v-if="this.isSortingByInput">
                   <v-alert
-                      v-if="this.isSortingByInput"
                       type="info"
                       text
                   >Only spent outputs are shown.
@@ -90,7 +89,7 @@
                 </v-col>
               </v-row>
               <v-row v-if="this.isLoading">
-                <v-col v-for="i in [1,2,3]" :key="i">
+                <v-col v-for="i in new Array(3)" :key="i">
                   <v-skeleton-loader type="image"></v-skeleton-loader>
                 </v-col>
               </v-row>
@@ -143,7 +142,7 @@ export default {
       this.isLoadingMore = true;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder })
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
         .then((data) => {
           this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMsg');
@@ -206,13 +205,12 @@ export default {
       this.updateFilterState();
       this.sortOrder = this.combobox.selected.id;
       this.offset = 0;
-      const filter = this.filter.selected;
       this.isLoading = true;
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder, filter })
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
         .then((data) => {
           this.data = data.payload;
           this.$store.dispatch('resetMsg');
@@ -225,19 +223,6 @@ export default {
         });
     },
     convertAmount,
-    calculateAmountReceived(outputs) {
-      if (outputs === undefined) return 0;
-      return outputs
-        .map((e) => parseInt(e.amount, 10))
-        .reduce((sum, e) => sum + e, 0);
-    },
-    calculateAmountSpent(outputs) {
-      if (outputs === undefined) return 0;
-      return outputs
-        .filter((e) => e.input_transaction !== '')
-        .map((e) => parseInt(e.amount, 10))
-        .reduce((sum, e) => sum + e, 0);
-    },
     handleScroll() {
       // return if not bottom of page
       if (this.isLoadingMore || document.documentElement.scrollTop + window.innerHeight
@@ -262,14 +247,14 @@ export default {
           id: 0,
         },
         items: [
-          { id: 0, text: 'ascending by output date', disabled: false },
-          { id: 1, text: 'descending by output date', disabled: false },
+          { id: 0, text: 'Ascending by output date', disabled: false },
+          { id: 1, text: 'Descending by output date', disabled: false },
           { divider: true },
-          { id: 2, text: 'ascending by input date', disabled: false },
-          { id: 3, text: 'descending by input date', disabled: false },
+          { id: 2, text: 'Ascending by input date', disabled: false },
+          { id: 3, text: 'Descending by input date', disabled: false },
           { divider: true },
-          { id: 4, text: 'ascending by amount', disabled: false },
-          { id: 5, text: 'descending by amount', disabled: false },
+          { id: 4, text: 'Ascending by amount', disabled: false },
+          { id: 5, text: 'Descending by amount', disabled: false },
         ],
       },
       filter: {
@@ -285,7 +270,7 @@ export default {
       },
       offset: 0,
       // default sort order: ascending by output timestamp
-      sortOrder: 2,
+      sortOrder: 0,
       addressHash: '',
       isLoading: false,
       isLoadingMore: false,
