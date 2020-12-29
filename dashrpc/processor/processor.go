@@ -249,8 +249,19 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 				return
 			}
 
-			outputMappings = addOutputToMapping(outputMappings, address.EncodeAddress(), index)
-
+			if d.ScriptPubKey.Addresses == nil {
+				outputMappings = addOutputToMapping(outputMappings, address.EncodeAddress(), index)
+			} else {
+				for _, e := range d.ScriptPubKey.Addresses {
+					outputMappings = addOutputToMapping(outputMappings, e, index)
+					pubkeyAddress := address.EncodeAddress()
+					if e != pubkeyAddress {
+						info("pubkey address mismatch in tx", txDetails.Hash,
+							"pubkey decoded address:", pubkeyAddress,
+							"rpc address:", e)
+					}
+				}
+			}
 		} else {
 			for _, e := range d.ScriptPubKey.Addresses {
 				outputMappings = addOutputToMapping(outputMappings, e, index)
