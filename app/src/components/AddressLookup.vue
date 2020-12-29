@@ -1,12 +1,12 @@
 <template>
-  <v-container class="fill-height" fluid v-if="data">
+  <v-container class="fill-height" fluid v-if="this.data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>
+            <v-toolbar-title v-if="this.data">
               <v-icon>mdi-card-bulleted-outline</v-icon>
-              Address {{ data.addresshash }}
+              Address {{ this.data.addresshash }}
             </v-toolbar-title>
           </v-toolbar>
           <v-card-text>
@@ -14,49 +14,106 @@
               <v-row>
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
-                    {{ getAmount(this.amounts.received - this.amounts.spent) }}
+                    {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
                   </IconItem>
                 </v-col>
-              </v-row>
-              <v-row>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
-                    {{ getAmount(this.amounts.received) }}
+                    {{ convertAmount(this.data.output_sum) }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
-                    {{ getAmount(this.amounts.spent) }}
+                    {{ convertAmount(this.data.input_sum) }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Outputs">
+                    {{ this.data.output_count }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Unspent outputs">
+                    {{ this.data.output_count - this.data.input_count }}
+                  </IconItem>
+                </v-col>
+                <v-col>
+                  <IconItem icon="mdi-pound" title="Coinbase outputs">
+                    {{ this.data.coinbase_count }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-divider></v-divider>
-              <v-row>
-                <v-col v-for="o in data.addr_outputs"
-                       v-bind:key="o.input_transaction + o.output_transaction">
-                  <v-sheet min-height="50" class="fill-height" color="transparent">
-                    <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
-                        Amount: {{ getAmount(o.amount) }}
-                        <br v-if="o.iscoinbase"/>
-                        {{ o.iscoinbase ? 'Coinbase: ' + o.iscoinbase : '' }}
-                        <br/>
-                        Output Transaction:
-                        <router-link :to="{ name: transactionRoute,
-                        params: { id: o.output_transaction }}">
-                          {{ shortenHash(o.output_transaction) }}
-                        </router-link>
-                        <br v-if="o.input_transaction"/>
-                        {{ o.input_transaction ? 'Input transaction:' : '' }}
-                        <router-link :to="{ name: transactionRoute,
-                        params: { id: o.input_transaction }}" v-if="o.input_transaction">
-                          {{ shortenHash(o.input_transaction) }}
-                        </router-link>
-                      </IconItem>
-                    </v-lazy>
-                  </v-sheet>
+              <v-row v-if="this.data.output_count > 1">
+                <v-col>
+                  <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
+                      style="max-width: 300px; min-width: 200px;"
+                      v-model="combobox.selected.id"
+                      :items="combobox.items"
+                      item-value="id"
+                      item-text="text"
+                      label="Sort by"
+                      v-on:change="handleSortAndFilter"
+                  ></v-select>
+                </v-col>
+                <v-col>
+                  <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
+                      style="max-width: 300px; min-width: 200px;"
+                      v-model="filter.selected"
+                      :items="filter.items"
+                      item-value="id"
+                      item-text="text"
+                      label="Filter"
+                      v-on:change="handleSortAndFilter"
+                      multiple
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip small>
+                        <span>{{ item.chip }}</span>
+                      </v-chip>
+                    </template>
+                  </v-select>
+                </v-col>
+                <v-col v-if="this.isSortingByInput">
+                  <v-alert
+                      type="info"
+                      text
+                  >Only spent outputs are shown.
+                  </v-alert>
                 </v-col>
               </v-row>
+              <v-row v-if="this.isLoading">
+                <v-col v-for="i in new Array(3)" :key="i">
+                  <v-skeleton-loader type="image"></v-skeleton-loader>
+                </v-col>
+              </v-row>
+              <v-sheet
+                  v-if="!this.isLoading"
+                  min-height="50"
+                  class="fill-height"
+                  color="transparent">
+                <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
+                  <v-row>
+                    <v-col
+                        v-for="o in this.data.addr_outputs"
+                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                      <OutputComponent :address="o"/>
+                    </v-col>
+                  </v-row>
+                </v-lazy>
+              </v-sheet>
+              <v-progress-linear
+                  v-if="this.isLoadingMore"
+                  indeterminate
+                  rounded
+                  height="6"
+              ></v-progress-linear>
             </v-container>
           </v-card-text>
         </v-card>
@@ -66,53 +123,184 @@
 </template>
 
 <script>
-import { shortenHash, convertAmount } from '../utilities';
-import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
+import OutputComponent from './OutputComponent.vue';
+import { convertAmount, doPost, handleError } from '../utilities';
+import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_ADDRESS_OUTPUT_RANGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { IconItem },
+  components: { IconItem, OutputComponent },
   methods: {
-    shortenHash,
-    getAmount: convertAmount,
-    calculateAmountReceived(outputs) {
-      return outputs
-        .map((e) => parseInt(e.amount, 10))
-        .reduce((sum, e) => sum + e, 0);
+    addNewData() {
+      if (!this.data) return;
+
+      this.offset += 20;
+
+      // do nothing if all data is already loaded
+      if (this.offset >= this.data.query_max_count) return;
+      this.isLoadingMore = true;
+
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+        .then((data) => {
+          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
+          this.$store.dispatch('resetMsg');
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoadingMore = false;
+        });
     },
-    calculateAmountSpent(outputs) {
-      return outputs
-        .filter((e) => e.input_transaction !== '')
-        .map((e) => parseInt(e.amount, 10))
-        .reduce((sum, e) => sum + e, 0);
+    updateSortState() {
+      let isUnspentFilterSelected = false;
+
+      if (this.data && this.data.input_count === 0) {
+        isUnspentFilterSelected = true;
+      } else {
+        this.filter.selected.some((d) => {
+          if (d === 1) {
+            isUnspentFilterSelected = true;
+            // break
+            return true;
+          }
+          return false;
+        });
+      }
+      this.combobox.items.forEach((d) => {
+        if (d.id === 2 || d.id === 3) {
+          d.disabled = isUnspentFilterSelected;
+        }
+      });
+    },
+    updateFilterState() {
+      let disableUnspentFilter = false;
+      if (this.data && this.data.output_count - this.data.input_count === 0) {
+        disableUnspentFilter = true;
+      } else {
+        const selection = this.combobox.selected.id;
+        if (selection === 2 || selection === 3) {
+          disableUnspentFilter = true;
+        }
+      }
+
+      let disableCoinbaseFilter = false;
+      if (this.data && (this.data.coinbase_count === 0
+          || this.data.coinbase_count === this.data.output_count)) {
+        disableCoinbaseFilter = true;
+      }
+
+      this.filter.items.forEach((d) => {
+        if (d.id === 0) {
+          d.disabled = disableCoinbaseFilter;
+        } else if (d.id === 1) {
+          d.disabled = disableUnspentFilter;
+        }
+      });
+    },
+    handleSortAndFilter() {
+      this.updateSortState();
+      this.updateFilterState();
+      this.isLoading = true;
+      this.sortOrder = this.combobox.selected.id;
+      this.offset = 0;
+
+      this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
+
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+        .then((data) => {
+          this.data = data.payload;
+          this.$store.dispatch('resetMsg');
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    convertAmount,
+    handleScroll() {
+      // return if not bottom of page
+      if (this.isLoadingMore
+          || this.loading
+          || document.documentElement.scrollTop + window.innerHeight
+          !== document.documentElement.offsetHeight) return;
+      this.addNewData();
+    },
+    setAddressHash() {
+      let h = ' ';
+      if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
+        this.addressHash = this.data.addresshash;
+        h = ` ${this.addressHash} `;
+      } else if (this.addressHash) {
+        h = ` ${this.addressHash} `;
+      }
+      document.title = `Address${h}- ${PAGE_TITLE}`;
     },
   },
   data() {
     return {
+      combobox: {
+        selected: {
+          id: 0,
+        },
+        items: [
+          { id: 0, text: 'Ascending by output date', disabled: false },
+          { id: 1, text: 'Descending by output date', disabled: false },
+          { divider: true },
+          { id: 2, text: 'Ascending by input date', disabled: false },
+          { id: 3, text: 'Descending by input date', disabled: false },
+          { divider: true },
+          { id: 4, text: 'Ascending by amount', disabled: false },
+          { id: 5, text: 'Descending by amount', disabled: false },
+        ],
+      },
+      filter: {
+        selected: [],
+        items: [
+          {
+            id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+          },
+          {
+            id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+          },
+        ],
+      },
+      offset: 0,
+      // default sort order: ascending by output timestamp
+      sortOrder: 0,
+      addressHash: '',
+      isLoading: false,
+      isLoadingMore: false,
+      isSortingByInput: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
   computed: {
-    data() {
-      return this.$store.getters.getAddressData;
+    data: {
+      get() {
+        return this.$store.getters.getAddressData;
+      },
+      set(value) {
+        this.$store.dispatch('setAddressData', value);
+      },
     },
-    amounts() {
-      return {
-        received: this.calculateAmountReceived(this.data.addr_outputs),
-        spent: this.calculateAmountSpent(this.data.addr_outputs),
-      };
+    isFilterEmpty() {
+      return this.filter.selected.length === 0;
     },
   },
   mounted() {
-    document.title = `Address - ${PAGE_TITLE}`;
+    this.setAddressHash();
+    window.onscroll = this.handleScroll;
   },
   updated() {
-    let h = ' ';
-    if (this.data && this.data.addresshash) {
-      h = ` ${this.data.addresshash} `;
-    }
-    document.title = `Address${h}- ${PAGE_TITLE}`;
+    this.setAddressHash();
+    this.updateSortState();
+    this.updateFilterState();
   },
 };
 </script>

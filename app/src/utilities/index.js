@@ -29,3 +29,40 @@ export function getCurrentDate() {
   const yyyy = now.getFullYear();
   return `${dd}-${mm}-${yyyy}`;
 }
+
+export function doPost(route, parameter, body) {
+  return fetch(route + parameter, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    body: JSON.stringify(body),
+  }).then((response) => {
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return response;
+  }).then((response) => response.json());
+}
+
+export function doGet(route, parameter) {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para)
+    .then((response) => {
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return response;
+    })
+    .then((response) => response.json());
+}
+
+export function handleError(context, error) {
+  let errMsg;
+  if (error.message === '500 Internal Server Error') {
+    errMsg = 'Server is not reachable';
+  } else {
+    errMsg = `Error getting data: ${error}`;
+  }
+
+  context.dispatch('setErrorMsg', errMsg);
+}

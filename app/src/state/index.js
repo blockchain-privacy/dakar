@@ -1,8 +1,29 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+import { doPost, doGet, handleError } from '../utilities';
 import * as Constants from '../constants';
 
 Vue.use(Vuex);
+
+function handleGet(context, route, mutation, parameter) {
+  return doGet(route, parameter).then((data) => {
+    context.commit(mutation, data);
+    context.dispatch('resetMsg');
+  }).catch((e) => {
+    handleError(context, e);
+  });
+}
+
+function handlePost(context, route, mutation, parameter, body) {
+  return doPost(route, parameter, body)
+    .then((data) => {
+      context.commit(mutation, data);
+      context.dispatch('resetMsg');
+    })
+    .catch((e) => {
+      handleError(context, e);
+    });
+}
 
 function getResetMsgState() {
   return {
@@ -100,57 +121,6 @@ const mutations = {
   },
 };
 
-function handleError(context, error) {
-  let errMsg;
-  if (error.message === '500 Internal Server Error') {
-    errMsg = 'Server is not reachable';
-  } else {
-    errMsg = `Error getting data: ${error}`;
-  }
-
-  context.dispatch('setErrorMsg', errMsg);
-}
-
-function doGet(context, route, mutation, parameter) {
-  let para = '';
-  if (parameter !== undefined) para = parameter;
-  return fetch(route + para)
-    .then((response) => {
-      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-      return response;
-    })
-    .then((response) => response.json())
-    .then((data) => {
-      context.commit(mutation, data);
-      context.dispatch('resetMsg');
-    })
-    .catch((e) => {
-      handleError(context, e);
-    });
-}
-
-function doPost(context, route, mutation, parameter, body) {
-  return fetch(route + parameter, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    redirect: 'error',
-    referrerPolicy: 'no-referrer',
-    body: JSON.stringify(body),
-  }).then((response) => {
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-    return response;
-  }).then((response) => response.json())
-    .then((data) => {
-      context.commit(mutation, data);
-      context.dispatch('resetMsg');
-    })
-    .catch((e) => {
-      handleError(context, e);
-    });
-}
-
 const actions = {
   resetMsg(context) {
     context.commit('SET_MSG', getResetMsgState());
@@ -209,25 +179,25 @@ const actions = {
     context.commit('SET_BLOCK_DATA', payload);
   },
   updateBlockData(context, payload) {
-    return doGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
+    return handleGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
   },
   updateTransactionData(context, payload) {
-    return doGet(context, Constants.ROUTE_TRANSACTION, 'UPDATE_TRANSACTION_DATA', payload);
+    return handleGet(context, Constants.ROUTE_TRANSACTION, 'UPDATE_TRANSACTION_DATA', payload);
   },
   updateAddressData(context, payload) {
-    return doGet(context, Constants.ROUTE_ADDRESS, 'UPDATE_ADDRESS_DATA', payload);
+    return handleGet(context, Constants.ROUTE_ADDRESS, 'UPDATE_ADDRESS_DATA', payload);
   },
   updateSearchResult(context, payload) {
-    return doGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
+    return handleGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
   },
   updateMetaData(context, payload) {
-    return doGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
+    return handleGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
   },
   updateHeuristicData(context, payload) {
-    return doGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
+    return handleGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
   },
   updateHeuristicDetails(context, payload) {
-    return doPost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
+    return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
       payload.parameter, payload.body);
   },
   resetHeuristicDetails(context) {

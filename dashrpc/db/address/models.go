@@ -8,6 +8,46 @@ import (
 
 const DType = "Address"
 
+const (
+	// SortAscendingByOutputTime sort outputs ascending by the output transaction timestamp
+	SortAscendingByOutputTime int = iota
+	// SortDescendingByOutputTime sort outputs descending by the output transaction timestamp
+	SortDescendingByOutputTime
+	// SortAscendingByInputTime sort outputs ascending by the input transaction timestamp
+	SortAscendingByInputTime
+	// SortDescendingByInputTime sort outputs descending by the input transaction timestamp
+	SortDescendingByInputTime
+	// SortAscendingByAmount sort outputs ascending by the output amount
+	SortAscendingByAmount
+	// SortDescendingByAmount sort outputs ascending by the output amount
+	SortDescendingByAmount
+)
+
+const (
+	// FilterByCoinbase filters outputs if they are a coinbase output
+	FilterByCoinbase int = iota
+	// FilterByUnspent filters outputs if they are unspent
+	FilterByUnspent
+)
+
+// IsValidSortOrder returns true if sortOrder has a valid sort order value
+func IsValidSortOrder(sortOrder int) bool {
+	return sortOrder == SortAscendingByInputTime || sortOrder == SortDescendingByInputTime ||
+		sortOrder == SortAscendingByOutputTime || sortOrder == SortDescendingByOutputTime ||
+		sortOrder == SortAscendingByAmount || sortOrder == SortDescendingByAmount
+}
+
+// IsValidFilter returns true if filters had a valid value
+func IsValidFilter(filters []int) bool {
+	for _, f := range filters {
+		if f != FilterByUnspent && f != FilterByCoinbase {
+			return false
+		}
+	}
+
+	return true
+}
+
 var (
 	ErrorAddressNotFound = errors.New("no address found")
 	ErrorInvalidResult   = errors.New("invalid result")
@@ -39,33 +79,30 @@ func (a Address) isComplete() bool {
 	return a.Uid != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
 }
 
-type addressQuery struct {
-	Q []Address `json:"q"`
+type FrontendOutput struct {
+	Amount                uint64 `json:"amount"`
+	IsCoinbase            bool   `json:"is_coinbase"`
+	InputIndex            int    `json:"input_index"`
+	InputTransactionHash  string `json:"input_transaction"`
+	InputTimestamp        string `json:"input_ts"`
+	OutputIndex           int    `json:"output_index"`
+	OutputTransactionHash string `json:"output_transaction"`
+	OutputTimestamp       string `json:"output_ts"`
 }
 
-func (aq addressQuery) payload() (a Address, err error) {
-	lenQ := len(aq.Q)
-
-	if lenQ == 0 {
-		err = errors.New("no addresses found")
-		return a, err
-	} else if lenQ > 1 {
-		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one address")
-		return a, err
-	}
-	a = aq.Q[0]
-	return a, err
+func (o FrontendOutput) String() string {
+	return fmt.Sprintf("Amount: %d", o.Amount)
 }
 
 type FrontendAddress struct {
-	Hash    string `json:"addresshash"`
-	Outputs []struct {
-		Amount                uint64 `json:"amount"`
-		IsCoinbase            bool   `json:"iscoinbase"`
-		InputTransactionHash  string `json:"input_transaction"`
-		OutputTransactionHash string `json:"output_transaction"`
-	} `json:"addr_outputs"`
+	Hash          string           `json:"addresshash"`
+	QueryMaxCount int64            `json:"query_max_count"`
+	CoinbaseCount int64            `json:"coinbase_count"`
+	OutputCount   int64            `json:"output_count"`
+	InputCount    int64            `json:"input_count"`
+	InputSum      int64            `json:"input_sum"`
+	OutputSum     int64            `json:"output_sum"`
+	Outputs       []FrontendOutput `json:"addr_outputs"`
 }
 
 func (f FrontendAddress) String() string {

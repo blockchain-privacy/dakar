@@ -11,59 +11,121 @@ import (
 	"strconv"
 )
 
-// gets address information from the database
-func GetAddress(c *dgo.Dgraph, addrHash string) (addr Address, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(addresshash, $hash)){
-					uid
-					addresshash
-					addr_outputs{
-						uid
-						amount
-						index
-						iscoinbase
-						txtype
-					}
-				}
-			  }
-				`
+// GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
+// Use one of the constants like SortAscendingByInputTime to set the sortOrder
+func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
+	err error) {
+	const maxOutputsPerQuery = 20
+	sortDirection := "asc"
+	sortBy := "val(ots)"
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$hash": addrHash})
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	switch sortOrder {
+	case SortAscendingByInputTime:
+		sortBy = "val(its)"
+		break
+	case SortDescendingByInputTime:
+		sortDirection = "desc"
+		sortBy = "val(its)"
+		break
+	case SortAscendingByOutputTime:
+		// do nothing, values are already correctly set
+		break
+	case SortDescendingByOutputTime:
+		sortDirection = "desc"
+		break
+	case SortAscendingByAmount:
+		sortBy = "amount"
+		break
+	case SortDescendingByAmount:
+		sortDirection = "desc"
+		sortBy = "amount"
+		break
+	default:
+		err = errors.New("error unrecognized sort order")
 		return
 	}
-	var r addressQuery
+	var filter string
+	for i, f := range filters {
+		switch f {
+		case FilterByCoinbase:
+			filter += "eq(iscoinbase, true)"
+			break
+		case FilterByUnspent:
+			filter += " NOT has(~tx_inputs)"
+			break
+		default:
+			err = errors.New("error unrecognized filter")
+			return
+		}
 
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+		if i+1 < len(filters) {
+			filter += " AND "
+		}
 	}
 
-	return r.payload()
-}
+	if len(filters) > 0 {
+		filter = fmt.Sprintf("@filter(%s)", filter)
+	}
 
-// gets address information for the frontend
-func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, err error) {
-	// todo remove first: 200 limit
-	query := `query Q($hash: string) {
-				q(func: eq(addresshash, $hash)){
-					addresshash
-					addr_outputs(first: 200)@normalize{
-						amount:amount
-						index:index
-						iscoinbase:iscoinbase
-						~tx_outputs{
-							output_transaction: txhash
-						}
-						~tx_inputs{
-							input_transaction: txhash
-						}
+	// fill variables
+	query := `query Q($hash: string){
+		var(func: eq(addresshash, $hash)){
+			addr_outputs{
+				a as uid
+				oamt as amount
+				~tx_outputs{
+					~transactions{
+						obts as ts
 					}
+					otts as min(val(obts))
 				}
-			  }`
+				ots as min(val(otts))
+				~tx_inputs{
+					~transactions{
+						ibts as ts
+					}
+					itts as min(val(ibts))
+				}
+				its as min(val(itts))
+			}
+		}
+		var(func: uid(a))@filter(has(~tx_inputs)){
+    		iamt as amount
+  		}
+		coinbase(func: uid(a))@filter(eq(iscoinbase, true)){
+			count(uid)
+		}
+		c(func:uid(a), orderdesc: ` + sortBy + ")" + filter + `{
+			count(uid)
+        }
+		ci(func: uid(iamt)){
+			count(uid)
+		}
+		co(func: uid(oamt)){
+			count(uid)
+		}
+		input_sum(){
+			sum:sum(val(iamt))
+		}
+		output_sum(){
+			sum:sum(val(oamt))
+		}
+		q(func: uid(a), order` + sortDirection + ":" + sortBy + ", first:" +
+		strconv.Itoa(maxOutputsPerQuery) + ",offset:" + strconv.Itoa(offset) + ")" + filter + `@normalize{
+			amount:amount
+			is_coinbase:iscoinbase
+			output_ts:val(ots)
+			input_ts:val(its)
+			input_index:inputindex
+			output_index:outputindex
+			~tx_outputs{
+				output_transaction: txhash
+			}
+			~tx_inputs{
+				input_transaction: txhash
+			}
+		}
+	}`
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
@@ -74,7 +136,27 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 	}
 
 	var r struct {
-		Address []FrontendAddress `json:"q"`
+		Outputs       []FrontendOutput `json:"q"`
+		QueryMaxCount []struct {
+			Count int64 `json:"count"`
+		} `json:"c"`
+		CoinbaseCount []struct {
+			Count int64 `json:"count"`
+		} `json:"coinbase"`
+		InputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"ci"`
+		OutputCount []struct {
+			Count int64 `json:"count"`
+		} `json:"co"`
+		InputSum []struct {
+			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
+			// Because of this we have to first save it as a string and after that convert it to an int64.
+			Sum json.Number `json:"sum"`
+		} `json:"input_sum"`
+		OutputSum []struct {
+			Sum int64 `json:"sum"`
+		} `json:"output_sum"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -82,20 +164,46 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string) (addr FrontendAddress, e
 		return addr, err
 	}
 
-	if len(r.Address) == 0 || len(r.Address[0].Outputs) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
-		return
-	} else if len(r.Address) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
+		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
+		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
+		err = ErrorInvalidResult
 		return
 	}
 
-	addr = r.Address[0]
+	if len(r.Outputs) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+		return
+	}
+
+	// try to convert input sum to int64
+	inputSum, intErr := r.InputSum[0].Sum.Int64()
+	if intErr != nil {
+		// try to convert input sum to float64
+		floatInputSum, floatErr := r.InputSum[0].Sum.Float64()
+		if floatErr != nil || floatInputSum != 0 {
+			err = ErrorInvalidResult
+			return
+		}
+
+		inputSum = int64(floatInputSum)
+	}
+
+	addr = FrontendAddress{
+		Hash:          addrHash,
+		QueryMaxCount: r.QueryMaxCount[0].Count,
+		InputCount:    r.InputCount[0].Count,
+		OutputCount:   r.OutputCount[0].Count,
+		InputSum:      inputSum,
+		OutputSum:     r.OutputSum[0].Sum,
+		Outputs:       r.Outputs,
+		CoinbaseCount: r.CoinbaseCount[0].Count,
+	}
 
 	return
 }
 
-// gets all input addresses of the transaction specified by uid
+// GetInputAddressesOfTransaction gets all input addresses of the transaction specified by uid
 func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Address, err error) {
 	query := `query Q($uid: string){
 				q(func: uid($uid)){
@@ -141,22 +249,6 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 
 	for _, e := range r.Transaction[0].Inputs {
 		addresses = append(addresses, Address{Hash: e.AddressHash})
-	}
-
-	return
-}
-
-// gets address information from the database and checks if it is complete
-func GetCompleteAddress(c *dgo.Dgraph, addressHash string) (addr Address, err error) {
-	addr, err = GetAddress(c, addressHash)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if !addr.isComplete() {
-		err = errors.New("address is not complete")
-		return
 	}
 
 	return
