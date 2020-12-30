@@ -284,7 +284,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 					}
 				}
 			}
-		} else if d.ScriptPubKey.Addresses == nil {
+		} else if d.ScriptPubKey.Addresses == nil &&
+			d.ScriptPubKey.Type != "nulldata" && d.ScriptPubKey.Type != "nonstandard" {
 			err = errNoAddresses
 			return
 		} else {
