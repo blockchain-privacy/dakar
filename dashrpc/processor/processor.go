@@ -8,6 +8,7 @@ import (
 	dbop "dashrpc/db/output"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
+
 	"dashrpc/rpcclient"
 	"encoding/hex"
 	"errors"
@@ -297,6 +298,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
+			Script:      d.ScriptPubKey.Asm,
 			OutputIndex: &index,
 		})
 	}

@@ -33,6 +33,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			inputindex: int .
 			txtype: string .
 			amount: int .
+			script: string @index(term, fulltext) .
 			fee: int .
 			iscoinbase: bool .
 			privacytype: string @index(hash) .
@@ -72,6 +73,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 				txtype
 				amount
 				iscoinbase
+				script
 				<~tx_inputs>
 				<~tx_outputs>
 				<~addr_outputs>
