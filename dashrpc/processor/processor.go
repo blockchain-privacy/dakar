@@ -261,18 +261,10 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), valErr)
 			return
 		}
-
 		index := d.N
 
-		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			Uid:         createOutputUid(rawTransaction.Txid, index),
-			IsCoinbase:  &isCoinbaseTransaction,
-			Amount:      &intAmount,
-			TxType:      d.ScriptPubKey.Type,
-			OutputIndex: &index,
-		})
-
 		if d.ScriptPubKey.Type == "pubkey" {
+			// decoding address from script and checking if it matches the supplied addresses
 			pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, isDash)
 			if decodeErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
@@ -286,8 +278,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 					outputMappings = addOutputToMapping(outputMappings, e, index)
 					if e != pubkeyAddress {
 						info("pubkey address mismatch in tx", txDetails.Hash,
-							"pubkey decoded address:", pubkeyAddress,
-							"rpc address:", e)
+							"pubkey decoded address:", pubkeyAddress, "rpc address:", e)
 					}
 				}
 			}
@@ -299,6 +290,15 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 				outputMappings = addOutputToMapping(outputMappings, e, index)
 			}
 		}
+
+		// create new output
+		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
+			Uid:         createOutputUid(rawTransaction.Txid, index),
+			IsCoinbase:  &isCoinbaseTransaction,
+			Amount:      &intAmount,
+			TxType:      d.ScriptPubKey.Type,
+			OutputIndex: &index,
+		})
 	}
 
 	// if all inputs are available the transaction fee gets calculated
