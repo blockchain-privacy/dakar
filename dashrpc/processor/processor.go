@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"context"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
 	dbblk "dashrpc/db/block"
@@ -9,20 +8,22 @@ import (
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
 
-	"dashrpc/rpcclient"
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcutil"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 func info(v ...interface{}) {

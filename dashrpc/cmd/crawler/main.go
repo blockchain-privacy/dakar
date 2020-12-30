@@ -1,23 +1,26 @@
 package main
 
 import (
-	"context"
 	"dashrpc/analytics"
 	cli "dashrpc/cmd/cliutil"
 	"dashrpc/db"
 	"dashrpc/db/status"
 	"dashrpc/processor"
-	"dashrpc/rpcclient"
+
+	"context"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
 	"sync"
 	"syscall"
+
+	"github.com/btcsuite/btcd/rpcclient"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 // VersionString displays the version of the Crawler
@@ -184,11 +187,12 @@ func main() {
 	var client *rpcclient.Client
 	if !cliArgs.DisableHttpServer || !cliArgs.DisableCrawler {
 		client, err = rpcclient.New(&rpcclient.ConnConfig{
-			Host:       cliArgs.RpcEndpoint,
-			User:       cliArgs.RpcUser,
-			Pass:       cliArgs.RpcPassword,
-			DisableTLS: true,
-		})
+			Host:         cliArgs.RpcEndpoint,
+			User:         cliArgs.RpcUser,
+			Pass:         cliArgs.RpcPassword,
+			DisableTLS:   true,
+			HTTPPostMode: true,
+		}, nil)
 		if err != nil {
 			info(err)
 			return

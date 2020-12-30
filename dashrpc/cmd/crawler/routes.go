@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	heuristic "dashrpc/analytics/heuristics/transaction"
 	"dashrpc/cmd/cliutil"
 	dbaddr "dashrpc/db/address"
@@ -9,18 +8,22 @@ import (
 	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	dbstat "dashrpc/db/status"
 	dbtx "dashrpc/db/transaction"
-	"dashrpc/rpcclient"
+
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/btcsuite/btcd/btcjson"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"net/http"
 	"regexp"
 	"strconv"
 	"sync"
+
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/rpcclient"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 const (
