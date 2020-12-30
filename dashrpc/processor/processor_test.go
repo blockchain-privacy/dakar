@@ -114,22 +114,25 @@ func TestBuildAddressMapping(t *testing.T) {
 	oMap := make(map[string]outputMapping)
 	oMap[fistAddress] = outputMapping{
 		hash:    fistAddress,
-		indexes: []uint64{0},
+		indexes: []uint32{0},
 	}
 	oMap[secondAddress] = outputMapping{
 		hash:    secondAddress,
-		indexes: []uint64{1},
+		indexes: []uint32{1},
 	}
 
-	zero := uint64(0)
-	one := uint64(1)
+	zero := uint32(0)
+	one := uint32(1)
+	one64 := int64(1)
+	zero64 := int64(0)
+	fourNines := int64(9999)
 	wrong := false
 	output1 := dbop.Output{
 		Uid:         "0x59b84",
 		OutputIndex: &zero,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
-		Amount:      "1.00000000",
+		Amount:      &one64,
 		IsCoinbase:  &wrong,
 		DType:       nil,
 	}
@@ -139,7 +142,7 @@ func TestBuildAddressMapping(t *testing.T) {
 		OutputIndex: &one,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
-		Amount:      "9999.00000000",
+		Amount:      &fourNines,
 		IsCoinbase:  &wrong,
 		DType:       nil,
 	}
@@ -156,7 +159,7 @@ func TestBuildAddressMapping(t *testing.T) {
 			OutputIndex: nil,
 			InputIndex:  nil,
 			TxType:      "",
-			Amount:      "",
+			Amount:      &zero64,
 			IsCoinbase:  nil,
 			DType:       nil,
 		}},
