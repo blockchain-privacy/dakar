@@ -15,8 +15,6 @@ require (
 
 replace github.com/btcsuite/btcd => ./btcsuite/btcd
 
-replace github.com/btcsuite/btcd/chaincfg => ./btcsuite/btcd/chaincfg
-
 replace github.com/btcsuite/btcutil => ./btcsuite/btcutil
 
 replace github.com/btcsuite/btclog => ./btcsuite/btclog
