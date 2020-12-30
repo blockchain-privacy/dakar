@@ -33,3 +33,9 @@ export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
+
+// blockchain
+export const COIN_UNIT_DASH = 'Dash';
+export const COIN_UNIT_BTC = 'BTC';
+export const IS_BLOCKCHAIN_DASH = false;
+export const COIN_UNIT = IS_BLOCKCHAIN_DASH ? COIN_UNIT_DASH : COIN_UNIT_BTC;

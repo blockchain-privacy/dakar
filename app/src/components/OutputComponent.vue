@@ -3,8 +3,7 @@
     <v-row align="center" justify="center">
       <v-col class="text--accent-1" style="text-align: center">
         {{ convertAmount(address.amount) }}
-        DASH
-
+        {{ this.coinUnit }}
         <v-tooltip bottom v-if="address.is_coinbase">
           <template v-slot:activator="{ on }">
             <v-icon v-on="on">mdi-pickaxe</v-icon>
@@ -68,7 +67,7 @@
 <script>
 
 import { shortenHash, convertAmount } from '../utilities';
-import { ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
+import { ROUTE_NAME_TRANSACTION_PAGE, COIN_UNIT } from '../constants';
 
 export default {
   name: 'OutputComponent',
@@ -78,6 +77,7 @@ export default {
   data() {
     return {
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+      coinUnit: COIN_UNIT,
     };
   },
   methods: {

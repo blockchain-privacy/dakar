@@ -15,16 +15,19 @@
                 <v-col>
                   <IconItem icon="mdi-scale-balance" title="Balance">
                     {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
+                    {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
                     {{ convertAmount(this.data.output_sum) }}
+                    {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
                     {{ convertAmount(this.data.input_sum) }}
+                    {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -125,7 +128,10 @@
 <script>
 import OutputComponent from './OutputComponent.vue';
 import { convertAmount, doPost, handleError } from '../utilities';
-import { PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_ADDRESS_OUTPUT_RANGE } from '../constants';
+import {
+  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
+  ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT,
+} from '../constants';
 import IconItem from './common/IconItem.vue';
 
 export default {
@@ -244,6 +250,7 @@ export default {
   },
   data() {
     return {
+      coinUnit: COIN_UNIT,
       combobox: {
         selected: {
           id: 0,
