@@ -1,15 +1,17 @@
 package analytics
 
 import (
-	"dashrpc/cmd/cliutil"
-	"dashrpc/db"
-	dbtx "dashrpc/db/transaction"
+	"backend/cmd/cliutil"
+	"backend/db"
+	dbtx "backend/db/transaction"
+
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
-	"log"
 )
 
 // Searches for all potential origins. The returned string slice contains the uids of the found transactions

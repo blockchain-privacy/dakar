@@ -1,4 +1,4 @@
-module dashrpc
+module backend
 
 go 1.14
 

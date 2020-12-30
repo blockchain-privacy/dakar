@@ -1,13 +1,13 @@
 package analytics
 
 import (
+	"backend/cmd/cliutil"
+	dbaddr "backend/db/address"
+	dban "backend/db/analytics"
+	dbblk "backend/db/block"
+	dbstat "backend/db/status"
+	dbtx "backend/db/transaction"
 	"context"
-	"dashrpc/cmd/cliutil"
-	dbaddr "dashrpc/db/address"
-	dban "dashrpc/db/analytics"
-	dbblk "dashrpc/db/block"
-	dbstat "dashrpc/db/status"
-	dbtx "dashrpc/db/transaction"
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"

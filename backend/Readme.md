@@ -1,4 +1,4 @@
-# DashRPC
+# Backend
 
 ## Info
 
@@ -43,7 +43,7 @@ git submodule update --init --recursive
 ```
 * Change to the `docker` directory and create a new external docker network
 ```shell script
-cd <project_dir>/dashrpc/docker
+cd <project_dir>/backend/docker
 docker network create dgraph_default
 ```
 * Change the whitelisted ip range in `docker-compose.yml` to your private ip (line 29)
@@ -53,7 +53,7 @@ docker network create dgraph_default
 ### Setup Crawler
 * Build the `crawler`
 ```shell script
-cd <project_dir>/dashrpc
+cd <project_dir>/backend
 go build ./cmd/crawler
 ```
 
@@ -67,7 +67,7 @@ Check the [crawler description](cmd/crawler/Readme.md) for more details.
 Example output:
 
 ```text
-Go DashRPC client  v0.0.1
+Dakar  v0.0.1
 Block crawler
 
 crawler 2020/08/11 13:15:13 dropped all data

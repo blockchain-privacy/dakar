@@ -1,13 +1,15 @@
 package block
 
 import (
-	"dashrpc/cmd/cliutil"
-	"dashrpc/db"
+	"backend/cmd/cliutil"
+	"backend/db"
+
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
-	"strconv"
 )
 
 // gets block information from the database

@@ -34,7 +34,7 @@ stages:
   - build
 
 before_script:
-  - cd dashrpc/cmd/crawler
+  - cd backend/cmd/crawler
 
 unit_tests:
   stage: test
@@ -82,4 +82,4 @@ build:
     policy: pull
 #  artifacts:
 #    paths:
-#    - dashrpc/cmd/crawler/crawler
+#    - backend/cmd/crawler/crawler

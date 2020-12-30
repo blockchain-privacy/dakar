@@ -1,12 +1,14 @@
 package transaction
 
 import (
-	"dashrpc/cmd/cliutil"
-	dbtxh "dashrpc/db/analytics/heuristics/transaction"
+	"backend/cmd/cliutil"
+	dbtxh "backend/db/analytics/heuristics/transaction"
+
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"strings"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 // validHeuristicTypes includes all heuristics which are possible to receive from the frontend.

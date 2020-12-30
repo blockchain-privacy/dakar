@@ -1,11 +1,11 @@
 package main
 
 import (
-	"dashrpc/analytics"
-	cli "dashrpc/cmd/cliutil"
-	"dashrpc/db"
-	"dashrpc/db/status"
-	"dashrpc/processor"
+	"backend/analytics"
+	cli "backend/cmd/cliutil"
+	"backend/db"
+	"backend/db/status"
+	"backend/processor"
 
 	"context"
 	"errors"
@@ -95,7 +95,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Printf("Go DashRPC client  %s\nBlock crawler\n\n", VersionString)
+	fmt.Printf("Dakar %s\nBlock crawler\n\n", VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)

@@ -1,14 +1,16 @@
 package status
 
 import (
-	"dashrpc/cmd/cliutil"
-	"dashrpc/db"
-	dbaddr "dashrpc/db/address"
-	dbblk "dashrpc/db/block"
-	dbop "dashrpc/db/output"
-	dbtx "dashrpc/db/transaction"
+	"backend/cmd/cliutil"
+	"backend/db"
+	dbaddr "backend/db/address"
+	dbblk "backend/db/block"
+	dbop "backend/db/output"
+	dbtx "backend/db/transaction"
+
 	"encoding/json"
 	"fmt"
+
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )

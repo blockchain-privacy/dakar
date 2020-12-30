@@ -11,7 +11,7 @@ In the Go code import the module and specify via the constants provided by the m
 package main
 
 import (
-	cli "dashrpc/cmd/cliutil"
+	cli "backend/cmd/cliutil"
 )
 
 cliArgs, err := cli.BuildArgs(cli.RpcUser, cli.RpcPassword)

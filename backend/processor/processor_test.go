@@ -1,8 +1,9 @@
 package processor
 
 import (
-	dbaddr "dashrpc/db/address"
-	dbop "dashrpc/db/output"
+	dbaddr "backend/db/address"
+	dbop "backend/db/output"
+
 	"testing"
 )
 
@@ -183,11 +184,11 @@ func TestBuildAddressMapping(t *testing.T) {
 //const block50000 = "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
 //
 //func TestProcessBlock50000(t *testing.T) {
-//	db := dashrpc.setupDB(t)
-//	defer dashrpc.tearDownDB(t, db)
-//	client := dashrpc.setupRpcClient(t)
+//	db := backend.setupDB(t)
+//	defer backend.tearDownDB(t, db)
+//	client := backend.setupRpcClient(t)
 //
-//	block := dashrpc.Block{}
+//	block := backend.Block{}
 //
 //	startHash, err := chainhash.NewHashFromStr(block50000)
 //	if err != nil {
@@ -204,8 +205,8 @@ func TestBuildAddressMapping(t *testing.T) {
 //		t.Error(err)
 //	}
 //
-//	block2 := dashrpc.Block{}
-//	err = dashrpc.DbGetBlock(db, block50000, &block2)
+//	block2 := backend.Block{}
+//	err = backend.DbGetBlock(db, block50000, &block2)
 //	if err != nil {
 //		t.Error(err)
 //	}
@@ -232,12 +233,12 @@ func TestBuildAddressMapping(t *testing.T) {
 //}
 //
 //func TestProcessBlock49999(t *testing.T) {
-//	db := dashrpc.setupDB(t)
-//	defer dashrpc.tearDownDB(t, db)
+//	db := backend.setupDB(t)
+//	defer backend.tearDownDB(t, db)
 //
-//	client := dashrpc.setupRpcClient(t)
+//	client := backend.setupRpcClient(t)
 //
-//	block := dashrpc.Block{}
+//	block := backend.Block{}
 //
 //	startHash, err := chainhash.NewHashFromStr(block49999)
 //	if err != nil {
@@ -259,8 +260,8 @@ func TestBuildAddressMapping(t *testing.T) {
 //		t.Error(err)
 //	}
 //
-//	block2 := dashrpc.Block{}
-//	err = dashrpc.DbGetBlock(db, block49999, &block2)
+//	block2 := backend.Block{}
+//	err = backend.DbGetBlock(db, block49999, &block2)
 //	if err != nil {
 //		t.Error(err)
 //	}
@@ -289,12 +290,12 @@ func TestBuildAddressMapping(t *testing.T) {
 //}
 //
 //func TestProcessTxFromBlock50000(t *testing.T) {
-//	db := dashrpc.setupDB(t)
-//	defer dashrpc.tearDownDB(t, db)
+//	db := backend.setupDB(t)
+//	defer backend.tearDownDB(t, db)
 //
-//	client := dashrpc.setupRpcClient(t)
+//	client := backend.setupRpcClient(t)
 //
-//	block := dashrpc.Block{}
+//	block := backend.Block{}
 //	txHash := "c13fc482603f574b7322da10398c20d64a431e14f8e886b054128591abaa66a4"
 //
 //	startHash, err := chainhash.NewHashFromStr(block50000)
@@ -318,8 +319,8 @@ func TestBuildAddressMapping(t *testing.T) {
 //		t.Fatal(err)
 //	}
 //
-//	txDetails := dashrpc.TxDetails{}
-//	err = dashrpc.DbGetTxDetails(db, block.TxHashes[0], &txDetails)
+//	txDetails := backend.TxDetails{}
+//	err = backend.DbGetTxDetails(db, block.TxHashes[0], &txDetails)
 //	if err != nil {
 //		t.Error(err)
 //	}
@@ -339,10 +340,10 @@ func TestBuildAddressMapping(t *testing.T) {
 //}
 //
 //func TestProcessTxFromBlock49999WithoutAddresses(t *testing.T) {
-//	db := dashrpc.setupDB(t)
-//	defer dashrpc.tearDownDB(t, db)
+//	db := backend.setupDB(t)
+//	defer backend.tearDownDB(t, db)
 //
-//	client := dashrpc.setupRpcClient(t)
+//	client := backend.setupRpcClient(t)
 //
 //	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 //
@@ -353,8 +354,8 @@ func TestBuildAddressMapping(t *testing.T) {
 //		return
 //	}
 //
-//	txDetails := dashrpc.TxDetails{}
-//	err = dashrpc.DbGetTxDetails(db, txHash, &txDetails)
+//	txDetails := backend.TxDetails{}
+//	err = backend.DbGetTxDetails(db, txHash, &txDetails)
 //	if err != nil {
 //		t.Error(err)
 //	}
@@ -390,16 +391,16 @@ func TestBuildAddressMapping(t *testing.T) {
 //	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
 //	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
 //
-//	addressData1 := dashrpc.AddressData{}
-//	addressData2 := dashrpc.AddressData{}
+//	addressData1 := backend.AddressData{}
+//	addressData2 := backend.AddressData{}
 //
-//	err = dashrpc.DbGetDataForAddress(db, addressHash1, &addressData1)
+//	err = backend.DbGetDataForAddress(db, addressHash1, &addressData1)
 //	if err == nil {
 //		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData1)
 //		t.Error(msg)
 //	}
 //
-//	err = dashrpc.DbGetDataForAddress(db, addressHash2, &addressData2)
+//	err = backend.DbGetDataForAddress(db, addressHash2, &addressData2)
 //	if err == nil {
 //		msg := fmt.Sprintf("Error: address data should not be available, but is included in the database\nData:\n%v\n", addressData2)
 //		t.Error(msg)
@@ -407,10 +408,10 @@ func TestBuildAddressMapping(t *testing.T) {
 //}
 //
 //func TestProcessTxFromBlock49999WithAddresses(t *testing.T) {
-//	db := dashrpc.setupDB(t)
-//	defer dashrpc.tearDownDB(t, db)
+//	db := backend.setupDB(t)
+//	defer backend.tearDownDB(t, db)
 //
-//	client := dashrpc.setupRpcClient(t)
+//	client := backend.setupRpcClient(t)
 //
 //	txHash := "af530c23992d7439107b31d8840facb60d0606d370c9cdd35195eea87113ff1e"
 //
@@ -422,8 +423,8 @@ func TestBuildAddressMapping(t *testing.T) {
 //	}
 //
 //	// check if TX details are okay
-//	txDetails := dashrpc.TxDetails{}
-//	err = dashrpc.DbGetTxDetails(db, txHash, &txDetails)
+//	txDetails := backend.TxDetails{}
+//	err = backend.DbGetTxDetails(db, txHash, &txDetails)
 //	if err != nil {
 //		t.Error(err)
 //	}
@@ -459,15 +460,15 @@ func TestBuildAddressMapping(t *testing.T) {
 //	addressHash1 := "XooKzX2FFWZekaVg7X8T67oLWE2v1tpX5z"
 //	addressHash2 := "XnLNnQVYQ9P2zc6uQrY5vypLmXoTiqxrw7"
 //
-//	addressData1 := dashrpc.AddressData{}
-//	addressData2 := dashrpc.AddressData{}
+//	addressData1 := backend.AddressData{}
+//	addressData2 := backend.AddressData{}
 //
-//	err = dashrpc.DbGetDataForAddress(db, addressHash1, &addressData1)
+//	err = backend.DbGetDataForAddress(db, addressHash1, &addressData1)
 //	if err != nil {
 //		t.Error(err)
 //	}
 //
-//	err = dashrpc.DbGetDataForAddress(db, addressHash2, &addressData2)
+//	err = backend.DbGetDataForAddress(db, addressHash2, &addressData2)
 //	if err != nil {
 //		t.Error(err)
 //	}

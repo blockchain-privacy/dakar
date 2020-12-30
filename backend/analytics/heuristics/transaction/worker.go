@@ -1,14 +1,16 @@
 package transaction
 
 import (
+	"backend/cmd/cliutil"
+	dbtxh "backend/db/analytics/heuristics/transaction"
+
 	"context"
-	"dashrpc/cmd/cliutil"
-	dbtxh "dashrpc/db/analytics/heuristics/transaction"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 // copyOnModify is true when existing heuristic trees should be copied before modification

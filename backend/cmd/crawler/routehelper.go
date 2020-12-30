@@ -1,10 +1,12 @@
 package main
 
 import (
-	dbaddr "dashrpc/db/address"
-	dbblk "dashrpc/db/block"
-	dbtx "dashrpc/db/transaction"
+	dbaddr "backend/db/address"
+	dbblk "backend/db/block"
+	dbtx "backend/db/transaction"
+
 	"errors"
+
 	"github.com/dgraph-io/dgo/v2"
 )
 

@@ -1,13 +1,13 @@
 package main
 
 import (
-	heuristic "dashrpc/analytics/heuristics/transaction"
-	"dashrpc/cmd/cliutil"
-	dbaddr "dashrpc/db/address"
-	dban "dashrpc/db/analytics"
-	dbtxh "dashrpc/db/analytics/heuristics/transaction"
-	dbstat "dashrpc/db/status"
-	dbtx "dashrpc/db/transaction"
+	heuristic "backend/analytics/heuristics/transaction"
+	"backend/cmd/cliutil"
+	dbaddr "backend/db/address"
+	dban "backend/db/analytics"
+	dbtxh "backend/db/analytics/heuristics/transaction"
+	dbstat "backend/db/status"
+	dbtx "backend/db/transaction"
 
 	"context"
 	"encoding/csv"

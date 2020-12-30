@@ -1,12 +1,12 @@
 package processor
 
 import (
-	"dashrpc/cmd/cliutil"
-	dbaddr "dashrpc/db/address"
-	dbblk "dashrpc/db/block"
-	dbop "dashrpc/db/output"
-	dbstat "dashrpc/db/status"
-	dbtx "dashrpc/db/transaction"
+	"backend/cmd/cliutil"
+	dbaddr "backend/db/address"
+	dbblk "backend/db/block"
+	dbop "backend/db/output"
+	dbstat "backend/db/status"
+	dbtx "backend/db/transaction"
 
 	"context"
 	"encoding/hex"

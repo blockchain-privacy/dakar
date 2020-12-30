@@ -1,7 +1,8 @@
 package output
 
 import (
-	"dashrpc/cmd/cliutil"
+	"backend/cmd/cliutil"
+
 	"errors"
 	"fmt"
 )

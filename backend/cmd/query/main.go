@@ -1,9 +1,10 @@
 package main
 
 import (
-	heuristic "dashrpc/analytics/heuristics/transaction"
-	cli "dashrpc/cmd/cliutil"
-	"dashrpc/db"
+	heuristic "backend/analytics/heuristics/transaction"
+	cli "backend/cmd/cliutil"
+	"backend/db"
+
 	"errors"
 	"flag"
 	"fmt"

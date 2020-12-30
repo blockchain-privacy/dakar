@@ -1,15 +1,17 @@
 package transaction
 
 import (
-	"dashrpc/cmd/cliutil"
-	dbtxh "dashrpc/db/analytics/heuristics/transaction"
-	dbop "dashrpc/db/output"
+	"backend/cmd/cliutil"
+	dbtxh "backend/db/analytics/heuristics/transaction"
+	dbop "backend/db/output"
+
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
 	"sync"
 	"time"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 var (
