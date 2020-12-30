@@ -30,6 +30,8 @@ func info(v ...interface{}) {
 	log.SetPrefix("")
 }
 
+const isDash = true
+
 const (
 	// blockTime is the average Dash block time
 	blockTime = 2*time.Minute + 30*time.Second
@@ -243,18 +245,25 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 				return
 			}
-			address, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &chaincfg.MainNetParams)
+			cfg := chaincfg.MainNetParams
+
+			// for DASH address creation
+			if isDash {
+				cfg.PubKeyHashAddrID = 0x4c
+			}
+
+			address, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &cfg)
 			if addressConversionErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addressConversionErr)
 				return
 			}
 
+			pubkeyAddress := address.EncodeAddress()
 			if d.ScriptPubKey.Addresses == nil {
-				outputMappings = addOutputToMapping(outputMappings, address.EncodeAddress(), index)
+				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
 			} else {
 				for _, e := range d.ScriptPubKey.Addresses {
 					outputMappings = addOutputToMapping(outputMappings, e, index)
-					pubkeyAddress := address.EncodeAddress()
 					if e != pubkeyAddress {
 						info("pubkey address mismatch in tx", txDetails.Hash,
 							"pubkey decoded address:", pubkeyAddress,
