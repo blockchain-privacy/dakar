@@ -37,6 +37,7 @@ const (
 	TxSearch
 	TxInfo
 	ClusterAddr
+	BTC
 )
 
 type Arguments struct {
@@ -58,6 +59,7 @@ type Arguments struct {
 	DisableHttpServer bool
 	DisableCrawler    bool
 	DisableAnalyzer   bool
+	BTC               bool
 }
 
 func ShowCallInfo() string {
@@ -187,6 +189,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case ClusterAddr:
 			addClusterAddr(&args.ClusterAddr)
 			break
+		case BTC:
+			addBTC(&args.BTC)
+			break
 		default:
 			err = errors.New("flag not recognized")
 			return args, err
@@ -287,4 +292,8 @@ func addDisableCrawler(v *bool) {
 
 func addDisableAnalyzer(v *bool) {
 	flag.BoolVar(v, "disableanalyzer", false, "Disable the analyzer (default: false)")
+}
+
+func addBTC(v *bool) {
+	flag.BoolVar(v, "btc", false, "Switch to Bitcoin mode (default: false)")
 }

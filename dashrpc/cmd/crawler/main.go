@@ -32,7 +32,8 @@ func info(v ...interface{}) {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort, cli.DBHost)
+		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort,
+		cli.DBHost, cli.BTC)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -105,6 +106,10 @@ func main() {
 				fmt.Println(err)
 			}
 		}()
+	}
+
+	if cliArgs.BTC {
+		info("Bitcoin mode active")
 	}
 
 	// create dgraph client
@@ -219,9 +224,10 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client)
+				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client, !cliArgs.BTC)
 			} else {
-				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID, cliArgs.StopBlockID)
+				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID,
+					cliArgs.StopBlockID, !cliArgs.BTC)
 			}
 
 			if err != nil {
