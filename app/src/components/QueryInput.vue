@@ -152,7 +152,15 @@ export default {
       return true;
     },
     isValidData(str) {
-      return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/);
+      const inputLen = str.length;
+
+      if (inputLen === 0 || inputLen > 65) return false;
+
+      if (inputLen < 35) {
+        return Number.isInteger(Number(str));
+      }
+
+      return str.match(/^[0-9a-zA-Z]+$/);
     },
   },
   created() {

@@ -608,6 +608,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			return
 		}
 
+		// todo remove
 		log.Println("Received", len(heuristicRequest.Changed), "changed heuristics")
 		log.Println("Received", len(heuristicRequest.Deleted), "deleted heuristics")
 
@@ -619,6 +620,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			return
 		}
 
+		// todo remove
 		log.Println("Added work:", worker.AddWork(txHashString, work))
 
 		msg := reply{Message: fmt.Sprintf("Received %d changed and %d deleted heuristics",
@@ -635,9 +637,19 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 
+//
 func isValid(input string) bool {
-	if len(input) == 0 {
+	inputLen := len(input)
+	// 65 -> length of transaction hash and block hash
+	if inputLen == 0 || inputLen > 65 {
 		return false
+	}
+
+	// 35 -> address length; if smaller than it must be a block id
+	if inputLen < 35 {
+		// attempt to convert input to an integer; if it succeeds the input is valid.
+		_, err := strconv.Atoi(input)
+		return err == nil
 	}
 
 	return isValidInput(input)
