@@ -1,0 +1,970 @@
+package transaction
+
+import (
+	"backend/cmd/cliutil"
+	"backend/db"
+
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+)
+
+// CopyHeuristicTree copies the complete heuristic tree starting at rootHeuristicUid.
+// The heuristic results stay the same.
+func CopyHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (err error) {
+	hTree, treeErr := GetHeuristicTree(c, rootHeuristicUid)
+	if treeErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), treeErr)
+		return
+	}
+
+	// create map to slice
+	heuristicMap := make(map[string]Heuristic)
+	for i, h := range hTree {
+		uid := h.Uid
+
+		// save changes
+		h.Uid = "_:" + strconv.Itoa(i)
+		hTree[i] = h
+		heuristicMap[uid] = h
+	}
+
+	for i, h := range hTree {
+		if len(h.ParentHeuristic) > 0 {
+			parent, ok := heuristicMap[h.ParentHeuristic[0].Uid]
+			if !ok {
+				return errors.New("error heuristic uid not found")
+			}
+			h.ParentHeuristic[0].Uid = parent.Uid
+			// save change
+			hTree[i] = h
+		}
+	}
+
+	if insertionError := insertHeuristics(c, hTree); insertionError != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), insertionError)
+		return
+	}
+
+	return
+}
+
+// GetRootUids returns the root heuristic uids of the provided heuristics
+func GetRootUids(c *dgo.Dgraph, uids []string) (roots []string, err error) {
+	// This query gets built for multiple uids
+	// {var(func: uid(0x42ae75,0x42ae76,0x42ae77))@recurse{
+	//		v as uid
+	//			parent_heuristic
+	//		}
+	//
+	//		q(func: uid(v))@filter(not has(parent_heuristic)){
+	//			uid
+	//		}
+	// }
+
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
+		}
+	}
+
+	query := "{var(func: uid(" + queryPart + `))@recurse{
+					v as uid
+				parent_heuristic
+				}
+				
+				q(func: uid(v))@filter(not has(parent_heuristic)){
+					uid
+				}
+			}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Roots []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Roots) == 0 {
+		err = errors.New("error no heuristic tree root found")
+		return
+	}
+
+	for _, u := range r.Roots {
+		roots = append(roots, u.Uid)
+	}
+
+	return
+}
+
+// insertHeuristics inserts all given heuristics into the database
+func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
+	for i, h := range heuristics {
+		h.SetDType()
+		heuristics[i] = h
+	}
+
+	pb, err := json.Marshal(heuristics)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	_, err = db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
+
+// InsertHeuristic inserts the given heuristic
+func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
+	h.SetDType()
+	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
+
+	var query string
+
+	// if TxHash is not empty we have to search for the transaction uid
+	if h.TxHash != "" {
+		h.Transaction.Uid = "uid(tx)"
+		query = `query Q($txhash: string) {
+					tx as var(func: eq(txhash, $txhash))
+				  }`
+	}
+
+	pb, err := json.Marshal(h)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$txhash": h.TxHash},
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	resp, err := db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	uids := resp.GetUids()
+	if len(uids) != 1 {
+		err = errors.New(fmt.Sprintln("invalid number of heuristics inserted. Heuristic count:",
+			len(resp.GetUids())))
+		return
+	}
+
+	// uids has only one element, so insertUid is only set once
+	for _, u := range uids {
+		insertUid = u
+	}
+
+	return
+}
+
+// DeleteHeuristics deletes all given uids
+func DeleteHeuristics(c *dgo.Dgraph, uids []string) (err error) {
+	// This query gets built for multiple uids
+	//`query Q($uid: string) {
+	//		 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DType + `"))
+	//}`
+
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
+		}
+	}
+
+	query := "{h as var(func: uid(" +
+		queryPart + "))@filter(eq(dgraph.type," + DType + "))}"
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) * * ."),
+		}},
+		CommitNow: true,
+	}
+
+	if txErr := db.TxWithRetry(c, db.GetBackendContext(), req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+	return
+}
+
+// GetHeuristic gets heuristic information from the database
+func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
+	query := `query Q($uid: string) {
+				q(func: uid($uid)){
+					uid
+					type
+					parameter
+					results{
+						uid
+					}
+					ts
+					h_transaction{
+						uid
+					}
+					parent_heuristic{
+						uid
+					}
+					~parent_heuristic{
+						uid
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": heuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Heuristics []Heuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+	h = r.Heuristics[0]
+	return
+}
+
+// GetHeuristicTree gets a complete heuristic tree descending from rootHeuristicUid
+func GetHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (h []Heuristic, err error) {
+	query := `query Q($uid: string){
+					var(func: uid($uid))@recurse{
+						h_uid as uid
+						~parent_heuristic
+					}
+					
+					q(func: uid(h_uid)){
+						uid
+						type
+						parameter
+						h_transaction{
+							uid
+						}
+						results{
+							uid
+						}
+						ts
+						parent_heuristic{
+							uid
+						}
+					}
+				  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": rootHeuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Heuristics []Heuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+	h = r.Heuristics
+	return
+}
+
+func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []HeuristicTransaction, err error) {
+	query := `query Q($uid: string) {
+				var (func: uid($uid)){
+					x as results
+				}
+				
+				q(func: uid(x)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			  }
+				`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
+		query, map[string]string{"$uid": heuristicUid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, t := range r.Transaction {
+		if len(t.Inputs) != 1 {
+			var addresses []string
+			for _, a := range t.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		results = append(results, HeuristicTransaction{
+			Uid:     t.Uid,
+			Address: t.Inputs[0].AddressHash,
+			Outputs: t.Outputs,
+		})
+	}
+
+	return
+}
+
+// Returns all origins which are created after the specified date
+func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($uid: string,$ts: string){
+				var (func: uid($uid))@cascade{
+					v as origins{
+						~transactions@filter(gt(ts,$ts))
+					}
+				}
+				
+				q(func: uid(v)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid, "$ts": timestamp})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		origins = append(origins, HeuristicTransaction{
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
+		})
+	}
+
+	return
+}
+
+// GetOriginsByUid searches for the transaction by uid and returns all found origins.
+func GetOriginsByUid(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($uid: string){
+				var (func: uid($uid)){
+					v as origins
+				}
+				
+				q(func: uid(v)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		origins = append(origins, HeuristicTransaction{
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
+		})
+	}
+
+	return
+}
+
+// GetOrigins searches for the transaction by transaction hash and returns all found origins.
+func GetOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($txhash: string){
+				var (func: eq(txhash,$txhash)){
+					v as origins
+				}
+				
+				q(func: uid(v)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": txhash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		origins = append(origins, HeuristicTransaction{
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
+		})
+	}
+
+	return
+}
+
+// return true if all addresses are equal
+func areALLAddressesEqual(addresses []string) bool {
+	if len(addresses) < 2 {
+		return true
+	}
+
+	hashes := make(map[string]bool)
+
+	for _, a := range addresses {
+		hashes[a] = true
+		if len(hashes) > 1 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Returns the input transactions of the given transaction
+func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []HeuristicTransaction, err error) {
+	query := `query Q($txhash: string){
+				var (func: eq(txhash,$txhash)){
+					tx_inputs{
+						v as ~tx_outputs
+					}
+				}
+				
+				q(func: uid(v)){
+					uid
+					tx_outputs@normalize{
+						amount:amount
+						~tx_inputs{
+							input_tx:txhash
+						}
+					}
+					~transactions{
+						ts
+					}
+				}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		return
+	}
+
+	for _, t := range r.Transaction {
+		if len(t.Block) != 1 || len(t.Outputs) == 0 {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+			return
+		}
+		inputTransactions = append(inputTransactions, HeuristicTransaction{
+			Uid:       t.Uid,
+			Timestamp: t.Block[0].Timestamp,
+			Outputs:   t.Outputs,
+		})
+	}
+
+	return
+}
+
+// get the amounts of the inputs
+func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction, err error) {
+	query := `query Q($txhash: string){
+				q(func: eq(txhash,$txhash)){
+					uid
+					tx_inputs{
+						amount
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Uid     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		return
+	}
+
+	t := r.Transaction[0]
+	transaction = HeuristicTransaction{
+		Uid:     t.Uid,
+		Outputs: t.Outputs,
+	}
+
+	return
+}
+
+// DoesHeuristicUidExist checks if the given uids exist
+func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
+	// This query gets built for multiple uids
+	//{
+	//	x as var(func: uid(0x43239f,0x4323b4))@filter(eq(dgraph.type, "TransactionHeuristic"))@cascade{
+	//		h_transaction@filter(eq(txhash, "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"))
+	//	}
+	//
+	//	q(func: uid(x)){
+	//		uid
+	//	}
+	//}
+
+	var queryPart string
+
+	for i, uid := range uids {
+		queryPart += uid
+		if i+1 < len(uids) {
+			queryPart += ","
+		}
+	}
+
+	query := "{x as var(func: uid(" + queryPart + `))@filter(eq(dgraph.type, "` + DType + `"))@cascade{
+					h_transaction@filter(eq(txhash, "` + txhash + `"))
+				}
+				
+				q(func: uid(x)){
+					count(uid)
+				}
+			}`
+	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Count []struct {
+			Number int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Count) == 0 || len(r.Count) > 1 {
+		err = errors.New("error invalid response from database")
+		return
+	} else if r.Count[0].Number != len(uids) {
+		err = errors.New("error received number of uids does not match")
+		return
+	}
+
+	allExist = true
+	return
+}
+
+// GetBasicFrontendHeuristic returns all heuristics for a given transaction. Basic information only
+func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHeuristic, err error) {
+	query := `query Q($hash: string){
+					q(func: eq(txhash,$hash)){
+						~h_transaction{
+							uid
+							ts
+							type
+							parameter
+							parent_heuristic{
+								uid
+							}
+							children: ~parent_heuristic{
+								uid
+							}
+							num_results: count(results)
+						}
+					}
+				}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) > 1 {
+		err = errors.New("invalid response from database")
+		return
+	} else if len(r.Transaction) == 1 {
+		heuristics = r.Transaction[0].Heuristics
+	}
+
+	return
+}
+
+// GetFrontendHeuristicByUid the heuristic for the given heuristicUid
+func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string) (
+	frontendHeuristic FrontendHeuristic, err error) {
+	query := `query Q($uid: string, $hash: string){
+					q(func: uid($uid))@cascade{
+						h_transaction@filter(eq(txhash, $hash))
+						uid
+						results@normalize{
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+							tx_inputs{ 
+								~addr_outputs{
+									addresshash:addresshash
+								}
+							}
+						}
+					}
+				}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query,
+		map[string]string{"$uid": heuristicUid, "$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Heuristics []FrontendHeuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Heuristics) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	frontendHeuristic = r.Heuristics[0]
+
+	return
+}
+
+// GetFrontendHeuristic returns all heuristics for a given transaction
+func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic FrontendHeuristicComplete, err error) {
+	query := `query Q($hash: string){
+					q(func: eq(txhash,$hash)){
+						uid
+						~transactions{
+							ts
+						}
+						~h_transaction{
+						uid
+						ts
+						type
+						parameter
+							parent_heuristic{
+								uid
+							}
+							children: ~parent_heuristic{
+								uid
+							}
+						results@normalize{
+							uid:uid
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+							tx_inputs{ 
+								~addr_outputs{
+									addresshash:addresshash
+									}
+								}
+							}
+						}
+					}
+				}`
+
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Uid   string `json:"uid,omitempty"`
+			Block []struct {
+				Timestamp string `json:"ts,omitempty"`
+			} `json:"~transactions,omitempty"`
+			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	completeHeuristic = FrontendHeuristicComplete{
+		Uid:       r.Transaction[0].Uid,
+		Timestamp: r.Transaction[0].Block[0].Timestamp,
+	}
+
+	var filteredHeuristics []FrontendHeuristic
+
+	for _, h := range r.Transaction[0].Heuristics {
+		transactions := make(map[string]bool)
+		var newHeuristic FrontendHeuristic
+		newHeuristic.Uid = h.Uid
+		newHeuristic.Timestamp = h.Timestamp
+		newHeuristic.Parameter = h.Parameter
+		newHeuristic.Type = h.Type
+		newHeuristic.ChildHeuristics = h.ChildHeuristics
+		newHeuristic.ParentHeuristic = h.ParentHeuristic
+		for _, r := range h.Results {
+			if transactions[r.Uid] {
+				continue
+			}
+			newHeuristic.Results = append(newHeuristic.Results, r)
+			transactions[r.Uid] = true
+		}
+
+		filteredHeuristics = append(filteredHeuristics, newHeuristic)
+	}
+
+	completeHeuristic.Heuristics = filteredHeuristics
+
+	return
+}
+
+// GetShortestPathLength returns the number of transactions in the shortest path between the given
+// transactions specified by fromUid and toUid. The returned number is the count of transactions in
+// the path between fromUid and toUid. A shortest path lik the following would return the number 3.
+// Example path: fromUid -> tx1 -> output1 -> tx2 -> output2 -> tx3 -> output3 -> toUid
+func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLength int, err error) {
+	query := fmt.Sprintf(`{
+				shortest(from: %s, to: %s){
+					tx_inputs
+					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+				}
+			  }`, fromUid, toUid)
+
+	resp, err := c.NewReadOnlyTxn().Query(db.GetFrontendContext(), query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Path []struct {
+			Weight float64 `json:"_weight_,omitempty"`
+		} `json:"_path_,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Path) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	pathLength = (int(r.Path[0].Weight) - 2) / 2
+
+	return
+}

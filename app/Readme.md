@@ -1,4 +1,4 @@
-# DashRPC front-end app
+# Dakar front-end app
 
 This is the front-end of the Dash explorer.
 

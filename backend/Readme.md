@@ -1,0 +1,99 @@
+# Backend
+
+## Info
+
+This is a Dash transaction processor, written in Go.
+
+## Dependencies
+
+* `btcsuite` - core wire communication layer
+* `Dgraph` - data storage and processed blockchain data
+
+## Development
+
+Guide
+
+1. Coding must be done through feature branches
+1. Work must be linked to issues from the issue tracker
+1. Work should be documented 
+1. Work should have unit tests associated, when appropriate  
+1. New work should undergo code-review before merging  
+1. Small editorial and documentation work can be done directly in `master`
+1. [Propogate](https://dave.cheney.net/2015/11/05/lets-talk-about-logging) and [wrap](https://blog.golang.org/go1.13-errors) errors. 
+In short: Propogate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`. 
+Only log if there is an error. Do not log metrics.
+
+Branches
+* `master` - main stable dev branch, must compile and should work.
+* `production` - deployed branch, no work/commits should be done in here.
+*  feature branches - main mechanism for new work.
+
+## Start
+### Setup Dash
+* Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
+* Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler.go) are used.
+```shell script
+dashd -rpcuser=rpc1user -rpcpassword=1234pass
+```
+
+### Setup Dgraph
+* Download submodules
+```shell script
+git submodule update --init --recursive
+```
+* Change to the `docker` directory and create a new external docker network
+```shell script
+cd <project_dir>/backend/docker
+docker network create dgraph_default
+```
+* Change the whitelisted ip range in `docker-compose.yml` to your private ip (line 29)
+* Execute `docker-compose up` to start Dgraph
+* After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
+
+### Setup Crawler
+* Build the `crawler`
+```shell script
+cd <project_dir>/backend
+go build ./cmd/crawler
+```
+
+* Launch the crawler with the following command
+```shell script
+# -reset will delete all data on the dgraph instance and setup a new schema
+./crawler -dash -continuous -reset -startserver
+```
+* The REST API can be accessed via the address printed in the standard output.
+Check the [crawler description](cmd/crawler/Readme.md) for more details. 
+Example output:
+
+```commandline
+Dakar v1.0.0
+crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
+crawler 2021/01/04 11:40:37 main.go:31: Current block count in the chain of the RPC client: 1399437
+server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
+analyse 2021/01/04 11:40:37 analytics.go:26: [Starting process]
+analyse 2021/01/04 11:40:37 analytics.go:26: [Waiting for next block Id: 206941, Top: 17940]
+process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
+```
+### Setup Frontend
+
+* Switch to frontend folder `cd <project_dir>/app`
+* Upgrade dependencies `yarn upgrade`
+* Start dev server `yarn serve`
+
+Example output:
+```text
+App running at:
+- Local:   http://localhost:8082/ 
+- Network: http://<your-private-ip>:8082/
+```
+
+## Screenshots
+
+Entry page
+
+![Entry page screenshot](../data/screenshots/EntryPage.png)
+
+Block page
+
+![Block page screenshot](../data/screenshots/BlockPage.png)

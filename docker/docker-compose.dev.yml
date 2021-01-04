@@ -8,7 +8,7 @@ services:
         context: ../app
         dockerfile: Dockerfile
       depends_on:
-        - dakar_dashrpc
+        - dakar_backend
       tty: false
       ports:
         - 80:80
@@ -17,10 +17,10 @@ services:
       networks:
         - dgraph_default
 
-  dakar_dashrpc:
-      container_name: dakar_dashrpc
+  dakar_backend:
+      container_name: dakar_backend
       build:
-        context: ../dashrpc
+        context: ../backend
         dockerfile: Dockerfile
       depends_on:
         - zero
