@@ -635,9 +635,11 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 	}
 }
 
+// isValidInput is a regex filter which checks if the input only consists of numbers and letters
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 
-//
+// isValid checks if user input is valid.
+// Should be used to check address, transaction and block hashes, as well as block ids.
 func isValid(input string) bool {
 	inputLen := len(input)
 	// 64 -> length of transaction hash and block hash
@@ -655,7 +657,7 @@ func isValid(input string) bool {
 	return isValidInput(input)
 }
 
-// creates endpoint handlers
+// setupHandlers creates endpoint handlers
 func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	worker := heuristic.NewWorker()
 	worker.StartWorking(ctx, dgraph)
