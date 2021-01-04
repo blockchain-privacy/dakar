@@ -152,10 +152,11 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		InputSum []struct {
 			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
 			// Because of this we have to first save it as a string and after that convert it to an int64.
+			// Can be reversed if https://github.com/dgraph-io/dgraph/pull/7176 is merged
 			Sum json.Number `json:"sum"`
 		} `json:"input_sum"`
 		OutputSum []struct {
-			Sum int64 `json:"sum"`
+			Sum json.Number `json:"sum"`
 		} `json:"output_sum"`
 	}
 
@@ -177,16 +178,17 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	}
 
 	// try to convert input sum to int64
-	inputSum, intErr := r.InputSum[0].Sum.Int64()
-	if intErr != nil {
-		// try to convert input sum to float64
-		floatInputSum, floatErr := r.InputSum[0].Sum.Float64()
-		if floatErr != nil || floatInputSum != 0 {
-			err = ErrorInvalidResult
-			return
-		}
+	inputSum, conversionErr := convertJsonNumber(r.InputSum[0].Sum)
+	if conversionErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+		return
+	}
 
-		inputSum = int64(floatInputSum)
+	// try to convert output sum to int64
+	outputSum, conversionErr := convertJsonNumber(r.OutputSum[0].Sum)
+	if conversionErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+		return
 	}
 
 	addr = FrontendAddress{
@@ -195,9 +197,26 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		InputCount:    r.InputCount[0].Count,
 		OutputCount:   r.OutputCount[0].Count,
 		InputSum:      inputSum,
-		OutputSum:     r.OutputSum[0].Sum,
+		OutputSum:     outputSum,
 		Outputs:       r.Outputs,
 		CoinbaseCount: r.CoinbaseCount[0].Count,
+	}
+
+	return
+}
+
+// convertJsonNumber tries to convert num to an int64
+func convertJsonNumber(num json.Number) (number int64, err error) {
+	number, intErr := num.Int64()
+	if intErr != nil {
+		// also accept float 0.000
+		floatInputSum, floatErr := num.Float64()
+		if floatErr != nil || floatInputSum != 0 {
+			err = errors.New("could not convert json.Number to int64")
+			return
+		}
+
+		number = int64(floatInputSum)
 	}
 
 	return
