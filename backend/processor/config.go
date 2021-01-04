@@ -1,0 +1,50 @@
+package processor
+
+import "time"
+
+type Config struct {
+	// BlockchainName is the name of the blockchain
+	BlockchainName string
+	// BlockTime is the average Dash block time
+	BlockTime time.Duration
+	// NewBlockIntervalTime is the time interval in which the processor checks if a new block is available
+	NewBlockIntervalTime time.Duration
+	// ForkRangeLimit is the number of blocks which the RPC client must
+	// be ahead of the crawler, for the crawler to include new blocks
+	// in the database. This is done so potential chain forks/reordering do not need to be handled
+	ForkRangeLimit uint64
+	// PubKeyHashAddrID is the first byte of a P2PKH address
+	PubKeyHashAddrID byte
+}
+
+func preprocessConfig(c Config) Config {
+	c.NewBlockIntervalTime = c.BlockTime / 3
+	return c
+}
+
+func NewDashConfig() Config {
+	return preprocessConfig(Config{
+		BlockchainName:   "Dash",
+		BlockTime:        2*time.Minute + 30*time.Second,
+		ForkRangeLimit:   2000,
+		PubKeyHashAddrID: 0x4c,
+	})
+}
+
+func NewBitcoinConfig() Config {
+	return preprocessConfig(Config{
+		BlockchainName:   "Bitcoin",
+		BlockTime:        10 * time.Minute,
+		ForkRangeLimit:   500,
+		PubKeyHashAddrID: 0x00,
+	})
+}
+
+func NewDogecoinConfig() Config {
+	return preprocessConfig(Config{
+		BlockchainName:   "Doge",
+		BlockTime:        1 * time.Minute,
+		ForkRangeLimit:   5000,
+		PubKeyHashAddrID: 0x1e,
+	})
+}

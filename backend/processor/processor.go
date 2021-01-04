@@ -37,19 +37,6 @@ var (
 	errNoAddresses     = errors.New("error output has no addresses")
 )
 
-const (
-	// blockTime is the average Dash block time
-	blockTime = 2*time.Minute + 30*time.Second
-
-	// newBlockIntervalTime is the time interval in which the processor checks if a new block is available
-	newBlockIntervalTime = blockTime / 3
-
-	// forkRangeLimit is the number of blocks which the RPC client must
-	// be ahead of the crawler, for the crawler to include new blocks
-	// in the database. This is done so potential chain forks/reordering do not need to be handled
-	forkRangeLimit = 2000
-)
-
 // holds the current state of the crawling processing loop
 type crawlerProcessingState struct {
 	// current block id
@@ -187,7 +174,7 @@ func createOutputUid(transaction string, outputId uint32) string {
 }
 
 // decodeAddress tries to decode the address in asm
-func decodeAddress(asm string, isDash bool) (address string, err error) {
+func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 	if len(asm) == 0 {
 		err = errAddressDecoding
 		return
@@ -202,10 +189,7 @@ func decodeAddress(asm string, isDash bool) (address string, err error) {
 	}
 	cfg := chaincfg.MainNetParams
 
-	// for DASH address creation
-	if isDash {
-		cfg.PubKeyHashAddrID = 0x4c
-	}
+	cfg.PubKeyHashAddrID = pubkeyPrefix
 
 	addr, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &cfg)
 	if addressConversionErr != nil {
@@ -221,7 +205,7 @@ func decodeAddress(asm string, isDash bool) (address string, err error) {
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
 func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawResult,
-	txHashMap map[string]btcjson.TxRawResult, isContinuous bool, isDash bool) (
+	txHashMap map[string]btcjson.TxRawResult, isContinuous bool, config Config) (
 	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
@@ -267,7 +251,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 
 		if d.ScriptPubKey.Type == "pubkey" {
 			// decoding address from script and checking if it matches the supplied addresses
-			pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, isDash)
+			pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
 			if decodeErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 				return
@@ -421,8 +405,8 @@ func processingInterrupted() {
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
 func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash,
-	rpcNumBlocks uint64) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
-	ticker := time.NewTicker(newBlockIntervalTime)
+	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+	ticker := time.NewTicker(config.NewBlockIntervalTime)
 	defer ticker.Stop()
 	for {
 		select {
@@ -491,7 +475,7 @@ func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bo
 
 // processes all blocks from startingBlockId to stoppingBlockId
 func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client,
-	startingBlockId uint64, stoppingBlockId uint64, isDash bool) error {
+	startingBlockId uint64, stoppingBlockId uint64, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -547,7 +531,7 @@ mainLoop:
 
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false, isDash); err == nil {
+			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false, config); err == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -586,7 +570,7 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 }
 
 // processes all blocks provided by the RPC client continuously
-func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client, isDash bool) error {
+func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -642,11 +626,11 @@ mainLoop:
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
 			}
 			// set values for this round
-			if currentBlock.NextHash == "" || numBlocks < state.id+forkRangeLimit {
+			if currentBlock.NextHash == "" || numBlocks < state.id+config.ForkRangeLimit {
 				info("Waiting for next block.", state)
 				var isInterrupt bool
 				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash, numBlocks)
+				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash, numBlocks, config)
 				if err != nil {
 					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				}
@@ -675,7 +659,7 @@ mainLoop:
 
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter, processErr := ProcessRound(dgraph, client, state, currentBlock,
-			isEmptyDatabase, true, isDash); processErr == nil {
+			isEmptyDatabase, true, config); processErr == nil {
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -713,7 +697,7 @@ func createTransactionHashmap(client *rpcclient.Client, transactions []string) (
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerProcessingState,
-	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, isDash bool) (
+	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
 	blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
@@ -728,7 +712,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 		var newTx dbtx.Transaction
 		var tMap TransactionMapping
 
-		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, isDash)
+		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return

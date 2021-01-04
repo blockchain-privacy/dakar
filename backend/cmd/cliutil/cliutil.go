@@ -38,6 +38,8 @@ const (
 	TxInfo
 	ClusterAddr
 	BTC
+	Dash
+	Doge
 )
 
 type Arguments struct {
@@ -60,6 +62,8 @@ type Arguments struct {
 	DisableCrawler    bool
 	DisableAnalyzer   bool
 	BTC               bool
+	Dash              bool
+	Doge              bool
 }
 
 func ShowCallInfo() string {
@@ -97,6 +101,24 @@ func buildEndpoint(host string, port uint) (string, error) {
 	}
 
 	return response, errors.New("host or port is not valid")
+}
+
+// NumBlockchainSelected returns the number of selected blockchains
+func NumBlockchainSelected(args Arguments) int {
+	numConfigs := 0
+	if args.BTC {
+		numConfigs++
+	}
+
+	if args.Dash {
+		numConfigs++
+	}
+
+	if args.Doge {
+		numConfigs++
+	}
+
+	return numConfigs
 }
 
 func GetLogfile(fileName string) (f *os.File, err error) {
@@ -191,6 +213,12 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case BTC:
 			addBTC(&args.BTC)
+			break
+		case Dash:
+			addDash(&args.Dash)
+			break
+		case Doge:
+			addDogecoin(&args.Doge)
 			break
 		default:
 			err = errors.New("flag not recognized")
@@ -295,5 +323,13 @@ func addDisableAnalyzer(v *bool) {
 }
 
 func addBTC(v *bool) {
-	flag.BoolVar(v, "btc", false, "Switch to Bitcoin mode (default: false)")
+	flag.BoolVar(v, "btc", false, "Select Bitcoin mode (default: false)")
+}
+
+func addDash(v *bool) {
+	flag.BoolVar(v, "dash", false, "Select Dash mode (default: false)")
+}
+
+func addDogecoin(v *bool) {
+	flag.BoolVar(v, "doge", false, "Select Dogecoin mode (default: false)")
 }

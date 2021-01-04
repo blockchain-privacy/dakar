@@ -36,11 +36,23 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
 		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort,
-		cli.DBHost, cli.BTC)
+		cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
+	}
+
+	if numSelected := cli.NumBlockchainSelected(cliArgs); numSelected != 1 {
+		flag.PrintDefaults()
+		if numSelected == 0 {
+			err = errors.New(fmt.Sprintln("Select a blockchain (-dash, -btc or -doge)."))
+		} else {
+			err = errors.New(fmt.Sprintln("Number of blockchains selected:", numSelected,
+				"Only one selected blockchain is allowed"))
+		}
+
+		return
 	}
 
 	if !cliArgs.DisableCrawler && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
@@ -111,9 +123,20 @@ func main() {
 		}()
 	}
 
-	if cliArgs.BTC {
-		info("Bitcoin mode active")
+	// select blockchain config
+	var processorConfig processor.Config
+	if cliArgs.Dash {
+		processorConfig = processor.NewDashConfig()
+	} else if cliArgs.BTC {
+		processorConfig = processor.NewBitcoinConfig()
+	} else if cliArgs.Doge {
+		processorConfig = processor.NewDogecoinConfig()
+	} else {
+		fmt.Println("invalid blockchain selected")
+		return
 	}
+
+	info(processorConfig.BlockchainName, "mode active")
 
 	// create dgraph client
 	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
@@ -228,10 +251,10 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client, !cliArgs.BTC)
+				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client, processorConfig)
 			} else {
 				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID,
-					cliArgs.StopBlockID, !cliArgs.BTC)
+					cliArgs.StopBlockID, processorConfig)
 			}
 
 			if err != nil {
