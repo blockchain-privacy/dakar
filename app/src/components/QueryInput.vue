@@ -153,10 +153,11 @@ export default {
     },
     isValidData(str) {
       const inputLen = str.length;
+      // 64 -> length of transaction hash and block hash
+      if (inputLen === 0 || inputLen > 64) return false;
 
-      if (inputLen === 0 || inputLen > 65) return false;
-
-      if (inputLen < 35) {
+      // 34 -> address length; if smaller than it must be a block id
+      if (inputLen < 34) {
         return Number.isInteger(Number(str));
       }
 
