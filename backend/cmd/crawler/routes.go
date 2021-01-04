@@ -640,13 +640,13 @@ var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 //
 func isValid(input string) bool {
 	inputLen := len(input)
-	// 65 -> length of transaction hash and block hash
-	if inputLen == 0 || inputLen > 65 {
+	// 64 -> length of transaction hash and block hash
+	if inputLen == 0 || inputLen > 64 {
 		return false
 	}
 
-	// 35 -> address length; if smaller than it must be a block id
-	if inputLen < 35 {
+	// 34 -> address length; if smaller than it must be a block id
+	if inputLen < 34 {
 		// attempt to convert input to an integer; if it succeeds the input is valid.
 		_, err := strconv.Atoi(input)
 		return err == nil
