@@ -37,5 +37,5 @@ export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
 // blockchain
 export const COIN_UNIT_DASH = 'Dash';
 export const COIN_UNIT_BTC = 'BTC';
-export const IS_BLOCKCHAIN_DASH = false;
-export const COIN_UNIT = IS_BLOCKCHAIN_DASH ? COIN_UNIT_DASH : COIN_UNIT_BTC;
+export const COIN_UNIT_DOGE = 'Doge';
+export const COIN_UNIT = COIN_UNIT_DASH;
