@@ -107,7 +107,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Printf("Dakar %s\nBlock crawler\n\n", VersionString)
+	fmt.Println("Dakar", VersionString)
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)
