@@ -60,23 +60,21 @@ go build ./cmd/crawler
 * Launch the crawler with the following command
 ```shell script
 # -reset will delete all data on the dgraph instance and setup a new schema
-./crawler -continuous -reset -startserver
+./crawler -dash -continuous -reset -startserver
 ```
 * The REST API can be accessed via the address printed in the standard output.
 Check the [crawler description](cmd/crawler/Readme.md) for more details. 
 Example output:
 
-```text
-Dakar  v0.0.1
-Block crawler
-
-crawler 2020/08/11 13:15:13 dropped all data
-crawler 2020/08/11 13:15:15 setup new schema
-crawler 2020/08/11 13:15:15 Current block count in the chain of the RPC client: 1319430
-crawler 2020/08/11 13:15:15 Starting server at endpoint http://localhost:8081
-crawler 2020/08/11 13:15:15 Starting crawling at Id: 1, Hash: 000007d91d1254d60e2dd1ae580383070a4ddffa4c64c2eeb4a2f9ecc0414343
+```commandline
+Dakar v1.0.0
+crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
+crawler 2021/01/04 11:40:37 main.go:31: Current block count in the chain of the RPC client: 1399437
+server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
+analyse 2021/01/04 11:40:37 analytics.go:26: [Starting process]
+analyse 2021/01/04 11:40:37 analytics.go:26: [Waiting for next block Id: 206941, Top: 17940]
+process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
 ```
-
 ### Setup Frontend
 
 * Switch to frontend folder `cd <project_dir>/app`
