@@ -103,7 +103,7 @@
     <v-overlay
         opacity="0.75"
         absolute
-        :value="executionStatus.value.executing || true">
+        :value="executionStatus.value.executing">
       <v-row justify="center">
         <v-col class="ma-5" v-if="!executionStatus.value.processing">
           Heuristics are waiting for processing.
