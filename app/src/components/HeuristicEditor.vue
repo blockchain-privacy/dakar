@@ -21,10 +21,6 @@
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-
-      <!--    todo: remove?-->
-      <v-btn outlined class="mr-1" @click="refreshData">Reload</v-btn>
-
       <v-btn outlined @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
@@ -107,6 +103,31 @@
       <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
                         :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
+    <v-overlay
+        absolute
+        :value="executionStatus.value.executing">
+      <v-row justify="center">
+        <v-col class="ma-5" v-if="!executionStatus.value.processing">
+          Heuristics are waiting for processing.
+          This may take several minutes depending on the chosen parameters and
+          number of heuristics. You can wait or close this page and come back later.
+        </v-col>
+        <v-col class="ma-5" v-if="executionStatus.value.processing">
+          Heuristics are executing now.
+          This may take several minutes depending on the chosen parameters and
+          number of heuristics. You can wait or close this page and come back later.
+        </v-col>
+      </v-row>
+      <v-row justify="center">
+        <v-progress-linear
+            style="max-width: 350px;"
+            indeterminate
+            rounded
+            height="6"
+            :color="executionStatus.value.processing?'green darken-3':'primary'"
+        ></v-progress-linear>
+      </v-row>
+    </v-overlay>
     <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
 </template>
@@ -116,6 +137,7 @@ import HeuristicDetails from './HeuristicDetails.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
+  ROUTE_HEURISTIC_STATUS,
 } from '../constants';
 import NestedMenu from './common/NestedMenu.vue';
 import * as ht from '../heuristicTree';
@@ -193,6 +215,22 @@ export default {
   data() {
     return {
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
+      isHeuristicExecuting: false,
+      executionStatus: {
+        refreshRate: 2000,
+        timer: null,
+        value: {
+          executing: false,
+          processing: false,
+        },
+        enum: {
+          added: 0,
+          duplicate: 1,
+          notInQueue: 2,
+          inQueue: 3,
+          processing: 4,
+        },
+      },
       newUidPrefix: 'newUid_',
       uidCounter: 1,
       transactionHash: '',
@@ -417,11 +455,31 @@ export default {
       })
         .then((response) => response.json())
         .then((data) => {
-          this.successMsg = data;
+          if (data.status === undefined) throw Error('execution status is not defined');
+          this.setExecutionStatus(data.status);
         })
         .catch((error) => {
           this.errMsg = error;
         });
+    },
+    setExecutionStatus(status) {
+      switch (status) {
+        case this.executionStatus.enum.added:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = true;
+          break;
+        case this.executionStatus.enum.inQueue:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = true;
+          break;
+        case this.executionStatus.enum.processing:
+          this.executionStatus.value.processing = true;
+          this.executionStatus.value.executing = true;
+          break;
+        default:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = false;
+      }
     },
     downloadHeuristicSummary() {
       if (!this.doesDataExist()) return;
@@ -574,6 +632,28 @@ export default {
       }
       this.contextMenu.display = false;
     },
+    startHeuristicStatusRefresh() {
+      this.executionStatus.timer = setInterval(async () => {
+        await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === undefined) throw Error('execution status is not defined');
+            const oldExecutionStatus = this.executionStatus.value.executing;
+            this.setExecutionStatus(data.status);
+            // if it was previously executing refresh data
+            if (oldExecutionStatus && !this.executionStatus.value.executing) {
+              this.refreshData();
+            }
+          })
+          .catch((error) => {
+            this.errMsg = error;
+          });
+      }, this.executionStatus.refreshRate);
+    },
+    resetExecutionStatus() {
+      this.isHeuristicExecuting = false;
+      clearInterval(this.executionStatus.timer);
+    },
   },
   beforeDestroy() {
     // reset memory
@@ -581,6 +661,7 @@ export default {
   },
   mounted() {
     this.onMounted();
+    this.startHeuristicStatusRefresh();
   },
   watch: {
     $route() {
