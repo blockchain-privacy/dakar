@@ -502,7 +502,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -520,8 +520,13 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 			return
 		}
 
+		resp := heuristicReply{
+			Heuristics: heuristics,
+			Status:     worker.GetStatus(txHashString),
+		}
+
 		// encoding
-		err = json.NewEncoder(w).Encode(heuristics)
+		err = json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
@@ -541,7 +546,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) func(http.ResponseWriter, 
 			return
 		}
 
-		resp := heuristicExecution{
+		resp := heuristicReply{
 			Status: worker.GetStatus(txHashString),
 		}
 
@@ -613,7 +618,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			return
 		}
 
-		resp := heuristicExecution{}
+		resp := heuristicReply{}
 
 		if worker.IsInQueue(txHashString) {
 			resp.Status = heuristic.StatusHeuristicDuplicate
@@ -687,7 +692,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
-	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
+	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph, &worker))
 	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
 	http.HandleFunc(getRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
 	http.HandleFunc(getRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))

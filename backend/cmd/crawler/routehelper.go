@@ -3,6 +3,7 @@ package main
 import (
 	heuristic "backend/analytics/heuristics/transaction"
 	dbaddr "backend/db/address"
+	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
 	dbtx "backend/db/transaction"
 	"regexp"
@@ -45,8 +46,9 @@ func isLikelyAddress(query string) bool {
 	return query[0:1] == "X" || query[0:1] == "7"
 }
 
-type heuristicExecution struct {
-	Status heuristic.HeuristicQueueStatus `json:"status"`
+type heuristicReply struct {
+	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
+	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
 type SearchResult struct {
