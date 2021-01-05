@@ -101,8 +101,9 @@
                         :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
+        opacity="0.75"
         absolute
-        :value="executionStatus.value.executing">
+        :value="executionStatus.value.executing || true">
       <v-row justify="center">
         <v-col class="ma-5" v-if="!executionStatus.value.processing">
           Heuristics are waiting for processing.
