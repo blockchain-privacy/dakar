@@ -303,11 +303,11 @@ export default {
         x: 0,
         y: 0,
         items: [
-          { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
-          { title: 'Show properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
+          { title: 'Delete Heuristic', icon: 'mdi-delete', action: this.deleteSubTree },
+          { title: 'Show Properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
           { isDivider: true },
           {
-            title: 'Add heuristic',
+            title: 'Add Heuristic',
             icon: 'mdi-shape-square-rounded-plus',
             action: () => {
               this.isAddHeuristicSheetOpen = true;
@@ -318,13 +318,13 @@ export default {
             title: 'Actions',
             menu: [
               {
-                title: 'Download summary',
+                title: 'Download Summary',
                 icon: 'mdi-file-download-outline',
                 action: this.downloadHeuristicSummary,
                 disabled: this.doesDataExist,
               },
               {
-                title: 'Execute heuristics',
+                title: 'Execute Heuristics',
                 icon: 'mdi-source-branch-check',
                 action: this.executeHeuristics,
                 disabled: this.isExecutable,
