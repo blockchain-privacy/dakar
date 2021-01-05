@@ -592,6 +592,9 @@ export default {
     },
     async refreshData() {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+      this.setExecutionStatus(this.data.status);
+
+      if (this.executionStatus.value.executing) this.startActiveTimer();
 
       // if the transaction has not yet any heuristics associated
       if (this.data === null || this.data.heuristics === null) {
