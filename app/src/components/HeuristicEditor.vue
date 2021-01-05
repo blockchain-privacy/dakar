@@ -217,8 +217,14 @@ export default {
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
       isHeuristicExecuting: false,
       executionStatus: {
-        refreshRate: 2000,
-        timer: null,
+        dormantTimer: {
+          timer: null,
+          refreshRate: 20000,
+        },
+        activeTimer: {
+          timer: null,
+          refreshRate: 2000,
+        },
         value: {
           executing: false,
           processing: false,
@@ -457,6 +463,7 @@ export default {
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           this.setExecutionStatus(data.status);
+          this.startActiveTimer();
         })
         .catch((error) => {
           this.errMsg = error;
@@ -632,36 +639,53 @@ export default {
       }
       this.contextMenu.display = false;
     },
-    startHeuristicStatusRefresh() {
-      this.executionStatus.timer = setInterval(async () => {
-        await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.status === undefined) throw Error('execution status is not defined');
-            const oldExecutionStatus = this.executionStatus.value.executing;
-            this.setExecutionStatus(data.status);
-            // if it was previously executing refresh data
-            if (oldExecutionStatus && !this.executionStatus.value.executing) {
-              this.refreshData();
-            }
-          })
-          .catch((error) => {
-            this.errMsg = error;
-          });
-      }, this.executionStatus.refreshRate);
+    async updateExecutionStatus() {
+      await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === undefined) throw Error('execution status is not defined');
+          const oldExecutionStatus = this.executionStatus.value.executing;
+          this.setExecutionStatus(data.status);
+          // if it was previously executing refresh data
+          if (oldExecutionStatus && !this.executionStatus.value.executing) {
+            this.refreshData();
+            this.stopActiveTimer();
+          }
+        })
+        .catch((error) => {
+          this.errMsg = error;
+        });
+    },
+    startDormantTimer() {
+      this.executionStatus.dormantTimer.timer = setInterval(async () => {
+        await this.updateExecutionStatus();
+      }, this.executionStatus.dormantTimer.refreshRate);
+    },
+    startActiveTimer() {
+      this.executionStatus.activeTimer.timer = setInterval(async () => {
+        await this.updateExecutionStatus();
+      }, this.executionStatus.activeTimer.refreshRate);
+    },
+    stopDormantTimer() {
+      clearInterval(this.executionStatus.dormantTimer.timer);
+    },
+    stopActiveTimer() {
+      clearInterval(this.executionStatus.activeTimer.timer);
     },
     resetExecutionStatus() {
       this.isHeuristicExecuting = false;
-      clearInterval(this.executionStatus.timer);
+      this.stopDormantTimer();
+      this.stopActiveTimer();
     },
   },
   beforeDestroy() {
     // reset memory
     this.heuristicDetails = null;
+    this.resetExecutionStatus();
   },
   mounted() {
     this.onMounted();
-    this.startHeuristicStatusRefresh();
+    this.startDormantTimer();
   },
   watch: {
     $route() {
