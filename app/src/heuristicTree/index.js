@@ -124,7 +124,7 @@ function dragEvent(event) {
 
 // moveNode sets parent as the parent node of the child subgraph
 function moveNode(context, parent, child) {
-  if (context.data === null || context.data.heuristics === null) return;
+  if (!context.data || !context.data.heuristics) return;
   const parentData = parent.data()[0].data.data; const childData = child.data()[0].data.data;
   let formerParentUid = null;
 
