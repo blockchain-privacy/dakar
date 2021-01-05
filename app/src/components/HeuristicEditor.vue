@@ -200,13 +200,8 @@ function areDataElementsEqual(a, b) {
   if (a.parent_heuristic !== undefined && b.parent_heuristic !== undefined) {
     return a.parent_heuristic[0].uid === b.parent_heuristic[0].uid;
   }
-  if ((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
-      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined)) {
-    // if one is set but not the other
-    return false;
-  }
-
-  return true;
+  return !((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
+      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined));
 }
 
 export default {
@@ -242,9 +237,9 @@ export default {
       transactionHash: '',
       shortTransactionHash: '',
       // dbState holds the state of the database.
-      // It is used to detect changes in this.data (computed)
+      // It is used to detect changes in this.data.heuristics (computed)
       dbState: null,
-      // changeSet holds all changes based on dbState and this.data(computed)
+      // changeSet holds all changes based on dbState and this.data.heuristics (computed)
       changeSet: [],
       // deletedData holds all uids of the heuristic which are deleted
       deletedData: [],
@@ -386,7 +381,7 @@ export default {
       }
       this.uidCounter = this.uidCounter + 1;
 
-      this.data.push(newHeuristic);
+      this.data.heuristics.push(newHeuristic);
       this.updateGraph();
     },
     openPropertySheet(heuristic) {
@@ -443,7 +438,8 @@ export default {
       return this.deletedData.length > 0;
     },
     doesDataExist() {
-      return !(this.data === null || this.data === undefined || this.data.length < 2);
+      return !(this.data === null || this.data.heuristics === null
+          || this.data.heuristics === undefined || this.data.heuristics.length < 2);
     },
     executeHeuristics() {
       // prevent execution if not data is available
@@ -456,7 +452,7 @@ export default {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(prepareData(this.dbState, this.data,
+        body: JSON.stringify(prepareData(this.dbState, this.data.heuristics,
           this.changeSet, this.deletedData)),
       })
         .then((response) => response.json())
@@ -507,11 +503,11 @@ export default {
         });
     },
     // updateChangeSet updates the change set <this.changeSet> based
-    // on the differences of this.data and this.dbState
+    // on the differences of this.data.heuristics and this.dbState
     updateChangeSet() {
       this.changeSet = [];
       const originChangeSet = [];
-      this.data.forEach((d) => {
+      this.data.heuristics.forEach((d) => {
         if (this.dbState.has(d.uid)) {
           const thisElement = this.dbState.get(d.uid);
           if (!areDataElementsEqual(thisElement, d)) {
@@ -553,7 +549,7 @@ export default {
 
       const updatedData = [];
 
-      this.data.forEach((e) => {
+      this.data.heuristics.forEach((e) => {
         // update children set of parent
         if (rel.parentUid !== '' && e.uid === rel.parentUid) {
           e.children = e.children.filter((c) => c.uid !== rel.childUid);
@@ -565,9 +561,11 @@ export default {
         }
       });
 
-      this.$store.dispatch('setHeuristicData', updatedData);
+      this.data = { heuristics: updatedData, status: 0 };
 
-      const newStateMap = new Map(this.data.map((d) => [d.uid, d]));
+      // this.$store.dispatch('setHeuristicData', );
+
+      const newStateMap = new Map(this.data.heuristics.map((d) => [d.uid, d]));
       this.deletedData = getDeletedData(this.dbState, newStateMap);
 
       // update displayed graph
@@ -586,7 +584,7 @@ export default {
     },
     updateGraph() {
       // maps the node data to the tree layout
-      const nodeData = ht.processGraphData(this.data);
+      const nodeData = ht.processGraphData(this.data.heuristics);
       ht.drawGraph(nodeData, this);
       // updateChangeSet is called after a graph update,
       // because otherwise it gets a not up to date descendant state
@@ -596,18 +594,19 @@ export default {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
 
       // if the transaction has not yet any heuristics associated
-      if (this.data === null) {
-        this.data = [];
+      if (this.data === null || this.data.heuristics === null) {
+        this.data.heuristics = [];
       }
-      this.data.push({ uid: 'root' });
+      this.data.heuristics.push({ uid: 'root' });
 
       // reset deleted data
       this.deletedData = [];
 
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
-      // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
-      // functions (complex types like function are not allowed):
-      this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map((d) => [d.uid, d]));
+      // It's mind-boggling. As this.data.heuristics is effectively a JSON,
+      // we can safely use the JSON functions (complex types like function are not allowed):
+      this.dbState = new Map(JSON.parse(JSON.stringify(this.data.heuristics))
+        .map((d) => [d.uid, d]));
       this.updateGraph();
     },
     onMounted() {

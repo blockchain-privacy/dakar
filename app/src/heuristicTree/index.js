@@ -124,7 +124,7 @@ function dragEvent(event) {
 
 // moveNode sets parent as the parent node of the child subgraph
 function moveNode(context, parent, child) {
-  if (context.data === null) return;
+  if (context.data === null || context.data.heuristics === null) return;
   const parentData = parent.data()[0].data.data; const childData = child.data()[0].data.data;
   let formerParentUid = null;
 
@@ -132,7 +132,7 @@ function moveNode(context, parent, child) {
     formerParentUid = childData.parent_heuristic[0].uid;
   }
 
-  const newData = context.data;
+  const newData = context.data.heuristics;
 
   for (let i = 0; i < newData.length; i += 1) {
     const dataElement = newData[i];
@@ -161,7 +161,7 @@ function moveNode(context, parent, child) {
   }
 
   // set new state
-  context.data = newData;
+  context.data.heuristics = newData;
 }
 
 // dragEnd gets called when the drag event ends.
