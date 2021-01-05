@@ -13,44 +13,41 @@
     <v-toolbar
         style="width: 100%; left:0;position:fixed; z-index: 99"
         dense>
-      <v-toolbar-title>
-        <v-icon class="hidden-sm-and-down">mdi-transfer</v-icon>
+      <v-toolbar-title class="hidden-md-and-up">
+        {{ this.shortTransactionHash }}
+      </v-toolbar-title>
+      <v-toolbar-title class="hidden-sm-and-down">
+        <v-icon>mdi-transfer</v-icon>
         Transaction {{ this.shortTransactionHash }}
       </v-toolbar-title>
       <v-btn icon @click="goToTransactionPage">
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-      <v-btn outlined @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen">
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen"
+          :disabled="this.executionStatus.value.executing">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
-      <v-menu
-          bottom
-          left>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              icon
-              v-bind="attrs"
-              v-on="on">
-            <v-icon>mdi-dots-vertical</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item @click="downloadHeuristicSummary" :disabled="!doesDataExist()">
-            <v-list-item-icon>
-              <v-icon>mdi-file-download-outline</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Download Summary</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="executeHeuristics" :disabled="!isExecutable()">
-            <v-list-item-icon>
-              <v-icon>mdi-source-branch-check</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Execute Heuristics</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="downloadHeuristicSummary"
+          :disabled="this.executionStatus.value.executing || !doesDataExist()">
+        <v-icon>mdi-file-download-outline</v-icon>
+        <div class="hidden-sm-and-down">Download Summary</div>
+      </v-btn>
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="executeHeuristics"
+          :disabled="this.executionStatus.value.executing || !isExecutable()">
+        <v-icon>mdi-source-branch-check</v-icon>
+        <div class="hidden-sm-and-down">Execute Heuristics</div>
+      </v-btn>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
           <div>
@@ -438,8 +435,7 @@ export default {
       return this.deletedData.length > 0;
     },
     doesDataExist() {
-      return !(this.data === null || this.data.heuristics === null
-          || this.data.heuristics === undefined || this.data.heuristics.length < 2);
+      return !(!this.data || !this.data.heuristics || this.data.heuristics.length < 2);
     },
     executeHeuristics() {
       // prevent execution if not data is available
@@ -597,7 +593,7 @@ export default {
       if (this.executionStatus.value.executing) this.startActiveTimer();
 
       // if the transaction has not yet any heuristics associated
-      if (this.data === null || this.data.heuristics === null) {
+      if (!this.data || !this.data.heuristics) {
         this.data.heuristics = [];
       }
       this.data.heuristics.push({ uid: 'root' });
