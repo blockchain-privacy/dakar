@@ -16,6 +16,21 @@ import (
 // copyOnModify is true when existing heuristic trees should be copied before modification
 const copyOnModify = false
 
+type HeuristicQueueStatus int
+
+const (
+	// statusHeuristicAdded is set if the heuristic has been successfully added
+	StatusHeuristicAdded = HeuristicQueueStatus(iota)
+	// statusHeuristicDuplicate is set if the heuristic is already in the work queue
+	StatusHeuristicDuplicate
+	// statusHeuristicNotInQueue is set if the heuristic is not in the work queue
+	StatusHeuristicNotInQueue
+	// statusHeuristicInQueue is set if the heuristic is in the work queue
+	StatusHeuristicInQueue
+	// statusHeuristicProcessing is set if the heuristic is currently being processed
+	StatusHeuristicProcessing
+)
+
 type Work struct {
 	// executors contains the HeuristicExecutor trees
 	executors []HeuristicExecutor
@@ -27,13 +42,19 @@ type Work struct {
 }
 
 type Worker struct {
-	executionMap map[string]Work
-	mapLock      *sync.Mutex
+	currentTransactionHash string
+	executionMap           map[string]Work
+	mutex                  *sync.Mutex
+}
+
+func NewWorker() Worker {
+	var mLock sync.Mutex
+	return Worker{executionMap: make(map[string]Work), mutex: &mLock}
 }
 
 func (w *Worker) AddWork(transactionHash string, work Work) bool {
-	w.mapLock.Lock()
-	defer w.mapLock.Unlock()
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
 
 	if _, exists := w.executionMap[transactionHash]; exists {
 		return false
@@ -47,9 +68,29 @@ func (w *Worker) AddWork(transactionHash string, work Work) bool {
 	return true
 }
 
-func NewWorker() Worker {
-	var mLock sync.Mutex
-	return Worker{executionMap: make(map[string]Work), mapLock: &mLock}
+// IsInQueue returns true if the given transaction hash is in the work queue
+func (w *Worker) IsInQueue(tx string) bool {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	_, ok := w.executionMap[tx]
+	return ok
+}
+
+// GetStatus returns the current execution status of the given transaction hash
+func (w *Worker) GetStatus(tx string) HeuristicQueueStatus {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	_, ok := w.executionMap[tx]
+
+	if !ok {
+		return StatusHeuristicNotInQueue
+	}
+
+	if w.currentTransactionHash == tx {
+		return StatusHeuristicProcessing
+	}
+
+	return StatusHeuristicInQueue
 }
 
 func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph) {
@@ -63,7 +104,6 @@ func stoppingWorker() {
 func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
 
 	var work Work
-	var currentTransactionHash string
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 
@@ -75,13 +115,13 @@ mainLoop:
 			break mainLoop
 		case <-ticker.C:
 			// get work for this cycle
-			w.mapLock.Lock()
+			w.mutex.Lock()
 			for k, v := range w.executionMap {
 				work = v
-				currentTransactionHash = k
+				w.currentTransactionHash = k
 				break
 			}
-			w.mapLock.Unlock()
+			w.mutex.Unlock()
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
@@ -107,7 +147,7 @@ mainLoop:
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							if err = e.RunSynchronous(dgraph, currentTransactionHash, ""); err != nil {
+							if err = e.RunSynchronous(dgraph, w.currentTransactionHash, ""); err != nil {
 								log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
 						}
@@ -116,12 +156,12 @@ mainLoop:
 				log.Print("processing work done")
 			}
 
-			w.mapLock.Lock()
-			delete(w.executionMap, currentTransactionHash)
-			w.mapLock.Unlock()
+			w.mutex.Lock()
+			delete(w.executionMap, w.currentTransactionHash)
+			w.currentTransactionHash = ""
+			w.mutex.Unlock()
 
 			// reset memory
-			currentTransactionHash = ""
 			work = Work{}
 		}
 	}

@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"regexp"
 	"strconv"
 	"sync"
 
@@ -28,17 +27,18 @@ import (
 
 const (
 	routePrefix              string = "/api/v1/"
-	routeSearch              string = "search/"
-	routeTransaction         string = "tx/"
-	routeBlock               string = "blk/"
-	routeAddress             string = "address/"
-	routeMeta                string = "meta/"
-	routePaths               string = "paths/"
-	routeHeuristics          string = "heuristics/"
-	routeHeuristicsSummary   string = "heuristicsSummary/"
-	routeHeuristicsExecution string = "executeHeuristics/"
-	routeHeuristicDetails    string = "heuristicDetails/"
-	routeAddressOutputRange  string = "addressOutputRange/"
+	routeSearch              string = "search"
+	routeTransaction         string = "tx"
+	routeBlock               string = "blk"
+	routeAddress             string = "address"
+	routeMeta                string = "meta"
+	routePaths               string = "paths"
+	routeHeuristics          string = "heuristics"
+	routeHeuristicsSummary   string = "heuristicsSummary"
+	routeHeuristicsExecution string = "executeHeuristics"
+	routeHeuristicDetails    string = "heuristicDetails"
+	routeHeuristicStatus     string = "heuristicStatus"
+	routeAddressOutputRange  string = "addressOutputRange"
 )
 
 const (
@@ -55,12 +55,8 @@ var (
 	errorInvalidOffset      = "error invalid offset"
 )
 
-type reply struct {
-	Message string `json:"msg,omitempty"`
-}
-
 func getRoute(r string) string {
-	return routePrefix + r
+	return routePrefix + r + "/"
 }
 
 func getRouteTransaction() string {
@@ -96,6 +92,10 @@ func getRouteHeuristicsExecution() string {
 
 func getRouteHeuristicDetails() string {
 	return getRoute(routeHeuristicDetails)
+}
+
+func getRouteHeuristicStatus() string {
+	return getRoute(routeHeuristicStatus)
 }
 
 func getRouteSearch() string {
@@ -529,6 +529,31 @@ func handlerHeuristics(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 	}
 }
 
+// API pattern: "/api/v1/heuristicStatus/<hash>"
+func handlerHeuristicStatus(worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := r.URL.Path[len(getRouteHeuristicStatus()):]
+
+		if !isValid(txHashString) {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		resp := heuristicExecution{
+			Status: worker.GetStatus(txHashString),
+		}
+
+		// encoding
+		err := json.NewEncoder(w).Encode(resp)
+		if err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
 // API pattern: "/api/v1/heuristicDetails/<hash>"
 func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -588,6 +613,20 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			return
 		}
 
+		resp := heuristicExecution{}
+
+		if worker.IsInQueue(txHashString) {
+			resp.Status = heuristic.StatusHeuristicDuplicate
+			err := json.NewEncoder(w).Encode(resp)
+			if err != nil {
+				http.Error(w, "encoding error", http.StatusInternalServerError)
+				serverInfo(cliutil.ShowCallInfo(), err)
+			}
+
+			serverInfo(cliutil.ShowCallInfo(), "heuristic already in queue")
+			return
+		}
+
 		type request struct {
 			Changed []dbtxh.FrontendHeuristic `json:"changed,omitempty"`
 			Deleted []string                  `json:"deleted,omitempty"`
@@ -623,38 +662,15 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 		// todo remove
 		log.Println("Added work:", worker.AddWork(txHashString, work))
 
-		msg := reply{Message: fmt.Sprintf("Received %d changed and %d deleted heuristics",
-			len(heuristicRequest.Changed), len(heuristicRequest.Deleted))}
+		resp.Status = heuristic.StatusHeuristicAdded
 
 		// encoding
-		err = json.NewEncoder(w).Encode(msg)
+		err = json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
 	}
-}
-
-// isValidInput is a regex filter which checks if the input only consists of numbers and letters
-var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
-
-// isValid checks if user input is valid.
-// Should be used to check address, transaction and block hashes, as well as block ids.
-func isValid(input string) bool {
-	inputLen := len(input)
-	// 64 -> length of transaction hash and block hash
-	if inputLen == 0 || inputLen > 64 {
-		return false
-	}
-
-	// 34 -> address length; if smaller than it must be a block id
-	if inputLen < 34 {
-		// attempt to convert input to an integer; if it succeeds the input is valid.
-		_, err := strconv.Atoi(input)
-		return err == nil
-	}
-
-	return isValidInput(input)
 }
 
 // setupHandlers creates endpoint handlers
@@ -673,5 +689,6 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph))
 	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
+	http.HandleFunc(getRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
 	http.HandleFunc(getRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
 }
