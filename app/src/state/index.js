@@ -46,6 +46,20 @@ function getMsg(context) {
   return msgObj;
 }
 
+// getInitialState returns the initial state of the store
+function getInitialState() {
+  return {
+    msg: null,
+    transaction: null,
+    searchResultType: null,
+    address: null,
+    block: null,
+    meta: null,
+    heuristic: null,
+    heuristicDetails: new Map(),
+  };
+}
+
 const mutations = {
   SET_MSG(state, payload) {
     state.msg = payload;
@@ -82,42 +96,29 @@ const mutations = {
     switch (payload.type) {
       case Constants.RESPONSE_TYPE_TRANSACTION:
         state.transaction = payload.payload;
-        state.block = null;
-        state.address = null;
         break;
       case Constants.RESPONSE_TYPE_BLOCK:
         state.block = payload.payload;
-        state.address = null;
-        state.transaction = null;
         break;
       case Constants.RESPONSE_TYPE_ADDRESS:
         state.address = payload.payload;
-        state.transaction = null;
-        state.block = null;
         break;
       default:
-        state.block = null;
-        state.address = null;
-        state.transaction = null;
+        // eslint-disable-next-line no-param-reassign
+        state = getInitialState();
     }
   },
   UPDATE_BLOCK_DATA(state, payload) {
     state.searchResultType = payload.type;
-    state.address = null;
-    state.transaction = null;
     state.block = payload.payload;
   },
   UPDATE_TRANSACTION_DATA(state, payload) {
     state.searchResultType = payload.type;
-    state.address = null;
     state.transaction = payload.payload;
-    state.block = null;
   },
   UPDATE_ADDRESS_DATA(state, payload) {
     state.searchResultType = payload.type;
     state.address = payload.payload;
-    state.transaction = null;
-    state.block = null;
   },
 };
 
@@ -236,16 +237,7 @@ const getters = {
   getSearchResultType: (state) => state.searchResultType,
 };
 
-const state = {
-  msg: null,
-  transaction: null,
-  searchResultType: null,
-  address: null,
-  block: null,
-  meta: null,
-  heuristic: null,
-  heuristicDetails: new Map(),
-};
+const state = getInitialState();
 
 export default new Vuex.Store({
   state,

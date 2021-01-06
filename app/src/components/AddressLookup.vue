@@ -49,74 +49,79 @@
                 </v-col>
               </v-row>
               <v-divider></v-divider>
-              <v-row v-if="this.data.output_count > 1">
-                <v-col>
-                  <v-select
-                      :disabled="this.isLoading"
-                      :loading="this.isLoading?'primary':false"
-                      style="max-width: 300px; min-width: 200px;"
-                      v-model="combobox.selected.id"
-                      :items="combobox.items"
-                      item-value="id"
-                      item-text="text"
-                      label="Sort by"
-                      v-on:change="handleSortAndFilter"
-                  ></v-select>
-                </v-col>
-                <v-col>
-                  <v-select
-                      :disabled="this.isLoading"
-                      :loading="this.isLoading?'primary':false"
-                      style="max-width: 300px; min-width: 200px;"
-                      v-model="filter.selected"
-                      :items="filter.items"
-                      item-value="id"
-                      item-text="text"
-                      label="Filter"
-                      v-on:change="handleSortAndFilter"
-                      multiple
-                  >
-                    <template v-slot:selection="{ item }">
-                      <v-chip small>
-                        <span>{{ item.chip }}</span>
-                      </v-chip>
-                    </template>
-                  </v-select>
-                </v-col>
-                <v-col v-if="this.isSortingByInput">
-                  <v-alert
-                      type="info"
-                      text
-                  >Only spent outputs are shown.
-                  </v-alert>
-                </v-col>
-              </v-row>
-              <v-row v-if="this.isLoading">
-                <v-col v-for="i in new Array(3)" :key="i">
-                  <v-skeleton-loader type="image"></v-skeleton-loader>
-                </v-col>
-              </v-row>
-              <v-sheet
-                  v-if="!this.isLoading"
-                  min-height="50"
-                  class="fill-height"
-                  color="transparent">
-                <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
-                  <v-row>
-                    <v-col
-                        v-for="o in this.data.addr_outputs"
-                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
-                      <OutputComponent :address="o"/>
-                    </v-col>
-                  </v-row>
-                </v-lazy>
-              </v-sheet>
-              <v-progress-linear
-                  v-if="this.isLoadingMore"
-                  indeterminate
-                  rounded
-                  height="6"
-              ></v-progress-linear>
+              <v-container>
+                <v-row v-if="this.data.output_count > 1">
+                  <v-col>
+                    <v-select
+                        :disabled="this.isLoading"
+                        :loading="this.isLoading?'primary':false"
+                        style="max-width: 300px; min-width: 200px;"
+                        v-model="combobox.selected.id"
+                        :items="combobox.items"
+                        item-value="id"
+                        item-text="text"
+                        label="Sort by"
+                        v-on:change="handleSortAndFilter"
+                    ></v-select>
+                  </v-col>
+                  <v-col>
+                    <v-select
+                        :disabled="this.isLoading"
+                        :loading="this.isLoading?'primary':false"
+                        style="max-width: 300px; min-width: 200px;"
+                        v-model="filter.selected"
+                        :items="filter.items"
+                        item-value="id"
+                        item-text="text"
+                        label="Filter"
+                        v-on:change="handleSortAndFilter"
+                        multiple
+                    >
+                      <template v-slot:selection="{ item }">
+                        <v-chip small>
+                          <span>{{ item.chip }}</span>
+                        </v-chip>
+                      </template>
+                    </v-select>
+                  </v-col>
+                  <v-col v-if="this.isSortingByInput">
+                    <v-alert
+                        type="info"
+                        text
+                    >Only spent outputs are shown.
+                    </v-alert>
+                  </v-col>
+                </v-row>
+                <v-row v-if="this.isLoading">
+                  <v-col v-for="i in new Array(3)" :key="i">
+                    <v-skeleton-loader type="image"></v-skeleton-loader>
+                  </v-col>
+                </v-row>
+                <v-sheet
+                    v-if="!this.isLoading"
+                    min-height="50"
+                    class="fill-height"
+                    color="transparent">
+                  <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
+                    <v-row>
+                      <v-col
+                          v-for="(o,index) in this.data.addr_outputs"
+                          v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                        <OutputComponent :address="o" :index="index"/>
+                      </v-col>
+                    </v-row>
+                  </v-lazy>
+                </v-sheet>
+                <v-row v-if="this.isLoadingMore">
+                  <v-col>
+                  <v-progress-linear
+                      indeterminate
+                      rounded
+                      height="6"
+                  ></v-progress-linear>
+                  </v-col>
+                </v-row>
+              </v-container>
             </v-container>
           </v-card-text>
         </v-card>
