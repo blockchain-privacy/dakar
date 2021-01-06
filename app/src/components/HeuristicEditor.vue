@@ -11,7 +11,10 @@
         style="max-width: 600px"
         name='File' :menu-items='contextMenu.items' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
-        style="width: 100%; left:0;position:fixed; z-index: 99"
+        color="primary"
+        dark
+        style="width: 100%; left:0;position:fixed; z-index: 99;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
         dense>
       <v-toolbar-title class="hidden-md-and-up">
         {{ this.shortTransactionHash }}
