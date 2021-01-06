@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app absolute color="primary" dark>
+    <v-app-bar app absolute>
       <v-img
           @click="goToRoot()" style="cursor:pointer"
           alt="Dakar Logo"
