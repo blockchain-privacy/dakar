@@ -64,6 +64,7 @@ export default {
     },
   },
   beforeMount() {
+    // eslint-disable-next-line no-console
     console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
   },
 };
