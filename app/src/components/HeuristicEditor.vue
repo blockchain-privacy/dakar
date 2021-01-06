@@ -436,7 +436,14 @@ export default {
       return this.deletedData.length > 0;
     },
     doesDataExist() {
-      return !(!this.data || !this.data.heuristics || this.data.heuristics.length < 2);
+      if (!this.data || !this.data.heuristics) return false;
+
+      // count elements which are not root or non-executed
+      const numElements = this.data.heuristics.reduce(
+        (sum, e) => (e.uid.startsWith(this.newUidPrefix) || e.uid === 'root' ? sum : sum + 1), 0,
+      );
+
+      return numElements > 0;
     },
     executeHeuristics() {
       // prevent execution if not data is available
