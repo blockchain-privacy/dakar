@@ -63,6 +63,9 @@ export default {
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
     },
   },
+  beforeMount() {
+    console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+  },
 };
 </script>
 
