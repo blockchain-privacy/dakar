@@ -377,7 +377,7 @@ export default {
       if (heuristic.parameter) {
         newHeuristic.parameter = `${heuristic.parameter.value}`;
       }
-      this.uidCounter = this.uidCounter + 1;
+      this.uidCounter += 1;
 
       this.data.heuristics.push(newHeuristic);
       this.updateGraph();
@@ -619,7 +619,7 @@ export default {
       this.shortTransactionHash = shortenHash(this.transactionHash);
 
       // set page title
-      document.title = `Heuristic - ${this.transactionHash}`;
+      document.title = `Heuristic ${this.transactionHash}`;
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
         this.errMsg = 'error setting heuristic click handler';
