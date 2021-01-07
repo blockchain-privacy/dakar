@@ -215,8 +215,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	} else {
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
-			if err = processTxVin(dgraph, &txDetails, d, uint32(i), txHashMap); err != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			if processErr := processTxVin(dgraph, &txDetails, d, uint32(i), txHashMap); processErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
 				return
 			}
 		}
@@ -336,6 +336,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
+		// todo add input script to object
 		refOutput.Amount = output.Amount
 		refOutput.Uid = output.Uid
 	}
