@@ -307,6 +307,8 @@ export default {
   },
   mounted() {
     this.setAddressHash();
+    this.updateSortState();
+    this.updateFilterState();
     window.onscroll = this.handleScroll;
   },
   updated() {

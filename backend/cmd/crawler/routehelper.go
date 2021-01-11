@@ -5,6 +5,7 @@ import (
 	dbaddr "backend/db/address"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
+	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"regexp"
 	"strconv"
@@ -46,13 +47,32 @@ func isLikelyAddress(query string) bool {
 	return query[0:1] == "X" || query[0:1] == "7"
 }
 
+type prunedRPCInfo struct {
+	Blocks               int32   `json:"blocks"`
+	Difficulty           float64 `json:"difficulty"`
+	VerificationProgress float64 `json:"verificationprogress,omitempty"`
+	Pruned               bool    `json:"pruned"`
+}
+
+type metaStatus struct {
+	Status  dbstat.FrontendStatus `json:"status"`
+	RPCInfo prunedRPCInfo         `json:"rpcinfo"`
+}
+
 type heuristicReply struct {
 	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
+type queryResultType string
+
+const typeBlock queryResultType = "block"
+const typeAddr queryResultType = "addr"
+const typeTx queryResultType = "tx"
+const typeEmpty queryResultType = "response_empty"
+
 type SearchResult struct {
-	resultType string
+	resultType queryResultType
 	result     interface{}
 }
 
@@ -68,7 +88,7 @@ func GetBlock(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
 		return SearchResult{}, false, nil
 	}
 
-	return SearchResult{resultType: "block", result: block}, true, nil
+	return SearchResult{resultType: typeBlock, result: block}, true, nil
 }
 
 // GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
@@ -83,7 +103,7 @@ func GetTransaction(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error
 		return SearchResult{}, false, nil
 	}
 
-	return SearchResult{resultType: "tx", result: tx}, true, nil
+	return SearchResult{resultType: typeTx, result: tx}, true, nil
 }
 
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
@@ -106,5 +126,5 @@ func GetAddressWithOptions(dgraph *dgo.Dgraph, query string, sortOrder int, offs
 		return SearchResult{}, false, nil
 	}
 
-	return SearchResult{resultType: "addr", result: addr}, true, nil
+	return SearchResult{resultType: typeAddr, result: addr}, true, nil
 }

@@ -8,21 +8,23 @@ import (
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
-
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
-	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/ristretto"
 )
 
 const (
@@ -113,38 +115,42 @@ func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 }
 
+// setCacheHeader sets the client side caching to a third of the server side cache
+func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
+	if duration == time.Duration(0) {
+		duration = time.Hour * 24
+	}
+	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
+}
+
 type searchResponse struct {
-	Type    string      `json:"type,omitempty"`
-	Payload interface{} `json:"payload,omitempty"`
+	Type    queryResultType `json:"type,omitempty"`
+	Payload interface{}     `json:"payload,omitempty"`
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		query := r.URL.Path[len(getRouteSearch()):]
-
+func handlerSearch(dgraph *dgo.Dgraph) func(string, []byte) ([]byte, error) {
+	return func(query string, body []byte) (response []byte, err error) {
+		// set response struct
 		resp := searchResponse{
-			Type:    "response_empty",
+			Type:    typeEmpty,
 			Payload: nil,
 		}
 
 		if isValid(query) {
-			searchOrder := []interface{}{GetTransaction, GetAddress, GetBlock}
+			searchOrder := []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
 
 			if isLikelyBlock(query) {
-				searchOrder = []interface{}{GetBlock, GetTransaction, GetAddress}
+				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
 			} else if isLikelyAddress(query) {
-				searchOrder = []interface{}{GetAddress, GetTransaction, GetBlock}
+				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
 			}
 
 			// iterate over db access functions
 			for _, fn := range searchOrder {
-				data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
-				if err != nil {
-					http.Error(w, "query: "+query, http.StatusNotFound)
-					serverInfo(cliutil.ShowCallInfo(), err)
+				data, ok, handlerErr := fn(dgraph, query)
+				if handlerErr != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), handlerErr)
 					return
 				}
 				// nothing found -> next try
@@ -159,11 +165,13 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(resp)
+		response, err = json.Marshal(resp)
 		if err != nil {
-			http.Error(w, "Search error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
+
+		return
 	}
 }
 
@@ -171,22 +179,19 @@ func handlerSearch(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) 
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		query := r.URL.Path[len(route):]
-
+func handlerDetails(dgraph *dgo.Dgraph, fn func(*dgo.Dgraph, string) (
+	SearchResult, bool, error)) func(string, []byte) ([]byte, error) {
+	return func(query string, body []byte) (response []byte, err error) {
+		// set response struct
 		resp := searchResponse{
 			Type:    "response_empty",
 			Payload: nil,
 		}
 
 		if isValid(query) {
-			data, ok, err := fn.(func(*dgo.Dgraph, string) (SearchResult, bool, error))(dgraph, query)
-			if err != nil {
-				http.Error(w, "query: "+query, http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), err)
+			data, ok, fnErr := fn(dgraph, query)
+			if fnErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), fnErr)
 				return
 			}
 			if ok {
@@ -196,21 +201,19 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn interface{}) func(http.
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(resp)
+		response, err = json.Marshal(resp)
 		if err != nil {
-			http.Error(w, "Search error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
+
+		return
 	}
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		query := r.URL.Path[len(getRouteAddressOutputRange()):]
-
+func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte, error) {
+	return func(query string, body []byte) (response []byte, err error) {
 		resp := searchResponse{
 			Type:    "response_empty",
 			Payload: nil,
@@ -227,37 +230,30 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *ht
 			addressRequest.Offset = -1
 			addressRequest.Order = -1
 
-			decoder := json.NewDecoder(r.Body)
-			err := decoder.Decode(&addressRequest)
-			if err != nil {
-				http.Error(w, "invalid request", http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), err)
+			if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 				return
 			}
 
 			if !dbaddr.IsValidSortOrder(addressRequest.Order) {
-				http.Error(w, errorInvalidSortOrder, http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidSortOrder))
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidSortOrder))
 				return
 			}
 
 			if !dbaddr.IsValidFilter(addressRequest.Filter) {
-				http.Error(w, errorInvalidFilter, http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidFilter))
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidFilter))
 				return
 			}
 
 			if addressRequest.Offset < 0 {
-				http.Error(w, errorInvalidOffset, http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), errors.New(errorInvalidOffset))
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidOffset))
 				return
 			}
 
 			data, ok, addrErr := GetAddressWithOptions(dgraph, query,
 				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 			if addrErr != nil {
-				http.Error(w, "query: "+query, http.StatusNotFound)
-				serverInfo(cliutil.ShowCallInfo(), addrErr)
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addrErr)
 				return
 			}
 			if ok {
@@ -267,51 +263,61 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(http.ResponseWriter, *ht
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(resp)
+		response, err = json.Marshal(resp)
 		if err != nil {
-			http.Error(w, "Search error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
+
+		return
 	}
 }
 
-// API pattern: "/api/v1/meta/"
-func handlerMeta(dgraph *dgo.Dgraph, client *rpcclient.Client) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
+var (
+	errHttpDefault = errors.New("an error occurred")
+	errGetDatabase = errors.New("error getting data from db")
+)
 
+// API pattern: "/api/v1/meta/"
+func handlerMeta(dgraph *dgo.Dgraph,
+	client *rpcclient.Client) func(string, []byte) ([]byte, error) {
+	return func(query string, body []byte) (response []byte, err error) {
+		// async request rpc info
+		futureBlockchainInfo := client.GetBlockChainInfoAsync()
+
+		// get data from db
 		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
 		if err != nil {
-			http.Error(w, "error getting status information", http.StatusInternalServerError)
-
-			serverInfo(cliutil.ShowCallInfo(), err)
-
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		rpcInfo, err := client.GetBlockChainInfo()
+		// receive async rpc info
+		rpcInfo, err := futureBlockchainInfo.Receive()
 		if err != nil {
-			http.Error(w, "error getting status information", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		type metaStatus struct {
-			Status  dbstat.FrontendStatus           `json:"status"`
-			RPCInfo btcjson.GetBlockChainInfoResult `json:"rpcinfo"`
-		}
-
+		// set response struct
 		stat := metaStatus{
-			Status:  verboseStatus,
-			RPCInfo: *rpcInfo,
+			Status: verboseStatus,
+			RPCInfo: prunedRPCInfo{
+				Blocks:               rpcInfo.Blocks,
+				Difficulty:           rpcInfo.Difficulty,
+				VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
+				Pruned:               rpcInfo.Pruned,
+			},
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(stat)
+		response, err = json.Marshal(stat)
 		if err != nil {
-			http.Error(w, "Meta information: "+verboseStatus.String(), http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
+
+		return
 	}
 }
 
@@ -678,18 +684,97 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 	}
 }
 
+// handleError conditionally logs and writes the error to the http response
+func handleError(w http.ResponseWriter, err error) {
+	if err == nil || w == nil {
+		return
+	}
+
+	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
+	serverInfo(cliutil.ShowCallInfo(), err)
+}
+
+// buildKey build a key from the given arguments
+func buildKey(route string, query string, body []byte) (key string) {
+	key = route + query
+	if len(body) > 0 {
+		key += string(body[:])
+	}
+
+	return
+}
+
+// cacheMiddleware caches the response of handler for the specified ttl
+func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
+	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// set headers
+		setDefaultHeader(w)
+		setCacheHeader(w, ttl)
+
+		// extract body
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		query := r.URL.Path[len(route):]
+		cacheKey := buildKey(route, query, body)
+
+		// try to get request from cache
+		value, found := cache.Get(cacheKey)
+		var buf []byte
+		if found {
+			serverInfo("cachekey", cacheKey)
+			buf = value.([]byte)
+		} else {
+			var handlerErr error
+			buf, handlerErr = handler(query, body)
+			if handlerErr != nil {
+				handleError(w, handlerErr)
+				return
+			}
+
+			cache.SetWithTTL(cacheKey, buf, 1, ttl)
+		}
+
+		// write response
+		_, err = w.Write(buf)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+	}
+}
+
 // setupHandlers creates endpoint handlers
 func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
 	worker := heuristic.NewWorker()
 	worker.StartWorking(ctx, dgraph)
 
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,     // number of keys to track frequency of (10M).
+		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	// API end points
-	http.HandleFunc(getRouteSearch(), handlerSearch(dgraph))
-	http.HandleFunc(getRouteTransaction(), handlerDetails(dgraph, getRouteTransaction(), GetTransaction))
-	http.HandleFunc(getRouteAddress(), handlerDetails(dgraph, getRouteAddress(), GetAddress))
-	http.HandleFunc(getRouteBlock(), handlerDetails(dgraph, getRouteBlock(), GetBlock))
-	http.HandleFunc(getRouteAddressOutputRange(), handlerAddressOutputRange(dgraph))
-	http.HandleFunc(getRouteMeta(), handlerMeta(dgraph, client))
+	http.HandleFunc(getRouteSearch(),
+		cacheMiddleware(cache, getRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+	http.HandleFunc(getRouteBlock(),
+		cacheMiddleware(cache, getRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
+	http.HandleFunc(getRouteTransaction(),
+		cacheMiddleware(cache, getRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
+	http.HandleFunc(getRouteAddress(),
+		cacheMiddleware(cache, getRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
+	http.HandleFunc(getRouteAddressOutputRange(),
+		cacheMiddleware(cache, getRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+	http.HandleFunc(getRouteMeta(),
+		cacheMiddleware(cache, getRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
 	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
 	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph, &worker))

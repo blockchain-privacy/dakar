@@ -6,6 +6,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/dgraph-io/dgo/v2 v2.2.0
+	github.com/dgraph-io/ristretto v0.0.3
 	github.com/kr/pretty v0.2.0 // indirect
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

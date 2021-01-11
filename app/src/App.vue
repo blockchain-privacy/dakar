@@ -9,7 +9,7 @@
           src="./assets/dakar_dash.svg"
           transition="scale-transition"
           width="32"/>
-      <v-toolbar-title class="mx-2 hidden-sm-and-down" @click="goToRoot()" style="cursor:pointer">
+      <v-toolbar-title class="mx-2 d-none d-sm-flex" @click="goToRoot()" style="cursor:pointer">
         {{ applicationName }}
       </v-toolbar-title>
       <v-spacer></v-spacer>
