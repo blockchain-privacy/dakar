@@ -1,8 +1,10 @@
 <template>
   <v-list-item>
     <v-list-item-avatar>
-      <v-icon v-if="!isColor">{{ icon }}</v-icon>
-      <v-icon v-if="isColor" v-bind:class="{ 'green--text': !isRed, 'red--text': isRed }">
+      <v-icon v-if="!isColor" style="max-width: 32px">{{ icon }}</v-icon>
+      <v-icon style="max-width: 32px"
+              v-if="isColor"
+              v-bind:class="{ 'green--text': !isRed, 'red--text': isRed }">
         {{ icon }}
       </v-icon>
     </v-list-item-avatar>
@@ -11,7 +13,7 @@
         {{ title }}
         <v-hover v-slot:default="{ hover }" open-delay="0" v-if="tooltip">
           <v-icon small :id="uuid">
-            {{ hover ? "mdi-help-circle" : "mdi-help-circle-outline" }}
+            {{ hover ? icons.mdiHelpCircle : icons.mdiHelpCircleOutline }}
           </v-icon>
         </v-hover>
         <v-tooltip right v-if="tooltip" :activator="`#${uuid}`">
@@ -26,6 +28,9 @@
 </template>
 
 <script>
+import {
+  mdiHelpCircle, mdiHelpCircleOutline,
+} from '@mdi/js';
 
 // uuidv4 generates a pseudo random unique id
 // credits:
@@ -49,6 +54,9 @@ export default {
   },
   data() {
     return {
+      icons: {
+        mdiHelpCircle, mdiHelpCircleOutline,
+      },
       uuid: '',
     };
   },

@@ -15,7 +15,7 @@
       </v-btn>
       <v-list-item v-else-if='isSubMenu' class='d-flex justify-space-between' v-on="on">
         {{ name }}
-        <v-icon>mdi-chevron-right</v-icon>
+        <v-icon>{{ icons.mdiChevronRight }}</v-icon>
       </v-list-item>
       <!--      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>-->
     </template>
@@ -39,6 +39,10 @@
 </template>
 
 <script>
+import {
+  mdiChevronRight,
+} from '@mdi/js';
+
 export default {
   name: 'NestedMenu',
   props: {
@@ -55,6 +59,13 @@ export default {
     isOpenOnHover: { type: Boolean, default: false },
     isSubMenu: { type: Boolean, default: false },
     transition: { type: String, default: 'scale-transition' },
+  },
+  data() {
+    return {
+      icons: {
+        mdiChevronRight,
+      },
+    };
   },
   methods: {
     emitClickEvent(item) {

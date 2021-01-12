@@ -5,7 +5,7 @@
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
-              <v-icon>mdi-cube-outline</v-icon>
+              <v-icon>{{icon.mdiCubeOutline}}</v-icon>
               Block {{ data.blockhash }}
             </v-toolbar-title>
           </v-toolbar>
@@ -13,20 +13,20 @@
             <v-container>
               <v-row>
                 <v-col v-if="data.id">
-                  <IconItem icon="mdi-format-list-numbered"
+                  <IconItem :icon="icon.mdiFormatListNumbered"
                             title="Block Height" :subtitle="data.id">
                     {{ data.id }}
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.ts">
-                  <IconItem icon="mdi-calendar" title="Timestamp">
+                  <IconItem :icon="icon.mdiCalendar" title="Timestamp">
                     {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col v-if="data.prevblockhash">
-                  <IconItem icon="mdi-format-header-pound" title="Previous Block">
+                  <IconItem :icon="icon.mdiFormatHeaderPound" title="Previous Block">
                     <router-link :to="{ name: blockRoute,
                     params: { id: data.prevblockhash }}">
                       {{ shortenHash(data.prevblockhash) }}
@@ -34,7 +34,7 @@
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.nextblockhash">
-                  <IconItem icon="mdi-format-header-pound" title="Next Block">
+                  <IconItem :icon="icon.mdiFormatHeaderPound" title="Next Block">
                     <router-link :to="{ name: blockRoute,
                     params: { id: data.nextblockhash }}">
                       {{ shortenHash(data.nextblockhash) }}
@@ -45,7 +45,7 @@
               <v-divider v-if="data.txhashes"></v-divider>
               <v-row v-if="data.txhashes">
                 <v-col v-for="tx in data.txhashes" v-bind:key="tx">
-                  <IconItem icon="mdi-transfer" title="Transaction">
+                  <IconItem :icon="icon.mdiTransfer" title="Transaction">
                     <router-link :to="{ name: transactionRoute,
                     params: { id: tx }}">
                       {{ shortenHash(tx) }}
@@ -62,6 +62,10 @@
 </template>
 
 <script>
+import {
+  mdiCubeOutline, mdiFormatListNumbered, mdiCalendar,
+  mdiFormatHeaderPound, mdiTransfer,
+} from '@mdi/js';
 import { shortenHash } from '../utilities';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
@@ -74,6 +78,13 @@ export default {
   },
   data() {
     return {
+      icon: {
+        mdiCubeOutline,
+        mdiFormatListNumbered,
+        mdiCalendar,
+        mdiFormatHeaderPound,
+        mdiTransfer,
+      },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };

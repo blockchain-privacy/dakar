@@ -5,7 +5,7 @@
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
-              <v-icon>mdi-database</v-icon>
+              <v-icon>{{ icon.mdiDatabase }}</v-icon>
               Server status
             </v-toolbar-title>
             <v-spacer></v-spacer>
@@ -13,7 +13,7 @@
               <v-progress-circular
                   :value="timeoutData.percent" rotate="270" size="40">
                 <v-icon>
-                  mdi-refresh
+                  {{ icon.mdiRefresh }}
                 </v-icon>
               </v-progress-circular>
             </v-btn>
@@ -25,7 +25,7 @@
             <v-container v-if="data">
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-database-sync" title="Chain Synchronisation"
+                  <IconItem :icon="icon.mdiDatabaseSync" title="Chain Synchronisation"
                             :tooltip="tooltips.databaseSync"
                             is-color :is-red="!data.status.iscrawling">
                     <v-progress-linear
@@ -39,7 +39,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-database-search" title="Database analysis"
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database analysis"
                             :tooltip="tooltips.databaseAnalysation" is-color
                             :is-red="!data.status.isanalyzing">
                     <v-progress-linear
@@ -55,7 +55,7 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-arrow-down-circle-outline" title="Lowest block ID"
+                  <IconItem :icon="icon.mdiArrowDownCircleOutline" title="Lowest block ID"
                             :tooltip="tooltips.lowestBlockId">
                     <router-link :to="'block/' + data.status.lowestblockid">
                       {{ data.status.lowestblockid }}
@@ -63,7 +63,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-timeline-clock-outline" title="Last crawled block"
+                  <IconItem :icon="icon.mdiTimelineClockOutline" title="Last crawled block"
                             :tooltip="tooltips.lastBlockId">
                     <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastblockid }}">
@@ -75,16 +75,15 @@
               <v-divider v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-format-list-numbered"
+                  <IconItem :icon="icon.mdiFormatListNumbered"
                             title="Block Height" :tooltip="tooltips.rpcBlockHeight">
                     {{ data.rpcinfo.blocks }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-progress-wrench"
+                  <IconItem :icon="icon.mdiProgressWrench"
                             title="Verification Progress"
                             :tooltip="tooltips.rpcVerificationProgress">
-
                     <v-progress-linear
                         :color="data.rpcinfo.verificationprogress > 98?'green'
                         :data.rpcinfo.verificationprogress > 90?'light-green':'light-blue'"
@@ -99,14 +98,17 @@
               <v-row>
                 <v-col>
                   <IconItem
-                      icon="mdi-cube-off-outline"
+                      :icon="icon.mdiCubeOffOutline"
                       title="Pruned"
                       :tooltip="tooltips.rpcPruned">
                     {{ data.rpcinfo.pruned ? 'Yes' : 'No' }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-weight" title="Difficulty" :tooltip="tooltips.rpcDifficulty">
+                  <IconItem
+                      :icon="icon.mdiWeight"
+                      title="Difficulty"
+                      :tooltip="tooltips.rpcDifficulty">
                     {{ data.rpcinfo.difficulty.toFixed() }}
                   </IconItem>
                 </v-col>
@@ -120,6 +122,12 @@
 </template>
 
 <script>
+import {
+  mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
+  mdiArrowDownCircleOutline, mdiTimelineClockOutline,
+  mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
+  mdiWeight,
+} from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
 
@@ -128,6 +136,18 @@ export default {
   components: { IconItem },
   data() {
     return {
+      icon: {
+        mdiRefresh,
+        mdiDatabase,
+        mdiDatabaseSync,
+        mdiDatabaseSearch,
+        mdiArrowDownCircleOutline,
+        mdiTimelineClockOutline,
+        mdiFormatListNumbered,
+        mdiProgressWrench,
+        mdiCubeOffOutline,
+        mdiWeight,
+      },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
         lastBlockId: 'Last block which was completely saved in the database',

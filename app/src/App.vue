@@ -16,7 +16,7 @@
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
       <v-btn icon v-on:click="changeTheme()">
-        <v-icon dark>mdi-invert-colors</v-icon>
+        <v-icon dark>{{ icon.mdiInvertColors }}</v-icon>
       </v-btn>
     </v-app-bar>
     <v-main>
@@ -38,6 +38,9 @@
 </template>
 
 <script>
+import {
+  mdiInvertColors,
+} from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
@@ -51,6 +54,9 @@ export default {
   data() {
     return {
       applicationName: Constants.APPLICATION_NAME,
+      icon: {
+        mdiInvertColors,
+      },
     };
   },
   methods: {
@@ -74,8 +80,9 @@ export default {
 .component-fade-enter-active, .component-fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .component-fade-enter, .component-fade-leave-to
-  /* .component-fade-leave-active below version 2.1.8 */ {
+{
   opacity: 0;
 }
 </style>

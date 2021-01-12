@@ -5,14 +5,14 @@
         <v-card class="elevation-12">
           <v-toolbar :color="data.privacytype?'purple':'primary'" dark flat>
             <v-toolbar-title>
-              <v-icon>mdi-transfer</v-icon>
+              <v-icon>{{ icon.mdiTransfer }}</v-icon>
               Transaction {{ data.txhash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn id="btn_open_heuristic_editor" v-if="data.privacytype === 'destination'"
                    style="margin-right: 0" outlined icon
                    @click="goToHeuristicPage">
-              <v-icon>mdi-graph</v-icon>
+              <v-icon>{{ icon.mdiGraph }}</v-icon>
             </v-btn>
             <v-tooltip bottom activator="#btn_open_heuristic_editor">
               <span>Open the heuristic editor for this transaction.</span>
@@ -43,26 +43,26 @@
             <v-container>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-format-list-numbered" title="Block Height">
+                  <IconItem :icon="icon.mdiFormatListNumbered" title="Block Height">
                     <router-link :to="{ name: blockRoute, params: { id: data.bid }}">
                       {{ data.bid }}
                     </router-link>
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-calendar" title="Timestamp">
+                  <IconItem :icon="icon.mdiCalendar" title="Timestamp">
                     {{ new Date(data.bts).toLocaleString() }}
                   </IconItem>
                 </v-col>
               </v-row>
               <v-row>
                 <v-col v-if="(data.fee || data.fee === 0) && data.fee >= 0">
-                  <IconItem icon="mdi-cash" title="Fee">
+                  <IconItem :icon="icon.mdiCash" title="Fee">
                     {{ convertAmount(data.fee) }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-format-header-pound" title="Block">
+                  <IconItem :icon="icon.mdiFormatHeaderPound" title="Block">
                     <router-link :to="{ name: blockRoute, params: { id: data.bhash }}">
                       {{ shortenHash(data.bhash) }}
                     </router-link>
@@ -71,12 +71,12 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-pound" title="Number of outputs">
+                  <IconItem :icon="icon.mdiPound" title="Number of outputs">
                     {{ !data.outputs ? 0 : data.outputs.length }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-pound" title="Number of inputs">
+                  <IconItem :icon="icon.mdiPound"  title="Number of inputs">
                     {{ !data.inputs ? 0 : data.inputs.length }}
                   </IconItem>
                 </v-col>
@@ -86,7 +86,7 @@
                 <v-col v-for="i in outputs" v-bind:key="i.addresshash + i.outputindex">
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-                      <IconItem icon="mdi-currency-usd-circle-outline" title="Output">
+                      <IconItem :icon="icon.mdiCurrencyUsdCircleOutline" title="Output">
                         Address hash:
                         <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
                           {{ i.addresshash }}
@@ -106,7 +106,7 @@
                 <v-col v-for="i in inputs" v-bind:key="i.addresshash + i.inputindex">
                   <v-sheet min-height="50" class="fill-height" color="transparent">
                     <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 1}">
-                      <IconItem icon="mdi-currency-usd-circle" title="Input">
+                      <IconItem :icon="icon.mdiCurrencyUsdCircle" title="Input">
                         Address hash:
                         <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
                           {{ i.addresshash }}
@@ -129,6 +129,11 @@
 </template>
 
 <script>
+import {
+  mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
+  mdiCash, mdiFormatHeaderPound, mdiPound, mdiCurrencyUsdCircleOutline,
+  mdiCurrencyUsdCircle,
+} from '@mdi/js';
 import { shortenHash, convertAmount, getCurrentDate } from '../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
@@ -141,6 +146,17 @@ export default {
   components: { IconItem },
   data() {
     return {
+      icon: {
+        mdiTransfer,
+        mdiGraph,
+        mdiFormatListNumbered,
+        mdiCalendar,
+        mdiCash,
+        mdiFormatHeaderPound,
+        mdiPound,
+        mdiCurrencyUsdCircleOutline,
+        mdiCurrencyUsdCircle,
+      },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       isLoading: false,
