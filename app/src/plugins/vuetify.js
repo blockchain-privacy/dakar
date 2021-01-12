@@ -17,6 +17,9 @@ const vuetify = new Vuetify({
       },
     },
   },
+  icons: {
+    iconfont: 'mdiSvg',
+  },
 });
 mq.addEventListener('change', (e) => {
   vuetify.framework.theme.dark = e.matches;
