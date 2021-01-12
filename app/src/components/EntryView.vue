@@ -34,7 +34,7 @@
                         height="17"
                         :value="crawlerSyncProgress"
                         rounded>
-                      {{ Math.round(crawlerSyncProgress) }} %
+                      {{ Math.round(crawlerSyncProgress) }}%
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
@@ -48,7 +48,7 @@
                         height="17"
                         :value="analyzerSyncProgress"
                         rounded>
-                      {{ Math.round(analyzerSyncProgress) }} %
+                      {{ Math.round(analyzerSyncProgress) }}%
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
@@ -81,6 +81,31 @@
                   </IconItem>
                 </v-col>
                 <v-col>
+                  <IconItem icon="mdi-progress-wrench"
+                            title="Verification Progress"
+                            :tooltip="tooltips.rpcVerificationProgress">
+
+                    <v-progress-linear
+                        :color="data.rpcinfo.verificationprogress > 98?'green'
+                        :data.rpcinfo.verificationprogress > 90?'light-green':'light-blue'"
+                        height="17"
+                        :value="data.rpcinfo.verificationprogress"
+                        rounded>
+                      {{ Math.round(data.rpcinfo.verificationprogress) }}%
+                    </v-progress-linear>
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col>
+                  <IconItem
+                      icon="mdi-cube-off-outline"
+                      title="Pruned"
+                      :tooltip="tooltips.rpcPruned">
+                    {{ data.rpcinfo.pruned ? 'Yes' : 'No' }}
+                  </IconItem>
+                </v-col>
+                <v-col>
                   <IconItem icon="mdi-weight" title="Difficulty" :tooltip="tooltips.rpcDifficulty">
                     {{ data.rpcinfo.difficulty.toFixed() }}
                   </IconItem>
@@ -109,11 +134,10 @@ export default {
         lowestBlockId: 'Lowest block ID in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
         databaseAnalysation: 'Percentage of analyzed blocks in the database. The analyzer is active if the icon is green.',
-        rpcVersion: 'Version of the RPC client',
-        rpcProtocolVersion: 'Version of the protocol',
         rpcBlockHeight: 'Current block height of the RPC client',
-        rpcConnections: 'Number of Nodes connected to the RPC client',
         rpcDifficulty: 'Current mining difficulty',
+        rpcPruned: 'Whether the RPC client prunes blocks',
+        rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
       },
       timer: null,
       timeoutData: {
