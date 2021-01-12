@@ -12,7 +12,7 @@
             <v-card-subtitle>
               <v-row>
                 <v-col>
-                  <IconItem title="Type" :icon="icon.md">
+                  <IconItem title="Type" :icon="icon.mdiIframeVariableOutline">
                     {{ heuristicData.heuristicType }}
                   </IconItem>
                 </v-col>
