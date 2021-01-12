@@ -1,5 +1,5 @@
 <template>
-  <v-layout row>
+  <v-layout>
     <v-flex style="z-index: 100">
       <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info"
                dense dismissible v-model="isInfoActive">

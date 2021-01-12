@@ -152,7 +152,16 @@ export default {
       return true;
     },
     isValidData(str) {
-      return str.length > 0 && str.match(/^[0-9a-zA-Z]+$/);
+      const inputLen = str.length;
+      // 64 -> length of transaction hash and block hash
+      if (inputLen === 0 || inputLen > 64) return false;
+
+      // 34 -> address length; if smaller than it must be a block id
+      if (inputLen < 34) {
+        return Number.isInteger(Number(str));
+      }
+
+      return str.match(/^[0-9a-zA-Z]+$/);
     },
   },
   created() {

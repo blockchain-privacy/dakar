@@ -31,11 +31,13 @@ func info(v ...interface{}) {
 }
 
 func GetBackendContext() context.Context {
+	// discarding the cancel function on purpose.
 	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
 	return ctx
 }
 
 func GetFrontendContext() context.Context {
+	// discarding the cancel function on purpose.
 	ctx, _ := context.WithTimeout(context.Background(), frontEndTimout)
 	return ctx
 }

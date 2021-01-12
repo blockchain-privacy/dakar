@@ -1,14 +1,40 @@
 package main
 
 import (
+	heuristic "backend/analytics/heuristics/transaction"
 	dbaddr "backend/db/address"
+	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
 	dbtx "backend/db/transaction"
+	"regexp"
+	"strconv"
 
 	"errors"
 
 	"github.com/dgraph-io/dgo/v2"
 )
+
+// isValidInput is a regex filter which checks if the input only consists of numbers and letters
+var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
+
+// isValid checks if user input is valid.
+// Should be used to check address, transaction and block hashes, as well as block ids.
+func isValid(input string) bool {
+	inputLen := len(input)
+	// 64 -> length of transaction hash and block hash
+	if inputLen == 0 || inputLen > 64 {
+		return false
+	}
+
+	// 34 -> address length; if smaller than it must be a block id
+	if inputLen < 34 {
+		// attempt to convert input to an integer; if it succeeds the input is valid.
+		_, err := strconv.Atoi(input)
+		return err == nil
+	}
+
+	return isValidInput(input)
+}
 
 // isLikelyBlock returns true if the given query string is likely a block hash
 func isLikelyBlock(query string) bool {
@@ -18,6 +44,11 @@ func isLikelyBlock(query string) bool {
 // isLikelyAddress returns true if the given query string is likely an address hash
 func isLikelyAddress(query string) bool {
 	return query[0:1] == "X" || query[0:1] == "7"
+}
+
+type heuristicReply struct {
+	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
+	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
 type SearchResult struct {

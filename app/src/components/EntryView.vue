@@ -115,6 +115,7 @@ export default {
         rpcConnections: 'Number of Nodes connected to the RPC client',
         rpcDifficulty: 'Current mining difficulty',
       },
+      timer: null,
       timeoutData: {
         start: 0,
         refreshStep: 10000,

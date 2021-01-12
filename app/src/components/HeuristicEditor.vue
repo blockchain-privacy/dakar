@@ -11,50 +11,46 @@
         style="max-width: 600px"
         name='File' :menu-items='contextMenu.items' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
-        style="width: 100%; left:0;position:fixed; z-index: 99"
+        color="primary"
+        dark
+        style="width: 100%; left:0;position:fixed; z-index: 99;
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
         dense>
-      <v-toolbar-title>
-        <v-icon class="hidden-sm-and-down">mdi-transfer</v-icon>
+      <v-toolbar-title class="hidden-md-and-up">
+        {{ this.shortTransactionHash }}
+      </v-toolbar-title>
+      <v-toolbar-title class="hidden-sm-and-down">
+        <v-icon>mdi-transfer</v-icon>
         Transaction {{ this.shortTransactionHash }}
       </v-toolbar-title>
       <v-btn icon @click="goToTransactionPage">
         <v-icon>mdi-open-in-new</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
-
-      <!--    todo: remove?-->
-      <v-btn outlined class="mr-1" @click="refreshData">Reload</v-btn>
-
-      <v-btn outlined @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen">
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen"
+          :disabled="this.executionStatus.value.executing">
         <v-icon>mdi-shape-square-rounded-plus</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
-      <v-menu
-          bottom
-          left>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              icon
-              v-bind="attrs"
-              v-on="on">
-            <v-icon>mdi-dots-vertical</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item @click="downloadHeuristicSummary" :disabled="!doesDataExist()">
-            <v-list-item-icon>
-              <v-icon>mdi-file-download-outline</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Download Summary</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="executeHeuristics" :disabled="!isExecutable()">
-            <v-list-item-icon>
-              <v-icon>mdi-source-branch-check</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Execute Heuristics</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="downloadHeuristicSummary"
+          :disabled="this.executionStatus.value.executing || !doesDataExist()">
+        <v-icon>mdi-file-download-outline</v-icon>
+        <div class="hidden-sm-and-down">Download Summary</div>
+      </v-btn>
+      <v-btn
+          class="ml-1"
+          outlined
+          @click="executeHeuristics"
+          :disabled="this.executionStatus.value.executing || !isExecutable()">
+        <v-icon>mdi-source-branch-check</v-icon>
+        <div class="hidden-sm-and-down">Execute Heuristics</div>
+      </v-btn>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
           <div>
@@ -107,6 +103,32 @@
       <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
                         :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
+    <v-overlay
+        opacity="0.75"
+        absolute
+        :value="executionStatus.value.executing">
+      <v-row justify="center">
+        <v-col class="ma-5" v-if="!executionStatus.value.processing">
+          Heuristics are waiting for processing.
+          This may take several minutes depending on the chosen parameters and
+          number of heuristics. You can wait or close this page and come back later.
+        </v-col>
+        <v-col class="ma-5" v-if="executionStatus.value.processing">
+          Heuristics are executing now.
+          This may take several minutes depending on the chosen parameters and
+          number of heuristics. You can wait or close this page and come back later.
+        </v-col>
+      </v-row>
+      <v-row justify="center">
+        <v-progress-linear
+            style="max-width: 350px;"
+            indeterminate
+            rounded
+            height="6"
+            :color="executionStatus.value.processing?'green darken-3':'primary'"
+        ></v-progress-linear>
+      </v-row>
+    </v-overlay>
     <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
   </v-container>
 </template>
@@ -116,6 +138,7 @@ import HeuristicDetails from './HeuristicDetails.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
+  ROUTE_HEURISTIC_STATUS,
 } from '../constants';
 import NestedMenu from './common/NestedMenu.vue';
 import * as ht from '../heuristicTree';
@@ -178,13 +201,8 @@ function areDataElementsEqual(a, b) {
   if (a.parent_heuristic !== undefined && b.parent_heuristic !== undefined) {
     return a.parent_heuristic[0].uid === b.parent_heuristic[0].uid;
   }
-  if ((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
-      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined)) {
-    // if one is set but not the other
-    return false;
-  }
-
-  return true;
+  return !((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
+      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined));
 }
 
 export default {
@@ -193,14 +211,36 @@ export default {
   data() {
     return {
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
+      isHeuristicExecuting: false,
+      executionStatus: {
+        dormantTimer: {
+          timer: null,
+          refreshRate: 20000,
+        },
+        activeTimer: {
+          timer: null,
+          refreshRate: 2000,
+        },
+        value: {
+          executing: false,
+          processing: false,
+        },
+        enum: {
+          added: 0,
+          duplicate: 1,
+          notInQueue: 2,
+          inQueue: 3,
+          processing: 4,
+        },
+      },
       newUidPrefix: 'newUid_',
       uidCounter: 1,
       transactionHash: '',
       shortTransactionHash: '',
       // dbState holds the state of the database.
-      // It is used to detect changes in this.data (computed)
+      // It is used to detect changes in this.data.heuristics (computed)
       dbState: null,
-      // changeSet holds all changes based on dbState and this.data(computed)
+      // changeSet holds all changes based on dbState and this.data.heuristics (computed)
       changeSet: [],
       // deletedData holds all uids of the heuristic which are deleted
       deletedData: [],
@@ -264,11 +304,11 @@ export default {
         x: 0,
         y: 0,
         items: [
-          { title: 'Delete sub tree', icon: 'mdi-delete', action: this.deleteSubTree },
-          { title: 'Show properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
+          { title: 'Delete Heuristic', icon: 'mdi-delete', action: this.deleteSubTree },
+          { title: 'Show Properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
           { isDivider: true },
           {
-            title: 'Add heuristic',
+            title: 'Add Heuristic',
             icon: 'mdi-shape-square-rounded-plus',
             action: () => {
               this.isAddHeuristicSheetOpen = true;
@@ -279,13 +319,13 @@ export default {
             title: 'Actions',
             menu: [
               {
-                title: 'Download summary',
+                title: 'Download Summary',
                 icon: 'mdi-file-download-outline',
                 action: this.downloadHeuristicSummary,
                 disabled: this.doesDataExist,
               },
               {
-                title: 'Execute heuristics',
+                title: 'Execute Heuristics',
                 icon: 'mdi-source-branch-check',
                 action: this.executeHeuristics,
                 disabled: this.isExecutable,
@@ -340,9 +380,9 @@ export default {
       if (heuristic.parameter) {
         newHeuristic.parameter = `${heuristic.parameter.value}`;
       }
-      this.uidCounter = this.uidCounter + 1;
+      this.uidCounter += 1;
 
-      this.data.push(newHeuristic);
+      this.data.heuristics.push(newHeuristic);
       this.updateGraph();
     },
     openPropertySheet(heuristic) {
@@ -399,7 +439,14 @@ export default {
       return this.deletedData.length > 0;
     },
     doesDataExist() {
-      return !(this.data === null || this.data === undefined || this.data.length < 2);
+      if (!this.data || !this.data.heuristics) return false;
+
+      // count elements which are not root or non-executed
+      const numElements = this.data.heuristics.reduce(
+        (sum, e) => (e.uid.startsWith(this.newUidPrefix) || e.uid === 'root' ? sum : sum + 1), 0,
+      );
+
+      return numElements > 0;
     },
     executeHeuristics() {
       // prevent execution if not data is available
@@ -412,16 +459,37 @@ export default {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(prepareData(this.dbState, this.data,
+        body: JSON.stringify(prepareData(this.dbState, this.data.heuristics,
           this.changeSet, this.deletedData)),
       })
         .then((response) => response.json())
         .then((data) => {
-          this.successMsg = data;
+          if (data.status === undefined) throw Error('execution status is not defined');
+          this.setExecutionStatus(data.status);
+          this.startActiveTimer();
         })
         .catch((error) => {
           this.errMsg = error;
         });
+    },
+    setExecutionStatus(status) {
+      switch (status) {
+        case this.executionStatus.enum.added:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = true;
+          break;
+        case this.executionStatus.enum.inQueue:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = true;
+          break;
+        case this.executionStatus.enum.processing:
+          this.executionStatus.value.processing = true;
+          this.executionStatus.value.executing = true;
+          break;
+        default:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = false;
+      }
     },
     downloadHeuristicSummary() {
       if (!this.doesDataExist()) return;
@@ -442,11 +510,11 @@ export default {
         });
     },
     // updateChangeSet updates the change set <this.changeSet> based
-    // on the differences of this.data and this.dbState
+    // on the differences of this.data.heuristics and this.dbState
     updateChangeSet() {
       this.changeSet = [];
       const originChangeSet = [];
-      this.data.forEach((d) => {
+      this.data.heuristics.forEach((d) => {
         if (this.dbState.has(d.uid)) {
           const thisElement = this.dbState.get(d.uid);
           if (!areDataElementsEqual(thisElement, d)) {
@@ -488,7 +556,7 @@ export default {
 
       const updatedData = [];
 
-      this.data.forEach((e) => {
+      this.data.heuristics.forEach((e) => {
         // update children set of parent
         if (rel.parentUid !== '' && e.uid === rel.parentUid) {
           e.children = e.children.filter((c) => c.uid !== rel.childUid);
@@ -500,9 +568,11 @@ export default {
         }
       });
 
-      this.$store.dispatch('setHeuristicData', updatedData);
+      this.data = { heuristics: updatedData, status: 0 };
 
-      const newStateMap = new Map(this.data.map((d) => [d.uid, d]));
+      // this.$store.dispatch('setHeuristicData', );
+
+      const newStateMap = new Map(this.data.heuristics.map((d) => [d.uid, d]));
       this.deletedData = getDeletedData(this.dbState, newStateMap);
 
       // update displayed graph
@@ -521,7 +591,7 @@ export default {
     },
     updateGraph() {
       // maps the node data to the tree layout
-      const nodeData = ht.processGraphData(this.data);
+      const nodeData = ht.processGraphData(this.data.heuristics);
       ht.drawGraph(nodeData, this);
       // updateChangeSet is called after a graph update,
       // because otherwise it gets a not up to date descendant state
@@ -529,20 +599,24 @@ export default {
     },
     async refreshData() {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+      this.setExecutionStatus(this.data.status);
+
+      if (this.executionStatus.value.executing) this.startActiveTimer();
 
       // if the transaction has not yet any heuristics associated
-      if (this.data === null) {
-        this.data = [];
+      if (!this.data || !this.data.heuristics) {
+        this.data.heuristics = [];
       }
-      this.data.push({ uid: 'root' });
+      this.data.heuristics.push({ uid: 'root' });
 
       // reset deleted data
       this.deletedData = [];
 
       // deep copy of the array; Yes, this is how to do a deep copy in vanilla Javascript.
-      // It's mind-boggling. As this.data is effectively a JSON, we can safely use the JSON
-      // functions (complex types like function are not allowed):
-      this.dbState = new Map(JSON.parse(JSON.stringify(this.data)).map((d) => [d.uid, d]));
+      // It's mind-boggling. As this.data.heuristics is effectively a JSON,
+      // we can safely use the JSON functions (complex types like function are not allowed):
+      this.dbState = new Map(JSON.parse(JSON.stringify(this.data.heuristics))
+        .map((d) => [d.uid, d]));
       this.updateGraph();
     },
     onMounted() {
@@ -555,7 +629,7 @@ export default {
       this.shortTransactionHash = shortenHash(this.transactionHash);
 
       // set page title
-      document.title = `Heuristic - ${this.transactionHash}`;
+      document.title = `Heuristic ${this.transactionHash}`;
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
         this.errMsg = 'error setting heuristic click handler';
@@ -574,13 +648,53 @@ export default {
       }
       this.contextMenu.display = false;
     },
+    async updateExecutionStatus() {
+      await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.status === undefined) throw Error('execution status is not defined');
+          const oldExecutionStatus = this.executionStatus.value.executing;
+          this.setExecutionStatus(data.status);
+          // if it was previously executing refresh data
+          if (oldExecutionStatus && !this.executionStatus.value.executing) {
+            this.refreshData();
+            this.stopActiveTimer();
+          }
+        })
+        .catch((error) => {
+          this.errMsg = error;
+        });
+    },
+    startDormantTimer() {
+      this.executionStatus.dormantTimer.timer = setInterval(async () => {
+        await this.updateExecutionStatus();
+      }, this.executionStatus.dormantTimer.refreshRate);
+    },
+    startActiveTimer() {
+      this.executionStatus.activeTimer.timer = setInterval(async () => {
+        await this.updateExecutionStatus();
+      }, this.executionStatus.activeTimer.refreshRate);
+    },
+    stopDormantTimer() {
+      clearInterval(this.executionStatus.dormantTimer.timer);
+    },
+    stopActiveTimer() {
+      clearInterval(this.executionStatus.activeTimer.timer);
+    },
+    resetExecutionStatus() {
+      this.isHeuristicExecuting = false;
+      this.stopDormantTimer();
+      this.stopActiveTimer();
+    },
   },
   beforeDestroy() {
     // reset memory
     this.heuristicDetails = null;
+    this.resetExecutionStatus();
   },
   mounted() {
     this.onMounted();
+    this.startDormantTimer();
   },
   watch: {
     $route() {

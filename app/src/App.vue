@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app absolute color="primary" dark>
+    <v-app-bar app absolute>
       <v-img
           @click="goToRoot()" style="cursor:pointer"
           alt="Dakar Logo"
@@ -22,7 +22,7 @@
     <v-main>
       <v-container fluid>
         <MsgBox/>
-        <transition name="fade">
+        <transition name="component-fade" mode="out-in">
           <router-view/>
         </transition>
       </v-container>
@@ -63,5 +63,19 @@ export default {
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
     },
   },
+  beforeMount() {
+    // eslint-disable-next-line no-console
+    console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+  },
 };
 </script>
+
+<style>
+.component-fade-enter-active, .component-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.component-fade-enter, .component-fade-leave-to
+  /* .component-fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
+</style>

@@ -14,6 +14,10 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
+var (
+	errInvalidDatabaseResponse = errors.New("error invalid response")
+)
+
 // CopyHeuristicTree copies the complete heuristic tree starting at rootHeuristicUid.
 // The heuristic results stay the same.
 func CopyHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (err error) {
@@ -617,13 +621,13 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 	}
 
 	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
 		return
 	}
 
 	for _, t := range r.Transaction {
 		if len(t.Block) != 1 || len(t.Outputs) == 0 {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
 			return
 		}
 		inputTransactions = append(inputTransactions, HeuristicTransaction{
@@ -667,7 +671,7 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 	}
 
 	if len(r.Transaction) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), "error invalid response")
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
 		return
 	}
 
