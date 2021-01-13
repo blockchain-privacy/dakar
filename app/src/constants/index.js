@@ -25,6 +25,7 @@ export const RESPONSE_TYPE_BLOCK = 'block';
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
+export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
 export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
@@ -40,3 +41,8 @@ export const COIN_UNIT_DASH = 'Dash';
 export const COIN_UNIT_BTC = 'BTC';
 export const COIN_UNIT_DOGE = 'Doge';
 export const COIN_UNIT = COIN_UNIT_DASH;
+
+// user management
+// PASSWORD_MIN_CHARACTERS is the number of character a password must have at least
+export const PASSWORD_MIN_CHARACTERS = 10;
+export const PASSWORD_MAX_CHARACTERS = 250;
