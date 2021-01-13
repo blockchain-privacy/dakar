@@ -44,6 +44,7 @@ import {
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
+import '@fontsource/roboto';
 
 export default {
   name: 'App',
