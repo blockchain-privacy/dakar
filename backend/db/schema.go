@@ -49,6 +49,13 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type: string @index(hash) .
 			parameter: string .
 
+			role_name: string @index(hash) .
+
+			user_email: string @index(term, fulltext) .
+			user_roles: [uid] @reverse .
+			user_created: dateTime @index(day) .
+			user_modified: dateTime @index(day) .
+
 			type Block {
 				blockhash
 				id
@@ -105,6 +112,17 @@ func SetupSchema(c *dgo.Dgraph) error {
 				ts
 				parent_heuristic
 			}
+
+			type Role {
+				role_name
+			}
+
+			type User {
+				user_email
+				user_roles
+				user_created
+				user_modified
+			}
 		`,
 	})
 }
@@ -137,4 +155,30 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	}
 
 	return
+}
+
+func AlterSchemaAddUsers(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			role_name: string @index(hash) .
+
+			user_email: string @index(term, fulltext) .
+			user_roles: [uid] @reverse .
+			user_created: dateTime @index(day) .
+			user_modified: dateTime @index(day) .
+			test: string .
+
+			type Role {
+				role_name
+				test
+			}
+
+			type User {
+				user_email
+				user_roles
+				user_created
+				user_modified
+			}
+		`,
+	})
 }
