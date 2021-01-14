@@ -166,11 +166,9 @@ func AlterSchemaAddUsers(c *dgo.Dgraph) error {
 			user_roles: [uid] @reverse .
 			user_created: dateTime @index(day) .
 			user_modified: dateTime @index(day) .
-			test: string .
 
 			type Role {
 				role_name
-				test
 			}
 
 			type User {
