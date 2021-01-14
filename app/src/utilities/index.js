@@ -66,3 +66,9 @@ export function handleError(context, error) {
 
   context.dispatch('setErrorMsg', errMsg);
 }
+
+export const emailRules = [
+  (v) => !!v || 'E-mail is required',
+  (v) => (v && v.length < 100) || 'E-mail must be less than 100 characters',
+  (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
+];

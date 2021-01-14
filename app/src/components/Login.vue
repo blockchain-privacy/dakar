@@ -85,6 +85,7 @@ import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS,
 } from '../constants';
+import { emailRules } from '../utilities';
 
 const notAllowedWhitespaceCharacters = [
   '\b', '\t', '\n', '\v', '\f', '\r',
@@ -117,11 +118,6 @@ export default {
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
       rules: {
-        emailRules: [
-          (v) => !!v || 'E-mail is required',
-          (v) => (v && v.length < 100) || 'E-mail must be less than 100 characters',
-          (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
-        ],
         passwordRules: [
           (v) => !!v || 'Password is required',
           (v) => !hasWhitespace(v) || 'Password contains white space characters',
@@ -129,6 +125,7 @@ export default {
           (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
               || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
         ],
+        emailRules,
       },
       email: {
         value: '',
