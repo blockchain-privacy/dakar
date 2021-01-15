@@ -29,7 +29,7 @@ type heuristic interface {
 	hasParameter() bool
 	// setParameter sets the parameter
 	setParameter(string) error
-	// String returns the heurostic in string format
+	// String returns the heuristic in string format
 	String() string
 	// clone clones an instance of this interface. This method is needed because
 	// instances of interfaces can not be easily copied-by-value.
