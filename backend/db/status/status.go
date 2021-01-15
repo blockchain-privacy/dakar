@@ -7,6 +7,7 @@ import (
 	dbblk "backend/db/block"
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
+	dbus "backend/db/user"
 
 	"encoding/json"
 	"fmt"
@@ -41,12 +42,16 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 	txCount, _ := dbtx.GetCount(dgraph)
 	opCount, _ := dbop.GetCount(dgraph)
 	addrCount, _ := dbaddr.GetCount(dgraph)
+	userCount, _ := dbus.GetUserCount(dgraph)
+	roleCount, _ := dbus.GetRoleCount(dgraph)
 
 	fmt.Print("Counts:")
 	fmt.Println("\tBlocks:", blockCount)
 	fmt.Println("\tTransactions:", txCount)
 	fmt.Println("\tOutputs:", opCount)
 	fmt.Println("\tAddresses:", addrCount)
+	fmt.Println("\tUsers:", userCount)
+	fmt.Println("\tRoles:", roleCount)
 }
 
 // gets status information from the database
