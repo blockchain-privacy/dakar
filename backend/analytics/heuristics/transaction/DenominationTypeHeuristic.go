@@ -34,7 +34,7 @@ func (h DenominationTypeHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h DenominationTypeHeuristic) setParameter(p string) error {
+func (h DenominationTypeHeuristic) setParameter(_ string) error {
 	return nil
 }
 
