@@ -1,12 +1,14 @@
-package main
+package server
 
 import (
 	heuristic "backend/analytics/heuristics/transaction"
+	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	"net/http"
 	"regexp"
 	"strconv"
 
@@ -17,6 +19,10 @@ import (
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
+
+// isValidEmail is a regex filter which checks if the input conforms to an email string
+var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
+	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 
 // isValid checks if user input is valid.
 // Should be used to check address, transaction and block hashes, as well as block ids.
@@ -64,6 +70,11 @@ type heuristicReply struct {
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
+type userReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"
@@ -74,6 +85,26 @@ const typeEmpty queryResultType = "response_empty"
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
+}
+
+// handleError conditionally logs and writes the error to the http response
+func handleError(w http.ResponseWriter, err error) {
+	if err == nil || w == nil {
+		return
+	}
+
+	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
+	serverInfo(cliutil.ShowCallInfo(), err)
+}
+
+// buildKey build a key from the given arguments
+func buildKey(route string, query string, body []byte) (key string) {
+	key = route + query
+	if len(body) > 0 {
+		key += string(body[:])
+	}
+
+	return
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true

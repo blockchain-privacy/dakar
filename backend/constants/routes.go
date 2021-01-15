@@ -1,0 +1,79 @@
+package constants
+
+const (
+	routePrefix              string = "/api/v1/"
+	routeSearch              string = "search"
+	routeTransaction         string = "tx"
+	routeBlock               string = "blk"
+	routeAddress             string = "address"
+	routeMeta                string = "meta"
+	routePaths               string = "paths"
+	routeHeuristics          string = "heuristics"
+	routeHeuristicsSummary   string = "heuristicsSummary"
+	routeHeuristicsExecution string = "executeHeuristics"
+	routeHeuristicDetails    string = "heuristicDetails"
+	routeHeuristicStatus     string = "heuristicStatus"
+	routeAddressOutputRange  string = "addressOutputRange"
+	routeCreateUser          string = "createUser"
+	routeGetUsers            string = "getUsers"
+)
+
+func getRoute(r string) string {
+	return routePrefix + r + "/"
+}
+
+func GetRouteTransaction() string {
+	return getRoute(routeTransaction)
+}
+
+func GetRouteBlock() string {
+	return getRoute(routeBlock)
+}
+
+func GetRouteAddress() string {
+	return getRoute(routeAddress)
+}
+
+func GetRouteMeta() string {
+	return getRoute(routeMeta)
+}
+
+func GetRouteOrigins() string {
+	return getRoute(routePaths)
+}
+
+func GetRouteHeuristics() string {
+	return getRoute(routeHeuristics)
+}
+
+func GetRouteHeuristicsSummary() string {
+	return getRoute(routeHeuristicsSummary)
+}
+
+func GetRouteHeuristicsExecution() string {
+	return getRoute(routeHeuristicsExecution)
+}
+
+func GetRouteHeuristicDetails() string {
+	return getRoute(routeHeuristicDetails)
+}
+
+func GetRouteHeuristicStatus() string {
+	return getRoute(routeHeuristicStatus)
+}
+
+func GetRouteSearch() string {
+	return getRoute(routeSearch)
+}
+
+func GetRouteAddressOutputRange() string {
+	return getRoute(routeAddressOutputRange)
+}
+
+func GetRouteCreateUser() string {
+	return getRoute(routeCreateUser)
+}
+
+func GetRouteGetUsers() string {
+	return getRoute(routeGetUsers)
+}

@@ -1,13 +1,18 @@
-package main
+package server
 
 import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	dbaddr "backend/db/address"
 	dban "backend/db/analytics"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	dbus "backend/db/user"
+
+	"backend/user"
+
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -28,22 +33,6 @@ import (
 )
 
 const (
-	routePrefix              string = "/api/v1/"
-	routeSearch              string = "search"
-	routeTransaction         string = "tx"
-	routeBlock               string = "blk"
-	routeAddress             string = "address"
-	routeMeta                string = "meta"
-	routePaths               string = "paths"
-	routeHeuristics          string = "heuristics"
-	routeHeuristicsSummary   string = "heuristicsSummary"
-	routeHeuristicsExecution string = "executeHeuristics"
-	routeHeuristicDetails    string = "heuristicDetails"
-	routeHeuristicStatus     string = "heuristicStatus"
-	routeAddressOutputRange  string = "addressOutputRange"
-)
-
-const (
 	maxOrigins = 1000
 )
 
@@ -56,57 +45,6 @@ var (
 	errorInvalidFilter      = "error invalid filter"
 	errorInvalidOffset      = "error invalid offset"
 )
-
-func getRoute(r string) string {
-	return routePrefix + r + "/"
-}
-
-func getRouteTransaction() string {
-	return getRoute(routeTransaction)
-}
-
-func getRouteBlock() string {
-	return getRoute(routeBlock)
-}
-
-func getRouteAddress() string {
-	return getRoute(routeAddress)
-}
-
-func getRouteMeta() string {
-	return getRoute(routeMeta)
-}
-
-func getRouteOrigins() string {
-	return getRoute(routePaths)
-}
-
-func getRouteHeuristics() string {
-	return getRoute(routeHeuristics)
-}
-func getRouteHeuristicsSummary() string {
-	return getRoute(routeHeuristicsSummary)
-}
-
-func getRouteHeuristicsExecution() string {
-	return getRoute(routeHeuristicsExecution)
-}
-
-func getRouteHeuristicDetails() string {
-	return getRoute(routeHeuristicDetails)
-}
-
-func getRouteHeuristicStatus() string {
-	return getRoute(routeHeuristicStatus)
-}
-
-func getRouteSearch() string {
-	return getRoute(routeSearch)
-}
-
-func getRouteAddressOutputRange() string {
-	return getRoute(routeAddressOutputRange)
-}
 
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
@@ -275,7 +213,6 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 
 var (
 	errHttpDefault = errors.New("an error occurred")
-	errGetDatabase = errors.New("error getting data from db")
 )
 
 // API pattern: "/api/v1/meta/"
@@ -328,7 +265,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteOrigins()):]
+		txHashString := r.URL.Path[len(constants.GetRouteOrigins()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorPath, http.StatusNotFound)
@@ -408,7 +345,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristicsSummary()):]
+		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorPath, http.StatusNotFound)
@@ -512,7 +449,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.R
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristics()):]
+		txHashString := r.URL.Path[len(constants.GetRouteHeuristics()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -545,7 +482,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) func(http.ResponseWriter, 
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristicStatus()):]
+		txHashString := r.URL.Path[len(constants.GetRouteHeuristicStatus()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -570,7 +507,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristicDetails()):]
+		txHashString := r.URL.Path[len(constants.GetRouteHeuristicDetails()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
@@ -617,7 +554,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(getRouteHeuristicsExecution()):]
+		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsExecution()):]
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
@@ -684,24 +621,83 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 	}
 }
 
-// handleError conditionally logs and writes the error to the http response
-func handleError(w http.ResponseWriter, err error) {
-	if err == nil || w == nil {
-		return
+// isUserValid does a sanity check for the given User
+func isUserValid(u dbus.User) bool {
+	// check if values are set
+	if len(u.Email) == 0 || len(u.Roles) == 0 || !isValidEmail(u.Email) {
+		return false
 	}
 
-	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
-	serverInfo(cliutil.ShowCallInfo(), err)
+	// check if all roles have valid values
+	for _, ur := range u.Roles {
+		if _, err := user.GetRoleByName(ur.Name); err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
-// buildKey build a key from the given arguments
-func buildKey(route string, query string, body []byte) (key string) {
-	key = route + query
-	if len(body) > 0 {
-		key += string(body[:])
-	}
+// API pattern: "/api/v1/createUser"
+func handlerCreateUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
 
-	return
+		var frontEndUser dbus.FrontendUserCreate
+
+		reply := userReply{
+			Success: true,
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
+			reply.Msg = "Could not decode user data"
+			reply.Success = false
+			serverInfo(err)
+		} else {
+			u := frontEndUser.ToUser()
+			if !isUserValid(u) {
+				reply.Msg = "User data not valid"
+				reply.Success = false
+			} else {
+				err = dbus.CreateUser(dgraph, u)
+				if err != nil {
+					reply.Success = false
+					// check if special error
+					if errors.Is(err, dbus.ErrorEmailExists) {
+						reply.Msg = "Duplicate E-mail"
+					} else {
+						serverInfo(err)
+						reply.Msg = "Could not create user"
+					}
+				}
+			}
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), err)
+		}
+	}
+}
+
+// API pattern: "/api/v1/getUsers"
+func handlerGetUsers(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		users, err := dbus.GetUsers(dgraph)
+		if err != nil {
+			handleError(w, err)
+			return
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(users); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	}
 }
 
 // cacheMiddleware caches the response of handler for the specified ttl
@@ -763,22 +759,24 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	}
 
 	// API end points
-	http.HandleFunc(getRouteSearch(),
-		cacheMiddleware(cache, getRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
-	http.HandleFunc(getRouteBlock(),
-		cacheMiddleware(cache, getRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
-	http.HandleFunc(getRouteTransaction(),
-		cacheMiddleware(cache, getRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
-	http.HandleFunc(getRouteAddress(),
-		cacheMiddleware(cache, getRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
-	http.HandleFunc(getRouteAddressOutputRange(),
-		cacheMiddleware(cache, getRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
-	http.HandleFunc(getRouteMeta(),
-		cacheMiddleware(cache, getRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
-	http.HandleFunc(getRouteOrigins(), handlerPaths(dgraph))
-	http.HandleFunc(getRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
-	http.HandleFunc(getRouteHeuristics(), handlerHeuristics(dgraph, &worker))
-	http.HandleFunc(getRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
-	http.HandleFunc(getRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
-	http.HandleFunc(getRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
+	http.HandleFunc(constants.GetRouteSearch(),
+		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+	http.HandleFunc(constants.GetRouteBlock(),
+		cacheMiddleware(cache, constants.GetRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
+	http.HandleFunc(constants.GetRouteTransaction(),
+		cacheMiddleware(cache, constants.GetRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
+	http.HandleFunc(constants.GetRouteAddress(),
+		cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
+	http.HandleFunc(constants.GetRouteAddressOutputRange(),
+		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+	http.HandleFunc(constants.GetRouteMeta(),
+		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
+	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+	http.HandleFunc(constants.GetRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
+	http.HandleFunc(constants.GetRouteHeuristics(), handlerHeuristics(dgraph, &worker))
+	http.HandleFunc(constants.GetRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
+	http.HandleFunc(constants.GetRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
+	http.HandleFunc(constants.GetRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
+	http.HandleFunc(constants.GetRouteCreateUser(), handlerCreateUser(dgraph))
+	http.HandleFunc(constants.GetRouteGetUsers(), handlerGetUsers(dgraph))
 }
