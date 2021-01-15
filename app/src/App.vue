@@ -15,7 +15,7 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
-      <v-menu offset-y>
+      <v-menu offset-y style="z-index: 99">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
               icon
