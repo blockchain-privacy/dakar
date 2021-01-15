@@ -129,7 +129,9 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, vars)
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -233,9 +235,9 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 					}
 			  	}
 			   }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$uid": uid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -321,8 +323,9 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 		}},
 		CommitNow: true,
 	}
-
-	return db.TxWithRetry(c, db.GetBackendContext(), req)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	return db.TxWithRetry(c, ctx, req)
 }
 
 // gets the number of addresses in the database

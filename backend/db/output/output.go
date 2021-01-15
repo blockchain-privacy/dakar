@@ -45,7 +45,9 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, vars)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, vars)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -98,8 +100,9 @@ func GetVerboseOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) 
 	vars := make(map[string]string)
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, vars)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, vars)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -194,10 +197,11 @@ func GetVerboseOutputByUid(c *dgo.Dgraph, uid string) (op VerboseOutput, err err
 							addresshash
 						}
 				}
-			  }
-				`
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$id": uid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$id": uid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

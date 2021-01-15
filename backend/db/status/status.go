@@ -63,10 +63,11 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 					lastblockid
 					lowestblockid
 				  }
-				}
-				`
+				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -91,10 +92,11 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 					isanalyzing
 					lastanalysedid
 				  }
-				}
-				`
+				}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -137,8 +139,9 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 					id
 				}
 			}`, order)
-
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -181,7 +184,9 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 				}
 			}`
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetFrontendContext(), query)
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -259,7 +264,9 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, db.GetBackendContext(), req)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	return db.TxWithRetry(c, ctx, req)
 }
 
 // sets the new status
@@ -287,7 +294,9 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, db.GetBackendContext(), req)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	return db.TxWithRetry(c, ctx, req)
 }
 
 // sets the crawling status

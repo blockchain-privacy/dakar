@@ -90,7 +90,9 @@ func GetRootUids(c *dgo.Dgraph, uids []string) (roots []string, err error) {
 				}
 			}`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -138,7 +140,9 @@ func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
 		}},
 		CommitNow: true,
 	}
-	_, err = db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	_, err = db.TxWithRetryAndResponse(c, ctx, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -176,7 +180,10 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.TxWithRetryAndResponse(c, ctx, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -223,8 +230,9 @@ func DeleteHeuristics(c *dgo.Dgraph, uids []string) (err error) {
 		}},
 		CommitNow: true,
 	}
-
-	if txErr := db.TxWithRetry(c, db.GetBackendContext(), req); txErr != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
@@ -253,9 +261,9 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 					}
 				}
 			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$uid": heuristicUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": heuristicUid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -303,8 +311,9 @@ func GetHeuristicTree(c *dgo.Dgraph, rootHeuristicUid string) (h []Heuristic, er
 					}
 				  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$uid": rootHeuristicUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": rootHeuristicUid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -344,11 +353,11 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 						}
 					}
 				}
-			  }
-				`
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$uid": heuristicUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": heuristicUid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -409,7 +418,9 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid, "$ts": timestamp})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid, "$ts": timestamp})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -467,7 +478,9 @@ func GetOriginsByUid(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction,
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$uid": uid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -525,7 +538,9 @@ func GetOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, e
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": txhash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$txhash": txhash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -604,7 +619,9 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 				}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$txhash": tx})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -651,7 +668,9 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$txhash": tx})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$txhash": tx})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -714,7 +733,10 @@ func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExis
 					count(uid)
 				}
 			}`
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetBackendContext(), query)
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -763,7 +785,9 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 					}
 				}`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -812,8 +836,9 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string
 					}
 				}`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query,
-		map[string]string{"$uid": heuristicUid, "$hash": txHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": heuristicUid, "$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -874,7 +899,9 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 					}
 				}`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -945,7 +972,9 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 				}
 			  }`, fromUid, toUid)
 
-	resp, err := c.NewReadOnlyTxn().Query(db.GetFrontendContext(), query)
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

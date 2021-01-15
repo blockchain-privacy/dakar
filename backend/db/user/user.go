@@ -66,7 +66,9 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 		}},
 		CommitNow: true,
 	}
-	resp, dbErr := db.TxWithRetryAndResponse(c, db.GetBackendContext(), req)
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, dbErr := db.TxWithRetryAndResponse(c, ctx, req)
 	if dbErr != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 	}
@@ -92,7 +94,9 @@ func GetUsers(c *dgo.Dgraph) (users []User, err error) {
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, db.GetFrontendContext(), query)
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

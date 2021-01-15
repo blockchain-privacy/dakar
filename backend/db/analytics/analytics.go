@@ -29,7 +29,9 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -100,8 +102,10 @@ func PartialReverseLookup(c *dgo.Dgraph, transactionUids []string) (err error) {
 		return
 	}
 
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
 	req := buildAnalyzeAndSetOriginsRequest(transactionUids)
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -131,8 +135,9 @@ func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
-
-	if txErr := db.TxWithRetry(c, db.GetBackendContext(), req); txErr != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
@@ -166,7 +171,9 @@ func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []str
 				}
 			}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -251,7 +258,9 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	}
 
 	req := buildIRTLRequest(transactionUids)
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -274,7 +283,9 @@ func AnalyzeOriginsAlt(c *dgo.Dgraph, transactionHash string) (origins []string,
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -308,7 +319,9 @@ func GetOrigins(c *dgo.Dgraph, txHash string) (origins []string, err error) {
 				}
 			  }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -346,7 +359,9 @@ func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -393,7 +408,9 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 				}
 			  }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -440,7 +457,9 @@ func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (in
 				}
 			   }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": blockUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": blockUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -482,7 +501,9 @@ func GetNotAnalyzedInputTransactions(c *dgo.Dgraph, txUid string) (inputTransact
 				}
 			   }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": txUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": txUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -525,7 +546,9 @@ func GetInputTransactions(c *dgo.Dgraph, blockUid string) (inputTransactions map
 				}
 			  }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$uid": blockUid})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": blockUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -573,7 +596,9 @@ func GetPrivacyTransactions(c *dgo.Dgraph, transactionHash string) (transactions
 				}
 			  }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -610,7 +635,9 @@ func SameBlockTest(c *dgo.Dgraph, transactionHash string) (err error) {
 				}
 			}`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetBackendContext(), query, map[string]string{"$hash": transactionHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": transactionHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

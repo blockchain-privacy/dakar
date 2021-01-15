@@ -130,8 +130,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 // checks if a schema is set
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
-
-	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

@@ -30,16 +30,12 @@ func info(v ...interface{}) {
 	log.SetPrefix("")
 }
 
-func GetBackendContext() context.Context {
-	// discarding the cancel function on purpose.
-	ctx, _ := context.WithTimeout(context.Background(), backendTimeout)
-	return ctx
+func GetBackendContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), backendTimeout)
 }
 
-func GetFrontendContext() context.Context {
-	// discarding the cancel function on purpose.
-	ctx, _ := context.WithTimeout(context.Background(), frontEndTimout)
-	return ctx
+func GetFrontendContext() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), frontEndTimout)
 }
 
 // Execute the given request. In case the request fails repeat it
@@ -111,7 +107,9 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*ap
 
 // drops ALL data from the database, schema included
 func DropAll(c *dgo.Dgraph) error {
-	return c.Alter(GetBackendContext(), &api.Operation{
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	return c.Alter(ctx, &api.Operation{
 		DropOp: api.Operation_ALL,
 	})
 }
@@ -138,7 +136,9 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 				}
 				`, dbType)
 
-	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
