@@ -94,6 +94,7 @@
 import {
   mdiPencil, mdiDelete,
 } from '@mdi/js';
+import { PAGE_TITLE } from '../constants';
 import { emailRules } from '../utilities';
 
 export default {
@@ -227,6 +228,9 @@ export default {
       }
       this.close();
     },
+  },
+  mounted() {
+    document.title = `User Administration - ${PAGE_TITLE}`;
   },
 };
 </script>
