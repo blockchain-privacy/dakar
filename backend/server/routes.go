@@ -10,6 +10,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"strings"
 
 	"backend/user"
 
@@ -621,23 +622,6 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 	}
 }
 
-// isUserValid does a sanity check for the given User
-func isUserValid(u dbus.User) bool {
-	// check if values are set
-	if len(u.Email) == 0 || len(u.Roles) == 0 || !isValidEmail(u.Email) {
-		return false
-	}
-
-	// check if all roles have valid values
-	for _, ur := range u.Roles {
-		if _, err := user.GetRoleByName(ur.Name); err != nil {
-			return false
-		}
-	}
-
-	return true
-}
-
 // API pattern: "/api/v1/createUser"
 func handlerCreateUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -649,28 +633,31 @@ func handlerCreateUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 			Success: true,
 		}
 
-		if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
-			reply.Msg = "Could not decode user data"
+		if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil || !frontEndUser.IsValid() {
+			reply.Msg = "could not decode user data"
 			reply.Success = false
 			serverInfo(err)
 		} else {
 			u := frontEndUser.ToUser()
-			if !isUserValid(u) {
-				reply.Msg = "User data not valid"
-				reply.Success = false
+			if pw, pwHash, pwErr := user.GetRandomPasswordAndHash(); pwErr != nil {
+				reply.Msg = "could not create password"
 			} else {
+				u.PasswordHash = pwHash
 				err = dbus.CreateUser(dgraph, u)
 				if err != nil {
 					reply.Success = false
 					// check if special error
 					if errors.Is(err, dbus.ErrorEmailExists) {
-						reply.Msg = "Duplicate E-mail"
+						reply.Msg = "duplicate e-mail"
 					} else {
 						serverInfo(err)
-						reply.Msg = "Could not create user"
+						reply.Msg = "could not create user"
 					}
+				} else {
+					serverInfo("Generated password(", u.Email, "):", pw)
 				}
 			}
+
 		}
 
 		// encoding
@@ -681,7 +668,7 @@ func handlerCreateUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Reque
 	}
 }
 
-// API pattern: "/api/v1/getUsers"
+// API pattern: "/api/v1/getUsers/"
 func handlerGetUsers(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -698,6 +685,80 @@ func handlerGetUsers(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request
 			serverInfo(cliutil.ShowCallInfo(), encodingErr)
 		}
 	}
+}
+
+// API pattern: "/api/v1/deleteUser/<userUid>"
+func handlerDeleteUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		userUid := r.URL.Path[len(constants.GetRouteDeleteUser()):]
+
+		reply := userReply{
+			Success: true,
+		}
+
+		if err := dbus.DeleteUser(dgraph, userUid); err != nil {
+			reply.Success = false
+			reply.Msg = "could not delete user"
+			serverInfo(err)
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	}
+}
+
+// API pattern: "/api/v1/login/"
+func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		const invalidUserData = "email and password combination does not match"
+
+		var loginData dbus.FrontendUserLogin
+
+		reply := userReply{
+			Success: true,
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&loginData); err != nil || !loginData.IsValid() {
+			reply.Msg = "could not decode user data"
+			reply.Success = false
+			serverInfo(err)
+		} else {
+			u, getErr := dbus.GetUserByEmail(dgraph, loginData.Email)
+			if getErr != nil {
+				reply.Success = false
+				reply.Msg = invalidUserData
+
+				// only log error if not expected
+				if !errors.Is(dbus.ErrorUsersNotFound, getErr) {
+					serverInfo(cliutil.ShowCallInfo(), getErr)
+				}
+
+			} else {
+				passwordValid, pwErr := user.ComparePassword(loginData.Password, u.PasswordHash)
+				if pwErr != nil || !passwordValid {
+					reply.Success = false
+					reply.Msg = invalidUserData
+				}
+			}
+		}
+
+		if reply.Success {
+			reply.Jwt = "dummy jwt"
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
 }
 
 // cacheMiddleware caches the response of handler for the specified ttl
@@ -779,4 +840,39 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(constants.GetRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
 	http.HandleFunc(constants.GetRouteCreateUser(), handlerCreateUser(dgraph))
 	http.HandleFunc(constants.GetRouteGetUsers(), handlerGetUsers(dgraph))
+	http.HandleFunc(constants.GetRouteDeleteUser(), handlerDeleteUser(dgraph))
+	//http.HandleFunc(constants.GetRouteLogin(), handlerLogin(dgraph))
+	// todo convert all non-cached routes to this pattern
+	http.Handle(constants.GetRouteLogin(), authorizationMiddleware(handlerLogin(dgraph)))
+}
+
+func authorizationMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
+		if len(authHeader) != 2 {
+			fmt.Println("Malformed token")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Malformed Token"))
+		} else {
+			//jwtToken := authHeader[1]
+			//token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
+			//	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			//		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			//	}
+			//	return []byte(SECRETKEY), nil
+			//})
+			//if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			//	ctx := context.WithValue(r.Context(), "props", claims)
+			//	// Access context values in handlers like this
+			//	// props, _ := r.Context().Value("props").(jwt.MapClaims)
+			//	next.ServeHTTP(w, r.WithContext(ctx))
+			//} else {
+			//	fmt.Println(err)
+			//	w.WriteHeader(http.StatusUnauthorized)
+			//	w.Write([]byte("Unauthorized"))
+			//}
+			// todo remove
+			next.ServeHTTP(w, r)
+		}
+	})
 }

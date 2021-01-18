@@ -16,6 +16,8 @@ const (
 	routeAddressOutputRange  string = "addressOutputRange"
 	routeCreateUser          string = "createUser"
 	routeGetUsers            string = "getUsers"
+	routeDeleteUser          string = "deleteUser"
+	routeLogin               string = "login"
 )
 
 func getRoute(r string) string {
@@ -76,4 +78,12 @@ func GetRouteCreateUser() string {
 
 func GetRouteGetUsers() string {
 	return getRoute(routeGetUsers)
+}
+
+func GetRouteDeleteUser() string {
+	return getRoute(routeDeleteUser)
+}
+
+func GetRouteLogin() string {
+	return getRoute(routeLogin)
 }

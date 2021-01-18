@@ -20,10 +20,6 @@ import (
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
 var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
 
-// isValidEmail is a regex filter which checks if the input conforms to an email string
-var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
-	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
-
 // isValid checks if user input is valid.
 // Should be used to check address, transaction and block hashes, as well as block ids.
 func isValid(input string) bool {
@@ -73,6 +69,7 @@ type heuristicReply struct {
 type userReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
+	Jwt     string `json:"jwt,omitempty"`
 }
 
 type queryResultType string
