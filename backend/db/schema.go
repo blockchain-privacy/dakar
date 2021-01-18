@@ -52,6 +52,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			role_name: string @index(hash) .
 
 			user_email: string @index(term, fulltext) .
+			user_pwhash: string .
 			user_roles: [uid] @reverse .
 			user_created: dateTime @index(day) .
 			user_modified: dateTime @index(day) .
@@ -119,6 +120,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type User {
 				user_email
+				user_pwhash
 				user_roles
 				user_created
 				user_modified
@@ -164,6 +166,7 @@ func AlterSchemaAddUsers(c *dgo.Dgraph) error {
 			role_name: string @index(hash) .
 
 			user_email: string @index(term, fulltext) .
+			user_pwhash: string .
 			user_roles: [uid] @reverse .
 			user_created: dateTime @index(day) .
 			user_modified: dateTime @index(day) .
@@ -174,6 +177,7 @@ func AlterSchemaAddUsers(c *dgo.Dgraph) error {
 
 			type User {
 				user_email
+				user_pwhash
 				user_roles
 				user_created
 				user_modified
