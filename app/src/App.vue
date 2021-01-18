@@ -25,19 +25,21 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item @click="goToLogin">
+<!-- todo switch flag in login item -->
+          <v-list-item @click="goToLogin" v-if="this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToUserAdministration">
+          <v-list-item @click="goToUserAdministration"
+                       v-if="this.userData && this.userData.roles.includes('admin')">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>User Administration</v-list-item-title>
           </v-list-item>
-          <v-list-item>
+          <v-list-item v-if="this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogout }}</v-icon>
             </v-list-item-icon>
@@ -89,6 +91,14 @@ export default {
         mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
       },
     };
+  },
+  computed: {
+    userData: {
+      get() {
+        // todo get data from store
+        return { id: '0x123', email: 'amdin@example.de', roles: ['admin'] };
+      },
+    },
   },
   methods: {
     changeTheme() {
