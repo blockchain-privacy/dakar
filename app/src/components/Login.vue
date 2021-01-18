@@ -29,7 +29,7 @@
                       v-model="email.value"
                       label="E-mail"
                       :prepend-inner-icon="icon.mdiEmail"
-                      type="text"
+                      type="email"
                       :disabled="isSubmittingForm"
                       :rules="rules.emailRules"
                       @keydown.enter="submitForm"/>
