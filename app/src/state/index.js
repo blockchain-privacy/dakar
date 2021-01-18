@@ -57,6 +57,7 @@ function getInitialState() {
     meta: null,
     heuristic: null,
     heuristicDetails: new Map(),
+    userList: null,
   };
 }
 
@@ -119,6 +120,9 @@ const mutations = {
   UPDATE_ADDRESS_DATA(state, payload) {
     state.searchResultType = payload.type;
     state.address = payload.payload;
+  },
+  UPDATE_USER_LIST(state, payload) {
+    state.userList = payload;
   },
 };
 
@@ -201,6 +205,9 @@ const actions = {
     return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
       payload.parameter, payload.body);
   },
+  updateUserList(context) {
+    return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
+  },
   resetHeuristicDetails(context) {
     context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
@@ -212,6 +219,9 @@ const actions = {
   },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
+  },
+  setUserList(context, payload) {
+    context.commit('UPDATE_USER_LIST', payload);
   },
 };
 
@@ -235,6 +245,7 @@ const getters = {
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
+  getUserList: (state) => state.userList,
 };
 
 const state = getInitialState();
