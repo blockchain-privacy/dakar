@@ -147,7 +147,7 @@ import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_USER_CREATE, ROUTE_USER_DELETE } from '../constants';
-import { emailRules } from '../utilities';
+import { emailRules, isInvalidTokenMsg } from '../utilities';
 
 export default {
   name: 'UserAdministration',
@@ -255,6 +255,7 @@ export default {
       })
         .then((response) => response.json())
         .then((data) => {
+          if (isInvalidTokenMsg(data, this.$router)) return;
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {
             throw Error(data.msg);
@@ -301,6 +302,8 @@ export default {
         })
           .then((response) => response.json())
           .then((data) => {
+            if (isInvalidTokenMsg(data, this.$router)) return;
+
             if (data.success === undefined) throw Error('error creating user');
             if (data.success === false) {
               throw Error(data.msg);

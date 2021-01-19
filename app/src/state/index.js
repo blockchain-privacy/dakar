@@ -1,12 +1,17 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import { doPost, doGet, handleError } from '../utilities';
+import {
+  doPost, doGet, handleError, isInvalidTokenMsg,
+} from '../utilities';
 import * as Constants from '../constants';
+
+import Router from '../router';
 
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
   return doGet(route, parameter).then((data) => {
+    if (isInvalidTokenMsg(data, Router)) return;
     context.commit(mutation, data);
     context.dispatch('resetMsg');
   }).catch((e) => {
@@ -17,6 +22,7 @@ function handleGet(context, route, mutation, parameter) {
 function handlePost(context, route, mutation, parameter, body) {
   return doPost(route, parameter, body)
     .then((data) => {
+      if (isInvalidTokenMsg(data, Router)) return;
       context.commit(mutation, data);
       context.dispatch('resetMsg');
     })

@@ -1,4 +1,6 @@
 /* eslint-disable no-mixed-operators */
+import { ROUTE_NAME_LOGIN_PAGE } from '../constants';
+
 export function resetData(context) {
   context.$store.dispatch('resetMsg');
   context.$store.dispatch('setBlockData', null);
@@ -72,3 +74,13 @@ export const emailRules = [
   (v) => (v && v.length < 100) || 'E-mail must be less than 100 characters',
   (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 ];
+
+// isInvalidTokenMsg checks if the page should be rerouted to the login page
+export function isInvalidTokenMsg(msg, router) {
+  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
+    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+
+    return true;
+  }
+  return false;
+}
