@@ -58,6 +58,7 @@ function getInitialState() {
     heuristic: null,
     heuristicDetails: new Map(),
     userList: null,
+    activeUser: null,
   };
 }
 
@@ -123,6 +124,9 @@ const mutations = {
   },
   UPDATE_USER_LIST(state, payload) {
     state.userList = payload;
+  },
+  SET_ACTIVE_USER(state, payload) {
+    state.activeUser = payload;
   },
 };
 
@@ -223,6 +227,9 @@ const actions = {
   setUserList(context, payload) {
     context.commit('UPDATE_USER_LIST', payload);
   },
+  setActiveUser(context, payload) {
+    context.commit('SET_ACTIVE_USER', payload);
+  },
 };
 
 const getters = {
@@ -246,6 +253,7 @@ const getters = {
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
   getUserList: (state) => state.userList,
+  getActiveUser: (state) => state.activeUser,
 };
 
 const state = getInitialState();

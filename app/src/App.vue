@@ -26,7 +26,7 @@
         </template>
         <v-list>
 <!-- todo switch flag in login item -->
-          <v-list-item @click="goToLogin" v-if="this.userData">
+          <v-list-item @click="goToLogin" v-if="!this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
@@ -39,7 +39,7 @@
             </v-list-item-icon>
             <v-list-item-title>User Administration</v-list-item-title>
           </v-list-item>
-          <v-list-item v-if="this.userData">
+          <v-list-item @click="logout" v-if="this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogout }}</v-icon>
             </v-list-item-icon>
@@ -77,6 +77,10 @@ import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
+import {
+  LOCALSTORAGE_FIELD_USER_ROLES, ROUTE_USER_LOGOUT,
+  LOCALSTORAGE_FIELD_USER_EMAIL,
+} from './constants';
 
 export default {
   name: 'App',
@@ -95,8 +99,18 @@ export default {
   computed: {
     userData: {
       get() {
-        // todo get data from store
-        return { id: '0x123', email: 'amdin@example.de', roles: ['admin'] };
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
       },
     },
   },
@@ -118,6 +132,23 @@ export default {
       // only change route if not already on entry page
       if (this.$route.name === Constants.ROUTE_NAME_USER_ADMIN_PAGE) return;
       this.$router.push({ name: Constants.ROUTE_NAME_USER_ADMIN_PAGE });
+    },
+    logout() {
+      fetch(ROUTE_USER_LOGOUT)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success === undefined) throw Error('error deleting user');
+          if (data.success === false) {
+            throw Error(data.msg);
+          }
+          localStorage.removeItem(LOCALSTORAGE_FIELD_USER_EMAIL);
+          localStorage.removeItem(LOCALSTORAGE_FIELD_USER_ROLES);
+          this.userData = null;
+          this.goToLogin();
+        })
+        .catch((error) => {
+          this.errMsg = error;
+        });
     },
   },
   beforeMount() {

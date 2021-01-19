@@ -83,7 +83,8 @@ import {
 } from '@mdi/js';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER_ROLES,
+  LOCALSTORAGE_FIELD_USER_EMAIL,
 } from '../constants';
 import { emailRules } from '../utilities';
 
@@ -157,6 +158,10 @@ export default {
           if (data.success === false) {
             throw Error(data.msg);
           }
+
+          localStorage.setItem(LOCALSTORAGE_FIELD_USER_EMAIL, 'test123');
+          localStorage.setItem(LOCALSTORAGE_FIELD_USER_ROLES, 'test123');
+
           goToRoot(this);
         })
         .catch((error) => {
