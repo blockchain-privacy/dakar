@@ -36,19 +36,20 @@ func getSigningKeys() (ed25519.PrivateKey, ed25519.PublicKey) {
 // setTokenAsCookie writes the given token with w as a cookie
 func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.Time) {
 	newCookie := &http.Cookie{
-		Name:    cookieTokenName,
-		Value:   token,
-		Expires: expirationTime,
-		// todo check if httponly can be set
+		Name:     cookieTokenName,
+		Value:    token,
+		Expires:  expirationTime,
 		HttpOnly: true,
 		Secure:   secureCookie,
 		// cookie should be able to be sent by request originating form all directories
-		Path: "/",
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
 	}
 
 	http.SetCookie(w, newCookie)
 }
 
+// writeNewToken writes the data from user into as a cookie to w
 func writeNewToken(w http.ResponseWriter, user dbus.User) error {
 	newToken, expirationTime, err := issueToken(user)
 	if err != nil {
@@ -57,6 +58,11 @@ func writeNewToken(w http.ResponseWriter, user dbus.User) error {
 
 	setTokenAsCookie(w, newToken, expirationTime)
 	return nil
+}
+
+// invalidateToken invalidates the token
+func invalidateToken(w http.ResponseWriter) {
+	setTokenAsCookie(w, "", time.Now().Add(-100*time.Hour))
 }
 
 type tokenUser struct {
@@ -72,6 +78,7 @@ func (t tokenUser) toUser() dbus.User {
 	}
 }
 
+// issueToken creates a token from user
 func issueToken(user dbus.User) (token string, expirationTime time.Time, err error) {
 	privateKey, _ := getSigningKeys()
 
@@ -96,6 +103,7 @@ func issueToken(user dbus.User) (token string, expirationTime time.Time, err err
 	return
 }
 
+// verifyToken checks if token is valid
 func verifyToken(token string) (newJsonToken paseto.JSONToken, newFooter string, err error) {
 	_, publicKey := getSigningKeys()
 
