@@ -250,7 +250,9 @@ export default {
     },
     deleteItem(user) {
       this.isLoading = true;
-      fetch(ROUTE_USER_DELETE + user.uid)
+      fetch(ROUTE_USER_DELETE + user.uid, {
+        credentials: 'same-origin',
+      })
         .then((response) => response.json())
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
@@ -291,6 +293,7 @@ export default {
         this.isLoading = true;
         fetch(ROUTE_USER_CREATE, {
           method: 'POST', // or 'PUT'
+          credentials: 'same-origin',
           headers: {
             'Content-Type': 'application/json',
           },
