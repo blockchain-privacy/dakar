@@ -17,6 +17,7 @@ export const ROUTE_HEURISTIC_STATUS = `${routePrefix}heuristicStatus/`;
 export const ROUTE_USER_LIST = `${routePrefix}getUsers/`;
 export const ROUTE_USER_CREATE = `${routePrefix}createUser/`;
 export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
+export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';

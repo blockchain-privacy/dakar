@@ -83,7 +83,7 @@ import {
 } from '@mdi/js';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN,
 } from '../constants';
 import { emailRules } from '../utilities';
 
@@ -147,6 +147,32 @@ export default {
 
       setTimeout(() => { this.loginFailed = true; this.isSubmittingForm = false; }, 2000);
     },
+    sendLoginRequest() {
+      this.isSubmittingForm = true;
+      this.loginFailed = false;
+
+      fetch(ROUTE_USER_LOGIN, {
+        method: 'POST', // or 'PUT'
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ user_pw: this.password.value, user_email: this.email.value }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success === undefined) throw Error('error logging in ');
+          if (data.success === false) {
+            throw Error(data.msg);
+          }
+        })
+        .catch((error) => {
+          this.errMsg = error;
+          this.loginFailed = true;
+        })
+        .finally(() => {
+          this.isSubmittingForm = false;
+        });
+    },
     submitForm() {
       // already submitting
       if (this.isSubmittingForm) return;
@@ -155,9 +181,8 @@ export default {
         this.isSubmittingForm = false;
         return;
       }
-      this.isSubmittingForm = true;
 
-      this.checkCredentials();
+      this.sendLoginRequest();
     },
   },
   mounted() {
