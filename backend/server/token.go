@@ -26,10 +26,11 @@ const (
 	tokenFieldUser = "user_id"
 )
 
-// todo rework, for now dummy keys
+// todo rework to read keys from environment
+// getSigningKeys returns a public key pair
 func getSigningKeys() (ed25519.PrivateKey, ed25519.PublicKey) {
-	a, _ := hex.DecodeString("b4cbfb43df4ce210727d953e4a713307fa19bb7d9f85041438d9e11b942a37741eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	b, _ := hex.DecodeString("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
+	a, _ := hex.DecodeString("6d5d5c049073fec47c42a1dfc973340a21e97a9f2719cc53aa244a6f4776dcaa2a08099ec12298bc6865647f4651e400871c6fe901d704f2d7c6d07dfeabcfea")
+	b, _ := hex.DecodeString("2a08099ec12298bc6865647f4651e400871c6fe901d704f2d7c6d07dfeabcfea")
 	return a, b
 }
 
