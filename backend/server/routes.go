@@ -652,6 +652,20 @@ func handlerGetUsers(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/logout/"
+func handlerLogout() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+		invalidateToken(w)
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(userReply{Success: true}); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
+}
+
 // API pattern: "/api/v1/deleteUser/<userUid>"
 func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -790,7 +804,11 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(constants.GetRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph))
-	http.Handle(constants.GetRouteCreateUser(), Adapt(handlerCreateUser(dgraph), authorizationMiddleware()))
-	http.Handle(constants.GetRouteDeleteUser(), Adapt(handlerDeleteUser(dgraph), authorizationMiddleware()))
-	http.Handle(constants.GetRouteGetUsers(), Adapt(handlerGetUsers(dgraph), authorizationMiddleware()))
+	http.Handle(constants.GetRouteLogout(), handlerLogout())
+	http.Handle(constants.GetRouteCreateUser(),
+		Adapt(handlerCreateUser(dgraph), authorizationMiddleware(constants.GetRouteCreateUser())))
+	http.Handle(constants.GetRouteDeleteUser(),
+		Adapt(handlerDeleteUser(dgraph), authorizationMiddleware(constants.GetRouteDeleteUser())))
+	http.Handle(constants.GetRouteGetUsers(),
+		Adapt(handlerGetUsers(dgraph), authorizationMiddleware(constants.GetRouteGetUsers())))
 }

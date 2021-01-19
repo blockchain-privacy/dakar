@@ -18,6 +18,7 @@ const (
 	routeGetUsers            string = "getUsers"
 	routeDeleteUser          string = "deleteUser"
 	routeLogin               string = "login"
+	routeLogout              string = "logout"
 )
 
 func getRoute(r string) string {
@@ -86,4 +87,8 @@ func GetRouteDeleteUser() string {
 
 func GetRouteLogin() string {
 	return getRoute(routeLogin)
+}
+
+func GetRouteLogout() string {
+	return getRoute(routeLogout)
 }
