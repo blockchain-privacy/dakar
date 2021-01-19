@@ -696,11 +696,11 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply, dbUser := getLoginReply(dgraph, r.Body)
+		reply := getLoginReply(dgraph, r.Body)
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(dbUser)
+			token, expirationTime, err := issueToken(*reply.User)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
@@ -709,6 +709,11 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 			setTokenAsCookie(w, token, expirationTime)
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
+		}
+
+		if reply.User != nil {
+			// do not send uid
+			reply.User.Uid = ""
 		}
 
 		// encoding

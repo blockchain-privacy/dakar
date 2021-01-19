@@ -8,6 +8,7 @@ import (
 	dbblk "backend/db/block"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	dbus "backend/db/user"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -67,8 +68,9 @@ type heuristicReply struct {
 }
 
 type userReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
+	Success bool                    `json:"success"`
+	Msg     string                  `json:"msg,omitempty"`
+	User    *dbus.FrontendUserState `json:"user,omitempty"`
 }
 
 type queryResultType string

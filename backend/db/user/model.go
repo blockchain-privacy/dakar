@@ -45,16 +45,30 @@ func (u *User) SetDType() {
 	u.DType = []string{DTypeUser}
 }
 
-type FrontendUserCreate struct {
+func (u User) ToFrontendUserState() FrontendUserState {
+	return FrontendUserState{
+		Uid:   u.Uid,
+		Email: u.Email,
+		Roles: u.Roles,
+	}
+}
+
+type FrontendUserState struct {
+	Uid   string `json:"uid,omitempty"`
+	Email string `json:"email,omitempty"`
+	Roles []Role `json:"roles,omitempty"`
+}
+
+type FrontendUserRoles struct {
 	Email string   `json:"user_email"`
 	Roles []string `json:"user_roles"`
 }
 
-func (f FrontendUserCreate) String() string {
+func (f FrontendUserRoles) String() string {
 	return fmt.Sprintf("email %s, roles: %v", f.Email, f.Roles)
 }
 
-func (f FrontendUserCreate) ToUser() User {
+func (f FrontendUserRoles) ToUser() User {
 	var roles []Role
 
 	for _, r := range f.Roles {
@@ -77,8 +91,8 @@ func (f FrontendUserCreate) ToUser() User {
 var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
 	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 
-// IsValid does a sanity check for the given FrontendUserCreate
-func (f FrontendUserCreate) IsValid() bool {
+// IsValid does a sanity check for the given FrontendUserRoles
+func (f FrontendUserRoles) IsValid() bool {
 	// check if values are set
 	if len(f.Email) == 0 || len(f.Roles) == 0 || !isValidEmail(f.Email) {
 		return false

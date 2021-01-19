@@ -11,7 +11,7 @@ import (
 )
 
 // getLoginReply reads the data from body and constructs a userReply
-func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply, dbUser dbus.User) {
+func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 	const invalidUserData = "email and password combination does not match"
 
 	var loginData dbus.FrontendUserLogin
@@ -43,15 +43,19 @@ func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply, dbUser 
 		return
 	}
 
-	dbUser = u
+	u.PasswordHash = ""
+
+	frontEndUser := u.ToFrontendUserState()
+
 	reply.Success = true
+	reply.User = &frontEndUser
 
 	return
 }
 
 // getCreateUserReply reads the data from body and constructs a userReply
 func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
-	var frontEndUser dbus.FrontendUserCreate
+	var frontEndUser dbus.FrontendUserRoles
 
 	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
 		reply.Msg = "could not decode user data"

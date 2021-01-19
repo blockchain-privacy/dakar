@@ -84,7 +84,7 @@ func authorizationMiddleware(route string) Adapter {
 				}
 
 				if timeUntilTokenExpires <= reissueDuration {
-					if tokenErr := writeNewToken(w, newUser.toUser()); tokenErr != nil {
+					if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState()); tokenErr != nil {
 						writeUnauthorized(w)
 						serverInfo(cliutil.ShowCallInfo(), tokenErr)
 						return
