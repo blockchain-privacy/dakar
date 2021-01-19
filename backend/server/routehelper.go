@@ -69,7 +69,6 @@ type heuristicReply struct {
 type userReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
-	Jwt     string `json:"jwt,omitempty"`
 }
 
 type queryResultType string

@@ -10,15 +10,12 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
-	"strings"
-
-	"backend/user"
-
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/o1egl/paseto"
 	"io/ioutil"
 	"log"
 	"math"
@@ -623,49 +620,18 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 }
 
 // API pattern: "/api/v1/createUser"
-func handlerCreateUser(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerCreateUser(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		var frontEndUser dbus.FrontendUserCreate
-
-		reply := userReply{
-			Success: true,
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil || !frontEndUser.IsValid() {
-			reply.Msg = "could not decode user data"
-			reply.Success = false
-			serverInfo(err)
-		} else {
-			u := frontEndUser.ToUser()
-			if pw, pwHash, pwErr := user.GetRandomPasswordAndHash(); pwErr != nil {
-				reply.Msg = "could not create password"
-			} else {
-				u.PasswordHash = pwHash
-				err = dbus.CreateUser(dgraph, u)
-				if err != nil {
-					reply.Success = false
-					// check if special error
-					if errors.Is(err, dbus.ErrorEmailExists) {
-						reply.Msg = "duplicate e-mail"
-					} else {
-						serverInfo(err)
-						reply.Msg = "could not create user"
-					}
-				} else {
-					serverInfo("Generated password(", u.Email, "):", pw)
-				}
-			}
-
-		}
+		reply := getCreateUserReply(dgraph, r.Body)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/getUsers/"
@@ -717,40 +683,40 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		const invalidUserData = "email and password combination does not match"
+		reply, userId := getLoginReply(dgraph, r.Body)
 
-		var loginData dbus.FrontendUserLogin
-
-		reply := userReply{
-			Success: true,
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&loginData); err != nil || !loginData.IsValid() {
-			reply.Msg = "could not decode user data"
-			reply.Success = false
-			serverInfo(err)
-		} else {
-			u, getErr := dbus.GetUserByEmail(dgraph, loginData.Email)
-			if getErr != nil {
-				reply.Success = false
-				reply.Msg = invalidUserData
-
-				// only log error if not expected
-				if !errors.Is(dbus.ErrorUsersNotFound, getErr) {
-					serverInfo(cliutil.ShowCallInfo(), getErr)
-				}
-
-			} else {
-				passwordValid, pwErr := user.ComparePassword(loginData.Password, u.PasswordHash)
-				if pwErr != nil || !passwordValid {
-					reply.Success = false
-					reply.Msg = invalidUserData
-				}
-			}
-		}
-
+		// set token if login is successful
 		if reply.Success {
-			reply.Jwt = "dummy jwt"
+			expirationTime := time.Now().Add(tokenExpirationTime)
+			jsonToken := paseto.JSONToken{
+				Expiration: expirationTime,
+			}
+			jsonToken.Set("user_id", userId)
+
+			privateKey, _ := getSigningKeys()
+
+			// Sign data
+			paseto2 := paseto.NewV2()
+			token, err := paseto2.Sign(privateKey, jsonToken, nil)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				serverInfo(cliutil.ShowCallInfo(), err)
+				return
+			}
+
+			serverInfo("new token:", token)
+
+			// Finally, we set the client cookie for "token" as the JWT we just generated
+			// we also set an expiry time which is the same as the token itself
+			http.SetCookie(w, &http.Cookie{
+				Name:     "token",
+				Value:    token,
+				Expires:  expirationTime,
+				HttpOnly: true,
+				Secure:   true,
+			})
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
 		}
 
 		// encoding
@@ -820,8 +786,11 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	}
 
 	// API end points
+
+	// Search
 	http.HandleFunc(constants.GetRouteSearch(),
 		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+	// Common data
 	http.HandleFunc(constants.GetRouteBlock(),
 		cacheMiddleware(cache, constants.GetRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
 	http.HandleFunc(constants.GetRouteTransaction(),
@@ -830,49 +799,22 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 		cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
 	http.HandleFunc(constants.GetRouteAddressOutputRange(),
 		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+	// Meta
 	http.HandleFunc(constants.GetRouteMeta(),
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
+	// Origins
 	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+	// Heuristic
 	http.HandleFunc(constants.GetRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
 	http.HandleFunc(constants.GetRouteHeuristics(), handlerHeuristics(dgraph, &worker))
 	http.HandleFunc(constants.GetRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
 	http.HandleFunc(constants.GetRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
 	http.HandleFunc(constants.GetRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
-	http.HandleFunc(constants.GetRouteCreateUser(), handlerCreateUser(dgraph))
+	// User
+	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph))
+	http.Handle(constants.GetRouteCreateUser(), Adapt(handlerCreateUser(dgraph), authorizationMiddleware()))
+
 	http.HandleFunc(constants.GetRouteGetUsers(), handlerGetUsers(dgraph))
 	http.HandleFunc(constants.GetRouteDeleteUser(), handlerDeleteUser(dgraph))
-	//http.HandleFunc(constants.GetRouteLogin(), handlerLogin(dgraph))
-	// todo convert all non-cached routes to this pattern
-	http.Handle(constants.GetRouteLogin(), authorizationMiddleware(handlerLogin(dgraph)))
-}
 
-func authorizationMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := strings.Split(r.Header.Get("Authorization"), "Bearer ")
-		if len(authHeader) != 2 {
-			fmt.Println("Malformed token")
-			w.WriteHeader(http.StatusUnauthorized)
-			w.Write([]byte("Malformed Token"))
-		} else {
-			//jwtToken := authHeader[1]
-			//token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
-			//	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			//		return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			//	}
-			//	return []byte(SECRETKEY), nil
-			//})
-			//if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			//	ctx := context.WithValue(r.Context(), "props", claims)
-			//	// Access context values in handlers like this
-			//	// props, _ := r.Context().Value("props").(jwt.MapClaims)
-			//	next.ServeHTTP(w, r.WithContext(ctx))
-			//} else {
-			//	fmt.Println(err)
-			//	w.WriteHeader(http.StatusUnauthorized)
-			//	w.Write([]byte("Unauthorized"))
-			//}
-			// todo remove
-			next.ServeHTTP(w, r)
-		}
-	})
 }
