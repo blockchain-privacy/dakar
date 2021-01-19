@@ -33,7 +33,7 @@
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
           <v-list-item @click="goToUserAdministration"
-                       v-if="this.userData && this.userData.roles.includes('admin')">
+                       v-if="showUserAdmin">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
             </v-list-item-icon>
@@ -77,10 +77,7 @@ import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
-import {
-  LOCALSTORAGE_FIELD_USER_ROLES, ROUTE_USER_LOGOUT,
-  LOCALSTORAGE_FIELD_USER_EMAIL,
-} from './constants';
+import { LOCALSTORAGE_FIELD_USER, ROUTE_USER_LOGOUT } from './constants';
 
 export default {
   name: 'App',
@@ -113,8 +110,12 @@ export default {
         this.$store.dispatch('setErrorMsg', value);
       },
     },
+    showUserAdmin() {
+      return this.userData && this.userData.roles && this.userData.roles.some((d) => d.role_name === 'admin');
+    },
   },
   methods: {
+
     changeTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
     },
@@ -141,8 +142,7 @@ export default {
           if (data.success === false) {
             throw Error(data.msg);
           }
-          localStorage.removeItem(LOCALSTORAGE_FIELD_USER_EMAIL);
-          localStorage.removeItem(LOCALSTORAGE_FIELD_USER_ROLES);
+          localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
           this.userData = null;
           this.goToLogin();
         })
@@ -152,6 +152,10 @@ export default {
     },
   },
   beforeMount() {
+    const localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
+    if (localStorageUserData !== null) {
+      this.userData = JSON.parse(localStorageUserData);
+    }
     // eslint-disable-next-line no-console
     console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
   },

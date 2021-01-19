@@ -41,8 +41,7 @@ export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
-export const LOCALSTORAGE_FIELD_USER_EMAIL = 'user_email';
-export const LOCALSTORAGE_FIELD_USER_ROLES = 'user_roles';
+export const LOCALSTORAGE_FIELD_USER = 'user';
 
 // blockchain
 export const COIN_UNIT_DASH = 'Dash';

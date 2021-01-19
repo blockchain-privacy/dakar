@@ -64,7 +64,9 @@
                   </div>
                 </div>
                 <div class="text-center">
-                  <v-btn block class="font-weight-bold" color="primary darken-1" large to="/">
+                  <v-btn disabled
+                         block
+                         class="font-weight-bold" color="primary darken-1" large to="/">
                     Register
                   </v-btn>
                 </div>
@@ -83,8 +85,7 @@ import {
 } from '@mdi/js';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER_ROLES,
-  LOCALSTORAGE_FIELD_USER_EMAIL,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
 } from '../constants';
 import { emailRules } from '../utilities';
 
@@ -137,6 +138,16 @@ export default {
       },
     };
   },
+  computed: {
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
+  },
   methods: {
     validateLoginForm() {
       return this.$refs.loginForm.validate();
@@ -154,13 +165,14 @@ export default {
       })
         .then((response) => response.json())
         .then((data) => {
-          if (data.success === undefined) throw Error('error logging in ');
+          if (data.success === undefined
+              || data.user === undefined) throw Error('error logging in ');
           if (data.success === false) {
             throw Error(data.msg);
           }
 
-          localStorage.setItem(LOCALSTORAGE_FIELD_USER_EMAIL, 'test123');
-          localStorage.setItem(LOCALSTORAGE_FIELD_USER_ROLES, 'test123');
+          this.userData = data.user;
+          localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data.user));
 
           goToRoot(this);
         })
