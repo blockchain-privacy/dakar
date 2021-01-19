@@ -140,13 +140,6 @@ export default {
     validateLoginForm() {
       return this.$refs.loginForm.validate();
     },
-    checkCredentials() {
-      if (this.email.value === 'admin@example.com' && this.password.value === '1234567890') {
-        setTimeout(() => { goToRoot(this); }, 2000);
-      }
-
-      setTimeout(() => { this.loginFailed = true; this.isSubmittingForm = false; }, 2000);
-    },
     sendLoginRequest() {
       this.isSubmittingForm = true;
       this.loginFailed = false;
@@ -164,6 +157,7 @@ export default {
           if (data.success === false) {
             throw Error(data.msg);
           }
+          goToRoot(this);
         })
         .catch((error) => {
           this.errMsg = error;
