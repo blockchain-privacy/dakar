@@ -15,7 +15,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/o1egl/paseto"
 	"io/ioutil"
 	"log"
 	"math"
@@ -687,34 +686,13 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 
 		// set token if login is successful
 		if reply.Success {
-			expirationTime := time.Now().Add(tokenExpirationTime)
-			jsonToken := paseto.JSONToken{
-				Expiration: expirationTime,
-			}
-			jsonToken.Set("user_id", userId)
-
-			privateKey, _ := getSigningKeys()
-
-			// Sign data
-			paseto2 := paseto.NewV2()
-			token, err := paseto2.Sign(privateKey, jsonToken, nil)
+			token, expirationTime, err := issueToken(userId)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
 				return
 			}
-
-			serverInfo("new token:", token)
-
-			// Finally, we set the client cookie for "token" as the JWT we just generated
-			// we also set an expiry time which is the same as the token itself
-			http.SetCookie(w, &http.Cookie{
-				Name:     "token",
-				Value:    token,
-				Expires:  expirationTime,
-				HttpOnly: true,
-				Secure:   true,
-			})
+			setTokenAsCookie(w, token, expirationTime)
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
 		}
