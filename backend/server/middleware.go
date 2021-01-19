@@ -2,6 +2,7 @@ package server
 
 import (
 	"backend/cmd/cliutil"
+	"encoding/json"
 	"net/http"
 	"time"
 )
@@ -47,13 +48,19 @@ func authorizationMiddleware() Adapter {
 				}
 
 				if timeUntilTokenExpires <= reissueDuration {
-					userId := token.Get(tokenFieldUser)
-					if len(userId) == 0 {
+					userFromToken := token.Get(tokenFieldUser)
+					if len(userFromToken) == 0 {
 						serverInfo(cliutil.ShowCallInfo(), "user id field not found in token")
 						return
 					}
 
-					if tokenErr := writeNewToken(w, userId); tokenErr != nil {
+					var newUser tokenUser
+					if jsonErr := json.Unmarshal([]byte(userFromToken), &newUser); jsonErr != nil {
+						serverInfo(cliutil.ShowCallInfo(), "user id field not found in token")
+						return
+					}
+
+					if tokenErr := writeNewToken(w, newUser.toUser()); tokenErr != nil {
 						serverInfo(cliutil.ShowCallInfo(), tokenErr)
 						return
 					}

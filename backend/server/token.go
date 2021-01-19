@@ -1,7 +1,11 @@
 package server
 
 import (
+	"backend/cmd/cliutil"
+	dbus "backend/db/user"
 	"encoding/hex"
+	"encoding/json"
+	"fmt"
 	"github.com/o1egl/paseto"
 	"net/http"
 	"time"
@@ -14,7 +18,7 @@ const (
 	tokenExpirationTime = time.Hour * 24
 	// cookieTokenName is the name of the cookie where the token is saved
 	cookieTokenName = "token"
-	// secureCookie controls whether the secure and httpOnly attribute in cookies is set
+	// secureCookie controls whether the secure attribute in cookies is set
 	secureCookie = false
 	// if only reissueDuration is left of the token lifetime it gets reissued
 	reissueDuration = tokenExpirationTime / 8
@@ -36,15 +40,17 @@ func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.T
 		Value:   token,
 		Expires: expirationTime,
 		// todo check if httponly can be set
-		HttpOnly: secureCookie,
+		HttpOnly: true,
 		Secure:   secureCookie,
+		// cookie should be able to be sent by request originating form all directories
+		Path: "/",
 	}
 
 	http.SetCookie(w, newCookie)
 }
 
-func writeNewToken(w http.ResponseWriter, userId string) error {
-	newToken, expirationTime, err := issueToken(userId)
+func writeNewToken(w http.ResponseWriter, user dbus.User) error {
+	newToken, expirationTime, err := issueToken(user)
 	if err != nil {
 		return err
 	}
@@ -53,14 +59,37 @@ func writeNewToken(w http.ResponseWriter, userId string) error {
 	return nil
 }
 
-func issueToken(userId string) (token string, expirationTime time.Time, err error) {
+type tokenUser struct {
+	Id    string      `json:"uid,omitempty"`
+	Roles []dbus.Role `json:"roles,omitempty"`
+}
+
+// toUser creates a new dbus.User and fill it with data from t
+func (t tokenUser) toUser() dbus.User {
+	return dbus.User{
+		Uid:   t.Id,
+		Roles: t.Roles,
+	}
+}
+
+func issueToken(user dbus.User) (token string, expirationTime time.Time, err error) {
 	privateKey, _ := getSigningKeys()
 
+	newTokenUser := tokenUser{
+		Id:    user.Uid,
+		Roles: user.Roles,
+	}
+
+	jsonUser, jsonErr := json.Marshal(&newTokenUser)
+	if jsonErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), jsonErr)
+		return
+	}
 	expirationTime = time.Now().Add(tokenExpirationTime)
 	jsonToken := paseto.JSONToken{
 		Expiration: expirationTime,
 	}
-	jsonToken.Set(tokenFieldUser, userId)
+	jsonToken.Set(tokenFieldUser, string(jsonUser))
 
 	// Sign data
 	token, err = paseto.NewV2().Sign(privateKey, jsonToken, nil)

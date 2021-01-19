@@ -682,11 +682,11 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply, userId := getLoginReply(dgraph, r.Body)
+		reply, dbUser := getLoginReply(dgraph, r.Body)
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(userId)
+			token, expirationTime, err := issueToken(dbUser)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
