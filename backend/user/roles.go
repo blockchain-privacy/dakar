@@ -30,12 +30,12 @@ var (
 )
 
 type Role interface {
-	// getName returns the Role name
-	getName() string
-	// getAllowedRoutes returns all allowed routes
-	getAllowedRoutes() map[string]bool
-	// isRouteAllowed returns true if the given route is allowed to be executed
-	isRouteAllowed(route string) bool
+	// GetName returns the Role name
+	GetName() string
+	// GetAllowedRoutes returns all allowed routes
+	GetAllowedRoutes() map[string]bool
+	// IsRouteAllowed returns true if the given route is allowed to be executed
+	IsRouteAllowed(route string) bool
 	// String returns a printable string representation
 	String() string
 }
@@ -53,15 +53,15 @@ func NewAdminRole() AdminRole {
 	}
 }
 
-func (a AdminRole) getName() string {
+func (a AdminRole) GetName() string {
 	return a.name
 }
 
-func (a AdminRole) getAllowedRoutes() map[string]bool {
+func (a AdminRole) GetAllowedRoutes() map[string]bool {
 	return a.allowedRoutes
 }
 
-func (a AdminRole) isRouteAllowed(_ string) bool {
+func (a AdminRole) IsRouteAllowed(_ string) bool {
 	return true
 }
 
@@ -97,15 +97,15 @@ func NewDefaultUserRole() DefaultUserRole {
 	}
 }
 
-func (d DefaultUserRole) getName() string {
+func (d DefaultUserRole) GetName() string {
 	return d.name
 }
 
-func (d DefaultUserRole) getAllowedRoutes() map[string]bool {
+func (d DefaultUserRole) GetAllowedRoutes() map[string]bool {
 	return d.allowedRoutes
 }
 
-func (d DefaultUserRole) isRouteAllowed(route string) bool {
+func (d DefaultUserRole) IsRouteAllowed(route string) bool {
 	return d.allowedRoutes[route]
 }
 
@@ -126,15 +126,15 @@ func NewPrivilegedRole() PrivilegedRole {
 	}
 }
 
-func (p PrivilegedRole) getName() string {
+func (p PrivilegedRole) GetName() string {
 	return p.name
 }
 
-func (p PrivilegedRole) getAllowedRoutes() map[string]bool {
+func (p PrivilegedRole) GetAllowedRoutes() map[string]bool {
 	return p.allowedRoutes
 }
 
-func (p PrivilegedRole) isRouteAllowed(route string) bool {
+func (p PrivilegedRole) IsRouteAllowed(route string) bool {
 	return p.allowedRoutes[route]
 }
 
