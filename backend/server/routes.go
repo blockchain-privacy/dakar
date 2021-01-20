@@ -593,10 +593,6 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			return
 		}
 
-		// todo remove
-		log.Println("Received", len(heuristicRequest.Changed), "changed heuristics")
-		log.Println("Received", len(heuristicRequest.Deleted), "deleted heuristics")
-
 		work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
 			heuristicRequest.Deleted)
 		if err != nil {
@@ -605,10 +601,13 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			return
 		}
 
-		// todo remove
-		log.Println("Added work:", worker.AddWork(txHashString, work))
+		addedWork := worker.AddWork(txHashString, work)
 
-		resp.Status = heuristic.StatusHeuristicAdded
+		if addedWork {
+			resp.Status = heuristic.StatusHeuristicAdded
+		} else {
+			resp.Status = heuristic.StatusHeuristicDuplicate
+		}
 
 		// encoding
 		err = json.NewEncoder(w).Encode(resp)
