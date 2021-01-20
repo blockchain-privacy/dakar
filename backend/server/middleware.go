@@ -18,9 +18,13 @@ func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
 }
 
 // writeUnauthorized sets the http.StatusUnauthorized status code and writes an error message
-func writeUnauthorized(w http.ResponseWriter) {
+func writeUnauthorized(w http.ResponseWriter, msg string) {
+	if len(msg) == 0 {
+		msg = "Malformed Token"
+	}
+
 	w.WriteHeader(http.StatusUnauthorized)
-	if _, writeErr := w.Write([]byte("Malformed Token")); writeErr != nil {
+	if _, writeErr := w.Write([]byte(msg)); writeErr != nil {
 		serverInfo(writeErr)
 	}
 }
@@ -64,7 +68,7 @@ func authorizationMiddleware(route string) Adapter {
 
 			var newUser tokenUser
 			if jsonErr := json.Unmarshal([]byte(userFromToken), &newUser); jsonErr != nil {
-				writeUnauthorized(w)
+				writeUnauthorized(w, "")
 				serverInfo(cliutil.ShowCallInfo(), "user id field not found in token")
 				return
 			}
@@ -74,7 +78,7 @@ func authorizationMiddleware(route string) Adapter {
 			for _, uRole := range newUser.Roles {
 				routeRole, roleErr := user.GetRoleByName(uRole.Name)
 				if roleErr != nil {
-					writeUnauthorized(w)
+					writeUnauthorized(w, "")
 					serverInfo(cliutil.ShowCallInfo(), roleErr)
 					return
 				}
@@ -86,7 +90,7 @@ func authorizationMiddleware(route string) Adapter {
 			}
 
 			if !routeAllowed {
-				writeUnauthorized(w)
+				writeUnauthorized(w, "route not allowed")
 				serverInfo(cliutil.ShowCallInfo(), newUser.Id, "tried to access", route)
 				return
 			}
