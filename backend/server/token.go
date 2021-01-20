@@ -5,9 +5,11 @@ import (
 	dbus "backend/db/user"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/o1egl/paseto"
 	"net/http"
+	"os"
 	"time"
 
 	"golang.org/x/crypto/ed25519"
@@ -24,14 +26,37 @@ const (
 	reissueDuration = tokenExpirationTime / 8
 	// tokenFieldUser is the name of the user field in the token
 	tokenFieldUser = "user_id"
+	// SigningPubkeyEnvironmentField is the name of the os environment field for the public signing key
+	SigningPubkeyEnvironmentField = "TOKEN_PUB_KEY"
+	// SigningPrivkeyEnvironmentField is the name of the os environment field for the private signing key
+	SigningPrivkeyEnvironmentField = "TOKEN_PRIV_KEY"
 )
 
-// todo rework to read keys from environment
-// getSigningKeys returns a public key pair
-func getSigningKeys() (ed25519.PrivateKey, ed25519.PublicKey) {
-	a, _ := hex.DecodeString("6d5d5c049073fec47c42a1dfc973340a21e97a9f2719cc53aa244a6f4776dcaa2a08099ec12298bc6865647f4651e400871c6fe901d704f2d7c6d07dfeabcfea")
-	b, _ := hex.DecodeString("2a08099ec12298bc6865647f4651e400871c6fe901d704f2d7c6d07dfeabcfea")
-	return a, b
+// GetSigningKeysFromEnv returns a public key pair, an error is returned if
+// SigningPubkeyEnvironmentField or SigningPrivkeyEnvironmentField are not set
+func GetSigningKeysFromEnv() (ed25519.PrivateKey, ed25519.PublicKey, error) {
+	pubKey := os.Getenv(SigningPubkeyEnvironmentField)
+
+	if len(pubKey) == 0 {
+		return nil, nil, errors.New("public key environment variable not set")
+	}
+
+	privKey := os.Getenv(SigningPrivkeyEnvironmentField)
+	if len(privKey) == 0 {
+		return nil, nil, errors.New("private key environment variable not set")
+	}
+
+	a, err := hex.DecodeString(pubKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b, err := hex.DecodeString(privKey)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return a, b, nil
 }
 
 // setTokenAsCookie writes the given token with w as a cookie
@@ -51,8 +76,8 @@ func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.T
 }
 
 // writeNewToken writes the data from user into as a cookie to w
-func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserState) error {
-	newToken, expirationTime, err := issueToken(user)
+func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserState, privkey ed25519.PrivateKey) error {
+	newToken, expirationTime, err := issueToken(user, privkey)
 	if err != nil {
 		return err
 	}
@@ -80,9 +105,7 @@ func (t tokenUser) toUser() dbus.User {
 }
 
 // issueToken creates a token from user
-func issueToken(user dbus.FrontendUserState) (token string, expirationTime time.Time, err error) {
-	privateKey, _ := getSigningKeys()
-
+func issueToken(user dbus.FrontendUserState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
 	newTokenUser := tokenUser{
 		Id:    user.Uid,
 		Roles: user.Roles,
@@ -105,9 +128,7 @@ func issueToken(user dbus.FrontendUserState) (token string, expirationTime time.
 }
 
 // verifyToken checks if token is valid
-func verifyToken(token string) (newJsonToken paseto.JSONToken, newFooter string, err error) {
-	_, publicKey := getSigningKeys()
-
+func verifyToken(token string, publicKey ed25519.PublicKey) (newJsonToken paseto.JSONToken, newFooter string, err error) {
 	// Verify data
 	err = paseto.NewV2().Verify(token, publicKey, &newJsonToken, &newFooter)
 	return

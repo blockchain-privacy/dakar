@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
 	"log"
 	"math"
@@ -692,7 +693,7 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/login/"
-func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
+func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -700,7 +701,7 @@ func handlerLogin(dgraph *dgo.Dgraph) http.Handler {
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(*reply.User)
+			token, expirationTime, err := issueToken(*reply.User, privateSigningKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
@@ -770,17 +771,26 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 
 // setupHandlers creates endpoint handlers
 func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
-	worker := heuristic.NewWorker()
-	worker.StartWorking(ctx, dgraph)
+	// get signing keys
 
+	privkey, pubkey, err := GetSigningKeysFromEnv()
+	if err != nil {
+		panic(fmt.Sprintln("error getting signing keys", err))
+	}
+
+	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
 		MaxCost:     1 << 30, // maximum cost of cache (1GB).
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintln("error initializing cache", err))
 	}
+
+	// init worker
+	worker := heuristic.NewWorker()
+	worker.StartWorking(ctx, dgraph)
 
 	// API end points
 
@@ -803,23 +813,31 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
-		Adapt(handlerHeuristics(dgraph, &worker), authorizationMiddleware(constants.GetRouteHeuristics())))
+		Adapt(handlerHeuristics(dgraph, &worker),
+			authorizationMiddleware(constants.GetRouteHeuristics(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicStatus(),
-		Adapt(handlerHeuristicStatus(&worker), authorizationMiddleware(constants.GetRouteHeuristicStatus())))
+		Adapt(handlerHeuristicStatus(&worker),
+			authorizationMiddleware(constants.GetRouteHeuristicStatus(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicDetails(),
-		Adapt(handlerHeuristicsDetails(dgraph), authorizationMiddleware(constants.GetRouteHeuristicDetails())))
+		Adapt(handlerHeuristicsDetails(dgraph),
+			authorizationMiddleware(constants.GetRouteHeuristicDetails(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsExecution(),
-		Adapt(handlerHeuristicsExecution(dgraph, &worker), authorizationMiddleware(constants.GetRouteHeuristicsExecution())))
+		Adapt(handlerHeuristicsExecution(dgraph, &worker),
+			authorizationMiddleware(constants.GetRouteHeuristicsExecution(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsSummary(),
-		Adapt(handlerHeuristicsSummary(dgraph), authorizationMiddleware(constants.GetRouteHeuristicsSummary())))
+		Adapt(handlerHeuristicsSummary(dgraph),
+			authorizationMiddleware(constants.GetRouteHeuristicsSummary(), privkey, pubkey)))
 
 	// User
-	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph))
+	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))
 	http.Handle(constants.GetRouteLogout(), handlerLogout())
 	http.Handle(constants.GetRouteCreateUser(),
-		Adapt(handlerCreateUser(dgraph), authorizationMiddleware(constants.GetRouteCreateUser())))
+		Adapt(handlerCreateUser(dgraph),
+			authorizationMiddleware(constants.GetRouteCreateUser(), privkey, pubkey)))
 	http.Handle(constants.GetRouteDeleteUser(),
-		Adapt(handlerDeleteUser(dgraph), authorizationMiddleware(constants.GetRouteDeleteUser())))
+		Adapt(handlerDeleteUser(dgraph),
+			authorizationMiddleware(constants.GetRouteDeleteUser(), privkey, pubkey)))
 	http.Handle(constants.GetRouteGetUsers(),
-		Adapt(handlerGetUsers(dgraph), authorizationMiddleware(constants.GetRouteGetUsers())))
+		Adapt(handlerGetUsers(dgraph),
+			authorizationMiddleware(constants.GetRouteGetUsers(), privkey, pubkey)))
 }

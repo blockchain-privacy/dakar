@@ -7,11 +7,12 @@ import (
 	"backend/db/status"
 	"backend/processor"
 	"backend/server"
-
 	"context"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
+	"golang.org/x/crypto/ed25519"
 	"log"
 	"os"
 	"os/signal"
@@ -154,6 +155,23 @@ func main() {
 	if cliArgs.IsPrintStatus {
 		status.PrintStatus(dgraph)
 		return
+	}
+
+	// check if signing keys are set
+	if !cliArgs.DisableHttpServer {
+		_, _, keyErr := server.GetSigningKeysFromEnv()
+		if keyErr != nil {
+			info("error getting signing keys. Set the following environment variables:",
+				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField, keyErr)
+
+			publicKey, privateKey, err := ed25519.GenerateKey(nil)
+			if err != nil {
+				return
+			}
+
+			info("Generated new key pair:\npublic key:", hex.EncodeToString(publicKey), "\nprivate key:", hex.EncodeToString(privateKey))
+			return
+		}
 	}
 
 	if cliArgs.ResetDB {

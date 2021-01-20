@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/user"
 	"encoding/json"
+	"golang.org/x/crypto/ed25519"
 	"net/http"
 	"time"
 )
@@ -38,7 +39,7 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	}
 }
 
-func authorizationMiddleware(route string) Adapter {
+func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed25519.PublicKey) Adapter {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(cookieTokenName)
@@ -47,7 +48,7 @@ func authorizationMiddleware(route string) Adapter {
 				return
 			}
 
-			token, _, verifyErr := verifyToken(cookie.Value)
+			token, _, verifyErr := verifyToken(cookie.Value, pubkey)
 			if verifyErr != nil {
 				sendRedirectMessage(w)
 				return
@@ -96,7 +97,7 @@ func authorizationMiddleware(route string) Adapter {
 			}
 
 			if timeUntilTokenExpires <= reissueDuration {
-				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState()); tokenErr != nil {
+				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState(), privkey); tokenErr != nil {
 					sendRedirectMessage(w)
 					serverInfo(cliutil.ShowCallInfo(), tokenErr)
 					return
