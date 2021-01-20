@@ -338,8 +338,8 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
-func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
@@ -438,12 +438,12 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 			}
 			csvWriter.Flush()
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristics()):]
@@ -471,12 +471,12 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.R
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristicStatus/<hash>"
-func handlerHeuristicStatus(worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicStatus()):]
@@ -496,12 +496,12 @@ func handlerHeuristicStatus(worker *heuristic.Worker) func(http.ResponseWriter, 
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristicDetails/<hash>"
-func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicDetails()):]
@@ -543,12 +543,12 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) func(http.ResponseWriter, *htt
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsExecution()):]
@@ -615,7 +615,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) fu
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			serverInfo(cliutil.ShowCallInfo(), err)
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/createUser"
@@ -802,11 +802,17 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	// Origins
 	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
 	// Heuristic
-	http.HandleFunc(constants.GetRouteHeuristicsSummary(), handlerHeuristicsSummary(dgraph))
-	http.HandleFunc(constants.GetRouteHeuristics(), handlerHeuristics(dgraph, &worker))
-	http.HandleFunc(constants.GetRouteHeuristicsExecution(), handlerHeuristicsExecution(dgraph, &worker))
-	http.HandleFunc(constants.GetRouteHeuristicStatus(), handlerHeuristicStatus(&worker))
-	http.HandleFunc(constants.GetRouteHeuristicDetails(), handlerHeuristicsDetails(dgraph))
+	http.Handle(constants.GetRouteHeuristics(),
+		Adapt(handlerHeuristics(dgraph, &worker), authorizationMiddleware(constants.GetRouteHeuristics())))
+	http.Handle(constants.GetRouteHeuristicStatus(),
+		Adapt(handlerHeuristicStatus(&worker), authorizationMiddleware(constants.GetRouteHeuristicStatus())))
+	http.Handle(constants.GetRouteHeuristicDetails(),
+		Adapt(handlerHeuristicsDetails(dgraph), authorizationMiddleware(constants.GetRouteHeuristicDetails())))
+	http.Handle(constants.GetRouteHeuristicsExecution(),
+		Adapt(handlerHeuristicsExecution(dgraph, &worker), authorizationMiddleware(constants.GetRouteHeuristicsExecution())))
+	http.Handle(constants.GetRouteHeuristicsSummary(),
+		Adapt(handlerHeuristicsSummary(dgraph), authorizationMiddleware(constants.GetRouteHeuristicsSummary())))
+
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph))
 	http.Handle(constants.GetRouteLogout(), handlerLogout())
