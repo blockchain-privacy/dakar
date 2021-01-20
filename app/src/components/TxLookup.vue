@@ -9,9 +9,11 @@
               Transaction {{ data.txhash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn id="btn_open_heuristic_editor" v-if="data.privacytype === 'destination'"
-                   style="margin-right: 0" outlined icon
-                   @click="goToHeuristicPage">
+            <v-btn
+                id="btn_open_heuristic_editor"
+                v-if="data.privacytype === 'destination' && showHeuristicEditor"
+                style="margin-right: 0" outlined icon
+                @click="goToHeuristicPage">
               <v-icon>{{ icon.mdiGraph }}</v-icon>
             </v-btn>
             <v-tooltip bottom activator="#btn_open_heuristic_editor">
@@ -76,7 +78,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem :icon="icon.mdiPound"  title="Number of inputs">
+                  <IconItem :icon="icon.mdiPound" title="Number of inputs">
                     {{ !data.inputs ? 0 : data.inputs.length }}
                   </IconItem>
                 </v-col>
@@ -172,6 +174,18 @@ export default {
     },
     outputs() {
       return this.sortByOutput(this.data.outputs);
+    },
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
+    showHeuristicEditor() {
+      return this.userData && this.userData.roles
+          && this.userData.roles.some((d) => d.role_name === 'admin' || d.role_name === 'privileged');
     },
   },
   methods: {
