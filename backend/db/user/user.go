@@ -3,6 +3,7 @@ package user
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/user"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -245,4 +246,24 @@ func GetUserCount(c *dgo.Dgraph) (uint64, error) {
 // GetRoleCount gets the number of roles in the database
 func GetRoleCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DTypeRole)
+}
+
+// CreateAdminUser creates an new admin account with a random password
+func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
+	pw, pwHash, err := user.GetRandomPasswordAndHash()
+	if err != nil {
+		return "", err
+	}
+
+	if err = CreateUser(c, User{
+		Email:        email,
+		PasswordHash: pwHash,
+		Roles: []Role{{
+			Name: "admin",
+		}},
+	}); err != nil {
+		return "", err
+	}
+
+	return pw, nil
 }

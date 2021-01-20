@@ -5,6 +5,7 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
+	dbus "backend/db/user"
 	"backend/processor"
 	"backend/server"
 	"context"
@@ -200,6 +201,28 @@ func main() {
 			return
 		}
 		info("setup new schema")
+	}
+
+	// create admin account if none is set
+	if !cliArgs.DisableHttpServer {
+		// check if users already exist
+		_, userErr := dbus.GetUsers(dgraph)
+		if userErr != nil {
+			// no users exists -> create admin user
+			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
+				adminEmail := "admin@dakar.null"
+				pw, userCreationError := dbus.CreateAdminUser(dgraph, adminEmail)
+				if userCreationError != nil {
+					info(err)
+					return
+				}
+				// do not log
+				fmt.Println("new admin user created. Email:", adminEmail, "Pw:", pw)
+			} else {
+				info(userErr)
+				return
+			}
+		}
 	}
 
 	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
