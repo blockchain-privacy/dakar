@@ -1,12 +1,15 @@
-package main
+package server
 
 import (
 	heuristic "backend/analytics/heuristics/transaction"
+	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	dbus "backend/db/user"
+	"net/http"
 	"regexp"
 	"strconv"
 
@@ -64,6 +67,12 @@ type heuristicReply struct {
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
+type userReply struct {
+	Success bool                    `json:"success"`
+	Msg     string                  `json:"msg,omitempty"`
+	User    *dbus.FrontendUserState `json:"user,omitempty"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"
@@ -74,6 +83,26 @@ const typeEmpty queryResultType = "response_empty"
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
+}
+
+// handleError conditionally logs and writes the error to the http response
+func handleError(w http.ResponseWriter, err error) {
+	if err == nil || w == nil {
+		return
+	}
+
+	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
+	serverInfo(cliutil.ShowCallInfo(), err)
+}
+
+// buildKey build a key from the given arguments
+func buildKey(route string, query string, body []byte) (key string) {
+	key = route + query
+	if len(body) > 0 {
+		key += string(body[:])
+	}
+
+	return
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true

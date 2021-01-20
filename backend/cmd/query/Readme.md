@@ -22,3 +22,5 @@ Example:
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |
 | addrcluster | < empty string > | Create cluster for the given address (default: none) |
 | logfile | < empty string > | Specify log file (default: none) |
+| dbhost | 0.0.0.0 | Dgraph host IP (default: 0.0.0.0) |
+| dbport | 9080 | Dgraph port (default: 9080) |

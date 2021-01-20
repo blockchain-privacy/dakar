@@ -35,10 +35,11 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 						txtype
 					}
 				}
-			  }
-				`
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": txHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -87,7 +88,9 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 			  	}
 			   }`
 
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(), query, map[string]string{"$hash": txHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

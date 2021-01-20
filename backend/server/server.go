@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -31,8 +31,8 @@ type Server struct {
 	cancel  context.CancelFunc
 }
 
-// creates a http server on the given port
-func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) Server {
+// CreateServer creates a http server on the given port
+func CreateServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) Server {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	// setup REST API
 	setupHandlers(ctx, dgraph, client)
@@ -54,8 +54,8 @@ func createServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 	return Server{server: srv, context: ctx, cancel: cancelFunc}
 }
 
-// sends a shutdown signal to the server with a timout of 5 seconds
-func (s *Server) shutdownServer() {
+// ShutdownServer sends a shutdown signal to the server with a timout of 5 seconds
+func (s *Server) ShutdownServer() {
 	if s.server == nil {
 		return
 	}

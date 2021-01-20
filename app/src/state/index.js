@@ -1,12 +1,17 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import { doPost, doGet, handleError } from '../utilities';
+import {
+  doPost, doGet, handleError, isInvalidTokenMsg,
+} from '../utilities';
 import * as Constants from '../constants';
+
+import Router from '../router';
 
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
   return doGet(route, parameter).then((data) => {
+    if (isInvalidTokenMsg(data, Router)) return;
     context.commit(mutation, data);
     context.dispatch('resetMsg');
   }).catch((e) => {
@@ -17,6 +22,7 @@ function handleGet(context, route, mutation, parameter) {
 function handlePost(context, route, mutation, parameter, body) {
   return doPost(route, parameter, body)
     .then((data) => {
+      if (isInvalidTokenMsg(data, Router)) return;
       context.commit(mutation, data);
       context.dispatch('resetMsg');
     })
@@ -57,6 +63,8 @@ function getInitialState() {
     meta: null,
     heuristic: null,
     heuristicDetails: new Map(),
+    userList: null,
+    activeUser: null,
   };
 }
 
@@ -119,6 +127,12 @@ const mutations = {
   UPDATE_ADDRESS_DATA(state, payload) {
     state.searchResultType = payload.type;
     state.address = payload.payload;
+  },
+  UPDATE_USER_LIST(state, payload) {
+    state.userList = payload;
+  },
+  SET_ACTIVE_USER(state, payload) {
+    state.activeUser = payload;
   },
 };
 
@@ -201,6 +215,9 @@ const actions = {
     return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
       payload.parameter, payload.body);
   },
+  updateUserList(context) {
+    return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
+  },
   resetHeuristicDetails(context) {
     context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
@@ -212,6 +229,12 @@ const actions = {
   },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
+  },
+  setUserList(context, payload) {
+    context.commit('UPDATE_USER_LIST', payload);
+  },
+  setActiveUser(context, payload) {
+    context.commit('SET_ACTIVE_USER', payload);
   },
 };
 
@@ -235,6 +258,8 @@ const getters = {
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
+  getUserList: (state) => state.userList,
+  getActiveUser: (state) => state.activeUser,
 };
 
 const state = getInitialState();

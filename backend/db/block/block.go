@@ -29,11 +29,11 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 						txhash
 					}
 				}
-			  }
-				`
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$hash": blockHash})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -66,11 +66,12 @@ func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
 						txhash
 					}
 				}
-			  }
-				`
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, db.GetBackendContext(),
-		query, map[string]string{"$id": strconv.FormatUint(blockId, 10)})
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query,
+		map[string]string{"$id": strconv.FormatUint(blockId, 10)})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -119,9 +120,9 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 					}
 				}
 			  }`, searchProperty)
-
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(db.GetFrontendContext(),
-		query, map[string]string{"$ident": blockHash})
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -172,8 +173,9 @@ func UpdateBlock(c *dgo.Dgraph, block Block) error {
 		}},
 		CommitNow: true,
 	}
-
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -222,8 +224,9 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 		}},
 		CommitNow: true,
 	}
-
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -268,7 +271,9 @@ func InsertBlock(c *dgo.Dgraph, block Block) error {
 		CommitNow: true,
 	}
 
-	if err = db.TxWithRetry(c, db.GetBackendContext(), req); err != nil {
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 

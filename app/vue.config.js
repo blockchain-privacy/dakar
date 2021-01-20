@@ -1,13 +1,10 @@
 // webpack is part of vue-cli, DO NOT add it as dependency. It is going to result in several errors.
 // eslint-disable-next-line import/no-extraneous-dependencies
 const webpack = require('webpack');
-const gitCommitHash = require('child_process')
-  .execSync('git rev-parse --short HEAD')
-  .toString();
+const childProcess = require('child_process');
 
-const gitBranch = require('child_process')
-  .execSync('git branch --show-current')
-  .toString();
+const gitCommitHash = childProcess.execSync('git rev-parse --short HEAD').toString();
+const gitBranch = childProcess.execSync('git branch --show-current').toString();
 
 module.exports = {
   devServer: {
@@ -18,7 +15,16 @@ module.exports = {
       'Access-Control-Allow-Headers': 'Origin, Content-Type, X-Auth-Token',
     },
   },
-
+  chainWebpack: (config) => {
+    config
+      .plugin('html')
+      .tap((args) => {
+        // better use applicationName in constants/index.js,
+        // but the node js server only understands common.js. We use ES6.
+        args[0].title = 'Dakar';
+        return args;
+      });
+  },
   transpileDependencies: [
     'vuetify',
   ],

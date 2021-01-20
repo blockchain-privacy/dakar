@@ -7,7 +7,7 @@
           {{ this.coinUnit }}
           <v-tooltip bottom v-if="address.is_coinbase">
             <template v-slot:activator="{ on }">
-              <v-icon v-on="on">mdi-pickaxe</v-icon>
+              <v-icon class="itemIcon" v-on="on">{{ icon.mdiPickaxe }}</v-icon>
             </template>
             <span>Coinbase</span>
           </v-tooltip>
@@ -19,7 +19,7 @@
               flat>
             <v-list-item>
               <v-list-item-avatar style="margin: 0">
-                <v-icon>mdi-bank-transfer-in</v-icon>
+                <v-icon class="itemIcon">{{ icon.mdiBankTransferIn }}</v-icon>
               </v-list-item-avatar>
               <v-list-item-content>
                 <router-link :to="{ name: transactionRoute,
@@ -35,7 +35,7 @@
           <v-container>
             <v-row v-if="address.input_transaction">
               <v-col style="text-align: center; padding: 0">
-                <v-icon>mdi-arrow-down</v-icon>
+                <v-icon class="itemIcon">{{ icon.mdiArrowDown }}</v-icon>
               </v-col>
             </v-row>
           </v-container>
@@ -45,7 +45,7 @@
                   flat>
             <v-list-item>
               <v-list-item-avatar style="margin: 0">
-                <v-icon>mdi-bank-transfer-out</v-icon>
+                <v-icon class="itemIcon">{{ icon.mdiBankTransferOut }}</v-icon>
               </v-list-item-avatar>
               <v-list-item-content>
                 <router-link :to="{ name: transactionRoute,
@@ -65,7 +65,9 @@
 </template>
 
 <script>
-
+import {
+  mdiPickaxe, mdiBankTransferIn, mdiArrowDown, mdiBankTransferOut,
+} from '@mdi/js';
 import { shortenHash, convertAmount } from '../utilities';
 import { ROUTE_NAME_TRANSACTION_PAGE, COIN_UNIT } from '../constants';
 
@@ -79,6 +81,9 @@ export default {
     return {
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       coinUnit: COIN_UNIT,
+      icon: {
+        mdiPickaxe, mdiBankTransferIn, mdiArrowDown, mdiBankTransferOut,
+      },
     };
   },
   methods: {
@@ -93,5 +98,9 @@ export default {
   font-size: 0.75rem !important;
   text-transform: uppercase;
   font-family: "Roboto", sans-serif !important;
+}
+
+.itemIcon {
+  max-width: 32px;
 }
 </style>

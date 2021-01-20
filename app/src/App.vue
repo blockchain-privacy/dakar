@@ -15,8 +15,39 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
+      <v-menu offset-y style="z-index: 99">
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+              icon
+              v-bind="attrs"
+              v-on="on">
+            <v-icon>{{ icon.mdiAccount }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="goToLogin" v-if="!this.userData">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiLogin }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Login</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="goToUserAdministration"
+                       v-if="showUserAdmin">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>User Administration</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="logout" v-if="this.userData">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiLogout }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Logout</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-btn icon v-on:click="changeTheme()">
-        <v-icon dark>mdi-invert-colors</v-icon>
+        <v-icon dark>{{ icon.mdiInvertColors }}</v-icon>
       </v-btn>
     </v-app-bar>
     <v-main>
@@ -38,9 +69,14 @@
 </template>
 
 <script>
+import {
+  mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+} from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
+import '@fontsource/roboto';
+import { LOCALSTORAGE_FIELD_USER, ROUTE_USER_LOGOUT } from './constants';
 
 export default {
   name: 'App',
@@ -51,9 +87,34 @@ export default {
   data() {
     return {
       applicationName: Constants.APPLICATION_NAME,
+      icon: {
+        mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+      },
     };
   },
+  computed: {
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
+      },
+    },
+    showUserAdmin() {
+      return this.userData && this.userData.roles && this.userData.roles.some((d) => d.role_name === 'admin');
+    },
+  },
   methods: {
+
     changeTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
     },
@@ -62,8 +123,38 @@ export default {
       if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE) return;
       this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
     },
+    goToLogin() {
+      // only change route if not already on entry page
+      if (this.$route.name === Constants.ROUTE_NAME_LOGIN_PAGE) return;
+      this.$router.push({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
+    },
+    goToUserAdministration() {
+      // only change route if not already on entry page
+      if (this.$route.name === Constants.ROUTE_NAME_USER_ADMIN_PAGE) return;
+      this.$router.push({ name: Constants.ROUTE_NAME_USER_ADMIN_PAGE });
+    },
+    logout() {
+      fetch(ROUTE_USER_LOGOUT)
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.success === undefined) throw Error('error deleting user');
+          if (data.success === false) {
+            throw Error(data.msg);
+          }
+          localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+          this.userData = null;
+          this.goToLogin();
+        })
+        .catch((error) => {
+          this.errMsg = error;
+        });
+    },
   },
   beforeMount() {
+    const localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
+    if (localStorageUserData !== null) {
+      this.userData = JSON.parse(localStorageUserData);
+    }
     // eslint-disable-next-line no-console
     console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
   },
@@ -74,8 +165,8 @@ export default {
 .component-fade-enter-active, .component-fade-leave-active {
   transition: opacity 0.2s ease;
 }
-.component-fade-enter, .component-fade-leave-to
-  /* .component-fade-leave-active below version 2.1.8 */ {
+
+.component-fade-enter, .component-fade-leave-to {
   opacity: 0;
 }
 </style>

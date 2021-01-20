@@ -6,11 +6,13 @@ import (
 	"backend/db"
 	"backend/db/status"
 	"backend/processor"
-
+	"backend/server"
 	"context"
+	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
+	"golang.org/x/crypto/ed25519"
 	"log"
 	"os"
 	"os/signal"
@@ -155,6 +157,23 @@ func main() {
 		return
 	}
 
+	// check if signing keys are set
+	if !cliArgs.DisableHttpServer {
+		_, _, keyErr := server.GetSigningKeysFromEnv()
+		if keyErr != nil {
+			info("error getting signing keys. Set the following environment variables:",
+				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField, keyErr)
+
+			publicKey, privateKey, err := ed25519.GenerateKey(nil)
+			if err != nil {
+				return
+			}
+
+			info("Generated new key pair:\npublic key:", hex.EncodeToString(publicKey), "\nprivate key:", hex.EncodeToString(privateKey))
+			return
+		}
+	}
+
 	if cliArgs.ResetDB {
 		// get confirmation for database deletion
 		var userAnswer string
@@ -279,10 +298,10 @@ func main() {
 	}
 
 	// activate server
-	var srv Server
+	var srv server.Server
 	if !cliArgs.DisableHttpServer {
 		wg.Add(1)
-		srv = createServer(&wg, cliArgs.HttpServerPort, dgraph, client)
+		srv = server.CreateServer(&wg, cliArgs.HttpServerPort, dgraph, client)
 	}
 
 	var crawlerStopped bool
@@ -295,7 +314,7 @@ func main() {
 			interrupted = true
 			cancelCrawler()
 			cancelAnalyzer()
-			srv.shutdownServer()
+			srv.ShutdownServer()
 		case <-chCrawlingStopped:
 			cancelCrawler()
 			crawlerStopped = true
@@ -309,7 +328,7 @@ func main() {
 		// if the crawler and analyzer stopped working on there own accord, the server is still active at this point
 		select {
 		case <-chSignal:
-			srv.shutdownServer()
+			srv.ShutdownServer()
 		}
 	}
 

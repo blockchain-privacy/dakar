@@ -1,5 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import UserAdministration from '../components/UserAdministration.vue';
+import Login from '../components/Login.vue';
 import TxLookup from '../components/TxLookup.vue';
 import BlockLookup from '../components/BlockLookup.vue';
 import AddressLookup from '../components/AddressLookup.vue';
@@ -43,6 +45,18 @@ export default new Router({
       name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
       component: HeuristicEditor,
       meta: { title: 'Heuristic' },
+    },
+    {
+      path: '/login',
+      name: Constants.ROUTE_NAME_LOGIN_PAGE,
+      component: Login,
+      meta: { title: 'Login' },
+    },
+    {
+      path: '/userAdministration',
+      name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
+      component: UserAdministration,
+      meta: { title: 'User Administration' },
     },
     {
       path: '/noresults',

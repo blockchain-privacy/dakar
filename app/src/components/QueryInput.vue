@@ -1,10 +1,16 @@
 <template>
   <v-text-field @keydown.enter="handleInput(query, 'user')"
                 class="d-flex" full-width v-model="query"
-                label="Search for blocks, transactions and addresses"/>
+                label="Search for blocks, transactions and addresses"
+                :append-outer-icon="icon.mdiMagnify"
+                @click:append-outer="handleInput(query, 'user')"
+  />
 </template>
 
 <script>
+import {
+  mdiMagnify,
+} from '@mdi/js';
 import * as Constants from '../constants';
 import * as Utility from '../utilities';
 
@@ -41,6 +47,9 @@ export default {
       // as it only needs to be accessed by this component
       query: '',
       lastQuery: '',
+      icon: {
+        mdiMagnify,
+      },
     };
   },
   computed: {

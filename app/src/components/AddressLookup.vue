@@ -5,7 +5,7 @@
         <v-card class="elevation-12">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title v-if="this.data">
-              <v-icon>mdi-card-bulleted-outline</v-icon>
+              <v-icon>{{ icon.mdiCardBulletedOutline }}</v-icon>
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
           </v-toolbar>
@@ -13,19 +13,19 @@
             <v-container>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-scale-balance" title="Balance">
+                  <IconItem :icon="icon.mdiScaleBalance" title="Balance">
                     {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-bank-transfer-in" title="Total amount received">
+                  <IconItem :icon="icon.mdiBankTransferIn" title="Total amount received">
                     {{ convertAmount(this.data.output_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-bank-transfer-out" title="Total amount spent">
+                  <IconItem :icon="icon.mdiBankTransferOut" title="Total amount spent">
                     {{ convertAmount(this.data.input_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
@@ -33,17 +33,17 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem icon="mdi-pound" title="Outputs">
+                  <IconItem :icon="icon.mdiPound" title="Outputs">
                     {{ this.data.output_count }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-pound" title="Unspent outputs">
+                  <IconItem :icon="icon.mdiPound" title="Unspent outputs">
                     {{ this.data.output_count - this.data.input_count }}
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem icon="mdi-pound" title="Coinbase outputs">
+                  <IconItem :icon="icon.mdiPound" title="Coinbase outputs">
                     {{ this.data.coinbase_count }}
                   </IconItem>
                 </v-col>
@@ -114,11 +114,11 @@
                 </v-sheet>
                 <v-row v-if="this.isLoadingMore">
                   <v-col>
-                  <v-progress-linear
-                      indeterminate
-                      rounded
-                      height="6"
-                  ></v-progress-linear>
+                    <v-progress-linear
+                        indeterminate
+                        rounded
+                        height="6"
+                    ></v-progress-linear>
                   </v-col>
                 </v-row>
               </v-container>
@@ -131,6 +131,10 @@
 </template>
 
 <script>
+import {
+  mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
+  mdiBankTransferOut, mdiPound,
+} from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
 import { convertAmount, doPost, handleError } from '../utilities';
 import {
@@ -142,6 +146,52 @@ import IconItem from './common/IconItem.vue';
 export default {
   name: 'AddressLookup',
   components: { IconItem, OutputComponent },
+  data() {
+    return {
+      icon: {
+        mdiCardBulletedOutline,
+        mdiScaleBalance,
+        mdiBankTransferIn,
+        mdiBankTransferOut,
+        mdiPound,
+      },
+      coinUnit: COIN_UNIT,
+      combobox: {
+        selected: {
+          id: 0,
+        },
+        items: [
+          { id: 0, text: 'Ascending by output date', disabled: false },
+          { id: 1, text: 'Descending by output date', disabled: false },
+          { divider: true },
+          { id: 2, text: 'Ascending by input date', disabled: false },
+          { id: 3, text: 'Descending by input date', disabled: false },
+          { divider: true },
+          { id: 4, text: 'Ascending by amount', disabled: false },
+          { id: 5, text: 'Descending by amount', disabled: false },
+        ],
+      },
+      filter: {
+        selected: [],
+        items: [
+          {
+            id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+          },
+          {
+            id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+          },
+        ],
+      },
+      offset: 0,
+      // default sort order: ascending by output timestamp
+      sortOrder: 0,
+      addressHash: '',
+      isLoading: false,
+      isLoadingMore: false,
+      isSortingByInput: false,
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+    };
+  },
   methods: {
     addNewData() {
       if (!this.data) return;
@@ -252,45 +302,6 @@ export default {
       }
       document.title = `Address${h}- ${PAGE_TITLE}`;
     },
-  },
-  data() {
-    return {
-      coinUnit: COIN_UNIT,
-      combobox: {
-        selected: {
-          id: 0,
-        },
-        items: [
-          { id: 0, text: 'Ascending by output date', disabled: false },
-          { id: 1, text: 'Descending by output date', disabled: false },
-          { divider: true },
-          { id: 2, text: 'Ascending by input date', disabled: false },
-          { id: 3, text: 'Descending by input date', disabled: false },
-          { divider: true },
-          { id: 4, text: 'Ascending by amount', disabled: false },
-          { id: 5, text: 'Descending by amount', disabled: false },
-        ],
-      },
-      filter: {
-        selected: [],
-        items: [
-          {
-            id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
-          },
-          {
-            id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
-          },
-        ],
-      },
-      offset: 0,
-      // default sort order: ascending by output timestamp
-      sortOrder: 0,
-      addressHash: '',
-      isLoading: false,
-      isLoadingMore: false,
-      isSortingByInput: false,
-      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-    };
   },
   computed: {
     data: {

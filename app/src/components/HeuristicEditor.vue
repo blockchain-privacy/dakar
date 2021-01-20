@@ -13,18 +13,18 @@
     <v-toolbar
         color="primary"
         dark
-        style="width: 100%; left:0;position:fixed; z-index: 99;
+        style="width: 100%; left:0;position:fixed; z-index: 10;
     box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
         dense>
       <v-toolbar-title class="hidden-md-and-up">
         {{ this.shortTransactionHash }}
       </v-toolbar-title>
       <v-toolbar-title class="hidden-sm-and-down">
-        <v-icon>mdi-transfer</v-icon>
+        <v-icon>{{ icon.mdiTransfer }}</v-icon>
         Transaction {{ this.shortTransactionHash }}
       </v-toolbar-title>
       <v-btn icon @click="goToTransactionPage">
-        <v-icon>mdi-open-in-new</v-icon>
+        <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
       </v-btn>
       <v-spacer></v-spacer>
       <v-btn
@@ -32,7 +32,7 @@
           outlined
           @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen"
           :disabled="this.executionStatus.value.executing">
-        <v-icon>mdi-shape-square-rounded-plus</v-icon>
+        <v-icon>{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
       <v-btn
@@ -40,7 +40,7 @@
           outlined
           @click="downloadHeuristicSummary"
           :disabled="this.executionStatus.value.executing || !doesDataExist()">
-        <v-icon>mdi-file-download-outline</v-icon>
+        <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
         <div class="hidden-sm-and-down">Download Summary</div>
       </v-btn>
       <v-btn
@@ -48,7 +48,7 @@
           outlined
           @click="executeHeuristics"
           :disabled="this.executionStatus.value.executing || !isExecutable()">
-        <v-icon>mdi-source-branch-check</v-icon>
+        <v-icon>{{ icon.mdiSourceBranchCheck }}</v-icon>
         <div class="hidden-sm-and-down">Execute Heuristics</div>
       </v-btn>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
@@ -134,6 +134,10 @@
 </template>
 
 <script>
+import {
+  mdiTransfer, mdiOpenInNew, mdiShapeSquareRoundedPlus, mdiFileDownloadOutline,
+  mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus,
+} from '@mdi/js';
 import HeuristicDetails from './HeuristicDetails.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
@@ -210,6 +214,13 @@ export default {
   components: { HeuristicDetails, NestedMenu },
   data() {
     return {
+      icon: {
+        mdiTransfer,
+        mdiOpenInNew,
+        mdiShapeSquareRoundedPlus,
+        mdiFileDownloadOutline,
+        mdiSourceBranchCheck,
+      },
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
       isHeuristicExecuting: false,
       executionStatus: {
@@ -304,12 +315,12 @@ export default {
         x: 0,
         y: 0,
         items: [
-          { title: 'Delete Heuristic', icon: 'mdi-delete', action: this.deleteSubTree },
-          { title: 'Show Properties', icon: 'mdi-chart-bar', action: ht.simulateClick },
+          { title: 'Delete Heuristic', icon: mdiDelete, action: this.deleteSubTree },
+          { title: 'Show Properties', icon: mdiChartBar, action: ht.simulateClick },
           { isDivider: true },
           {
             title: 'Add Heuristic',
-            icon: 'mdi-shape-square-rounded-plus',
+            icon: mdiShapeSquarePlus,
             action: () => {
               this.isAddHeuristicSheetOpen = true;
             },
@@ -320,13 +331,13 @@ export default {
             menu: [
               {
                 title: 'Download Summary',
-                icon: 'mdi-file-download-outline',
+                icon: mdiFileDownloadOutline,
                 action: this.downloadHeuristicSummary,
                 disabled: this.doesDataExist,
               },
               {
                 title: 'Execute Heuristics',
-                icon: 'mdi-source-branch-check',
+                icon: mdiSourceBranchCheck,
                 action: this.executeHeuristics,
                 disabled: this.isExecutable,
               },

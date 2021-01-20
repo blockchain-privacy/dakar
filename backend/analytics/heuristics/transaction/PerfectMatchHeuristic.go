@@ -34,7 +34,7 @@ func (h PerfectMatchHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h PerfectMatchHeuristic) setParameter(p string) error {
+func (h PerfectMatchHeuristic) setParameter(_ string) error {
 	return nil
 }
 

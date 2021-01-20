@@ -12,14 +12,14 @@
             <v-card-subtitle>
               <v-row>
                 <v-col>
-                  <IconItem title="Type" icon="mdi-iframe-variable-outline">
+                  <IconItem title="Type" :icon="icon.mdiIframeVariableOutline">
                     {{ heuristicData.heuristicType }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem v-if="heuristicData.heuristicParameter"
                             title="Parameter"
-                            icon="mdi-tune">
+                            :icon="icon.mdiTune">
                     {{ heuristicData.heuristicParameter }}
                   </IconItem>
                 </v-col>
@@ -27,13 +27,13 @@
               <v-row>
                 <v-col>
                   <IconItem title="Number of origins"
-                            icon="mdi-pound-box-outline">
+                            :icon="icon.mdiPoundBoxOutline">
                     {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem title="Number of addresses"
-                            icon="mdi-pound-box-outline">
+                            :icon="icon.mdiPoundBoxOutline">
                     {{ addressMap === undefined ? 0 : addressMap.size }}
                   </IconItem>
                 </v-col>
@@ -58,7 +58,9 @@
 </template>
 
 <script>
-
+import {
+  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+} from '@mdi/js';
 import * as d3 from 'd3';
 import IconItem from './common/IconItem.vue';
 
@@ -81,6 +83,9 @@ export default {
   },
   data() {
     return {
+      icon: {
+        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+      },
       chart: null,
       dataHeaders: [
         {
@@ -151,7 +156,7 @@ export default {
 
       const svg = d3.select(`#${svgCanvasId}`);
       const margin = {
-        top: 20, right: 30, bottom: 30, left: 40,
+        top: 20, right: 30, bottom: 45, left: 40,
       };
       const width = 600 - margin.left - margin.right;
       const height = 300 - margin.top - margin.bottom;
@@ -160,6 +165,7 @@ export default {
       const x = d3.scaleTime()
         .domain([lowestRange, highestRange])
         .rangeRound([0, width]);
+
       const y = d3.scaleLinear()
         .range([height, 0]);
 
@@ -199,6 +205,7 @@ export default {
       svgGroup.append('g')
         .attr('transform', `translate(0,${height})`)
         .call(d3.axisBottom(x));
+      // .call(d3.axisBottom(x).tickFormat(d3.timeFormat('%b %d %I:%M')));
 
       // add x title
       svgGroup.append('text')
@@ -206,10 +213,21 @@ export default {
         .attr('font-family', 'sans-serif')
         .attr('font-size', 10)
         .attr('transform',
-          `translate(${width / 2} ,${
+          `translate(${(width / 2)} ,${
             height + margin.top + 10})`)
         .style('text-anchor', 'middle')
         .text('Time');
+
+      // add x title description
+      svgGroup.append('text')
+        .attr('fill', 'currentColor')
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', 10)
+        .attr('transform',
+          `translate(${(width / 2)} ,${
+            height + margin.top + 22})`)
+        .style('text-anchor', 'middle')
+        .text(`${lowestDate.toLocaleString()} - ${highestDate.toLocaleString()}`);
 
       // add the y Axis
       svgGroup.append('g')

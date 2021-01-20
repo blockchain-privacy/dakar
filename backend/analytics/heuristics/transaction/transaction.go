@@ -7,7 +7,6 @@ import (
 
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -29,7 +28,7 @@ type heuristic interface {
 	hasParameter() bool
 	// setParameter sets the parameter
 	setParameter(string) error
-	// String returns the heurostic in string format
+	// String returns the heuristic in string format
 	String() string
 	// clone clones an instance of this interface. This method is needed because
 	// instances of interfaces can not be easily copied-by-value.
@@ -267,11 +266,6 @@ func fetchHeuristicSources(dgraph *dgo.Dgraph, heuristicUid string) (sources map
 
 // Execute the heuristic on the transaction specified by txHash
 func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuristic) (thisUid string, err error) {
-	heuristicString := fmt.Sprintf("heuristic <%s> for tx %s", h.getType(), txHash)
-
-	// todo remove
-	log.Println(heuristicString, "starting")
-
 	originUids, err := h.exec(dgraph, txHash, parentHeuristicUid)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -304,17 +298,5 @@ func Exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string, h heuris
 		return
 	}
 
-	// todo remove
-	sources, err := fetchHeuristicSources(dgraph, thisUid)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// todo remove
-	log.Println(heuristicString, "After heuristic origin count:", len(originUids), "sources count:", len(sources))
-	//for k := range sources {
-	//	log.Println(k)
-	//}
 	return
 }

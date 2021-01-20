@@ -34,7 +34,7 @@ func (h AmountHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h AmountHeuristic) setParameter(p string) error {
+func (h AmountHeuristic) setParameter(_ string) error {
 	return nil
 }
 

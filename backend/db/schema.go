@@ -49,6 +49,14 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type: string @index(hash) .
 			parameter: string .
 
+			role_name: string @index(hash) .
+
+			user_email: string @index(term, fulltext) .
+			user_pwhash: string .
+			user_roles: [uid] @reverse .
+			user_created: dateTime @index(day) .
+			user_modified: dateTime @index(day) .
+
 			type Block {
 				blockhash
 				id
@@ -105,6 +113,18 @@ func SetupSchema(c *dgo.Dgraph) error {
 				ts
 				parent_heuristic
 			}
+
+			type Role {
+				role_name
+			}
+
+			type User {
+				user_email
+				user_pwhash
+				user_roles
+				user_created
+				user_modified
+			}
 		`,
 	})
 }
@@ -112,8 +132,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 // checks if a schema is set
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
-
-	resp, err := c.NewReadOnlyTxn().Query(GetBackendContext(), query)
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -137,4 +158,30 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	}
 
 	return
+}
+
+func AlterSchemaAddUsers(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			role_name: string @index(hash) .
+
+			user_email: string @index(term, fulltext) .
+			user_pwhash: string .
+			user_roles: [uid] @reverse .
+			user_created: dateTime @index(day) .
+			user_modified: dateTime @index(day) .
+
+			type Role {
+				role_name
+			}
+
+			type User {
+				user_email
+				user_pwhash
+				user_roles
+				user_created
+				user_modified
+			}
+		`,
+	})
 }
