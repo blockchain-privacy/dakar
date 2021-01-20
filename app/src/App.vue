@@ -25,7 +25,6 @@
           </v-btn>
         </template>
         <v-list>
-<!-- todo switch flag in login item -->
           <v-list-item @click="goToLogin" v-if="!this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
