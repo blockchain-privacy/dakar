@@ -35,28 +35,28 @@ const (
 // GetSigningKeysFromEnv returns a public key pair, an error is returned if
 // SigningPubkeyEnvironmentField or SigningPrivkeyEnvironmentField are not set
 func GetSigningKeysFromEnv() (ed25519.PrivateKey, ed25519.PublicKey, error) {
-	pubKey := os.Getenv(SigningPubkeyEnvironmentField)
+	pubKeyEncoded := os.Getenv(SigningPubkeyEnvironmentField)
 
-	if len(pubKey) == 0 {
+	if len(pubKeyEncoded) == 0 {
 		return nil, nil, errors.New("public key environment variable not set")
 	}
 
-	privKey := os.Getenv(SigningPrivkeyEnvironmentField)
-	if len(privKey) == 0 {
+	privkeyEncoded := os.Getenv(SigningPrivkeyEnvironmentField)
+	if len(privkeyEncoded) == 0 {
 		return nil, nil, errors.New("private key environment variable not set")
 	}
 
-	a, err := hex.DecodeString(pubKey)
+	privkey, err := hex.DecodeString(privkeyEncoded)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	b, err := hex.DecodeString(privKey)
+	pubkey, err := hex.DecodeString(pubKeyEncoded)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return a, b, nil
+	return privkey, pubkey, nil
 }
 
 // setTokenAsCookie writes the given token with w as a cookie
