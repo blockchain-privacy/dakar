@@ -25,6 +25,12 @@
           </v-btn>
         </template>
         <v-list>
+          <v-list-item v-if="this.userData">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>{{ this.userData.email }}</v-list-item-title>
+          </v-list-item>
           <v-list-item @click="goToLogin" v-if="!this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
@@ -70,7 +76,7 @@
 
 <script>
 import {
-  mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+  mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
@@ -88,7 +94,7 @@ export default {
     return {
       applicationName: Constants.APPLICATION_NAME,
       icon: {
-        mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+        mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
       },
     };
   },
