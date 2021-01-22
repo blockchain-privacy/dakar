@@ -18,7 +18,7 @@ import (
 
 const (
 	// tokenExpirationTime is the time a token is valid
-	tokenExpirationTime = time.Hour * 24
+	tokenExpirationTime = time.Hour * 48
 	// cookieTokenName is the name of the cookie where the token is saved
 	cookieTokenName = "token"
 	// secureCookie controls whether the secure attribute in cookies is set
