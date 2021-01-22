@@ -3,15 +3,16 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
+
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/o1egl/paseto"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/o1egl/paseto"
 	"golang.org/x/crypto/ed25519"
 )
 
