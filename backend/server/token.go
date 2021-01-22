@@ -32,6 +32,19 @@ const (
 	SigningPrivkeyEnvironmentField = "TOKEN_PRIV_KEY"
 )
 
+type tokenUser struct {
+	Id    string      `json:"uid,omitempty"`
+	Roles []dbus.Role `json:"roles,omitempty"`
+}
+
+// toUser creates a new dbus.User and fill it with data from t
+func (t tokenUser) toUser() dbus.User {
+	return dbus.User{
+		Uid:   t.Id,
+		Roles: t.Roles,
+	}
+}
+
 // GetSigningKeysFromEnv returns a public key pair, an error is returned if
 // SigningPubkeyEnvironmentField or SigningPrivkeyEnvironmentField are not set
 func GetSigningKeysFromEnv() (ed25519.PrivateKey, ed25519.PublicKey, error) {
@@ -89,19 +102,6 @@ func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserState, privkey e
 // invalidateToken invalidates the token
 func invalidateToken(w http.ResponseWriter) {
 	setTokenAsCookie(w, "", time.Now().Add(-100*time.Hour))
-}
-
-type tokenUser struct {
-	Id    string      `json:"uid,omitempty"`
-	Roles []dbus.Role `json:"roles,omitempty"`
-}
-
-// toUser creates a new dbus.User and fill it with data from t
-func (t tokenUser) toUser() dbus.User {
-	return dbus.User{
-		Uid:   t.Id,
-		Roles: t.Roles,
-	}
 }
 
 // issueToken creates a token from user
