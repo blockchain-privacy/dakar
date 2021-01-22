@@ -30,8 +30,8 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 
 	user.Uid = ""
 	timeNow := time.Now()
-	user.Created = timeNow
-	user.Modified = timeNow
+	user.Created = &timeNow
+	user.Modified = &timeNow
 	user.SetDType()
 
 	queryVars := map[string]string{"$email": user.Email}
@@ -266,4 +266,44 @@ func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
 	}
 
 	return pw, nil
+}
+
+// ModifyUser
+func ModifyUser(c *dgo.Dgraph, user User) (err error) {
+
+	modifiedTime := time.Now()
+	user.Modified = &modifiedTime
+
+	pb, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	query := "query Q($uid:string){user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+
+	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": user.Uid},
+		Mutations: []*api.Mutation{{
+			Cond:    "@if(eq(len(user), 1))",
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	})
+	_ = resp
+	// no retry
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if len(resp.Uids) == 0 {
+		err = errors.New("error user was not deleted because it does not exist")
+		return
+	}
+
+	return
 }

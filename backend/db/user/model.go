@@ -27,13 +27,13 @@ func (r *Role) SetDType() {
 }
 
 type User struct {
-	Uid          string    `json:"uid,omitempty"`
-	Email        string    `json:"user_email"`
-	PasswordHash string    `json:"user_pwhash"`
-	Roles        []Role    `json:"user_roles"`
-	Created      time.Time `json:"user_created"`
-	Modified     time.Time `json:"user_modified"`
-	DType        []string  `json:"dgraph.type,omitempty"`
+	Uid          string     `json:"uid,omitempty"`
+	Email        string     `json:"user_email,omitempty"`
+	PasswordHash string     `json:"user_pwhash,omitempty"`
+	Roles        []Role     `json:"user_roles,omitempty"`
+	Created      *time.Time `json:"user_created,omitempty"`
+	Modified     *time.Time `json:"user_modified,omitempty"`
+	DType        []string   `json:"dgraph.type,omitempty"`
 }
 
 func (u User) String() string {
@@ -57,6 +57,31 @@ type FrontendUserState struct {
 	Uid   string `json:"uid,omitempty"`
 	Email string `json:"email,omitempty"`
 	Roles []Role `json:"roles,omitempty"`
+}
+
+func (f FrontendUserState) ToUser() User {
+	return User{
+		Uid:   f.Uid,
+		Email: f.Email,
+		Roles: f.Roles,
+	}
+}
+
+// IsValid does a sanity check for the given FrontendUserState
+func (f FrontendUserState) IsValid() bool {
+	// check if values are set
+	if len(f.Email) == 0 || len(f.Roles) == 0 || !isValidEmail(f.Email) {
+		return false
+	}
+
+	// check if all roles have valid values
+	for _, ur := range f.Roles {
+		if _, err := user.GetRoleByName(ur.Name); err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 type FrontendUserRoles struct {

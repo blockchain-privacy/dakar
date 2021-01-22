@@ -10,12 +10,14 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/user"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -724,6 +726,82 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 	})
 }
 
+// getModifyUserReply parses the input and creates a corresponding userReply
+func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply userReply) {
+	var frontEndUser dbus.FrontendUserState
+
+	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
+		reply.Msg = "could not decode user data"
+		return
+	}
+
+	if len(frontEndUser.Uid) == 0 {
+		reply.Msg = "user not valid"
+		return
+	}
+
+	if len(frontEndUser.Roles) == 0 && len(frontEndUser.Email) == 0 {
+		reply.Msg = "user not valid"
+		return
+	}
+
+	// if user ids does not match, check if this is a request from an admin user
+	isAdmin := false
+	for _, r := range tUser.Roles {
+		if r.Name == user.AdminRoleName {
+			isAdmin = true
+			break
+		}
+	}
+
+	if frontEndUser.Uid != tUser.Id && !isAdmin {
+		reply.Msg = "user ids do not match"
+		serverInfo("user", tUser.Id, "tried to modify user", frontEndUser.Uid)
+		return
+	}
+
+	if !isAdmin && len(frontEndUser.Roles) > 0 {
+		reply.Msg = "user can not change its roles"
+		serverInfo("user", tUser.Id, "tried to change its roles", frontEndUser.Roles)
+		return
+	}
+
+	if err := dbus.ModifyUser(dgraph, frontEndUser.ToUser()); err != nil {
+		reply.Msg = "error modifying user"
+		serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// API pattern: "/api/v1/modifyUser/"
+func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply userReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "error modifying user"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "error modifying user"
+			} else {
+				reply = getModifyUserReply(dgraph, r.Body, tUser)
+			}
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
+}
+
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -839,4 +917,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteGetUsers(),
 		Adapt(handlerGetUsers(dgraph),
 			authorizationMiddleware(constants.GetRouteGetUsers(), privkey, pubkey)))
+	http.Handle(constants.GetRouteModifyUser(),
+		Adapt(handlerModifyUser(dgraph),
+			authorizationMiddleware(constants.GetRouteModifyUser(), privkey, pubkey)))
 }
