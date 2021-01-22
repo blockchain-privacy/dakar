@@ -268,25 +268,52 @@ func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
 	return pw, nil
 }
 
-// ModifyUser
+// ModifyUser modifies the given user in the database. The uid must be filled.
+// Email and/or Roles can be set.
 func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 
 	modifiedTime := time.Now()
 	user.Modified = &modifiedTime
+
+	queryStart := "query Q($uid: string"
+	var queryRoles string
+	queryEnd := "user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
+	queryVars := map[string]string{"$uid": user.Uid}
+
+	if len(user.Roles) > 0 {
+		queryStart += ","
+	}
+
+	for i := range user.Roles {
+		roleUidPlaceholder := fmt.Sprintf("r%d", i)
+
+		user.Roles[i].Uid = "uid(" + roleUidPlaceholder + ")"
+		user.Roles[i].SetDType()
+
+		roleVarId := fmt.Sprintf("$role%d", i)
+		queryVars[roleVarId] = user.Roles[i].Name
+
+		queryStart += roleVarId + ":string"
+		queryRoles += roleUidPlaceholder + " as var(func: eq(role_name," + roleVarId + "))\n"
+
+		if i+1 < len(user.Roles) {
+			queryStart += ","
+		}
+	}
+
+	queryStart += "){"
 
 	pb, err := json.Marshal(user)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	query := "query Q($uid:string){user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
-
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
 
 	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$uid": user.Uid},
+		Query: queryStart + queryRoles + queryEnd,
+		Vars:  queryVars,
 		Mutations: []*api.Mutation{{
 			Cond:    "@if(eq(len(user), 1))",
 			SetJson: pb,
@@ -300,10 +327,34 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 		return
 	}
 
-	if len(resp.Uids) == 0 {
-		err = errors.New("error user was not deleted because it does not exist")
+	// check if mutation was successful
+	if numMutations, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || numMutations == 0 {
+		err = errors.New("error user was not modified because it does not exist")
 		return
 	}
 
+	return
+}
+
+// RemoveRolesFromUser removes all roles from a given user
+func RemoveRolesFromUser(c *dgo.Dgraph, uid string) (err error) {
+	query := `query Q($uid: string) {
+			 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DTypeUser + `"))
+	}`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": uid},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) <user_roles> * ."),
+		}},
+		CommitNow: true,
+	}
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
 	return
 }

@@ -745,7 +745,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		return
 	}
 
-	// if user ids does not match, check if this is a request from an admin user
+	// is user an admin
 	isAdmin := false
 	for _, r := range tUser.Roles {
 		if r.Name == user.AdminRoleName {
@@ -754,16 +754,36 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		}
 	}
 
+	// if user ids does not match, check if this is a request from an admin user
 	if frontEndUser.Uid != tUser.Id && !isAdmin {
 		reply.Msg = "user ids do not match"
-		serverInfo("user", tUser.Id, "tried to modify user", frontEndUser.Uid)
+		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", frontEndUser.Uid)
 		return
 	}
 
-	if !isAdmin && len(frontEndUser.Roles) > 0 {
-		reply.Msg = "user can not change its roles"
-		serverInfo("user", tUser.Id, "tried to change its roles", frontEndUser.Roles)
-		return
+	if len(frontEndUser.Roles) > 0 {
+		if !isAdmin {
+			reply.Msg = "user can not change its roles"
+			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", frontEndUser.Roles)
+			return
+		}
+		// check if all roles exists
+		for _, r := range frontEndUser.Roles {
+			if _, err := user.GetRoleByName(r.Name); err != nil {
+				reply.Msg = "invalid role"
+				serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
+				return
+			}
+		}
+	}
+
+	// delete existing roles if new roles are set
+	if len(frontEndUser.Roles) > 0 {
+		if err := dbus.RemoveRolesFromUser(dgraph, frontEndUser.Uid); err != nil {
+			reply.Msg = "error modifying user"
+			serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+			return
+		}
 	}
 
 	if err := dbus.ModifyUser(dgraph, frontEndUser.ToUser()); err != nil {
