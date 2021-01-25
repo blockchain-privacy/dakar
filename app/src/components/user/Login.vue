@@ -87,7 +87,7 @@ import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
 } from '../../constants';
-import { emailRules } from '../../utilities';
+import { doPost, emailRules } from '../../utilities';
 
 const notAllowedWhitespaceCharacters = [
   '\b', '\t', '\n', '\v', '\f', '\r',
@@ -156,14 +156,8 @@ export default {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      fetch(ROUTE_USER_LOGIN, {
-        method: 'POST', // or 'PUT'
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_pw: this.password.value, user_email: this.email.value }),
-      })
-        .then((response) => response.json())
+      doPost(ROUTE_USER_LOGIN, this.$router,
+        { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
               || data.user === undefined) throw Error('error logging in.');

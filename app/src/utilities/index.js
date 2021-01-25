@@ -33,7 +33,7 @@ export function getCurrentDate() {
 }
 
 // isInvalidTokenMsg checks if the page should be rerouted to the login page
-export function isInvalidTokenMsg(msg, router) {
+function isInvalidTokenMsg(msg, router) {
   if (msg.invalidToken !== undefined && msg.invalidToken === true) {
     router.push({ name: ROUTE_NAME_LOGIN_PAGE });
     return true;

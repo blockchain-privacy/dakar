@@ -146,7 +146,9 @@ import {
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
-import { shortenHash, getCurrentDate } from '../../utilities';
+import {
+  shortenHash, getCurrentDate, doPost, doGet,
+} from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
   // search for deleted items
@@ -465,15 +467,9 @@ export default {
         return;
       }
 
-      fetch(ROUTE_EXECUTE_HEURISTICS + this.transactionHash, {
-        method: 'POST', // or 'PUT'
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(prepareData(this.dbState, this.data.heuristics,
-          this.changeSet, this.deletedData)),
-      })
-        .then((response) => response.json())
+      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router,
+        prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
+        this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           this.setExecutionStatus(data.status);
@@ -660,8 +656,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
-        .then((response) => response.json())
+      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;

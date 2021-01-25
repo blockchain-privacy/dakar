@@ -147,7 +147,9 @@ import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_USER_CREATE, ROUTE_USER_DELETE } from '../../constants';
-import { emailRules, isInvalidTokenMsg, doGet } from '../../utilities';
+import {
+  emailRules, doGet, doPost,
+} from '../../utilities';
 
 export default {
   name: 'Administration',
@@ -289,18 +291,9 @@ export default {
         this.close();
       } else {
         this.isLoading = true;
-        fetch(ROUTE_USER_CREATE, {
-          method: 'POST', // or 'PUT'
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(this.editedItem),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (isInvalidTokenMsg(data, this.$router)) return;
 
+        doPost(ROUTE_USER_CREATE, this.$router, this.editedItem)
+          .then((data) => {
             if (data.success === undefined) throw Error('error creating user');
             if (data.success === false) {
               throw Error(data.msg);
