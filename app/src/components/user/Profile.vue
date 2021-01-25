@@ -1,8 +1,13 @@
 <template>
   <v-card
-      class="mx-auto"
-      max-width="600"
-      tile>
+      class="mx-auto elevation-12"
+      max-width="700">
+    <v-toolbar color="primary" dark flat>
+      <v-toolbar-title>
+        <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+        Profile
+      </v-toolbar-title>
+    </v-toolbar>
     <ProfileItem v-for="(item, index) in listItems"
                  :key="index"
                  :title="item.title"
@@ -14,9 +19,11 @@
 
 <script>
 import {
-  mdiLock, mdiEmail, mdiPencil, mdiCalendar, mdiCalendarEdit,
+  mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
 } from '@mdi/js';
+import { PAGE_TITLE } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
+import { doGet } from '../../utilities';
 
 export default {
   name: 'Profile',
@@ -24,7 +31,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiLock, mdiEmail, mdiPencil, mdiCalendar, mdiCalendarEdit,
+        mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
       },
     };
   },
@@ -65,15 +72,19 @@ export default {
         {
           title: 'Account created:',
           val: this.createdDate,
-          icon: this.icon.mdiCalendarEdit,
+          icon: this.icon.mdiCalendar,
         },
       ];
     },
   },
   methods: {
     dummyFunc() {
+      doGet();
       console.log('test');
     },
+  },
+  mounted() {
+    document.title = `Profile - ${PAGE_TITLE}`;
   },
 };
 </script>
