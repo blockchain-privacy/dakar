@@ -41,19 +41,24 @@ export function isInvalidTokenMsg(msg, router) {
   return false;
 }
 
-export function doPost(route, parameter, body) {
+export function doPost(route, parameter, body, router) {
   return fetch(route + parameter, {
     method: 'POST',
+    credentials: 'same-origin',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
     headers: {
       'Content-Type': 'application/json',
     },
-    redirect: 'error',
-    referrerPolicy: 'no-referrer',
     body: JSON.stringify(body),
   }).then((response) => {
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response;
-  }).then((response) => response.json());
+  }).then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router)) throw Error();
+      return data;
+    });
 }
 
 export function doGet(route, parameter, router) {
