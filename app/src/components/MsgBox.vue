@@ -5,7 +5,7 @@
                dense dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
-      <v-alert xs6 :value="errorMsg && errorMsg !== ''" type="error"
+      <v-alert xs6 :value="errorMsg && errorMsg !== '' && errorMsg !== new Error()" type="error"
                dense dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
