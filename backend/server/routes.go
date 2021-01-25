@@ -702,7 +702,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(*reply.User, privateSigningKey)
+			token, expirationTime, err := issueToken(reply.User.ToFrontendUserState(), privateSigningKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
@@ -711,11 +711,6 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 			setTokenAsCookie(w, token, expirationTime)
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
-		}
-
-		if reply.User != nil {
-			// do not send uid
-			reply.User.Uid = ""
 		}
 
 		// encoding

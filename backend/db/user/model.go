@@ -53,6 +53,16 @@ func (u User) ToFrontendUserState() FrontendUserState {
 	}
 }
 
+func (u User) ToLoginReplyUser() LoginReplyUser {
+	return LoginReplyUser{
+		Uid:      u.Uid,
+		Email:    u.Email,
+		Roles:    u.Roles,
+		Modified: u.Modified,
+		Created:  u.Created,
+	}
+}
+
 type FrontendUserState struct {
 	Uid   string `json:"uid,omitempty"`
 	Email string `json:"email,omitempty"`
@@ -145,4 +155,20 @@ func (f FrontendUserLogin) String() string {
 // IsValid does a sanity check for the given FrontendUserLogin
 func (f FrontendUserLogin) IsValid() bool {
 	return len(f.Email) > 0 || len(f.Password) > 0
+}
+
+type LoginReplyUser struct {
+	Uid      string     `json:"uid,omitempty"`
+	Email    string     `json:"email,omitempty"`
+	Roles    []Role     `json:"roles,omitempty"`
+	Created  *time.Time `json:"created,omitempty"`
+	Modified *time.Time `json:"modified,omitempty"`
+}
+
+func (l LoginReplyUser) ToFrontendUserState() FrontendUserState {
+	return FrontendUserState{
+		Uid:   l.Uid,
+		Email: l.Email,
+		Roles: l.Roles,
+	}
 }
