@@ -32,6 +32,15 @@ export function getCurrentDate() {
   return `${dd}-${mm}-${yyyy}`;
 }
 
+// isInvalidTokenMsg checks if the page should be rerouted to the login page
+export function isInvalidTokenMsg(msg, router) {
+  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
+    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+    return true;
+  }
+  return false;
+}
+
 export function doPost(route, parameter, body) {
   return fetch(route + parameter, {
     method: 'POST',
@@ -47,15 +56,21 @@ export function doPost(route, parameter, body) {
   }).then((response) => response.json());
 }
 
-export function doGet(route, parameter) {
+export function doGet(route, parameter, router) {
   let para = '';
   if (parameter !== undefined) para = parameter;
-  return fetch(route + para)
+  return fetch(route + para, {
+    credentials: 'same-origin',
+  })
     .then((response) => {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return response;
     })
-    .then((response) => response.json());
+    .then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router)) throw Error();
+      return data;
+    });
 }
 
 export function handleError(context, error) {
@@ -74,13 +89,3 @@ export const emailRules = [
   (v) => (v && v.length < 100) || 'E-mail must be less than 100 characters',
   (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 ];
-
-// isInvalidTokenMsg checks if the page should be rerouted to the login page
-export function isInvalidTokenMsg(msg, router) {
-  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
-    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
-
-    return true;
-  }
-  return false;
-}

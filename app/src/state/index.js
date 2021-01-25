@@ -10,8 +10,7 @@ import Router from '../router';
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
-  return doGet(route, parameter).then((data) => {
-    if (isInvalidTokenMsg(data, Router)) return;
+  return doGet(route, parameter, Router).then((data) => {
     context.commit(mutation, data);
     context.dispatch('resetMsg');
   }).catch((e) => {
