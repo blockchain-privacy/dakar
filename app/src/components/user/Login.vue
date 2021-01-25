@@ -166,7 +166,7 @@ export default {
         .then((response) => response.json())
         .then((data) => {
           if (data.success === undefined
-              || data.user === undefined) throw Error('error logging in ');
+              || data.user === undefined) throw Error('error logging in.');
           if (data.success === false) {
             throw Error(data.msg);
           }
