@@ -66,9 +66,9 @@ import {
   mdiCubeOutline, mdiFormatListNumbered, mdiCalendar,
   mdiFormatHeaderPound, mdiTransfer,
 } from '@mdi/js';
-import { shortenHash } from '../utilities';
-import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
-import IconItem from './common/IconItem.vue';
+import { shortenHash } from '../../utilities';
+import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'BlockLookup',

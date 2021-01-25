@@ -136,12 +136,12 @@ import {
   mdiCash, mdiFormatHeaderPound, mdiPound, mdiCurrencyUsdCircleOutline,
   mdiCurrencyUsdCircle,
 } from '@mdi/js';
-import { shortenHash, convertAmount, getCurrentDate } from '../utilities';
+import { shortenHash, convertAmount, getCurrentDate } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
   ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_ADDRESS_PAGE,
-} from '../constants';
-import IconItem from './common/IconItem.vue';
+} from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'TxLookup',

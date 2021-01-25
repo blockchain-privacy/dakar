@@ -86,8 +86,8 @@ import {
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
-} from '../constants';
-import { emailRules } from '../utilities';
+} from '../../constants';
+import { emailRules } from '../../utilities';
 
 const notAllowedWhitespaceCharacters = [
   '\b', '\t', '\n', '\v', '\f', '\r',

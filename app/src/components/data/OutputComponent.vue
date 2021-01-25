@@ -68,8 +68,8 @@
 import {
   mdiPickaxe, mdiBankTransferIn, mdiArrowDown, mdiBankTransferOut,
 } from '@mdi/js';
-import { shortenHash, convertAmount } from '../utilities';
-import { ROUTE_NAME_TRANSACTION_PAGE, COIN_UNIT } from '../constants';
+import { shortenHash, convertAmount } from '../../utilities';
+import { ROUTE_NAME_TRANSACTION_PAGE, COIN_UNIT } from '../../constants';
 
 export default {
   name: 'OutputComponent',

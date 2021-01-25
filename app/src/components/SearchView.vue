@@ -7,9 +7,9 @@
 </template>
 
 <script>
-import TxLookup from './TxLookup.vue';
-import AddressLookup from './AddressLookup.vue';
-import BlockLookup from './BlockLookup.vue';
+import TxLookup from './data/TxLookup.vue';
+import AddressLookup from './data/AddressLookup.vue';
+import BlockLookup from './data/BlockLookup.vue';
 
 export default {
   name: 'SearchView',

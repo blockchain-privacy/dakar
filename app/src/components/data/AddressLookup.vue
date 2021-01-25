@@ -136,12 +136,12 @@ import {
   mdiBankTransferOut, mdiPound,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
-import { convertAmount, doPost, handleError } from '../utilities';
+import { convertAmount, doPost, handleError } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT,
-} from '../constants';
-import IconItem from './common/IconItem.vue';
+} from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',

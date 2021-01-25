@@ -24,20 +24,20 @@
             <v-icon>{{ icon.mdiAccount }}</v-icon>
           </v-btn>
         </template>
-        <v-list>
+        <v-list nav dense>
           <v-list-item v-if="this.userData">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>{{ this.userData.email }}</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToLogin" v-if="!this.userData">
+          <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToUserAdministration"
+          <v-list-item @click="goToUserAdministration" :disabled="isUserAdminDisabled"
                        v-if="showUserAdmin">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
@@ -96,6 +96,8 @@ export default {
       icon: {
         mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
       },
+      isUserAdminDisabled: false,
+      isUserLoginDisabled: false,
     };
   },
   computed: {
@@ -120,24 +122,22 @@ export default {
     },
   },
   methods: {
-
     changeTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
     },
     goToRoot() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
     },
     goToLogin() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_LOGIN_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
     },
     goToUserAdministration() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_USER_ADMIN_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_USER_ADMIN_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_USER_ADMIN_PAGE);
+    },
+    // goToPage should receive a page name from ./constants
+    goToPage(pageName) {
+      // only change route if not already on page
+      if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
     logout() {
       fetch(ROUTE_USER_LOGOUT)
@@ -155,14 +155,31 @@ export default {
           this.errMsg = error;
         });
     },
+    checkRoute(routeName) {
+      this.isUserLoginDisabled = false;
+      this.isUserAdminDisabled = false;
+
+      if (routeName === Constants.ROUTE_NAME_LOGIN_PAGE) {
+        this.isUserLoginDisabled = true;
+      } else if (routeName === Constants.ROUTE_NAME_USER_ADMIN_PAGE) {
+        this.isUserAdminDisabled = true;
+      }
+    },
   },
   beforeMount() {
+    this.checkRoute(this.$router.currentRoute.name);
+    // get user information from localStorage
     const localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
     if (localStorageUserData !== null) {
       this.userData = JSON.parse(localStorageUserData);
     }
     // eslint-disable-next-line no-console
     console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+  },
+  watch: {
+    $route(to) {
+      this.checkRoute(to.name);
+    },
   },
 };
 </script>

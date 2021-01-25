@@ -100,8 +100,8 @@
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
-      <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
-                        :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+      <Details v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
+               :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -138,15 +138,15 @@ import {
   mdiTransfer, mdiOpenInNew, mdiShapeSquareRoundedPlus, mdiFileDownloadOutline,
   mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus,
 } from '@mdi/js';
-import HeuristicDetails from './HeuristicDetails.vue';
+import Details from './Details.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS,
-} from '../constants';
-import NestedMenu from './common/NestedMenu.vue';
-import * as ht from '../heuristicTree';
-import { shortenHash, getCurrentDate } from '../utilities';
+} from '../../constants';
+import NestedMenu from '../common/NestedMenu.vue';
+import * as ht from '../../heuristicTree';
+import { shortenHash, getCurrentDate } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
   // search for deleted items
@@ -210,8 +210,8 @@ function areDataElementsEqual(a, b) {
 }
 
 export default {
-  name: 'HeuristicEditor',
-  components: { HeuristicDetails, NestedMenu },
+  name: 'Editor',
+  components: { Details, NestedMenu },
   data() {
     return {
       icon: {

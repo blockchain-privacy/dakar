@@ -146,11 +146,11 @@
 import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_USER_CREATE, ROUTE_USER_DELETE } from '../constants';
-import { emailRules, isInvalidTokenMsg } from '../utilities';
+import { PAGE_TITLE, ROUTE_USER_CREATE, ROUTE_USER_DELETE } from '../../constants';
+import { emailRules, isInvalidTokenMsg } from '../../utilities';
 
 export default {
-  name: 'UserAdministration',
+  name: 'Administration',
   data: () => ({
     icon: {
       mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
