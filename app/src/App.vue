@@ -29,7 +29,14 @@
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
             </v-list-item-icon>
-            <v-list-item-title>{{ this.userData.email }}</v-list-item-title>
+            <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
+          </v-list-item>
+          <v-divider v-if="this.userData"/>
+          <v-list-item @click="goToProfile" v-if="this.userData" :disabled="isUserProfileDisabled">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Profile</v-list-item-title>
           </v-list-item>
           <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
@@ -77,6 +84,7 @@
 <script>
 import {
   mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
+  mdiAccountDetails,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
@@ -94,10 +102,17 @@ export default {
     return {
       applicationName: Constants.APPLICATION_NAME,
       icon: {
-        mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
+        mdiInvertColors,
+        mdiAccount,
+        mdiLogin,
+        mdiLogout,
+        mdiAccountSupervisor,
+        mdiAccountCircle,
+        mdiAccountDetails,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
+      isUserProfileDisabled: false,
     };
   },
   computed: {
@@ -131,6 +146,9 @@ export default {
     goToLogin() {
       this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
     },
+    goToProfile() {
+      this.goToPage(Constants.ROUTE_NAME_USER_PROFILE_PAGE);
+    },
     goToUserAdministration() {
       this.goToPage(Constants.ROUTE_NAME_USER_ADMIN_PAGE);
     },
@@ -158,11 +176,20 @@ export default {
     checkRoute(routeName) {
       this.isUserLoginDisabled = false;
       this.isUserAdminDisabled = false;
+      this.isUserProfileDisabled = false;
 
-      if (routeName === Constants.ROUTE_NAME_LOGIN_PAGE) {
-        this.isUserLoginDisabled = true;
-      } else if (routeName === Constants.ROUTE_NAME_USER_ADMIN_PAGE) {
-        this.isUserAdminDisabled = true;
+      switch (routeName) {
+        case Constants.ROUTE_NAME_LOGIN_PAGE:
+          this.isUserLoginDisabled = true;
+          break;
+        case Constants.ROUTE_NAME_USER_ADMIN_PAGE:
+          this.isUserAdminDisabled = true;
+          break;
+        case Constants.ROUTE_NAME_USER_PROFILE_PAGE:
+          this.isUserProfileDisabled = true;
+          break;
+        default:
+            // nothing
       }
     },
   },

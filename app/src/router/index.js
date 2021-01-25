@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import Profile from '../components/user/Profile.vue';
 import Administration from '../components/user/Administration.vue';
 import Login from '../components/user/Login.vue';
 import TxLookup from '../components/data/TxLookup.vue';
@@ -51,6 +52,12 @@ export default new Router({
       name: Constants.ROUTE_NAME_LOGIN_PAGE,
       component: Login,
       meta: { title: 'Login' },
+    },
+    {
+      path: '/profile',
+      name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+      component: Profile,
+      meta: { title: 'Profile' },
     },
     {
       path: '/userAdministration',
