@@ -3,90 +3,12 @@
       class="mx-auto"
       max-width="600"
       tile>
-    <v-list-item>
-      <v-list-item-icon class="button-sized-icon">
-        <v-icon>
-          {{ icon.mdiEmail }}
-        </v-icon>
-      </v-list-item-icon>
-      <v-list-item-content>
-        <v-row>
-          <v-col>
-            <v-list-item-title>E-Mail:</v-list-item-title>
-          </v-col>
-          <v-col>
-            <v-list-item-title>{{ this.userData.email }}</v-list-item-title>
-          </v-col>
-        </v-row>
-      </v-list-item-content>
-      <v-list-item-icon>
-        <v-btn icon>
-          <v-icon>
-            {{ icon.mdiPencil }}
-          </v-icon>
-        </v-btn>
-      </v-list-item-icon>
-    </v-list-item>
-    <v-list-item>
-      <v-list-item-icon class="button-sized-icon">
-        <v-icon>
-          {{ icon.mdiLock }}
-        </v-icon>
-      </v-list-item-icon>
-      <v-list-item-content>
-        <v-row>
-          <v-col>
-            <v-list-item-title>Change Password:</v-list-item-title>
-          </v-col>
-          <v-col>
-            <v-list-item-title>***********</v-list-item-title>
-          </v-col>
-        </v-row>
-      </v-list-item-content>
-      <v-list-item-icon>
-        <v-btn icon>
-          <v-icon>
-            {{ icon.mdiPencil }}
-          </v-icon>
-        </v-btn>
-      </v-list-item-icon>
-    </v-list-item>
-    <v-list-item>
-      <v-list-item-icon class="button-sized-icon">
-        <v-icon>
-          {{ icon.mdiCalendarEdit }}
-        </v-icon>
-      </v-list-item-icon>
-      <v-list-item-content>
-        <v-row>
-          <v-col>
-            <v-list-item-title>Account last modified:</v-list-item-title>
-          </v-col>
-          <v-col>
-            <v-list-item-title>{{ this.modifiedDate }}</v-list-item-title>
-          </v-col>
-        </v-row>
-      </v-list-item-content>
-      <v-list-item-icon class="button-sized-icon"/>
-    </v-list-item>
-    <v-list-item>
-      <v-list-item-icon class="button-sized-icon">
-        <v-icon>
-          {{ icon.mdiCalendar }}
-        </v-icon>
-      </v-list-item-icon>
-      <v-list-item-content>
-        <v-row>
-          <v-col>
-            <v-list-item-title>Account created:</v-list-item-title>
-          </v-col>
-          <v-col>
-            <v-list-item-title>{{ this.createdDate }}</v-list-item-title>
-          </v-col>
-        </v-row>
-      </v-list-item-content>
-      <v-list-item-icon class="button-sized-icon"/>
-    </v-list-item>
+    <ProfileItem v-for="(item, index) in listItems"
+                 :key="index"
+                 :title="item.title"
+                 :icon="item.icon"
+                 :item-value="item.val"
+                 :action-function="item.actionFunction"/>
   </v-card>
 </template>
 
@@ -94,9 +16,11 @@
 import {
   mdiLock, mdiEmail, mdiPencil, mdiCalendar, mdiCalendarEdit,
 } from '@mdi/js';
+import ProfileItem from './ProfileItem.vue';
 
 export default {
   name: 'Profile',
+  components: { ProfileItem },
   data() {
     return {
       icon: {
@@ -119,14 +43,41 @@ export default {
     createdDate() {
       return new Date(this.userData.created).toLocaleString();
     },
+    listItems() {
+      return [
+        {
+          title: 'Email:',
+          val: this.userData.email,
+          icon: this.icon.mdiEmail,
+          actionFunction: this.dummyFunc,
+        },
+        {
+          title: 'Change Password:',
+          val: '********',
+          icon: this.icon.mdiLock,
+          actionFunction: this.dummyFunc,
+        },
+        {
+          title: 'Account last modified:',
+          val: this.modifiedDate,
+          icon: this.icon.mdiCalendarEdit,
+        },
+        {
+          title: 'Account created:',
+          val: this.createdDate,
+          icon: this.icon.mdiCalendarEdit,
+        },
+      ];
+    },
+  },
+  methods: {
+    dummyFunc() {
+      console.log('test');
+    },
   },
 };
 </script>
 
 <style scoped>
-/* Used for centering */
-.button-sized-icon {
-  height: 36px;
-  width: 36px;
-}
+
 </style>
