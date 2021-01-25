@@ -203,7 +203,7 @@ export default {
       this.isLoadingMore = true;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected }, this.$router)
         .then((data) => {
           this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMsg');
@@ -271,7 +271,7 @@ export default {
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected }, this.$router)
         .then((data) => {
           this.data = data.payload;
           this.$store.dispatch('resetMsg');

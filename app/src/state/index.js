@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, doGet, handleError, isInvalidTokenMsg,
+  doPost, doGet, handleError,
 } from '../utilities';
 import * as Constants from '../constants';
 
@@ -19,9 +19,8 @@ function handleGet(context, route, mutation, parameter) {
 }
 
 function handlePost(context, route, mutation, parameter, body) {
-  return doPost(route, parameter, body)
+  return doPost(route, parameter, body, Router)
     .then((data) => {
-      if (isInvalidTokenMsg(data, Router)) return;
       context.commit(mutation, data);
       context.dispatch('resetMsg');
     })
