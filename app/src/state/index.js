@@ -10,7 +10,7 @@ import Router from '../router';
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
-  return doGet(route, parameter, Router).then((data) => {
+  return doGet(route, Router, parameter).then((data) => {
     context.commit(mutation, data);
     context.dispatch('resetMsg');
   }).catch((e) => {
@@ -19,7 +19,7 @@ function handleGet(context, route, mutation, parameter) {
 }
 
 function handlePost(context, route, mutation, parameter, body) {
-  return doPost(route, parameter, body, Router)
+  return doPost(route, Router, body, parameter)
     .then((data) => {
       context.commit(mutation, data);
       context.dispatch('resetMsg');

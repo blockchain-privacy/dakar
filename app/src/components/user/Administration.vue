@@ -251,7 +251,7 @@ export default {
     deleteItem(user) {
       this.isLoading = true;
 
-      doGet(ROUTE_USER_DELETE, user.uid, this.$router)
+      doGet(ROUTE_USER_DELETE, this.$router, user.uid)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {

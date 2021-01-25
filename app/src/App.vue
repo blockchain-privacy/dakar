@@ -90,6 +90,7 @@ import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
+import { doGet } from './utilities';
 import { LOCALSTORAGE_FIELD_USER, ROUTE_USER_LOGOUT } from './constants';
 
 export default {
@@ -158,8 +159,7 @@ export default {
       if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
     logout() {
-      fetch(ROUTE_USER_LOGOUT)
-        .then((response) => response.json())
+      doGet(ROUTE_USER_LOGOUT, this.$router)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {

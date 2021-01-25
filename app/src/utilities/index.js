@@ -41,7 +41,7 @@ export function isInvalidTokenMsg(msg, router) {
   return false;
 }
 
-export function doPost(route, parameter, body, router) {
+export function doPost(route, router, body, parameter) {
   return fetch(route + parameter, {
     method: 'POST',
     credentials: 'same-origin',
@@ -61,7 +61,7 @@ export function doPost(route, parameter, body, router) {
     });
 }
 
-export function doGet(route, parameter, router) {
+export function doGet(route, router, parameter) {
   let para = '';
   if (parameter !== undefined) para = parameter;
   return fetch(route + para, {
