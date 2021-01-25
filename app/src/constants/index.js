@@ -19,6 +19,7 @@ export const ROUTE_USER_CREATE = `${routePrefix}createUser/`;
 export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
 export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
+export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
