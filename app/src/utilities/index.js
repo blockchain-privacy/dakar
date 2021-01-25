@@ -42,7 +42,9 @@ export function isInvalidTokenMsg(msg, router) {
 }
 
 export function doPost(route, router, body, parameter) {
-  return fetch(route + parameter, {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para, {
     method: 'POST',
     credentials: 'same-origin',
     redirect: 'error',
