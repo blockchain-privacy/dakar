@@ -721,7 +721,6 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 	})
 }
 
-// todo handle password change
 // getModifyUserReply parses the input and creates a corresponding userReply
 func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
 	// get clients user state
