@@ -63,6 +63,24 @@ func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
 	}
 }
 
+// ModifyUserRequest represents the client side state of the user
+type ModifyUserRequest struct {
+	Uid             string `json:"uid,omitempty"`
+	Email           string `json:"email,omitempty"`
+	CurrentPassword string `json:"current_password,omitempty"`
+	NewPassword     string `json:"new_password,omitempty"`
+	Roles           []Role `json:"roles,omitempty"`
+}
+
+func (m ModifyUserRequest) ToUser(pwHash string) User {
+	return User{
+		Uid:          m.Uid,
+		Email:        m.Email,
+		Roles:        m.Roles,
+		PasswordHash: pwHash,
+	}
+}
+
 // FrontendUserClientState represents the client side state of the user
 type FrontendUserClientState struct {
 	Uid   string `json:"uid,omitempty"`

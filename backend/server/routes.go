@@ -725,14 +725,23 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 // getModifyUserReply parses the input and creates a corresponding userReply
 func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
 	// get clients user state
-	var frontEndUser dbus.FrontendUserClientState
-	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
+	var modificationRequest dbus.ModifyUserRequest
+	if err := json.NewDecoder(body).Decode(&modificationRequest); err != nil {
 		reply.Msg = "could not decode user data"
 		return
 	}
 
-	if len(frontEndUser.Uid) == 0 || (len(frontEndUser.Roles) == 0 && len(frontEndUser.Email) == 0) {
+	if len(modificationRequest.Uid) == 0 ||
+		(len(modificationRequest.Roles) == 0 && len(modificationRequest.Email) == 0 &&
+			len(modificationRequest.CurrentPassword) == 0 && len(modificationRequest.NewPassword) == 0) {
 		reply.Msg = "user not valid"
+		return
+	}
+
+	// check if passwords are equal
+	if len(modificationRequest.CurrentPassword) > 0 && len(modificationRequest.NewPassword) > 0 &&
+		modificationRequest.NewPassword == modificationRequest.CurrentPassword {
+		reply.Msg = "passwords are equal"
 		return
 	}
 
@@ -746,27 +755,81 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	}
 
 	// if user ids does not match, check if this is a request from an admin user
-	if frontEndUser.Uid != tUser.Id && !isAdmin {
+	if modificationRequest.Uid != tUser.Id && !isAdmin {
 		reply.Msg = "user ids do not match"
-		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", frontEndUser.Uid)
+		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modificationRequest.Uid)
 		return
 	}
 
 	// check email
-	if len(frontEndUser.Email) > 0 && !dbus.IsValidEmail(frontEndUser.Email) {
-		reply.Msg = "invalid email"
+	if len(modificationRequest.Email) > 0 {
+		if !dbus.IsValidEmail(modificationRequest.Email) {
+			reply.Msg = "invalid email"
+			return
+		}
+
+		emailUser, err := dbus.GetUserByEmail(dgraph, modificationRequest.Email)
+		if err != nil {
+			if !errors.Is(dbus.ErrorUsersNotFound, err) {
+				reply.Msg = "invalid email"
+				serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+				return
+			}
+		} else if emailUser.Uid != modificationRequest.Uid {
+			reply.Msg = "duplicate email"
+			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+			return
+		}
+	}
+
+	if len(modificationRequest.NewPassword) > 0 && len(modificationRequest.CurrentPassword) == 0 {
+		reply.Msg = "current password must also be supplied"
 		return
 	}
 
+	if len(modificationRequest.CurrentPassword) > 0 && len(modificationRequest.NewPassword) == 0 {
+		reply.Msg = "only current password was passed, new password is missing"
+		return
+	}
+
+	var newPwHash string
+
+	// check if password matches
+	if len(modificationRequest.NewPassword) > 0 {
+		if len(modificationRequest.NewPassword) < 10 {
+			reply.Msg = "password must be at least 10 characters long"
+			return
+		}
+
+		dbUser, err := dbus.GetUser(dgraph, modificationRequest.Uid)
+		if err != nil {
+			reply.Msg = "error modifying user"
+			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+			return
+		}
+
+		if ok, err := user.ComparePassword(modificationRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
+			reply.Msg = "wrong current password"
+			return
+		}
+
+		if newPwHash, err = user.GeneratePasswordHash(user.DefaultPasswordConfig,
+			modificationRequest.NewPassword); err != nil {
+			reply.Msg = "error modifying user"
+			return
+		}
+
+	}
+
 	// handle role change
-	if len(frontEndUser.Roles) > 0 {
+	if len(modificationRequest.Roles) > 0 {
 		if !isAdmin {
 			reply.Msg = "user can not change its roles"
-			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", frontEndUser.Roles)
+			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modificationRequest.Roles)
 			return
 		}
 		// check if all roles exists
-		for _, r := range frontEndUser.Roles {
+		for _, r := range modificationRequest.Roles {
 			if _, err := user.GetRoleByName(r.Name); err != nil {
 				reply.Msg = "invalid role"
 				serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
@@ -774,25 +837,25 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 			}
 		}
 		// delete existing roles if new roles are set
-		if err := dbus.RemoveRolesFromUser(dgraph, frontEndUser.Uid); err != nil {
+		if err := dbus.RemoveRolesFromUser(dgraph, modificationRequest.Uid); err != nil {
 			reply.Msg = "error modifying user"
-			serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
 			return
 		}
 	}
 
 	// modify user
-	if err := dbus.ModifyUser(dgraph, frontEndUser.ToUser()); err != nil {
+	if err := dbus.ModifyUser(dgraph, modificationRequest.ToUser(newPwHash)); err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+		serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
 		return
 	}
 
 	// get new user information
-	newUserInfo, err := dbus.GetUser(dgraph, frontEndUser.Uid)
+	newUserInfo, err := dbus.GetUser(dgraph, modificationRequest.Uid)
 	if err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+		serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
 		return
 	}
 

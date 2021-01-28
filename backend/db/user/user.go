@@ -322,11 +322,10 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 	modifiedTime := time.Now()
 	user.Modified = &modifiedTime
 
-	queryStart := "query Q($uid: string, $email: string"
+	queryStart := "query Q($uid: string"
 	var queryRoles string
-	queryCheckEmailExists := "eUser as var(func: eq(user_email, $email))\n"
 	queryEnd := "user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
-	queryVars := map[string]string{"$uid": user.Uid, "$email": user.Email}
+	queryVars := map[string]string{"$uid": user.Uid}
 
 	if len(user.Roles) > 0 {
 		queryStart += ","
@@ -360,10 +359,10 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 	defer cancel()
 
 	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
-		Query: queryStart + queryRoles + queryCheckEmailExists + queryEnd,
+		Query: queryStart + queryRoles + queryEnd,
 		Vars:  queryVars,
 		Mutations: []*api.Mutation{{
-			Cond:    "@if(eq(len(user), 1) AND eq(len(eUser), 0))",
+			Cond:    "@if(eq(len(user), 1))",
 			SetJson: pb,
 		}},
 		CommitNow: true,
