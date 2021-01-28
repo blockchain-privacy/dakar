@@ -724,22 +724,21 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 // getModifyUserReply parses the input and creates a corresponding userReply
 func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
 	// get clients user state
-	var modificationRequest dbus.ModifyUserRequest
-	if err := json.NewDecoder(body).Decode(&modificationRequest); err != nil {
+	var modRequest dbus.ModifyUserRequest
+	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
 		reply.Msg = "could not decode user data"
 		return
 	}
 
-	if len(modificationRequest.Uid) == 0 ||
-		(len(modificationRequest.Roles) == 0 && len(modificationRequest.Email) == 0 &&
-			len(modificationRequest.CurrentPassword) == 0 && len(modificationRequest.NewPassword) == 0) {
-		reply.Msg = "user not valid"
+	if len(modRequest.Uid) == 0 ||
+		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
+		reply.Msg = "nothing to change"
 		return
 	}
 
 	// check if passwords are equal
-	if len(modificationRequest.CurrentPassword) > 0 && len(modificationRequest.NewPassword) > 0 &&
-		modificationRequest.NewPassword == modificationRequest.CurrentPassword {
+	if len(modRequest.CurrentPassword) > 0 && len(modRequest.NewPassword) > 0 &&
+		modRequest.NewPassword == modRequest.CurrentPassword {
 		reply.Msg = "passwords are equal"
 		return
 	}
@@ -754,81 +753,78 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	}
 
 	// if user ids does not match, check if this is a request from an admin user
-	if modificationRequest.Uid != tUser.Id && !isAdmin {
+	if modRequest.Uid != tUser.Id && !isAdmin {
 		reply.Msg = "user ids do not match"
-		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modificationRequest.Uid)
+		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
 		return
 	}
 
+	// check current password if user is not an admin
+	if !isAdmin {
+		if len(modRequest.CurrentPassword) == 0 {
+			reply.Msg = "current password must also be supplied"
+			return
+		}
+
+		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
+		if err != nil {
+			reply.Msg = "error modifying user"
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+
+		if ok, err := user.ComparePassword(modRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
+			reply.Msg = "wrong current password"
+			return
+		}
+	}
+
 	// check email
-	if len(modificationRequest.Email) > 0 {
-		if !dbus.IsValidEmail(modificationRequest.Email) {
+	if len(modRequest.Email) > 0 {
+		if !dbus.IsValidEmail(modRequest.Email) {
 			reply.Msg = "invalid email"
 			return
 		}
 
-		emailUser, err := dbus.GetUserByEmail(dgraph, modificationRequest.Email)
+		emailUser, err := dbus.GetUserByEmail(dgraph, modRequest.Email)
 		if err != nil {
 			if !errors.Is(dbus.ErrorUsersNotFound, err) {
 				reply.Msg = "invalid email"
-				serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+				serverInfo(cliutil.ShowCallInfo(), err, modRequest)
 				return
 			}
-		} else if emailUser.Uid != modificationRequest.Uid {
+		} else if emailUser.Uid != modRequest.Uid {
 			reply.Msg = "duplicate email"
-			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
-	}
-
-	if len(modificationRequest.NewPassword) > 0 && len(modificationRequest.CurrentPassword) == 0 {
-		reply.Msg = "current password must also be supplied"
-		return
-	}
-
-	if len(modificationRequest.CurrentPassword) > 0 && len(modificationRequest.NewPassword) == 0 {
-		reply.Msg = "only current password was passed, new password is missing"
-		return
 	}
 
 	var newPwHash string
-
 	// check if password matches
-	if len(modificationRequest.NewPassword) > 0 {
-		if len(modificationRequest.NewPassword) < 10 {
-			reply.Msg = "password must be at least 10 characters long"
+	if len(modRequest.NewPassword) > 0 {
+		if len(modRequest.NewPassword) < 10 {
+			reply.Msg = "new password must be at least 10 characters long"
 			return
 		}
 
-		dbUser, err := dbus.GetUser(dgraph, modificationRequest.Uid)
-		if err != nil {
-			reply.Msg = "error modifying user"
-			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
-			return
-		}
-
-		if ok, err := user.ComparePassword(modificationRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
-			reply.Msg = "wrong current password"
-			return
-		}
-
-		if newPwHash, err = user.GeneratePasswordHash(user.DefaultPasswordConfig,
-			modificationRequest.NewPassword); err != nil {
+		var generatePwErr error
+		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
+			modRequest.NewPassword); generatePwErr != nil {
 			reply.Msg = "error modifying user"
 			return
 		}
-
 	}
 
 	// handle role change
-	if len(modificationRequest.Roles) > 0 {
+	if len(modRequest.Roles) > 0 {
 		if !isAdmin {
 			reply.Msg = "user can not change its roles"
-			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modificationRequest.Roles)
+			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
 			return
 		}
 		// check if all roles exists
-		for _, r := range modificationRequest.Roles {
+		for _, r := range modRequest.Roles {
 			if _, err := user.GetRoleByName(r.Name); err != nil {
 				reply.Msg = "invalid role"
 				serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
@@ -836,25 +832,25 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 			}
 		}
 		// delete existing roles if new roles are set
-		if err := dbus.RemoveRolesFromUser(dgraph, modificationRequest.Uid); err != nil {
+		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
 			reply.Msg = "error modifying user"
-			serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
 	}
 
 	// modify user
-	if err := dbus.ModifyUser(dgraph, modificationRequest.ToUser(newPwHash)); err != nil {
+	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
 
 	// get new user information
-	newUserInfo, err := dbus.GetUser(dgraph, modificationRequest.Uid)
+	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
 	if err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, modificationRequest)
+		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
 
