@@ -21,9 +21,9 @@
 import {
   mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
 } from '@mdi/js';
-import { PAGE_TITLE } from '../../constants';
+import { LOCALSTORAGE_FIELD_USER, PAGE_TITLE, ROUTE_USER_MODIFY } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
-import { doGet } from '../../utilities';
+import { doPost, handleError } from '../../utilities';
 
 export default {
   name: 'Profile',
@@ -79,8 +79,16 @@ export default {
   },
   methods: {
     dummyFunc() {
-      doGet();
-      console.log('test');
+      doPost(ROUTE_USER_MODIFY, this.$router, {
+        uid: this.userData.uid,
+        email: this.userData.email,
+      })
+        .then((data) => {
+          if (data) localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data));
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        });
     },
   },
   mounted() {
