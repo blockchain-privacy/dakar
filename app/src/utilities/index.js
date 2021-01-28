@@ -1,5 +1,5 @@
 /* eslint-disable no-mixed-operators */
-import { ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import { PASSWORD_MAX_CHARACTERS, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_LOGIN_PAGE } from '../constants';
 
 export function resetData(context) {
   context.$store.dispatch('resetMsg');
@@ -95,4 +95,26 @@ export const emailRules = [
   (v) => !!v || 'E-mail is required',
   (v) => (v && v.length < 100) || 'E-mail must be less than 100 characters',
   (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
+];
+
+const notAllowedWhitespaceCharacters = [
+  '\b', '\t', '\n', '\v', '\f', '\r',
+  '\u0008', '\u0009', '\u000A', '\u000B', '\u000C',
+  '\u000D', '\u0022', '\u0027', '\u005C',
+  '\u00A0', '\u2028', '\u2029', '\uFEFF'];
+
+// hasWhitespace checks if the given string
+// contains any of the characters in notAllowedWhitespaceCharacters
+// credit: https://stackoverflow.com/questions/1731190/check-if-a-string-has-white-space
+const hasWhitespace = (char) => notAllowedWhitespaceCharacters.some(
+  (w) => char.indexOf(w) > -1,
+  notAllowedWhitespaceCharacters,
+);
+
+export const passwordRules = [
+  (v) => !!v || 'Password is required',
+  (v) => !hasWhitespace(v) || 'Password contains white space characters',
+  (v) => v.length >= PASSWORD_MIN_CHARACTERS || `At least ${PASSWORD_MIN_CHARACTERS} characters`,
+  (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
+        || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
 ];

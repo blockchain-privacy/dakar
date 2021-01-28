@@ -87,21 +87,7 @@ import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
 } from '../../constants';
-import { doPost, emailRules } from '../../utilities';
-
-const notAllowedWhitespaceCharacters = [
-  '\b', '\t', '\n', '\v', '\f', '\r',
-  '\u0008', '\u0009', '\u000A', '\u000B', '\u000C',
-  '\u000D', '\u0022', '\u0027', '\u005C',
-  '\u00A0', '\u2028', '\u2029', '\uFEFF'];
-
-// hasWhitespace checks if the given string
-// contains any of the characters in notAllowedWhitespaceCharacters
-// credit: https://stackoverflow.com/questions/1731190/check-if-a-string-has-white-space
-const hasWhitespace = (char) => notAllowedWhitespaceCharacters.some(
-  (w) => char.indexOf(w) > -1,
-  notAllowedWhitespaceCharacters,
-);
+import { doPost, emailRules, passwordRules } from '../../utilities';
 
 function goToRoot(context) {
   context.$router.push({ name: ROUTE_NAME_ENTRY_PAGE });
@@ -119,16 +105,7 @@ export default {
       applicationName: APPLICATION_NAME,
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
-      rules: {
-        passwordRules: [
-          (v) => !!v || 'Password is required',
-          (v) => !hasWhitespace(v) || 'Password contains white space characters',
-          (v) => v.length >= PASSWORD_MIN_CHARACTERS || `At least ${PASSWORD_MIN_CHARACTERS} characters`,
-          (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
-              || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
-        ],
-        emailRules,
-      },
+      rules: { passwordRules, emailRules },
       email: {
         value: '',
       },
