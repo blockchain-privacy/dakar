@@ -90,7 +90,7 @@ func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.T
 }
 
 // writeNewToken writes the data from user into as a cookie to w
-func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserState, privkey ed25519.PrivateKey) error {
+func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserClientState, privkey ed25519.PrivateKey) error {
 	newToken, expirationTime, err := issueToken(user, privkey)
 	if err != nil {
 		return err
@@ -106,7 +106,7 @@ func invalidateToken(w http.ResponseWriter) {
 }
 
 // issueToken creates a token from user
-func issueToken(user dbus.FrontendUserState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
+func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
 	newTokenUser := tokenUser{
 		Id:    user.Uid,
 		Roles: user.Roles,

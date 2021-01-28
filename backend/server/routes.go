@@ -702,7 +702,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(reply.User.ToFrontendUserState(), privateSigningKey)
+			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), privateSigningKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
@@ -721,21 +721,17 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 	})
 }
 
+// todo handle password change
 // getModifyUserReply parses the input and creates a corresponding userReply
-func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply userReply) {
-	var frontEndUser dbus.FrontendUserState
-
+func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
+	// get clients user state
+	var frontEndUser dbus.FrontendUserClientState
 	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
 		reply.Msg = "could not decode user data"
 		return
 	}
 
-	if len(frontEndUser.Uid) == 0 {
-		reply.Msg = "user not valid"
-		return
-	}
-
-	if len(frontEndUser.Roles) == 0 && len(frontEndUser.Email) == 0 {
+	if len(frontEndUser.Uid) == 0 || (len(frontEndUser.Roles) == 0 && len(frontEndUser.Email) == 0) {
 		reply.Msg = "user not valid"
 		return
 	}
@@ -756,6 +752,13 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		return
 	}
 
+	// check email
+	if len(frontEndUser.Email) > 0 && !dbus.IsValidEmail(frontEndUser.Email) {
+		reply.Msg = "invalid email"
+		return
+	}
+
+	// handle role change
 	if len(frontEndUser.Roles) > 0 {
 		if !isAdmin {
 			reply.Msg = "user can not change its roles"
@@ -770,10 +773,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 				return
 			}
 		}
-	}
-
-	// delete existing roles if new roles are set
-	if len(frontEndUser.Roles) > 0 {
+		// delete existing roles if new roles are set
 		if err := dbus.RemoveRolesFromUser(dgraph, frontEndUser.Uid); err != nil {
 			reply.Msg = "error modifying user"
 			serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
@@ -781,12 +781,24 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		}
 	}
 
+	// modify user
 	if err := dbus.ModifyUser(dgraph, frontEndUser.ToUser()); err != nil {
 		reply.Msg = "error modifying user"
 		serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
 		return
 	}
 
+	// get new user information
+	newUserInfo, err := dbus.GetUser(dgraph, frontEndUser.Uid)
+	if err != nil {
+		reply.Msg = "error modifying user"
+		serverInfo(cliutil.ShowCallInfo(), err, frontEndUser)
+		return
+	}
+
+	// set new user info
+	newUserState := newUserInfo.ToFrontendUserBackendState()
+	reply.User = &newUserState
 	reply.Success = true
 
 	return
@@ -797,7 +809,7 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		var reply userReply
+		var reply backendUserReply
 
 		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
 			reply.Msg = "error modifying user"

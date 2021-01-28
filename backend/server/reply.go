@@ -11,7 +11,7 @@ import (
 )
 
 // getLoginReply reads the data from body and constructs a userReply
-func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply loginReply) {
+func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply backendUserReply) {
 	const invalidUserData = "email and password combination does not match"
 
 	var loginData dbus.FrontendUserLogin
@@ -45,7 +45,7 @@ func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply loginReply) {
 
 	u.PasswordHash = ""
 
-	loginReplyUser := u.ToLoginReplyUser()
+	loginReplyUser := u.ToFrontendUserBackendState()
 
 	reply.Success = true
 

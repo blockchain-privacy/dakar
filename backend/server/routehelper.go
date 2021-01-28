@@ -71,10 +71,10 @@ type userReply struct {
 	Msg     string `json:"msg,omitempty"`
 }
 
-type loginReply struct {
-	Success bool                 `json:"success"`
-	Msg     string               `json:"msg,omitempty"`
-	User    *dbus.LoginReplyUser `json:"user,omitempty"`
+type backendUserReply struct {
+	Success bool                           `json:"success"`
+	Msg     string                         `json:"msg,omitempty"`
+	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
 }
 
 type queryResultType string

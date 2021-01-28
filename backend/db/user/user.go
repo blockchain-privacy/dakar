@@ -175,6 +175,53 @@ func GetUserByEmail(c *dgo.Dgraph, email string) (user User, err error) {
 	return
 }
 
+// GetUser gets a User by uid from the db
+func GetUser(c *dgo.Dgraph, uid string) (user User, err error) {
+	query := `query Q($uid:string){
+				q(func: uid($uid))@filter(eq(dgraph.type,` + DTypeUser + `)){
+					uid
+					user_email
+					user_pwhash
+					user_modified
+					user_created
+					user_roles{
+						role_name
+					}
+				}
+			  }`
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+
+	// no retry
+	resp, txErr := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": uid})
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	var r struct {
+		Users []User `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Users) > 1 {
+		err = errorToManyUsersReturned
+		return
+	} else if len(r.Users) == 0 {
+		err = ErrorUsersNotFound
+		return
+	}
+
+	user = r.Users[0]
+
+	return
+}
+
 // existsUser checks if a User with the given uid exists
 func existsUser(c *dgo.Dgraph, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + ")){uid}}"
@@ -275,10 +322,11 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 	modifiedTime := time.Now()
 	user.Modified = &modifiedTime
 
-	queryStart := "query Q($uid: string"
+	queryStart := "query Q($uid: string, $email: string"
 	var queryRoles string
+	queryCheckEmailExists := "eUser as var(func: eq(user_email, $email))\n"
 	queryEnd := "user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
-	queryVars := map[string]string{"$uid": user.Uid}
+	queryVars := map[string]string{"$uid": user.Uid, "$email": user.Email}
 
 	if len(user.Roles) > 0 {
 		queryStart += ","
@@ -312,10 +360,10 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 	defer cancel()
 
 	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
-		Query: queryStart + queryRoles + queryEnd,
+		Query: queryStart + queryRoles + queryCheckEmailExists + queryEnd,
 		Vars:  queryVars,
 		Mutations: []*api.Mutation{{
-			Cond:    "@if(eq(len(user), 1))",
+			Cond:    "@if(eq(len(user), 1) AND eq(len(eUser), 0))",
 			SetJson: pb,
 		}},
 		CommitNow: true,
@@ -329,7 +377,7 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 
 	// check if mutation was successful
 	if numMutations, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || numMutations == 0 {
-		err = errors.New("error user was not modified because it does not exist")
+		err = errors.New("error user was not modified")
 		return
 	}
 

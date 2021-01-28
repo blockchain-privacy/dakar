@@ -45,16 +45,16 @@ func (u *User) SetDType() {
 	u.DType = []string{DTypeUser}
 }
 
-func (u User) ToFrontendUserState() FrontendUserState {
-	return FrontendUserState{
+func (u User) ToFrontendUserState() FrontendUserClientState {
+	return FrontendUserClientState{
 		Uid:   u.Uid,
 		Email: u.Email,
 		Roles: u.Roles,
 	}
 }
 
-func (u User) ToLoginReplyUser() LoginReplyUser {
-	return LoginReplyUser{
+func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
+	return FrontendUserBackendState{
 		Uid:      u.Uid,
 		Email:    u.Email,
 		Roles:    u.Roles,
@@ -63,13 +63,14 @@ func (u User) ToLoginReplyUser() LoginReplyUser {
 	}
 }
 
-type FrontendUserState struct {
+// FrontendUserClientState represents the client side state of the user
+type FrontendUserClientState struct {
 	Uid   string `json:"uid,omitempty"`
 	Email string `json:"email,omitempty"`
 	Roles []Role `json:"roles,omitempty"`
 }
 
-func (f FrontendUserState) ToUser() User {
+func (f FrontendUserClientState) ToUser() User {
 	return User{
 		Uid:   f.Uid,
 		Email: f.Email,
@@ -77,10 +78,10 @@ func (f FrontendUserState) ToUser() User {
 	}
 }
 
-// IsValid does a sanity check for the given FrontendUserState
-func (f FrontendUserState) IsValid() bool {
+// IsValid does a sanity check for the given FrontendUserClientState
+func (f FrontendUserClientState) IsValid() bool {
 	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || !isValidEmail(f.Email) {
+	if len(f.Email) == 0 || len(f.Roles) == 0 || !IsValidEmail(f.Email) {
 		return false
 	}
 
@@ -122,14 +123,14 @@ func (f FrontendUserRoles) ToUser() User {
 	}
 }
 
-// isValidEmail is a regex filter which checks if the input conforms to an email string
-var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
+// IsValidEmail is a regex filter which checks if the input conforms to an email string
+var IsValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
 	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
 
 // IsValid does a sanity check for the given FrontendUserRoles
 func (f FrontendUserRoles) IsValid() bool {
 	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || !isValidEmail(f.Email) {
+	if len(f.Email) == 0 || len(f.Roles) == 0 || !IsValidEmail(f.Email) {
 		return false
 	}
 
@@ -157,7 +158,8 @@ func (f FrontendUserLogin) IsValid() bool {
 	return len(f.Email) > 0 || len(f.Password) > 0
 }
 
-type LoginReplyUser struct {
+// FrontendUserBackendState represents the state of the user in the backend
+type FrontendUserBackendState struct {
 	Uid      string     `json:"uid,omitempty"`
 	Email    string     `json:"email,omitempty"`
 	Roles    []Role     `json:"roles,omitempty"`
@@ -165,8 +167,8 @@ type LoginReplyUser struct {
 	Modified *time.Time `json:"modified,omitempty"`
 }
 
-func (l LoginReplyUser) ToFrontendUserState() FrontendUserState {
-	return FrontendUserState{
+func (l FrontendUserBackendState) ToFrontendUserClientState() FrontendUserClientState {
+	return FrontendUserClientState{
 		Uid:   l.Uid,
 		Email: l.Email,
 		Roles: l.Roles,
