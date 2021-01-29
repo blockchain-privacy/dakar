@@ -55,14 +55,7 @@
                     Login
                   </v-btn>
                 </v-form>
-
-                <div class="my-8">
-                  <div class="d-flex align-center">
-                    <v-sheet color="grey lighten-2" height="1" width="100%"/>
-                    <div class="mx-2">Or</div>
-                    <v-sheet color="grey lighten-2" height="1" width="100%"/>
-                  </div>
-                </div>
+                <NamedDivider title="Or"/>
                 <div class="text-center">
                   <v-btn disabled
                          block
@@ -83,6 +76,7 @@
 import {
   mdiLockOutline, mdiEye, mdiEyeOff, mdiEmail,
 } from '@mdi/js';
+import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
@@ -95,6 +89,7 @@ function goToRoot(context) {
 
 export default {
   name: 'Login',
+  components: { NamedDivider },
   data() {
     return {
       icon: {
