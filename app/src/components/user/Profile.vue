@@ -29,11 +29,12 @@
                     type="email"
                     :rules="rules.emailRules">
                 </v-text-field>
+                <NamedDivider :vertical-margin="0"></NamedDivider>
                 <v-text-field
                     v-model="editedEmailItem.current_password"
                     label="Current password"
                     type="password"
-                    :rules="rules.passwordRules">
+                    :rules="rules.pwRequired">
                 </v-text-field>
               </v-form>
             </v-row>
@@ -55,18 +56,37 @@
           <v-container>
             <v-row>
               <v-form ref="modifyPasswordForm">
-                <v-text-field
-                    v-model="editedPasswordItem.new_password"
-                    label="New Password"
-                    type="password"
-                    :rules="rules.passwordRules">
-                </v-text-field>
-                <v-text-field
-                    v-model="editedPasswordItem.current_password"
-                    label="Current password"
-                    type="password"
-                    :rules="rules.passwordRules">
-                </v-text-field>
+                <v-row>
+                  <v-col cols="6">
+                    <v-text-field
+                        v-model="editedPasswordItem.new_password"
+                        label="New password"
+                        type="password"
+                        :rules="rules.passwordRules">
+                    </v-text-field>
+                  </v-col>
+                  <v-col cols="6">
+                    <v-text-field
+                        v-model="editedPasswordItem.new_password_confirm"
+                        label="Confirm new password"
+                        type="password"
+                        :rules="[(editedPasswordItem.new_password
+                    === editedPasswordItem.new_password_confirm) || 'Password must match']">
+                    </v-text-field>
+                  </v-col>
+                </v-row>
+                <NamedDivider :vertical-margin="0"></NamedDivider>
+                <v-row>
+                  <v-col cols="6">
+                    <v-text-field
+                        v-model="editedPasswordItem.current_password"
+                        label="Current password"
+                        type="password"
+                        :rules="rules.pwRequired">
+                    </v-text-field>
+                  </v-col>
+                </v-row>
+
               </v-form>
             </v-row>
           </v-container>
@@ -85,6 +105,7 @@
 import {
   mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
 } from '@mdi/js';
+import NamedDivider from '../common/NamedDivider.vue';
 import {
   LOCALSTORAGE_FIELD_USER, PAGE_TITLE, ROUTE_USER_MODIFY,
 } from '../../constants';
@@ -95,7 +116,7 @@ import {
 
 export default {
   name: 'Profile',
-  components: { ProfileItem },
+  components: { NamedDivider, ProfileItem },
   data() {
     return {
       icon: {
@@ -104,7 +125,9 @@ export default {
       showModifyEmailDialog: false,
       showModifyPasswordDialog: false,
       rules: {
-        emailRules, passwordRules,
+        emailRules,
+        passwordRules,
+        pwRequired: [(v) => !!v || 'Password is required'],
       },
       editedEmailItem: {
         email: '',
@@ -116,10 +139,12 @@ export default {
       },
       editedPasswordItem: {
         new_password: '',
+        new_password_confirm: '',
         current_password: '',
       },
       defaultPasswordItem: {
         new_password: '',
+        new_password_confirm: '',
         current_password: '',
       },
     };
@@ -157,7 +182,7 @@ export default {
         },
         {
           title: 'Change Password:',
-          val: '********',
+          val: '••••••••••••••••••',
           icon: this.icon.mdiLock,
           actionFunction: this.openPasswordForm,
         },
@@ -198,6 +223,7 @@ export default {
         current_password: this.editedEmailItem.current_password,
       })
         .then((data) => {
+          if (data.success === undefined) throw Error('error modifying e-mail');
           if (data.success === false) {
             throw new Error(data.msg);
           }
@@ -238,6 +264,7 @@ export default {
         current_password: this.editedPasswordItem.current_password,
       })
         .then((data) => {
+          if (data.success === undefined) throw Error('error modifying password');
           if (data.success === false) {
             throw new Error(data.msg);
           }
