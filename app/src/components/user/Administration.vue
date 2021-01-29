@@ -30,7 +30,7 @@
             <v-btn
                 outlined
                 class="ml-1"
-                @click.stop="showCreateUserDialog = true">
+                @click.stop="showCreateDialog">
               <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
               <div class="ml-2 hidden-sm-and-down">Create User</div>
             </v-btn>
@@ -146,9 +146,14 @@
 import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_USER_CREATE, ROUTE_USER_DELETE } from '../../constants';
 import {
-  emailRules, doGet, doPost,
+  PAGE_TITLE,
+  ROUTE_USER_CREATE,
+  ROUTE_USER_DELETE,
+  ROUTE_USER_MODIFY,
+} from '../../constants';
+import {
+  emailRules, doGet, doPost, handleError,
 } from '../../utilities';
 
 export default {
@@ -191,10 +196,12 @@ export default {
     roles: ['admin', 'user', 'privileged'],
     editedIndex: -1,
     editedItem: {
+      uid: '',
       user_email: '',
       user_roles: [],
     },
     defaultItem: {
+      uid: '',
       user_email: '',
       user_roles: [],
     },
@@ -246,6 +253,12 @@ export default {
       this.editedItem = { ...item };
       this.showCreateUserDialog = true;
     },
+    showCreateDialog() {
+      this.showCreateUserDialog = true;
+      this.editedIndex = -1;
+      this.editedItem = { ...this.defaultItem };
+      this.showCreateUserDialog = true;
+    },
     showDeleteDialog(user) {
       this.showDeleteUserDialog = true;
       this.userToDelete = user;
@@ -287,8 +300,25 @@ export default {
       if (!this.validateForm()) return;
 
       if (this.editedIndex > -1) {
-        Object.assign(this.users[this.editedIndex], this.editedItem);
-        this.close();
+        this.isLoading = true;
+        doPost(ROUTE_USER_MODIFY, this.$router, {
+          uid: this.editedItem.uid,
+          email: this.editedItem.user_email,
+          roles: this.editedItem.user_roles.map((d) => ({ role_name: d })),
+        })
+          .then((data) => {
+            if (data.success === undefined) throw Error('error modifying password');
+            if (data.success === false) throw new Error(data.msg);
+
+            this.refreshUsers();
+          })
+          .catch((e) => {
+            handleError(this.$store, e);
+          })
+          .finally(() => {
+            this.isLoading = false;
+            this.close();
+          });
       } else {
         this.isLoading = true;
 
