@@ -44,6 +44,8 @@ export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
 export const LOCALSTORAGE_FIELD_USER = 'user';
+export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
+export const DEFAULT_SETTINGS = { dark: false };
 
 // blockchain
 export const COIN_UNIT_DASH = 'Dash';

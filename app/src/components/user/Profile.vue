@@ -106,9 +106,7 @@ import {
   mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
 } from '@mdi/js';
 import NamedDivider from '../common/NamedDivider.vue';
-import {
-  LOCALSTORAGE_FIELD_USER, PAGE_TITLE, ROUTE_USER_MODIFY,
-} from '../../constants';
+import { PAGE_TITLE, ROUTE_USER_MODIFY } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
 import {
   doPost, emailRules, handleError, passwordRules,
@@ -229,7 +227,6 @@ export default {
           }
 
           if (data.user) {
-            localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data.user));
             this.userData = data.user;
             this.successMsg = 'Successfully changed E-mail';
           }
@@ -270,7 +267,6 @@ export default {
           }
 
           if (data.user) {
-            localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data.user));
             this.userData = data.user;
             this.successMsg = 'Successfully changed password';
           }

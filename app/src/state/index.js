@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, doGet, handleError,
+  doPost, doGet, handleError, setLocalUser, setLocalSettings,
 } from '../utilities';
 import * as Constants from '../constants';
 
@@ -63,6 +63,7 @@ function getInitialState() {
     heuristicDetails: new Map(),
     userList: null,
     activeUser: null,
+    settings: null,
   };
 }
 
@@ -131,6 +132,9 @@ const mutations = {
   },
   SET_ACTIVE_USER(state, payload) {
     state.activeUser = payload;
+  },
+  SET_SETTINGS(state, payload) {
+    state.settings = payload;
   },
 };
 
@@ -232,7 +236,12 @@ const actions = {
     context.commit('UPDATE_USER_LIST', payload);
   },
   setActiveUser(context, payload) {
+    setLocalUser(payload);
     context.commit('SET_ACTIVE_USER', payload);
+  },
+  setSettings(context, payload) {
+    setLocalSettings(payload);
+    context.commit('SET_SETTINGS', payload);
   },
 };
 
@@ -258,6 +267,7 @@ const getters = {
   getSearchResultType: (state) => state.searchResultType,
   getUserList: (state) => state.userList,
   getActiveUser: (state) => state.activeUser,
+  getSettings: (state) => state.settings,
 };
 
 const state = getInitialState();

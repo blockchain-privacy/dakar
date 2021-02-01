@@ -90,8 +90,10 @@ import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
-import { doGet } from './utilities';
-import { LOCALSTORAGE_FIELD_USER, ROUTE_USER_LOGOUT } from './constants';
+import {
+  doGet, getLocalUser, resetLocal, getLocalSettings,
+} from './utilities';
+import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
 
 export default {
   name: 'App',
@@ -125,6 +127,14 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
+    settings: {
+      get() {
+        return this.$store.getters.getSettings;
+      },
+      set(value) {
+        this.$store.dispatch('setSettings', value);
+      },
+    },
     errMsg: {
       get() {
         return this.$store.getters.getErrorMsg;
@@ -140,6 +150,7 @@ export default {
   methods: {
     changeTheme() {
       this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
+      this.persistDarkTheme(this.$vuetify.theme.dark);
     },
     goToRoot() {
       this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
@@ -161,12 +172,13 @@ export default {
     logout() {
       doGet(ROUTE_USER_LOGOUT, this.$router)
         .then((data) => {
-          if (data.success === undefined) throw Error('error deleting user');
+          if (data.success === undefined) throw Error('error logging out');
           if (data.success === false) {
             throw Error(data.msg);
           }
-          localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+          resetLocal();
           this.userData = null;
+          this.settings = null;
           this.goToLogin();
         })
         .catch((error) => {
@@ -192,16 +204,42 @@ export default {
             // nothing
       }
     },
+    persistDarkTheme(isDark) {
+      const set = this.settings;
+      set.dark = isDark;
+      this.settings = set;
+    },
+    loadStorageData() {
+      // load user data from localStorage
+      const localStorageUserData = getLocalUser();
+      if (localStorageUserData !== null) {
+        this.userData = localStorageUserData;
+      }
+
+      // load settings from localStorage
+      const localStorageSettingsData = getLocalSettings();
+      if (localStorageSettingsData !== null) {
+        this.settings = localStorageSettingsData;
+        // dark mode according to settings
+        this.$vuetify.theme.dark = this.settings.dark;
+      } else {
+        const defaultSettings = DEFAULT_SETTINGS;
+        defaultSettings.dark = this.$vuetify.theme.dark;
+        this.settings = defaultSettings;
+      }
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        this.persistDarkTheme(e.matches);
+      });
+    },
   },
   beforeMount() {
-    this.checkRoute(this.$router.currentRoute.name);
-    // get user information from localStorage
-    const localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
-    if (localStorageUserData !== null) {
-      this.userData = JSON.parse(localStorageUserData);
-    }
     // eslint-disable-next-line no-console
-    console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+    console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+
+    this.checkRoute(this.$router.currentRoute.name);
+
+    this.loadStorageData();
   },
   watch: {
     $route(to) {

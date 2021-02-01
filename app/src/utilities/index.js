@@ -1,5 +1,11 @@
 /* eslint-disable no-mixed-operators */
-import { PASSWORD_MAX_CHARACTERS, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import {
+  LOCALSTORAGE_FIELD_USER,
+  LOCALSTORAGE_FIELD_SETTINGS,
+  PASSWORD_MAX_CHARACTERS,
+  PASSWORD_MIN_CHARACTERS,
+  ROUTE_NAME_LOGIN_PAGE,
+} from '../constants';
 
 export function resetData(context) {
   context.$store.dispatch('resetMsg');
@@ -7,6 +13,41 @@ export function resetData(context) {
   context.$store.dispatch('setTransactionData', null);
   context.$store.dispatch('setAddressData', null);
   context.$store.dispatch('setHeuristicData', null);
+}
+
+export function setLocalUser(userData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(userData));
+}
+
+export function getLocalUser() {
+  let localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
+  if (localStorageUserData !== null) localStorageUserData = JSON.parse(localStorageUserData);
+  return localStorageUserData;
+}
+
+export function removeLocalUser() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+}
+
+export function setLocalSettings(settingsData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_SETTINGS, JSON.stringify(settingsData));
+}
+
+export function resetLocal() {
+  removeLocalUser();
+  setLocalSettings();
+}
+
+export function getLocalSettings() {
+  let localStorageSettingsData = localStorage.getItem(LOCALSTORAGE_FIELD_SETTINGS);
+  if (localStorageSettingsData !== null) {
+    localStorageSettingsData = JSON.parse(localStorageSettingsData);
+  }
+  return localStorageSettingsData;
+}
+
+export function removeLocalSettings() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_SETTINGS);
 }
 
 export function shortenHash(hash) {

@@ -79,7 +79,7 @@ import {
 import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN,
 } from '../../constants';
 import { doPost, emailRules, passwordRules } from '../../utilities';
 
@@ -138,7 +138,6 @@ export default {
           }
 
           this.userData = data.user;
-          localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data.user));
 
           goToRoot(this);
         })
