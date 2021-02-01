@@ -32,11 +32,11 @@
             <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
           </v-list-item>
           <v-divider v-if="this.userData"/>
-          <v-list-item @click="goToProfile" v-if="this.userData" :disabled="isUserProfileDisabled">
+          <v-list-item @click="goToSettings" v-if="this.userData" :disabled="isUserProfileDisabled">
             <v-list-item-icon>
-              <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+              <v-icon>{{ icon.mdiCog }}</v-icon>
             </v-list-item-icon>
-            <v-list-item-title>Profile</v-list-item-title>
+            <v-list-item-title>Settings</v-list-item-title>
           </v-list-item>
           <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
@@ -71,20 +71,13 @@
         </transition>
       </v-container>
     </v-main>
-    <v-footer app absolute>
-      <v-spacer></v-spacer>
-      <div>
-        &copy; {{ new Date().getFullYear() }}
-        <b>Dakar</b> - <a href="https://ntnu.no">NTNU</a>
-      </div>
-    </v-footer>
   </v-app>
 </template>
 
 <script>
 import {
   mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
-  mdiAccountDetails,
+  mdiCog,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
@@ -111,7 +104,7 @@ export default {
         mdiLogout,
         mdiAccountSupervisor,
         mdiAccountCircle,
-        mdiAccountDetails,
+        mdiCog,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -158,7 +151,7 @@ export default {
     goToLogin() {
       this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
     },
-    goToProfile() {
+    goToSettings() {
       this.goToPage(Constants.ROUTE_NAME_USER_PROFILE_PAGE);
     },
     goToUserAdministration() {

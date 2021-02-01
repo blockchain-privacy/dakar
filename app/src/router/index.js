@@ -1,5 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import Misc from '../components/user/Misc.vue';
+import Settings from '../components/user/Settings.vue';
 import Profile from '../components/user/Profile.vue';
 import Administration from '../components/user/Administration.vue';
 import Login from '../components/user/Login.vue';
@@ -54,10 +56,25 @@ export default new Router({
       meta: { title: 'Login' },
     },
     {
-      path: '/profile',
-      name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
-      component: Profile,
+      path: '/settings',
+      component: Settings,
       meta: { title: 'Profile' },
+      children: [
+        {
+          // UserProfile will be rendered inside User's <router-view>
+          // when /settings/profile is matched
+          path: 'profile',
+          name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+          component: Profile,
+        },
+        {
+          // UserPosts will be rendered inside User's <router-view>
+          // when /settings/misc is matched
+          path: 'misc',
+          name: Constants.ROUTE_NAME_USER_MISC_PAGE,
+          component: Misc,
+        },
+      ],
     },
     {
       path: '/userAdministration',
