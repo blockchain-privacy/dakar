@@ -1,145 +1,147 @@
 <template>
-  <v-row align="center" justify="center">
-    <v-col cols="12" sm="12" md="10" lg="9" xl="8">
-      <v-data-table
-          :headers="headers"
-          :items="this.users?this.users:[]"
-          :search="search"
-          :loading="this.isLoading || !this.users"
-          item-key="uid"
-          sort-by="user_modified"
-          sort-desc
-          class="elevation-1">
-        <template v-slot:top>
-          <v-toolbar flat class="hidden-sm-and-up">
-            <v-toolbar-title>User Administration</v-toolbar-title>
-          </v-toolbar>
-          <v-toolbar flat class="hidden-sm-and-up">
-            <v-text-field
-                v-model="search"
-                append-icon="mdi-magnify"
-                label="Filter users"
-                single-line
-                hide-details
-                style="max-width: 500px"
-            ></v-text-field>
-            <v-spacer></v-spacer>
-            <v-btn outlined @click="refreshUsers" :disabled="isLoading">
-              <v-icon>{{ icon.mdiRefresh }}</v-icon>
-            </v-btn>
-            <v-btn
-                outlined
-                class="ml-1"
-                @click.stop="showCreateDialog">
-              <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
-              <div class="ml-2 hidden-sm-and-down">Create User</div>
-            </v-btn>
-          </v-toolbar>
-          <v-toolbar flat class="hidden-xs-only">
-            <v-toolbar-title>User Administration</v-toolbar-title>
-            <v-spacer></v-spacer>
-            <v-text-field
-                v-model="search"
-                append-icon="mdi-magnify"
-                label="Filter users"
-                single-line
-                hide-details
-                style="max-width: 500px"
-            ></v-text-field>
-            <v-spacer></v-spacer>
-            <v-btn outlined @click="refreshUsers" :disabled="isLoading">
-              <v-icon>{{ icon.mdiRefresh }}</v-icon>
-              <div class="ml-2 hidden-sm-and-down">Refresh</div>
-            </v-btn>
-            <v-btn
-                outlined
-                class="ml-1"
-                @click.stop="showCreateUserDialog = true">
-              <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
-              <div class="ml-2 hidden-sm-and-down">Create User</div>
-            </v-btn>
-          </v-toolbar>
-        </template>
-        <template v-slot:[`item.actions`]="{ item }">
-          <v-icon
-              small
-              class="mr-2"
-              :disabled="isLoading"
-              @click="editItem(item)">
-            {{ icon.mdiPencil }}
-          </v-icon>
-          <v-icon
-              small
-              :disabled="isLoading"
-              @click="showDeleteDialog(item)">
-            {{ icon.mdiDelete }}
-          </v-icon>
-        </template>
-        <template v-slot:[`item.created`]="{ item }">
-          <span>{{ item.created.toLocaleString() }}</span>
-        </template>
-        <template v-slot:[`item.modified`]="{ item }">
-          <span>{{ item.modified.toLocaleString() }}</span>
-        </template>
-      </v-data-table>
-      <v-dialog v-model="showCreateUserDialog" max-width="500px">
-        <v-card>
-          <v-card-title>
-            <span class="headline">{{ formTitle }}</span>
-          </v-card-title>
-          <v-card-text>
-            <v-container>
-              <v-row>
-                <v-form ref="modifyUserForm">
-                  <v-text-field
-                      v-model="editedItem.user_email"
-                      label="E-mail"
-                      type="email"
-                      :rules="rules.emailRules">
-                  </v-text-field>
-                  <v-select
-                      :rules="rules.roleRules"
-                      :items="roles"
-                      label="Roles"
-                      multiple
-                      v-model="editedItem.user_roles"/>
-                </v-form>
-              </v-row>
-            </v-container>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="blue darken-1" text @click="close">Cancel</v-btn>
-            <v-btn color="blue darken-1" text @click="save">Save</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-      <v-dialog
-          v-model="showDeleteUserDialog"
-          max-width="500px"
-          v-if="this.userToDelete">
-        <v-card>
-          <v-card-title>
-            <span class="headline">Delete User</span>
-          </v-card-title>
-          <v-card-text>
-            <p class="font-weight-black body-1 my-0">Do you really want to delete the user?</p>
-            <p class="font-weight-black body-1 my-0"> Uid: {{ this.userToDelete.uid }} </p>
-            <p class="font-weight-black body-1"> E-mail: {{ this.userToDelete.user_email }} </p>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="blue darken-1" text @click="closeDeletionDialog">Cancel</v-btn>
-            <v-btn
-                color="blue darken-1"
-                text
-                @click="deleteItem(userToDelete)">Yes, delete user
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </v-col>
-  </v-row>
+  <v-container>
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="12" md="10" lg="9" xl="8">
+        <v-data-table
+            :headers="headers"
+            :items="this.users?this.users:[]"
+            :search="search"
+            :loading="this.isLoading || !this.users"
+            item-key="uid"
+            sort-by="user_modified"
+            sort-desc
+            class="elevation-1">
+          <template v-slot:top>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-toolbar-title>User Administration</v-toolbar-title>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-text-field
+                  v-model="search"
+                  append-icon="mdi-magnify"
+                  label="Filter users"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+              <v-spacer></v-spacer>
+              <v-btn outlined @click="refreshUsers" :disabled="isLoading">
+                <v-icon>{{ icon.mdiRefresh }}</v-icon>
+              </v-btn>
+              <v-btn
+                  outlined
+                  class="ml-1"
+                  @click.stop="showCreateDialog">
+                <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Create User</div>
+              </v-btn>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-xs-only">
+              <v-toolbar-title>User Administration</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-text-field
+                  v-model="search"
+                  append-icon="mdi-magnify"
+                  label="Filter users"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+              <v-spacer></v-spacer>
+              <v-btn outlined @click="refreshUsers" :disabled="isLoading">
+                <v-icon>{{ icon.mdiRefresh }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Refresh</div>
+              </v-btn>
+              <v-btn
+                  outlined
+                  class="ml-1"
+                  @click.stop="showCreateUserDialog = true">
+                <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Create User</div>
+              </v-btn>
+            </v-toolbar>
+          </template>
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-icon
+                small
+                class="mr-2"
+                :disabled="isLoading"
+                @click="editItem(item)">
+              {{ icon.mdiPencil }}
+            </v-icon>
+            <v-icon
+                small
+                :disabled="isLoading"
+                @click="showDeleteDialog(item)">
+              {{ icon.mdiDelete }}
+            </v-icon>
+          </template>
+          <template v-slot:[`item.created`]="{ item }">
+            <span>{{ item.created.toLocaleString() }}</span>
+          </template>
+          <template v-slot:[`item.modified`]="{ item }">
+            <span>{{ item.modified.toLocaleString() }}</span>
+          </template>
+        </v-data-table>
+        <v-dialog v-model="showCreateUserDialog" max-width="500px">
+          <v-card>
+            <v-card-title>
+              <span class="headline">{{ formTitle }}</span>
+            </v-card-title>
+            <v-card-text>
+              <v-container>
+                <v-row>
+                  <v-form ref="modifyUserForm">
+                    <v-text-field
+                        v-model="editedItem.user_email"
+                        label="E-mail"
+                        type="email"
+                        :rules="rules.emailRules">
+                    </v-text-field>
+                    <v-select
+                        :rules="rules.roleRules"
+                        :items="roles"
+                        label="Roles"
+                        multiple
+                        v-model="editedItem.user_roles"/>
+                  </v-form>
+                </v-row>
+              </v-container>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue darken-1" text @click="close">Cancel</v-btn>
+              <v-btn color="blue darken-1" text @click="save">Save</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+            v-model="showDeleteUserDialog"
+            max-width="500px"
+            v-if="this.userToDelete">
+          <v-card>
+            <v-card-title>
+              <span class="headline">Delete User</span>
+            </v-card-title>
+            <v-card-text>
+              <p class="font-weight-black body-1 my-0">Do you really want to delete the user?</p>
+              <p class="font-weight-black body-1 my-0"> Uid: {{ this.userToDelete.uid }} </p>
+              <p class="font-weight-black body-1"> E-mail: {{ this.userToDelete.user_email }} </p>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="blue darken-1" text @click="closeDeletionDialog">Cancel</v-btn>
+              <v-btn
+                  color="blue darken-1"
+                  text
+                  @click="deleteItem(userToDelete)">Yes, delete user
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script>

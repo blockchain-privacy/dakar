@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid v-if="this.data">
+  <v-container fluid v-if="this.data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">

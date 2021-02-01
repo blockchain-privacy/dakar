@@ -64,12 +64,10 @@
       </v-btn>
     </v-app-bar>
     <v-main>
-      <v-container fluid>
         <MsgBox/>
         <transition name="component-fade" mode="out-in">
           <router-view/>
         </transition>
-      </v-container>
     </v-main>
   </v-app>
 </template>

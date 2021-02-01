@@ -1,9 +1,8 @@
 <template>
-  <!--  negative margin so we do not have a gutter to the navbar-->
-  <v-row align="center" no-gutters style="margin: -12px">
-    <v-col cols="12" md="6" class="hidden-md-and-down">
-      <v-sheet color="primary darken-2" dark height="90vh" width="100%">
-        <v-container  fill-height class="justify-center">
+  <v-row align="center" no-gutters  class="fill-height">
+    <v-col cols="12" md="6" class="hidden-md-and-down fill-height">
+      <v-sheet color="primary darken-2" dark height="100%" width="100%">
+        <v-container fill-height class="justify-center">
           <div class="d-flex align-center flex-column text-center">
             <h1 class="text-xl-h1 text-md-h2 font-weight-bold">
               {{ applicationName }}
@@ -132,7 +131,7 @@ export default {
         { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
-              || data.user === undefined) throw Error('error logging in.');
+                || data.user === undefined) throw Error('error logging in.');
           if (data.success === false) {
             throw Error(data.msg);
           }

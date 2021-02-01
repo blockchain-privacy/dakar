@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height">
+  <v-container class="pa-0">
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"

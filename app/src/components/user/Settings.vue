@@ -1,7 +1,7 @@
 <template>
-  <v-container fluid>
-    <v-row style="height: 80vh">
-      <v-col cols="2" class="hidden-sm-and-down">
+  <div class="fill-height" style="padding: 12px 10px 0 10px">
+    <v-row class="fill-height">
+      <v-col cols="2" class="hidden-sm-and-down pa-0">
         <v-navigation-drawer permanent>
           <v-list-item>
             <v-list-item-icon>
@@ -39,10 +39,11 @@
         </v-navigation-drawer>
       </v-col>
       <v-col>
-        <router-view></router-view>
+        <transition name="component-fade" mode="out-in">
+          <router-view></router-view>
+        </transition>
       </v-col>
     </v-row>
-
     <v-bottom-navigation class="hidden-md-and-up" fixed color="primary">
       <v-btn :to="{ name: profileRoute}">
         <span>Profile</span>
@@ -54,7 +55,7 @@
       </v-btn>
     </v-bottom-navigation>
 
-  </v-container>
+  </div>
 </template>
 
 <script>
