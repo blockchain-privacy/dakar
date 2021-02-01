@@ -29,7 +29,6 @@
                     type="email"
                     :rules="rules.emailRules">
                 </v-text-field>
-                <NamedDivider :vertical-margin="0"></NamedDivider>
                 <v-text-field
                     v-model="editedEmailItem.current_password"
                     label="Current password"
@@ -75,7 +74,6 @@
                     </v-text-field>
                   </v-col>
                 </v-row>
-                <NamedDivider :vertical-margin="0"></NamedDivider>
                 <v-row>
                   <v-col cols="6">
                     <v-text-field
@@ -105,7 +103,6 @@
 import {
   mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
 } from '@mdi/js';
-import NamedDivider from '../common/NamedDivider.vue';
 import { PAGE_TITLE, ROUTE_USER_MODIFY } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
 import {
@@ -114,7 +111,7 @@ import {
 
 export default {
   name: 'Profile',
-  components: { NamedDivider, ProfileItem },
+  components: { ProfileItem },
   data() {
     return {
       icon: {
