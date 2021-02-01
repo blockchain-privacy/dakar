@@ -5,10 +5,10 @@
         <v-col class="text--accent-1" style="text-align: center">
           {{ convertAmount(address.amount) }}
           {{ this.coinUnit }}
-          <v-tooltip bottom v-if="address.is_coinbase">
-            <template v-slot:activator="{ on }">
-              <v-icon class="itemIcon" v-on="on">{{ icon.mdiPickaxe }}</v-icon>
-            </template>
+          <v-icon class="itemIcon" :id="`b${index}`" v-if="address.is_coinbase">
+            {{ icon.mdiPickaxe }}
+          </v-icon>
+          <v-tooltip bottom :activator="`#b${index}`" v-if="address.is_coinbase">
             <span>Coinbase</span>
           </v-tooltip>
         </v-col>
