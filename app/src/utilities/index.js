@@ -33,11 +33,6 @@ export function setLocalSettings(settingsData) {
   localStorage.setItem(LOCALSTORAGE_FIELD_SETTINGS, JSON.stringify(settingsData));
 }
 
-export function resetLocal() {
-  removeLocalUser();
-  setLocalSettings();
-}
-
 export function getLocalSettings() {
   let localStorageSettingsData = localStorage.getItem(LOCALSTORAGE_FIELD_SETTINGS);
   if (localStorageSettingsData !== null) {
@@ -48,6 +43,11 @@ export function getLocalSettings() {
 
 export function removeLocalSettings() {
   return localStorage.removeItem(LOCALSTORAGE_FIELD_SETTINGS);
+}
+
+export function resetLocal() {
+  removeLocalUser();
+  removeLocalSettings();
 }
 
 export function shortenHash(hash) {

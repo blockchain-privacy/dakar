@@ -16,7 +16,9 @@
       </v-row>
     </v-list-item-content>
     <v-list-item-icon class="button-sized-icon" v-if="!actionFunction"/>
-    <v-list-item-icon v-if="actionFunction">
+    <v-switch v-if="actionFunction && isBoolean" @change="actionFunction"
+              v-model="switchEnabled"/>
+    <v-list-item-icon v-if="actionFunction && !isBoolean">
       <v-btn icon @click="actionFunction">
         <v-icon>
           {{ editIcon }}
@@ -34,13 +36,19 @@ export default {
   data() {
     return {
       editIcon: mdiPencil,
+      switchEnabled: false,
     };
   },
   props: {
-    title: { type: String, required: true },
-    itemValue: { type: String, required: true },
     icon: { type: String, required: true },
+    title: { type: String, required: true },
+    itemValue: { type: String, required: false },
+    isBoolean: { type: Boolean, required: false, default: false },
+    isBooleanEnabled: { type: Boolean, required: false, default: false },
     actionFunction: { type: Function, required: false, default: null },
+  },
+  created() {
+    this.switchEnabled = this.isBooleanEnabled;
   },
 };
 </script>

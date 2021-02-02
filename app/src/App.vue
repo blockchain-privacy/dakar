@@ -59,9 +59,6 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-btn icon v-on:click="changeTheme()">
-        <v-icon dark>{{ icon.mdiInvertColors }}</v-icon>
-      </v-btn>
     </v-app-bar>
     <v-main>
         <MsgBox/>
@@ -74,7 +71,7 @@
 
 <script>
 import {
-  mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
+  mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
   mdiCog,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
@@ -96,7 +93,6 @@ export default {
     return {
       applicationName: Constants.APPLICATION_NAME,
       icon: {
-        mdiInvertColors,
         mdiAccount,
         mdiLogin,
         mdiLogout,
@@ -139,10 +135,6 @@ export default {
     },
   },
   methods: {
-    changeTheme() {
-      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
-      this.persistDarkTheme(this.$vuetify.theme.dark);
-    },
     goToRoot() {
       this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
     },

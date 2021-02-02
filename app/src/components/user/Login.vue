@@ -78,9 +78,11 @@ import {
 import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS,
 } from '../../constants';
-import { doPost, emailRules, passwordRules } from '../../utilities';
+import {
+  doPost, emailRules, getLocalSettings, passwordRules,
+} from '../../utilities';
 
 function goToRoot(context) {
   context.$router.push({ name: ROUTE_NAME_ENTRY_PAGE });
@@ -118,6 +120,22 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
+    settings: {
+      get() {
+        return this.$store.getters.getSettings;
+      },
+      set(value) {
+        this.$store.dispatch('setSettings', value);
+      },
+    },
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
+      },
+    },
   },
   methods: {
     validateLoginForm() {
@@ -136,7 +154,20 @@ export default {
             throw Error(data.msg);
           }
 
+          // set user data
           this.userData = data.user;
+
+          // load settings from localStorage
+          const localStorageSettingsData = getLocalSettings();
+          if (localStorageSettingsData !== null) {
+            this.settings = localStorageSettingsData;
+            // dark mode according to settings
+            this.$vuetify.theme.dark = this.settings.dark;
+          } else {
+            const defaultSettings = DEFAULT_SETTINGS;
+            defaultSettings.dark = this.$vuetify.theme.dark;
+            this.settings = defaultSettings;
+          }
 
           goToRoot(this);
         })
