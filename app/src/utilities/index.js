@@ -116,7 +116,7 @@ export function doGet(route, router, parameter) {
     })
     .then((response) => response.json())
     .then((data) => {
-      if (isInvalidTokenMsg(data, router)) throw Error();
+      if (isInvalidTokenMsg(data, router)) throw Error('Invalid login credentials. Please login again.');
       return data;
     });
 }
