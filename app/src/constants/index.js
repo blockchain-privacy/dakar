@@ -19,6 +19,7 @@ export const ROUTE_USER_CREATE = `${routePrefix}createUser/`;
 export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
 export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
+export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
@@ -32,6 +33,8 @@ export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
 export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
+export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
+export const ROUTE_NAME_USER_MISC_PAGE = 'User Misc Page';
 export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
@@ -42,6 +45,8 @@ export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
 export const LOCALSTORAGE_FIELD_USER = 'user';
+export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
+export const DEFAULT_SETTINGS = { dark: false };
 
 // blockchain
 export const COIN_UNIT_DASH = 'Dash';

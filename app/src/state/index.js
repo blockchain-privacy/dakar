@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, doGet, handleError, isInvalidTokenMsg,
+  doPost, doGet, handleError, setLocalUser, setLocalSettings,
 } from '../utilities';
 import * as Constants from '../constants';
 
@@ -10,8 +10,7 @@ import Router from '../router';
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
-  return doGet(route, parameter).then((data) => {
-    if (isInvalidTokenMsg(data, Router)) return;
+  return doGet(route, Router, parameter).then((data) => {
     context.commit(mutation, data);
     context.dispatch('resetMsg');
   }).catch((e) => {
@@ -20,9 +19,8 @@ function handleGet(context, route, mutation, parameter) {
 }
 
 function handlePost(context, route, mutation, parameter, body) {
-  return doPost(route, parameter, body)
+  return doPost(route, Router, body, parameter)
     .then((data) => {
-      if (isInvalidTokenMsg(data, Router)) return;
       context.commit(mutation, data);
       context.dispatch('resetMsg');
     })
@@ -65,6 +63,7 @@ function getInitialState() {
     heuristicDetails: new Map(),
     userList: null,
     activeUser: null,
+    settings: null,
   };
 }
 
@@ -133,6 +132,9 @@ const mutations = {
   },
   SET_ACTIVE_USER(state, payload) {
     state.activeUser = payload;
+  },
+  SET_SETTINGS(state, payload) {
+    state.settings = payload;
   },
 };
 
@@ -234,7 +236,12 @@ const actions = {
     context.commit('UPDATE_USER_LIST', payload);
   },
   setActiveUser(context, payload) {
+    setLocalUser(payload);
     context.commit('SET_ACTIVE_USER', payload);
+  },
+  setSettings(context, payload) {
+    setLocalSettings(payload);
+    context.commit('SET_SETTINGS', payload);
   },
 };
 
@@ -260,6 +267,7 @@ const getters = {
   getSearchResultType: (state) => state.searchResultType,
   getUserList: (state) => state.userList,
   getActiveUser: (state) => state.activeUser,
+  getSettings: (state) => state.settings,
 };
 
 const state = getInitialState();

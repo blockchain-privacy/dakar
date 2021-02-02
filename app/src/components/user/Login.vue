@@ -1,9 +1,8 @@
 <template>
-  <!--  negative margin so we do not have a gutter to the navbar-->
-  <v-row align="center" no-gutters style="margin: -12px">
-    <v-col cols="12" md="6" class="hidden-md-and-down">
-      <v-sheet color="primary darken-2" dark height="90vh" width="100%">
-        <v-container  fill-height class="justify-center">
+  <v-row align="center" no-gutters  class="fill-height">
+    <v-col cols="12" md="6" class="hidden-md-and-down fill-height">
+      <v-sheet color="primary darken-2" dark height="100%" width="100%">
+        <v-container fill-height class="justify-center">
           <div class="d-flex align-center flex-column text-center">
             <h1 class="text-xl-h1 text-md-h2 font-weight-bold">
               {{ applicationName }}
@@ -55,14 +54,7 @@
                     Login
                   </v-btn>
                 </v-form>
-
-                <div class="my-8">
-                  <div class="d-flex align-center">
-                    <v-sheet color="grey lighten-2" height="1" width="100%"/>
-                    <div class="mx-2">Or</div>
-                    <v-sheet color="grey lighten-2" height="1" width="100%"/>
-                  </div>
-                </div>
+                <NamedDivider title="Or"/>
                 <div class="text-center">
                   <v-btn disabled
                          block
@@ -83,25 +75,14 @@
 import {
   mdiLockOutline, mdiEye, mdiEyeOff, mdiEmail,
 } from '@mdi/js';
+import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, LOCALSTORAGE_FIELD_USER,
-} from '../constants';
-import { emailRules } from '../utilities';
-
-const notAllowedWhitespaceCharacters = [
-  '\b', '\t', '\n', '\v', '\f', '\r',
-  '\u0008', '\u0009', '\u000A', '\u000B', '\u000C',
-  '\u000D', '\u0022', '\u0027', '\u005C',
-  '\u00A0', '\u2028', '\u2029', '\uFEFF'];
-
-// hasWhitespace checks if the given string
-// contains any of the characters in notAllowedWhitespaceCharacters
-// credit: https://stackoverflow.com/questions/1731190/check-if-a-string-has-white-space
-const hasWhitespace = (char) => notAllowedWhitespaceCharacters.some(
-  (w) => char.indexOf(w) > -1,
-  notAllowedWhitespaceCharacters,
-);
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS,
+} from '../../constants';
+import {
+  doPost, emailRules, getLocalSettings, passwordRules,
+} from '../../utilities';
 
 function goToRoot(context) {
   context.$router.push({ name: ROUTE_NAME_ENTRY_PAGE });
@@ -109,6 +90,7 @@ function goToRoot(context) {
 
 export default {
   name: 'Login',
+  components: { NamedDivider },
   data() {
     return {
       icon: {
@@ -119,16 +101,7 @@ export default {
       applicationName: APPLICATION_NAME,
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
-      rules: {
-        passwordRules: [
-          (v) => !!v || 'Password is required',
-          (v) => !hasWhitespace(v) || 'Password contains white space characters',
-          (v) => v.length >= PASSWORD_MIN_CHARACTERS || `At least ${PASSWORD_MIN_CHARACTERS} characters`,
-          (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
-              || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
-        ],
-        emailRules,
-      },
+      rules: { passwordRules, emailRules },
       email: {
         value: '',
       },
@@ -147,6 +120,22 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
+    settings: {
+      get() {
+        return this.$store.getters.getSettings;
+      },
+      set(value) {
+        this.$store.dispatch('setSettings', value);
+      },
+    },
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
+      },
+    },
   },
   methods: {
     validateLoginForm() {
@@ -156,23 +145,29 @@ export default {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      fetch(ROUTE_USER_LOGIN, {
-        method: 'POST', // or 'PUT'
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ user_pw: this.password.value, user_email: this.email.value }),
-      })
-        .then((response) => response.json())
+      doPost(ROUTE_USER_LOGIN, this.$router,
+        { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
-              || data.user === undefined) throw Error('error logging in ');
+                || data.user === undefined) throw Error('error logging in.');
           if (data.success === false) {
             throw Error(data.msg);
           }
 
+          // set user data
           this.userData = data.user;
-          localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(data.user));
+
+          // load settings from localStorage
+          const localStorageSettingsData = getLocalSettings();
+          if (localStorageSettingsData !== null) {
+            this.settings = localStorageSettingsData;
+            // dark mode according to settings
+            this.$vuetify.theme.dark = this.settings.dark;
+          } else {
+            const defaultSettings = DEFAULT_SETTINGS;
+            defaultSettings.dark = this.$vuetify.theme.dark;
+            this.settings = defaultSettings;
+          }
 
           goToRoot(this);
         })

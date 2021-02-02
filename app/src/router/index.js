@@ -1,12 +1,15 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import UserAdministration from '../components/UserAdministration.vue';
-import Login from '../components/Login.vue';
-import TxLookup from '../components/TxLookup.vue';
-import BlockLookup from '../components/BlockLookup.vue';
-import AddressLookup from '../components/AddressLookup.vue';
+import Misc from '../components/user/Misc.vue';
+import Settings from '../components/user/Settings.vue';
+import Profile from '../components/user/Profile.vue';
+import Administration from '../components/user/Administration.vue';
+import Login from '../components/user/Login.vue';
+import TxLookup from '../components/data/TxLookup.vue';
+import BlockLookup from '../components/data/BlockLookup.vue';
+import AddressLookup from '../components/data/AddressLookup.vue';
 import NoResults from '../components/NoResults.vue';
-import HeuristicEditor from '../components/HeuristicEditor.vue';
+import Editor from '../components/heuristic/Editor.vue';
 import EntryView from '../components/EntryView.vue';
 import PageNotFound from '../components/PageNotFound.vue';
 import * as Constants from '../constants';
@@ -43,7 +46,7 @@ export default new Router({
     {
       path: '/heuristic/:id',
       name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
-      component: HeuristicEditor,
+      component: Editor,
       meta: { title: 'Heuristic' },
     },
     {
@@ -53,9 +56,30 @@ export default new Router({
       meta: { title: 'Login' },
     },
     {
+      path: '/settings',
+      component: Settings,
+      meta: { title: 'Profile' },
+      children: [
+        {
+          // UserProfile will be rendered inside User's <router-view>
+          // when /settings/profile is matched
+          path: 'profile',
+          name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+          component: Profile,
+        },
+        {
+          // UserPosts will be rendered inside User's <router-view>
+          // when /settings/misc is matched
+          path: 'misc',
+          name: Constants.ROUTE_NAME_USER_MISC_PAGE,
+          component: Misc,
+        },
+      ],
+    },
+    {
       path: '/userAdministration',
       name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
-      component: UserAdministration,
+      component: Administration,
       meta: { title: 'User Administration' },
     },
     {

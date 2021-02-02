@@ -24,14 +24,27 @@
             <v-icon>{{ icon.mdiAccount }}</v-icon>
           </v-btn>
         </template>
-        <v-list>
-          <v-list-item @click="goToLogin" v-if="!this.userData">
+        <v-list nav dense>
+          <v-list-item v-if="this.userData">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
+          </v-list-item>
+          <v-divider v-if="this.userData"/>
+          <v-list-item @click="goToSettings" v-if="this.userData" :disabled="isUserProfileDisabled">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiCog }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Settings</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToUserAdministration"
+          <v-list-item @click="goToUserAdministration" :disabled="isUserAdminDisabled"
                        v-if="showUserAdmin">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
@@ -46,37 +59,29 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-btn icon v-on:click="changeTheme()">
-        <v-icon dark>{{ icon.mdiInvertColors }}</v-icon>
-      </v-btn>
     </v-app-bar>
     <v-main>
-      <v-container fluid>
         <MsgBox/>
         <transition name="component-fade" mode="out-in">
           <router-view/>
         </transition>
-      </v-container>
     </v-main>
-    <v-footer app absolute>
-      <v-spacer></v-spacer>
-      <div>
-        &copy; {{ new Date().getFullYear() }}
-        <b>Dakar</b> - <a href="https://ntnu.no">NTNU</a>
-      </div>
-    </v-footer>
   </v-app>
 </template>
 
 <script>
 import {
-  mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+  mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
+  mdiCog,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
-import { LOCALSTORAGE_FIELD_USER, ROUTE_USER_LOGOUT } from './constants';
+import {
+  doGet, getLocalUser, resetLocal, getLocalSettings,
+} from './utilities';
+import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
 
 export default {
   name: 'App',
@@ -88,8 +93,16 @@ export default {
     return {
       applicationName: Constants.APPLICATION_NAME,
       icon: {
-        mdiInvertColors, mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor,
+        mdiAccount,
+        mdiLogin,
+        mdiLogout,
+        mdiAccountSupervisor,
+        mdiAccountCircle,
+        mdiCog,
       },
+      isUserAdminDisabled: false,
+      isUserLoginDisabled: false,
+      isUserProfileDisabled: false,
     };
   },
   computed: {
@@ -99,6 +112,14 @@ export default {
       },
       set(value) {
         this.$store.dispatch('setActiveUser', value);
+      },
+    },
+    settings: {
+      get() {
+        return this.$store.getters.getSettings;
+      },
+      set(value) {
+        this.$store.dispatch('setSettings', value);
       },
     },
     errMsg: {
@@ -114,49 +135,99 @@ export default {
     },
   },
   methods: {
-
-    changeTheme() {
-      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
-    },
     goToRoot() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_ENTRY_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
     },
     goToLogin() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_LOGIN_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
+    },
+    goToSettings() {
+      this.goToPage(Constants.ROUTE_NAME_USER_PROFILE_PAGE);
     },
     goToUserAdministration() {
-      // only change route if not already on entry page
-      if (this.$route.name === Constants.ROUTE_NAME_USER_ADMIN_PAGE) return;
-      this.$router.push({ name: Constants.ROUTE_NAME_USER_ADMIN_PAGE });
+      this.goToPage(Constants.ROUTE_NAME_USER_ADMIN_PAGE);
+    },
+    // goToPage should receive a page name from ./constants
+    goToPage(pageName) {
+      // only change route if not already on page
+      if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
     logout() {
-      fetch(ROUTE_USER_LOGOUT)
-        .then((response) => response.json())
+      doGet(ROUTE_USER_LOGOUT, this.$router)
         .then((data) => {
-          if (data.success === undefined) throw Error('error deleting user');
+          if (data.success === undefined) throw Error('error logging out');
           if (data.success === false) {
             throw Error(data.msg);
           }
-          localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+          resetLocal();
           this.userData = null;
+          this.settings = null;
           this.goToLogin();
         })
         .catch((error) => {
           this.errMsg = error;
         });
     },
+    checkRoute(routeName) {
+      this.isUserLoginDisabled = false;
+      this.isUserAdminDisabled = false;
+      this.isUserProfileDisabled = false;
+
+      switch (routeName) {
+        case Constants.ROUTE_NAME_LOGIN_PAGE:
+          this.isUserLoginDisabled = true;
+          break;
+        case Constants.ROUTE_NAME_USER_ADMIN_PAGE:
+          this.isUserAdminDisabled = true;
+          break;
+        case Constants.ROUTE_NAME_USER_PROFILE_PAGE:
+          this.isUserProfileDisabled = true;
+          break;
+        default:
+            // nothing
+      }
+    },
+    persistDarkTheme(isDark) {
+      const set = this.settings;
+      set.dark = isDark;
+      this.settings = set;
+    },
+    loadStorageData() {
+      // load user data from localStorage
+      const localStorageUserData = getLocalUser();
+      if (localStorageUserData !== null) {
+        this.userData = localStorageUserData;
+      }
+
+      // load settings from localStorage
+      const localStorageSettingsData = getLocalSettings();
+      if (localStorageSettingsData !== null) {
+        this.settings = localStorageSettingsData;
+        // dark mode according to settings
+        this.$vuetify.theme.dark = this.settings.dark;
+      } else {
+        const defaultSettings = DEFAULT_SETTINGS;
+        defaultSettings.dark = this.$vuetify.theme.dark;
+        this.settings = defaultSettings;
+      }
+
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        this.persistDarkTheme(e.matches);
+      });
+    },
   },
   beforeMount() {
-    const localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
-    if (localStorageUserData !== null) {
-      this.userData = JSON.parse(localStorageUserData);
-    }
     // eslint-disable-next-line no-console
-    console.log(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+    console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
+
+    this.checkRoute(this.$router.currentRoute.name);
+
+    this.loadStorageData();
+  },
+  watch: {
+    $route(to) {
+      this.checkRoute(to.name);
+    },
   },
 };
 </script>

@@ -9,11 +9,10 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
-
-	"errors"
 
 	"github.com/dgraph-io/dgo/v2"
 )
@@ -68,9 +67,14 @@ type heuristicReply struct {
 }
 
 type userReply struct {
-	Success bool                    `json:"success"`
-	Msg     string                  `json:"msg,omitempty"`
-	User    *dbus.FrontendUserState `json:"user,omitempty"`
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type backendUserReply struct {
+	Success bool                           `json:"success"`
+	Msg     string                         `json:"msg,omitempty"`
+	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
 }
 
 type queryResultType string

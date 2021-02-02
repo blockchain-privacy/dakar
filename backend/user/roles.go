@@ -6,12 +6,16 @@ import (
 	"fmt"
 )
 
-// allRoutes is the value which should be set if a Role is allowed to use all possible routes
-const allRoutes = "ALL_ROUTES"
+const (
+	// allRoutes is the value which should be set if a Role is allowed to use all possible routes
+	allRoutes = "ALL_ROUTES"
+	// AdminRoleName is the name of the role which is allowed all actions
+	AdminRoleName = "admin"
+)
 
 var (
 	// roleMap holds all possible Role mappings
-	roleMap = map[string]Role{"admin": NewAdminRole(),
+	roleMap = map[string]Role{AdminRoleName: NewAdminRole(),
 		"user": NewDefaultUserRole(), "privileged": NewPrivilegedRole()}
 
 	// role maps; we need to look up roles very often; string slice lookup are slower than map look ups even for small sices:
@@ -19,12 +23,12 @@ var (
 	adminRoleMap       = map[string]bool{allRoutes: true}
 	defaultUserRoleMap = map[string]bool{constants.GetRouteTransaction(): true, constants.GetRouteBlock(): true,
 		constants.GetRouteAddress(): true, constants.GetRouteMeta(): true, constants.GetRouteSearch(): true,
-		constants.GetRouteAddressOutputRange(): true}
+		constants.GetRouteAddressOutputRange(): true, constants.GetRouteModifyUser(): true}
 	privilegedRoleMap = map[string]bool{constants.GetRouteTransaction(): true, constants.GetRouteBlock(): true,
 		constants.GetRouteAddress(): true, constants.GetRouteMeta(): true, constants.GetRouteSearch(): true,
 		constants.GetRouteAddressOutputRange(): true, constants.GetRouteHeuristicStatus(): true,
 		constants.GetRouteHeuristicDetails(): true, constants.GetRouteHeuristicsExecution(): true,
-		constants.GetRouteHeuristics(): true}
+		constants.GetRouteHeuristics(): true, constants.GetRouteModifyUser(): true}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
 )
@@ -48,7 +52,7 @@ type AdminRole struct {
 // NewAdminRole constructor
 func NewAdminRole() AdminRole {
 	return AdminRole{
-		name:          "admin",
+		name:          AdminRoleName,
 		allowedRoutes: adminRoleMap,
 	}
 }

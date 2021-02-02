@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid v-if="this.data">
+  <v-container fluid v-if="this.data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
@@ -136,12 +136,12 @@ import {
   mdiBankTransferOut, mdiPound,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
-import { convertAmount, doPost, handleError } from '../utilities';
+import { convertAmount, doPost, handleError } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT,
-} from '../constants';
-import IconItem from './common/IconItem.vue';
+} from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'AddressLookup',
@@ -202,8 +202,9 @@ export default {
       if (this.offset >= this.data.query_max_count) return;
       this.isLoadingMore = true;
 
-      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router,
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
+        this.addressHash)
         .then((data) => {
           this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMsg');
@@ -270,8 +271,9 @@ export default {
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
-      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.addressHash,
-        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected })
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router,
+        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
+        this.addressHash)
         .then((data) => {
           this.data = data.payload;
           this.$store.dispatch('resetMsg');

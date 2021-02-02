@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid v-if="data">
+  <v-container fluid v-if="data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
@@ -136,12 +136,12 @@ import {
   mdiCash, mdiFormatHeaderPound, mdiPound, mdiCurrencyUsdCircleOutline,
   mdiCurrencyUsdCircle,
 } from '@mdi/js';
-import { shortenHash, convertAmount, getCurrentDate } from '../utilities';
+import { shortenHash, convertAmount, getCurrentDate } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
   ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_ADDRESS_PAGE,
-} from '../constants';
-import IconItem from './common/IconItem.vue';
+} from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'TxLookup',

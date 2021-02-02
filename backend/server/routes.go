@@ -10,12 +10,14 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/user"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
+	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -700,7 +702,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(*reply.User, privateSigningKey)
+			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), privateSigningKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				serverInfo(cliutil.ShowCallInfo(), err)
@@ -711,9 +713,170 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 			w.WriteHeader(http.StatusUnauthorized)
 		}
 
-		if reply.User != nil {
-			// do not send uid
-			reply.User.Uid = ""
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
+}
+
+// getModifyUserReply parses the input and creates a corresponding userReply
+func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
+	// get clients user state
+	var modRequest dbus.ModifyUserRequest
+	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
+		reply.Msg = "could not decode user data"
+		return
+	}
+
+	if len(modRequest.Uid) == 0 ||
+		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
+		reply.Msg = "nothing to change"
+		return
+	}
+
+	// check if passwords are equal
+	if len(modRequest.CurrentPassword) > 0 && len(modRequest.NewPassword) > 0 &&
+		modRequest.NewPassword == modRequest.CurrentPassword {
+		reply.Msg = "passwords are equal"
+		return
+	}
+
+	// is user an admin
+	isAdmin := false
+	for _, r := range tUser.Roles {
+		if r.Name == user.AdminRoleName {
+			isAdmin = true
+			break
+		}
+	}
+
+	// if user ids does not match, check if this is a request from an admin user
+	if modRequest.Uid != tUser.Id && !isAdmin {
+		reply.Msg = "user ids do not match"
+		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
+		return
+	}
+
+	// check current password if user is not an admin
+	if !isAdmin {
+		if len(modRequest.CurrentPassword) == 0 {
+			reply.Msg = "current password must also be supplied"
+			return
+		}
+
+		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
+		if err != nil {
+			reply.Msg = "error modifying user"
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+
+		if ok, err := user.ComparePassword(modRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
+			reply.Msg = "wrong current password"
+			return
+		}
+	}
+
+	// check email
+	if len(modRequest.Email) > 0 {
+		if !dbus.IsValidEmail(modRequest.Email) {
+			reply.Msg = "invalid email"
+			return
+		}
+
+		emailUser, err := dbus.GetUserByEmail(dgraph, modRequest.Email)
+		if err != nil {
+			if !errors.Is(dbus.ErrorUsersNotFound, err) {
+				reply.Msg = "invalid email"
+				serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+				return
+			}
+		} else if emailUser.Uid != modRequest.Uid {
+			reply.Msg = "duplicate email"
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+	}
+
+	var newPwHash string
+	// check if password matches
+	if len(modRequest.NewPassword) > 0 {
+		if len(modRequest.NewPassword) < 10 {
+			reply.Msg = "new password must be at least 10 characters long"
+			return
+		}
+
+		var generatePwErr error
+		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
+			modRequest.NewPassword); generatePwErr != nil {
+			reply.Msg = "error modifying user"
+			return
+		}
+	}
+
+	// handle role change
+	if len(modRequest.Roles) > 0 {
+		if !isAdmin {
+			reply.Msg = "user can not change its roles"
+			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
+			return
+		}
+		// check if all roles exists
+		for _, r := range modRequest.Roles {
+			if _, err := user.GetRoleByName(r.Name); err != nil {
+				reply.Msg = "invalid role"
+				serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
+				return
+			}
+		}
+		// delete existing roles if new roles are set
+		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
+			reply.Msg = "error modifying user"
+			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+	}
+
+	// modify user
+	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
+		reply.Msg = "error modifying user"
+		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+		return
+	}
+
+	// get new user information
+	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
+	if err != nil {
+		reply.Msg = "error modifying user"
+		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+		return
+	}
+
+	// set new user info
+	newUserState := newUserInfo.ToFrontendUserBackendState()
+	reply.User = &newUserState
+	reply.Success = true
+
+	return
+}
+
+// API pattern: "/api/v1/modifyUser/"
+func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply backendUserReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "error modifying user"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "error modifying user"
+			} else {
+				reply = getModifyUserReply(dgraph, r.Body, tUser)
+			}
 		}
 
 		// encoding
@@ -839,4 +1002,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteGetUsers(),
 		Adapt(handlerGetUsers(dgraph),
 			authorizationMiddleware(constants.GetRouteGetUsers(), privkey, pubkey)))
+	http.Handle(constants.GetRouteModifyUser(),
+		Adapt(handlerModifyUser(dgraph),
+			authorizationMiddleware(constants.GetRouteModifyUser(), privkey, pubkey)))
 }

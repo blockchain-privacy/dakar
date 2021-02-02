@@ -3,21 +3,22 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
+
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/o1egl/paseto"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/o1egl/paseto"
 	"golang.org/x/crypto/ed25519"
 )
 
 const (
 	// tokenExpirationTime is the time a token is valid
-	tokenExpirationTime = time.Hour * 24
+	tokenExpirationTime = time.Hour * 48
 	// cookieTokenName is the name of the cookie where the token is saved
 	cookieTokenName = "token"
 	// secureCookie controls whether the secure attribute in cookies is set
@@ -31,6 +32,19 @@ const (
 	// SigningPrivkeyEnvironmentField is the name of the os environment field for the private signing key
 	SigningPrivkeyEnvironmentField = "TOKEN_PRIV_KEY"
 )
+
+type tokenUser struct {
+	Id    string      `json:"uid,omitempty"`
+	Roles []dbus.Role `json:"roles,omitempty"`
+}
+
+// toUser creates a new dbus.User and fill it with data from t
+func (t tokenUser) toUser() dbus.User {
+	return dbus.User{
+		Uid:   t.Id,
+		Roles: t.Roles,
+	}
+}
 
 // GetSigningKeysFromEnv returns a public key pair, an error is returned if
 // SigningPubkeyEnvironmentField or SigningPrivkeyEnvironmentField are not set
@@ -76,7 +90,7 @@ func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.T
 }
 
 // writeNewToken writes the data from user into as a cookie to w
-func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserState, privkey ed25519.PrivateKey) error {
+func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserClientState, privkey ed25519.PrivateKey) error {
 	newToken, expirationTime, err := issueToken(user, privkey)
 	if err != nil {
 		return err
@@ -91,21 +105,8 @@ func invalidateToken(w http.ResponseWriter) {
 	setTokenAsCookie(w, "", time.Now().Add(-100*time.Hour))
 }
 
-type tokenUser struct {
-	Id    string      `json:"uid,omitempty"`
-	Roles []dbus.Role `json:"roles,omitempty"`
-}
-
-// toUser creates a new dbus.User and fill it with data from t
-func (t tokenUser) toUser() dbus.User {
-	return dbus.User{
-		Uid:   t.Id,
-		Roles: t.Roles,
-	}
-}
-
 // issueToken creates a token from user
-func issueToken(user dbus.FrontendUserState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
+func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
 	newTokenUser := tokenUser{
 		Id:    user.Uid,
 		Roles: user.Roles,

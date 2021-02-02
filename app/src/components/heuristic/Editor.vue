@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height">
+  <v-container class="pa-0">
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"
@@ -100,8 +100,8 @@
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
-      <HeuristicDetails v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
-                        :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+      <Details v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
+               :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -138,15 +138,17 @@ import {
   mdiTransfer, mdiOpenInNew, mdiShapeSquareRoundedPlus, mdiFileDownloadOutline,
   mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus,
 } from '@mdi/js';
-import HeuristicDetails from './HeuristicDetails.vue';
+import Details from './Details.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS,
-} from '../constants';
-import NestedMenu from './common/NestedMenu.vue';
-import * as ht from '../heuristicTree';
-import { shortenHash, getCurrentDate } from '../utilities';
+} from '../../constants';
+import NestedMenu from '../common/NestedMenu.vue';
+import * as ht from '../../heuristicTree';
+import {
+  shortenHash, getCurrentDate, doPost, doGet,
+} from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
   // search for deleted items
@@ -210,8 +212,8 @@ function areDataElementsEqual(a, b) {
 }
 
 export default {
-  name: 'HeuristicEditor',
-  components: { HeuristicDetails, NestedMenu },
+  name: 'Editor',
+  components: { Details, NestedMenu },
   data() {
     return {
       icon: {
@@ -465,15 +467,9 @@ export default {
         return;
       }
 
-      fetch(ROUTE_EXECUTE_HEURISTICS + this.transactionHash, {
-        method: 'POST', // or 'PUT'
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(prepareData(this.dbState, this.data.heuristics,
-          this.changeSet, this.deletedData)),
-      })
-        .then((response) => response.json())
+      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router,
+        prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
+        this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           this.setExecutionStatus(data.status);
@@ -660,8 +656,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await fetch(ROUTE_HEURISTIC_STATUS + this.transactionHash)
-        .then((response) => response.json())
+      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;

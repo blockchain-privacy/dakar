@@ -30,8 +30,8 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 
 	user.Uid = ""
 	timeNow := time.Now()
-	user.Created = timeNow
-	user.Modified = timeNow
+	user.Created = &timeNow
+	user.Modified = &timeNow
 	user.SetDType()
 
 	queryVars := map[string]string{"$email": user.Email}
@@ -175,6 +175,53 @@ func GetUserByEmail(c *dgo.Dgraph, email string) (user User, err error) {
 	return
 }
 
+// GetUser gets a User by uid from the db
+func GetUser(c *dgo.Dgraph, uid string) (user User, err error) {
+	query := `query Q($uid:string){
+				q(func: uid($uid))@filter(eq(dgraph.type,` + DTypeUser + `)){
+					uid
+					user_email
+					user_pwhash
+					user_modified
+					user_created
+					user_roles{
+						role_name
+					}
+				}
+			  }`
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+
+	// no retry
+	resp, txErr := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": uid})
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	var r struct {
+		Users []User `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Users) > 1 {
+		err = errorToManyUsersReturned
+		return
+	} else if len(r.Users) == 0 {
+		err = ErrorUsersNotFound
+		return
+	}
+
+	user = r.Users[0]
+
+	return
+}
+
 // existsUser checks if a User with the given uid exists
 func existsUser(c *dgo.Dgraph, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + ")){uid}}"
@@ -266,4 +313,95 @@ func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
 	}
 
 	return pw, nil
+}
+
+// ModifyUser modifies the given user in the database. The uid must be filled.
+// Email and/or Roles can be set.
+func ModifyUser(c *dgo.Dgraph, user User) (err error) {
+
+	modifiedTime := time.Now()
+	user.Modified = &modifiedTime
+
+	queryStart := "query Q($uid: string"
+	var queryRoles string
+	queryEnd := "user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
+	queryVars := map[string]string{"$uid": user.Uid}
+
+	if len(user.Roles) > 0 {
+		queryStart += ","
+	}
+
+	for i := range user.Roles {
+		roleUidPlaceholder := fmt.Sprintf("r%d", i)
+
+		user.Roles[i].Uid = "uid(" + roleUidPlaceholder + ")"
+		user.Roles[i].SetDType()
+
+		roleVarId := fmt.Sprintf("$role%d", i)
+		queryVars[roleVarId] = user.Roles[i].Name
+
+		queryStart += roleVarId + ":string"
+		queryRoles += roleUidPlaceholder + " as var(func: eq(role_name," + roleVarId + "))\n"
+
+		if i+1 < len(user.Roles) {
+			queryStart += ","
+		}
+	}
+
+	queryStart += "){"
+
+	pb, err := json.Marshal(user)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+
+	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
+		Query: queryStart + queryRoles + queryEnd,
+		Vars:  queryVars,
+		Mutations: []*api.Mutation{{
+			Cond:    "@if(eq(len(user), 1))",
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	})
+	_ = resp
+	// no retry
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	// check if mutation was successful
+	if numMutations, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || numMutations == 0 {
+		err = errors.New("error user was not modified")
+		return
+	}
+
+	return
+}
+
+// RemoveRolesFromUser removes all roles from a given user
+func RemoveRolesFromUser(c *dgo.Dgraph, uid string) (err error) {
+	query := `query Q($uid: string) {
+			 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DTypeUser + `"))
+	}`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": uid},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) <user_roles> * ."),
+		}},
+		CommitNow: true,
+	}
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+	return
 }

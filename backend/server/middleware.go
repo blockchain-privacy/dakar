@@ -3,11 +3,14 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/user"
+	"context"
 	"encoding/json"
 	"golang.org/x/crypto/ed25519"
 	"net/http"
 	"time"
 )
+
+const middlewareContextUser = "user"
 
 type Adapter func(http.Handler) http.Handler
 
@@ -103,8 +106,8 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 					return
 				}
 			}
-
-			h.ServeHTTP(w, r)
+			// call next handler and add to the request context the user information
+			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), middlewareContextUser, newUser)))
 		})
 	}
 }

@@ -1,5 +1,5 @@
 <template>
-  <v-container class="fill-height" fluid v-if="data">
+  <v-container fluid v-if="data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-12">
@@ -66,9 +66,9 @@ import {
   mdiCubeOutline, mdiFormatListNumbered, mdiCalendar,
   mdiFormatHeaderPound, mdiTransfer,
 } from '@mdi/js';
-import { shortenHash } from '../utilities';
-import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../constants';
-import IconItem from './common/IconItem.vue';
+import { shortenHash } from '../../utilities';
+import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'BlockLookup',

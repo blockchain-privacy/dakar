@@ -11,6 +11,13 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+var DefaultPasswordConfig = &PasswordHashConfig{
+	time:    1,
+	memory:  65536, //64 * 1024
+	threads: 4,
+	keyLen:  32,
+}
+
 // GetRandomPasswordAndHash is helper function to get a random password and its password hash
 func GetRandomPasswordAndHash() (pw string, pwHash string, err error) {
 	pw, err = GenerateRandomPassword()
@@ -43,13 +50,6 @@ type PasswordHashConfig struct {
 	memory  uint32
 	threads uint8
 	keyLen  uint32
-}
-
-var DefaultPasswordConfig = &PasswordHashConfig{
-	time:    1,
-	memory:  65536, //64 * 1024
-	threads: 4,
-	keyLen:  32,
 }
 
 // credits for GeneratePasswordHash and ComparePassword: https://golangcode.com/argon2-password-hashing/

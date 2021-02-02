@@ -5,7 +5,7 @@
                dense dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
-      <v-alert xs6 :value="errorMsg && errorMsg !== ''" type="error"
+      <v-alert xs6 :value="errorMsg && errorMsg !== '' &&  isValidError(errorMsg)" type="error"
                dense dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
@@ -69,7 +69,11 @@ export default {
         this.$store.dispatch('setWarningActive', value);
       },
     },
-
+  },
+  methods: {
+    isValidError(err) {
+      return err.toString() !== '';
+    },
   },
 };
 </script>

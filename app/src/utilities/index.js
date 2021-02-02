@@ -1,5 +1,11 @@
 /* eslint-disable no-mixed-operators */
-import { ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import {
+  LOCALSTORAGE_FIELD_USER,
+  LOCALSTORAGE_FIELD_SETTINGS,
+  PASSWORD_MAX_CHARACTERS,
+  PASSWORD_MIN_CHARACTERS,
+  ROUTE_NAME_LOGIN_PAGE,
+} from '../constants';
 
 export function resetData(context) {
   context.$store.dispatch('resetMsg');
@@ -7,6 +13,41 @@ export function resetData(context) {
   context.$store.dispatch('setTransactionData', null);
   context.$store.dispatch('setAddressData', null);
   context.$store.dispatch('setHeuristicData', null);
+}
+
+export function setLocalUser(userData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(userData));
+}
+
+export function getLocalUser() {
+  let localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
+  if (localStorageUserData !== null) localStorageUserData = JSON.parse(localStorageUserData);
+  return localStorageUserData;
+}
+
+export function removeLocalUser() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+}
+
+export function setLocalSettings(settingsData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_SETTINGS, JSON.stringify(settingsData));
+}
+
+export function getLocalSettings() {
+  let localStorageSettingsData = localStorage.getItem(LOCALSTORAGE_FIELD_SETTINGS);
+  if (localStorageSettingsData !== null) {
+    localStorageSettingsData = JSON.parse(localStorageSettingsData);
+  }
+  return localStorageSettingsData;
+}
+
+export function removeLocalSettings() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_SETTINGS);
+}
+
+export function resetLocal() {
+  removeLocalUser();
+  removeLocalSettings();
 }
 
 export function shortenHash(hash) {
@@ -32,30 +73,52 @@ export function getCurrentDate() {
   return `${dd}-${mm}-${yyyy}`;
 }
 
-export function doPost(route, parameter, body) {
-  return fetch(route + parameter, {
+// isInvalidTokenMsg checks if the page should be rerouted to the login page
+function isInvalidTokenMsg(msg, router) {
+  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
+    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+    return true;
+  }
+  return false;
+}
+
+export function doPost(route, router, body, parameter) {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para, {
     method: 'POST',
+    credentials: 'same-origin',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
     headers: {
       'Content-Type': 'application/json',
     },
-    redirect: 'error',
-    referrerPolicy: 'no-referrer',
     body: JSON.stringify(body),
   }).then((response) => {
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response;
-  }).then((response) => response.json());
+  }).then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router)) throw Error();
+      return data;
+    });
 }
 
-export function doGet(route, parameter) {
+export function doGet(route, router, parameter) {
   let para = '';
   if (parameter !== undefined) para = parameter;
-  return fetch(route + para)
+  return fetch(route + para, {
+    credentials: 'same-origin',
+  })
     .then((response) => {
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       return response;
     })
-    .then((response) => response.json());
+    .then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router)) throw Error('Invalid login credentials. Please login again.');
+      return data;
+    });
 }
 
 export function handleError(context, error) {
@@ -75,12 +138,24 @@ export const emailRules = [
   (v) => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 ];
 
-// isInvalidTokenMsg checks if the page should be rerouted to the login page
-export function isInvalidTokenMsg(msg, router) {
-  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
-    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+const notAllowedWhitespaceCharacters = [
+  '\b', '\t', '\n', '\v', '\f', '\r',
+  '\u0008', '\u0009', '\u000A', '\u000B', '\u000C',
+  '\u000D', '\u0022', '\u0027', '\u005C',
+  '\u00A0', '\u2028', '\u2029', '\uFEFF'];
 
-    return true;
-  }
-  return false;
-}
+// hasWhitespace checks if the given string
+// contains any of the characters in notAllowedWhitespaceCharacters
+// credit: https://stackoverflow.com/questions/1731190/check-if-a-string-has-white-space
+const hasWhitespace = (char) => notAllowedWhitespaceCharacters.some(
+  (w) => char.indexOf(w) > -1,
+  notAllowedWhitespaceCharacters,
+);
+
+export const passwordRules = [
+  (v) => !!v || 'Password is required',
+  (v) => !hasWhitespace(v) || 'Password contains white space characters',
+  (v) => v.length >= PASSWORD_MIN_CHARACTERS || `At least ${PASSWORD_MIN_CHARACTERS} characters`,
+  (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
+        || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
+];

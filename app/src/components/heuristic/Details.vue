@@ -62,7 +62,7 @@ import {
   mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
 } from '@mdi/js';
 import * as d3 from 'd3';
-import IconItem from './common/IconItem.vue';
+import IconItem from '../common/IconItem.vue';
 
 // addPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -72,7 +72,7 @@ function addPercentageToDate(date, duration, percentage) {
 }
 
 export default {
-  name: 'HeuristicDetails',
+  name: 'Details',
   components: { IconItem },
   props: {
     // v-model
