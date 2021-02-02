@@ -1,5 +1,5 @@
 <template>
-  <div class="fill-height" style="padding: 12px 10px 0 10px">
+  <div class="fill-height" style="padding: 12px 10px 0 10px" v-if="this.userData">
     <v-row class="fill-height">
       <v-col cols="2" class="hidden-sm-and-down pa-0">
         <v-navigation-drawer permanent>
@@ -62,7 +62,7 @@
 import {
   mdiAccountDetails, mdiTune, mdiCog,
 } from '@mdi/js';
-import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE } from '../../constants';
+import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
 
 export default {
   name: 'Settings',
@@ -74,6 +74,29 @@ export default {
         mdiAccountDetails, mdiTune, mdiCog,
       },
     };
+  },
+  computed: {
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
+  },
+  methods: {
+    checkRoute() {
+      if (this.userData === null) {
+        this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+        return false;
+      }
+
+      return true;
+    },
+  },
+  mounted() {
+    this.checkRoute();
   },
 };
 </script>
