@@ -72,7 +72,7 @@ export default {
   },
   methods: {
     isValidError(err) {
-      return err !== new Error();
+      return err.toString() !== '';
     },
   },
 };
