@@ -28,7 +28,8 @@ var (
 		constants.GetRouteAddress(): true, constants.GetRouteMeta(): true, constants.GetRouteSearch(): true,
 		constants.GetRouteAddressOutputRange(): true, constants.GetRouteHeuristicStatus(): true,
 		constants.GetRouteHeuristicDetails(): true, constants.GetRouteHeuristicsExecution(): true,
-		constants.GetRouteHeuristics(): true, constants.GetRouteModifyUser(): true}
+		constants.GetRouteHeuristics(): true, constants.GetRouteModifyUser(): true,
+		constants.GetRouteHeuristicsSummary(): true}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
 )
