@@ -24,7 +24,7 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-row>
+              <v-row v-if="dataItems.length > 0">
                 <v-col>
                   <IconItem title="Number of origins"
                             :icon="icon.mdiPoundBoxOutline">
@@ -38,10 +38,33 @@
                   </IconItem>
                 </v-col>
               </v-row>
+              <v-row v-else>
+                <v-col>
+                  <v-card-title class="headline">
+                    No results
+                  </v-card-title>
+                  <v-card-subtitle>
+                    This heuristic returned no results. Try different parameters,
+                    other heuristics or a different combination of heuristics.
+                  </v-card-subtitle>
+                </v-col>
+              </v-row>
             </v-card-subtitle>
           </v-card>
-          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
-            <svg id="heuristic_details_canvas"></svg>
+          <v-card class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
+            <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
+            <v-card-title class="headline" v-if="!enoughDataForGraph">
+              Not enough data to display diagram
+            </v-card-title>
+            <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">
+              {{
+                `Only ${durationInMinutes} minute${durationInMinutes>1?'s':''}
+                between earliest and latest origin.`
+              }}
+            </v-card-subtitle>
+            <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes === 0">
+              All origins occur in the same point of time.
+            </v-card-subtitle>
           </v-card>
           <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
             <v-data-table :headers="dataHeaders"
@@ -93,6 +116,8 @@ export default {
         },
         { text: 'Number of Origins', value: 'len' },
       ],
+      enoughDataForGraph: true,
+      durationInMinutes: 0,
     };
   },
   computed: {
@@ -142,16 +167,25 @@ export default {
         detailArray.push(v);
       });
 
-      // add a percentage of time to the date limitations,
-      // so all rectangle can be displayed in their full width
       const duration = highestDate - lowestDate;
+
+      // check if there is enough data to draw the diagram
+      if (duration < 1000 * 60 * 60 * 3) {
+        this.enoughDataForGraph = false;
+        this.durationInMinutes = Math.floor(duration / 1000 / 60);
+        return;
+      }
+      this.enoughDataForGraph = true;
+
+      // add a percentage of time to the date limitations,
+      // so all rectangles can be displayed in their full width
       const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
       const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
       // 1000*60*60*24*2.5 = 2.5 days
       // 216000000 = 2.5 days
       const smallestDuration = 216000000;
-      let numTicks = Math.floor(duration / (smallestDuration));
+      let numTicks = Math.floor(duration / smallestDuration);
       if (numTicks === 0) numTicks = 1;
 
       const svg = d3.select(`#${svgCanvasId}`);
@@ -285,6 +319,10 @@ export default {
 
 .bar {
   fill: #008ee5;
+}
+
+.hide {
+  display: none;
 }
 
 </style>
