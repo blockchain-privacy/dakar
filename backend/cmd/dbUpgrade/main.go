@@ -69,7 +69,7 @@ func main() {
 		return
 	}
 
-	if err := db.AlterSchemaAddUsers(dgraph); err != nil {
+	if err := db.AlterSchemaAddReverseLookupDoneFlag(dgraph); err != nil {
 		info(err)
 		return
 	}

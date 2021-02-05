@@ -39,6 +39,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			fee: int .
 			iscoinbase: bool .
 			privacytype: string @index(hash) .
+			isrlookupdone: bool @index(bool) .
 
 			iscrawling: bool .
 			isanalyzing: bool .
@@ -69,6 +70,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			type Transaction {
 				txhash
 				privacytype
+				isrlookupdone
 				fee
 				origins
 				<~origins>
@@ -181,6 +183,26 @@ func AlterSchemaAddUsers(c *dgo.Dgraph) error {
 				user_roles
 				user_created
 				user_modified
+			}
+		`,
+	})
+}
+
+func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			isrlookupdone: bool @index(bool) .
+
+			type Transaction {
+				txhash
+				privacytype
+				isrlookupdone
+				fee
+				origins
+				<~origins>
+				<~transactions>
+				tx_outputs
+				tx_inputs
 			}
 		`,
 	})
