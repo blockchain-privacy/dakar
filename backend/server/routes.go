@@ -959,20 +959,26 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	// Search
 	http.HandleFunc(constants.GetRouteSearch(),
 		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+
 	// Common data
+	// setting block cache time to 10 Minutes because blocks at
+	// the tip get updated via adding the 'next block' reference
 	http.HandleFunc(constants.GetRouteBlock(),
-		cacheMiddleware(cache, constants.GetRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
+		cacheMiddleware(cache, constants.GetRouteBlock(), time.Minute*10, handlerDetails(dgraph, GetBlock)))
 	http.HandleFunc(constants.GetRouteTransaction(),
 		cacheMiddleware(cache, constants.GetRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
 	http.HandleFunc(constants.GetRouteAddress(),
 		cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
 	http.HandleFunc(constants.GetRouteAddressOutputRange(),
 		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+
 	// Meta
 	http.HandleFunc(constants.GetRouteMeta(),
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
+
 	// Origins
 	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
 		Adapt(handlerHeuristics(dgraph, &worker),
