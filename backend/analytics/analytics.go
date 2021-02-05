@@ -62,7 +62,10 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
 	return
 }
 
-func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
+// StartAnalysis starts the analysis of transactions in the database.
+// It entails setting the privacy type for each transaction and performing
+// a reverse transactions lookup to find all origins of destination transactions.
+func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph) error {
 	if err := dbstat.SetAnalyzing(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -161,10 +164,6 @@ mainLoop:
 			if err := blockReverseLookup(dgraph, updatedBlock.Uid); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
-
-			//if err := processIRTL(dgraph, updatedBlock); err != nil {
-			//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			//}
 		}
 
 		// todo uncomment
@@ -186,33 +185,6 @@ mainLoop:
 
 func analyzingInterrupted() {
 	info("Stopped")
-}
-
-func filterInputUnconfirmedInputTransactions(transactions map[string]map[string]bool,
-	processedTransactions map[string]bool) (confirmed map[string]bool) {
-	confirmed = make(map[string]bool)
-
-	for k, v := range transactions {
-
-		// do not check already processed transaction
-		if processedTransactions[k] {
-			continue
-		}
-		found := false
-		for t := range v {
-			if _, ok := transactions[t]; ok && !processedTransactions[t] {
-				found = true
-				break
-			}
-
-		}
-
-		if !found {
-			confirmed[k] = true
-		}
-	}
-
-	return
 }
 
 // reverseLookup performs for all destinationInputTransactions a reverse lookup
@@ -254,6 +226,7 @@ func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) error {
 }
 
 // transactionReverseLookup performs a reverse lookup for all input transactions of  the given destination transaction
+// todo: currently unused - do not remove, this function is needed for the ad-hoc reverse lookup initiated by heuristic executors
 func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid string) error {
 	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerTx(dgraph, destinationTransactionUid)
 	if err != nil {
@@ -262,38 +235,6 @@ func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid stri
 
 	if err := reverseLookup(dgraph, inputTransactions); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
-}
-
-func processIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
-	inputTransactions, err := dban.GetInputTransactions(dgraph, block.Uid)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	confirmed := filterInputUnconfirmedInputTransactions(inputTransactions, nil)
-	if len(confirmed) == 0 {
-		return errors.New("error no transactions for IRTL found. block uid: " + block.Uid)
-	}
-
-	processedTransactions := make(map[string]bool)
-	for len(confirmed) > 0 {
-
-		if err := dban.IRTL(dgraph, confirmed); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		if len(confirmed) == len(inputTransactions) {
-			break
-		}
-
-		for k := range confirmed {
-			processedTransactions[k] = true
-		}
-
-		confirmed = filterInputUnconfirmedInputTransactions(inputTransactions, processedTransactions)
 	}
 
 	return nil

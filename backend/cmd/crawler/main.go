@@ -314,7 +314,7 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			if err := analytics.StartPost(analyzerContext, dgraph); err != nil {
+			if err := analytics.StartAnalysis(analyzerContext, dgraph); err != nil {
 				info(err)
 			}
 		}()
