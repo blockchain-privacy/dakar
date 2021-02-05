@@ -14,12 +14,12 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// Searches for all potential origins. The returned string slice contains the uids of the found transactions
-func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
-	query := `query Q($hash: string) {
-				tx as var(func: eq(txhash, $hash))
+// AnalyzeOrigins searches for all potential origins. The returned string slice contains the uids of the found transactions
+// GET part of AnalyzeAndSetOrigins
+func AnalyzeOrigins(c *dgo.Dgraph, txuid string) (origins []string, err error) {
+	query := `query Q($uid: string) {
 	
-				var(func: uid(tx))@recurse{
+				var(func: uid($uid))@recurse{
 					tx_inputs
 					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
 				}
@@ -31,7 +31,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, er
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": txuid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -114,6 +114,7 @@ func PartialReverseLookup(c *dgo.Dgraph, transactionUids []string) (err error) {
 }
 
 // Searches for all potential origins and sets them.
+// non-batched version of PartialReverseLookup
 func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 	query := `query Q($uid: string) {
 				u as var(func: uid($uid))
@@ -146,21 +147,17 @@ func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 }
 
 // Gets all direct origin transactions and the accumulated origins of all direct mixing and destination transactions
-func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
-	query := `query Q($hash: string) {
-				tx as var(func: eq(txhash, $hash))
-				
-				var(func: uid(tx)){
+func GetAccumulatedOrigins(c *dgo.Dgraph, uid string) (origins []string, err error) {
+	query := `query Q($uid: string) {
+				var(func: uid($uid)){
 					tx_inputs{
-						~tx_outputs@filter(eq(privacytype,"origin")){
-							u as uid
-						}
+						u as ~tx_outputs@filter(eq(privacytype,"origin"))
 					}
 				}
 				
-				var(func: uid(tx)){
+				var(func: uid($uid)){
 					tx_inputs{
-						~tx_outputs@filter(eq(privacytype,["mixing","destination"])){
+						~tx_outputs@filter(eq(privacytype,["mixing","origin"])){
 							o as origins
 						}
 					}
@@ -173,7 +170,7 @@ func GetAccumulatedOrigins(c *dgo.Dgraph, transactionHash string) (origins []str
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -268,84 +265,69 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	return
 }
 
-// todo remove or rename
-func AnalyzeOriginsAlt(c *dgo.Dgraph, transactionHash string) (origins []string, err error) {
-	query := `query Q($hash: string) {
-				tx as var(func: eq(txhash, $hash))
-	
-				var(func: uid(tx))@recurse{
-					tx_inputs
-					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
-				}
+// ConnectDirectNeighbours sets all direct origin transactions and the
+// accumulated origins of all direct mixing and destination transactions
+// non-batched version of IRTL
+func ConnectDirectNeighbours(c *dgo.Dgraph, transactionUid string) (err error) {
+	queryVars := map[string]string{"$uid": transactionUid}
 
-				q(func: uid(v))@filter(eq(privacytype,"origin")){
-					uid
+	query := `query Q($uid:string){
+				tx as var(func: uid($uid)){
+					tx_inputs{
+						u as ~tx_outputs@filter(eq(privacytype,"origin"))
+					}
 				}
-			  }`
+				
+				var(func: uid($uid)){
+					tx_inputs{
+						~tx_outputs@filter(eq(privacytype,["mixing","origin"])){
+							o as origins
+						}
+					}
+				}
+				
+				f as var(func: uid(o,u))
+			   }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  queryVars,
+		Mutations: []*api.Mutation{{
+			Cond:      "@if(gt(len(f), 0))",
+			SetNquads: []byte("uid(tx) <origins> uid(f) ."),
+		}},
+		CommitNow: true,
+	}
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": transactionHash})
-	if err != nil {
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
-	}
-
-	var r struct {
-		Transaction []struct {
-			Uid string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, uid := range r.Transaction {
-		origins = append(origins, uid.Uid)
 	}
 
 	return
 }
 
-// gets all origin uids of the transaction specified by txHash
-func GetOrigins(c *dgo.Dgraph, txHash string) (origins []string, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(txhash, $hash))@normalize{
-					origins{
-						uid: uid
-					}
-				}
-			  }`
+// SetOrigins sets all originUids as origins of txUid
+func SetOrigins(c *dgo.Dgraph, txUid string, originUids []string) (err error) {
+	var nQuadString string
+	for _, o := range originUids {
+		nQuadString += "<" + txUid + "> <origins> <" + o + "> ." + "\n"
+	}
 
-	ctx, cancel := db.GetFrontendContext()
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetNquads: []byte(nQuadString),
+		}},
+		CommitNow: true,
+	}
+
+	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
-
-	if err != nil {
+	if err = db.TxWithRetry(c, ctx, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
-	}
-
-	var r struct {
-		Q []struct {
-			Uid string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Q) == 0 {
-		err = errors.New("invalid response from database")
-		return
-	}
-
-	for _, o := range r.Q {
-		origins = append(origins, o.Uid)
 	}
 
 	return
@@ -487,8 +469,8 @@ func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (in
 	return
 }
 
-// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
-func GetNotAnalyzedInputTransactions(c *dgo.Dgraph, txUid string) (inputTransactions []string, err error) {
+// GetNotAnalyzedInputTransactionsPerTx gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+func GetNotAnalyzedInputTransactionsPerTx(c *dgo.Dgraph, txUid string) (inputTransactions []string, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs{
@@ -585,35 +567,6 @@ func GetInputTransactions(c *dgo.Dgraph, blockUid string) (inputTransactions map
 			inputTransactions[t.Uid][iT.Uid] = true
 		}
 	}
-
-	return
-}
-
-func GetPrivacyTransactions(c *dgo.Dgraph, transactionHash string) (transactions []transaction, err error) {
-	query := `query Q($hash: string) {
-				q(func: has(privacytype)){
-					txhash
-				}
-			  }`
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": transactionHash})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r struct {
-		Transaction []transaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	transactions = r.Transaction
 
 	return
 }

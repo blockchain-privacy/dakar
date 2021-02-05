@@ -17,7 +17,6 @@ import (
 
 // block id after which we start analysing. found empirically.
 const analyseStartBlock = 206940
-const batchSize = 10
 
 var errorInterrupted = errors.New("interrupted")
 
@@ -154,12 +153,12 @@ mainLoop:
 
 		if len(updatedBlock.Transactions) > 0 {
 			// update the block in the database
-			// after that function call the privacy type of all transaction is set
+			// after that function call the privacy type of all transactions is set
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			if err := processPartialIRTL(dgraph, updatedBlock); err != nil {
+			if err := blockReverseLookup(dgraph, updatedBlock.Uid); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
@@ -168,9 +167,10 @@ mainLoop:
 			//}
 		}
 
-		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		// todo uncomment
+		//if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
+		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//}
 
 		state.id++
 		counterAnalysedBlocks++
@@ -215,48 +215,52 @@ func filterInputUnconfirmedInputTransactions(transactions map[string]map[string]
 	return
 }
 
-func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
-	destinationTransactions := make(map[string]bool)
-
-	for _, t := range block.Transactions {
-		if t.PrivacyType != dbtx.PrivacyDestination {
-			continue
+// reverseLookup performs for all destinationInputTransactions a reverse lookup
+func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) error {
+	const mutationBatchSize = 1000
+	for _, t := range destinationInputTransactions {
+		info("reverse lookup for", t)
+		timeNow := time.Now()
+		origins, err := dban.AnalyzeOrigins(dgraph, t)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
+		info("origin count:", len(origins), "time:", time.Since(timeNow))
 
-		//inputTransactions, err := dban.GetNotAnalyzedInputTransactions(dgraph, t.Uid)
-		//if err != nil {
-		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
-
-		// todo: refactor into one function call per destination transaction (build query and so on)
-		//for _, i := range inputTransactions {
-		//	if err := dban.AnalyzeAndSetOrigins(dgraph, i); err != nil {
-		//		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//	}
-		//}
-
-		//if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
-		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
-
-		destinationTransactions[t.Uid] = true
+		for i := 0; i < len(origins); i += mutationBatchSize {
+			batch := origins[i:min(i+mutationBatchSize, len(origins))]
+			info("setting origins:", len(batch))
+			if err := dban.SetOrigins(dgraph, t, batch); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+		}
 	}
 
-	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, block.Uid)
+	return nil
+}
+
+// blockReverseLookup performs a reverse lookup for all input transactions of destination transactions included in the block
+func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) error {
+	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, blockUid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	// splitting into smaller batches so dgraph does not use too much memory
-	for i := 0; i < len(inputTransactions); i += batchSize {
-		batch := inputTransactions[i:min(i+batchSize, len(inputTransactions))]
-		if err := dban.PartialReverseLookup(dgraph, batch); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+	if err := reverseLookup(dgraph, inputTransactions); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	// last step: do IRTL for all destination transactions
-	if err := dban.IRTL(dgraph, destinationTransactions); err != nil {
+	return nil
+}
+
+// transactionReverseLookup performs a reverse lookup for all input transactions of  the given destination transaction
+func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid string) error {
+	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerTx(dgraph, destinationTransactionUid)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if err := reverseLookup(dgraph, inputTransactions); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
