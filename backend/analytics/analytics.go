@@ -166,10 +166,9 @@ mainLoop:
 			}
 		}
 
-		// todo uncomment
-		//if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
-		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
+		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 
 		state.id++
 		counterAnalysedBlocks++
@@ -183,6 +182,7 @@ mainLoop:
 	return nil
 }
 
+// analyzingInterrupted should be called when the analyser has been interrupted.
 func analyzingInterrupted() {
 	info("Stopped")
 }
@@ -199,10 +199,17 @@ func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) er
 		}
 		info("origin count:", len(origins), "time:", time.Since(timeNow))
 
+		isDone := false
 		for i := 0; i < len(origins); i += mutationBatchSize {
 			batch := origins[i:min(i+mutationBatchSize, len(origins))]
 			info("setting origins:", len(batch))
-			if err := dban.SetOrigins(dgraph, t, batch); err != nil {
+
+			// set flag to mark transaction as fully analysed
+			if i+mutationBatchSize >= len(origins) {
+				isDone = true
+			}
+
+			if err := dban.SetOrigins(dgraph, t, batch, isDone); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}

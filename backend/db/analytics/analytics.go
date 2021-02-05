@@ -309,11 +309,22 @@ func ConnectDirectNeighbours(c *dgo.Dgraph, transactionUid string) (err error) {
 	return
 }
 
-// SetOrigins sets all originUids as origins of txUid
-func SetOrigins(c *dgo.Dgraph, txUid string, originUids []string) (err error) {
+// SetOrigins sets all originUids as origins of txUid.
+// If isDone is true, the isrlookupdone flag for this transaction will be set
+func SetOrigins(c *dgo.Dgraph, txUid string, originUids []string, isDone bool) (err error) {
+	if len(originUids) == 0 {
+		err = errors.New("tried to set origins with length of 0")
+		return
+	}
+
 	var nQuadString string
+	nQuadPart := "<" + txUid + "> <origins> <"
 	for _, o := range originUids {
-		nQuadString += "<" + txUid + "> <origins> <" + o + "> ." + "\n"
+		nQuadString += nQuadPart + o + "> .\n"
+	}
+
+	if isDone {
+		nQuadString += "<" + txUid + "> <isrlookupdone> \"true\" ."
 	}
 
 	req := &api.Request{
@@ -429,7 +440,7 @@ func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (in
 				var(func: uid($uid)){
 					transactions@filter(eq(privacytype,"destination")){
 						tx_inputs{
-							v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND eq(count(origins),0))
+							v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND NOT eq(isrlookupdone, true))
 						}
 					} 
 				}
@@ -474,7 +485,7 @@ func GetNotAnalyzedInputTransactionsPerTx(c *dgo.Dgraph, txUid string) (inputTra
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs{
-						v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND eq(count(origins),0))
+						v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND NOT eq(isrlookupdone, true))
 					}
 				}
 				
