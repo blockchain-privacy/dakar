@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   zero:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v20.11.1
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -15,7 +15,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v20.11.1
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -30,7 +30,7 @@ services:
       - dgraph_default
 
   ratel:
-    image: dgraph/dgraph:latest
+    image: dgraph/dgraph:v20.11.1
     container_name: ratel
     ports:
       - ${CONTAINER_IP}:8000:8000
