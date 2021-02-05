@@ -161,8 +161,12 @@ mainLoop:
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			if err := blockReverseLookup(dgraph, updatedBlock.Uid); err != nil {
+			originCount, err := blockReverseLookup(dgraph, updatedBlock.Uid)
+			if err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+			if originCount > 0 {
+				info("Block", currentBlock.Id, "origin count", originCount)
 			}
 		}
 
@@ -187,22 +191,25 @@ func analyzingInterrupted() {
 	info("Stopped")
 }
 
-// reverseLookup performs for all destinationInputTransactions a reverse lookup
-func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) error {
+// reverseLookup performs for all destinationInputTransactions a reverse lookup.
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
+	var insertedOrigins int64
 	const mutationBatchSize = 1000
 	for _, t := range destinationInputTransactions {
-		info("reverse lookup for", t)
+		info("analyzing", t)
 		timeNow := time.Now()
 		origins, err := dban.AnalyzeOrigins(dgraph, t)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-		info("origin count:", len(origins), "time:", time.Since(timeNow))
+		queryTime := time.Since(timeNow)
+		info("analyzing", t, "origin count:", len(origins), "lookup time:", queryTime)
 
+		timeNow = time.Now()
 		isDone := false
 		for i := 0; i < len(origins); i += mutationBatchSize {
 			batch := origins[i:min(i+mutationBatchSize, len(origins))]
-			info("setting origins:", len(batch))
 
 			// set flag to mark transaction as fully analysed
 			if i+mutationBatchSize >= len(origins) {
@@ -210,41 +217,48 @@ func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) er
 			}
 
 			if err := dban.SetOrigins(dgraph, t, batch, isDone); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}
+		mutationTime := time.Since(timeNow)
+		info("analyzing", t, "time to set origins:", mutationTime)
+		info("analyzing", t, "full time:", queryTime+mutationTime)
+
+		insertedOrigins += int64(len(origins))
 	}
 
-	return nil
+	return insertedOrigins, nil
 }
 
 // blockReverseLookup performs a reverse lookup for all input transactions of destination transactions included in the block
-func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) error {
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) (int64, error) {
 	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, blockUid)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	num, err := reverseLookup(dgraph, inputTransactions)
+	if err != nil {
+		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := reverseLookup(dgraph, inputTransactions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return num, nil
 }
 
 // transactionReverseLookup performs a reverse lookup for all input transactions of  the given destination transaction
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
 // todo: currently unused - do not remove, this function is needed for the ad-hoc reverse lookup initiated by heuristic executors
-func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid string) error {
+func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid string) (int64, error) {
 	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerTx(dgraph, destinationTransactionUid)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	num, err := reverseLookup(dgraph, inputTransactions)
+	if err != nil {
+		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := reverseLookup(dgraph, inputTransactions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return num, nil
 }
 
 // returns the smaller of the two values
