@@ -154,6 +154,7 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
+		wasInterrupted := false
 		if len(updatedBlock.Transactions) > 0 {
 			// update the block in the database
 			// after that function call the privacy type of all transactions is set
@@ -161,17 +162,24 @@ mainLoop:
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			originCount, err := blockReverseLookup(dgraph, updatedBlock.Uid)
+			originCount, err := blockReverseLookup(ctx, dgraph, updatedBlock.Uid)
 			if err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				if errors.Is(err, errorInterrupted) {
+					wasInterrupted = true
+				} else {
+					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				}
 			}
 			if originCount > 0 {
-				info("Block", currentBlock.Id, "origin count", originCount)
+				info("Block", *currentBlock.Id, "origin count", originCount)
 			}
 		}
 
-		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		// only set last analysed flag if processes before were not interrupted
+		if !wasInterrupted {
+			if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
 		}
 
 		state.id++
@@ -193,10 +201,17 @@ func analyzingInterrupted() {
 
 // reverseLookup performs for all destinationInputTransactions a reverse lookup.
 // The returned integer is the number of origins inserted. It is returned regardless of an error.
-func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
+func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
 	var insertedOrigins int64
 	const mutationBatchSize = 1000
+
 	for _, t := range destinationInputTransactions {
+		select {
+		case <-ctx.Done():
+			return insertedOrigins, errorInterrupted
+		default:
+			// we do nothing
+		}
 		info("analyzing", t)
 		timeNow := time.Now()
 		origins, err := dban.AnalyzeOrigins(dgraph, t)
@@ -232,14 +247,15 @@ func reverseLookup(dgraph *dgo.Dgraph, destinationInputTransactions []string) (i
 
 // blockReverseLookup performs a reverse lookup for all input transactions of destination transactions included in the block
 // The returned integer is the number of origins inserted. It is returned regardless of an error.
-func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) (int64, error) {
+func blockReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, blockUid string) (int64, error) {
 	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, blockUid)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-	num, err := reverseLookup(dgraph, inputTransactions)
+	num, err := reverseLookup(ctx, dgraph, inputTransactions)
 	if err != nil {
 		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+
 	}
 
 	return num, nil
@@ -248,12 +264,12 @@ func blockReverseLookup(dgraph *dgo.Dgraph, blockUid string) (int64, error) {
 // transactionReverseLookup performs a reverse lookup for all input transactions of  the given destination transaction
 // The returned integer is the number of origins inserted. It is returned regardless of an error.
 // todo: currently unused - do not remove, this function is needed for the ad-hoc reverse lookup initiated by heuristic executors
-func transactionReverseLookup(dgraph *dgo.Dgraph, destinationTransactionUid string) (int64, error) {
+func transactionReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationTransactionUid string) (int64, error) {
 	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerTx(dgraph, destinationTransactionUid)
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-	num, err := reverseLookup(dgraph, inputTransactions)
+	num, err := reverseLookup(ctx, dgraph, inputTransactions)
 	if err != nil {
 		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
