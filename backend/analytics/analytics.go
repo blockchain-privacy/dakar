@@ -20,16 +20,20 @@ const analyseStartBlock = 206940
 
 var errorInterrupted = errors.New("interrupted")
 
+var analyticsLogger *log.Logger
+var metricLogger *log.Logger
+
+func InitLogger() {
+	analyticsLogger = log.New(log.Writer(), "\033[0;32manalyse\u001B[0m\t", log.Flags())
+	metricLogger = log.New(log.Writer(), "metric\t", log.Flags())
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;32manalyse\u001B[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	analyticsLogger.Println(v)
 }
 
 func metric(v ...interface{}) {
-	log.SetPrefix("metric\t")
-	log.Println(v)
-	log.SetPrefix("")
+	metricLogger.Println(v)
 }
 
 // holds the current state of the analyzing processing loop
@@ -214,7 +218,7 @@ func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTran
 		}
 		info("analyzing", t)
 		timeNow := time.Now()
-		origins, err := dban.AnalyzeOrigins(dgraph, t)
+		origins, err := dban.AnalyzeOriginsAlt(dgraph, t)
 		if err != nil {
 			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

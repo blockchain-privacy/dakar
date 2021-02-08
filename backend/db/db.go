@@ -24,10 +24,14 @@ const maxRetries = 5
 
 const retrySleepDuration = time.Second * 5
 
+var thisLogger *log.Logger
+
+func InitLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;33mdb\u001B[0m\t", log.Flags())
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;33mdb\u001B[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	thisLogger.Println(v)
 }
 
 func GetBackendContext() (context.Context, context.CancelFunc) {

@@ -26,10 +26,14 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
+var thisLogger *log.Logger
+
+func InitLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;35mprocess\u001B[0m\t", log.Flags())
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;35mprocess\u001B[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	thisLogger.Println(v)
 }
 
 var (

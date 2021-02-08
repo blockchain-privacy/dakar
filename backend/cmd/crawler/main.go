@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/analytics"
+	heuristic "backend/analytics/heuristics/transaction"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
@@ -29,10 +30,23 @@ import (
 // VersionString displays the version of the Crawler
 const VersionString = "v1.0.0"
 
+var thisLogger *log.Logger
+
+func initLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;31mcrawler\033[0m\t", log.Flags())
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;31mcrawler\033[0m\t")
-	log.Println(v...)
-	log.SetPrefix("")
+	thisLogger.Println(v...)
+}
+
+func initAllLoggers() {
+	initLogger()
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	heuristic.InitLogger()
 }
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
@@ -125,6 +139,8 @@ func main() {
 			}
 		}()
 	}
+
+	initAllLoggers()
 
 	// select blockchain config
 	var processorConfig processor.Config

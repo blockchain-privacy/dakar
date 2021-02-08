@@ -69,7 +69,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristic
 			}
 		} else {
 			var err error
-			results, err = dbtxh.GetOrigins(dgraph, txHash)
+			results, err = dbtxh.GetDestinationTxOrigins(dgraph, txHash)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

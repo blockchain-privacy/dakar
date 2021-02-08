@@ -14,15 +14,18 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
+var thisLogger *log.Logger
+
+func InitLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;34mserver\u001B[0m\t", log.Flags())
+}
+
 func serverInfo(v ...interface{}) {
-	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Println(v...)
-	log.SetPrefix("")
+	thisLogger.Println(v...)
 }
 
 func serverFatal(v ...interface{}) {
-	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Fatalln(v...)
+	thisLogger.Fatalln(v...)
 }
 
 type Server struct {

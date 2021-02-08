@@ -31,6 +31,15 @@ const (
 	StatusHeuristicProcessing
 )
 
+var thisLogger *log.Logger
+
+func InitLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;34mhworker\u001B[0m\t", log.Flags())
+}
+func info(v ...interface{}) {
+	thisLogger.Println(v)
+}
+
 type Work struct {
 	// executors contains the HeuristicExecutor trees
 	executors []HeuristicExecutor
@@ -63,7 +72,7 @@ func (w *Worker) AddWork(transactionHash string, work Work) bool {
 	w.executionMap[transactionHash] = work
 
 	for k, v := range w.executionMap {
-		log.Println(k, v)
+		info(k, v)
 	}
 	return true
 }
@@ -98,7 +107,7 @@ func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph) {
 }
 
 func stoppingWorker() {
-	log.Println("stopping worker")
+	info("stopping ...")
 }
 
 func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
@@ -125,13 +134,13 @@ mainLoop:
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
-				log.Print("processing work package")
+				info("processing work package")
 				// copy tree
 				wasCopyingErrorFree := true
 				if copyOnModify {
 					for _, root := range work.treeRoots {
 						if err := dbtxh.CopyHeuristicTree(dgraph, root); err != nil {
-							log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							wasCopyingErrorFree = false
 							break
 						}
@@ -141,19 +150,19 @@ mainLoop:
 				if wasCopyingErrorFree {
 					// delete changed or removable heuristics
 					if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
-						log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+						info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						// no return/break because we want keep working even if we are failing
 						// no continue because we still need to do the deletion of this (faulty) job and reset the memory
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
 							if err = e.RunSynchronous(dgraph, w.currentTransactionHash, ""); err != nil {
-								log.Println(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
 						}
 					}
 				}
-				log.Print("processing work done")
+				info("processing work done")
 			}
 
 			w.mutex.Lock()

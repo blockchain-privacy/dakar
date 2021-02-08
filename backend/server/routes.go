@@ -909,7 +909,6 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 		value, found := cache.Get(cacheKey)
 		var buf []byte
 		if found {
-			serverInfo("cachekey", cacheKey)
 			buf = value.([]byte)
 		} else {
 			var handlerErr error
