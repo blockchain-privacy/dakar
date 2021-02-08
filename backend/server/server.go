@@ -25,11 +25,11 @@ func InitLogger(out io.Writer, flag int) {
 	thisLogger = log.New(out, loggerPrefix, flag)
 }
 
-func serverInfo(v ...interface{}) {
+func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
 
-func serverFatal(v ...interface{}) {
+func fatal(v ...interface{}) {
 	thisLogger.Fatalln(v...)
 }
 
@@ -52,12 +52,12 @@ func CreateServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverFatal("server error:", err)
+			fatal("server error:", err)
 		}
 		wg.Done()
 	}()
 
-	serverInfo(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
+	info(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
 
 	return Server{server: srv, context: ctx, cancel: cancelFunc}
 }
@@ -67,7 +67,7 @@ func (s *Server) ShutdownServer() {
 	if s.server == nil {
 		return
 	}
-	serverInfo("### Shutting down server###")
+	info("### Shutting down server###")
 
 	s.cancel()
 
@@ -78,6 +78,6 @@ func (s *Server) ShutdownServer() {
 	}()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		serverInfo("Server Shutdown Failed:", err)
+		info("Server Shutdown Failed:", err)
 	}
 }

@@ -96,7 +96,7 @@ func handleError(w http.ResponseWriter, err error) {
 	}
 
 	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
-	serverInfo(cliutil.ShowCallInfo(), err)
+	info(cliutil.ShowCallInfo(), err)
 }
 
 // buildKey build a key from the given arguments
