@@ -24,6 +24,9 @@ const (
 	analyticsLoggerPrefix = "\033[0;32manalyse\u001B[0m\t"
 	// metricsLoggerPrefix is the prefix which is printed for each log message of metricLogger
 	metricsLoggerPrefix = "metric\t"
+
+	// mutationBatchSize is the maximum size of origin batches created by the reverseLookup
+	mutationBatchSize = 1000
 )
 
 var errorInterrupted = errors.New("interrupted")
@@ -214,39 +217,57 @@ func analyzingInterrupted() {
 
 // reverseLookup performs for all destinationInputTransactions a reverse lookup.
 // The returned integer is the number of origins inserted. It is returned regardless of an error.
+// reverseLookup process:
+// 1. Starting from a transaction traverse all connected mixing transactions
+// 2. Find all origin transaction which are directly connected to each mixing transaction and the
+//    initial transaction
+// 3. If the resulting number of origins is less than dban.SameRequestMutationLimit set the origins to the
+//    initial transaction in the same query
+// 4. If the resulting number of origins is bigger or equal to dban.SameRequestMutationLimit  set the origins
+//    in batches of mutationBatchSize.
 func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
 	var insertedOrigins int64
-	const mutationBatchSize = 1000
 
 	for _, t := range destinationInputTransactions {
 		select {
 		case <-ctx.Done():
+			info("Stopping reverseLookup ...")
 			return insertedOrigins, errorInterrupted
 		default:
 			// we do nothing
 		}
+
+		// get origins
 		timeNow := time.Now()
 		origins, err := dban.AnalyzeOrigins(dgraph, t)
 		if err != nil {
 			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 		queryTime := time.Since(timeNow)
+		var mutationTime time.Duration
 
-		timeNow = time.Now()
-		isDone := false
-		for i := 0; i < len(origins); i += mutationBatchSize {
-			batch := origins[i:min(i+mutationBatchSize, len(origins))]
+		// only set origins if not already done by previous function
+		if len(origins) >= dban.SameRequestMutationLimit {
+			// set origins
+			timeNow = time.Now()
+			isDone := false
+			for i := 0; i < len(origins); i += mutationBatchSize {
+				batch := origins[i:min(i+mutationBatchSize, len(origins))]
 
-			// set flag to mark transaction as fully analysed
-			if i+mutationBatchSize >= len(origins) {
-				isDone = true
+				// set flag to mark transaction as fully analysed
+				if i+mutationBatchSize >= len(origins) {
+					isDone = true
+				}
+
+				if err := dban.SetOrigins(dgraph, t, batch, isDone); err != nil {
+					return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				}
 			}
 
-			if err := dban.SetOrigins(dgraph, t, batch, isDone); err != nil {
-				return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
+			// metrics
+			mutationTime = time.Since(timeNow)
 		}
-		mutationTime := time.Since(timeNow)
+
 		info("analyzing", t, "origin count:", len(origins), "query time:", queryTime,
 			"mutation time:", mutationTime, "full time:", queryTime+mutationTime)
 

@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbtx "backend/db/transaction"
+	"strconv"
 
 	"encoding/json"
 	"errors"
@@ -14,9 +15,13 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
+// SameRequestMutationLimit is the maximum number of origins a reverse
+// lookup can produce, while getting inserted into the db in the same request
+const SameRequestMutationLimit = 2000
+
 // AnalyzeOrigins searches for all potential origins. The returned string slice contains the uids of the found transactions
 // GET part of AnalyzeAndSetOrigins
-func AnalyzeOrigins(c *dgo.Dgraph, txuid string) (origins []string, err error) {
+func AnalyzeOrigins(c *dgo.Dgraph, txUid string) (origins []string, err error) {
 	query := `query Q($uid: string) {
 				var(func: uid($uid))@recurse{
 					tx_inputs
@@ -34,9 +39,21 @@ func AnalyzeOrigins(c *dgo.Dgraph, txuid string) (origins []string, err error) {
 				}
 			  }`
 
+	nQuadString := fmt.Sprintf("<%s> <origins> uid(f) .\n<%s> <isrlookupdone> \"true\" .", txUid, txUid)
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": txUid},
+		Mutations: []*api.Mutation{{
+			Cond:      "@if(lt(len(f)," + strconv.Itoa(SameRequestMutationLimit) + ") AND gt(len(f), 0))",
+			SetNquads: []byte(nQuadString),
+		}},
+		CommitNow: true,
+	}
+
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": txuid})
+	resp, err := db.TxWithRetryAndResponse(c, ctx, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
