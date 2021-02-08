@@ -2,6 +2,7 @@ package db
 
 import (
 	"backend/cmd/cliutil"
+	"io"
 
 	"context"
 	"encoding/json"
@@ -16,18 +17,25 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-const backendTimeout = time.Minute * 20
+const (
+	// backendTimeout is the duration until a request originating from the backend times out
+	backendTimeout = time.Minute * 20
+	// frontEndTimout is the duration until a request originating from the frontend times out
+	frontEndTimout = time.Second * 30
+	// maxRetries is the number of transaction retries in case of an error response
+	maxRetries = 5
+	// retrySleepDuration is the duration between retries
+	retrySleepDuration = time.Second * 5
 
-const frontEndTimout = time.Second * 30
+	// loggerPrefix is the prefix which is printed for each log message
+	loggerPrefix = "\033[0;33mdb\u001B[0m\t"
+)
 
-const maxRetries = 5
+var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
-const retrySleepDuration = time.Second * 5
-
-var thisLogger *log.Logger
-
-func InitLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;33mdb\u001B[0m\t", log.Flags())
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	thisLogger = log.New(out, loggerPrefix, flag)
 }
 
 func info(v ...interface{}) {

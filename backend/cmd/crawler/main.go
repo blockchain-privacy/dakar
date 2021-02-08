@@ -42,11 +42,15 @@ func info(v ...interface{}) {
 
 func initAllLoggers() {
 	initLogger()
-	analytics.InitLogger()
-	db.InitLogger()
-	processor.InitLogger()
-	server.InitLogger()
-	heuristic.InitLogger()
+
+	writer := log.Writer()
+	flags := log.Flags()
+
+	analytics.InitLogger(writer, flags)
+	db.InitLogger(writer, flags)
+	processor.InitLogger(writer, flags)
+	server.InitLogger(writer, flags)
+	heuristic.InitLogger(writer, flags)
 }
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {

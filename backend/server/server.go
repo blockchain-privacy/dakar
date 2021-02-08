@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,10 +15,14 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-var thisLogger *log.Logger
+// loggerPrefix is the prefix which is printed for each log message
+const loggerPrefix = "\033[0;34mserver\u001B[0m\t"
 
-func InitLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;34mserver\u001B[0m\t", log.Flags())
+var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	thisLogger = log.New(out, loggerPrefix, flag)
 }
 
 func serverInfo(v ...interface{}) {

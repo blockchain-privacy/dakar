@@ -11,21 +11,30 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"io"
 	"log"
 	"time"
 )
 
-// block id after which we start analysing. found empirically.
-const analyseStartBlock = 206940
+const (
+	// analyseStartBlock is the block id after which we start analysing. found empirically.
+	analyseStartBlock = 206940
+
+	// analyticsLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
+	analyticsLoggerPrefix = "\033[0;32manalyse\u001B[0m\t"
+	// metricsLoggerPrefix is the prefix which is printed for each log message of metricLogger
+	metricsLoggerPrefix = "metric\t"
+)
 
 var errorInterrupted = errors.New("interrupted")
 
-var analyticsLogger *log.Logger
-var metricLogger *log.Logger
+var analyticsLogger = log.New(log.Writer(), analyticsLoggerPrefix, log.Flags())
+var metricLogger = log.New(log.Writer(), metricsLoggerPrefix, log.Flags())
 
-func InitLogger() {
-	analyticsLogger = log.New(log.Writer(), "\033[0;32manalyse\u001B[0m\t", log.Flags())
-	metricLogger = log.New(log.Writer(), "metric\t", log.Flags())
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	analyticsLogger = log.New(out, analyticsLoggerPrefix, flag)
+	metricLogger = log.New(out, metricsLoggerPrefix, flag)
 }
 
 func info(v ...interface{}) {

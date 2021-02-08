@@ -3,6 +3,7 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
+	"io"
 
 	"context"
 	"fmt"
@@ -19,23 +20,28 @@ const copyOnModify = false
 type HeuristicQueueStatus int
 
 const (
-	// statusHeuristicAdded is set if the heuristic has been successfully added
+	// StatusHeuristicAdded is set if the heuristic has been successfully added
 	StatusHeuristicAdded = HeuristicQueueStatus(iota)
-	// statusHeuristicDuplicate is set if the heuristic is already in the work queue
+	// StatusHeuristicDuplicate is set if the heuristic is already in the work queue
 	StatusHeuristicDuplicate
-	// statusHeuristicNotInQueue is set if the heuristic is not in the work queue
+	// StatusHeuristicNotInQueue is set if the heuristic is not in the work queue
 	StatusHeuristicNotInQueue
-	// statusHeuristicInQueue is set if the heuristic is in the work queue
+	// StatusHeuristicInQueue is set if the heuristic is in the work queue
 	StatusHeuristicInQueue
-	// statusHeuristicProcessing is set if the heuristic is currently being processed
+	// StatusHeuristicProcessing is set if the heuristic is currently being processed
 	StatusHeuristicProcessing
+
+	// loggerPrefix is the prefix which is printed for each log message
+	loggerPrefix = "\033[0;34mhworker\u001B[0m\t"
 )
 
-var thisLogger *log.Logger
+var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
-func InitLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;34mhworker\u001B[0m\t", log.Flags())
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	thisLogger = log.New(out, loggerPrefix, flag)
 }
+
 func info(v ...interface{}) {
 	thisLogger.Println(v)
 }

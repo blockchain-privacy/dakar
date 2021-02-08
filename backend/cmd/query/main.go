@@ -49,7 +49,6 @@ func main() {
 	// setup Logging
 	if len(cliArgs.Logfile) > 0 {
 		if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
-			initLogger()
 			defer func() {
 				if err = f.Close(); err != nil {
 					fmt.Println(err)
@@ -57,6 +56,8 @@ func main() {
 			}()
 		}
 	}
+
+	initLogger()
 
 	// create dgraph client
 	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
