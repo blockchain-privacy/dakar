@@ -225,14 +225,12 @@ func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTran
 		default:
 			// we do nothing
 		}
-		info("analyzing", t)
 		timeNow := time.Now()
-		origins, err := dban.AnalyzeOriginsAlt(dgraph, t)
+		origins, err := dban.AnalyzeOrigins(dgraph, t)
 		if err != nil {
 			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 		queryTime := time.Since(timeNow)
-		info("analyzing", t, "origin count:", len(origins), "lookup time:", queryTime)
 
 		timeNow = time.Now()
 		isDone := false
@@ -249,8 +247,8 @@ func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTran
 			}
 		}
 		mutationTime := time.Since(timeNow)
-		info("analyzing", t, "time to set origins:", mutationTime)
-		info("analyzing", t, "full time:", queryTime+mutationTime)
+		info("analyzing", t, "origin count:", len(origins), "query time:", queryTime,
+			"mutation time:", mutationTime, "full time:", queryTime+mutationTime)
 
 		insertedOrigins += int64(len(origins))
 	}

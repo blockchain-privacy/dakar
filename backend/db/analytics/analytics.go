@@ -18,48 +18,6 @@ import (
 // GET part of AnalyzeAndSetOrigins
 func AnalyzeOrigins(c *dgo.Dgraph, txuid string) (origins []string, err error) {
 	query := `query Q($uid: string) {
-	
-				var(func: uid($uid))@recurse{
-					tx_inputs
-					v as ~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
-				}
-
-				q(func: uid(v))@filter(eq(privacytype,"origin")){
-					uid
-				}
-			  }`
-
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": txuid})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r struct {
-		Transaction []struct {
-			Uid string `json:"uid,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, uid := range r.Transaction {
-		origins = append(origins, uid.Uid)
-	}
-
-	return
-}
-
-// AnalyzeOriginsAlt searches for all potential origins. The returned string slice contains the uids of the found transactions
-// GET part of AnalyzeAndSetOrigins
-func AnalyzeOriginsAlt(c *dgo.Dgraph, txuid string) (origins []string, err error) {
-	query := `query Q($uid: string) {
-	
 				var(func: uid($uid))@recurse{
 					tx_inputs
 					v as ~tx_outputs@filter(eq(privacytype, "mixing"))
