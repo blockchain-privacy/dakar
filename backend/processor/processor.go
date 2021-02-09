@@ -287,7 +287,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
-			Script:      d.ScriptPubKey.Asm,
+			KeyAsm:      d.ScriptPubKey.Asm,
+			KeyHex:      d.ScriptPubKey.Hex,
 			OutputIndex: &index,
 		})
 	}
@@ -339,7 +340,9 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
-		// todo add input script to object
+		// todo check script
+		refOutput.SigAsm = vin.ScriptSig.Asm
+		refOutput.SigHex = vin.ScriptSig.Hex
 		refOutput.Amount = output.Amount
 		refOutput.Uid = output.Uid
 	}
