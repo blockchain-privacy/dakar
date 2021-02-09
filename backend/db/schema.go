@@ -39,8 +39,8 @@ func SetupSchema(c *dgo.Dgraph) error {
 			iscoinbase: bool .
 			privacytype: string @index(hash) .
 			isrlookupdone: bool @index(bool) .
-			keyasm: string @index(term, fulltext) .
-			sigasm: string @index(term, fulltext) .
+			keyasm: string @index(term) .
+			sigasm: string @index(term) .
 			keyhex: string .
 			sighex: string .
 
@@ -191,8 +191,8 @@ func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
 func AlterSchemaAddScripts(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			keyasm: string @index(term, fulltext) .
-			sigasm: string @index(term, fulltext) .
+			keyasm: string @index(term) .
+			sigasm: string @index(term) .
 			keyhex: string .
 			sighex: string .
 
