@@ -35,11 +35,14 @@ func SetupSchema(c *dgo.Dgraph) error {
 			inputindex: int .
 			txtype: string .
 			amount: int .
-			script: string @index(term, fulltext) .
 			fee: int .
 			iscoinbase: bool .
 			privacytype: string @index(hash) .
 			isrlookupdone: bool @index(bool) .
+			keyasm: string @index(term, fulltext) .
+			sigasm: string @index(term, fulltext) .
+			keyhex: string .
+			sighex: string .
 
 			iscrawling: bool .
 			isanalyzing: bool .
@@ -85,7 +88,10 @@ func SetupSchema(c *dgo.Dgraph) error {
 				txtype
 				amount
 				iscoinbase
-				script
+				keyasm
+				sigasm
+				keyhex
+				sighex
 				<~tx_inputs>
 				<~tx_outputs>
 				<~addr_outputs>
@@ -162,32 +168,6 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	return
 }
 
-func AlterSchemaAddUsers(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			role_name: string @index(hash) .
-
-			user_email: string @index(term, fulltext) .
-			user_pwhash: string .
-			user_roles: [uid] @reverse .
-			user_created: dateTime @index(day) .
-			user_modified: dateTime @index(day) .
-
-			type Role {
-				role_name
-			}
-
-			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-			}
-		`,
-	})
-}
-
 func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -203,6 +183,32 @@ func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
 				<~transactions>
 				tx_outputs
 				tx_inputs
+			}
+		`,
+	})
+}
+
+func AlterSchemaAddScripts(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			keyasm: string @index(term, fulltext) .
+			sigasm: string @index(term, fulltext) .
+			keyhex: string .
+			sighex: string .
+
+			type Output {
+				outputindex
+				inputindex
+				txtype
+				amount
+				iscoinbase
+				keyasm
+				sigasm
+				keyhex
+				sighex
+				<~tx_inputs>
+				<~tx_outputs>
+				<~addr_outputs>
 			}
 		`,
 	})

@@ -75,8 +75,18 @@ func main() {
 		return
 	}
 
+	info("lookupdoneflag migration starting ...")
 	if err := db.AlterSchemaAddReverseLookupDoneFlag(dgraph); err != nil {
 		info(err)
 		return
 	}
+	info("lookupdoneflag migration done")
+
+	info("scripts migration starting ...")
+	if err := db.AlterSchemaAddScripts(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("scripts migration done")
+
 }
