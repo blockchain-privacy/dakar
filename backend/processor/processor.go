@@ -250,22 +250,16 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		index := d.N
 
 		if d.ScriptPubKey.Type == "pubkey" {
-			// decoding address from script and checking if it matches the supplied addresses
-			pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
-			if decodeErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
-				return
-			}
-
 			if d.ScriptPubKey.Addresses == nil {
+				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
+				if decodeErr != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+					return
+				}
 				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
 			} else {
 				for _, e := range d.ScriptPubKey.Addresses {
 					outputMappings = addOutputToMapping(outputMappings, e, index)
-					if e != pubkeyAddress {
-						info("pubkey address mismatch in tx", txDetails.Hash,
-							"pubkey decoded address:", pubkeyAddress, "rpc address:", e)
-					}
 				}
 			}
 		} else if d.ScriptPubKey.Addresses == nil &&
