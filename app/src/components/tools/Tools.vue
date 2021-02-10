@@ -5,28 +5,28 @@
         <v-navigation-drawer permanent>
           <v-list-item>
             <v-list-item-icon>
-              <v-icon>{{ icon.mdiCog }}</v-icon>
+              <v-icon>{{ icon.mdiToolbox }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title class="title">
-              Settings
+              Tools
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list dense nav>
-            <v-list-item :to="{ name: profileRoute}">
+            <v-list-item :to="{ name: shortestPathPage}">
               <v-list-item-icon>
-                <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+                <v-icon>{{ icon.mdiChartTimelineVariant }}</v-icon>
               </v-list-item-icon>
               <v-list-item-title>
-                Profile
+                Shortest Path
               </v-list-item-title>
             </v-list-item>
-            <v-list-item :to="{ name: miscRoute}">
+            <v-list-item :to="{ name: heuristicsPage}">
               <v-list-item-icon>
-                <v-icon>{{ icon.mdiTune }}</v-icon>
+                <v-icon>{{ icon.mdiGraph }}</v-icon>
               </v-list-item-icon>
               <v-list-item-title>
-                Misc
+                Heuristics
               </v-list-item-title>
             </v-list-item>
           </v-list>
@@ -39,13 +39,13 @@
       </v-col>
     </v-row>
     <v-bottom-navigation class="hidden-md-and-up" fixed color="primary">
-      <v-btn :to="{ name: profileRoute}">
-        <span>Profile</span>
-        <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+      <v-btn :to="{ name: shortestPathPage}">
+        <span>Shortest Path</span>
+        <v-icon>{{ icon.mdiChartTimelineVariant }}</v-icon>
       </v-btn>
-      <v-btn :to="{ name: miscRoute}">
-        <span>Misc</span>
-        <v-icon>{{ icon.mdiTune }}</v-icon>
+      <v-btn :to="{ name: heuristicsPage}">
+        <span>Heuristics</span>
+        <v-icon>{{ icon.mdiGraph }}</v-icon>
       </v-btn>
     </v-bottom-navigation>
   </div>
@@ -53,18 +53,18 @@
 
 <script>
 import {
-  mdiAccountDetails, mdiTune, mdiCog,
+  mdiGraph, mdiChartTimelineVariant, mdiToolbox,
 } from '@mdi/js';
-import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
+import { ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
 
 export default {
-  name: 'Settings',
+  name: 'Tools',
   data() {
     return {
-      profileRoute: ROUTE_NAME_USER_PROFILE_PAGE,
-      miscRoute: ROUTE_NAME_USER_MISC_PAGE,
+      heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
+      shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
       icon: {
-        mdiAccountDetails, mdiTune, mdiCog,
+        mdiGraph, mdiChartTimelineVariant, mdiToolbox,
       },
     };
   },

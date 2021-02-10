@@ -15,8 +15,8 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
-      <v-btn icon>
-        <v-icon>{{ icon.mdiGraph }}</v-icon>
+      <v-btn icon :to="{name: route.HeuristicsPage}" v-if="showTools">
+        <v-icon>{{ icon.mdiToolbox }}</v-icon>
       </v-btn>
       <v-menu offset-y style="z-index: 99">
         <template v-slot:activator="{ on, attrs }">
@@ -77,14 +77,14 @@
 <script>
 import {
   mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
-  mdiCog, mdiGraph,
+  mdiCog, mdiToolbox,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
 import {
-  doGet, getLocalUser, resetLocal, getLocalSettings,
+  doGet, getLocalUser, resetLocal, getLocalSettings, isAdminUser, isPrivilegedUser,
 } from './utilities';
 import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
 
@@ -104,12 +104,13 @@ export default {
         mdiAccountSupervisor,
         mdiAccountCircle,
         mdiCog,
-        mdiGraph,
+        mdiToolbox,
       },
       route: {
         userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
         userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
         userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
+        HeuristicsPage: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -142,7 +143,10 @@ export default {
       },
     },
     showUserAdmin() {
-      return this.userData && this.userData.roles && this.userData.roles.some((d) => d.role_name === 'admin');
+      return isAdminUser(this.userData);
+    },
+    showTools() {
+      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
   },
   methods: {

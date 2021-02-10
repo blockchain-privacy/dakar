@@ -159,3 +159,15 @@ export const passwordRules = [
   (v) => (v && v.length < PASSWORD_MAX_CHARACTERS)
         || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
 ];
+
+function isRole(userData, roleName) {
+  return userData && userData.roles && userData.roles.some((d) => d.role_name === roleName);
+}
+
+export function isPrivilegedUser(userData) {
+  return isRole(userData, 'privileged');
+}
+
+export function isAdminUser(userData) {
+  return isRole(userData, 'admin');
+}

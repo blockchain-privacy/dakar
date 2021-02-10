@@ -39,6 +39,8 @@ export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
 export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
+export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
+export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';
