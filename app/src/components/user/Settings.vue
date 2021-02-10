@@ -7,11 +7,9 @@
             <v-list-item-icon>
               <v-icon>{{ icon.mdiCog }}</v-icon>
             </v-list-item-icon>
-            <v-list-item-content>
-              <v-list-item-title class="title">
-                Settings
-              </v-list-item-title>
-            </v-list-item-content>
+            <v-list-item-title class="title">
+              Settings
+            </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list dense nav>
@@ -19,21 +17,17 @@
               <v-list-item-icon>
                 <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
               </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>
-                  Profile
-                </v-list-item-title>
-              </v-list-item-content>
+              <v-list-item-title>
+                Profile
+              </v-list-item-title>
             </v-list-item>
             <v-list-item :to="{ name: miscRoute}">
               <v-list-item-icon>
                 <v-icon>{{ icon.mdiTune }}</v-icon>
               </v-list-item-icon>
-              <v-list-item-content>
-                <v-list-item-title>
-                  Misc
-                </v-list-item-title>
-              </v-list-item-content>
+              <v-list-item-title>
+                Misc
+              </v-list-item-title>
             </v-list-item>
           </v-list>
         </v-navigation-drawer>
