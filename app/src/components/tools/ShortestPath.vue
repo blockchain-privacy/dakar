@@ -9,7 +9,24 @@
       </v-toolbar-title>
     </v-toolbar>
     <v-card-text>
-      test
+      <div class="text-subtitle-1">
+        Find the shortest path between two transactions
+      </div>
+      <v-row>
+        <v-col>
+          <v-text-field label="From"/>
+        </v-col>
+        <v-col>
+          <v-text-field label="To"/>
+        </v-col>
+      </v-row>
+      <v-row >
+        <v-col class="d-flex justify-end">
+          <v-btn color="primary">
+            Search
+          </v-btn>
+        </v-col>
+      </v-row>
     </v-card-text>
   </v-card>
 </template>
