@@ -1,21 +1,26 @@
 <template>
   <v-app>
     <v-app-bar app absolute>
-      <v-img
-          @click="goToRoot()" style="cursor:pointer"
-          alt="Dakar Logo"
-          class="shrink mr-2"
-          contain
-          src="./assets/dakar_dash.svg"
-          transition="scale-transition"
-          width="32"/>
-      <v-toolbar-title class="mx-2 d-none d-sm-flex" @click="goToRoot()" style="cursor:pointer">
-        {{ applicationName }}
-      </v-toolbar-title>
+      <router-link :to="{name: route.rootPage}">
+        <v-img
+            style="cursor:pointer"
+            alt="Dakar Logo"
+            class="shrink mr-2"
+            contain
+            src="./assets/dakar_dash.svg"
+            transition="scale-transition"
+            width="32">
+        </v-img>
+      </router-link>
+      <router-link :to="{name: route.rootPage}" style="color: inherit; text-decoration: inherit">
+        <v-toolbar-title class="mx-2 d-none d-sm-flex" style="cursor:pointer">
+          {{ applicationName }}
+        </v-toolbar-title>
+      </router-link>
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
-      <v-btn icon :to="{name: route.HeuristicsPage}" v-if="showTools">
+      <v-btn icon :to="{name: route.heuristicsPage}" v-if="showTools">
         <v-icon>{{ icon.mdiToolbox }}</v-icon>
       </v-btn>
       <v-menu offset-y style="z-index: 99">
@@ -110,7 +115,8 @@ export default {
         userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
         userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
         userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
-        HeuristicsPage: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
+        heuristicsPage: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
+        rootPage: Constants.ROUTE_NAME_ENTRY_PAGE,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -150,9 +156,6 @@ export default {
     },
   },
   methods: {
-    goToRoot() {
-      this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
-    },
     // goToPage should receive a page name from ./constants
     goToPage(pageName) {
       // only change route if not already on page
