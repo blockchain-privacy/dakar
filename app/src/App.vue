@@ -15,6 +15,9 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
+      <v-btn icon>
+        <v-icon>{{ icon.mdiGraph }}</v-icon>
+      </v-btn>
       <v-menu offset-y style="z-index: 99">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
@@ -32,19 +35,21 @@
             <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
           </v-list-item>
           <v-divider v-if="this.userData"/>
-          <v-list-item @click="goToSettings" v-if="this.userData" :disabled="isUserProfileDisabled">
+          <v-list-item :to="{name: route.userProfilePage}" v-if="this.userData"
+                       :disabled="isUserProfileDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiCog }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Settings</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
+          <v-list-item :to="{ name: route.userLoginPage }"
+                       v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToUserAdministration" :disabled="isUserAdminDisabled"
+          <v-list-item :to="{ name: route.userAdminPage }" :disabled="isUserAdminDisabled"
                        v-if="showUserAdmin">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
@@ -61,10 +66,10 @@
       </v-menu>
     </v-app-bar>
     <v-main>
-        <MsgBox/>
-        <transition name="component-fade" mode="out-in">
-          <router-view/>
-        </transition>
+      <MsgBox/>
+      <transition name="component-fade" mode="out-in">
+        <router-view/>
+      </transition>
     </v-main>
   </v-app>
 </template>
@@ -72,7 +77,7 @@
 <script>
 import {
   mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
-  mdiCog,
+  mdiCog, mdiGraph,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/MsgBox.vue';
@@ -99,6 +104,12 @@ export default {
         mdiAccountSupervisor,
         mdiAccountCircle,
         mdiCog,
+        mdiGraph,
+      },
+      route: {
+        userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+        userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
+        userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -138,15 +149,6 @@ export default {
     goToRoot() {
       this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
     },
-    goToLogin() {
-      this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
-    },
-    goToSettings() {
-      this.goToPage(Constants.ROUTE_NAME_USER_PROFILE_PAGE);
-    },
-    goToUserAdministration() {
-      this.goToPage(Constants.ROUTE_NAME_USER_ADMIN_PAGE);
-    },
     // goToPage should receive a page name from ./constants
     goToPage(pageName) {
       // only change route if not already on page
@@ -162,30 +164,11 @@ export default {
           resetLocal();
           this.userData = null;
           this.settings = null;
-          this.goToLogin();
+          this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
         })
         .catch((error) => {
           this.errMsg = error;
         });
-    },
-    checkRoute(routeName) {
-      this.isUserLoginDisabled = false;
-      this.isUserAdminDisabled = false;
-      this.isUserProfileDisabled = false;
-
-      switch (routeName) {
-        case Constants.ROUTE_NAME_LOGIN_PAGE:
-          this.isUserLoginDisabled = true;
-          break;
-        case Constants.ROUTE_NAME_USER_ADMIN_PAGE:
-          this.isUserAdminDisabled = true;
-          break;
-        case Constants.ROUTE_NAME_USER_PROFILE_PAGE:
-          this.isUserProfileDisabled = true;
-          break;
-        default:
-            // nothing
-      }
     },
     persistDarkTheme(isDark) {
       const set = this.settings;
@@ -220,14 +203,7 @@ export default {
     // eslint-disable-next-line no-console
     console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
 
-    this.checkRoute(this.$router.currentRoute.name);
-
     this.loadStorageData();
-  },
-  watch: {
-    $route(to) {
-      this.checkRoute(to.name);
-    },
   },
 };
 </script>
