@@ -23,6 +23,7 @@
 import {
   mdiInvertColors, mdiTune,
 } from '@mdi/js';
+import { PAGE_TITLE } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
 import { getLocalSettings } from '../../utilities';
 
@@ -72,6 +73,9 @@ export default {
   beforeMount() {
     const settings = getLocalSettings();
     this.darkModeEnabled = settings.dark;
+  },
+  mounted() {
+    document.title = `Misc - ${PAGE_TITLE}`;
   },
 };
 </script>
