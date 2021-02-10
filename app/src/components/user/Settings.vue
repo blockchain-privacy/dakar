@@ -56,7 +56,6 @@ import {
   mdiAccountDetails, mdiTune, mdiCog,
 } from '@mdi/js';
 import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
-import { isPrivilegedUser, isAdminUser } from '../../utilities';
 
 export default {
   name: 'Settings',
@@ -81,7 +80,7 @@ export default {
   },
   methods: {
     checkRoute() {
-      if (!isPrivilegedUser(this.userData) && !isAdminUser(this.userData)) {
+      if (!this.userData) {
         this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
         return false;
       }

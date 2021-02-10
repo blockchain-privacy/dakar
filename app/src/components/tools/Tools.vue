@@ -55,6 +55,7 @@
 import {
   mdiGraph, mdiChartTimelineVariant, mdiToolbox,
 } from '@mdi/js';
+import { isAdminUser, isPrivilegedUser } from '../../utilities';
 import { ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
 
 export default {
@@ -80,7 +81,7 @@ export default {
   },
   methods: {
     checkRoute() {
-      if (this.userData === null) {
+      if (!isPrivilegedUser(this.userData) && !isAdminUser(this.userData)) {
         this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
         return false;
       }
