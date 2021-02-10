@@ -1,6 +1,7 @@
 package user
 
 import (
+	"backend/db/analytics/heuristics/transaction"
 	"backend/user"
 	"fmt"
 	"regexp"
@@ -27,18 +28,19 @@ func (r *Role) SetDType() {
 }
 
 type User struct {
-	Uid          string     `json:"uid,omitempty"`
-	Email        string     `json:"user_email,omitempty"`
-	PasswordHash string     `json:"user_pwhash,omitempty"`
-	Roles        []Role     `json:"user_roles,omitempty"`
-	Created      *time.Time `json:"user_created,omitempty"`
-	Modified     *time.Time `json:"user_modified,omitempty"`
-	DType        []string   `json:"dgraph.type,omitempty"`
+	Uid          string                  `json:"uid,omitempty"`
+	Email        string                  `json:"user_email,omitempty"`
+	PasswordHash string                  `json:"user_pwhash,omitempty"`
+	Roles        []Role                  `json:"user_roles,omitempty"`
+	Created      *time.Time              `json:"user_created,omitempty"`
+	Modified     *time.Time              `json:"user_modified,omitempty"`
+	Heuristics   []transaction.Heuristic `json:"user_heuristics,omitempty"`
+	DType        []string                `json:"dgraph.type,omitempty"`
 }
 
 func (u User) String() string {
-	return fmt.Sprintf("uid: %s, email %s, roles: %v, created: %s, modified: %s",
-		u.Uid, u.Email, u.Roles, u.Created, u.Modified)
+	return fmt.Sprintf("uid: %s, email %s, roles: %v, created: %s, modified: %s, heuristic count: %d",
+		u.Uid, u.Email, u.Roles, u.Created, u.Modified, len(u.Heuristics))
 }
 
 func (u *User) SetDType() {
