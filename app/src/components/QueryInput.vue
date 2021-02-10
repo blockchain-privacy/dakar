@@ -1,10 +1,11 @@
 <template>
-  <v-text-field @keydown.enter="handleInput(query, 'user')"
-                class="d-flex" full-width v-model="query"
+  <v-text-field style="margin: 23px 0 0 0"
+                full-width outlined dense
                 label="Search for blocks, transactions and addresses"
-                :append-outer-icon="icon.mdiMagnify"
-                @click:append-outer="handleInput(query, 'user')"
-  />
+                :append-icon="icon.mdiMagnify"
+                v-model="query"
+                @click:append="handleInput(query, 'user')"
+                @keydown.enter="handleInput(query, 'user')"/>
 </template>
 
 <script>
@@ -19,8 +20,8 @@ function newRouting(context) {
 
   if (pushFromUserInput !== undefined || id === undefined
       || !(context.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
-      || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
-      || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
+          || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
+          || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
     return;
   }
 
