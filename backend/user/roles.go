@@ -18,19 +18,41 @@ var (
 	roleMap = map[string]Role{AdminRoleName: NewAdminRole(),
 		"user": NewDefaultUserRole(), "privileged": NewPrivilegedRole()}
 
-	// role maps; we need to look up roles very often; string slice lookup are slower than map look ups even for small sices:
-	// https://www.golangprograms.com/golang-slice-vs-map-benchmark-testing.html
+	// role maps; we need to look up roles very often; string slice lookup are slower than map lookups
+	// even for small slices: https://www.golangprograms.com/golang-slice-vs-map-benchmark-testing.html
 	adminRoleMap       = map[string]bool{allRoutes: true}
-	defaultUserRoleMap = map[string]bool{constants.GetRouteTransaction(): true, constants.GetRouteBlock(): true,
-		constants.GetRouteAddress(): true, constants.GetRouteMeta(): true, constants.GetRouteSearch(): true,
-		constants.GetRouteAddressOutputRange(): true, constants.GetRouteModifyUser(): true,
-		constants.GetRouteDeleteUser(): true}
-	privilegedRoleMap = map[string]bool{constants.GetRouteTransaction(): true, constants.GetRouteBlock(): true,
-		constants.GetRouteAddress(): true, constants.GetRouteMeta(): true, constants.GetRouteSearch(): true,
-		constants.GetRouteAddressOutputRange(): true, constants.GetRouteHeuristicStatus(): true,
-		constants.GetRouteHeuristicDetails(): true, constants.GetRouteHeuristicsExecution(): true,
-		constants.GetRouteHeuristics(): true, constants.GetRouteModifyUser(): true,
-		constants.GetRouteHeuristicsSummary(): true, constants.GetRouteDeleteUser(): true}
+	defaultUserRoleMap = map[string]bool{
+		// data
+		constants.GetRouteTransaction():        true,
+		constants.GetRouteBlock():              true,
+		constants.GetRouteAddress():            true,
+		constants.GetRouteMeta():               true,
+		constants.GetRouteSearch():             true,
+		constants.GetRouteAddressOutputRange(): true,
+		// user
+		constants.GetRouteModifyUser(): true,
+		constants.GetRouteDeleteUser(): true,
+	}
+	privilegedRoleMap = map[string]bool{
+		// data
+		constants.GetRouteTransaction():        true,
+		constants.GetRouteBlock():              true,
+		constants.GetRouteAddress():            true,
+		constants.GetRouteMeta():               true,
+		constants.GetRouteSearch():             true,
+		constants.GetRouteAddressOutputRange(): true,
+		// heuristics
+		constants.GetRouteHeuristicStatus():     true,
+		constants.GetRouteHeuristicDetails():    true,
+		constants.GetRouteHeuristicsExecution(): true,
+		constants.GetRouteHeuristics():          true,
+		constants.GetRouteHeuristicsSummary():   true,
+		// user
+		constants.GetRouteModifyUser(): true,
+		constants.GetRouteDeleteUser(): true,
+		// analytics
+		constants.GetRouteShortestTransactionPath(): true,
+	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
 )
