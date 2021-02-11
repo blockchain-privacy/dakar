@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbtx "backend/db/transaction"
+	"context"
 
 	"encoding/json"
 	"errors"
@@ -961,7 +962,7 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 	withPrivacyTransactions bool) (txs []dbtx.FrontendTransaction, err error) {
 	privacyFlag := " " // spaces are needed
 
-	if withPrivacyTransactions {
+	if !withPrivacyTransactions {
 		privacyFlag = " @filter(NOT has(privacytype)) " // spaces are needed
 	}
 
@@ -983,11 +984,14 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 				}
 			  }`
 
+	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 		return
 	}
 
@@ -998,11 +1002,6 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Transactions) == 0 {
-		err = errors.New("invalid response from database")
 		return
 	}
 
