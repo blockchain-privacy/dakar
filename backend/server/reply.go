@@ -331,9 +331,12 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 		return
 	}
 
-	info(txs)
+	if len(txs) == 0 {
+		reply.Msg = "no path found"
+	} else {
+		reply.Transactions = txs
+	}
 
-	reply.Transactions = txs
 	reply.Success = true
 
 	return

@@ -1019,6 +1019,7 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 		if !errors.Is(err, context.DeadlineExceeded) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
+		err = nil
 		return
 	}
 
