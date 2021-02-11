@@ -3,6 +3,7 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics/heuristics/transaction"
+	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
 	"encoding/json"
@@ -268,15 +269,62 @@ func getDeleteUserReply(dgraph *dgo.Dgraph, delUid string, tUser tokenUser) (rep
 // getShortestTransactionPathReply searches for the shortest path between two transactions
 func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply shortestTransactionPathReply) {
 	// parse request
-	var sPathRequest transaction.ShortestTransactionPathRequest
-	if err := json.NewDecoder(body).Decode(&sPathRequest); err != nil {
+	var req transaction.ShortestTransactionPathRequest
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		reply.Msg = "could not decode request data"
 		return
 	}
 
-	// do shortest path lookup
-	txs, err := transaction.GetShortestTransactionPathAnyDirection(dgraph, sPathRequest.From, sPathRequest.To,
-		sPathRequest.IncludePrivacyTransactions)
+	if req.From == req.To {
+		reply.Success = true
+		reply.Msg = "transaction hashes are equal"
+		return
+	}
+
+	fromBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.From)
+	if err != nil {
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Msg = "error transaction" + req.From + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for paths"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	toBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.To)
+	if err != nil {
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Msg = "error transaction" + req.To + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for paths"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if fromBlockId == toBlockId {
+		reply.Success = true
+		reply.Msg = "both transactions are in the same block"
+		return
+	}
+
+	oldTx := req.From
+	youngTx := req.To
+
+	if !req.AnyDirection {
+		// switch transactions if necessary so we are searching in the right direction
+		if toBlockId > fromBlockId {
+			oldTx = req.To
+			youngTx = req.From
+		}
+	}
+
+	// do shortest transaction path lookup
+	txs, err := transaction.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
+		req.IncludePrivacyTransactions, req.AnyDirection)
 	if err != nil {
 		reply.Msg = "error while searching for paths"
 		info(cliutil.ShowCallInfo(), err)

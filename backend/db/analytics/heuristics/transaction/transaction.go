@@ -957,13 +957,41 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 }
 
 // GetShortestTransactionPathAnyDirection returns the transactions of a shortest path between two transactions.
-// It traverses both forwards and backwards
+// anyDirection determines the search direction of the shortest transaction path query
+// True: Both inputs and outputs are traversed
+// False: Only inputs are traversed
+// withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
 func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo string,
-	withPrivacyTransactions bool) (txs []dbtx.FrontendTransaction, err error) {
+	withPrivacyTransactions bool, anyDirection bool) (txs []dbtx.FrontendTransaction, err error) {
+	/* Full query
+	query Q($txFrom:string, $txTo:string){
+					f as var(func: eq(txhash,$txFrom))
+					t as var(func: eq(txhash,$txTo))
+					path as shortest(from: uid(f), to: uid(t)){
+						tx_inputs
+						~tx_outputs@filter(NOT has(privacytype)) tx_outputs ~tx_inputs@filter(NOT has(privacytype)) }
+					path(func: uid(path))@normalize{
+						txhash:txhash
+						privacytype:privacytype
+						~transactions{
+							bid:id
+							bts:ts
+							bhash:blockhash
+						}
+					}
+				  }
+	*/
+
 	privacyFlag := " " // spaces are needed
 
 	if !withPrivacyTransactions {
-		privacyFlag = " @filter(NOT has(privacytype)) " // spaces are needed
+		privacyFlag = "@filter(NOT has(privacytype)) " // spaces are needed
+	}
+
+	var anyDirectionFlag string
+
+	if anyDirection {
+		anyDirectionFlag = "tx_outputs ~tx_inputs" + privacyFlag
 	}
 
 	query := `query Q($txFrom:string, $txTo:string){
@@ -971,8 +999,7 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 				t as var(func: eq(txhash,$txTo))
 				path as shortest(from: uid(f), to: uid(t)){
 					tx_inputs
-					~tx_outputs` + privacyFlag + `tx_outputs
-					~tx_inputs` + privacyFlag + `}
+					~tx_outputs` + privacyFlag + anyDirectionFlag + `}
 				path(func: uid(path))@normalize{
 					txhash:txhash
 					privacytype:privacytype

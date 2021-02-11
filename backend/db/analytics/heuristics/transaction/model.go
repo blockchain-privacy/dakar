@@ -95,5 +95,9 @@ type ShortestTransactionPathRequest struct {
 	To string `json:"to,omitempty"`
 	// IncludePrivacyTransactions determines if privacy transactions
 	// should be considered when doing the shortest path lookup
-	IncludePrivacyTransactions bool `json:"includePrivacyTransactions,omitempty"`
+	IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
+	// AnyDirection determines the search direction of the shortest transaction path query
+	// True: Both inputs and outputs are traversed
+	// False: Only inputs are traversed
+	AnyDirection bool `json:"anyDirection"`
 }
