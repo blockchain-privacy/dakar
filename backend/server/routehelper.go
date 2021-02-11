@@ -77,6 +77,12 @@ type backendUserReply struct {
 	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
 }
 
+type shortestTransactionPathReply struct {
+	Success      bool                       `json:"success"`
+	Msg          string                     `json:"msg,omitempty"`
+	Transactions []dbtx.FrontendTransaction `json:"transactions"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"

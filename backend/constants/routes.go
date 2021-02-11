@@ -20,6 +20,7 @@ const (
 	routeLogin               string = "login"
 	routeLogout              string = "logout"
 	routeModifyUser          string = "modifyUser"
+	routeShortestTxPath      string = "shortestTransactionPath"
 )
 
 func getRoute(r string) string {
@@ -96,4 +97,8 @@ func GetRouteLogout() string {
 
 func GetRouteModifyUser() string {
 	return getRoute(routeModifyUser)
+}
+
+func GetRouteShortestTransactionPath() string {
+	return getRoute(routeShortestTxPath)
 }

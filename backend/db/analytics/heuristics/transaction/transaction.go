@@ -3,6 +3,7 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	dbtx "backend/db/transaction"
 
 	"encoding/json"
 	"errors"
@@ -914,7 +915,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 
 // GetShortestPathLength returns the number of transactions in the shortest path between the given
 // transactions specified by fromUid and toUid. The returned number is the count of transactions in
-// the path between fromUid and toUid. A shortest path lik the following would return the number 3.
+// the path between fromUid and toUid. A shortest path like the following would return the number 3.
 // Example path: fromUid -> tx1 -> output1 -> tx2 -> output2 -> tx3 -> output3 -> toUid
 func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLength int, err error) {
 	query := fmt.Sprintf(`{
@@ -950,6 +951,62 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 	}
 
 	pathLength = (int(r.Path[0].Weight) - 2) / 2
+
+	return
+}
+
+// GetShortestTransactionPathAnyDirection returns the transactions of a shortest path between two transactions.
+// It traverses both forwards and backwards
+func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo string,
+	withPrivacyTransactions bool) (txs []dbtx.FrontendTransaction, err error) {
+	privacyFlag := " " // spaces are needed
+
+	if withPrivacyTransactions {
+		privacyFlag = " @filter(NOT has(privacytype)) " // spaces are needed
+	}
+
+	query := `query Q($txFrom:string, $txTo:string){
+				f as var(func: eq(txhash,$txFrom))
+				t as var(func: eq(txhash,$txTo))
+				path as shortest(from: uid(f), to: uid(t)){
+					tx_inputs
+					~tx_outputs` + privacyFlag + `tx_outputs
+					~tx_inputs` + privacyFlag + `}
+				path(func: uid(path))@normalize{
+					txhash:txhash
+					privacytype:privacytype
+					~transactions{
+						bid:id
+						bts:ts
+						bhash:blockhash
+					}
+				}
+			  }`
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []dbtx.FrontendTransaction `json:"path,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transactions) == 0 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	txs = r.Transactions
 
 	return
 }
