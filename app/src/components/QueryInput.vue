@@ -4,6 +4,7 @@
                 label="Search for blocks, transactions and addresses"
                 :append-icon="icon.mdiMagnify"
                 v-model="query"
+                :rules="[isQueryValid]"
                 @click:append="handleInput(query, 'user')"
                 @keydown.enter="handleInput(query, 'user')"/>
 </template>
@@ -172,6 +173,11 @@ export default {
       }
 
       return str.match(/^[0-9a-zA-Z]+$/);
+    },
+    isQueryValid(str) {
+      const trimmed = str.trim();
+
+      return trimmed.length === 0 ? true : this.isValidData(trimmed);
     },
   },
   created() {
