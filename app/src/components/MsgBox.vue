@@ -1,27 +1,28 @@
 <template>
   <v-layout>
-    <v-flex style="z-index: 100">
+    <div class="msgBox">
       <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info"
-               class="floating" max-width="400px" prominent
+               class="floating" max-width="400px" prominent outlined text
                dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
+
       <v-alert xs6 :value="errorMsg && errorMsg !== '' &&  isValidError(errorMsg)" type="error"
-               class="floating" max-width="400px" prominent
+               class="floating" max-width="400px" prominent outlined text border="left"
                dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
       <v-alert xs6 :value="successMsg && successMsg !== ''" type="success"
-               class="floating" max-width="400px" prominent
+               class="floating" max-width="400px" prominent outlined text border="left"
                dismissible v-model="isSuccessActive">
         {{ successMsg }}
       </v-alert>
       <v-alert xs6 :value="warningMsg && warningMsg !== ''" type="warning"
-               class="floating" max-width="400px" prominent
+               class="floating" max-width="400px" prominent outlined text border="left"
                dismissible v-model="isWarningActive">
         {{ warningMsg }}
       </v-alert>
-    </v-flex>
+    </div>
   </v-layout>
 </template>
 
@@ -84,10 +85,15 @@ export default {
 
 <style scoped>
 
-.floating {
+.msgBox {
+  z-index: 100;
   position: absolute;
   right: 5px;
   top: 5px;
+}
+
+.floating {
+  background-color: white !important;
 }
 
 /* >>> for deep selection, 0 height and width for removing
