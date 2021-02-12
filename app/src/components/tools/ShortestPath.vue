@@ -140,6 +140,9 @@ export default {
       if (this.isLoading || !this.isSearchable) {
         return;
       }
+
+      this.$store.dispatch('resetMsg');
+
       this.transactions = [];
       this.doLookup();
     },
