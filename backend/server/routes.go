@@ -259,8 +259,8 @@ func handlerMeta(dgraph *dgo.Dgraph,
 var lock sync.Mutex
 
 // API pattern: "/api/v1/paths/"
-func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerPaths(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteOrigins()):]
@@ -335,7 +335,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			}
 			csvWriter.Flush()
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
@@ -850,7 +850,11 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
 
 	// Origins
-	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+
+	// Analytics
+	http.Handle(constants.GetRouteOrigins(),
+		Adapt(handlerPaths(dgraph),
+			authorizationMiddleware(constants.GetRouteOrigins(), privkey, pubkey)))
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
