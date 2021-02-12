@@ -2,19 +2,23 @@
   <v-layout>
     <v-flex style="z-index: 100">
       <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info"
-               dense dismissible v-model="isInfoActive">
+               class="floating" max-width="400px" prominent
+               dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
       <v-alert xs6 :value="errorMsg && errorMsg !== '' &&  isValidError(errorMsg)" type="error"
-               dense dismissible v-model="isErrorActive">
+               class="floating" max-width="400px" prominent
+               dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
       <v-alert xs6 :value="successMsg && successMsg !== ''" type="success"
-               dense dismissible v-model="isSuccessActive">
+               class="floating" max-width="400px" prominent
+               dismissible v-model="isSuccessActive">
         {{ successMsg }}
       </v-alert>
       <v-alert xs6 :value="warningMsg && warningMsg !== ''" type="warning"
-               dense dismissible v-model="isWarningActive">
+               class="floating" max-width="400px" prominent
+               dismissible v-model="isWarningActive">
         {{ warningMsg }}
       </v-alert>
     </v-flex>
@@ -79,5 +83,18 @@ export default {
 </script>
 
 <style scoped>
+
+.floating {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+/* >>> for deep selection, 0 height and width for removing
+the border which 'prominent' introduces */
+>>> .v-alert__icon {
+  height: 0 !important;
+  width: 0 !important;
+}
 
 </style>
