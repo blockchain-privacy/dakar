@@ -277,14 +277,15 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 
 	if req.From == req.To {
 		reply.Success = true
-		reply.Msg = "transaction hashes are equal"
+		reply.Msg = "Transaction hashes are equal"
 		return
 	}
 
 	fromBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.From)
 	if err != nil {
 		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
-			reply.Msg = "error transaction" + req.From + " does not exist"
+			reply.Success = true
+			reply.Msg = "Transaction " + req.From + " does not exist"
 			return
 		}
 
@@ -305,10 +306,12 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 		return
 	}
 
+	anyDirection := req.AnyDirection
+
 	if fromBlockId == toBlockId {
-		reply.Success = true
-		reply.Msg = "both transactions are in the same block"
-		return
+		// set anyDirection to true, as the direction can not be calculated from the block ids
+		// and as the transactions are in the same block the query should be very quick
+		anyDirection = true
 	}
 
 	oldTx := req.From
@@ -324,7 +327,7 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 
 	// do shortest transaction path lookup
 	txs, err := transaction.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
-		req.IncludePrivacyTransactions, req.AnyDirection)
+		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		reply.Msg = "error while searching for paths"
 		info(cliutil.ShowCallInfo(), err)
@@ -332,7 +335,7 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 	}
 
 	if len(txs) == 0 {
-		reply.Msg = "no path found"
+		reply.Msg = "No path found"
 	} else {
 		reply.Transactions = txs
 	}
