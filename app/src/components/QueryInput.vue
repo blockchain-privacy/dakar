@@ -84,7 +84,7 @@ export default {
       // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
         if (!this.isValidData(query)) {
-          this.warningMsg = 'Input was not valid!';
+          this.warningMsg = 'Input was not valid';
           return;
         }
 
@@ -142,7 +142,7 @@ export default {
       Utility.resetData(this);
 
       if (!this.isValidData(query)) {
-        this.warningMsg = 'Input was not valid!';
+        this.warningMsg = 'Input was not valid';
         return false;
       }
 

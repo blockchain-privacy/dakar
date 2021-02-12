@@ -2,23 +2,27 @@
   <v-layout>
     <div class="msgBox">
       <v-alert xs6 :value="infoMsg && infoMsg !== ''" type="info"
-               class="message" max-width="400px" prominent outlined text border="left"
+               :class="`msg ${this.$vuetify.theme.dark?'dark-msg':'light-msg'}`"
+               max-width="400px" prominent outlined text border="left"
                dismissible v-model="isInfoActive">
         {{ infoMsg }}
       </v-alert>
 
       <v-alert xs6 :value="errorMsg && errorMsg !== '' &&  isValidError(errorMsg)" type="error"
-               class="message" max-width="400px" prominent outlined text border="left"
+               :class="`msg ${this.$vuetify.theme.dark?'dark-msg':'light-msg'}`"
+               max-width="400px" prominent outlined text border="left"
                dismissible v-model="isErrorActive">
         {{ errorMsg }}
       </v-alert>
       <v-alert xs6 :value="successMsg && successMsg !== ''" type="success"
-               class="message" max-width="400px" prominent outlined text border="left"
+               :class="`msg ${this.$vuetify.theme.dark?'dark-msg':'light-msg'}`"
+               max-width="400px" prominent outlined text border="left"
                dismissible v-model="isSuccessActive">
         {{ successMsg }}
       </v-alert>
       <v-alert xs6 :value="warningMsg && warningMsg !== ''" type="warning"
-               class="message" max-width="400px" prominent outlined text border="left"
+               :class="`msg ${this.$vuetify.theme.dark?'dark-msg':'light-msg'}`"
+               max-width="400px" prominent outlined text border="left"
                dismissible v-model="isWarningActive">
         {{ warningMsg }}
       </v-alert>
@@ -92,10 +96,18 @@ export default {
   top: 5px;
 }
 
-.message {
-  background-color: white !important;
+.msg {
+
   box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2),
   0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+}
+
+.dark-msg {
+  background-color: black !important;
+}
+
+.light-msg {
+  background-color: white !important;
 }
 
 /* >>> for deep selection, 0 height and width for removing
