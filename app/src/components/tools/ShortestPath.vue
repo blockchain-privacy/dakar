@@ -1,7 +1,7 @@
 <template>
   <v-card
       class="mx-auto elevation-12"
-      max-width="900">
+      max-width="1000">
     <v-toolbar color="primary" dark flat>
       <v-toolbar-title>
         <v-icon>{{ icon.mdiChartTimelineVariant }}</v-icon>
@@ -17,36 +17,71 @@
           </v-icon>
         </v-hover>
         <v-tooltip right activator="#shortest_path_tooltip">
-          <span>The result is nondeterministic, because multiple shortest paths can exist.</span>
+          <span>The result is nondeterministic,
+            because multiple paths of the same length can exist.</span>
         </v-tooltip>
       </div>
       <v-row>
         <v-col>
-          <v-text-field label="From"/>
+          <v-text-field label="From" v-model="fromTransaction" :disabled="isLoading"/>
         </v-col>
         <v-col>
-          <v-text-field label="To"/>
+          <v-text-field label="To" v-model="toTransaction" :disabled="isLoading"/>
         </v-col>
       </v-row>
       <v-row>
+        <v-col>
+          <v-radio-group
+              v-model="anyDirection"
+              mandatory
+              row
+              label="Search direction:"
+              :disabled="isLoading">
+            <v-radio label="Any" :value="true"/>
+            <v-radio label="Linear" :value="false"/>
+          </v-radio-group>
+        </v-col>
+        <v-col>
+          <v-switch
+              label="Include private transactions"
+              class="mx-5"
+              :disabled="isLoading"
+              v-model="includePrivacyTransactions"
+          />
+        </v-col>
         <v-col class="d-flex justify-end align-center">
-          <v-switch label="Include private transactions" class="mx-5"/>
-          <v-btn color="primary">
+          <v-btn
+              color="primary"
+              :disabled="!isSearchable"
+              :loading="isLoading"
+              @click="handleSearch">
             Search
           </v-btn>
         </v-col>
       </v-row>
-      <v-timeline :dense="this.$vuetify.breakpoint.smAndDown">
-        <v-timeline-item v-for="(tx, i) in transactions" :key="i" small>
-          <template v-slot:opposite><span class="headline" v-text="tx.year"></span></template>
-          <div class="py-4">
-            <div class="text-h5 font-weight-bold mb-4">{{ tx.hash }}</div>
-            <div>
-              Lorem ipsum dolor sit amet, no nam oblique veritus. Commune scaevola
-              imperdiet nec ut, sed euismod convenire principes at. Est et nobis iisque
-              percipit, an vim zril disputando voluptatibus, vix an salutandi sententiae.
-            </div>
-          </div>
+      <v-divider class="my-3" v-if="this.transactions.length > 0"/>
+      <v-timeline :dense="this.$vuetify.breakpoint.smAndDown" v-if="this.transactions.length > 0">
+        <v-timeline-item
+            v-for="(tx) in transactions" :key="tx.txhash"
+            :color="tx.privacytype?'purple':'primary'"
+            small>
+          <template v-slot:opposite>
+            <span class="headline" v-text="new Date(tx.bts).toLocaleString()"></span>
+          </template>
+          <v-card outlined>
+            <v-toolbar :color="tx.privacytype?'purple':''" :dark="!!tx.privacytype" flat>
+              <v-toolbar-title>
+                {{ shortenHash(tx.txhash) }}
+              </v-toolbar-title>
+            </v-toolbar>
+            <v-card-text>
+              Privacytype: {{ tx.privacytype }}
+              <br/>
+              Blockhash: {{ shortenHash(tx.bhash) }}
+              <br/>
+              Block Id: {{ tx.bid }}
+            </v-card-text>
+          </v-card>
         </v-timeline-item>
       </v-timeline>
     </v-card-text>
@@ -57,7 +92,8 @@
 import {
   mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
 } from '@mdi/js';
-import { PAGE_TITLE } from '../../constants';
+import { doPost, handleError, shortenHash } from '../../utilities';
+import { PAGE_TITLE, ROUTE_SHORTEST_TRANSACTION_PATH } from '../../constants';
 
 export default {
   name: 'ShortestPath',
@@ -66,29 +102,77 @@ export default {
       icon: {
         mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
       },
-      transactions: [
-        {
-          hash: 'a84676b18321c62ed3aad252a667c62c3afa89c6ff07a464eccb22bba7005d31',
-          year: '01/02/2021, 22:03:08 ',
-        },
-        {
-          hash: '307e4d59d205e8ffa158715d3b9975fd4a6381c86d4ce64b210a0f3c517bfd9c',
-          year: '01/02/2021, 22:03:08 ',
-        },
-        {
-          hash: 'bb6c491addbb8f1414a81c991684cf6a160e3ac59432341a00d76e50aefe600a',
-          year: '01/02/2021, 22:03:08 ',
-        },
-        {
-          hash: '6e8da7f496b02086f6da34ea50fe35d3dd181972cb8f9f8b5e07a4565b5759c6',
-          year: '01/02/2021, 22:03:08 ',
-        },
-        {
-          hash: 'b700aa661deb845b1659687f92b36f4591d9bbce7a80ef76c934d3cb151ebfa2',
-          year: '01/02/2021, 22:03:08 ',
-        },
-      ],
+      // v-model
+      fromTransaction: '',
+      toTransaction: '',
+      includePrivacyTransactions: true,
+      anyDirection: true,
+      isLoading: false,
+      transactions: [],
     };
+  },
+  computed: {
+    errMsg: {
+      get() {
+        return this.$store.getters.getErrorMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setErrorMsg', value);
+      },
+    },
+    infoMsg: {
+      get() {
+        return this.$store.getters.getInfoMsg;
+      },
+      set(value) {
+        this.$store.dispatch('setInfoMsg', value);
+      },
+    },
+    isSearchable() {
+      return this.toTransaction && this.fromTransaction
+          && this.toTransaction.trim().length > 0 && this.fromTransaction.trim().length > 0
+          && this.toTransaction !== this.fromTransaction;
+    },
+  },
+  methods: {
+    shortenHash,
+    handleSearch() {
+      if (this.isLoading || !this.isSearchable) {
+        return;
+      }
+      this.transactions = [];
+      this.doLookup();
+    },
+    doLookup() {
+      this.isLoading = true;
+      doPost(ROUTE_SHORTEST_TRANSACTION_PATH, this.$router, {
+        to: this.fromTransaction.trim(),
+        from: this.toTransaction.trim(),
+        includePrivacyTransactions: this.includePrivacyTransactions,
+        anyDirection: this.anyDirection,
+      })
+        .then((data) => {
+          if (data.success === undefined) throw Error('error searching for paths');
+          if (data.success === false) throw new Error(data.msg);
+          if (data.success === true && data.msg !== undefined) {
+            this.infoMsg = data.msg;
+          }
+
+          if (data.transactions && data.transactions.length > 0) {
+            if (this.fromTransaction.trim() !== data.transactions[0].txhash) {
+              data.transactions = data.transactions.reverse();
+            }
+
+            this.transactions = data.transactions;
+          }
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
   },
   mounted() {
     document.title = `Shortest Path - ${PAGE_TITLE}`;
