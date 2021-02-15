@@ -102,15 +102,13 @@
                     min-height="50"
                     class="fill-height"
                     color="transparent">
-                  <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
-                    <v-row>
-                      <v-col
-                          v-for="(o,index) in this.data.addr_outputs"
-                          v-bind:key="o.input_transaction + o.output_transaction + o.amount">
-                        <OutputComponent :address="o" :index="index"/>
-                      </v-col>
-                    </v-row>
-                  </v-lazy>
+                  <v-row>
+                    <v-col
+                        v-for="(o,index) in this.data.addr_outputs"
+                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                      <OutputComponent :address="o" :index="index"/>
+                    </v-col>
+                  </v-row>
                 </v-sheet>
                 <v-row v-if="this.emptyResponse">
                   <v-col align="center" justify="center">
