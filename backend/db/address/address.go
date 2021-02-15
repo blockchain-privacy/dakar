@@ -174,8 +174,10 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return
 	}
 
-	if len(r.Outputs) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
+	// not checking the length of r.Outputs, as for certain filters the number of outputs can be 0
+	// instead check for the calculated output count
+	if r.OutputCount[0].Count == 0 {
+		err = ErrorAddressNotFound
 		return
 	}
 
