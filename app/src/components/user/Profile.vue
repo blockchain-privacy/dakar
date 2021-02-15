@@ -210,7 +210,7 @@ export default {
     },
     saveEmailForm() {
       if (!this.validateEmailForm()) return;
-      this.$store.dispatch('resetMsg');
+      this.$store.dispatch('resetMessages');
 
       doPost(ROUTE_USER_MODIFY, this.$router, {
         uid: this.userData.uid,
@@ -250,7 +250,7 @@ export default {
     },
     savePasswordForm() {
       if (!this.validatePasswordForm()) return;
-      this.$store.dispatch('resetMsg');
+      this.$store.dispatch('resetMessages');
 
       doPost(ROUTE_USER_MODIFY, this.$router, {
         uid: this.userData.uid,

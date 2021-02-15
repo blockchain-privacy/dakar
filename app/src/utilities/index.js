@@ -8,7 +8,7 @@ import {
 } from '../constants';
 
 export function resetData(context) {
-  context.$store.dispatch('resetMsg');
+  context.$store.dispatch('resetMessages');
   context.$store.dispatch('setBlockData', null);
   context.$store.dispatch('setTransactionData', null);
   context.$store.dispatch('setAddressData', null);
@@ -129,7 +129,7 @@ export function handleError(context, error) {
     errMsg = `Error getting data: ${error}`;
   }
 
-  context.dispatch('setErrorMsg', errMsg);
+  context.dispatch('addMessage', { text: errMsg, type: 'error', temporary: false });
 }
 
 export const emailRules = [

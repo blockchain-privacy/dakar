@@ -85,7 +85,7 @@ import {
   mdiCog, mdiToolbox,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
-import MsgBox from './components/MsgBox.vue';
+import MsgBox from './components/notification/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
 import {
@@ -140,14 +140,6 @@ export default {
         this.$store.dispatch('setSettings', value);
       },
     },
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
     showUserAdmin() {
       return isAdminUser(this.userData);
     },
@@ -156,6 +148,9 @@ export default {
     },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     // goToPage should receive a page name from ./constants
     goToPage(pageName) {
       // only change route if not already on page
@@ -174,7 +169,7 @@ export default {
           this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
     },
     persistDarkTheme(isDark) {

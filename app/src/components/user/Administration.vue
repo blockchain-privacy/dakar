@@ -220,14 +220,6 @@ export default {
         this.$store.dispatch('setUserList', value);
       },
     },
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
   },
   watch: {
     dialog(val) {
@@ -235,6 +227,9 @@ export default {
     },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     async refreshUsers() {
       this.isLoading = true;
       await this.$store.dispatch('updateUserList');
@@ -277,7 +272,7 @@ export default {
           this.refreshUsers();
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         })
         .finally(() => {
           this.isLoading = false;
@@ -333,7 +328,7 @@ export default {
             this.refreshUsers();
           })
           .catch((error) => {
-            this.errMsg = error;
+            this.setErrorMessage(error);
           })
           .finally(() => {
             this.isLoading = false;

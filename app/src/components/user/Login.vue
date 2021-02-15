@@ -128,16 +128,11 @@ export default {
         this.$store.dispatch('setSettings', value);
       },
     },
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     validateLoginForm() {
       return this.$refs.loginForm.validate();
     },
@@ -172,7 +167,7 @@ export default {
           goToRoot(this);
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
           this.loginFailed = true;
         })
         .finally(() => {

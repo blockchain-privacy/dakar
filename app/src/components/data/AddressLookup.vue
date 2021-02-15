@@ -207,7 +207,7 @@ export default {
         this.addressHash)
         .then((data) => {
           this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
-          this.$store.dispatch('resetMsg');
+          this.$store.dispatch('resetMessages');
         })
         .catch((e) => {
           handleError(this.$store, e);
@@ -276,7 +276,7 @@ export default {
         this.addressHash)
         .then((data) => {
           this.data = data.payload;
-          this.$store.dispatch('resetMsg');
+          this.$store.dispatch('resetMessages');
         })
         .catch((e) => {
           handleError(this.$store, e);

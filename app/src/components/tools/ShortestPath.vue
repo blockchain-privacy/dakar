@@ -112,22 +112,6 @@ export default {
     };
   },
   computed: {
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
-    infoMsg: {
-      get() {
-        return this.$store.getters.getInfoMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setInfoMsg', value);
-      },
-    },
     isSearchable() {
       return this.toTransaction && this.fromTransaction
           && this.toTransaction.trim().length > 0 && this.fromTransaction.trim().length > 0
@@ -136,12 +120,15 @@ export default {
   },
   methods: {
     shortenHash,
+    setInfoMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
+    },
     handleSearch() {
       if (this.isLoading || !this.isSearchable) {
         return;
       }
 
-      this.$store.dispatch('resetMsg');
+      this.$store.dispatch('resetMessages');
 
       this.transactions = [];
       this.doLookup();
@@ -158,7 +145,7 @@ export default {
           if (data.success === undefined) throw Error('error searching for paths');
           if (data.success === false) throw new Error(data.msg);
           if (data.success === true && data.msg !== undefined) {
-            this.infoMsg = data.msg;
+            this.setInfoMessage(data.msg);
           }
 
           if (data.transactions && data.transactions.length > 0) {

@@ -388,6 +388,9 @@ export default {
     },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
       if (heuristic.parameter) {
@@ -476,7 +479,7 @@ export default {
           this.startActiveTimer();
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
     },
     setExecutionStatus(status) {
@@ -639,10 +642,10 @@ export default {
       document.title = `Heuristic ${this.transactionHash}`;
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
-        this.errMsg = 'error setting heuristic click handler';
+        this.setErrorMessage('error setting heuristic click handler');
       }
       if (!ht.setContextMenuCallback(this.showContextMenu)) {
-        this.errMsg = 'error setting context menu handler';
+        this.setErrorMessage('error setting context menu handler');
       }
 
       ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
@@ -668,7 +671,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
     },
     startDormantTimer() {
