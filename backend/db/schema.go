@@ -40,7 +40,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			privacytype: string @index(hash) .
 			isrlookupdone: bool @index(bool) .
 			keyasm: string @index(term) .
-			sigasm: string @index(term) .
+			sigasm: string .
 			keyhex: string .
 			sighex: string .
 
@@ -192,7 +192,7 @@ func AlterSchemaAddScripts(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			keyasm: string @index(term) .
-			sigasm: string @index(term) .
+			sigasm: string .
 			keyhex: string .
 			sighex: string .
 
@@ -211,5 +211,11 @@ func AlterSchemaAddScripts(c *dgo.Dgraph) error {
 				<~addr_outputs>
 			}
 		`,
+	})
+}
+
+func AlterSchemaRemoveScript(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "script",
 	})
 }
