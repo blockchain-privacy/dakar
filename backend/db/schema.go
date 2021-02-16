@@ -40,7 +40,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			privacytype: string @index(hash) .
 			isrlookupdone: bool @index(bool) .
 			keyasm: string @index(term) .
-			sigasm: string @index(term) .
+			sigasm: string .
 			keyhex: string .
 			sighex: string .
 
@@ -194,7 +194,7 @@ func AlterSchemaAddScripts(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			keyasm: string @index(term) .
-			sigasm: string @index(term) .
+			sigasm: string .
 			keyhex: string .
 			sighex: string .
 
@@ -216,19 +216,8 @@ func AlterSchemaAddScripts(c *dgo.Dgraph) error {
 	})
 }
 
-func AlterSchemaAddUserHeuristics(c *dgo.Dgraph) error {
+func AlterSchemaRemoveScript(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			user_heuristics: [uid] @reverse .
-
-			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-				user_heuristics
-			}
-		`,
+		DropAttr: "script",
 	})
 }

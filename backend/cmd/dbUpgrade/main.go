@@ -82,12 +82,19 @@ func main() {
 	}
 	info("lookupdoneflag migration done")
 
-	info("scripts migration starting ...")
+	info("removing old script predicate ...")
+	if err := db.AlterSchemaRemoveScript(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("removing old script predicate done")
+
+	info("adding new script preditate starting ...")
 	if err := db.AlterSchemaAddScripts(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("scripts migration done")
+	info("adding new script preditate  done")
 
 	info("user heuristics migration starting ...")
 	if err := db.AlterSchemaAddUserHeuristics(dgraph); err != nil {
