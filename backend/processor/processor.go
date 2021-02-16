@@ -7,6 +7,7 @@ import (
 	dbop "backend/db/output"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	"io"
 
 	"context"
 	"encoding/hex"
@@ -26,10 +27,18 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
+// loggerPrefix is the prefix which is printed for each log message
+const loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
+
+var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	thisLogger = log.New(out, loggerPrefix, flag)
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;35mprocess\u001B[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	thisLogger.Println(v)
 }
 
 var (

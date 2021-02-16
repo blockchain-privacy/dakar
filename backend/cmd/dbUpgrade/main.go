@@ -8,10 +8,14 @@ import (
 	"log"
 )
 
+var thisLogger *log.Logger
+
+func initLogger() {
+	thisLogger = log.New(log.Writer(), "\033[0;31mdbup\033[0m\t", log.Flags())
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;31mdbup\033[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	thisLogger.Println(v)
 }
 
 // setup cli
@@ -37,7 +41,7 @@ func main() {
 
 	// setup Logging
 	if len(cliArgs.Logfile) > 0 {
-		if f, err := cli.GetLogfile(cliArgs.Logfile); err != nil {
+		if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
 			defer func() {
 				if err = f.Close(); err != nil {
 					fmt.Println(err)
@@ -45,6 +49,8 @@ func main() {
 			}()
 		}
 	}
+
+	initLogger()
 
 	// create dgraph client
 	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
@@ -69,7 +75,7 @@ func main() {
 		return
 	}
 
-	if err := db.AlterSchemaAddUsers(dgraph); err != nil {
+	if err := db.AlterSchemaAddReverseLookupDoneFlag(dgraph); err != nil {
 		info(err)
 		return
 	}

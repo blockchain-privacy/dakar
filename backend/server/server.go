@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -14,15 +15,22 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-func serverInfo(v ...interface{}) {
-	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Println(v...)
-	log.SetPrefix("")
+// loggerPrefix is the prefix which is printed for each log message
+const loggerPrefix = "\033[0;34mserver\u001B[0m\t"
+
+var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	thisLogger = log.New(out, loggerPrefix, flag)
 }
 
-func serverFatal(v ...interface{}) {
-	log.SetPrefix("\033[0;34mserver\u001B[0m\t")
-	log.Fatalln(v...)
+func info(v ...interface{}) {
+	thisLogger.Println(v...)
+}
+
+func fatal(v ...interface{}) {
+	thisLogger.Fatalln(v...)
 }
 
 type Server struct {
@@ -44,12 +52,12 @@ func CreateServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpc
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			serverFatal("server error:", err)
+			fatal("server error:", err)
 		}
 		wg.Done()
 	}()
 
-	serverInfo(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
+	info(fmt.Sprintf("Starting server at endpoint http://localhost%s", srv.Addr))
 
 	return Server{server: srv, context: ctx, cancel: cancelFunc}
 }
@@ -59,7 +67,7 @@ func (s *Server) ShutdownServer() {
 	if s.server == nil {
 		return
 	}
-	serverInfo("### Shutting down server###")
+	info("### Shutting down server###")
 
 	s.cancel()
 
@@ -70,6 +78,6 @@ func (s *Server) ShutdownServer() {
 	}()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		serverInfo("Server Shutdown Failed:", err)
+		info("Server Shutdown Failed:", err)
 	}
 }

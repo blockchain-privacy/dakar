@@ -32,7 +32,7 @@ func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply backendUserReply) 
 
 		// only log error if not expected
 		if !errors.Is(dbus.ErrorUsersNotFound, getErr) {
-			serverInfo(cliutil.ShowCallInfo(), getErr)
+			info(cliutil.ShowCallInfo(), getErr)
 		}
 		return
 	}
@@ -83,12 +83,12 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 			reply.Msg = "duplicate e-mail"
 		} else {
 			reply.Msg = "could not create user"
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 		return
 	}
 
-	serverInfo("Generated password(", u.Email, "):", pw)
+	info("Generated password(", u.Email, "):", pw)
 	reply.Success = true
 
 	return

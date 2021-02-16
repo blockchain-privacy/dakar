@@ -70,7 +70,7 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeu
 			}
 		} else {
 			var err error
-			results, err = dbtxh.GetOrigins(dgraph, txHash)
+			results, err = dbtxh.GetDestinationTxOrigins(dgraph, txHash)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

@@ -396,7 +396,7 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 	return
 }
 
-// Returns all origins which are created after the specified date
+// GetOriginsByDate returns all origins which are created after the specified date
 func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uid: string,$ts: string){
 				var (func: uid($uid))@cascade{
@@ -458,74 +458,26 @@ func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []He
 	return
 }
 
-// GetOriginsByUid searches for the transaction by uid and returns all found origins.
-func GetOriginsByUid(c *dgo.Dgraph, uid string) (origins []HeuristicTransaction, err error) {
-	query := `query Q($uid: string){
-				var (func: uid($uid)){
-					v as origins
-				}
-				
-				q(func: uid(v)){
-					uid
-					tx_outputs{
-						amount
-					}
-					tx_inputs@normalize{
-						~addr_outputs{
-							addresshash:addresshash
+// GetDestinationTxOrigins collects all previously found origins of the
+// direct input transactions of the given destination transaction
+func GetDestinationTxOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($txhash: string){
+				tx as var (func: eq(txhash,$txhash))
+				var (func: uid(tx)){
+					tx_inputs {
+						~tx_outputs {
+							v as origins
 						}
 					}
 				}
-			   }`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Origins []queryHeuristicTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, o := range r.Origins {
-		if len(o.Inputs) != 1 {
-			var addresses []string
-			for _, a := range o.Inputs {
-				addresses = append(addresses, a.AddressHash)
-			}
-
-			if !areALLAddressesEqual(addresses) {
-				err = errors.New("error invalid response")
-				return
-			}
-		}
-		origins = append(origins, HeuristicTransaction{
-			Uid:     o.Uid,
-			Address: o.Inputs[0].AddressHash,
-			Outputs: o.Outputs,
-		})
-	}
-
-	return
-}
-
-// GetOrigins searches for the transaction by transaction hash and returns all found origins.
-func GetOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, err error) {
-	query := `query Q($txhash: string){
-				var (func: eq(txhash,$txhash)){
-					v as origins
+				var (func: uid(tx)){
+					tx_inputs {
+						c as ~tx_outputs@filter(eq(privacytype, "origin"))
+					}
 				}
 				
-				q(func: uid(v)){
+				q(func: uid(v,c)){
 					uid
 					tx_outputs{
 						amount

@@ -275,7 +275,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		originCount, err := dban.GetOriginCount(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorPath, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -289,7 +289,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		paths, transactions, err := dban.GetPaths(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorPath, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 		lock.Unlock()
@@ -310,7 +310,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 		header := []string{"path id", "path step", "tx hash", "type", "block hash", "block height", "timestamp"}
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 
 		for i, p := range paths {
@@ -332,7 +332,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 				row = append(row, tx.BlockTimestamp)
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-					serverInfo(cliutil.ShowCallInfo(), err)
+					info(cliutil.ShowCallInfo(), err)
 				}
 			}
 			csvWriter.Flush()
@@ -399,7 +399,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 		//	"origin address hash", "origin shortest path"}
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 
 		for _, h := range cHeuristic.Heuristics {
@@ -436,7 +436,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-					serverInfo(cliutil.ShowCallInfo(), err)
+					info(cliutil.ShowCallInfo(), err)
 				}
 			}
 			csvWriter.Flush()
@@ -459,7 +459,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 		heuristics, err := dbtxh.GetBasicFrontendHeuristic(dgraph, txHashString)
 		if err != nil {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -472,7 +472,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 		err = json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
@@ -497,7 +497,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 		err := json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
@@ -524,7 +524,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		err := decoder.Decode(&heuristicRequest)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -536,7 +536,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -544,7 +544,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		err = json.NewEncoder(w).Encode(frontendHeuristic)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
@@ -568,10 +568,10 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			err := json.NewEncoder(w).Encode(resp)
 			if err != nil {
 				http.Error(w, "encoding error", http.StatusInternalServerError)
-				serverInfo(cliutil.ShowCallInfo(), err)
+				info(cliutil.ShowCallInfo(), err)
 			}
 
-			serverInfo(cliutil.ShowCallInfo(), "heuristic already in queue")
+			info(cliutil.ShowCallInfo(), "heuristic already in queue")
 			return
 		}
 
@@ -586,7 +586,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 		err := decoder.Decode(&heuristicRequest)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -599,7 +599,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			heuristicRequest.Deleted)
 		if err != nil {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
@@ -615,7 +615,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 		err = json.NewEncoder(w).Encode(resp)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
@@ -630,7 +630,7 @@ func handlerCreateUser(dgraph *dgo.Dgraph) http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), err)
+			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
@@ -649,7 +649,7 @@ func handlerGetUsers(dgraph *dgo.Dgraph) http.Handler {
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(users); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -663,7 +663,7 @@ func handlerLogout() http.Handler {
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(userReply{Success: true}); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -682,13 +682,13 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 		if err := dbus.DeleteUser(dgraph, userUid); err != nil {
 			reply.Success = false
 			reply.Msg = "could not delete user"
-			serverInfo(err)
+			info(err)
 		}
 
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -705,7 +705,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), privateSigningKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
-				serverInfo(cliutil.ShowCallInfo(), err)
+				info(cliutil.ShowCallInfo(), err)
 				return
 			}
 			setTokenAsCookie(w, token, expirationTime)
@@ -716,7 +716,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -755,7 +755,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	// if user ids does not match, check if this is a request from an admin user
 	if modRequest.Uid != tUser.Id && !isAdmin {
 		reply.Msg = "user ids do not match"
-		serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
+		info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
 		return
 	}
 
@@ -769,7 +769,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
 		if err != nil {
 			reply.Msg = "error modifying user"
-			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
 
@@ -790,12 +790,12 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 		if err != nil {
 			if !errors.Is(dbus.ErrorUsersNotFound, err) {
 				reply.Msg = "invalid email"
-				serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+				info(cliutil.ShowCallInfo(), err, modRequest)
 				return
 			}
 		} else if emailUser.Uid != modRequest.Uid {
 			reply.Msg = "duplicate email"
-			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
 	}
@@ -820,21 +820,21 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	if len(modRequest.Roles) > 0 {
 		if !isAdmin {
 			reply.Msg = "user can not change its roles"
-			serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
+			info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
 			return
 		}
 		// check if all roles exists
 		for _, r := range modRequest.Roles {
 			if _, err := user.GetRoleByName(r.Name); err != nil {
 				reply.Msg = "invalid role"
-				serverInfo(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
+				info(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
 				return
 			}
 		}
 		// delete existing roles if new roles are set
 		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
 			reply.Msg = "error modifying user"
-			serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
 	}
@@ -842,7 +842,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	// modify user
 	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
 
@@ -850,7 +850,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
 	if err != nil {
 		reply.Msg = "error modifying user"
-		serverInfo(cliutil.ShowCallInfo(), err, modRequest)
+		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
 
@@ -882,7 +882,7 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			serverInfo(cliutil.ShowCallInfo(), encodingErr)
+			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -909,7 +909,6 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 		value, found := cache.Get(cacheKey)
 		var buf []byte
 		if found {
-			serverInfo("cachekey", cacheKey)
 			buf = value.([]byte)
 		} else {
 			var handlerErr error
@@ -959,20 +958,26 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	// Search
 	http.HandleFunc(constants.GetRouteSearch(),
 		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+
 	// Common data
-	http.HandleFunc(constants.GetRouteBlock(),
-		cacheMiddleware(cache, constants.GetRouteBlock(), time.Second*0, handlerDetails(dgraph, GetBlock)))
 	http.HandleFunc(constants.GetRouteTransaction(),
 		cacheMiddleware(cache, constants.GetRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
+	// setting block cache time to 10 Minutes because blocks at
+	// the tip get updated via adding the 'next block' reference
+	http.HandleFunc(constants.GetRouteBlock(),
+		cacheMiddleware(cache, constants.GetRouteBlock(), time.Minute*10, handlerDetails(dgraph, GetBlock)))
 	http.HandleFunc(constants.GetRouteAddress(),
 		cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
 	http.HandleFunc(constants.GetRouteAddressOutputRange(),
 		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+
 	// Meta
 	http.HandleFunc(constants.GetRouteMeta(),
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
+
 	// Origins
 	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
 		Adapt(handlerHeuristics(dgraph, &worker),

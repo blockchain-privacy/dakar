@@ -29,7 +29,7 @@ func writeUnauthorized(w http.ResponseWriter, msg string) {
 
 	w.WriteHeader(http.StatusUnauthorized)
 	if _, writeErr := w.Write([]byte(msg)); writeErr != nil {
-		serverInfo(writeErr)
+		info(writeErr)
 	}
 }
 
@@ -38,7 +38,7 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	setDefaultHeader(w)
 	if _, err := w.Write([]byte(`{"invalidToken": true}`)); err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		serverInfo(cliutil.ShowCallInfo(), err)
+		info(cliutil.ShowCallInfo(), err)
 	}
 }
 
@@ -66,14 +66,14 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 			userFromToken := token.Get(tokenFieldUser)
 			if len(userFromToken) == 0 {
 				sendRedirectMessage(w)
-				serverInfo(cliutil.ShowCallInfo(), "user id field not found in token")
+				info(cliutil.ShowCallInfo(), "user id field not found in token")
 				return
 			}
 
 			var newUser tokenUser
 			if jsonErr := json.Unmarshal([]byte(userFromToken), &newUser); jsonErr != nil {
 				writeUnauthorized(w, "")
-				serverInfo(cliutil.ShowCallInfo(), "user id field not found in token")
+				info(cliutil.ShowCallInfo(), "user id field not found in token")
 				return
 			}
 
@@ -83,7 +83,7 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 				routeRole, roleErr := user.GetRoleByName(uRole.Name)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
-					serverInfo(cliutil.ShowCallInfo(), roleErr)
+					info(cliutil.ShowCallInfo(), roleErr)
 					return
 				}
 
@@ -95,14 +95,14 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 
 			if !routeAllowed {
 				writeUnauthorized(w, "route not allowed")
-				serverInfo(cliutil.ShowCallInfo(), newUser.Id, "tried to access", route)
+				info(cliutil.ShowCallInfo(), newUser.Id, "tried to access", route)
 				return
 			}
 
 			if timeUntilTokenExpires <= reissueDuration {
 				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState(), privkey); tokenErr != nil {
 					sendRedirectMessage(w)
-					serverInfo(cliutil.ShowCallInfo(), tokenErr)
+					info(cliutil.ShowCallInfo(), tokenErr)
 					return
 				}
 			}

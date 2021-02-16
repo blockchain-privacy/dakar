@@ -11,26 +11,41 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
+	"io"
 	"log"
 	"time"
 )
 
-// block id after which we start analysing. found empirically.
-const analyseStartBlock = 206940
-const batchSize = 10
+const (
+	// analyseStartBlock is the block id after which we start analysing. found empirically.
+	analyseStartBlock = 206940
+
+	// analyticsLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
+	analyticsLoggerPrefix = "\033[0;32manalyse\u001B[0m\t"
+	// metricsLoggerPrefix is the prefix which is printed for each log message of metricLogger
+	metricsLoggerPrefix = "metric\t"
+
+	// mutationBatchSize is the maximum size of origin batches created by the reverseLookup
+	mutationBatchSize = 1000
+)
 
 var errorInterrupted = errors.New("interrupted")
 
+var analyticsLogger = log.New(log.Writer(), analyticsLoggerPrefix, log.Flags())
+var metricLogger = log.New(log.Writer(), metricsLoggerPrefix, log.Flags())
+
+// InitLogger creates new loggers with the given parameters.
+func InitLogger(out io.Writer, flag int) {
+	analyticsLogger = log.New(out, analyticsLoggerPrefix, flag)
+	metricLogger = log.New(out, metricsLoggerPrefix, flag)
+}
+
 func info(v ...interface{}) {
-	log.SetPrefix("\033[0;32manalyse\u001B[0m\t")
-	log.Println(v)
-	log.SetPrefix("")
+	analyticsLogger.Println(v)
 }
 
 func metric(v ...interface{}) {
-	log.SetPrefix("metric\t")
-	log.Println(v)
-	log.SetPrefix("")
+	metricLogger.Println(v)
 }
 
 // holds the current state of the analyzing processing loop
@@ -63,7 +78,10 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
 	return
 }
 
-func StartPost(ctx context.Context, dgraph *dgo.Dgraph) error {
+// StartAnalysis starts the analysis of transactions in the database.
+// It entails setting the privacy type for each transaction and performing
+// a reverse transactions lookup to find all origins of destination transactions.
+func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph) error {
 	if err := dbstat.SetAnalyzing(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -152,24 +170,32 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
+		wasInterrupted := false
 		if len(updatedBlock.Transactions) > 0 {
 			// update the block in the database
-			// after that function call the privacy type of all transaction is set
+			// after that function call the privacy type of all transactions is set
 			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			if err := processPartialIRTL(dgraph, updatedBlock); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			originCount, err := blockReverseLookup(ctx, dgraph, updatedBlock.Uid)
+			if err != nil {
+				if errors.Is(err, errorInterrupted) {
+					wasInterrupted = true
+				} else {
+					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				}
 			}
-
-			//if err := processIRTL(dgraph, updatedBlock); err != nil {
-			//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			//}
+			if originCount > 0 {
+				info("Block", *currentBlock.Id, "origin count", originCount)
+			}
 		}
 
-		if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		// only set last analysed flag if processes before were not interrupted
+		if !wasInterrupted {
+			if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
 		}
 
 		state.id++
@@ -184,115 +210,103 @@ mainLoop:
 	return nil
 }
 
+// analyzingInterrupted should be called when the analyser has been interrupted.
 func analyzingInterrupted() {
 	info("Stopped")
 }
 
-func filterInputUnconfirmedInputTransactions(transactions map[string]map[string]bool,
-	processedTransactions map[string]bool) (confirmed map[string]bool) {
-	confirmed = make(map[string]bool)
+// reverseLookup performs for all destinationInputTransactions a reverse lookup.
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+// reverseLookup process:
+// 1. Starting from a transaction traverse all connected mixing transactions
+// 2. Find all origin transaction which are directly connected to each mixing transaction and the
+//    initial transaction
+// 3. If the resulting number of origins is less than dban.SameRequestMutationLimit set the origins to the
+//    initial transaction in the same query
+// 4. If the resulting number of origins is bigger or equal to dban.SameRequestMutationLimit  set the origins
+//    in batches of mutationBatchSize.
+func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
+	var insertedOrigins int64
 
-	for k, v := range transactions {
-
-		// do not check already processed transaction
-		if processedTransactions[k] {
-			continue
+	for _, t := range destinationInputTransactions {
+		select {
+		case <-ctx.Done():
+			info("Stopping reverseLookup ...")
+			return insertedOrigins, errorInterrupted
+		default:
+			// we do nothing
 		}
-		found := false
-		for t := range v {
-			if _, ok := transactions[t]; ok && !processedTransactions[t] {
-				found = true
-				break
+
+		// get origins
+		timeNow := time.Now()
+		origins, err := dban.AnalyzeOrigins(dgraph, t)
+		if err != nil {
+			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		queryTime := time.Since(timeNow)
+		var mutationTime time.Duration
+
+		// only set origins if not already done by previous function
+		if len(origins) >= dban.SameRequestMutationLimit {
+			// set origins
+			timeNow = time.Now()
+			isDone := false
+			for i := 0; i < len(origins); i += mutationBatchSize {
+				batch := origins[i:min(i+mutationBatchSize, len(origins))]
+
+				// set flag to mark transaction as fully analysed
+				if i+mutationBatchSize >= len(origins) {
+					isDone = true
+				}
+
+				if err := dban.SetOrigins(dgraph, t, batch, isDone); err != nil {
+					return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				}
 			}
 
+			// metrics
+			mutationTime = time.Since(timeNow)
 		}
 
-		if !found {
-			confirmed[k] = true
-		}
+		info("analyzing", t, "origin count:", len(origins), "query time:", queryTime,
+			"mutation time:", mutationTime, "full time:", queryTime+mutationTime)
+
+		insertedOrigins += int64(len(origins))
 	}
 
-	return
+	return insertedOrigins, nil
 }
 
-func processPartialIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
-	destinationTransactions := make(map[string]bool)
-
-	for _, t := range block.Transactions {
-		if t.PrivacyType != dbtx.PrivacyDestination {
-			continue
-		}
-
-		//inputTransactions, err := dban.GetNotAnalyzedInputTransactions(dgraph, t.Uid)
-		//if err != nil {
-		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
-
-		// todo: refactor into one function call per destination transaction (build query and so on)
-		//for _, i := range inputTransactions {
-		//	if err := dban.AnalyzeAndSetOrigins(dgraph, i); err != nil {
-		//		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//	}
-		//}
-
-		//if err := dban.PartialReverseLookup(dgraph, inputTransactions); err != nil {
-		//	return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
-
-		destinationTransactions[t.Uid] = true
-	}
-
-	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, block.Uid)
+// blockReverseLookup performs a reverse lookup for all input transactions of destination transactions included in the block
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+func blockReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, blockUid string) (int64, error) {
+	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerBlock(dgraph, blockUid)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	num, err := reverseLookup(ctx, dgraph, inputTransactions)
+	if err != nil {
+		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+
 	}
 
-	// splitting into smaller batches so dgraph does not use too much memory
-	for i := 0; i < len(inputTransactions); i += batchSize {
-		batch := inputTransactions[i:min(i+batchSize, len(inputTransactions))]
-		if err := dban.PartialReverseLookup(dgraph, batch); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
-
-	// last step: do IRTL for all destination transactions
-	if err := dban.IRTL(dgraph, destinationTransactions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return num, nil
 }
 
-func processIRTL(dgraph *dgo.Dgraph, block dbblk.Block) error {
-	inputTransactions, err := dban.GetInputTransactions(dgraph, block.Uid)
+// transactionReverseLookup performs a reverse lookup for all input transactions of  the given destination transaction
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+// todo: currently unused - do not remove, this function is needed for the ad-hoc reverse lookup initiated by heuristic executors
+func transactionReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationTransactionUid string) (int64, error) {
+	inputTransactions, err := dban.GetNotAnalyzedInputTransactionsPerTx(dgraph, destinationTransactionUid)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	num, err := reverseLookup(ctx, dgraph, inputTransactions)
+	if err != nil {
+		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	confirmed := filterInputUnconfirmedInputTransactions(inputTransactions, nil)
-	if len(confirmed) == 0 {
-		return errors.New("error no transactions for IRTL found. block uid: " + block.Uid)
-	}
-
-	processedTransactions := make(map[string]bool)
-	for len(confirmed) > 0 {
-
-		if err := dban.IRTL(dgraph, confirmed); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		if len(confirmed) == len(inputTransactions) {
-			break
-		}
-
-		for k := range confirmed {
-			processedTransactions[k] = true
-		}
-
-		confirmed = filterInputUnconfirmedInputTransactions(inputTransactions, processedTransactions)
-	}
-
-	return nil
+	return num, nil
 }
 
 // returns the smaller of the two values

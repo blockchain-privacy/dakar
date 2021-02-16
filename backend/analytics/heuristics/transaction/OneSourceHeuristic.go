@@ -91,6 +91,11 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
+		// todo check if ok
+		if len(timeLimitedOrigins) == 0 {
+			continue
+		}
+
 		// get input denominations
 		nDenominations, denominationIndex, err := getNumberOfDenominations(it, txHash)
 		if err != nil {
@@ -132,8 +137,7 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 	for k := range sources {
 
 		found := true
-		// check for each input transaction if the the source k exists. In the case it does
-		// not set the flag to false
+		// check for each input transaction if the source k exists. If not set the flag to false
 		for _, inputTransactionSource := range inputSources {
 			if !inputTransactionSource[k] {
 				found = false
