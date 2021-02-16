@@ -1,6 +1,7 @@
 package server
 
 import (
+	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -91,6 +92,56 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 	}
 
 	info("Generated password(", u.Email, "):", pw)
+	reply.Success = true
+
+	return
+}
+
+func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
+	txHashString string, userUid string) (reply heuristicExecutionReply) {
+	if worker.IsInQueue(txHashString) {
+		reply.Success = true
+		reply.Status = heuristic.StatusHeuristicDuplicate
+		info(cliutil.ShowCallInfo(), "heuristic already in queue")
+		return
+	}
+
+	type request struct {
+		Changed []transaction.FrontendHeuristic `json:"changed,omitempty"`
+		Deleted []string                        `json:"deleted,omitempty"`
+	}
+
+	var heuristicRequest request
+
+	decoder := json.NewDecoder(body)
+	err := decoder.Decode(&heuristicRequest)
+	if err != nil {
+		reply.Msg = "could not decode request data"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
+		reply.Msg = "invalid request"
+		return
+	}
+
+	work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
+		heuristicRequest.Deleted)
+	if err != nil {
+		reply.Msg = "invalid request"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addedWork := worker.AddWork(txHashString, work)
+
+	if addedWork {
+		reply.Status = heuristic.StatusHeuristicAdded
+	} else {
+		reply.Status = heuristic.StatusHeuristicDuplicate
+	}
+
 	reply.Success = true
 
 	return

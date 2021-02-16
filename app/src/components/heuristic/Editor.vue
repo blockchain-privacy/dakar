@@ -389,7 +389,10 @@ export default {
   },
   methods: {
     setErrorMessage(msg) {
-      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
+    },
+    setInfoMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
@@ -474,7 +477,15 @@ export default {
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
-          if (data.status === undefined) throw Error('execution status is not defined');
+          if (data.success === false) {
+            if (data.msg) throw new Error(data.msg);
+            throw new Error('execution did not succeed');
+          }
+
+          if (data.msg) this.setInfoMessage(data.msg);
+
+          if (data.status === undefined && !data.msg) throw new Error('execution status is not defined');
+          if (data.status === undefined && data.msg) return;
           this.setExecutionStatus(data.status);
           this.startActiveTimer();
         })
@@ -609,6 +620,7 @@ export default {
     },
     async refreshData() {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+
       this.setExecutionStatus(this.data.status);
 
       if (this.executionStatus.value.executing) this.startActiveTimer();

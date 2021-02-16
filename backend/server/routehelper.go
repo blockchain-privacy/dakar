@@ -66,6 +66,13 @@ type heuristicReply struct {
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
+type heuristicExecutionReply struct {
+	Success    bool                           `json:"success"`
+	Msg        string                         `json:"msg,omitempty"`
+	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
+	Status     heuristic.HeuristicQueueStatus `json:"status"`
+}
+
 type userReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`

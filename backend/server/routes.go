@@ -559,58 +559,20 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			return
 		}
 
-		resp := heuristicReply{}
+		reply := heuristicExecutionReply{}
 
-		if worker.IsInQueue(txHashString) {
-			resp.Status = heuristic.StatusHeuristicDuplicate
-			err := json.NewEncoder(w).Encode(resp)
-			if err != nil {
-				http.Error(w, "encoding error", http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-			}
-
-			info(cliutil.ShowCallInfo(), "heuristic already in queue")
-			return
-		}
-
-		type request struct {
-			Changed []dbtxh.FrontendHeuristic `json:"changed,omitempty"`
-			Deleted []string                  `json:"deleted,omitempty"`
-		}
-
-		var heuristicRequest request
-
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&heuristicRequest)
-		if err != nil {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			return
-		}
-
-		work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
-			heuristicRequest.Deleted)
-		if err != nil {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		addedWork := worker.AddWork(txHashString, work)
-
-		if addedWork {
-			resp.Status = heuristic.StatusHeuristicAdded
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
 		} else {
-			resp.Status = heuristic.StatusHeuristicDuplicate
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
