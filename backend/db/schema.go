@@ -60,6 +60,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			user_roles: [uid] @reverse .
 			user_created: dateTime @index(day) .
 			user_modified: dateTime @index(day) .
+			user_heuristics: [uid] @reverse .
 
 			type Block {
 				blockhash
@@ -132,6 +133,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 				user_roles
 				user_created
 				user_modified
+				user_heuristics
 			}
 		`,
 	})

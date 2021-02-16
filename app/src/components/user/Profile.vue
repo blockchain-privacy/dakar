@@ -153,14 +153,6 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
-    successMsg: {
-      get() {
-        return this.$store.getters.getSuccessMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setSuccessMsg', value);
-      },
-    },
     modifiedDate() {
       return new Date(this.userData.modified).toLocaleString();
     },
@@ -195,6 +187,9 @@ export default {
     },
   },
   methods: {
+    setSuccessMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
+    },
     /** Email methods * */
     closeEmailForm() {
       this.showModifyEmailDialog = false;
@@ -210,7 +205,7 @@ export default {
     },
     saveEmailForm() {
       if (!this.validateEmailForm()) return;
-      this.$store.dispatch('resetMsg');
+      this.$store.dispatch('resetMessages');
 
       doPost(ROUTE_USER_MODIFY, this.$router, {
         uid: this.userData.uid,
@@ -225,7 +220,7 @@ export default {
 
           if (data.user) {
             this.userData = data.user;
-            this.successMsg = 'Successfully changed E-mail';
+            this.setSuccessMessage('Successfully changed E-mail');
           }
         })
         .catch((e) => {
@@ -250,7 +245,7 @@ export default {
     },
     savePasswordForm() {
       if (!this.validatePasswordForm()) return;
-      this.$store.dispatch('resetMsg');
+      this.$store.dispatch('resetMessages');
 
       doPost(ROUTE_USER_MODIFY, this.$router, {
         uid: this.userData.uid,
@@ -265,7 +260,7 @@ export default {
 
           if (data.user) {
             this.userData = data.user;
-            this.successMsg = 'Successfully changed password';
+            this.setSuccessMessage('Successfully changed password');
           }
         })
         .catch((e) => {

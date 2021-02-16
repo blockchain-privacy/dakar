@@ -87,3 +87,22 @@ type FrontendHeuristic struct {
 		TxHash      string `json:"txhash,omitempty"`
 	} `json:"results,omitempty"`
 }
+
+type ShortestTransactionPathRequest struct {
+	// From is the starting point of the shortest path lookup
+	From string `json:"from,omitempty"`
+	// To is the end point of the shortest path lookup
+	To string `json:"to,omitempty"`
+	// IncludePrivacyTransactions determines if privacy transactions
+	// should be considered when doing the shortest path lookup
+	IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
+	// AnyDirection determines the search direction of the shortest transaction path query
+	// True: Both inputs and outputs are traversed
+	// False: Only inputs are traversed
+	AnyDirection bool `json:"anyDirection"`
+}
+
+type HeuristicListItem struct {
+	Transaction    string `json:"txhash,omitempty"`
+	HeuristicCount uint64 `json:"heuristic_count,omitempty"`
+}

@@ -179,14 +179,14 @@ type FrontendOutput struct {
 }
 
 type FrontendTransaction struct {
-	Hash           string           `json:"txhash"`
-	BlockHash      string           `json:"bhash"`
+	Hash           string           `json:"txhash,omitempty"`
+	BlockHash      string           `json:"bhash,omitempty"`
 	Fee            int64            `json:"fee"`
-	PrivacyType    string           `json:"privacytype"`
+	PrivacyType    string           `json:"privacytype,omitempty"`
 	BlockId        uint64           `json:"bid"`
-	BlockTimestamp string           `json:"bts"`
-	Outputs        []FrontendOutput `json:"outputs"`
-	Inputs         []FrontendOutput `json:"inputs"`
+	BlockTimestamp string           `json:"bts,omitempty"`
+	Outputs        []FrontendOutput `json:"outputs,omitempty"`
+	Inputs         []FrontendOutput `json:"inputs,omitempty"`
 	OriginCount    uint64           `json:"origincount"`
 }
 

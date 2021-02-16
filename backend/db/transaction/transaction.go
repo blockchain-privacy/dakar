@@ -10,7 +10,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// gets transaction information from the database
+// GetTransaction gets transaction information from the database
 func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(txhash, $hash)){
@@ -55,7 +55,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 	return r.payload()
 }
 
-// gets transaction information for the frontend
+// GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendTransaction, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash)){
@@ -145,6 +145,49 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		Outputs:        t.Outputs,
 		Inputs:         t.Inputs,
 	}
+
+	return
+}
+
+// GetTransactionBlockId gets the block id of the transaction
+func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err error) {
+	query := `query Q($hash: string){
+				q(func: eq(txhash, $hash))@normalize{
+					~transactions {
+						id:id
+					}
+			  	}
+			   }`
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []struct {
+			Id uint64 `json:"id,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		return
+	} else if len(r.Transaction) != 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		return
+	}
+
+	blockId = r.Transaction[0].Id
 
 	return
 }

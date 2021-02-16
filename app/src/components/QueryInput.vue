@@ -1,10 +1,12 @@
 <template>
-  <v-text-field @keydown.enter="handleInput(query, 'user')"
-                class="d-flex" full-width v-model="query"
+  <v-text-field style="margin: 23px 0 0 0"
+                full-width outlined dense
                 label="Search for blocks, transactions and addresses"
-                :append-outer-icon="icon.mdiMagnify"
-                @click:append-outer="handleInput(query, 'user')"
-  />
+                :append-icon="icon.mdiMagnify"
+                v-model="query"
+                :rules="[isQueryValid]"
+                @click:append="handleInput(query, 'user')"
+                @keydown.enter="handleInput(query, 'user')"/>
 </template>
 
 <script>
@@ -19,8 +21,8 @@ function newRouting(context) {
 
   if (pushFromUserInput !== undefined || id === undefined
       || !(context.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
-      || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
-      || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
+          || context.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
+          || context.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
     return;
   }
 
@@ -53,22 +55,6 @@ export default {
     };
   },
   computed: {
-    errorMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
-    warningMsg: {
-      get() {
-        return this.$store.getters.getWarningMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setWarningMsg', value);
-      },
-    },
     searchResultType: {
       get() {
         return this.$store.getters.getSearchResultType;
@@ -82,7 +68,7 @@ export default {
       // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
         if (!this.isValidData(query)) {
-          this.warningMsg = 'Input was not valid!';
+          this.setWarningMessage('Input was not valid');
           return;
         }
 
@@ -140,7 +126,7 @@ export default {
       Utility.resetData(this);
 
       if (!this.isValidData(query)) {
-        this.warningMsg = 'Input was not valid!';
+        this.setWarningMessage('Input was not valid');
         return false;
       }
 
@@ -171,6 +157,14 @@ export default {
       }
 
       return str.match(/^[0-9a-zA-Z]+$/);
+    },
+    isQueryValid(str) {
+      const trimmed = str.trim();
+
+      return trimmed.length === 0 ? true : this.isValidData(trimmed);
+    },
+    setWarningMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
   },
   created() {

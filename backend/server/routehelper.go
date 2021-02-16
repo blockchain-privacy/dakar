@@ -62,8 +62,16 @@ type metaStatus struct {
 }
 
 type heuristicReply struct {
+	Success    bool                           `json:"success"`
+	Msg        string                         `json:"msg,omitempty"`
 	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
+}
+
+type heuristicExecutionReply struct {
+	Success bool                           `json:"success"`
+	Msg     string                         `json:"msg,omitempty"`
+	Status  heuristic.HeuristicQueueStatus `json:"status"`
 }
 
 type userReply struct {
@@ -75,6 +83,18 @@ type backendUserReply struct {
 	Success bool                           `json:"success"`
 	Msg     string                         `json:"msg,omitempty"`
 	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
+}
+
+type shortestTransactionPathReply struct {
+	Success      bool                       `json:"success"`
+	Msg          string                     `json:"msg,omitempty"`
+	Transactions []dbtx.FrontendTransaction `json:"transactions"`
+}
+
+type heuristicListReply struct {
+	Success bool                    `json:"success"`
+	Msg     string                  `json:"msg,omitempty"`
+	Item    []dbh.HeuristicListItem `json:"items"`
 }
 
 type queryResultType string

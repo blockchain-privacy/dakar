@@ -5,10 +5,10 @@
         <v-col class="text--accent-1" style="text-align: center">
           {{ convertAmount(address.amount) }}
           {{ this.coinUnit }}
-          <v-icon class="itemIcon" :id="`b${index}`" v-if="address.is_coinbase">
+          <v-icon class="itemIcon" :id="`a${index}`" v-if="address.is_coinbase">
             {{ icon.mdiPickaxe }}
           </v-icon>
-          <v-tooltip bottom :activator="`#b${index}`" v-if="address.is_coinbase">
+          <v-tooltip bottom :activator="`#a${index}`" v-if="address.is_coinbase">
             <span>Coinbase</span>
           </v-tooltip>
         </v-col>
@@ -24,10 +24,10 @@
               <v-list-item-content>
                 <router-link :to="{ name: transactionRoute,
                         params: { id: address.output_transaction }}" class="tx">
-                  <div :id="`a${index}`">{{ shortenHash(address.output_transaction) }}</div>
+                  <div :id="`b${index}`">{{ shortenHash(address.output_transaction) }}</div>
                 </router-link>
               </v-list-item-content>
-              <v-tooltip bottom :activator="`#a${index}`">
+              <v-tooltip bottom :activator="`#b${index}`">
                 <span>{{ new Date(address.output_ts).toLocaleString() }}</span>
               </v-tooltip>
             </v-list-item>
@@ -50,10 +50,10 @@
               <v-list-item-content>
                 <router-link :to="{ name: transactionRoute,
                         params: { id: address.input_transaction }}" class="tx">
-                  <div :id="`b${index}`">{{ shortenHash(address.input_transaction) }}</div>
+                  <div :id="`c${index}`">{{ shortenHash(address.input_transaction) }}</div>
                 </router-link>
               </v-list-item-content>
-              <v-tooltip bottom :activator="`#b${index}`">
+              <v-tooltip bottom :activator="`#c${index}`">
                 <span>{{ new Date(address.input_ts).toLocaleString() }}</span>
               </v-tooltip>
             </v-list-item>

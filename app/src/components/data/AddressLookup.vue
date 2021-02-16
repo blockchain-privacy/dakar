@@ -98,20 +98,23 @@
                   </v-col>
                 </v-row>
                 <v-sheet
-                    v-if="!this.isLoading"
+                    v-if="!this.isLoading && !this.emptyResponse"
                     min-height="50"
                     class="fill-height"
                     color="transparent">
-                  <v-lazy min-height="90" transition="fade-transition" :options="{threshold: 0.7}">
-                    <v-row>
-                      <v-col
-                          v-for="(o,index) in this.data.addr_outputs"
-                          v-bind:key="o.input_transaction + o.output_transaction + o.amount">
-                        <OutputComponent :address="o" :index="index"/>
-                      </v-col>
-                    </v-row>
-                  </v-lazy>
+                  <v-row>
+                    <v-col
+                        v-for="(o,index) in this.data.addr_outputs"
+                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
+                      <OutputComponent :address="o" :index="index"/>
+                    </v-col>
+                  </v-row>
                 </v-sheet>
+                <v-row v-if="this.emptyResponse">
+                  <v-col align="center" justify="center">
+                    <p class="text-h6">No outputs found</p>
+                  </v-col>
+                </v-row>
                 <v-row v-if="this.isLoadingMore">
                   <v-col>
                     <v-progress-linear
@@ -189,10 +192,16 @@ export default {
       isLoading: false,
       isLoadingMore: false,
       isSortingByInput: false,
+      // emptyResponse is only used for data loaded after the initial data load
+      emptyResponse: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
     };
   },
   methods: {
+    isResponseValid(data) {
+      return !(!data.type || data.type !== 'addr' || !data.payload || !data.payload.addr_outputs
+          || data.payload.addr_outputs.length === 0);
+    },
     addNewData() {
       if (!this.data) return;
 
@@ -206,8 +215,14 @@ export default {
         { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
         this.addressHash)
         .then((data) => {
-          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
-          this.$store.dispatch('resetMsg');
+          if (!this.isResponseValid(data)) {
+            this.emptyResponse = true;
+            return;
+          }
+
+          this.data = data.payload;
+          this.$store.dispatch('resetMessages');
+          this.emptyResponse = false;
         })
         .catch((e) => {
           handleError(this.$store, e);
@@ -275,8 +290,14 @@ export default {
         { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
         this.addressHash)
         .then((data) => {
+          if (!this.isResponseValid(data)) {
+            this.emptyResponse = true;
+            return;
+          }
+
           this.data = data.payload;
-          this.$store.dispatch('resetMsg');
+          this.$store.dispatch('resetMessages');
+          this.emptyResponse = false;
         })
         .catch((e) => {
           handleError(this.$store, e);

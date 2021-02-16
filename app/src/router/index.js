@@ -12,6 +12,9 @@ import NoResults from '../components/NoResults.vue';
 import Editor from '../components/heuristic/Editor.vue';
 import EntryView from '../components/EntryView.vue';
 import PageNotFound from '../components/PageNotFound.vue';
+import Tools from '../components/tools/Tools.vue';
+import ShortestPath from '../components/tools/ShortestPath.vue';
+import Heuristics from '../components/tools/Heuristics.vue';
 import * as Constants from '../constants';
 
 Vue.use(Router);
@@ -61,18 +64,31 @@ export default new Router({
       meta: { title: 'Profile' },
       children: [
         {
-          // UserProfile will be rendered inside User's <router-view>
-          // when /settings/profile is matched
           path: 'profile',
           name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
           component: Profile,
         },
         {
-          // UserPosts will be rendered inside User's <router-view>
-          // when /settings/misc is matched
           path: 'misc',
           name: Constants.ROUTE_NAME_USER_MISC_PAGE,
           component: Misc,
+        },
+      ],
+    },
+    {
+      path: '/tools',
+      component: Tools,
+      meta: { title: 'Tools' },
+      children: [
+        {
+          path: 'shortestPath',
+          name: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
+          component: ShortestPath,
+        },
+        {
+          path: 'heuristics',
+          name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
+          component: Heuristics,
         },
       ],
     },

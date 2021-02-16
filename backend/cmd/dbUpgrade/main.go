@@ -96,4 +96,11 @@ func main() {
 	}
 	info("adding new script preditate  done")
 
+	info("user heuristics migration starting ...")
+	if err := db.AlterSchemaAddUserHeuristics(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("user heuristics migration done")
+
 }

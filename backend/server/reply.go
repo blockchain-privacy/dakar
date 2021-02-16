@@ -1,7 +1,10 @@
 package server
 
 import (
+	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/heuristics/transaction"
+	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
 	"encoding/json"
@@ -89,6 +92,322 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 	}
 
 	info("Generated password(", u.Email, "):", pw)
+	reply.Success = true
+
+	return
+}
+
+func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
+	txHashString string, userUid string) (reply heuristicReply) {
+
+	// todo use user uid
+	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+	if err != nil {
+		reply.Msg = "no heuristics found"
+		return
+	}
+
+	reply.Success = true
+	reply.Heuristics = heuristics
+	reply.Status = worker.GetStatus(txHashString, userUid)
+
+	return
+}
+
+func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
+	txHashString string, userUid string) (reply heuristicExecutionReply) {
+	if worker.IsInQueue(txHashString, userUid) {
+		reply.Success = true
+		reply.Status = heuristic.StatusHeuristicDuplicate
+		info(cliutil.ShowCallInfo(), "heuristic already in queue")
+		return
+	}
+
+	type request struct {
+		Changed []transaction.FrontendHeuristic `json:"changed,omitempty"`
+		Deleted []string                        `json:"deleted,omitempty"`
+	}
+
+	var heuristicRequest request
+
+	decoder := json.NewDecoder(body)
+	err := decoder.Decode(&heuristicRequest)
+	if err != nil {
+		reply.Msg = "could not decode request data"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
+		reply.Msg = "invalid request"
+		return
+	}
+
+	work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
+		heuristicRequest.Deleted)
+	if err != nil {
+		reply.Msg = "invalid request"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addedWork := worker.AddWork(txHashString, userUid, work)
+
+	if addedWork {
+		reply.Status = heuristic.StatusHeuristicAdded
+	} else {
+		reply.Status = heuristic.StatusHeuristicDuplicate
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// getModifyUserReply parses the input and creates a corresponding userReply
+func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
+	// get clients user state
+	var modRequest dbus.ModifyUserRequest
+	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
+		reply.Msg = "could not decode user data"
+		return
+	}
+
+	if len(modRequest.Uid) == 0 ||
+		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
+		reply.Msg = "nothing to change"
+		return
+	}
+
+	// check if passwords are equal
+	if len(modRequest.CurrentPassword) > 0 && len(modRequest.NewPassword) > 0 &&
+		modRequest.NewPassword == modRequest.CurrentPassword {
+		reply.Msg = "passwords are equal"
+		return
+	}
+
+	// is user an admin
+	isAdmin := false
+	for _, r := range tUser.Roles {
+		if r.Name == user.AdminRoleName {
+			isAdmin = true
+			break
+		}
+	}
+
+	// if user ids does not match, check if this is a request from an admin user
+	if modRequest.Uid != tUser.Id && !isAdmin {
+		reply.Msg = "user ids do not match"
+		info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
+		return
+	}
+
+	// check current password if user is not an admin
+	if !isAdmin {
+		if len(modRequest.CurrentPassword) == 0 {
+			reply.Msg = "current password must also be supplied"
+			return
+		}
+
+		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
+		if err != nil {
+			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+
+		if ok, err := user.ComparePassword(modRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
+			reply.Msg = "wrong current password"
+			return
+		}
+	}
+
+	// check email
+	if len(modRequest.Email) > 0 {
+		if !dbus.IsValidEmail(modRequest.Email) {
+			reply.Msg = "invalid email"
+			return
+		}
+
+		emailUser, err := dbus.GetUserByEmail(dgraph, modRequest.Email)
+		if err != nil {
+			if !errors.Is(dbus.ErrorUsersNotFound, err) {
+				reply.Msg = "invalid email"
+				info(cliutil.ShowCallInfo(), err, modRequest)
+				return
+			}
+		} else if emailUser.Uid != modRequest.Uid {
+			reply.Msg = "duplicate email"
+			info(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+	}
+
+	var newPwHash string
+	// check if password matches
+	if len(modRequest.NewPassword) > 0 {
+		if len(modRequest.NewPassword) < 10 {
+			reply.Msg = "new password must be at least 10 characters long"
+			return
+		}
+
+		var generatePwErr error
+		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
+			modRequest.NewPassword); generatePwErr != nil {
+			reply.Msg = "error modifying user"
+			return
+		}
+	}
+
+	// handle role change
+	if len(modRequest.Roles) > 0 {
+		if !isAdmin {
+			reply.Msg = "user can not change its roles"
+			info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
+			return
+		}
+		// check if all roles exists
+		for _, r := range modRequest.Roles {
+			if _, err := user.GetRoleByName(r.Name); err != nil {
+				reply.Msg = "invalid role"
+				info(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
+				return
+			}
+		}
+		// delete existing roles if new roles are set
+		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
+			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err, modRequest)
+			return
+		}
+	}
+
+	// modify user
+	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
+		reply.Msg = "error modifying user"
+		info(cliutil.ShowCallInfo(), err, modRequest)
+		return
+	}
+
+	// get new user information
+	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
+	if err != nil {
+		reply.Msg = "error modifying user"
+		info(cliutil.ShowCallInfo(), err, modRequest)
+		return
+	}
+
+	// set new user info
+	newUserState := newUserInfo.ToFrontendUserBackendState()
+	reply.User = &newUserState
+	reply.Success = true
+
+	return
+}
+
+// getDeleteUserReply deletes delUid if is the same uid as tUser.Id or if tUser is an admin
+func getDeleteUserReply(dgraph *dgo.Dgraph, delUid string, tUser tokenUser) (reply userReply) {
+	if delUid != tUser.Id {
+		// is user an admin
+		isAdmin := false
+		for _, r := range tUser.Roles {
+			if r.Name == user.AdminRoleName {
+				isAdmin = true
+				break
+			}
+		}
+
+		if !isAdmin {
+			reply.Msg = "user can only delete his own account"
+			info(tUser.Id, "tried to delete", delUid)
+			return
+		}
+	}
+
+	if err := dbus.DeleteUser(dgraph, delUid); err != nil {
+		reply.Msg = "could not delete user"
+		info(cliutil.ShowCallInfo(), err)
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// getShortestTransactionPathReply searches for the shortest path between two transactions
+func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply shortestTransactionPathReply) {
+	// parse request
+	var req transaction.ShortestTransactionPathRequest
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
+		reply.Msg = "could not decode request data"
+		return
+	}
+
+	if req.From == req.To {
+		reply.Success = true
+		reply.Msg = "Transaction hashes are equal"
+		return
+	}
+
+	fromBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.From)
+	if err != nil {
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Success = true
+			reply.Msg = "Transaction " + req.From + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for paths"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	toBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.To)
+	if err != nil {
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Msg = "error transaction" + req.To + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for paths"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	anyDirection := req.AnyDirection
+
+	if fromBlockId == toBlockId {
+		// set anyDirection to true, as the direction can not be calculated from the block ids
+		// and as the transactions are in the same block the query should be very quick
+		anyDirection = true
+	}
+
+	oldTx := req.From
+	youngTx := req.To
+
+	if !req.AnyDirection {
+		// switch transactions if necessary so we are searching in the right direction
+		if toBlockId > fromBlockId {
+			oldTx = req.To
+			youngTx = req.From
+		}
+	}
+
+	// do shortest transaction path lookup
+	txs, err := transaction.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
+		req.IncludePrivacyTransactions, anyDirection)
+	if err != nil {
+		reply.Msg = "error while searching for paths"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(txs) == 0 {
+		reply.Msg = "No path found"
+	} else {
+		reply.Transactions = txs
+	}
+
 	reply.Success = true
 
 	return

@@ -12,7 +12,7 @@ Vue.use(Vuex);
 function handleGet(context, route, mutation, parameter) {
   return doGet(route, Router, parameter).then((data) => {
     context.commit(mutation, data);
-    context.dispatch('resetMsg');
+    context.dispatch('resetMessages');
   }).catch((e) => {
     handleError(context, e);
   });
@@ -22,37 +22,17 @@ function handlePost(context, route, mutation, parameter, body) {
   return doPost(route, Router, body, parameter)
     .then((data) => {
       context.commit(mutation, data);
-      context.dispatch('resetMsg');
+      context.dispatch('resetMessages');
     })
     .catch((e) => {
       handleError(context, e);
     });
 }
 
-function getResetMsgState() {
-  return {
-    error: null,
-    errorActive: false,
-    info: null,
-    infoActive: false,
-    success: null,
-    successActive: false,
-    warning: null,
-    warningActive: false,
-  };
-}
-
-function getMsg(context) {
-  let msgObj = context.state.msg;
-  if (msgObj === null) {
-    msgObj = getResetMsgState();
-  }
-  return msgObj;
-}
-
 // getInitialState returns the initial state of the store
 function getInitialState() {
   return {
+    messages: [],
     msg: null,
     transaction: null,
     searchResultType: null,
@@ -64,12 +44,16 @@ function getInitialState() {
     userList: null,
     activeUser: null,
     settings: null,
+    heuristicList: null,
   };
 }
 
 const mutations = {
-  SET_MSG(state, payload) {
-    state.msg = payload;
+  ADD_MESSAGE(state, payload) {
+    state.messages.push(payload);
+  },
+  RESET_MESSAGES(state) {
+    state.messages = [];
   },
   SET_TRANSACTION_DATA(state, payload) {
     state.transaction = payload;
@@ -136,55 +120,19 @@ const mutations = {
   SET_SETTINGS(state, payload) {
     state.settings = payload;
   },
+  UPDATE_HEURISTIC_LIST(state, payload) {
+    state.heuristicList = payload;
+  },
 };
 
 const actions = {
-  resetMsg(context) {
-    context.commit('SET_MSG', getResetMsgState());
+  addMessage(context, payload) {
+    if (!payload.text || payload.text.toString().trim() === '') return;
+
+    context.commit('ADD_MESSAGE', payload);
   },
-  setErrorMsg(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.error = payload;
-    msgObj.errorActive = true;
-    context.commit('SET_MSG', msgObj);
-  },
-  setInfoMsg(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.info = payload;
-    msgObj.infoActive = true;
-    context.commit('SET_MSG', msgObj);
-  },
-  setSuccessMsg(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.success = payload;
-    msgObj.successActive = true;
-    context.commit('SET_MSG', msgObj);
-  },
-  setWarningMsg(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.warning = payload;
-    msgObj.warningActive = true;
-    context.commit('SET_MSG', msgObj);
-  },
-  setErrorActive(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.errorActive = payload;
-    context.commit('SET_MSG', msgObj);
-  },
-  setInfoActive(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.infoActive = payload;
-    context.commit('SET_MSG', msgObj);
-  },
-  setSuccessActive(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.successActive = payload;
-    context.commit('SET_MSG', msgObj);
-  },
-  setWarningActive(context, payload) {
-    const msgObj = getMsg(context);
-    msgObj.warningActive = payload;
-    context.commit('SET_MSG', msgObj);
+  resetMessages(context) {
+    context.commit('RESET_MESSAGES');
   },
   setTransactionData(context, payload) {
     context.commit('SET_TRANSACTION_DATA', payload);
@@ -220,6 +168,9 @@ const actions = {
   updateUserList(context) {
     return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
   },
+  updateHeuristicList(context) {
+    return handleGet(context, Constants.ROUTE_HEURISTIC_LIST, 'UPDATE_HEURISTIC_LIST');
+  },
   resetHeuristicDetails(context) {
     context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
@@ -235,6 +186,9 @@ const actions = {
   setUserList(context, payload) {
     context.commit('UPDATE_USER_LIST', payload);
   },
+  setHeuristicList(context, payload) {
+    context.commit('UPDATE_HEURISTIC_LIST', payload);
+  },
   setActiveUser(context, payload) {
     setLocalUser(payload);
     context.commit('SET_ACTIVE_USER', payload);
@@ -246,18 +200,7 @@ const actions = {
 };
 
 const getters = {
-  getErrorMsg: (state) => (state.msg !== null && state.msg.error != null
-    ? state.msg.error : null),
-  getInfoMsg: (state) => (state.msg !== null && state.msg.info != null
-    ? state.msg.info : null),
-  getSuccessMsg: (state) => (state.msg !== null && state.msg.success != null
-    ? state.msg.success : null),
-  getWarningMsg: (state) => (state.msg !== null && state.msg.warning != null
-    ? state.msg.warning : null),
-  isErrorActive: (state) => (state.msg !== null ? state.msg.errorActive : false),
-  isInfoActive: (state) => (state.msg !== null ? state.msg.infoActive : false),
-  isSuccessActive: (state) => (state.msg !== null ? state.msg.successActive : false),
-  isWarningActive: (state) => (state.msg !== null ? state.msg.warningActive : false),
+  getMessages: (state) => state.messages,
   getTransactionData: (state) => state.transaction,
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
@@ -266,6 +209,7 @@ const getters = {
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
   getUserList: (state) => state.userList,
+  getHeuristicList: (state) => state.heuristicList,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,
 };

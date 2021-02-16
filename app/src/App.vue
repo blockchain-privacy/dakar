@@ -1,20 +1,28 @@
 <template>
   <v-app>
     <v-app-bar app absolute>
-      <v-img
-          @click="goToRoot()" style="cursor:pointer"
-          alt="Dakar Logo"
-          class="shrink mr-2"
-          contain
-          src="./assets/dakar_dash.svg"
-          transition="scale-transition"
-          width="32"/>
-      <v-toolbar-title class="mx-2 d-none d-sm-flex" @click="goToRoot()" style="cursor:pointer">
-        {{ applicationName }}
-      </v-toolbar-title>
+      <router-link :to="{name: route.rootPage}">
+        <v-img
+            style="cursor:pointer"
+            alt="Dakar Logo"
+            class="shrink mr-2"
+            contain
+            src="./assets/dakar_dash.svg"
+            transition="scale-transition"
+            width="32">
+        </v-img>
+      </router-link>
+      <router-link :to="{name: route.rootPage}" style="color: inherit; text-decoration: inherit">
+        <v-toolbar-title class="mx-2 d-none d-sm-flex" style="cursor:pointer">
+          {{ applicationName }}
+        </v-toolbar-title>
+      </router-link>
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
+      <v-btn icon :to="{name: route.shortestPathPage}" v-if="showTools">
+        <v-icon>{{ icon.mdiToolbox }}</v-icon>
+      </v-btn>
       <v-menu offset-y style="z-index: 99">
         <template v-slot:activator="{ on, attrs }">
           <v-btn
@@ -32,19 +40,21 @@
             <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
           </v-list-item>
           <v-divider v-if="this.userData"/>
-          <v-list-item @click="goToSettings" v-if="this.userData" :disabled="isUserProfileDisabled">
+          <v-list-item :to="{name: route.userProfilePage}" v-if="this.userData"
+                       :disabled="isUserProfileDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiCog }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Settings</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToLogin" v-if="!this.userData" :disabled="isUserLoginDisabled">
+          <v-list-item :to="{ name: route.userLoginPage }"
+                       v-if="!this.userData" :disabled="isUserLoginDisabled">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiLogin }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Login</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToUserAdministration" :disabled="isUserAdminDisabled"
+          <v-list-item :to="{ name: route.userAdminPage }" :disabled="isUserAdminDisabled"
                        v-if="showUserAdmin">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
@@ -61,10 +71,10 @@
       </v-menu>
     </v-app-bar>
     <v-main>
-        <MsgBox/>
-        <transition name="component-fade" mode="out-in">
-          <router-view/>
-        </transition>
+      <MsgBox/>
+      <transition name="component-fade" mode="out-in">
+        <router-view/>
+      </transition>
     </v-main>
   </v-app>
 </template>
@@ -72,14 +82,14 @@
 <script>
 import {
   mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
-  mdiCog,
+  mdiCog, mdiToolbox,
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
-import MsgBox from './components/MsgBox.vue';
+import MsgBox from './components/notification/MsgBox.vue';
 import * as Constants from './constants';
 import '@fontsource/roboto';
 import {
-  doGet, getLocalUser, resetLocal, getLocalSettings,
+  doGet, getLocalUser, resetLocal, getLocalSettings, isAdminUser, isPrivilegedUser,
 } from './utilities';
 import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
 
@@ -99,6 +109,14 @@ export default {
         mdiAccountSupervisor,
         mdiAccountCircle,
         mdiCog,
+        mdiToolbox,
+      },
+      route: {
+        userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+        userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
+        userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
+        shortestPathPage: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
+        rootPage: Constants.ROUTE_NAME_ENTRY_PAGE,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -122,30 +140,16 @@ export default {
         this.$store.dispatch('setSettings', value);
       },
     },
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
     showUserAdmin() {
-      return this.userData && this.userData.roles && this.userData.roles.some((d) => d.role_name === 'admin');
+      return isAdminUser(this.userData);
+    },
+    showTools() {
+      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
   },
   methods: {
-    goToRoot() {
-      this.goToPage(Constants.ROUTE_NAME_ENTRY_PAGE);
-    },
-    goToLogin() {
-      this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
-    },
-    goToSettings() {
-      this.goToPage(Constants.ROUTE_NAME_USER_PROFILE_PAGE);
-    },
-    goToUserAdministration() {
-      this.goToPage(Constants.ROUTE_NAME_USER_ADMIN_PAGE);
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     // goToPage should receive a page name from ./constants
     goToPage(pageName) {
@@ -162,30 +166,11 @@ export default {
           resetLocal();
           this.userData = null;
           this.settings = null;
-          this.goToLogin();
+          this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
-    },
-    checkRoute(routeName) {
-      this.isUserLoginDisabled = false;
-      this.isUserAdminDisabled = false;
-      this.isUserProfileDisabled = false;
-
-      switch (routeName) {
-        case Constants.ROUTE_NAME_LOGIN_PAGE:
-          this.isUserLoginDisabled = true;
-          break;
-        case Constants.ROUTE_NAME_USER_ADMIN_PAGE:
-          this.isUserAdminDisabled = true;
-          break;
-        case Constants.ROUTE_NAME_USER_PROFILE_PAGE:
-          this.isUserProfileDisabled = true;
-          break;
-        default:
-            // nothing
-      }
     },
     persistDarkTheme(isDark) {
       const set = this.settings;
@@ -220,14 +205,7 @@ export default {
     // eslint-disable-next-line no-console
     console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
 
-    this.checkRoute(this.$router.currentRoute.name);
-
     this.loadStorageData();
-  },
-  watch: {
-    $route(to) {
-      this.checkRoute(to.name);
-    },
   },
 };
 </script>

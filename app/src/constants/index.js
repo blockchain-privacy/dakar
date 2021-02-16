@@ -20,7 +20,8 @@ export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
 export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
 export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
-
+export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
+export const ROUTE_HEURISTIC_LIST = `${routePrefix}heuristicList/`;
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
 export const RESPONSE_TYPE_TRANSACTION = 'tx';
@@ -39,6 +40,8 @@ export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
 export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
+export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
+export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';

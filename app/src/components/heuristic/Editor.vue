@@ -350,14 +350,6 @@ export default {
     };
   },
   computed: {
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
     data: {
       get() {
         return this.$store.getters.getHeuristicData;
@@ -378,16 +370,14 @@ export default {
         this.$store.dispatch('setHeuristicDetails', value);
       },
     },
-    successMsg: {
-      get() {
-        return this.$store.getters.getSuccessMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setSuccessMsg', value);
-      },
-    },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
+    setInfoMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
+    },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
       if (heuristic.parameter) {
@@ -471,12 +461,20 @@ export default {
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
-          if (data.status === undefined) throw Error('execution status is not defined');
+          if (data.success === false) {
+            if (data.msg) throw new Error(data.msg);
+            throw new Error('execution did not succeed');
+          }
+
+          if (data.msg) this.setInfoMessage(data.msg);
+
+          if (data.status === undefined && !data.msg) throw new Error('execution status is not defined');
+          if (data.status === undefined && data.msg) return;
           this.setExecutionStatus(data.status);
           this.startActiveTimer();
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
     },
     setExecutionStatus(status) {
@@ -606,6 +604,7 @@ export default {
     },
     async refreshData() {
       await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+
       this.setExecutionStatus(this.data.status);
 
       if (this.executionStatus.value.executing) this.startActiveTimer();
@@ -639,10 +638,10 @@ export default {
       document.title = `Heuristic ${this.transactionHash}`;
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
-        this.errMsg = 'error setting heuristic click handler';
+        this.setErrorMessage('error setting heuristic click handler');
       }
       if (!ht.setContextMenuCallback(this.showContextMenu)) {
-        this.errMsg = 'error setting context menu handler';
+        this.setErrorMessage('error setting context menu handler');
       }
 
       ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
@@ -668,7 +667,7 @@ export default {
           }
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         });
     },
     startDormantTimer() {

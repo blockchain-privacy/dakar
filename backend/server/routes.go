@@ -10,14 +10,12 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
-	"backend/user"
 	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
-	"io"
 	"io/ioutil"
 	"log"
 	"math"
@@ -261,8 +259,8 @@ func handlerMeta(dgraph *dgo.Dgraph,
 var lock sync.Mutex
 
 // API pattern: "/api/v1/paths/"
-func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
+func handlerPaths(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		txHashString := r.URL.Path[len(constants.GetRouteOrigins()):]
@@ -337,7 +335,7 @@ func handlerPaths(dgraph *dgo.Dgraph) func(http.ResponseWriter, *http.Request) {
 			}
 			csvWriter.Flush()
 		}
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
@@ -456,20 +454,20 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 			return
 		}
 
-		heuristics, err := dbtxh.GetBasicFrontendHeuristic(dgraph, txHashString)
-		if err != nil {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
+		var reply heuristicReply
 
-		resp := heuristicReply{
-			Heuristics: heuristics,
-			Status:     worker.GetStatus(txHashString),
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -489,12 +487,21 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 			return
 		}
 
-		resp := heuristicReply{
-			Status: worker.GetStatus(txHashString),
+		var reply heuristicReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply.Success = true
+				reply.Status = worker.GetStatus(txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -561,58 +568,20 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			return
 		}
 
-		resp := heuristicReply{}
+		var reply heuristicExecutionReply
 
-		if worker.IsInQueue(txHashString) {
-			resp.Status = heuristic.StatusHeuristicDuplicate
-			err := json.NewEncoder(w).Encode(resp)
-			if err != nil {
-				http.Error(w, "encoding error", http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-			}
-
-			info(cliutil.ShowCallInfo(), "heuristic already in queue")
-			return
-		}
-
-		type request struct {
-			Changed []dbtxh.FrontendHeuristic `json:"changed,omitempty"`
-			Deleted []string                  `json:"deleted,omitempty"`
-		}
-
-		var heuristicRequest request
-
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&heuristicRequest)
-		if err != nil {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			return
-		}
-
-		work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
-			heuristicRequest.Deleted)
-		if err != nil {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		addedWork := worker.AddWork(txHashString, work)
-
-		if addedWork {
-			resp.Status = heuristic.StatusHeuristicAdded
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
 		} else {
-			resp.Status = heuristic.StatusHeuristicDuplicate
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -675,14 +644,16 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 
 		userUid := r.URL.Path[len(constants.GetRouteDeleteUser()):]
 
-		reply := userReply{
-			Success: true,
-		}
+		var reply userReply
 
-		if err := dbus.DeleteUser(dgraph, userUid); err != nil {
-			reply.Success = false
-			reply.Msg = "could not delete user"
-			info(err)
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "error modifying user"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "error modifying user"
+			} else {
+				reply = getDeleteUserReply(dgraph, userUid, tUser)
+			}
 		}
 
 		// encoding
@@ -721,147 +692,6 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 	})
 }
 
-// getModifyUserReply parses the input and creates a corresponding userReply
-func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
-	// get clients user state
-	var modRequest dbus.ModifyUserRequest
-	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
-		reply.Msg = "could not decode user data"
-		return
-	}
-
-	if len(modRequest.Uid) == 0 ||
-		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
-		reply.Msg = "nothing to change"
-		return
-	}
-
-	// check if passwords are equal
-	if len(modRequest.CurrentPassword) > 0 && len(modRequest.NewPassword) > 0 &&
-		modRequest.NewPassword == modRequest.CurrentPassword {
-		reply.Msg = "passwords are equal"
-		return
-	}
-
-	// is user an admin
-	isAdmin := false
-	for _, r := range tUser.Roles {
-		if r.Name == user.AdminRoleName {
-			isAdmin = true
-			break
-		}
-	}
-
-	// if user ids does not match, check if this is a request from an admin user
-	if modRequest.Uid != tUser.Id && !isAdmin {
-		reply.Msg = "user ids do not match"
-		info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
-		return
-	}
-
-	// check current password if user is not an admin
-	if !isAdmin {
-		if len(modRequest.CurrentPassword) == 0 {
-			reply.Msg = "current password must also be supplied"
-			return
-		}
-
-		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
-		if err != nil {
-			reply.Msg = "error modifying user"
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-
-		if ok, err := user.ComparePassword(modRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
-			reply.Msg = "wrong current password"
-			return
-		}
-	}
-
-	// check email
-	if len(modRequest.Email) > 0 {
-		if !dbus.IsValidEmail(modRequest.Email) {
-			reply.Msg = "invalid email"
-			return
-		}
-
-		emailUser, err := dbus.GetUserByEmail(dgraph, modRequest.Email)
-		if err != nil {
-			if !errors.Is(dbus.ErrorUsersNotFound, err) {
-				reply.Msg = "invalid email"
-				info(cliutil.ShowCallInfo(), err, modRequest)
-				return
-			}
-		} else if emailUser.Uid != modRequest.Uid {
-			reply.Msg = "duplicate email"
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-	}
-
-	var newPwHash string
-	// check if password matches
-	if len(modRequest.NewPassword) > 0 {
-		if len(modRequest.NewPassword) < 10 {
-			reply.Msg = "new password must be at least 10 characters long"
-			return
-		}
-
-		var generatePwErr error
-		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
-			modRequest.NewPassword); generatePwErr != nil {
-			reply.Msg = "error modifying user"
-			return
-		}
-	}
-
-	// handle role change
-	if len(modRequest.Roles) > 0 {
-		if !isAdmin {
-			reply.Msg = "user can not change its roles"
-			info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
-			return
-		}
-		// check if all roles exists
-		for _, r := range modRequest.Roles {
-			if _, err := user.GetRoleByName(r.Name); err != nil {
-				reply.Msg = "invalid role"
-				info(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
-				return
-			}
-		}
-		// delete existing roles if new roles are set
-		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
-			reply.Msg = "error modifying user"
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-	}
-
-	// modify user
-	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
-		reply.Msg = "error modifying user"
-		info(cliutil.ShowCallInfo(), err, modRequest)
-		return
-	}
-
-	// get new user information
-	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
-	if err != nil {
-		reply.Msg = "error modifying user"
-		info(cliutil.ShowCallInfo(), err, modRequest)
-		return
-	}
-
-	// set new user info
-	newUserState := newUserInfo.ToFrontendUserBackendState()
-	reply.User = &newUserState
-	reply.Success = true
-
-	return
-}
-
 // API pattern: "/api/v1/modifyUser/"
 func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -876,6 +706,50 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 				reply.Msg = "error modifying user"
 			} else {
 				reply = getModifyUserReply(dgraph, r.Body, tUser)
+			}
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
+}
+
+// API pattern: "/api/v1/shortestTransactionPath/"
+func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getShortestTransactionPathReply(dgraph, r.Body)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/heuristicList/"
+func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicListReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "error modifying user"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "error modifying user"
+			} else {
+				items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+				if err == nil {
+					reply.Success = true
+					reply.Item = items
+				}
 			}
 		}
 
@@ -976,7 +850,11 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
 
 	// Origins
-	http.HandleFunc(constants.GetRouteOrigins(), handlerPaths(dgraph))
+
+	// Analytics
+	http.Handle(constants.GetRouteOrigins(),
+		Adapt(handlerPaths(dgraph),
+			authorizationMiddleware(constants.GetRouteOrigins(), privkey, pubkey)))
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
@@ -994,6 +872,14 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteHeuristicsSummary(),
 		Adapt(handlerHeuristicsSummary(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicsSummary(), privkey, pubkey)))
+	http.Handle(constants.GetRouteHeuristicList(),
+		Adapt(handlerHeuristicList(dgraph),
+			authorizationMiddleware(constants.GetRouteHeuristicList(), privkey, pubkey)))
+
+	// Analytics
+	http.Handle(constants.GetRouteShortestTransactionPath(),
+		Adapt(handlerShortestTransactionPath(dgraph),
+			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))

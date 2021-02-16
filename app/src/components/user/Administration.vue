@@ -18,7 +18,7 @@
             <v-toolbar flat class="hidden-sm-and-up">
               <v-text-field
                   v-model="search"
-                  append-icon="mdi-magnify"
+                  :append-icon="icon.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -31,7 +31,7 @@
               <v-btn
                   outlined
                   class="ml-1"
-                  @click.stop="showCreateDialog">
+                  @click="showCreateDialog">
                 <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">Create User</div>
               </v-btn>
@@ -41,7 +41,7 @@
               <v-spacer></v-spacer>
               <v-text-field
                   v-model="search"
-                  append-icon="mdi-magnify"
+                  :append-icon="icon.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -55,7 +55,7 @@
               <v-btn
                   outlined
                   class="ml-1"
-                  @click.stop="showCreateUserDialog = true">
+                  @click="showCreateDialog">
                 <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">Create User</div>
               </v-btn>
@@ -146,7 +146,7 @@
 
 <script>
 import {
-  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
+  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
 } from '@mdi/js';
 import {
   PAGE_TITLE,
@@ -162,7 +162,7 @@ export default {
   name: 'Administration',
   data: () => ({
     icon: {
-      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
+      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
     },
     isLoading: false,
     showCreateUserDialog: false,
@@ -220,14 +220,6 @@ export default {
         this.$store.dispatch('setUserList', value);
       },
     },
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
   },
   watch: {
     dialog(val) {
@@ -235,6 +227,9 @@ export default {
     },
   },
   methods: {
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     async refreshUsers() {
       this.isLoading = true;
       await this.$store.dispatch('updateUserList');
@@ -277,7 +272,7 @@ export default {
           this.refreshUsers();
         })
         .catch((error) => {
-          this.errMsg = error;
+          this.setErrorMessage(error);
         })
         .finally(() => {
           this.isLoading = false;
@@ -333,7 +328,7 @@ export default {
             this.refreshUsers();
           })
           .catch((error) => {
-            this.errMsg = error;
+            this.setErrorMessage(error);
           })
           .finally(() => {
             this.isLoading = false;
