@@ -83,6 +83,12 @@ type shortestTransactionPathReply struct {
 	Transactions []dbtx.FrontendTransaction `json:"transactions"`
 }
 
+type heuristicListReply struct {
+	Success bool                    `json:"success"`
+	Msg     string                  `json:"msg,omitempty"`
+	Item    []dbh.HeuristicListItem `json:"items"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"

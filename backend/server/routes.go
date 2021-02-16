@@ -761,6 +761,35 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/heuristicList/"
+func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicListReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "error modifying user"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "error modifying user"
+			} else {
+				items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+				if err == nil {
+					reply.Success = true
+					reply.Item = items
+				}
+			}
+		}
+
+		// encoding
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), encodingErr)
+		}
+	})
+}
+
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -872,6 +901,9 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteHeuristicsSummary(),
 		Adapt(handlerHeuristicsSummary(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicsSummary(), privkey, pubkey)))
+	http.Handle(constants.GetRouteHeuristicList(),
+		Adapt(handlerHeuristicList(dgraph),
+			authorizationMiddleware(constants.GetRouteHeuristicList(), privkey, pubkey)))
 
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),

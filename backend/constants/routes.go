@@ -1,7 +1,8 @@
 package constants
 
 const (
-	routePrefix              string = "/api/v1/"
+	routePrefix string = "/api/v1/"
+
 	routeSearch              string = "search"
 	routeTransaction         string = "tx"
 	routeBlock               string = "blk"
@@ -21,6 +22,7 @@ const (
 	routeLogout              string = "logout"
 	routeModifyUser          string = "modifyUser"
 	routeShortestTxPath      string = "shortestTransactionPath"
+	routeHeuristicList       string = "heuristicList"
 )
 
 func getRoute(r string) string {
@@ -101,4 +103,8 @@ func GetRouteModifyUser() string {
 
 func GetRouteShortestTransactionPath() string {
 	return getRoute(routeShortestTxPath)
+}
+
+func GetRouteHeuristicList() string {
+	return getRoute(routeHeuristicList)
 }

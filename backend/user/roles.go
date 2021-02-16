@@ -47,6 +47,7 @@ var (
 		constants.GetRouteHeuristicsExecution(): true,
 		constants.GetRouteHeuristics():          true,
 		constants.GetRouteHeuristicsSummary():   true,
+		constants.GetRouteHeuristicList():       true,
 		// user
 		constants.GetRouteModifyUser(): true,
 		constants.GetRouteDeleteUser(): true,
