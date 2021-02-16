@@ -373,7 +373,7 @@ export default {
   },
   methods: {
     setErrorMessage(msg) {
-      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
