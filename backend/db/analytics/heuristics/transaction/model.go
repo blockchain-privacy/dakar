@@ -101,3 +101,8 @@ type ShortestTransactionPathRequest struct {
 	// False: Only inputs are traversed
 	AnyDirection bool `json:"anyDirection"`
 }
+
+type HeuristicListItem struct {
+	Transaction    string `json:"txhash,omitempty"`
+	HeuristicCount uint64 `json:"heuristic_count,omitempty"`
+}
