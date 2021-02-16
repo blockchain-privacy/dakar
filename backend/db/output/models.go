@@ -16,12 +16,16 @@ type Output struct {
 	TxType      string   `json:"txtype,omitempty"`
 	Amount      *int64   `json:"amount,omitempty"`
 	IsCoinbase  *bool    `json:"iscoinbase,omitempty"`
-	Script      string   `json:"script,omitempty"`
+	SigHex      string   `json:"sighex,omitempty"`
+	SigAsm      string   `json:"sigasm,omitempty"`
+	KeyHex      string   `json:"keyhex,omitempty"`
+	KeyAsm      string   `json:"keyasm,omitempty"`
 	DType       []string `json:"dgraph.type,omitempty"`
 }
 
 func (o Output) String() string {
-	output := fmt.Sprintf("Uid: %s, Amount: %d, script: %s", o.Uid, *o.Amount, o.Script)
+	output := fmt.Sprintf("Uid: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
+		o.Uid, *o.Amount, o.KeyAsm, o.SigAsm)
 
 	if o.OutputIndex != nil {
 		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)

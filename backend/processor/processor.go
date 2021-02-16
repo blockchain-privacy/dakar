@@ -259,22 +259,16 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 		index := d.N
 
 		if d.ScriptPubKey.Type == "pubkey" {
-			// decoding address from script and checking if it matches the supplied addresses
-			pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
-			if decodeErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
-				return
-			}
-
 			if d.ScriptPubKey.Addresses == nil {
+				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
+				if decodeErr != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+					return
+				}
 				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
 			} else {
 				for _, e := range d.ScriptPubKey.Addresses {
 					outputMappings = addOutputToMapping(outputMappings, e, index)
-					if e != pubkeyAddress {
-						info("pubkey address mismatch in tx", txDetails.Hash,
-							"pubkey decoded address:", pubkeyAddress, "rpc address:", e)
-					}
 				}
 			}
 		} else if d.ScriptPubKey.Addresses == nil &&
@@ -293,7 +287,8 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
-			Script:      d.ScriptPubKey.Asm,
+			KeyAsm:      d.ScriptPubKey.Asm,
+			KeyHex:      d.ScriptPubKey.Hex,
 			OutputIndex: &index,
 		})
 	}
@@ -345,7 +340,9 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
-		// todo add input script to object
+		// todo check script
+		refOutput.SigAsm = vin.ScriptSig.Asm
+		refOutput.SigHex = vin.ScriptSig.Hex
 		refOutput.Amount = output.Amount
 		refOutput.Uid = output.Uid
 	}

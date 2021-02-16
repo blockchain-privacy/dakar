@@ -75,8 +75,25 @@ func main() {
 		return
 	}
 
+	info("lookupdoneflag migration starting ...")
 	if err := db.AlterSchemaAddReverseLookupDoneFlag(dgraph); err != nil {
 		info(err)
 		return
 	}
+	info("lookupdoneflag migration done")
+
+	info("removing old script predicate ...")
+	if err := db.AlterSchemaRemoveScript(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("removing old script predicate done")
+
+	info("adding new script preditate starting ...")
+	if err := db.AlterSchemaAddScripts(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("adding new script preditate  done")
+
 }
