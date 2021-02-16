@@ -454,20 +454,20 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 			return
 		}
 
-		heuristics, err := dbtxh.GetBasicFrontendHeuristic(dgraph, txHashString)
-		if err != nil {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
+		var reply heuristicReply
 
-		resp := heuristicReply{
-			Heuristics: heuristics,
-			Status:     worker.GetStatus(txHashString),
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -487,12 +487,21 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 			return
 		}
 
-		resp := heuristicReply{
-			Status: worker.GetStatus(txHashString),
+		var reply heuristicReply
+
+		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+			reply.Msg = "User not found"
+		} else {
+			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
+				reply.Msg = "User not found"
+			} else {
+				reply.Success = true
+				reply.Status = worker.GetStatus(txHashString, tUser.Id)
+			}
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(resp)
+		err := json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -559,7 +568,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			return
 		}
 
-		reply := heuristicExecutionReply{}
+		var reply heuristicExecutionReply
 
 		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
 			reply.Msg = "User not found"

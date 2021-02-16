@@ -46,6 +46,11 @@ func info(v ...interface{}) {
 	thisLogger.Println(v)
 }
 
+type workKey struct {
+	txhash  string
+	userUid string
+}
+
 type Work struct {
 	// executors contains the HeuristicExecutor trees
 	executors []HeuristicExecutor
@@ -57,25 +62,30 @@ type Work struct {
 }
 
 type Worker struct {
-	currentTransactionHash string
-	executionMap           map[string]Work
-	mutex                  *sync.Mutex
+	currentWorkItem workKey
+	executionMap    map[workKey]Work
+	mutex           *sync.Mutex
 }
 
 func NewWorker() Worker {
 	var mLock sync.Mutex
-	return Worker{executionMap: make(map[string]Work), mutex: &mLock}
+	return Worker{executionMap: make(map[workKey]Work), mutex: &mLock}
 }
 
-func (w *Worker) AddWork(transactionHash string, work Work) bool {
+func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool {
+	key := workKey{
+		txhash:  transactionHash,
+		userUid: userUid,
+	}
+
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 
-	if _, exists := w.executionMap[transactionHash]; exists {
+	if _, exists := w.executionMap[key]; exists {
 		return false
 	}
 
-	w.executionMap[transactionHash] = work
+	w.executionMap[key] = work
 
 	for k, v := range w.executionMap {
 		info(k, v)
@@ -83,25 +93,35 @@ func (w *Worker) AddWork(transactionHash string, work Work) bool {
 	return true
 }
 
-// IsInQueue returns true if the given transaction hash is in the work queue
-func (w *Worker) IsInQueue(tx string) bool {
+// IsInQueue returns true if the given transaction hash and user id is in the work queue
+func (w *Worker) IsInQueue(tx string, userUid string) bool {
+	key := workKey{
+		txhash:  tx,
+		userUid: userUid,
+	}
+
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-	_, ok := w.executionMap[tx]
+	_, ok := w.executionMap[key]
 	return ok
 }
 
-// GetStatus returns the current execution status of the given transaction hash
-func (w *Worker) GetStatus(tx string) HeuristicQueueStatus {
+// GetStatus returns the current execution status of the given transaction hash and user id
+func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
+	key := workKey{
+		txhash:  tx,
+		userUid: userUid,
+	}
+
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-	_, ok := w.executionMap[tx]
+	_, ok := w.executionMap[key]
 
 	if !ok {
 		return StatusHeuristicNotInQueue
 	}
 
-	if w.currentTransactionHash == tx {
+	if w.currentWorkItem == key {
 		return StatusHeuristicProcessing
 	}
 
@@ -133,7 +153,7 @@ mainLoop:
 			w.mutex.Lock()
 			for k, v := range w.executionMap {
 				work = v
-				w.currentTransactionHash = k
+				w.currentWorkItem = k
 				break
 			}
 			w.mutex.Unlock()
@@ -162,7 +182,8 @@ mainLoop:
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							if err = e.RunSynchronous(dgraph, w.currentTransactionHash, ""); err != nil {
+							// todo use user uid
+							if err = e.RunSynchronous(dgraph, w.currentWorkItem.txhash, ""); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
 						}
@@ -172,8 +193,8 @@ mainLoop:
 			}
 
 			w.mutex.Lock()
-			delete(w.executionMap, w.currentTransactionHash)
-			w.currentTransactionHash = ""
+			delete(w.executionMap, w.currentWorkItem)
+			w.currentWorkItem = workKey{}
 			w.mutex.Unlock()
 
 			// reset memory

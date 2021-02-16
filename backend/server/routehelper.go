@@ -62,15 +62,16 @@ type metaStatus struct {
 }
 
 type heuristicReply struct {
+	Success    bool                           `json:"success"`
+	Msg        string                         `json:"msg,omitempty"`
 	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
 	Status     heuristic.HeuristicQueueStatus `json:"status"`
 }
 
 type heuristicExecutionReply struct {
-	Success    bool                           `json:"success"`
-	Msg        string                         `json:"msg,omitempty"`
-	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
-	Status     heuristic.HeuristicQueueStatus `json:"status"`
+	Success bool                           `json:"success"`
+	Msg     string                         `json:"msg,omitempty"`
+	Status  heuristic.HeuristicQueueStatus `json:"status"`
 }
 
 type userReply struct {

@@ -97,9 +97,26 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 	return
 }
 
+func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
+	txHashString string, userUid string) (reply heuristicReply) {
+
+	// todo use user uid
+	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+	if err != nil {
+		reply.Msg = "no heuristics found"
+		return
+	}
+
+	reply.Success = true
+	reply.Heuristics = heuristics
+	reply.Status = worker.GetStatus(txHashString, userUid)
+
+	return
+}
+
 func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
 	txHashString string, userUid string) (reply heuristicExecutionReply) {
-	if worker.IsInQueue(txHashString) {
+	if worker.IsInQueue(txHashString, userUid) {
 		reply.Success = true
 		reply.Status = heuristic.StatusHeuristicDuplicate
 		info(cliutil.ShowCallInfo(), "heuristic already in queue")
@@ -134,7 +151,7 @@ func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, bo
 		return
 	}
 
-	addedWork := worker.AddWork(txHashString, work)
+	addedWork := worker.AddWork(txHashString, userUid, work)
 
 	if addedWork {
 		reply.Status = heuristic.StatusHeuristicAdded
