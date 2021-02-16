@@ -21,7 +21,7 @@ export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
 export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
-
+export const ROUTE_HEURISTIC_LIST = `${routePrefix}heuristicList/`;
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
 export const RESPONSE_TYPE_TRANSACTION = 'tx';
