@@ -18,7 +18,7 @@
             <v-toolbar flat class="hidden-sm-and-up">
               <v-text-field
                   v-model="search"
-                  append-icon="mdi-magnify"
+                  :append-icon="icon.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -41,7 +41,7 @@
               <v-spacer></v-spacer>
               <v-text-field
                   v-model="search"
-                  append-icon="mdi-magnify"
+                  :append-icon="icon.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -146,7 +146,7 @@
 
 <script>
 import {
-  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
+  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
 } from '@mdi/js';
 import {
   PAGE_TITLE,
@@ -162,7 +162,7 @@ export default {
   name: 'Administration',
   data: () => ({
     icon: {
-      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
+      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
     },
     isLoading: false,
     showCreateUserDialog: false,
