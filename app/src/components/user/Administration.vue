@@ -31,7 +31,7 @@
               <v-btn
                   outlined
                   class="ml-1"
-                  @click.stop="showCreateDialog">
+                  @click="showCreateDialog">
                 <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">Create User</div>
               </v-btn>
@@ -55,7 +55,7 @@
               <v-btn
                   outlined
                   class="ml-1"
-                  @click.stop="showCreateUserDialog = true">
+                  @click="showCreateDialog">
                 <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">Create User</div>
               </v-btn>
