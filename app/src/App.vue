@@ -20,7 +20,7 @@
       <v-spacer></v-spacer>
       <QueryInput class="mx-4"/>
       <v-spacer></v-spacer>
-      <v-btn icon :to="{name: route.heuristicsPage}" v-if="showTools">
+      <v-btn icon :to="{name: route.shortestPathPage}" v-if="showTools">
         <v-icon>{{ icon.mdiToolbox }}</v-icon>
       </v-btn>
       <v-menu offset-y style="z-index: 99">
@@ -115,7 +115,7 @@ export default {
         userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
         userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
         userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
-        heuristicsPage: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
+        shortestPathPage: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
         rootPage: Constants.ROUTE_NAME_ENTRY_PAGE,
       },
       isUserAdminDisabled: false,
