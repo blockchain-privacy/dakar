@@ -350,14 +350,6 @@ export default {
     };
   },
   computed: {
-    errMsg: {
-      get() {
-        return this.$store.getters.getErrorMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setErrorMsg', value);
-      },
-    },
     data: {
       get() {
         return this.$store.getters.getHeuristicData;
@@ -376,14 +368,6 @@ export default {
           return;
         }
         this.$store.dispatch('setHeuristicDetails', value);
-      },
-    },
-    successMsg: {
-      get() {
-        return this.$store.getters.getSuccessMsg;
-      },
-      set(value) {
-        this.$store.dispatch('setSuccessMsg', value);
       },
     },
   },
