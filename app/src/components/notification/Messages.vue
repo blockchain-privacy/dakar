@@ -1,12 +1,12 @@
 <template>
-    <v-alert
-        xs6 :type="type" max-width="400px"
-        :class="`msg ${$vuetify.theme.dark?'dark-msg':'light-msg'}`"
-        prominent outlined border="left"
-        dismissible v-model="showMessage">
-      <v-progress-linear absolute bottom :value="progressValue" v-if="temporary" :color="type"/>
-      <slot/>
-    </v-alert>
+  <v-alert
+      xs6 :type="type" width="300px"
+      :class="`msg ${$vuetify.theme.dark?'dark-msg':'light-msg'}`"
+      prominent outlined border="left"
+      dismissible v-model="showMessage">
+    <v-progress-linear v-if="temporary" absolute bottom :value="progressValue" :color="type"/>
+    <slot/>
+  </v-alert>
 </template>
 
 <script>
@@ -70,5 +70,4 @@ the border which 'prominent' introduces */
   height: 0 !important;
   width: 0 !important;
 }
-
 </style>
