@@ -37,8 +37,8 @@
               row
               label="Search direction:"
               :disabled="isLoading">
-            <v-radio label="Any" :value="true"/>
             <v-radio label="Linear" :value="false"/>
+            <v-radio label="Any" :value="true"/>
           </v-radio-group>
         </v-col>
         <v-col>
@@ -106,7 +106,7 @@ export default {
       fromTransaction: '',
       toTransaction: '',
       includePrivacyTransactions: true,
-      anyDirection: true,
+      anyDirection: false,
       isLoading: false,
       transactions: [],
     };
