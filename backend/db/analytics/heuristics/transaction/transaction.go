@@ -1033,21 +1033,50 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 
 // GetHeuristicListByUser returns all transactions for which the given user has created heuristics
 func GetHeuristicListByUser(c *dgo.Dgraph, userUid string) (frontendHeuristic []HeuristicListItem, err error) {
+	query := `query Q($uuid:string){
+				# get transaction
+				var(func: uid($uuid)){
+					user_heuristics{
+						tx as h_transaction
+					}
+				}
+				# get count
+				var(func: uid(tx)){
+					c as count(~h_transaction)@filter(uid_in(~user_heuristics,$uuid))
+				}
+				# get time
+				var(func: uid(tx)){
+					~h_transaction@filter(uid_in(~user_heuristics,$uuid)){
+						t as ts
+					}
+					max_time as  max(val(t))
+				}
+				# output
+				q(func: uid(tx)){
+					txhash
+					h_count: val(c)
+					mod_time: val(max_time)
+				}
+			   }`
 
-	item1 := HeuristicListItem{
-		Transaction:    "433e084febd73c21a399a4c0c8745e84ff9a294d324b8ee588b3195557f6efc0",
-		HeuristicCount: 20,
-	}
-	item2 := HeuristicListItem{
-		Transaction:    "1da836a8e9257dc0cbe6fbd9bec4708d25a89ec5523b4ff19feecd3800d278af",
-		HeuristicCount: 5,
-	}
-	item3 := HeuristicListItem{
-		Transaction:    "c2ca73a53340027139ecbb5c11536abff032ef3829e0c14ef432df3338ede41a",
-		HeuristicCount: 1,
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uuid": userUid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
-	frontendHeuristic = append(frontendHeuristic, item1, item2, item3)
+	var r struct {
+		Items []HeuristicListItem `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	frontendHeuristic = r.Items
 
 	return
 }

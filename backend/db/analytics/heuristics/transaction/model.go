@@ -106,6 +106,7 @@ type ShortestTransactionPathRequest struct {
 }
 
 type HeuristicListItem struct {
-	Transaction    string `json:"txhash,omitempty"`
-	HeuristicCount uint64 `json:"heuristic_count,omitempty"`
+	Transaction      string `json:"txhash,omitempty"`
+	LastModification string `json:"mod_time,omitempty"`
+	HeuristicCount   uint64 `json:"h_count,omitempty"`
 }
