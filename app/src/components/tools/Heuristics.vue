@@ -62,10 +62,16 @@
         :search="search"
         :loading="this.isLoading || !this.heuristicList"
         item-key="tx"
-        sort-by="num_heuristics"
+        sort-by="mod_time"
         sort-desc
         class="elevation-1">
 
+      <template v-slot:[`item.txhash`]="{ item }">
+        <router-link :to="{ name: transactionRoute,
+                    params: { id: item.txhash }}">
+          {{ shortenHash(item.txhash) }}
+        </router-link>
+      </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon
             small
@@ -90,7 +96,8 @@
 import {
   mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE } from '../../constants';
+import { PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+import { shortenHash } from '../../utilities';
 
 export default {
   name: 'Heuristics',
@@ -99,6 +106,7 @@ export default {
       icon: {
         mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
       },
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       showDeleteAllDialog: false,
       showDeleteTransactionHeuristicDialog: false,
       transactionToDelete: null,
@@ -109,7 +117,10 @@ export default {
           text: 'Transaction', value: 'txhash', align: 'start', sortable: false,
         },
         {
-          text: 'Number of heuristics', value: 'heuristic_count',
+          text: 'Number of heuristics', value: 'h_count',
+        },
+        {
+          text: 'Last modification', value: 'mod_time',
         },
         {
           text: 'Actions', value: 'actions', sortable: false, align: 'end',
@@ -128,11 +139,20 @@ export default {
     },
   },
   methods: {
+    shortenHash,
     async refreshHeuristicList() {
       this.isLoading = true;
       await this.$store.dispatch('updateHeuristicList');
       this.isLoading = false;
       this.search = '';
+
+      if (!this.heuristicList) return;
+
+      this.heuristicList.items = this.heuristicList.items.map((d) => {
+        // parse data to readable format
+        d.mod_time = new Date(d.mod_time).toLocaleString();
+        return d;
+      });
     },
     goToHeuristicPage(item) {
       const id = item.txhash;
