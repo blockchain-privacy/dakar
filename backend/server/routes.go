@@ -210,10 +210,6 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 	}
 }
 
-var (
-	errHttpDefault = errors.New("an error occurred")
-)
-
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph *dgo.Dgraph,
 	client *rpcclient.Client) func(string, []byte) ([]byte, error) {
@@ -339,7 +335,6 @@ func handlerPaths(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
-// todo use user uid
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
 func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

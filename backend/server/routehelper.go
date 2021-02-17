@@ -116,7 +116,7 @@ func handleError(w http.ResponseWriter, err error) {
 		return
 	}
 
-	http.Error(w, errHttpDefault.Error(), http.StatusInternalServerError)
+	http.Error(w, "an error occurred", http.StatusInternalServerError)
 	info(cliutil.ShowCallInfo(), err)
 }
 

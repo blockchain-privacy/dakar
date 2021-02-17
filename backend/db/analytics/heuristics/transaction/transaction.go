@@ -724,24 +724,6 @@ func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExis
 
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
 func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
-	//query := `query Q($hash: string, $uuid){
-	//				q(func: eq(txhash,$hash)){
-	//					~h_transaction{
-	//						uid
-	//						ts
-	//						type
-	//						parameter
-	//						parent_heuristic{
-	//							uid
-	//						}
-	//						children: ~parent_heuristic{
-	//							uid
-	//						}
-	//						num_results: count(results)
-	//					}
-	//				}
-	//			}`
-
 	query := `query Q($hash: string, $uuid: string){
 				var(func: uid($uuid)){
 					h as user_heuristics@cascade{
