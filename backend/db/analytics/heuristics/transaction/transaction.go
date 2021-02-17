@@ -839,43 +839,48 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 }
 
 // GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic FrontendHeuristicComplete, err error) {
-	query := `query Q($hash: string){
-					q(func: eq(txhash,$hash)){
+func GetFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (completeHeuristic FrontendHeuristicComplete, err error) {
+	query := `query Q($hash: string, $uuid: string){
+				var(func: uid($uuid)){
+					h as user_heuristics@cascade{
+						tx as h_transaction@filter(eq(txhash,$hash))
+					}
+				}
+				t(func: uid(tx))@normalize{
+					uid:uid
+					~transactions{
+						ts:ts
+					}
+				}
+				q(func: uid(h)){
+					uid
+					ts
+					type
+					parameter
+					parent_heuristic{
 						uid
+					}
+					children: ~parent_heuristic{
+						uid
+					}
+					results@normalize{
+						uid:uid
+						txhash:txhash
 						~transactions{
-							ts
+							ts:ts
 						}
-						~h_transaction{
-						uid
-						ts
-						type
-						parameter
-							parent_heuristic{
-								uid
-							}
-							children: ~parent_heuristic{
-								uid
-							}
-						results@normalize{
-							uid:uid
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-							tx_inputs{ 
-								~addr_outputs{
-									addresshash:addresshash
-									}
-								}
+						tx_inputs{ 
+							~addr_outputs{
+								addresshash:addresshash
 							}
 						}
 					}
-				}`
+				}
+			  }`
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -883,13 +888,8 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 
 	// json struct
 	var r struct {
-		Transaction []struct {
-			Uid   string `json:"uid,omitempty"`
-			Block []struct {
-				Timestamp string `json:"ts,omitempty"`
-			} `json:"~transactions,omitempty"`
-			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
-		} `json:"q,omitempty"`
+		Heuristics  []FrontendHeuristic         `json:"q,omitempty"`
+		Transaction []FrontendHeuristicComplete `json:"t,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -897,39 +897,30 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string) (completeHeuristic Front
 		return
 	}
 
-	if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 {
+	if len(r.Transaction) != 1 || len(r.Heuristics) == 0 ||
+		len(r.Transaction[0].Uid) == 0 || len(r.Transaction[0].Timestamp) == 0 {
 		err = errors.New("invalid response from database")
 		return
 	}
 
-	completeHeuristic = FrontendHeuristicComplete{
-		Uid:       r.Transaction[0].Uid,
-		Timestamp: r.Transaction[0].Block[0].Timestamp,
-	}
+	completeHeuristic = r.Transaction[0]
 
-	var filteredHeuristics []FrontendHeuristic
-
-	for _, h := range r.Transaction[0].Heuristics {
+	for i, h := range r.Heuristics {
 		transactions := make(map[string]bool)
-		var newHeuristic FrontendHeuristic
-		newHeuristic.Uid = h.Uid
-		newHeuristic.Timestamp = h.Timestamp
-		newHeuristic.Parameter = h.Parameter
-		newHeuristic.Type = h.Type
-		newHeuristic.ChildHeuristics = h.ChildHeuristics
-		newHeuristic.ParentHeuristic = h.ParentHeuristic
+
+		var results []FrontendHeuristicResult
 		for _, r := range h.Results {
+			// only append a result once per transaction
 			if transactions[r.Uid] {
 				continue
 			}
-			newHeuristic.Results = append(newHeuristic.Results, r)
+			results = append(results, r)
 			transactions[r.Uid] = true
 		}
-
-		filteredHeuristics = append(filteredHeuristics, newHeuristic)
+		r.Heuristics[i].Results = results
 	}
 
-	completeHeuristic.Heuristics = filteredHeuristics
+	completeHeuristic.Heuristics = r.Heuristics
 
 	return
 }

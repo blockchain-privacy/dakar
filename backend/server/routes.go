@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
-	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -37,6 +36,7 @@ const (
 
 var (
 	errorPath               = "error getting paths"
+	errorHeuristicSummary   = "error getting heuristic summary"
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
 	errorHeuristicDetails   = "error getting heuristic details"
@@ -348,18 +348,26 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			return
 		}
 
-		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString)
+		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
-			log.Println(err)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.Id)
+		if err != nil {
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		if len(cHeuristic.Heuristics) == 0 {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			return
 		}
 

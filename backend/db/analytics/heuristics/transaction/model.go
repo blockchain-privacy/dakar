@@ -73,20 +73,21 @@ func (f FrontendHeuristicComplete) String() string {
 	return fmt.Sprintf("Uid:%s, timestamp:%s, heuristic count:%d", f.Uid, f.Timestamp, len(f.Heuristics))
 }
 
+type FrontendHeuristicResult struct {
+	Uid         string `json:"uid,omitempty"`
+	Timestamp   string `json:"ts,omitempty"`
+	AddressHash string `json:"addresshash,omitempty"`
+	TxHash      string `json:"txhash,omitempty"`
+}
+
 type FrontendHeuristic struct {
-	Uid             string      `json:"uid,omitempty"`
-	Timestamp       string      `json:"ts,omitempty"`
-	Type            string      `json:"type,omitempty"`
-	Parameter       string      `json:"parameter,omitempty"`
-	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
-	ChildHeuristics []Heuristic `json:"children,omitempty"`
-	ResultCount     int         `json:"num_results,omitempty"`
-	Results         []struct {
-		Uid         string `json:"uid,omitempty"`
-		Timestamp   string `json:"ts,omitempty"`
-		AddressHash string `json:"addresshash,omitempty"`
-		TxHash      string `json:"txhash,omitempty"`
-	} `json:"results,omitempty"`
+	Uid             string                    `json:"uid,omitempty"`
+	Timestamp       string                    `json:"ts,omitempty"`
+	Type            string                    `json:"type,omitempty"`
+	Parameter       string                    `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic               `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic               `json:"children,omitempty"`
+	Results         []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
 type ShortestTransactionPathRequest struct {
