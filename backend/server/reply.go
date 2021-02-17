@@ -7,10 +7,12 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
+
 	"encoding/json"
 	"errors"
-	"github.com/dgraph-io/dgo/v2"
 	"io"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 // getLoginReply reads the data from body and constructs a userReply
@@ -100,10 +102,10 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
 	txHashString string, userUid string) (reply heuristicReply) {
 
-	// todo use user uid
-	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUid)
 	if err != nil {
 		reply.Msg = "no heuristics found"
+		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 

@@ -10,6 +10,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -338,6 +339,7 @@ func handlerPaths(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
+// todo use user uid
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
 func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

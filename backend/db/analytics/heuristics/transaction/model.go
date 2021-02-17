@@ -12,6 +12,7 @@ type Heuristic struct {
 	Uid           string `json:"uid,omitempty"`
 	HeuristicType string `json:"type,omitempty"`
 	Parameter     string `json:"parameter,omitempty"`
+	UserUid       string `json:"~user_heuristics,omitempty"`
 	Transaction   struct {
 		Uid string `json:"uid,omitempty"`
 	} `json:"h_transaction,omitempty"`

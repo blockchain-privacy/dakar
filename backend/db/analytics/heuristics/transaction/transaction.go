@@ -4,8 +4,8 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbtx "backend/db/transaction"
-	"context"
 
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -154,7 +154,7 @@ func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
 }
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
+func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
@@ -168,7 +168,12 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 				  }`
 	}
 
-	pb, err := json.Marshal(h)
+	type dummyUser struct {
+		Uid        string      `json:"uid,omitempty"`
+		Heuristics []Heuristic `json:"user_heuristics,omitempty"`
+	}
+
+	pb, err := json.Marshal(dummyUser{Uid: userUid, Heuristics: []Heuristic{h}})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -207,11 +212,9 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic) (insertUid string, err error) {
 }
 
 // DeleteHeuristics deletes all given uids
-func DeleteHeuristics(c *dgo.Dgraph, uids []string) (err error) {
+func DeleteHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
 	// This query gets built for multiple uids
-	//`query Q($uid: string) {
-	//		 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DType + `"))
-	//}`
+	// {h as var(func: uid(0xca67913))@filter(eq(dgraph.type,TransactionHeuristic) AND eq(~user_heuristic,[0xc6f5e08]))}
 
 	var queryPart string
 
@@ -222,13 +225,13 @@ func DeleteHeuristics(c *dgo.Dgraph, uids []string) (err error) {
 		}
 	}
 
-	query := "{h as var(func: uid(" +
-		queryPart + "))@filter(eq(dgraph.type," + DType + "))}"
+	query := "{h as var(func: uid(" + queryPart + "))@filter(eq(dgraph.type," + DType +
+		"))@cascade{~user_heuristics@filter(uid(" + userUid + "))}}"
 
 	req := &api.Request{
 		Query: query,
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * ."),
+			DelNquads: []byte("uid(h) * * .\n <" + userUid + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -719,29 +722,51 @@ func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExis
 	return
 }
 
-// GetBasicFrontendHeuristic returns all heuristics for a given transaction. Basic information only
-func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []FrontendHeuristic, err error) {
-	query := `query Q($hash: string){
-					q(func: eq(txhash,$hash)){
-						~h_transaction{
-							uid
-							ts
-							type
-							parameter
-							parent_heuristic{
-								uid
-							}
-							children: ~parent_heuristic{
-								uid
-							}
-							num_results: count(results)
-						}
+// GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
+func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
+	//query := `query Q($hash: string, $uuid){
+	//				q(func: eq(txhash,$hash)){
+	//					~h_transaction{
+	//						uid
+	//						ts
+	//						type
+	//						parameter
+	//						parent_heuristic{
+	//							uid
+	//						}
+	//						children: ~parent_heuristic{
+	//							uid
+	//						}
+	//						num_results: count(results)
+	//					}
+	//				}
+	//			}`
+
+	query := `query Q($hash: string, $uuid: string){
+				var(func: uid($uuid)){
+					h as user_heuristics@cascade{
+						h_transaction@filter(eq(txhash, $hash))
 					}
-				}`
+				}
+				
+				q(func: uid(h)){
+					uid
+					ts
+					type
+					parameter
+					parent_heuristic{
+						uid
+					}
+					children: ~parent_heuristic{
+						uid
+					}
+					num_results: count(results)
+				}
+			  }`
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -749,9 +774,7 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 
 	// json struct
 	var r struct {
-		Transaction []struct {
-			Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
-		} `json:"q,omitempty"`
+		Heuristics []FrontendHeuristic `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -759,16 +782,14 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string) (heuristics []Front
 		return
 	}
 
-	if len(r.Transaction) > 1 {
-		err = errors.New("invalid response from database")
-		return
-	} else if len(r.Transaction) == 1 {
-		heuristics = r.Transaction[0].Heuristics
+	if len(r.Heuristics) > 0 {
+		heuristics = r.Heuristics
 	}
 
 	return
 }
 
+// todo use user uid
 // GetFrontendHeuristicByUid the heuristic for the given heuristicUid
 func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string) (
 	frontendHeuristic FrontendHeuristic, err error) {
