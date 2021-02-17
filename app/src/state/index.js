@@ -18,7 +18,7 @@ function handleGet(context, route, mutation, parameter) {
   });
 }
 
-function handlePost(context, route, mutation, parameter, body) {
+function handlePost(context, route, mutation, body, parameter) {
   return doPost(route, Router, body, parameter)
     .then((data) => {
       context.commit(mutation, data);
@@ -162,8 +162,7 @@ const actions = {
     return handleGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
   },
   updateHeuristicDetails(context, payload) {
-    return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS',
-      payload.parameter, payload.body);
+    return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS', payload);
   },
   updateUserList(context) {
     return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');

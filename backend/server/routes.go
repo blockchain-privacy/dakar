@@ -507,27 +507,23 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/heuristicDetails/<hash>"
+// API pattern: "/api/v1/heuristicDetails/"
 func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicDetails()):]
-
-		if !isValid(txHashString) {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		type request struct {
+		var heuristicRequest struct {
 			HeuristicUid string `json:"uid,omitempty"`
 		}
 
-		var heuristicRequest request
-
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&heuristicRequest)
-		if err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
 			return
@@ -538,7 +534,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, tUser.Id)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -546,8 +542,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(frontendHeuristic)
-		if err != nil {
+		if err = json.NewEncoder(w).Encode(frontendHeuristic); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}

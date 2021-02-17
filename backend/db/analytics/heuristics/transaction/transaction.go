@@ -789,13 +789,12 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (he
 	return
 }
 
-// todo use user uid
 // GetFrontendHeuristicByUid the heuristic for the given heuristicUid
-func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string) (
+func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid string) (
 	frontendHeuristic FrontendHeuristic, err error) {
-	query := `query Q($uid: string, $hash: string){
+	query := `query Q($uid: string, $uuid: string){
 					q(func: uid($uid))@cascade{
-						h_transaction@filter(eq(txhash, $hash))
+						~user_heuristics@filter(uid($uuid))
 						uid
 						results@normalize{
 							txhash:txhash
@@ -813,7 +812,7 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, txHash string
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": heuristicUid, "$hash": txHash})
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": heuristicUid, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

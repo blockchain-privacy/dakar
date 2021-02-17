@@ -404,10 +404,7 @@ export default {
       }
 
       // request data from backend
-      this.$store.dispatch('updateHeuristicDetails', {
-        parameter: this.transactionHash,
-        body: { uid: heuristic.uid },
-      }).then(() => {
+      this.$store.dispatch('updateHeuristicDetails', { uid: heuristic.uid }).then(() => {
         if (this.heuristicDetails === null || this.heuristicDetails.length === 0
             || !this.heuristicDetails.has(heuristic.uid)) return;
 
