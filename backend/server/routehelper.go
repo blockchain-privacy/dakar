@@ -9,6 +9,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"context"
 	"errors"
 	"net/http"
 	"regexp"
@@ -180,4 +181,22 @@ func GetAddressWithOptions(dgraph *dgo.Dgraph, query string, sortOrder int, offs
 	}
 
 	return SearchResult{resultType: typeAddr, result: addr}, true, nil
+}
+
+// extractTokenUser extracts the tokenUser from the context
+func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
+	userInfo := ctx.Value(middlewareContextUser)
+	if userInfo == nil {
+		err = errors.New("could not extract token user from context")
+		return
+	}
+	tUser := userInfo.(tokenUser)
+	if len(tUser.Id) == 0 {
+		err = errors.New("invalid user id extracted from context")
+		return
+	}
+
+	t = tUser
+
+	return
 }

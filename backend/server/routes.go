@@ -458,18 +458,16 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 
 		var reply heuristicReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
-			} else {
-				reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
-			}
+			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
+		err = json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -491,19 +489,17 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 
 		var reply heuristicReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
-			} else {
-				reply.Success = true
-				reply.Status = worker.GetStatus(txHashString, tUser.Id)
-			}
+			reply.Success = true
+			reply.Status = worker.GetStatus(txHashString, tUser.Id)
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
+		err = json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -572,18 +568,16 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 
 		var reply heuristicExecutionReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
-			} else {
-				reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
-			}
+			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
+		err = json.NewEncoder(w).Encode(reply)
 		if err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -648,14 +642,12 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 
 		var reply userReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
-			} else {
-				reply = getDeleteUserReply(dgraph, userUid, tUser)
-			}
+			reply = getDeleteUserReply(dgraph, userUid, tUser)
 		}
 
 		// encoding
@@ -701,14 +693,12 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 
 		var reply backendUserReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
-			} else {
-				reply = getModifyUserReply(dgraph, r.Body, tUser)
-			}
+			reply = getModifyUserReply(dgraph, r.Body, tUser)
 		}
 
 		// encoding
@@ -741,17 +731,17 @@ func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
 
 		var reply heuristicListReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
+			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+			if err != nil {
+				info(cliutil.ShowCallInfo(), err)
 			} else {
-				items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
-				if err == nil {
-					reply.Success = true
-					reply.Item = items
-				}
+				reply.Success = true
+				reply.Item = items
 			}
 		}
 
