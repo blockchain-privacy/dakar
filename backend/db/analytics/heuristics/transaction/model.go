@@ -87,6 +87,7 @@ type FrontendHeuristic struct {
 	Parameter       string                    `json:"parameter,omitempty"`
 	ParentHeuristic []Heuristic               `json:"parent_heuristic,omitempty"`
 	ChildHeuristics []Heuristic               `json:"children,omitempty"`
+	ResultCount     int                       `json:"num_results,omitempty"`
 	Results         []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
