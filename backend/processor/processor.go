@@ -340,7 +340,6 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
-		// todo check script
 		refOutput.SigAsm = vin.ScriptSig.Asm
 		refOutput.SigHex = vin.ScriptSig.Hex
 		refOutput.Amount = output.Amount
