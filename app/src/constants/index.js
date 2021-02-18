@@ -14,6 +14,8 @@ export const ROUTE_HEURISTICS_SUMMARY = `${routePrefix}heuristicsSummary/`;
 export const ROUTE_EXECUTE_HEURISTICS = `${routePrefix}executeHeuristics/`;
 export const ROUTE_HEURISTIC_DETAILS = `${routePrefix}heuristicDetails/`;
 export const ROUTE_HEURISTIC_STATUS = `${routePrefix}heuristicStatus/`;
+export const ROUTE_HEURISTIC_LIST = `${routePrefix}heuristicList/`;
+export const ROUTE_DELETE_HEURISTIC = `${routePrefix}deleteHeuristic/`;
 export const ROUTE_USER_LIST = `${routePrefix}getUsers/`;
 export const ROUTE_USER_CREATE = `${routePrefix}createUser/`;
 export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
@@ -21,7 +23,7 @@ export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
 export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
 export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
-export const ROUTE_HEURISTIC_LIST = `${routePrefix}heuristicList/`;
+
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
 export const RESPONSE_TYPE_TRANSACTION = 'tx';

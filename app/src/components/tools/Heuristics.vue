@@ -83,11 +83,60 @@
         <v-icon
             small
             :disabled="isLoading"
-            @click="showDeleteDialog(item)">
+            @click="showDeleteHeuristicDialog(item)">
           {{ icon.mdiDelete }}
         </v-icon>
       </template>
     </v-data-table>
+    <v-dialog
+        v-model="showDeleteAllDialog"
+        max-width="500px">
+      <v-card>
+        <v-card-title>
+          <span class="headline">Delete all heuristics</span>
+        </v-card-title>
+        <v-card-text>
+          <p class="font-weight-black body-1 my-0">
+            All your heuristics of all transactions will be deleted. Continue?
+          </p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="closeDeleteAllHeuristicsDialog">Cancel</v-btn>
+          <v-btn
+              color="blue darken-1"
+              text
+              @click="deleteAllHeuristics">Delete all heuristics
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+    <v-dialog
+        v-model="showDeleteTransactionHeuristicDialog"
+        max-width="500px"
+        v-if="this.transactionToDelete">
+      <v-card>
+        <v-card-title>
+          <span class="headline">Delete all transaction heuristics</span>
+        </v-card-title>
+        <v-card-text>
+          <p class="font-weight-black body-1 my-0">
+            All your heuristics of transaction
+            {{ shortenHash(this.transactionToDelete.txhash) }}
+            will be deleted. Continue?
+          </p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text @click="closeDeleteHeuristicDialog">Cancel</v-btn>
+          <v-btn
+              color="blue darken-1"
+              text
+              @click="deleteTransactionHeuristic">Delete
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -96,8 +145,10 @@
 import {
   mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
-import { shortenHash } from '../../utilities';
+import {
+  PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_DELETE_HEURISTIC,
+} from '../../constants';
+import { doPost, shortenHash } from '../../utilities';
 
 export default {
   name: 'Heuristics',
@@ -140,6 +191,12 @@ export default {
   },
   methods: {
     shortenHash,
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
+    },
+    setInfoMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
+    },
     async refreshHeuristicList() {
       this.isLoading = true;
       await this.$store.dispatch('updateHeuristicList');
@@ -154,16 +211,56 @@ export default {
         return d;
       });
     },
+    deleteHeuristics(body) {
+      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, body)
+        .then((data) => {
+          if (data.success === undefined) throw Error('error deleting heuristics');
+          if (data.success === false) {
+            throw Error(data.msg);
+          }
+
+          if (data.msg) {
+            this.setInfoMessage(data.msg);
+          }
+
+          this.refreshHeuristicList();
+        })
+        .catch((error) => {
+          this.setErrorMessage(error);
+        });
+    },
     goToHeuristicPage(item) {
       const id = item.txhash;
       this.$router.push({ name: ROUTE_NAME_HEURISTIC_PAGE, params: { id } });
     },
-    showDeleteDialog(transaction) {
+    deleteTransactionHeuristic() {
+      this.isLoading = true;
+      this.deleteHeuristics({ tx_hash: this.transactionToDelete.txhash })
+        .finally(() => {
+          this.isLoading = false;
+          this.showDeleteTransactionHeuristicDialog = false;
+        });
+    },
+    showDeleteHeuristicDialog(transaction) {
       this.showDeleteTransactionHeuristicDialog = true;
       this.transactionToDelete = transaction;
     },
+    closeDeleteHeuristicDialog() {
+      this.showDeleteTransactionHeuristicDialog = false;
+    },
+    deleteAllHeuristics() {
+      this.isLoading = true;
+      this.deleteHeuristics({ delete_all: true })
+        .finally(() => {
+          this.isLoading = false;
+          this.showDeleteAllDialog = false;
+        });
+    },
     showDeleteAllHeuristicsDialog() {
       this.showDeleteAllDialog = true;
+    },
+    closeDeleteAllHeuristicsDialog() {
+      this.showDeleteAllDialog = false;
     },
   },
   mounted() {
