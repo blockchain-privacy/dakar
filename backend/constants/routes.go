@@ -14,6 +14,8 @@ const (
 	routeHeuristicsExecution string = "executeHeuristics"
 	routeHeuristicDetails    string = "heuristicDetails"
 	routeHeuristicStatus     string = "heuristicStatus"
+	routeHeuristicList       string = "heuristicList"
+	routeDeleteHeuristic     string = "deleteHeuristic"
 	routeAddressOutputRange  string = "addressOutputRange"
 	routeCreateUser          string = "createUser"
 	routeGetUsers            string = "getUsers"
@@ -22,7 +24,6 @@ const (
 	routeLogout              string = "logout"
 	routeModifyUser          string = "modifyUser"
 	routeShortestTxPath      string = "shortestTransactionPath"
-	routeHeuristicList       string = "heuristicList"
 )
 
 func getRoute(r string) string {
@@ -69,6 +70,14 @@ func GetRouteHeuristicStatus() string {
 	return getRoute(routeHeuristicStatus)
 }
 
+func GetRouteHeuristicList() string {
+	return getRoute(routeHeuristicList)
+}
+
+func GetRouteDeleteHeuristic() string {
+	return getRoute(routeDeleteHeuristic)
+}
+
 func GetRouteSearch() string {
 	return getRoute(routeSearch)
 }
@@ -103,8 +112,4 @@ func GetRouteModifyUser() string {
 
 func GetRouteShortestTransactionPath() string {
 	return getRoute(routeShortestTxPath)
-}
-
-func GetRouteHeuristicList() string {
-	return getRoute(routeHeuristicList)
 }

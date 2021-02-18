@@ -98,6 +98,11 @@ type heuristicListReply struct {
 	Item    []dbh.HeuristicListItem `json:"items"`
 }
 
+type deleteHeuristicReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"

@@ -4,7 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbtx "backend/db/transaction"
-
 	"context"
 	"encoding/json"
 	"errors"
@@ -18,6 +17,7 @@ import (
 
 var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
+	ErrNoMutationHappened      = errors.New("no mutation happened")
 )
 
 // CopyHeuristicTree copies the complete heuristic tree starting at rootHeuristicUid.
@@ -255,10 +255,50 @@ func DeleteAllUserHeuristics(c *dgo.Dgraph, userUid string) (err error) {
 	}
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+	resp, txErr := db.TxWithRetryAndResponse(c, ctx, req)
+	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || (ok && v == 0) {
+		return ErrNoMutationHappened
+	}
+
+	return
+}
+
+// DeleteAllUserTxHeuristics deletes all heuristics of a user for a particular transaction
+func DeleteAllUserTxHeuristics(c *dgo.Dgraph, txhash string, userUid string) (err error) {
+	query := `query Q($uuid:string, $hash:string){
+				# get tx uid
+				tx as var(func: eq(txhash, $hash))
+				# get all heuristic of that user and transaction
+				var(func: uid($uuid)){
+					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uuid": userUid, "$hash": txhash},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
+		}},
+		CommitNow: true,
+	}
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	resp, txErr := db.TxWithRetryAndResponse(c, ctx, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || (ok && v == 0) {
+		return ErrNoMutationHappened
+	}
+
 	return
 }
 

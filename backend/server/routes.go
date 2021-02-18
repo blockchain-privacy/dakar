@@ -45,6 +45,11 @@ var (
 	errorInvalidOffset      = "error invalid offset"
 )
 
+type searchResponse struct {
+	Type    queryResultType `json:"type,omitempty"`
+	Payload interface{}     `json:"payload,omitempty"`
+}
+
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
@@ -58,11 +63,6 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 		duration = time.Hour * 24
 	}
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
-}
-
-type searchResponse struct {
-	Type    queryResultType `json:"type,omitempty"`
-	Payload interface{}     `json:"payload,omitempty"`
 }
 
 // API pattern: "/api/v1/search/<hash>"
@@ -461,8 +461,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 
 		var reply heuristicReply
 
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
@@ -470,8 +469,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -492,8 +490,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 
 		var reply heuristicReply
 
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
@@ -502,8 +499,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -566,8 +562,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 
 		var reply heuristicExecutionReply
 
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
@@ -575,8 +570,56 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/heuristicList/"
+func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicListReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+			if err != nil {
+				info(cliutil.ShowCallInfo(), err)
+			} else {
+				reply.Success = true
+				reply.Item = items
+			}
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteHeuristic/"
+func handlerDeleteHeuristic(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteHeuristicReply
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error extracting user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.Id)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -722,35 +765,6 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/heuristicList/"
-func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		var reply heuristicListReply
-
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			reply.Msg = "error modifying user"
-			info(cliutil.ShowCallInfo(), err)
-		} else {
-			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
-			if err != nil {
-				info(cliutil.ShowCallInfo(), err)
-			} else {
-				reply.Success = true
-				reply.Item = items
-			}
-		}
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
-		}
-	})
-}
-
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -865,6 +879,9 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteHeuristicList(),
 		Adapt(handlerHeuristicList(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicList(), privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteHeuristic(),
+		Adapt(handlerDeleteHeuristic(dgraph),
+			authorizationMiddleware(constants.GetRouteDeleteHeuristic(), privkey, pubkey)))
 
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),

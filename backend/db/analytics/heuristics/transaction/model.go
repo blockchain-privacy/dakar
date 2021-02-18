@@ -110,3 +110,8 @@ type HeuristicListItem struct {
 	LastModification string `json:"mod_time,omitempty"`
 	HeuristicCount   uint64 `json:"h_count,omitempty"`
 }
+
+type DeleteHeuristicRequest struct {
+	DeleteAll       bool   `json:"delete_all"`
+	TransactionHash string `json:"tx_hash,omitempty"`
+}
