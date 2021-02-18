@@ -211,25 +211,24 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 	return
 }
 
-// DeleteHeuristics deletes all given uids
+// DeleteHeuristics deletes all given heuristic uids
 func DeleteHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
-	// This query gets built for multiple uids
-	// {h as var(func: uid(0xca67913))@filter(eq(dgraph.type,TransactionHeuristic) AND eq(~user_heuristic,[0xc6f5e08]))}
-
-	var queryPart string
-
+	// build uid list in this form: [uid1,uid2]
+	uidList := "["
 	for i, uid := range uids {
-		queryPart += uid
+		uidList += uid
 		if i+1 < len(uids) {
-			queryPart += ","
+			uidList += ","
 		}
 	}
+	uidList += "]"
 
-	query := "{h as var(func: uid(" + queryPart + "))@filter(eq(dgraph.type," + DType +
-		"))@cascade{~user_heuristics@filter(uid(" + userUid + "))}}"
+	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
+		"@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type))}"
 
 	req := &api.Request{
 		Query: query,
+		Vars:  map[string]string{"$uuid": userUid, "$uids": uidList, "$type": DType},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("uid(h) * * .\n <" + userUid + "> <user_heuristics> uid(h) ."),
 		}},
@@ -660,40 +659,30 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 	return
 }
 
-// DoesHeuristicUidExist checks if the given uids exist
+// DoesHeuristicUidExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
 func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
-	// This query gets built for multiple uids
-	//{
-	//	x as var(func: uid(0x43239f,0x4323b4))@filter(eq(dgraph.type, "TransactionHeuristic"))@cascade{
-	//		h_transaction@filter(eq(txhash, "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"))
-	//	}
-	//
-	//	q(func: uid(x)){
-	//		uid
-	//	}
-	//}
-
-	var queryPart string
-
+	uidList := "["
 	for i, uid := range uids {
-		queryPart += uid
+		uidList += uid
 		if i+1 < len(uids) {
-			queryPart += ","
+			uidList += ","
 		}
 	}
+	uidList += "]"
 
-	query := "{x as var(func: uid(" + queryPart + `))@filter(eq(dgraph.type, "` + DType + `"))@cascade{
-					h_transaction@filter(eq(txhash, "` + txhash + `"))
-				}
-				
-				q(func: uid(x)){
+	query := `query Q($hash:string, $uids:string, $type:string){
+				# get tx uid
+				tx as var(func: eq(txhash, $hash))
+				# filter and count
+				q(func: uid($uids))@filter(uid_in(h_transaction, uid(tx)) AND eq(dgraph.type,$type)){
 					count(uid)
 				}
-			}`
+			  }`
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query,
+		map[string]string{"$hash": txhash, "$uids": uidList, "$type": DType})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -725,10 +714,10 @@ func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExis
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
 func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
 	query := `query Q($hash: string, $uuid: string){
+				# get tx uid
+				tx as var(func: eq(txhash, $hash))
 				var(func: uid($uuid)){
-					h as user_heuristics@cascade{
-						h_transaction@filter(eq(txhash, $hash))
-					}
+					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
 				}
 				
 				q(func: uid(h)){
@@ -823,10 +812,10 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 // GetFrontendHeuristic returns all heuristics for a given transaction
 func GetFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string, $uuid: string){
+				# get tx uid
+				tx as var(func: eq(txhash, $hash))
 				var(func: uid($uuid)){
-					h as user_heuristics@cascade{
-						tx as h_transaction@filter(eq(txhash,$hash))
-					}
+					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
 				}
 				t(func: uid(tx))@normalize{
 					uid:uid
