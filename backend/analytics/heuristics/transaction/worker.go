@@ -172,7 +172,7 @@ mainLoop:
 
 				if wasCopyingErrorFree {
 					// delete changed or removable heuristics
-					if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
+					if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
 						info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						// no return/break because we want keep working even if we are failing
 						// no continue because we still need to do the deletion of this (faulty) job and reset the memory

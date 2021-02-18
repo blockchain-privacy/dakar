@@ -211,8 +211,8 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 	return
 }
 
-// DeleteHeuristics deletes all given heuristic uids
-func DeleteHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
+// DeleteUserHeuristics deletes all given heuristic uids of a user
+func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
 	// build uid list in this form: [uid1,uid2]
 	uidList := "["
 	for i, uid := range uids {
@@ -230,7 +230,26 @@ func DeleteHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) 
 		Query: query,
 		Vars:  map[string]string{"$uuid": userUid, "$uids": uidList, "$type": DType},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n <" + userUid + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
+		}},
+		CommitNow: true,
+	}
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+	return
+}
+
+// DeleteAllUserHeuristics deletes all heuristics of a user
+func DeleteAllUserHeuristics(c *dgo.Dgraph, userUid string) (err error) {
+	req := &api.Request{
+		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics}}",
+		Vars:  map[string]string{"$uuid": userUid},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
