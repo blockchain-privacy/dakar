@@ -220,7 +220,7 @@ export default {
             return;
           }
 
-          this.data = data.payload;
+          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMessages');
           this.emptyResponse = false;
         })
