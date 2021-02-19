@@ -3,7 +3,7 @@
     <v-card style="max-height: 500px">
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
-          <v-card
+          <v-card outlined
               class="mx-auto my-12"
               max-width="500">
             <v-card-title>
@@ -51,7 +51,7 @@
               </v-row>
             </v-card-subtitle>
           </v-card>
-          <v-card class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
+          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
             <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
             <v-card-title class="headline" v-if="!enoughDataForGraph">
               Not enough data to display diagram
@@ -66,11 +66,10 @@
               All origins occur in the same point of time.
             </v-card-subtitle>
           </v-card>
-          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0">
             <v-data-table :headers="dataHeaders"
                           :items="dataItems"
                           :items-per-page="5"
-                          class="elevation-1"
             ></v-data-table>
           </v-card>
 
