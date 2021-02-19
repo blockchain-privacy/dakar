@@ -2,7 +2,7 @@
   <v-container fluid v-if="data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
-        <v-card class="elevation-12">
+        <v-card class="elevation-4">
           <v-toolbar :color="data.privacytype?'purple':'primary'" dark flat>
             <v-toolbar-title>
               <v-icon>{{ icon.mdiTransfer }}</v-icon>

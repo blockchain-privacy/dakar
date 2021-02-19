@@ -2,10 +2,10 @@
   <v-container fluid v-if="data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
-        <v-card class="elevation-12">
+        <v-card class="elevation-4">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title>
-              <v-icon>{{icon.mdiCubeOutline}}</v-icon>
+              <v-icon>{{ icon.mdiCubeOutline }}</v-icon>
               Block {{ data.blockhash }}
             </v-toolbar-title>
           </v-toolbar>
@@ -44,13 +44,22 @@
               </v-row>
               <v-divider v-if="data.txhashes"></v-divider>
               <v-row v-if="data.txhashes">
-                <v-col v-for="tx in data.txhashes" v-bind:key="tx">
-                  <IconItem :icon="icon.mdiTransfer" title="Transaction">
+                <v-col v-for="(tx, i) in data.txhashes" v-bind:key="tx">
+                  <!-- Do not use lazy loading on the first elements -->
+                  <IconItem :icon="icon.mdiTransfer" title="Transaction" v-if="i <= 10">
                     <router-link :to="{ name: transactionRoute,
                     params: { id: tx }}">
                       {{ shortenHash(tx) }}
                     </router-link>
                   </IconItem>
+                  <v-lazy :options="{threshold: 0.3}" v-else>
+                    <IconItem :icon="icon.mdiTransfer" title="Transaction">
+                      <router-link :to="{ name: transactionRoute,
+                    params: { id: tx }}">
+                        {{ shortenHash(tx) }}
+                      </router-link>
+                    </IconItem>
+                  </v-lazy>
                 </v-col>
               </v-row>
             </v-container>
