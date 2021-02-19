@@ -1,6 +1,6 @@
 <template>
   <v-card
-      class="mx-auto elevation-12"
+      class="mx-auto elevation-4"
       max-width="1000">
     <v-toolbar class="hidden-sm-and-up rounded-toolbar" color="primary" dark flat>
       <v-toolbar-title>

@@ -18,7 +18,7 @@
       <v-container>
         <v-row justify="center">
           <v-col cols="12" lg="8" md="8" xl="5">
-            <v-card>
+            <v-card class="elevation-4">
               <div class="pa-5">
                 <h3 class="text-h3 font-weight-bold text-center">
                   Welcome!
