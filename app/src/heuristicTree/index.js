@@ -113,7 +113,7 @@ function dragEvent(event) {
       `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
 
   // Move hidden nodes to the same position as the parent node,
-  // so when they get displayed the have a nice transition animation
+  // so when they get displayed they have a nice transition animation
   if (dragLayoutHiddenNodes !== null) {
     rootSvg.selectAll('.node')
       .data(dragLayoutHiddenNodes, (d) => d.data.data.uid)
