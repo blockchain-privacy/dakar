@@ -114,8 +114,11 @@
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
-      <Details v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
-               :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+      <Details
+          v-model="heuristicSheet.isOpen"
+          :heuristic-data="heuristicSheet"
+          :new-heuristic-prefix="this.newUidPrefix"
+          :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -414,14 +417,25 @@ export default {
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
 
+      // lookup type title from type id
+      let displayType = '';
+      this.heuristicTypes.some((d) => {
+        if (d.id === heuristic.type) {
+          displayType = d.title;
+          return true;
+        }
+        return false;
+      });
+
       sheet.heuristicParameter = heuristic.parameter;
-      sheet.heuristicType = heuristic.type;
+      sheet.heuristicType = displayType;
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
 
       // check if data must be loaded from backend
       if (heuristic.num_results === undefined || heuristic.num_results === 0
-          || this.heuristicDetails.has(heuristic.uid)) {
+          || this.heuristicDetails.has(heuristic.uid)
+          || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;
       }
@@ -431,7 +445,6 @@ export default {
         if (this.heuristicDetails === null || this.heuristicDetails.length === 0
             || !this.heuristicDetails.has(heuristic.uid)) return;
 
-        // results format: [{ts, addresshash, txhash}, ...]
         const { results } = this.heuristicDetails.get(heuristic.uid);
 
         if (results.length === 0) return;

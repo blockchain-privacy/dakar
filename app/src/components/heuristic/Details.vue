@@ -4,8 +4,8 @@
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
           <v-card outlined
-              class="mx-auto my-12"
-              max-width="500">
+                  class="mx-auto my-12"
+                  max-width="500">
             <v-card-title>
               Heuristic Properties
             </v-card-title>
@@ -24,7 +24,17 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-row v-if="dataItems.length > 0">
+              <v-row v-if="isHollow">
+                <v-col>
+                  <v-card-title class="headline">
+                    Not executed
+                  </v-card-title>
+                  <v-card-subtitle>
+                    This heuristic has not been executed, thus no results are available.
+                  </v-card-subtitle>
+                </v-col>
+              </v-row>
+              <v-row v-else-if="dataItems.length > 0">
                 <v-col>
                   <IconItem title="Number of origins"
                             :icon="icon.mdiPoundBoxOutline">
@@ -58,7 +68,7 @@
             </v-card-title>
             <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">
               {{
-                `Only ${durationInMinutes} minute${durationInMinutes>1?'s':''}
+                `Only ${durationInMinutes} minute${durationInMinutes > 1 ? 's' : ''}
                 between earliest and latest origin.`
               }}
             </v-card-subtitle>
@@ -97,10 +107,11 @@ export default {
   components: { IconItem },
   props: {
     // v-model
-    value: Boolean,
-    heuristicData: Object,
+    value: { type: Boolean, required: true },
+    heuristicData: { type: Object, required: true },
     // map[addresshash]array[origins]
-    addressMap: Map,
+    addressMap: { type: Map, required: false },
+    newHeuristicPrefix: { type: String, required: true },
   },
   data() {
     return {
@@ -128,6 +139,9 @@ export default {
       }
 
       return dataItems;
+    },
+    isHollow() {
+      return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
     },
     inputVal: {
       get() {
