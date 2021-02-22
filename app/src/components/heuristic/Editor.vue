@@ -1,5 +1,5 @@
 <template>
-  <v-container class="pa-0">
+  <div class="flex-column d-flex" style="height: 100%;">
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"
@@ -11,11 +11,9 @@
         style="max-width: 600px"
         name='File' :menu-items='contextMenu.items' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
+        dense dark
         color="primary"
-        dark
-        style="width: 100%; left:0;position:fixed; z-index: 10;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2);"
-        dense>
+        style="z-index: 10; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2);">
       <v-toolbar-title class="hidden-md-and-up">
         {{ this.transactionHash }}
       </v-toolbar-title>
@@ -60,13 +58,13 @@
         <v-list>
           <v-list-item @click="goToTransactionPage">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiOpenInNew}}</v-icon>
+              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Transaction Page</v-list-item-title>
           </v-list-item>
           <v-list-item @click="goToHeuristicOverviewPage">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiOpenInNew}}</v-icon>
+              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Heuristic Overview</v-list-item-title>
           </v-list-item>
@@ -85,7 +83,8 @@
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
               <v-card
-                  class="mx-auto my-12"
+                  outlined
+                  class="mx-auto mb-6"
                   v-for="(item, index) in heuristicTypes"
                   :key="index"
                   max-width="300">
@@ -106,13 +105,7 @@
                   </v-form>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="() => {
-                    if (item.parameter !== undefined && !item.parameter.valid) {
-                      return;
-                    }
-                    if (!isHeuristicSheetFixed) isAddHeuristicSheetOpen = false;
-                    item.action(item);
-                  }">
+                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
                     Add Heuristic
                   </v-btn>
                 </v-card-actions>
@@ -150,8 +143,8 @@
         ></v-progress-linear>
       </v-row>
     </v-overlay>
-    <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
-  </v-container>
+    <svg id="svg_canvas"/>
+  </div>
 </template>
 
 <script>
@@ -400,6 +393,13 @@ export default {
     },
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
+    },
+    addNewHeuristicAction(item) {
+      if (item.parameter !== undefined && !item.parameter.valid) {
+        return;
+      }
+      if (!this.isHeuristicSheetFixed) this.isAddHeuristicSheetOpen = false;
+      item.action(item);
     },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
@@ -732,53 +732,46 @@ export default {
 </script>
 
 <style scoped>
->>>.node text {
+>>> .node text {
   font: 12px sans-serif;
   cursor: pointer;
 }
 
->>>.link {
+>>> .link {
   fill: none;
   stroke: darkslategrey;
   stroke-width: 2px;
 }
 
->>>.rect {
+>>> .rect {
   stroke: #008ee5;
   fill-opacity: 0;
   cursor: pointer;
 }
 
->>>.clicked {
+>>> .clicked {
   stroke: #FDD835;
-  fill: antiquewhite;
-  fill-opacity: 1;
 }
 
->>>.graph-canvas {
-  background-color: whitesmoke;
-}
-
->>>.modified {
+>>> .modified {
   stroke-dasharray: 5;
 }
 
->>>.selected {
+>>> .selected {
   fill: #9CCC65;
   fill-opacity: 1;
 }
 
->>>.valid-target {
+>>> .valid-target {
   stroke: #2E7D32;
   stroke-width: 4px;
 }
 
->>>#svg_canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
+>>> #svg_canvas {
   height: 100%;
-  width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
 }
 
+>>> .v-toolbar__content, .v-toolbar__extension {
+  padding-right: 0
+}
 </style>

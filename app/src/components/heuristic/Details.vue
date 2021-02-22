@@ -72,7 +72,6 @@
                           :items-per-page="5"
             ></v-data-table>
           </v-card>
-
         </div>
       </v-card-text>
     </v-card>
@@ -215,8 +214,7 @@ export default {
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
-        .attr('transform',
-          `translate(${margin.left},${margin.top})`);
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
       // group the data for the bars
       const bins = histogram(detailArray);
