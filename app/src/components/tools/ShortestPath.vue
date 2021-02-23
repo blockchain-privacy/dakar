@@ -23,7 +23,7 @@
       </div>
       <v-row>
         <v-col>
-          <v-text-field label="From" v-model="fromTransaction" :disabled="isLoading"/>
+          <v-text-field label="From" v-model="fromTransaction" :disabled="isLoading" autofocus/>
         </v-col>
         <v-col>
           <v-text-field label="To" v-model="toTransaction" :disabled="isLoading"/>
