@@ -1,6 +1,6 @@
 
 # build stage
-FROM golang:1.15-alpine as build-stage
+FROM golang:1.16-alpine as build-stage
 ENV GO111MODULE='on'
 RUN mkdir /build
 ADD . /build/
