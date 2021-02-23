@@ -43,7 +43,7 @@
         </v-col>
         <v-col>
           <v-switch
-              label="Include private transactions"
+              label="Traverse private transactions"
               class="mx-5"
               :disabled="isLoading"
               v-model="includePrivacyTransactions"
