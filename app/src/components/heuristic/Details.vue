@@ -3,9 +3,9 @@
     <v-card style="max-height: 500px">
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
-          <v-card
-              class="mx-auto my-12"
-              max-width="500">
+          <v-card outlined
+                  class="mx-auto my-12"
+                  max-width="500">
             <v-card-title>
               Heuristic Properties
             </v-card-title>
@@ -24,7 +24,17 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-row v-if="dataItems.length > 0">
+              <v-row v-if="isHollow">
+                <v-col>
+                  <v-card-title class="headline">
+                    Not executed
+                  </v-card-title>
+                  <v-card-subtitle>
+                    This heuristic has not been executed, thus no results are available.
+                  </v-card-subtitle>
+                </v-col>
+              </v-row>
+              <v-row v-else-if="dataItems.length > 0">
                 <v-col>
                   <IconItem title="Number of origins"
                             :icon="icon.mdiPoundBoxOutline">
@@ -51,14 +61,14 @@
               </v-row>
             </v-card-subtitle>
           </v-card>
-          <v-card class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
+          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
             <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
             <v-card-title class="headline" v-if="!enoughDataForGraph">
               Not enough data to display diagram
             </v-card-title>
             <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">
               {{
-                `Only ${durationInMinutes} minute${durationInMinutes>1?'s':''}
+                `Only ${durationInMinutes} minute${durationInMinutes > 1 ? 's' : ''}
                 between earliest and latest origin.`
               }}
             </v-card-subtitle>
@@ -66,14 +76,12 @@
               All origins occur in the same point of time.
             </v-card-subtitle>
           </v-card>
-          <v-card class="mx-auto my-12" v-if="dataItems.length > 0">
+          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0">
             <v-data-table :headers="dataHeaders"
                           :items="dataItems"
                           :items-per-page="5"
-                          class="elevation-1"
             ></v-data-table>
           </v-card>
-
         </div>
       </v-card-text>
     </v-card>
@@ -99,10 +107,11 @@ export default {
   components: { IconItem },
   props: {
     // v-model
-    value: Boolean,
-    heuristicData: Object,
+    value: { type: Boolean, required: true },
+    heuristicData: { type: Object, required: true },
     // map[addresshash]array[origins]
-    addressMap: Map,
+    addressMap: { type: Map, required: false },
+    newHeuristicPrefix: { type: String, required: true },
   },
   data() {
     return {
@@ -130,6 +139,9 @@ export default {
       }
 
       return dataItems;
+    },
+    isHollow() {
+      return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
     },
     inputVal: {
       get() {
@@ -216,8 +228,7 @@ export default {
         .attr('width', width + margin.left + margin.right)
         .attr('height', height + margin.top + margin.bottom)
         .append('g')
-        .attr('transform',
-          `translate(${margin.left},${margin.top})`);
+        .attr('transform', `translate(${margin.left},${margin.top})`);
 
       // group the data for the bars
       const bins = histogram(detailArray);

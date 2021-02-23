@@ -1,6 +1,6 @@
 <template>
   <v-card
-      class="mx-auto elevation-12"
+      class="mx-auto elevation-4"
       max-width="1000">
     <v-toolbar color="primary" dark flat>
       <v-toolbar-title>
@@ -23,7 +23,7 @@
       </div>
       <v-row>
         <v-col>
-          <v-text-field label="From" v-model="fromTransaction" :disabled="isLoading"/>
+          <v-text-field label="From" v-model="fromTransaction" :disabled="isLoading" autofocus/>
         </v-col>
         <v-col>
           <v-text-field label="To" v-model="toTransaction" :disabled="isLoading"/>
@@ -37,13 +37,13 @@
               row
               label="Search direction:"
               :disabled="isLoading">
-            <v-radio label="Any" :value="true"/>
             <v-radio label="Linear" :value="false"/>
+            <v-radio label="Any" :value="true"/>
           </v-radio-group>
         </v-col>
         <v-col>
           <v-switch
-              label="Include private transactions"
+              label="Traverse private transactions"
               class="mx-5"
               :disabled="isLoading"
               v-model="includePrivacyTransactions"
@@ -106,7 +106,7 @@ export default {
       fromTransaction: '',
       toTransaction: '',
       includePrivacyTransactions: true,
-      anyDirection: true,
+      anyDirection: false,
       isLoading: false,
       transactions: [],
     };

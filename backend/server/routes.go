@@ -10,6 +10,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -17,7 +18,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
-	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -36,6 +36,7 @@ const (
 
 var (
 	errorPath               = "error getting paths"
+	errorHeuristicSummary   = "error getting heuristic summary"
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
 	errorHeuristicDetails   = "error getting heuristic details"
@@ -43,6 +44,11 @@ var (
 	errorInvalidFilter      = "error invalid filter"
 	errorInvalidOffset      = "error invalid offset"
 )
+
+type searchResponse struct {
+	Type    queryResultType `json:"type,omitempty"`
+	Payload interface{}     `json:"payload,omitempty"`
+}
 
 func setDefaultHeader(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
@@ -57,11 +63,6 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 		duration = time.Hour * 24
 	}
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
-}
-
-type searchResponse struct {
-	Type    queryResultType `json:"type,omitempty"`
-	Payload interface{}     `json:"payload,omitempty"`
 }
 
 // API pattern: "/api/v1/search/<hash>"
@@ -209,10 +210,6 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 	}
 }
 
-var (
-	errHttpDefault = errors.New("an error occurred")
-)
-
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph *dgo.Dgraph,
 	client *rpcclient.Client) func(string, []byte) ([]byte, error) {
@@ -346,18 +343,26 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
 
 		if !isValid(txHashString) {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			return
 		}
 
-		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString)
+		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
-			log.Println(err)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.Id)
+		if err != nil {
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
 		if len(cHeuristic.Heuristics) == 0 {
-			http.Error(w, errorPath, http.StatusNotFound)
+			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			return
 		}
 
@@ -456,19 +461,15 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 
 		var reply heuristicReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
-			} else {
-				reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
-			}
+			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -489,47 +490,39 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 
 		var reply heuristicReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
-			} else {
-				reply.Success = true
-				reply.Status = worker.GetStatus(txHashString, tUser.Id)
-			}
+			reply.Success = true
+			reply.Status = worker.GetStatus(txHashString, tUser.Id)
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
 	})
 }
 
-// API pattern: "/api/v1/heuristicDetails/<hash>"
+// API pattern: "/api/v1/heuristicDetails/"
 func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicDetails()):]
-
-		if !isValid(txHashString) {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 
-		type request struct {
+		var heuristicRequest struct {
 			HeuristicUid string `json:"uid,omitempty"`
 		}
 
-		var heuristicRequest request
-
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&heuristicRequest)
-		if err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
 			return
@@ -540,7 +533,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, txHashString)
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, tUser.Id)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -548,8 +541,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		}
 
 		// encoding
-		err = json.NewEncoder(w).Encode(frontendHeuristic)
-		if err != nil {
+		if err = json.NewEncoder(w).Encode(frontendHeuristic); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -570,19 +562,64 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 
 		var reply heuristicExecutionReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "User not found"
+			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/heuristicList/"
+func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicListReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+			if err != nil {
+				info(cliutil.ShowCallInfo(), err)
 			} else {
-				reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+				reply.Success = true
+				reply.Item = items
 			}
 		}
 
 		// encoding
-		err := json.NewEncoder(w).Encode(reply)
-		if err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteHeuristic/"
+func handlerDeleteHeuristic(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteHeuristicReply
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error extracting user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.Id)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -646,14 +683,12 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 
 		var reply userReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
-			} else {
-				reply = getDeleteUserReply(dgraph, userUid, tUser)
-			}
+			reply = getDeleteUserReply(dgraph, userUid, tUser)
 		}
 
 		// encoding
@@ -699,14 +734,12 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 
 		var reply backendUserReply
 
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
 			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
 		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
-			} else {
-				reply = getModifyUserReply(dgraph, r.Body, tUser)
-			}
+			reply = getModifyUserReply(dgraph, r.Body, tUser)
 		}
 
 		// encoding
@@ -728,35 +761,6 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
-		}
-	})
-}
-
-// API pattern: "/api/v1/heuristicList/"
-func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		var reply heuristicListReply
-
-		if userInfo := r.Context().Value(middlewareContextUser); userInfo == nil {
-			reply.Msg = "error modifying user"
-		} else {
-			if tUser := userInfo.(tokenUser); len(tUser.Id) == 0 {
-				reply.Msg = "error modifying user"
-			} else {
-				items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
-				if err == nil {
-					reply.Success = true
-					reply.Item = items
-				}
-			}
-		}
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
 		}
 	})
 }
@@ -875,6 +879,9 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	http.Handle(constants.GetRouteHeuristicList(),
 		Adapt(handlerHeuristicList(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicList(), privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteHeuristic(),
+		Adapt(handlerDeleteHeuristic(dgraph),
+			authorizationMiddleware(constants.GetRouteDeleteHeuristic(), privkey, pubkey)))
 
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),

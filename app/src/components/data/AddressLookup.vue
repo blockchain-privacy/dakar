@@ -2,7 +2,7 @@
   <v-container fluid v-if="this.data">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
-        <v-card class="elevation-12">
+        <v-card class="elevation-4">
           <v-toolbar color="primary" dark flat>
             <v-toolbar-title v-if="this.data">
               <v-icon>{{ icon.mdiCardBulletedOutline }}</v-icon>
@@ -220,7 +220,7 @@ export default {
             return;
           }
 
-          this.data = data.payload;
+          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
           this.$store.dispatch('resetMessages');
           this.emptyResponse = false;
         })

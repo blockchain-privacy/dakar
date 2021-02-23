@@ -1,5 +1,5 @@
 <template>
-  <v-container class="pa-0">
+  <div class="flex-column d-flex" style="height: 100%;">
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"
@@ -11,24 +11,20 @@
         style="max-width: 600px"
         name='File' :menu-items='contextMenu.items' @nested-menu-click='onMenuItemClick'/>
     <v-toolbar
+        dense dark
         color="primary"
-        dark
-        style="width: 100%; left:0;position:fixed; z-index: 10;
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2)"
-        dense>
+        style="z-index: 10; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2);">
       <v-toolbar-title class="hidden-md-and-up">
-        {{ this.shortTransactionHash }}
+        {{ this.transactionHash }}
       </v-toolbar-title>
       <v-toolbar-title class="hidden-sm-and-down">
         <v-icon>{{ icon.mdiTransfer }}</v-icon>
-        Transaction {{ this.shortTransactionHash }}
+        Transaction {{ this.transactionHash }}
       </v-toolbar-title>
-      <v-btn icon @click="goToTransactionPage">
-        <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
-      </v-btn>
       <v-spacer></v-spacer>
       <v-btn
-          class="ml-1"
+          style="min-width: 32px !important;"
+          class="ml-1 pa-2"
           outlined
           @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen"
           :disabled="this.executionStatus.value.executing">
@@ -36,21 +32,44 @@
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
       <v-btn
-          class="ml-1"
+          style="min-width: 32px !important;"
+          class="ml-1 pa-2"
           outlined
           @click="downloadHeuristicSummary"
           :disabled="this.executionStatus.value.executing || !doesDataExist()">
         <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
-        <div class="hidden-sm-and-down">Download Summary</div>
+        <div class="hidden-sm-and-down">Summary</div>
       </v-btn>
       <v-btn
-          class="ml-1"
+          style="min-width: 32px !important;"
+          class="ml-1 pa-2"
           outlined
           @click="executeHeuristics"
           :disabled="this.executionStatus.value.executing || !isExecutable()">
         <v-icon>{{ icon.mdiSourceBranchCheck }}</v-icon>
-        <div class="hidden-sm-and-down">Execute Heuristics</div>
+        <div class="hidden-sm-and-down">Execute</div>
       </v-btn>
+      <v-menu bottom>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn icon v-bind="attrs" v-on="on" style="outline: 0">
+            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="goToTransactionPage">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Transaction Page</v-list-item-title>
+          </v-list-item>
+          <v-list-item @click="goToHeuristicOverviewPage">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Heuristic Overview</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
           <div>
@@ -64,7 +83,8 @@
           <v-card-text style="height: 80%">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
               <v-card
-                  class="mx-auto my-12"
+                  outlined
+                  class="mx-auto mb-6"
                   v-for="(item, index) in heuristicTypes"
                   :key="index"
                   max-width="300">
@@ -85,13 +105,7 @@
                   </v-form>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn color="primary" @click="() => {
-                    if (item.parameter !== undefined && !item.parameter.valid) {
-                      return;
-                    }
-                    if (!isHeuristicSheetFixed) isAddHeuristicSheetOpen = false;
-                    item.action(item);
-                  }">
+                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
                     Add Heuristic
                   </v-btn>
                 </v-card-actions>
@@ -100,8 +114,11 @@
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
-      <Details v-model="heuristicSheet.isOpen" :heuristic-data="heuristicSheet"
-               :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+      <Details
+          v-model="heuristicSheet.isOpen"
+          :heuristic-data="heuristicSheet"
+          :new-heuristic-prefix="this.newUidPrefix"
+          :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -129,25 +146,25 @@
         ></v-progress-linear>
       </v-row>
     </v-overlay>
-    <svg id="svg_canvas" viewBox="0 0 2000 2000"></svg>
-  </v-container>
+    <svg id="svg_canvas"/>
+  </div>
 </template>
 
 <script>
 import {
   mdiTransfer, mdiOpenInNew, mdiShapeSquareRoundedPlus, mdiFileDownloadOutline,
-  mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus,
+  mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus, mdiDotsVertical,
 } from '@mdi/js';
 import Details from './Details.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
-  ROUTE_HEURISTIC_STATUS,
+  ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
 import {
-  shortenHash, getCurrentDate, doPost, doGet,
+  getCurrentDate, doPost, doGet,
 } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
@@ -222,8 +239,10 @@ export default {
         mdiShapeSquareRoundedPlus,
         mdiFileDownloadOutline,
         mdiSourceBranchCheck,
+        mdiDotsVertical,
       },
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
+      routeHeuristicOverview: ROUTE_NAME_USER_HEURISTIC_PAGE,
       isHeuristicExecuting: false,
       executionStatus: {
         dormantTimer: {
@@ -246,10 +265,10 @@ export default {
           processing: 4,
         },
       },
+      isLinkMenuOpen: false,
       newUidPrefix: 'newUid_',
       uidCounter: 1,
       transactionHash: '',
-      shortTransactionHash: '',
       // dbState holds the state of the database.
       // It is used to detect changes in this.data.heuristics (computed)
       dbState: null,
@@ -378,6 +397,13 @@ export default {
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
+    addNewHeuristicAction(item) {
+      if (item.parameter !== undefined && !item.parameter.valid) {
+        return;
+      }
+      if (!this.isHeuristicSheetFixed) this.isAddHeuristicSheetOpen = false;
+      item.action(item);
+    },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
       if (heuristic.parameter) {
@@ -391,27 +417,34 @@ export default {
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
 
+      // lookup type title from type id
+      let displayType = '';
+      this.heuristicTypes.some((d) => {
+        if (d.id === heuristic.type) {
+          displayType = d.title;
+          return true;
+        }
+        return false;
+      });
+
       sheet.heuristicParameter = heuristic.parameter;
-      sheet.heuristicType = heuristic.type;
+      sheet.heuristicType = displayType;
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
 
       // check if data must be loaded from backend
       if (heuristic.num_results === undefined || heuristic.num_results === 0
-          || this.heuristicDetails.has(heuristic.uid)) {
+          || this.heuristicDetails.has(heuristic.uid)
+          || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;
       }
 
       // request data from backend
-      this.$store.dispatch('updateHeuristicDetails', {
-        parameter: this.transactionHash,
-        body: { uid: heuristic.uid },
-      }).then(() => {
+      this.$store.dispatch('updateHeuristicDetails', { uid: heuristic.uid }).then(() => {
         if (this.heuristicDetails === null || this.heuristicDetails.length === 0
             || !this.heuristicDetails.has(heuristic.uid)) return;
 
-        // results format: [{ts, addresshash, txhash}, ...]
         const { results } = this.heuristicDetails.get(heuristic.uid);
 
         if (results.length === 0) return;
@@ -555,6 +588,9 @@ export default {
     goToTransactionPage() {
       this.$router.push({ name: this.routeTransaction });
     },
+    goToHeuristicOverviewPage() {
+      this.$router.push({ name: this.routeHeuristicOverview });
+    },
     deleteSubTree() {
       const toBeRemoved = ht.getRemovableNodes();
       const rel = ht.getRemovableRelationship();
@@ -632,7 +668,6 @@ export default {
 
       // set transaction hashes for this page view
       this.transactionHash = this.$route.params.id;
-      this.shortTransactionHash = shortenHash(this.transactionHash);
 
       // set page title
       document.title = `Heuristic ${this.transactionHash}`;
@@ -709,54 +744,47 @@ export default {
 };
 </script>
 
-<style>
-.node text {
+<style scoped>
+>>> .node text {
   font: 12px sans-serif;
   cursor: pointer;
 }
 
-.link {
+>>> .link {
   fill: none;
   stroke: darkslategrey;
   stroke-width: 2px;
 }
 
-.rect {
+>>> .rect {
   stroke: #008ee5;
   fill-opacity: 0;
   cursor: pointer;
 }
 
-.clicked {
+>>> .clicked {
   stroke: #FDD835;
-  fill: antiquewhite;
-  fill-opacity: 1;
 }
 
-.graph-canvas {
-  background-color: whitesmoke;
-}
-
-.modified {
+>>> .modified {
   stroke-dasharray: 5;
 }
 
-.selected {
+>>> .selected {
   fill: #9CCC65;
   fill-opacity: 1;
 }
 
-.valid-target {
+>>> .valid-target {
   stroke: #2E7D32;
   stroke-width: 4px;
 }
 
-#svg_canvas {
-  position: fixed;
-  top: 0;
-  left: 0;
+>>> #svg_canvas {
   height: 100%;
-  width: 100%; /* thx, http://www.sarasoueidan.com/blog/svg-coordinate-systems/ !!! */
 }
 
+>>> .v-toolbar__content, .v-toolbar__extension {
+  padding-right: 0
+}
 </style>

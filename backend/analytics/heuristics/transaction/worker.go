@@ -3,10 +3,10 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
-	"io"
 
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"sync"
 	"time"
@@ -87,9 +87,6 @@ func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool
 
 	w.executionMap[key] = work
 
-	for k, v := range w.executionMap {
-		info(k, v)
-	}
 	return true
 }
 
@@ -175,15 +172,15 @@ mainLoop:
 
 				if wasCopyingErrorFree {
 					// delete changed or removable heuristics
-					if err := dbtxh.DeleteHeuristics(dgraph, work.removableHeuristics); err != nil {
+					if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
 						info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						// no return/break because we want keep working even if we are failing
 						// no continue because we still need to do the deletion of this (faulty) job and reset the memory
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							// todo use user uid
-							if err = e.RunSynchronous(dgraph, w.currentWorkItem.txhash, ""); err != nil {
+							if err = e.RunSynchronous(dgraph, w.currentWorkItem.txhash, "",
+								w.currentWorkItem.userUid); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
 						}

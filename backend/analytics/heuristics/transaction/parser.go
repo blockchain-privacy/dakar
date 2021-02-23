@@ -220,7 +220,7 @@ func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTree
 		return true
 	}
 
-	// parentuid does not exist in change set -> must be a root element in this context
+	// parent uid does not exist in change set -> must be a root element in this context
 	if _, ok := heuristics[h.parentHeuristicUid]; !ok {
 		return true
 	}
@@ -293,7 +293,7 @@ func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.Fr
 		if isRootHeuristic(v, newHeuristics) {
 			rootUids = append(rootUids, v.uid)
 			// no need to check roots which are newly created and thus have no valid uid
-			if !strings.HasPrefix(newUidPrefix, newUidPrefix) {
+			if !strings.HasPrefix(v.uid, newUidPrefix) {
 				rootsToCheck = append(rootsToCheck, v.uid)
 			}
 		}
@@ -306,7 +306,7 @@ func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.Fr
 
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
-		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootUids); checkErr != nil {
+		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootsToCheck); checkErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
 			return
 		} else if !exists {

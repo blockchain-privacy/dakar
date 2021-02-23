@@ -113,7 +113,7 @@ function dragEvent(event) {
       `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
 
   // Move hidden nodes to the same position as the parent node,
-  // so when they get displayed the have a nice transition animation
+  // so when they get displayed they have a nice transition animation
   if (dragLayoutHiddenNodes !== null) {
     rootSvg.selectAll('.node')
       .data(dragLayoutHiddenNodes, (d) => d.data.data.uid)
@@ -253,6 +253,7 @@ function drawRect(rootElement) {
     });
 
   rootElement.append('text')
+    .attr('fill', 'currentColor')
     .attr('x', () => -rectWidth / 2 + strokeWidth + 2)
   // if parameter is not set, position text at center
     .attr('y', (d) => (
@@ -271,6 +272,7 @@ function drawRect(rootElement) {
     });
 
   rootElement.append('text')
+    .attr('fill', 'currentColor')
     .attr('x', () => -rectWidth / 2 + strokeWidth + 2)
     .attr('y', textAreaHeight / 2 - textHeight)
     .text((d) => (d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : null));
@@ -368,7 +370,7 @@ function drawNodes(group, nodeData, context) {
     })
     .attr('opacity', 1)
     .attr('class', (d) => {
-      if (d.data.data.uid === rootIdentifier) return null;
+      if (d.data.data.uid === rootIdentifier) return 'node';
 
       return `node${
         d.children ? ' node--internal' : ' node--leaf'}`;
@@ -404,7 +406,8 @@ function processGraphData(graphData) {
     .parentId((d) => {
       if (d.uid === rootIdentifier) {
         return null;
-      } if (d.parent_heuristic == null) {
+      }
+      if (d.parent_heuristic == null) {
         return rootIdentifier;
       }
       return d.parent_heuristic[0].uid;
@@ -446,7 +449,6 @@ function setupSvg(context, canvasId, heuristicDescriptions) {
 
   // add attributes to root svg
   rootSvg = d3.select(`#${canvasId}`)
-    .attr('class', 'graph-canvas')
     .on('click', resetClick);
   rootGroup = rootSvg
     .append('g')
@@ -513,9 +515,16 @@ async function centerGraph() {
     }
   }
 
+  const scaleHeight = svgRect.height / (bbRect.height * 1.2);
+  const scaleWidth = svgRect.width / (bbRect.width * 1.2);
+
+  // scale between 0.1 and 5
+  const scaleBy = Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1);
+  // const transformX = -bbRect.width * scaleBy;
+
   const transform = d3.zoomIdentity
-    .translate(bbRect.width * 2, 200)
-    .scale((svgRect.height - 200) / bbRect.height);
+    .translate(-10, 0)
+    .scale(scaleBy);
 
   rootSvg.transition().duration(250).call(zoom.transform, transform);
 }

@@ -91,7 +91,6 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		// todo check if ok
 		if len(timeLimitedOrigins) == 0 {
 			continue
 		}

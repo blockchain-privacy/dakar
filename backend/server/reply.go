@@ -7,13 +7,15 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
+
 	"encoding/json"
 	"errors"
-	"github.com/dgraph-io/dgo/v2"
 	"io"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
-// getLoginReply reads the data from body and constructs a userReply
+// getLoginReply reads the data from body and constructs a backendUserReply
 func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply backendUserReply) {
 	const invalidUserData = "email and password combination does not match"
 
@@ -100,10 +102,10 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
 	txHashString string, userUid string) (reply heuristicReply) {
 
-	// todo use user uid
-	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString)
+	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUid)
 	if err != nil {
 		reply.Msg = "no heuristics found"
+		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -406,6 +408,51 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 		reply.Msg = "No path found"
 	} else {
 		reply.Transactions = txs
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
+func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string) (reply deleteHeuristicReply) {
+	var req transaction.DeleteHeuristicRequest
+
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
+		reply.Msg = "could not decode request data"
+		return
+	}
+
+	if (req.DeleteAll && len(req.TransactionHash) > 0) ||
+		(!req.DeleteAll && len(req.TransactionHash) == 0) {
+		reply.Msg = "invalid request"
+		return
+	}
+
+	if req.DeleteAll {
+		if err := transaction.DeleteAllUserHeuristics(dgraph, userUid); err != nil {
+			if errors.Is(err, transaction.ErrNoMutationHappened) {
+				reply.Msg = "No data was deleted. The user may not have any heuristics."
+			} else {
+				reply.Msg = "could not delete data"
+				info(cliutil.ShowCallInfo(), err)
+			}
+			return
+		}
+
+		reply.Success = true
+		return
+	}
+
+	if err := transaction.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUid); err != nil {
+		if errors.Is(err, transaction.ErrNoMutationHappened) {
+			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
+		} else {
+			reply.Msg = "could not delete data"
+			info(cliutil.ShowCallInfo(), err)
+		}
+		return
 	}
 
 	reply.Success = true

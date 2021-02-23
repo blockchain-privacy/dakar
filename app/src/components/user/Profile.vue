@@ -1,7 +1,5 @@
 <template>
-  <v-card
-      class="mx-auto elevation-12"
-      max-width="700">
+  <v-card class="mx-auto elevation-4" max-width="700">
     <v-toolbar color="primary" dark flat>
       <v-toolbar-title>
         <v-icon>{{ icon.mdiAccountDetails }}</v-icon>

@@ -12,6 +12,7 @@ type Heuristic struct {
 	Uid           string `json:"uid,omitempty"`
 	HeuristicType string `json:"type,omitempty"`
 	Parameter     string `json:"parameter,omitempty"`
+	UserUid       string `json:"~user_heuristics,omitempty"`
 	Transaction   struct {
 		Uid string `json:"uid,omitempty"`
 	} `json:"h_transaction,omitempty"`
@@ -72,20 +73,22 @@ func (f FrontendHeuristicComplete) String() string {
 	return fmt.Sprintf("Uid:%s, timestamp:%s, heuristic count:%d", f.Uid, f.Timestamp, len(f.Heuristics))
 }
 
+type FrontendHeuristicResult struct {
+	Uid         string `json:"uid,omitempty"`
+	Timestamp   string `json:"ts,omitempty"`
+	AddressHash string `json:"addresshash,omitempty"`
+	TxHash      string `json:"txhash,omitempty"`
+}
+
 type FrontendHeuristic struct {
-	Uid             string      `json:"uid,omitempty"`
-	Timestamp       string      `json:"ts,omitempty"`
-	Type            string      `json:"type,omitempty"`
-	Parameter       string      `json:"parameter,omitempty"`
-	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
-	ChildHeuristics []Heuristic `json:"children,omitempty"`
-	ResultCount     int         `json:"num_results,omitempty"`
-	Results         []struct {
-		Uid         string `json:"uid,omitempty"`
-		Timestamp   string `json:"ts,omitempty"`
-		AddressHash string `json:"addresshash,omitempty"`
-		TxHash      string `json:"txhash,omitempty"`
-	} `json:"results,omitempty"`
+	Uid             string                    `json:"uid,omitempty"`
+	Timestamp       string                    `json:"ts,omitempty"`
+	Type            string                    `json:"type,omitempty"`
+	Parameter       string                    `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic               `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic               `json:"children,omitempty"`
+	ResultCount     int                       `json:"num_results,omitempty"`
+	Results         []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
 type ShortestTransactionPathRequest struct {
@@ -103,6 +106,12 @@ type ShortestTransactionPathRequest struct {
 }
 
 type HeuristicListItem struct {
-	Transaction    string `json:"txhash,omitempty"`
-	HeuristicCount uint64 `json:"heuristic_count,omitempty"`
+	Transaction      string `json:"txhash,omitempty"`
+	LastModification string `json:"mod_time,omitempty"`
+	HeuristicCount   uint64 `json:"h_count,omitempty"`
+}
+
+type DeleteHeuristicRequest struct {
+	DeleteAll       bool   `json:"delete_all"`
+	TransactionHash string `json:"tx_hash,omitempty"`
 }

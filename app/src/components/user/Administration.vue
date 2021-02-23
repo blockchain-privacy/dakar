@@ -10,7 +10,7 @@
             item-key="uid"
             sort-by="user_modified"
             sort-desc
-            class="elevation-1">
+            class="elevation-4">
           <template v-slot:top>
             <v-toolbar flat class="hidden-sm-and-up">
               <v-toolbar-title>User Administration</v-toolbar-title>

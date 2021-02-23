@@ -1,5 +1,5 @@
 <template>
-  <v-text-field style="margin: 23px 0 0 0"
+  <v-text-field style="margin: 23px 0 0 0" autofocus
                 full-width outlined dense
                 label="Search for blocks, transactions and addresses"
                 :append-icon="icon.mdiMagnify"

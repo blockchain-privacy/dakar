@@ -129,7 +129,7 @@ export function handleError(context, error) {
     errMsg = `Error getting data: ${error}`;
   }
 
-  context.dispatch('addMessage', { text: errMsg, type: 'error', temporary: false });
+  context.dispatch('addMessage', { text: errMsg, type: 'error', temporary: true });
 }
 
 export const emailRules = [
