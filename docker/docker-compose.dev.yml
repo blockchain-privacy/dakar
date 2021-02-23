@@ -25,7 +25,7 @@ services:
       depends_on:
         - zero
         - ratel
-        - dakar_dashd
+        - dashd
         - alpha
       tty: false
       restart: unless-stopped

@@ -40,9 +40,9 @@ services:
     networks:
       - dgraph_default
 
-  dakar_dashd:
+  dashd:
     image: dashpay/dashd:latest
-    container_name: dakar_dashd
+    container_name: dashd
     volumes:
       - ${DASH_PATH}:/dash
     ports:
