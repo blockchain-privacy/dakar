@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/btcsuite/btcd/rpcclient"
 
@@ -122,6 +123,65 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 	return *dbStatus.IsCrawling, nil
 }
 
+// waitForRPCClient waits until the RPC client is ready to receive requests
+func waitForRPCClient(client *rpcclient.Client) bool {
+	const maxRetries = 5
+	const retrySleepDuration = time.Second * 5
+
+	var printedErrMessage bool
+
+	for i := 0; i < maxRetries; i++ {
+		_, err := client.GetBlockCount()
+		if err == nil {
+			if printedErrMessage {
+				info("Successfully established connection to RPC client.")
+			}
+			return true
+		}
+
+		if !printedErrMessage {
+			info("Waiting for RPC client to start")
+			printedErrMessage = true
+		}
+
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+	info("RPC client is not ready to receive requests.")
+	return false
+}
+
+// waitForDatabase waits until the database is ready to receive requests
+func waitForDatabase(dgraph *dgo.Dgraph) bool {
+	const maxRetries = 5
+	const retrySleepDuration = time.Second * 5
+
+	var printedErrMessage bool
+
+	for i := 0; i < maxRetries; i++ {
+		if status.IsConnectionEstablished(dgraph) {
+			if printedErrMessage {
+				info("Successfully established connection to database.")
+			}
+			return true
+		}
+
+		if !printedErrMessage {
+			info("Waiting for database")
+			printedErrMessage = true
+		}
+
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	info("Database is not ready to receive requests.")
+
+	return false
+}
+
 // The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //
@@ -155,7 +215,7 @@ func main() {
 	} else if cliArgs.Doge {
 		processorConfig = processor.NewDogecoinConfig()
 	} else {
-		fmt.Println("invalid blockchain selected")
+		fmt.Println("invalid blockchain mode selected")
 		return
 	}
 
@@ -172,6 +232,11 @@ func main() {
 			info(err)
 		}
 	}()
+
+	// test if database is active
+	if !waitForDatabase(dgraph) {
+		return
+	}
 
 	if cliArgs.IsPrintStatus {
 		status.PrintStatus(dgraph)
@@ -214,7 +279,7 @@ func main() {
 			info(err)
 			return
 		}
-		info("dropped all data")
+		info("Dropped all data.")
 		err = db.SetupSchema(dgraph)
 		if err != nil {
 			info(err)
@@ -283,12 +348,10 @@ func main() {
 			return
 		}
 
-		count, err := client.GetBlockCount()
-		if err != nil {
-			info("Error: problem with count()", err.Error())
+		// test if rpc client is active
+		if !waitForRPCClient(client) {
 			return
 		}
-		info("Current block count in the chain of the RPC client:", count)
 	}
 
 	// We will handle CTRL-C and CTRL-Z nicely
@@ -301,7 +364,7 @@ func main() {
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
 
-	// the waitgroup which handles the modules of the crawler
+	// the wait group which handles the modules of the crawler
 	var wg sync.WaitGroup
 
 	// activate crawler
