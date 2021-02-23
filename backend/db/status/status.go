@@ -332,3 +332,21 @@ func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, CrawlerStatusDType)
 }
+
+// IsConnectionEstablished test the database connection
+func IsConnectionEstablished(c *dgo.Dgraph) bool {
+	query := `{
+				 q(func: has(blockhash), first:1){
+					uid
+				  }
+				}`
+
+	ctx, cancel := db.GetBackendContext()
+	defer cancel()
+	_, err := c.NewReadOnlyTxn().Query(ctx, query)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
