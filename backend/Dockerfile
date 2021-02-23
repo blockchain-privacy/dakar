@@ -13,5 +13,5 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags '-extldflag
 FROM scratch
 COPY --from=build-stage /build/crawler /app/
 WORKDIR /app
-CMD ["./crawler", "-continuous", "-dbhost", "alpha", "-rpchost", "dakar_dashd"]
+CMD ["./crawler", "-dash", "-continuous", "-dbhost", "alpha", "-rpchost", "dakar_dashd"]
 
