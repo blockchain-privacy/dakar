@@ -306,7 +306,7 @@ func ConstructExecutors(dgraph *dgo.Dgraph, txhash string, heuristics []dbtxh.Fr
 
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
-		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootUids); checkErr != nil {
+		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootsToCheck); checkErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
 			return
 		} else if !exists {
