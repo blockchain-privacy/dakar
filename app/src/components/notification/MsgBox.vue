@@ -2,11 +2,11 @@
   <v-layout>
     <div class="msgBox">
       <transition-group name="component-fade" mode="out-in">
-      <Messages
-          v-for="(msg, i) in messages" :key="i"
-          :type="msg.type" :temporary="msg.temporary">
-        {{ msg.text }}
-      </Messages>
+        <Messages
+            v-for="(msg, i) in messages" :key="msg.text + i"
+            :type="msg.type" :temporary="msg.temporary">
+          {{ msg.text }}
+        </Messages>
       </transition-group>
     </div>
   </v-layout>
