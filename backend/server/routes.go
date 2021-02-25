@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"strconv"
@@ -774,7 +774,7 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 		setCacheHeader(w, ttl)
 
 		// extract body
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			handleError(w, err)
 			return
