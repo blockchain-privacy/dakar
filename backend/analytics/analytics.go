@@ -365,7 +365,7 @@ func processPrivacyType(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan 
 		}
 
 		// get transaction data
-		transaction, txErr := dbtx.GetTransaction(dgraph, tx.Hash)
+		transaction, txErr := dbtx.GetTransaction(dgraph, tx.Hash, block.Hash)
 		if txErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return

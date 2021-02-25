@@ -140,9 +140,9 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 	return
 }
 
-func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]outputMapping,
+func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs map[string]outputMapping,
 	addrMap *map[string]dbaddr.Address) (err error) {
-	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
+	txFromDB, err := dbtx.GetTransaction(dgraph, txHash, blockHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -154,10 +154,10 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]output
 }
 
 // inserts mappings between addresses and outputs in database
-func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) (err error) {
+func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping, blockHash string) (err error) {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
-		if err = buildAddresses(dgraph, mapping.hash, mapping.outputs, &addrMap); err != nil {
+		if err = buildAddresses(dgraph, mapping.hash, blockHash, mapping.outputs, &addrMap); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -317,6 +317,8 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 
 	refOutput := dbop.Output{
 		InputIndex: &index,
+		SigAsm:     vin.ScriptSig.Asm,
+		SigHex:     vin.ScriptSig.Hex,
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
@@ -340,8 +342,6 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
-		refOutput.SigAsm = vin.ScriptSig.Asm
-		refOutput.SigHex = vin.ScriptSig.Hex
 		refOutput.Amount = output.Amount
 		refOutput.Uid = output.Uid
 	}
@@ -738,7 +738,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 	}
 
 	// if the current block is not yet in the database or if only a shallow block exist in
-	// the database a new block is created shallow blocks get created when a crawling process gets
+	// the database a new block is created. Shallow blocks get created when a crawling process gets
 	// started for the first time. Each block creation connects the current block with the previous block.
 	// In the case of the first block, a previous block does not exist, thus a shallow block is created.
 	// This check is relatively late in the processing loop. The reason for this is, that even if the
@@ -761,7 +761,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 		txCounter = 0
 	}
 
-	if err = processAddresses(dgraph, txMapping); err != nil {
+	if err = processAddresses(dgraph, txMapping, state.hash); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

@@ -11,9 +11,11 @@ import (
 )
 
 // GetTransaction gets transaction information from the database
-func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err error) {
-	query := `query Q($hash: string) {
-				q(func: eq(txhash, $hash)){
+func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction Transaction, err error) {
+	query := `query Q($tx: string,$block:string) {
+				blk as var(func: eq(blockhash, $block))
+
+				q(func: eq(txhash, $tx))@filter(uid_in(~transactions,uid(blk))){
 					uid
 					txhash
 					privacytype
@@ -39,7 +41,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": txHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$tx": txHash, "$block": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -56,7 +58,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string) (transaction Transaction, err 
 }
 
 // GetFrontendTransaction gets transaction information for the frontend
-func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendTransaction, err error) {
+func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []FrontendTransaction, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash)){
 					txhash
@@ -118,38 +120,41 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transaction FrontendT
 		return
 	}
 
-	if len(r.Transaction) == 0 || len(r.Transaction[0].Block) == 0 {
+	if len(r.Transaction) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
-	} else if len(r.Transaction) != 1 || len(r.Transaction[0].Block) != 1 || r.Transaction[0].OriginCount == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
-		return
 	}
 
-	t := r.Transaction[0]
+	for _, t := range r.Transaction {
+		if len(t.Block) == 0 || len(t.Block) != 1 || t.OriginCount == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+			return
+		}
 
-	// t.Fee can be nil in case we do -start to -stop crawling
-	fee := int64(-1)
-	if t.Fee != nil {
-		fee = *t.Fee
-	}
+		// t.Fee can be nil in case we do -start to -stop crawling
+		fee := int64(-1)
+		if t.Fee != nil {
+			fee = *t.Fee
+		}
 
-	transaction = FrontendTransaction{
-		Hash:           t.Hash,
-		PrivacyType:    t.PrivacyType,
-		Fee:            fee,
-		OriginCount:    *t.OriginCount,
-		BlockHash:      t.Block[0].Hash,
-		BlockId:        t.Block[0].Id,
-		BlockTimestamp: t.Block[0].Ts,
-		Outputs:        t.Outputs,
-		Inputs:         t.Inputs,
+		transactions = append(transactions, FrontendTransaction{
+			Hash:           t.Hash,
+			PrivacyType:    t.PrivacyType,
+			Fee:            fee,
+			OriginCount:    *t.OriginCount,
+			BlockHash:      t.Block[0].Hash,
+			BlockId:        t.Block[0].Id,
+			BlockTimestamp: t.Block[0].Ts,
+			Outputs:        t.Outputs,
+			Inputs:         t.Inputs,
+		})
 	}
 
 	return
 }
 
-// GetTransactionBlockId gets the block id of the transaction
+// GetTransactionBlockId gets the block id of the transaction. If there exist multiple transactions
+// with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash))@normalize{
@@ -182,12 +187,13 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 	if len(r.Transaction) == 0 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
-	} else if len(r.Transaction) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
-		return
 	}
 
-	blockId = r.Transaction[0].Id
+	for _, tx := range r.Transaction {
+		if tx.Id > blockId {
+			blockId = tx.Id
+		}
+	}
 
 	return
 }

@@ -20,6 +20,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 					id
 					ts
 					blockhash
+					dgraph.type
 					prevblock { 
 						uid
 						blockhash
