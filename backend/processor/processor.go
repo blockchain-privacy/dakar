@@ -354,7 +354,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) (err error) {
 
-	block := dbblk.Block{
+	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		Id:        &blockId,
@@ -362,10 +362,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 			Hash: prevBlockHash,
 		},
 		Transactions: transactions,
-	}
-
-	err = dbblk.UpsertBlock(dgraph, block)
-	if err != nil {
+	}); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	return
@@ -710,7 +707,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 
 	txHashMap, err := createTransactionHashmap(client, block.Tx)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
 
@@ -720,7 +717,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 
 		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 
@@ -751,7 +748,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 
@@ -762,7 +759,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 	}
 
 	if err = processAddresses(dgraph, txMapping, state.hash); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
 
@@ -770,12 +767,12 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 	if setLowestId {
 		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockId: &state.id,
 			LowestBlockId: &state.id}); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 	} else {
 		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 	}

@@ -206,16 +206,14 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 		return err
 	}
 
-	query := `
-		query Q($currentHash: string, $prevHash: string) {
-			current(func: eq(blockhash, $currentHash)) {
-				v as uid
-			}
-			previous(func: eq(blockhash, $prevHash)) {
-				x as uid
-			}
-		}
-	`
+	query := `query Q($currentHash:string,$prevHash:string){
+				current(func: eq(blockhash,$currentHash)){
+					v as uid
+				}
+				previous(func: eq(blockhash,$prevHash)){
+					x as uid
+				}
+			  }`
 
 	req := &api.Request{
 		Query: query,

@@ -56,7 +56,7 @@ func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err
 		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
 			return
 		}
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -71,7 +71,7 @@ func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Re
 		if resp, err = dgraph.NewTxn().Do(ctx, req); err == nil {
 			return
 		}
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -90,7 +90,7 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 			return resp, nil
 		}
 		err = txErr
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -108,7 +108,7 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*ap
 			return resp, nil
 		}
 		err = txErr
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
