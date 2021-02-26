@@ -3,6 +3,7 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"time"
 
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 
 // GetTransaction gets transaction information from the database
 func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction Transaction, err error) {
-	query := `query Q($tx: string,$block:string) {
+	query := `query Q($tx:string,$block:string) {
 				blk as var(func: eq(blockhash, $block))
 
 				q(func: eq(txhash, $tx))@filter(uid_in(~transactions,uid(blk))){
@@ -39,9 +40,8 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 				}
 			  }`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$tx": txHash, "$block": blockHash})
+	resp, err := db.ReadOnlyTxVarWithRetryAndTimeout(c, time.Second*20, query,
+		map[string]string{"$tx": txHash, "$block": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

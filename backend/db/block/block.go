@@ -3,6 +3,7 @@ package block
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"time"
 
 	"encoding/json"
 	"fmt"
@@ -223,9 +224,7 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if err = db.TxWithRetry(c, ctx, req); err != nil {
+	if err = db.TxWithRetryAndTimeout(c, time.Minute*2, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 

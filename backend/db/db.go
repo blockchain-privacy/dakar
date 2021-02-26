@@ -65,6 +65,28 @@ func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err
 	return
 }
 
+// execTx executes the given request
+func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+	return dgraph.NewTxn().Do(ctx, req)
+}
+
+// TxWithRetryAndTimeout executes the given request. In case the request fails repeat it
+func TxWithRetryAndTimeout(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (err error) {
+	for i := 0; i < maxRetries; i++ {
+		if _, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
+			return
+		}
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
 // Execute the given request. In case the request fails repeat it. Also returns the response
 func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
@@ -86,6 +108,33 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 	var err error
 	for i := 0; i < maxRetries; i++ {
 		resp, txErr := dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+		if txErr == nil {
+			return resp, nil
+		}
+		err = txErr
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return nil, err
+}
+
+// execReadOnlyTxWithVars executes the given request
+func execReadOnlyTxWithVars(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+	vars map[string]string) (*api.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+	return dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+}
+
+// ReadOnlyTxVarWithRetryAndTimeout executes the given request. In case the request fails repeats it
+func ReadOnlyTxVarWithRetryAndTimeout(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+	vars map[string]string) (*api.Response, error) {
+	var err error
+	for i := 0; i < maxRetries; i++ {
+		resp, txErr := execReadOnlyTxWithVars(dgraph, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil
 		}

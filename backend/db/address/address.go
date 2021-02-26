@@ -9,6 +9,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
 	"strconv"
+	"time"
 )
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
@@ -325,9 +326,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	return db.TxWithRetry(c, ctx, req)
+	return db.TxWithRetryAndTimeout(c, time.Minute*3, req)
 }
 
 // gets the number of addresses in the database
