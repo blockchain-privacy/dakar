@@ -8,6 +8,7 @@ import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"time"
 
 	"encoding/json"
 	"fmt"
@@ -264,9 +265,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	return db.TxWithRetry(c, ctx, req)
+	return db.TxWithRetryAndTimeout(c, time.Second*20, req)
 }
 
 // sets the new status
