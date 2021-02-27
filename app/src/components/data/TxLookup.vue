@@ -224,16 +224,20 @@ export default {
           this.isLoading = false;
         });
     },
+    setPageTitle() {
+      let h = ' ';
+
+      if (this.data && this.data[0].txhash) {
+        h = ` ${this.data[0].txhash} `;
+      }
+      document.title = `Transaction${h}- ${PAGE_TITLE}`;
+    },
   },
   mounted() {
-    document.title = `Transaction - ${PAGE_TITLE}`;
+    this.setPageTitle();
   },
   updated() {
-    let h = ' ';
-    if (this.data && this.data.txhash) {
-      h = ` ${this.data.txhash} `;
-    }
-    document.title = `Transaction${h}- ${PAGE_TITLE}`;
+    this.setPageTitle();
   },
 };
 </script>

@@ -84,6 +84,13 @@ export default {
   components: { IconItem },
   methods: {
     shortenHash,
+    setPageTitle() {
+      let id = ' ';
+      if (this.data && this.data.id) {
+        id = ` ${this.data.id} `;
+      }
+      document.title = `Block${id}- ${PAGE_TITLE}`;
+    },
   },
   data() {
     return {
@@ -104,14 +111,10 @@ export default {
     },
   },
   mounted() {
-    document.title = `Block - ${PAGE_TITLE}`;
+    this.setPageTitle();
   },
   updated() {
-    let id = ' ';
-    if (this.data && this.data.id) {
-      id = ` ${this.data.id} `;
-    }
-    document.title = `Block${id}- ${PAGE_TITLE}`;
+    this.setPageTitle();
   },
 };
 </script>
