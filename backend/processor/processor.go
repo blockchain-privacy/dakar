@@ -27,8 +27,14 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// loggerPrefix is the prefix which is printed for each log message
-const loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
+const (
+	// loggerPrefix is the prefix which is printed for each log message
+	loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
+
+	// addressInvalidPubkey is the string which gets used as an address hash
+	// if its public key can not be decoded
+	addressInvalidPubkey = "error_decode_pubkey"
+)
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
@@ -189,6 +195,10 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 		return
 	}
 
+	// Alternatively use btcutil's ExtractPkScriptAddrs(); This has a lot of overhead as it
+	// tries to detect the transaction type based on the script. At this point we already know
+	// that it is pay-to-pubkey. Thus, parsing is done manually
+
 	amsParts := strings.Split(asm, " ")
 
 	decodeString, decodeErr := hex.DecodeString(amsParts[0])
@@ -202,8 +212,7 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 
 	addr, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &cfg)
 	if addressConversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addressConversionErr)
-		return
+		return addressInvalidPubkey, nil
 	}
 	address = addr.EncodeAddress()
 
@@ -262,9 +271,16 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			if d.ScriptPubKey.Addresses == nil {
 				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
 				if decodeErr != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+						fmt.Sprint(decodeErr, "hash", txDetails.Hash))
 					return
 				}
+
+				// log if we get an invalid address; this can happen if an invalid public key has been provided
+				if pubkeyAddress == addressInvalidPubkey {
+					info("could not decode public key for tx", txDetails.Hash)
+				}
+
 				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
 			} else {
 				for _, e := range d.ScriptPubKey.Addresses {
