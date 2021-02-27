@@ -151,8 +151,8 @@ export default {
       // 64 -> length of transaction hash and block hash
       if (inputLen === 0 || inputLen > 64) return false;
 
-      // 34 -> address length; if smaller than it must be a block id
-      if (inputLen < 34) {
+      // 33,34 -> address length; if smaller than it must be a block id
+      if (inputLen < 33) {
         return Number.isInteger(Number(str));
       }
 
