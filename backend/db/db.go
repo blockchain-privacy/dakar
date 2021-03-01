@@ -87,35 +87,17 @@ func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Re
 	return
 }
 
-// Execute the given request. In case the request fails repeat it
-func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
-	vars map[string]string) (*api.Response, error) {
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		resp, txErr := dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
-		if txErr == nil {
-			return resp, nil
-		}
-		err = txErr
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return nil, err
-}
-
-// execReadOnlyTxWithVars executes the given request
+// execReadOnlyTxWithVars executes the given request, vars is allowed to be nil
 func execReadOnlyTxWithVars(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
+
 	return dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
 }
 
 // ReadOnlyTxVarWithRetryAndTimeout executes the given request. In case the request fails repeats it
-func ReadOnlyTxVarWithRetryAndTimeout(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
@@ -133,22 +115,9 @@ func ReadOnlyTxVarWithRetryAndTimeout(dgraph *dgo.Dgraph, timeoutPerRequest time
 	return nil, err
 }
 
-// Execute the given request. In case the request fails repeat it
-func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*api.Response, error) {
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		resp, txErr := dgraph.NewReadOnlyTxn().Query(ctx, q)
-		if txErr == nil {
-			return resp, nil
-		}
-		err = txErr
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return nil, err
+// ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
+func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
+	return ReadOnlyTxVarWithRetry(dgraph, timeoutPerRequest, q, nil)
 }
 
 // drops ALL data from the database, schema included

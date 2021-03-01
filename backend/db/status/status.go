@@ -66,9 +66,7 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 				  }
 				}`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -95,9 +93,7 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 				  }
 				}`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -120,12 +116,6 @@ func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
 	return getTopBlockId(c, false)
 }
 
-// gets the lowest block id.
-// on large datasets this is an expensive call.
-func GetLowestBlockId(c *dgo.Dgraph) (id uint64, err error) {
-	return getTopBlockId(c, true)
-}
-
 // gets the top block id, either ordered descending (highest or ascending (lowest).
 // on large datasets this is an expensive call.
 func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
@@ -140,9 +130,8 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 					id
 				}
 			}`, order)
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*40, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

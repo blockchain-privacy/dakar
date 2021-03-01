@@ -188,9 +188,7 @@ func GetAccumulatedOrigins(c *dgo.Dgraph, uid string) (origins []string, err err
 				}
 			}`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -366,9 +364,7 @@ func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 				}
 			  }`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": txHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

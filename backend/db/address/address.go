@@ -238,9 +238,8 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 					}
 			  	}
 			   }`
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$uid": uid})
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": uid})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

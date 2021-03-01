@@ -33,9 +33,7 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 				}
 			  }`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query, map[string]string{"$hash": blockHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -70,9 +68,7 @@ func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
 				}
 			  }`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxVarWithRetry(c, ctx, query,
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$id": strconv.FormatUint(blockId, 10)})
 
 	if err != nil {

@@ -100,9 +100,7 @@ func GetUsers(c *dgo.Dgraph) (users []User, err error) {
 				}
 			  }`
 
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

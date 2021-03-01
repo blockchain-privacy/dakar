@@ -77,15 +77,3 @@ func (oq outputQuery) payload() (op Output, err error) {
 	op = oq.GetOutput[0].Outputs[0]
 	return
 }
-
-type VerboseOutput struct {
-	Uid               string
-	OutputIndex       *uint32
-	InputIndex        *uint32
-	TxType            string
-	Amount            *int64
-	IsCoinbase        *bool
-	OutputTransaction string
-	InputTransaction  string
-	Addresses         []string
-}
