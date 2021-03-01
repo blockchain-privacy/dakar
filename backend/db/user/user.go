@@ -274,10 +274,8 @@ func DeleteUser(c *dgo.Dgraph, uid string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
 
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
@@ -397,9 +395,8 @@ func RemoveRolesFromUser(c *dgo.Dgraph, uid string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+
+	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}

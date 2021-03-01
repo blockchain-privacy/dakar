@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	dbtx "backend/db/transaction"
 	"strconv"
+	"time"
 
 	"encoding/json"
 	"errors"
@@ -124,10 +125,8 @@ func PartialReverseLookup(c *dgo.Dgraph, transactionUids []string) (err error) {
 		return
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
 	req := buildAnalyzeAndSetOriginsRequest(transactionUids)
-	if err = db.TxWithRetry(c, ctx, req); err != nil {
+	if err = db.TxWithRetry(c, time.Minute*10, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -158,9 +157,8 @@ func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 		Mutations: []*api.Mutation{mu},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+
+	if txErr := db.TxWithRetry(c, time.Minute*20, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
@@ -277,9 +275,7 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 	}
 
 	req := buildIRTLRequest(transactionUids)
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if err = db.TxWithRetry(c, ctx, req); err != nil {
+	if err = db.TxWithRetry(c, time.Minute*20, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -321,9 +317,7 @@ func ConnectDirectNeighbours(c *dgo.Dgraph, transactionUid string) (err error) {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if err = db.TxWithRetry(c, ctx, req); err != nil {
+	if err = db.TxWithRetry(c, time.Minute*10, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -356,9 +350,7 @@ func SetOrigins(c *dgo.Dgraph, txUid string, originUids []string, isDone bool) (
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if err = db.TxWithRetry(c, ctx, req); err != nil {
+	if err = db.TxWithRetry(c, time.Minute*5, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

@@ -50,21 +50,6 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), frontEndTimout)
 }
 
-// Execute the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err error) {
-	for i := 0; i < maxRetries; i++ {
-		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
-			return
-		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return
-}
-
 // execTx executes the given request
 func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -72,8 +57,8 @@ func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Reques
 	return dgraph.NewTxn().Do(ctx, req)
 }
 
-// TxWithRetryAndTimeout executes the given request. In case the request fails repeat it
-func TxWithRetryAndTimeout(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (err error) {
+// TxWithRetry executes the given request. In case the request fails repeat it
+func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (err error) {
 	for i := 0; i < maxRetries; i++ {
 		if _, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
 			return

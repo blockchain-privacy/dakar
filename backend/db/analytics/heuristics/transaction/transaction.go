@@ -234,9 +234,8 @@ func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err err
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+
+	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}

@@ -265,7 +265,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetryAndTimeout(c, time.Second*20, req)
+	return db.TxWithRetry(c, time.Second*20, req)
 }
 
 // sets the new status
@@ -293,9 +293,7 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	return db.TxWithRetry(c, ctx, req)
+	return db.TxWithRetry(c, time.Second*20, req)
 }
 
 // sets the crawling status

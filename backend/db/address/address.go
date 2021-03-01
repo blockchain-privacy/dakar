@@ -326,7 +326,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 		}},
 		CommitNow: true,
 	}
-	return db.TxWithRetryAndTimeout(c, time.Minute*3, req)
+	return db.TxWithRetry(c, time.Minute*3, req)
 }
 
 // gets the number of addresses in the database
