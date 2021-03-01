@@ -14,7 +14,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"log"
 	"os"
 	"os/signal"
@@ -26,6 +25,8 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // VersionString displays the version of the Crawler
@@ -208,12 +209,16 @@ func main() {
 
 	// select blockchain config
 	var processorConfig processor.Config
+	var analyserConfig analytics.Config
 	if cliArgs.Dash {
 		processorConfig = processor.NewDashConfig()
+		analyserConfig = analytics.NewDashConfig()
 	} else if cliArgs.BTC {
 		processorConfig = processor.NewBitcoinConfig()
+		analyserConfig = analytics.NewBitcoinConfig()
 	} else if cliArgs.Doge {
 		processorConfig = processor.NewDogecoinConfig()
+		analyserConfig = analytics.NewDogecoinConfig()
 	} else {
 		fmt.Println("invalid blockchain mode selected")
 		return
@@ -325,7 +330,8 @@ func main() {
 					return
 				}
 				// do not log
-				fmt.Println("new admin user created. Email:", adminEmail, "Pw:", pw)
+				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
+				fmt.Println("Write the credentials down, this message is not logged.")
 			} else {
 				info(userErr)
 				return
@@ -389,7 +395,7 @@ func main() {
 	}
 
 	// activate analyzer
-	if !cliArgs.DisableAnalyzer {
+	if !cliArgs.DisableAnalyzer && analyserConfig.IsAnalysingEnabled {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -397,8 +403,8 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			if err := analytics.StartAnalysis(analyzerContext, dgraph); err != nil {
-				info(err)
+			if analyserErr := analytics.StartAnalysis(analyzerContext, dgraph, analyserConfig); analyserErr != nil {
+				info(analyserErr)
 			}
 		}()
 	}

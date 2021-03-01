@@ -17,9 +17,6 @@ import (
 )
 
 const (
-	// analyseStartBlock is the block id after which we start analysing. found empirically.
-	analyseStartBlock = 206940
-
 	// analyticsLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
 	analyticsLoggerPrefix = "\033[0;32manalyse\u001B[0m\t"
 	// metricsLoggerPrefix is the prefix which is printed for each log message of metricLogger
@@ -61,7 +58,9 @@ func (a analyzerProcessingState) String() string {
 	return fmt.Sprintf("Id: %d, Top: %d", a.id, a.top)
 }
 
-func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
+// setInitialAnalyserId sets the starting analyser block id to the
+// value of startBlockAnalyser if no value has been set yet
+func setInitialAnalyserId(dgraph *dgo.Dgraph, startBlockAnalyser uint64) (err error) {
 	status, err := dbstat.GetAnalyzerStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -69,8 +68,8 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
 	}
 
 	if status.LastAnalysedBlockId == nil ||
-		*status.LastAnalysedBlockId < analyseStartBlock {
-		if err = dbstat.SetLastAnalysedBlockId(dgraph, analyseStartBlock); err != nil {
+		*status.LastAnalysedBlockId < startBlockAnalyser {
+		if err = dbstat.SetLastAnalysedBlockId(dgraph, startBlockAnalyser); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -81,7 +80,11 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph) (err error) {
 // StartAnalysis starts the analysis of transactions in the database.
 // It entails setting the privacy type for each transaction and performing
 // a reverse transactions lookup to find all origins of destination transactions.
-func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph) error {
+func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph, config Config) error {
+	if !config.IsAnalysingEnabled {
+		return errors.New("analysing is disabled per configuration")
+	}
+
 	if err := dbstat.SetAnalyzing(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -93,7 +96,7 @@ func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph) error {
 		}
 	}()
 
-	if err := setInitialAnalyserId(dgraph); err != nil {
+	if err := setInitialAnalyserId(dgraph, config.AnalyseStartBlock); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
