@@ -110,28 +110,19 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 	return r.payload()
 }
 
-// gets the highest block id.
-// on large datasets this is an expensive call.
+// GetHighestBlockId gets the highest block id.
 func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
-	return getTopBlockId(c, false)
-}
-
-// gets the top block id, either ordered descending (highest or ascending (lowest).
-// on large datasets this is an expensive call.
-func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
-	order := "desc"
-
-	if ascending {
-		order = "asc"
-	}
-
-	query := fmt.Sprintf(`{
-				q(func: type(Block), order%s: id,first: 1) @filter(ge(id,0)){
-					id
+	query := `{
+				var(func: has(id))@filter(eq(dgraph.type, "Block")){
+					ids as id
 				}
-			}`, order)
+				
+				q(){
+					max:max(val(ids))
+				}
+			   }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*40, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -140,7 +131,7 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 
 	var r struct {
 		TopBlock []struct {
-			Id uint64 `json:"id,omitempty"`
+			Id uint64 `json:"max,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
