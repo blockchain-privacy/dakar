@@ -71,9 +71,8 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, dbErr := db.TxWithRetryAndResponse(c, ctx, req)
+
+	resp, dbErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if dbErr != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 	}

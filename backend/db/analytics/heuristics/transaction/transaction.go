@@ -140,9 +140,8 @@ func insertHeuristics(c *dgo.Dgraph, heuristics []Heuristic) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	_, err = db.TxWithRetryAndResponse(c, ctx, req)
+
+	_, err = db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -186,9 +185,7 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.TxWithRetryAndResponse(c, ctx, req)
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -250,9 +247,8 @@ func DeleteAllUserHeuristics(c *dgo.Dgraph, userUid string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, txErr := db.TxWithRetryAndResponse(c, ctx, req)
+
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
@@ -284,9 +280,8 @@ func DeleteAllUserTxHeuristics(c *dgo.Dgraph, txhash string, userUid string) (er
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, txErr := db.TxWithRetryAndResponse(c, ctx, req)
+
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return

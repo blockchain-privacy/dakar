@@ -52,9 +52,7 @@ func AnalyzeOrigins(c *dgo.Dgraph, txUid string) (origins []string, err error) {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.TxWithRetryAndResponse(c, ctx, req)
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

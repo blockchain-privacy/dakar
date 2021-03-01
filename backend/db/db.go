@@ -58,9 +58,16 @@ func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Reques
 }
 
 // TxWithRetry executes the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (err error) {
+func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := TxWithRetryAndResponse(dgraph, timeoutPerRequest, req)
+	return err
+}
+
+// TxWithRetryAndResponse executes the given request. In case the request fails repeat it
+func TxWithRetryAndResponse(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
+	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if _, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
+		if resp, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -72,23 +79,8 @@ func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.R
 	return
 }
 
-// Execute the given request. In case the request fails repeat it. Also returns the response
-func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (resp *api.Response, err error) {
-	for i := 0; i < maxRetries; i++ {
-		if resp, err = dgraph.NewTxn().Do(ctx, req); err == nil {
-			return
-		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return
-}
-
-// execReadOnlyTxWithVars executes the given request, vars is allowed to be nil
-func execReadOnlyTxWithVars(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+// execReadOnlyTx executes the given request, vars is allowed to be nil
+func execReadOnlyTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
@@ -101,7 +93,7 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
-		resp, txErr := execReadOnlyTxWithVars(dgraph, timeoutPerRequest, q, vars)
+		resp, txErr := execReadOnlyTx(dgraph, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil
 		}
