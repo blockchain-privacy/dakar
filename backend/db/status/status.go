@@ -185,7 +185,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	// check if all values are set correctly
-	if len(r.Crawler) != 1 || len(r.Analyzer) != 1 {
+	if len(r.Crawler) != 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
@@ -195,27 +195,33 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		return
 	}
 
-	if r.Analyzer[0].IsAnalyzing == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
-		return
-	}
-
 	if r.Crawler[0].LastBlockId == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 
-	if r.Analyzer[0].LastAnalysedBlockId == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
-		return
+	// if analyzer values exist check them
+	if len(r.Analyzer) == 1 {
+		if r.Analyzer[0].IsAnalyzing == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
+			return
+		}
+
+		if r.Analyzer[0].LastAnalysedBlockId == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
+			return
+		}
 	}
 
 	status = FrontendStatus{
-		IsCrawling:          *r.Crawler[0].IsCrawling,
-		LastBlockId:         *r.Crawler[0].LastBlockId,
-		LowestBlockId:       *r.Crawler[0].LowestBlockId,
-		IsAnalyzing:         *r.Analyzer[0].IsAnalyzing,
-		LastAnalysedBlockId: *r.Analyzer[0].LastAnalysedBlockId,
+		IsCrawling:    *r.Crawler[0].IsCrawling,
+		LastBlockId:   *r.Crawler[0].LastBlockId,
+		LowestBlockId: *r.Crawler[0].LowestBlockId,
+	}
+
+	if len(r.Analyzer) == 1 {
+		status.IsAnalyzing = *r.Analyzer[0].IsAnalyzing
+		status.LastAnalysedBlockId = *r.Analyzer[0].LastAnalysedBlockId
 	}
 
 	return
