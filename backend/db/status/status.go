@@ -111,15 +111,13 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 }
 
 // GetHighestBlockId gets the highest block id.
-func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
+func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
 				}
 				
-				q(){
-					max:max(val(ids))
-				}
+				q(){max:max(val(ids))}
 			   }`
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
@@ -131,7 +129,7 @@ func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
 
 	var r struct {
 		TopBlock []struct {
-			Id uint64 `json:"max,omitempty"`
+			Max uint64 `json:"max,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -145,8 +143,11 @@ func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
 	} else if len(r.TopBlock) > 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
+	} else if r.TopBlock[0].Max == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		return
 	}
-	id = r.TopBlock[0].Id
+	max = r.TopBlock[0].Max
 
 	return
 }
