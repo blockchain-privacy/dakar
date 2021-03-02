@@ -224,6 +224,11 @@ func main() {
 		return
 	}
 
+	// disable analyzing if it is disabled per configuration
+	if !analyserConfig.IsAnalysingEnabled {
+		cliArgs.DisableAnalyzer = false
+	}
+
 	info(processorConfig.BlockchainName, "mode active")
 
 	// create dgraph client
@@ -395,7 +400,7 @@ func main() {
 	}
 
 	// activate analyzer
-	if !cliArgs.DisableAnalyzer && analyserConfig.IsAnalysingEnabled {
+	if !cliArgs.DisableAnalyzer {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
