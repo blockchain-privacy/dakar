@@ -94,11 +94,25 @@
                         <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
                           {{ i.addresshash }}
                         </router-link>
-                        <br>
-                        Amount: {{ convertAmount(i.amount) }}<br>
-                        Spent: {{ i.inputindex != null }}<br>
-                        Index: {{ i.outputindex }}<br>
+                        <br/>
+                        Amount: {{ convertAmount(i.amount) }}<br/>
+                        Spent: {{ i.inputindex != null }}<br/>
+                        Index: {{ i.outputindex }}<br/>
                         Coinbase: {{ i.iscoinbase }}
+                        <br/>
+                        <br/>
+                        <v-text-field
+                            label="Key script"
+                            outlined
+                            v-if="i.keyasm"
+                            :value="i.keyasm"
+                            readonly/>
+                        <v-text-field
+                            label="Signature script"
+                            outlined
+                            v-if="i.sigasm"
+                            :value="i.sigasm"
+                            readonly/>
                       </IconItem>
                     </v-lazy>
                   </v-sheet>
@@ -115,10 +129,23 @@
                         <router-link :to="{ name: addressRoute, params: { id: i.addresshash }}">
                           {{ i.addresshash }}
                         </router-link>
-                        <br>
-                        Amount: {{ convertAmount(i.amount) }}<br>
-                        Index: {{ i.inputindex }}<br>
-                        Coinbase: {{ i.iscoinbase }}
+                        <br/>
+                        Amount: {{ convertAmount(i.amount) }} <br/>
+                        Index: {{ i.inputindex }} <br/>
+                        Coinbase: {{ i.iscoinbase }} <br/>
+                        <br/>
+                        <v-text-field
+                            label="Key script"
+                            outlined
+                            v-if="i.keyasm"
+                            :value="i.keyasm"
+                            readonly/>
+                        <v-text-field
+                            label="Signature script"
+                            outlined
+                            v-if="i.sigasm"
+                            :value="i.sigasm"
+                            readonly/>
                       </IconItem>
                     </v-lazy>
                   </v-sheet>

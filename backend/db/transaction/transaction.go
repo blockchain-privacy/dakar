@@ -68,6 +68,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 						amount: amount
 						inputindex: inputindex
 						iscoinbase: iscoinbase
+						keyasm: keyasm
+						sigasm: sigasm
 						~addr_outputs{
 							addresshash: addresshash
 						}
@@ -77,6 +79,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 						outputindex: outputindex
 						inputindex: inputindex
 						iscoinbase: iscoinbase
+						keyasm: keyasm
+						sigasm: sigasm
 						~addr_outputs{
 							addresshash: addresshash
 						}

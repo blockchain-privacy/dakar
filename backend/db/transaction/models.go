@@ -176,6 +176,8 @@ type FrontendOutput struct {
 	OutputIndex *uint32 `json:"outputindex"`
 	IsCoinbase  bool    `json:"iscoinbase"`
 	AddressHash string  `json:"addresshash"`
+	SigAsm      string  `json:"sigasm,omitempty"`
+	KeyAsm      string  `json:"keyasm,omitempty"`
 }
 
 type FrontendTransaction struct {
