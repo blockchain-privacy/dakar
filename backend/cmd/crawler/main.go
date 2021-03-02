@@ -226,7 +226,7 @@ func main() {
 
 	// disable analyzing if it is disabled per configuration
 	if !analyserConfig.IsAnalysingEnabled {
-		cliArgs.DisableAnalyzer = false
+		cliArgs.DisableAnalyzer = true
 	}
 
 	info(processorConfig.BlockchainName, "mode active")
