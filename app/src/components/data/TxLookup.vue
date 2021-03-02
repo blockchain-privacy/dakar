@@ -102,12 +102,14 @@
                         <br/>
                         <br/>
                         <v-text-field
+                            dense
                             label="Key script"
                             outlined
                             v-if="i.keyasm"
                             :value="i.keyasm"
                             readonly/>
                         <v-text-field
+                            dense
                             label="Signature script"
                             outlined
                             v-if="i.sigasm"
@@ -135,12 +137,14 @@
                         Coinbase: {{ i.iscoinbase }} <br/>
                         <br/>
                         <v-text-field
+                            dense
                             label="Key script"
                             outlined
                             v-if="i.keyasm"
                             :value="i.keyasm"
                             readonly/>
                         <v-text-field
+                            dense
                             label="Signature script"
                             outlined
                             v-if="i.sigasm"
