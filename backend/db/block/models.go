@@ -48,7 +48,7 @@ func (b *Block) SetDType() {
 
 // checks if the given block has all attributes filled
 func (b Block) IsComplete() bool {
-	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" ||
+	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" &&
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
 }
 
@@ -80,7 +80,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 		err = errors.New("no blocks found")
 		return
 	} else if lenQ > 1 {
-		// found more than one transaction, which should not be possible
+		// found more than one block, which should not be possible
 		err = errors.New("found more than one block")
 		return
 	}

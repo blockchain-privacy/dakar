@@ -8,6 +8,7 @@ import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"time"
 
 	"encoding/json"
 	"fmt"
@@ -65,9 +66,7 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 				  }
 				}`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -94,9 +93,7 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 				  }
 				}`
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -113,35 +110,17 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 	return r.payload()
 }
 
-// gets the highest block id.
-// on large datasets this is an expensive call.
-func GetHighestBlockId(c *dgo.Dgraph) (id uint64, err error) {
-	return getTopBlockId(c, false)
-}
-
-// gets the lowest block id.
-// on large datasets this is an expensive call.
-func GetLowestBlockId(c *dgo.Dgraph) (id uint64, err error) {
-	return getTopBlockId(c, true)
-}
-
-// gets the top block id, either ordered descending (highest or ascending (lowest).
-// on large datasets this is an expensive call.
-func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
-	order := "desc"
-
-	if ascending {
-		order = "asc"
-	}
-
-	query := fmt.Sprintf(`{
-				q(func: type(Block), order%s: id,first: 1) @filter(ge(id,0)){
-					id
+// GetHighestBlockId gets the highest block id.
+func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
+	query := `{
+				var(func: has(id))@filter(eq(dgraph.type, "Block")){
+					ids as id
 				}
-			}`, order)
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+				
+				q(){max:max(val(ids))}
+			   }`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -150,7 +129,7 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 
 	var r struct {
 		TopBlock []struct {
-			Id uint64 `json:"id,omitempty"`
+			Max uint64 `json:"max,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -164,8 +143,11 @@ func getTopBlockId(c *dgo.Dgraph, ascending bool) (id uint64, err error) {
 	} else if len(r.TopBlock) > 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
+	} else if r.TopBlock[0].Max == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		return
 	}
-	id = r.TopBlock[0].Id
+	max = r.TopBlock[0].Max
 
 	return
 }
@@ -203,7 +185,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	// check if all values are set correctly
-	if len(r.Crawler) != 1 || len(r.Analyzer) != 1 {
+	if len(r.Crawler) != 1 {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
 		return
 	}
@@ -213,27 +195,33 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		return
 	}
 
-	if r.Analyzer[0].IsAnalyzing == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
-		return
-	}
-
 	if r.Crawler[0].LastBlockId == nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
 		return
 	}
 
-	if r.Analyzer[0].LastAnalysedBlockId == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
-		return
+	// if analyzer values exist check them
+	if len(r.Analyzer) == 1 {
+		if r.Analyzer[0].IsAnalyzing == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
+			return
+		}
+
+		if r.Analyzer[0].LastAnalysedBlockId == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
+			return
+		}
 	}
 
 	status = FrontendStatus{
-		IsCrawling:          *r.Crawler[0].IsCrawling,
-		LastBlockId:         *r.Crawler[0].LastBlockId,
-		LowestBlockId:       *r.Crawler[0].LowestBlockId,
-		IsAnalyzing:         *r.Analyzer[0].IsAnalyzing,
-		LastAnalysedBlockId: *r.Analyzer[0].LastAnalysedBlockId,
+		IsCrawling:    *r.Crawler[0].IsCrawling,
+		LastBlockId:   *r.Crawler[0].LastBlockId,
+		LowestBlockId: *r.Crawler[0].LowestBlockId,
+	}
+
+	if len(r.Analyzer) == 1 {
+		status.IsAnalyzing = *r.Analyzer[0].IsAnalyzing
+		status.LastAnalysedBlockId = *r.Analyzer[0].LastAnalysedBlockId
 	}
 
 	return
@@ -264,9 +252,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	return db.TxWithRetry(c, ctx, req)
+	return db.TxWithRetry(c, time.Second*20, req)
 }
 
 // sets the new status
@@ -294,9 +280,7 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 		CommitNow: true,
 	}
 
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	return db.TxWithRetry(c, ctx, req)
+	return db.TxWithRetry(c, time.Second*20, req)
 }
 
 // sets the crawling status

@@ -50,13 +50,27 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), frontEndTimout)
 }
 
-// Execute the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err error) {
+// execTx executes the given request
+func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+	return dgraph.NewTxn().Do(ctx, req)
+}
+
+// TxWithRetry executes the given request. In case the request fails repeat it
+func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := TxWithRetryAndResponse(dgraph, timeoutPerRequest, req)
+	return err
+}
+
+// TxWithRetryAndResponse executes the given request. In case the request fails repeat it
+func TxWithRetryAndResponse(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
+	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if _, err = dgraph.NewTxn().Do(ctx, req); err == nil {
+		if resp, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
 			return
 		}
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -65,32 +79,26 @@ func TxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (err
 	return
 }
 
-// Execute the given request. In case the request fails repeat it. Also returns the response
-func TxWithRetryAndResponse(dgraph *dgo.Dgraph, ctx context.Context, req *api.Request) (resp *api.Response, err error) {
-	for i := 0; i < maxRetries; i++ {
-		if resp, err = dgraph.NewTxn().Do(ctx, req); err == nil {
-			return
-		}
-		info("encountered error retrying:", err)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
+// execReadOnlyTx executes the given request, vars is allowed to be nil
+func execReadOnlyTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+	vars map[string]string) (*api.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
 
-	return
+	return dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
 }
 
-// Execute the given request. In case the request fails repeat it
-func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
+// ReadOnlyTxVarWithRetryAndTimeout executes the given request. In case the request fails repeats it
+func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
-		resp, txErr := dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+		resp, txErr := execReadOnlyTx(dgraph, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil
 		}
 		err = txErr
-		info("encountered error retrying:", err)
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -99,22 +107,9 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string,
 	return nil, err
 }
 
-// Execute the given request. In case the request fails repeat it
-func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, ctx context.Context, q string) (*api.Response, error) {
-	var err error
-	for i := 0; i < maxRetries; i++ {
-		resp, txErr := dgraph.NewReadOnlyTxn().Query(ctx, q)
-		if txErr == nil {
-			return resp, nil
-		}
-		err = txErr
-		info("encountered error retrying:", err)
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	return nil, err
+// ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
+func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
+	return ReadOnlyTxVarWithRetry(dgraph, timeoutPerRequest, q, nil)
 }
 
 // drops ALL data from the database, schema included

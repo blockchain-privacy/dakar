@@ -14,7 +14,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"log"
 	"os"
 	"os/signal"
@@ -26,6 +25,8 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
+
+	"golang.org/x/crypto/ed25519"
 )
 
 // VersionString displays the version of the Crawler
@@ -208,15 +209,24 @@ func main() {
 
 	// select blockchain config
 	var processorConfig processor.Config
+	var analyserConfig analytics.Config
 	if cliArgs.Dash {
 		processorConfig = processor.NewDashConfig()
+		analyserConfig = analytics.NewDashConfig()
 	} else if cliArgs.BTC {
 		processorConfig = processor.NewBitcoinConfig()
+		analyserConfig = analytics.NewBitcoinConfig()
 	} else if cliArgs.Doge {
 		processorConfig = processor.NewDogecoinConfig()
+		analyserConfig = analytics.NewDogecoinConfig()
 	} else {
 		fmt.Println("invalid blockchain mode selected")
 		return
+	}
+
+	// disable analyzing if it is disabled per configuration
+	if !analyserConfig.IsAnalysingEnabled {
+		cliArgs.DisableAnalyzer = true
 	}
 
 	info(processorConfig.BlockchainName, "mode active")
@@ -288,28 +298,6 @@ func main() {
 		info("setup new schema")
 	}
 
-	// create admin account if none is set
-	if !cliArgs.DisableHttpServer {
-		// check if users already exist
-		_, userErr := dbus.GetUsers(dgraph)
-		if userErr != nil {
-			// no users exists -> create admin user
-			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
-				adminEmail := "admin@dakar.null"
-				pw, userCreationError := dbus.CreateAdminUser(dgraph, adminEmail)
-				if userCreationError != nil {
-					info(err)
-					return
-				}
-				// do not log
-				fmt.Println("new admin user created. Email:", adminEmail, "Pw:", pw)
-			} else {
-				info(userErr)
-				return
-			}
-		}
-	}
-
 	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
 		return
 	}
@@ -330,6 +318,29 @@ func main() {
 		} else if ok {
 			info("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
 			return
+		}
+	}
+
+	// create admin account if none is set
+	if !cliArgs.DisableHttpServer {
+		// check if users already exist
+		_, userErr := dbus.GetUsers(dgraph)
+		if userErr != nil {
+			// no users exists -> create admin user
+			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
+				adminEmail := "admin@dakar.null"
+				pw, userCreationError := dbus.CreateAdminUser(dgraph, adminEmail)
+				if userCreationError != nil {
+					info(err)
+					return
+				}
+				// do not log
+				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
+				fmt.Println("Write the credentials down, this message is not logged.")
+			} else {
+				info(userErr)
+				return
+			}
 		}
 	}
 
@@ -397,8 +408,8 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			if err := analytics.StartAnalysis(analyzerContext, dgraph); err != nil {
-				info(err)
+			if analyserErr := analytics.StartAnalysis(analyzerContext, dgraph, analyserConfig); analyserErr != nil {
+				info(analyserErr)
 			}
 		}()
 	}

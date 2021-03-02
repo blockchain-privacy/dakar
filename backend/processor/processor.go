@@ -27,8 +27,14 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// loggerPrefix is the prefix which is printed for each log message
-const loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
+const (
+	// loggerPrefix is the prefix which is printed for each log message
+	loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
+
+	// addressInvalidPubkey is the string which gets used as an address hash
+	// if its public key can not be decoded
+	addressInvalidPubkey = "error_decode_pubkey"
+)
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
@@ -140,9 +146,9 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 	return
 }
 
-func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]outputMapping,
+func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs map[string]outputMapping,
 	addrMap *map[string]dbaddr.Address) (err error) {
-	txFromDB, err := dbtx.GetTransaction(dgraph, txHash)
+	txFromDB, err := dbtx.GetTransaction(dgraph, txHash, blockHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -154,10 +160,10 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, outputs map[string]output
 }
 
 // inserts mappings between addresses and outputs in database
-func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping) (err error) {
+func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping, blockHash string) (err error) {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
-		if err = buildAddresses(dgraph, mapping.hash, mapping.outputs, &addrMap); err != nil {
+		if err = buildAddresses(dgraph, mapping.hash, blockHash, mapping.outputs, &addrMap); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -189,6 +195,10 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 		return
 	}
 
+	// Alternatively use btcutil's ExtractPkScriptAddrs(); This has a lot of overhead as it
+	// tries to detect the transaction type based on the script. At this point we already know
+	// that it is pay-to-pubkey. Thus, parsing is done manually
+
 	amsParts := strings.Split(asm, " ")
 
 	decodeString, decodeErr := hex.DecodeString(amsParts[0])
@@ -202,8 +212,7 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 
 	addr, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &cfg)
 	if addressConversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addressConversionErr)
-		return
+		return addressInvalidPubkey, nil
 	}
 	address = addr.EncodeAddress()
 
@@ -262,9 +271,16 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			if d.ScriptPubKey.Addresses == nil {
 				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
 				if decodeErr != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+						fmt.Sprint(decodeErr, "hash", txDetails.Hash))
 					return
 				}
+
+				// log if we get an invalid address; this can happen if an invalid public key has been provided
+				if pubkeyAddress == addressInvalidPubkey {
+					info("could not decode public key for tx", txDetails.Hash)
+				}
+
 				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
 			} else {
 				for _, e := range d.ScriptPubKey.Addresses {
@@ -317,6 +333,8 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 
 	refOutput := dbop.Output{
 		InputIndex: &index,
+		SigAsm:     vin.ScriptSig.Asm,
+		SigHex:     vin.ScriptSig.Hex,
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
@@ -340,8 +358,6 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 			return err
 		}
 
-		refOutput.SigAsm = vin.ScriptSig.Asm
-		refOutput.SigHex = vin.ScriptSig.Hex
 		refOutput.Amount = output.Amount
 		refOutput.Uid = output.Uid
 	}
@@ -354,7 +370,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) (err error) {
 
-	block := dbblk.Block{
+	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		Id:        &blockId,
@@ -362,10 +378,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 			Hash: prevBlockHash,
 		},
 		Transactions: transactions,
-	}
-
-	err = dbblk.UpsertBlock(dgraph, block)
-	if err != nil {
+	}); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	return
@@ -710,7 +723,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 
 	txHashMap, err := createTransactionHashmap(client, block.Tx)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
 
@@ -720,7 +733,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 
 		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 
@@ -738,7 +751,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 	}
 
 	// if the current block is not yet in the database or if only a shallow block exist in
-	// the database a new block is created shallow blocks get created when a crawling process gets
+	// the database a new block is created. Shallow blocks get created when a crawling process gets
 	// started for the first time. Each block creation connects the current block with the previous block.
 	// In the case of the first block, a previous block does not exist, thus a shallow block is created.
 	// This check is relatively late in the processing loop. The reason for this is, that even if the
@@ -751,7 +764,7 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 
@@ -761,8 +774,8 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 		txCounter = 0
 	}
 
-	if err = processAddresses(dgraph, txMapping); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	if err = processAddresses(dgraph, txMapping, state.hash); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
 
@@ -770,12 +783,12 @@ func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerPro
 	if setLowestId {
 		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockId: &state.id,
 			LowestBlockId: &state.id}); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 	} else {
 		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 	}

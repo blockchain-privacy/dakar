@@ -38,7 +38,7 @@
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
-                <v-col>
+                <v-col v-if="data.status.lastanalysedid > 0">
                   <IconItem :icon="icon.mdiDatabaseSearch" title="Database analysis"
                             :tooltip="tooltips.databaseAnalysation" is-color
                             :is-red="!data.status.isanalyzing">

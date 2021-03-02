@@ -30,8 +30,8 @@ func isValid(input string) bool {
 		return false
 	}
 
-	// 34 -> address length; if smaller than it must be a block id
-	if inputLen < 34 {
+	// 33,34 -> address length; if smaller than it must be a block id
+	if inputLen < 33 {
 		// attempt to convert input to an integer; if it succeeds the input is valid.
 		_, err := strconv.Atoi(input)
 		return err == nil

@@ -71,9 +71,8 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetBackendContext()
-	defer cancel()
-	resp, dbErr := db.TxWithRetryAndResponse(c, ctx, req)
+
+	resp, dbErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if dbErr != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 	}
@@ -100,9 +99,7 @@ func GetUsers(c *dgo.Dgraph) (users []User, err error) {
 				}
 			  }`
 
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := db.ReadOnlyTxWithRetry(c, ctx, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -274,10 +271,8 @@ func DeleteUser(c *dgo.Dgraph, uid string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
 
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
@@ -397,9 +392,8 @@ func RemoveRolesFromUser(c *dgo.Dgraph, uid string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	if txErr := db.TxWithRetry(c, ctx, req); txErr != nil {
+
+	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
 	}
