@@ -3,6 +3,7 @@ package main
 import (
 	"backend/analytics"
 	heuristic "backend/analytics/heuristics/transaction"
+	"backend/blockIterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
@@ -408,7 +409,8 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			if analyserErr := analytics.StartAnalysis(analyzerContext, dgraph, analyserConfig); analyserErr != nil {
+			if analyserErr := blockIterator.StartIteration(
+				analytics.NewAnalyzer(analyzerContext, dgraph, analyserConfig)); analyserErr != nil {
 				info(analyserErr)
 			}
 		}()

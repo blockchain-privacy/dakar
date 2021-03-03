@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/blockIterator"
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	dban "backend/db/analytics"
@@ -19,8 +20,6 @@ import (
 const (
 	// analyticsLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
 	analyticsLoggerPrefix = "\033[0;32manalyse\u001B[0m\t"
-	// metricsLoggerPrefix is the prefix which is printed for each log message of metricLogger
-	metricsLoggerPrefix = "metric\t"
 
 	// mutationBatchSize is the maximum size of origin batches created by the reverseLookup
 	mutationBatchSize = 1000
@@ -29,33 +28,14 @@ const (
 var errorInterrupted = errors.New("interrupted")
 
 var analyticsLogger = log.New(log.Writer(), analyticsLoggerPrefix, log.Flags())
-var metricLogger = log.New(log.Writer(), metricsLoggerPrefix, log.Flags())
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger(out io.Writer, flag int) {
 	analyticsLogger = log.New(out, analyticsLoggerPrefix, flag)
-	metricLogger = log.New(out, metricsLoggerPrefix, flag)
 }
 
 func info(v ...interface{}) {
 	analyticsLogger.Println(v)
-}
-
-func metric(v ...interface{}) {
-	metricLogger.Println(v)
-}
-
-// holds the current state of the analyzing processing loop
-type analyzerProcessingState struct {
-	// current block id
-	id uint64
-
-	// highest block id
-	top uint64
-}
-
-func (a analyzerProcessingState) String() string {
-	return fmt.Sprintf("Id: %d, Top: %d", a.id, a.top)
 }
 
 // setInitialAnalyserId sets the starting analyser block id to the
@@ -77,145 +57,133 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph, startBlockAnalyser uint64) (err er
 	return
 }
 
-// StartAnalysis starts the analysis of transactions in the database.
-// It entails setting the privacy type for each transaction and performing
-// a reverse transactions lookup to find all origins of destination transactions.
-func StartAnalysis(ctx context.Context, dgraph *dgo.Dgraph, config Config) error {
-	if !config.IsAnalysingEnabled {
-		return errors.New("analysing is disabled per configuration")
+type Analyzer struct {
+	config Config
+	db     *dgo.Dgraph
+	ctx    context.Context
+}
+
+// NewAnalyzer creates a new Analyzer object
+func NewAnalyzer(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) Analyzer {
+	return Analyzer{
+		config: cfg,
+		db:     dgraph,
+		ctx:    ctx,
+	}
+}
+
+func (a Analyzer) Logger() *log.Logger {
+	return analyticsLogger
+}
+
+func (a Analyzer) Context() context.Context {
+	return a.ctx
+}
+
+func (a Analyzer) Db() *dgo.Dgraph {
+	return a.db
+}
+
+func (a Analyzer) GetInitialState() (blockIterator.State, error) {
+	var state blockIterator.State
+
+	if !a.config.IsAnalysingEnabled {
+		return state, errors.New("analysing is disabled per configuration")
 	}
 
-	if err := dbstat.SetAnalyzing(dgraph, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	if err := dbstat.SetAnalyzing(a.db, true); err != nil {
+		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	defer func() {
-		if err := dbstat.SetAnalyzing(dgraph, false); err != nil {
-			info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-			return
-		}
-	}()
-
-	if err := setInitialAnalyserId(dgraph, config.AnalyseStartBlock); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	if err := setInitialAnalyserId(a.db, a.config.AnalyseStartBlock); err != nil {
+		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	crawlerStatus, err := dbstat.GetCrawlerStatus(dgraph)
+	crawlerStatus, err := dbstat.GetCrawlerStatus(a.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	analyzerStatus, err := dbstat.GetAnalyzerStatus(dgraph)
+	analyzerStatus, err := dbstat.GetAnalyzerStatus(a.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-
-	var state analyzerProcessingState
 
 	if analyzerStatus.LastAnalysedBlockId == nil {
-		return errors.New("error last analysed block is not set")
+		return state, errors.New("error last analysed block is not set")
 	}
 
-	state.id = *analyzerStatus.LastAnalysedBlockId + 1
+	state.Id = *analyzerStatus.LastAnalysedBlockId + 1
 
 	if crawlerStatus.LastBlockId == nil {
-		state.top = *analyzerStatus.LastAnalysedBlockId
-	} else if *crawlerStatus.LowestBlockId > state.id {
-		state.id = *crawlerStatus.LowestBlockId
-		state.top = *crawlerStatus.LastBlockId
+		// nothing crawled yet, so set Top to a lower number as Id
+		state.Top = *analyzerStatus.LastAnalysedBlockId
+	} else if *crawlerStatus.LowestBlockId > state.Id {
+		// happens the crawler is started with a high start block id in block range mode
+		state.Id = *crawlerStatus.LowestBlockId
+		state.Top = *crawlerStatus.LastBlockId
 	} else {
-		state.top = *crawlerStatus.LastBlockId
+		// this is the usual case: Set Top to the current last crawled block height
+		state.Top = *crawlerStatus.LastBlockId
 	}
 
-	info("Starting process")
+	return state, nil
+}
 
-	counterAnalysedBlocks := 0
-	timerGlobal := time.Now()
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			analyzingInterrupted()
-			break mainLoop
-		default:
-			// we do nothing
+func (a Analyzer) Iterate(state blockIterator.State) (bool, error) {
+	currentBlock, err := dbblk.GetBlockById(a.db, state.Id)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	updatedBlock, err := processPrivacyType(a.ctx, a.db, currentBlock)
+	if err != nil {
+		if errors.Is(err, errorInterrupted) {
+			return false, nil
 		}
 
-		// update top state
-		if state.id > state.top {
-			info("Waiting for next block", state)
-			var isInterrupt bool
-			// can not used short hand declaration, because it would mask currentBlock in the outer scope
-			state, isInterrupt, err = waitForNextDbBlockId(dgraph, ctx.Done(), state)
-			if err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
 
-			if isInterrupt {
-				break mainLoop
-			}
-
-			info("Found next block. New state:", state)
+	wasInterrupted := false
+	if len(updatedBlock.Transactions) > 0 {
+		// update the block in the database
+		// after that function call the privacy type of all transactions is set
+		if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		currentBlock, err := dbblk.GetBlockById(dgraph, state.id)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		updatedBlock, err := processPrivacyType(dgraph, currentBlock, ctx.Done())
+		originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
 		if err != nil {
 			if errors.Is(err, errorInterrupted) {
-				analyzingInterrupted()
-				return nil
-			}
-
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		wasInterrupted := false
-		if len(updatedBlock.Transactions) > 0 {
-			// update the block in the database
-			// after that function call the privacy type of all transactions is set
-			if err := dbblk.UpdateBlock(dgraph, updatedBlock); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
-
-			originCount, err := blockReverseLookup(ctx, dgraph, updatedBlock.Uid)
-			if err != nil {
-				if errors.Is(err, errorInterrupted) {
-					wasInterrupted = true
-				} else {
-					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-				}
-			}
-			if originCount > 0 {
-				info("Block", *currentBlock.Id, "origin count", originCount)
+				wasInterrupted = true
+			} else {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}
-
-		// only set last analysed flag if processes before were not interrupted
-		if !wasInterrupted {
-			if err := dbstat.SetLastAnalysedBlockId(dgraph, state.id); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
+		if originCount > 0 {
+			info("Block", *currentBlock.Id, "origin count", originCount)
 		}
+	}
 
-		state.id++
-		counterAnalysedBlocks++
-
-		if counterAnalysedBlocks%100 == 0 {
-			metric("avg 100 blocks:", time.Since(timerGlobal).Milliseconds()/100, "ms/block")
-			timerGlobal = time.Now()
+	// only set last analysed flag if processes before were not interrupted
+	if wasInterrupted {
+		return false, nil
+	} else {
+		if err := dbstat.SetLastAnalysedBlockId(a.db, state.Id); err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
+	}
+
+	return true, nil
+}
+
+func (a Analyzer) PostExecution() error {
+	if err := dbstat.SetAnalyzing(a.db, false); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return nil
-}
-
-// analyzingInterrupted should be called when the analyser has been interrupted.
-func analyzingInterrupted() {
-	info("Stopped")
 }
 
 // reverseLookup performs for all destinationInputTransactions a reverse lookup.
@@ -320,47 +288,14 @@ func min(a, b int) int {
 	return b
 }
 
-// wait for the next block
-// if the interrupt receives a signal isInterrupt is true
-// if the next block is available, currentBlock gets updated
-func waitForNextDbBlockId(dgraph *dgo.Dgraph, interrupt <-chan struct{},
-	currentState analyzerProcessingState) (nextState analyzerProcessingState, isInterrupt bool, err error) {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-interrupt:
-			analyzingInterrupted()
-			isInterrupt = true
-			return
-		case <-ticker.C:
-			status, statusError := dbstat.GetCrawlerStatus(dgraph)
-			if statusError != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusError)
-				return
-			}
-
-			if status.LastBlockId != nil && *status.LastBlockId >= currentState.id {
-				if *status.LowestBlockId > currentState.id {
-					currentState.id = *status.LowestBlockId
-				}
-
-				nextState = currentState
-				nextState.top = *status.LastBlockId
-				return
-			}
-		}
-	}
-}
-
 // Sets the privacy type for all transaction in block. The resulting updateBlock only has PrivateSend transactions
-func processPrivacyType(dgraph *dgo.Dgraph, block dbblk.Block, interrupt <-chan struct{}) (
+func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, block dbblk.Block) (
 	updatedBlock dbblk.Block, err error) {
 	updatedBlock.Uid = block.Uid
 
 	for _, tx := range block.Transactions {
 		select {
-		case <-interrupt:
+		case <-ctx.Done():
 			err = errorInterrupted
 			return
 		default:
