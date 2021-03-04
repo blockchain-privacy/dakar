@@ -247,7 +247,7 @@ func (a *Analyzer) Iterate() (bool, error) {
 	return true, nil
 }
 
-func (a Analyzer) PostExecution() error {
+func (a *Analyzer) PostExecution() error {
 	if err := dbstat.SetAnalyzing(a.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
