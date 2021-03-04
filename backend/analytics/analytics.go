@@ -14,6 +14,7 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"io"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -58,60 +59,86 @@ func setInitialAnalyserId(dgraph *dgo.Dgraph, startBlockAnalyser uint64) (err er
 }
 
 type Analyzer struct {
-	config Config
-	db     *dgo.Dgraph
-	ctx    context.Context
+	config   Config
+	db       *dgo.Dgraph
+	ctx      context.Context
+	state    blockIterator.State
+	queue    chan string
+	mapLock  sync.Mutex
+	queueMap map[string]bool
 }
 
 // NewAnalyzer creates a new Analyzer object
-func NewAnalyzer(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) Analyzer {
-	return Analyzer{
-		config: cfg,
-		db:     dgraph,
-		ctx:    ctx,
+func NewAnalyzer(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) *Analyzer {
+	return &Analyzer{
+		config:   cfg,
+		db:       dgraph,
+		ctx:      ctx,
+		queue:    make(chan string, 5),
+		queueMap: make(map[string]bool),
 	}
 }
 
-func (a Analyzer) Logger() *log.Logger {
+func (a *Analyzer) Logger() *log.Logger {
 	return analyticsLogger
 }
 
-func (a Analyzer) Context() context.Context {
+func (a *Analyzer) State() blockIterator.State {
+	return a.state
+}
+
+func (a *Analyzer) SetState(newState blockIterator.State) {
+	a.state = newState
+}
+
+func (a *Analyzer) Context() context.Context {
 	return a.ctx
 }
 
-func (a Analyzer) Db() *dgo.Dgraph {
+func (a *Analyzer) Db() *dgo.Dgraph {
 	return a.db
 }
 
-func (a Analyzer) GetInitialState() (blockIterator.State, error) {
-	var state blockIterator.State
+func (a *Analyzer) IncrementState() {
+	a.state.Id++
+}
 
+// Empty checks if there is work in the queue or more block above the current one
+func (a *Analyzer) Empty() bool {
+	// len(channel) == 0 is bad practice to determine if the channel is empty,
+	// when the channel is being read by multiple goroutines. In this case
+	// the channel is only being read by one goroutine so this is fine.
+	return len(a.queue) == 0 && a.state.Id > a.state.Top
+}
+
+func (a *Analyzer) CalculateInitialState() error {
 	if !a.config.IsAnalysingEnabled {
-		return state, errors.New("analysing is disabled per configuration")
+		return errors.New("analysing is disabled per configuration")
 	}
 
 	if err := dbstat.SetAnalyzing(a.db, true); err != nil {
-		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	if err := setInitialAnalyserId(a.db, a.config.AnalyseStartBlock); err != nil {
-		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	crawlerStatus, err := dbstat.GetCrawlerStatus(a.db)
 	if err != nil {
-		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	analyzerStatus, err := dbstat.GetAnalyzerStatus(a.db)
 	if err != nil {
-		return state, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	if analyzerStatus.LastAnalysedBlockId == nil {
-		return state, errors.New("error last analysed block is not set")
+		return errors.New("error last analysed block is not set")
 	}
+
+	var state blockIterator.State
 
 	state.Id = *analyzerStatus.LastAnalysedBlockId + 1
 
@@ -127,11 +154,53 @@ func (a Analyzer) GetInitialState() (blockIterator.State, error) {
 		state.Top = *crawlerStatus.LastBlockId
 	}
 
-	return state, nil
+	a.state = state
+
+	return nil
 }
 
-func (a Analyzer) Iterate(state blockIterator.State) (bool, error) {
-	currentBlock, err := dbblk.GetBlockById(a.db, state.Id)
+func (a *Analyzer) AddToQueue(txHash string) bool {
+	// todo return a status instead to differentiate
+	//  between queue full and tx already in queue
+	a.mapLock.Lock()
+	defer a.mapLock.Unlock()
+	if _, ok := a.queueMap[txHash]; ok {
+		return false
+	}
+
+	select {
+	case a.queue <- txHash:
+		a.queueMap[txHash] = true
+		return true
+	default:
+		return false
+	}
+}
+
+func (a *Analyzer) Iterate() (bool, error) {
+	if a.Empty() {
+		return false, errors.New("got empty state")
+	}
+
+	// check queue state
+	select {
+	case destinationTransaction, ok := <-a.queue:
+		if ok {
+			// todo do some verification that tx is actually a destination transaction and not already analyzed
+			info("processing", destinationTransaction)
+			lookup, err := transactionReverseLookup(a.ctx, a.db, destinationTransaction)
+			if err != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
+			info("Transaction", destinationTransaction, "origin count", lookup)
+		} else {
+			info("queue closed!")
+		}
+	default:
+		info("no value in queue -> doing block iteration")
+	}
+
+	currentBlock, err := dbblk.GetBlockById(a.db, a.state.Id)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -170,7 +239,7 @@ func (a Analyzer) Iterate(state blockIterator.State) (bool, error) {
 	if wasInterrupted {
 		return false, nil
 	} else {
-		if err := dbstat.SetLastAnalysedBlockId(a.db, state.Id); err != nil {
+		if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 	}

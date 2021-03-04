@@ -3,7 +3,6 @@ package blockIterator
 import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
-
 	"context"
 	"errors"
 	"fmt"
@@ -20,14 +19,25 @@ import (
 // 3. do post loop operations in the case of a
 //    failure or if the process finished due to termination
 type BlockIterator interface {
-	GetInitialState() (State, error)
-	Iterate(State) (bool, error)
-	// PostLoop is always executed, even if PreLoop or Loop fail.
+	// CalculateInitialState calculates the initial state of the BlockIterator
+	CalculateInitialState() error
+	// Iterate does one execution loop
+	// false -> stop execution
+	Iterate() (bool, error)
+	// PostExecution is always executed, even if PreLoop or Loop fail.
 	// This function should do operations like the setting the database status
 	PostExecution() error
+	IncrementState()
+	SetState(State)
+
+	// Empty returns true if the BlockIterator has no more data to iterate on.
+	// This happens if State.ID is higher than State.Top
+	Empty() bool
+
 	Logger() *log.Logger
 	Context() context.Context
 	Db() *dgo.Dgraph
+	State() State
 }
 
 // State holds the current state of the analyzing processing loop
@@ -61,8 +71,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 	}()
 
 	l.Println("doing pre loop")
-	initialState, initErr := iterator.GetInitialState()
-	if initErr != nil {
+
+	if initErr := iterator.CalculateInitialState(); initErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), initErr)
 		return
 	}
@@ -72,9 +82,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 	ctx := iterator.Context()
 
 	l.Println("doing loop")
-	nextState := initialState
 
-	for nextState.Top != 0 && nextState.Id != 0 {
+	for {
 		select {
 		case <-ctx.Done():
 			return
@@ -82,28 +91,24 @@ func StartIteration(iterator BlockIterator) (err error) {
 			// we do nothing
 		}
 
-		// copy state
-		state := nextState
+		// check if we need to wait
+		if iterator.Empty() {
+			l.Println("Waiting for next block", iterator.State())
 
-		if state.Id > state.Top {
-			l.Println("Waiting for next block", state)
-
-			updatedState, isInterrupt, waitErr := waitForNextDbBlockId(iterator.Context(),
-				iterator.Db(), state)
+			isInterrupt, waitErr := waitForNextDbBlockId(iterator)
 			if waitErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), waitErr)
 				return
 			}
-			state = updatedState
 
 			if isInterrupt {
 				return
 			}
 
-			l.Println("Found next block. New state:", state)
+			l.Println("Found next block. New state:", iterator.State())
 		}
 
-		ok, iterateErr := iterator.Iterate(state)
+		ok, iterateErr := iterator.Iterate()
 		if iterateErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), iterateErr)
 			return
@@ -114,25 +119,26 @@ func StartIteration(iterator BlockIterator) (err error) {
 			return
 		}
 
-		numIteratedBlocks++
+		// set next state
+		iterator.IncrementState()
 
+		// metrics
+		numIteratedBlocks++
 		if numIteratedBlocks%100 == 0 {
 			l.Println("avg 100 blocks:", time.Since(timerGlobal).Milliseconds()/100, "ms/block")
 			timerGlobal = time.Now()
 		}
-
-		nextState.Top = state.Top
-		nextState.Id = state.Id + 1
 	}
-
-	return
 }
 
 // waitForNextDbBlockId waits for the next block.
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextDbBlockId(ctx context.Context, dgraph *dgo.Dgraph,
-	currentState State) (nextState State, isInterrupt bool, err error) {
+func waitForNextDbBlockId(it BlockIterator) (isInterrupt bool, err error) {
+	ctx := it.Context()
+	dgraph := it.Db()
+
+	currentState := it.State()
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
 	for {
@@ -141,6 +147,11 @@ func waitForNextDbBlockId(ctx context.Context, dgraph *dgo.Dgraph,
 			isInterrupt = true
 			return
 		case <-ticker.C:
+			// if iterator state is not empty anymore crawler status
+			if !it.Empty() {
+				return
+			}
+
 			status, statusError := dbstat.GetCrawlerStatus(dgraph)
 			if statusError != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusError)
@@ -152,10 +163,11 @@ func waitForNextDbBlockId(ctx context.Context, dgraph *dgo.Dgraph,
 					currentState.Id = *status.LowestBlockId
 				}
 
-				nextState = currentState
-				nextState.Top = *status.LastBlockId
+				it.SetState(State{currentState.Id, *status.LastBlockId})
+
 				return
 			}
+
 		}
 	}
 }
