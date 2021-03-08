@@ -87,6 +87,9 @@
           {{ icon.mdiDelete }}
         </v-icon>
       </template>
+      <template v-slot:[`item.mod_time`]="{ item }">
+        <span>{{ new Date(item.mod_time).toLocaleString() }}</span>
+      </template>
     </v-data-table>
     <v-dialog
         v-model="showDeleteAllDialog"
@@ -206,8 +209,8 @@ export default {
       if (!this.heuristicList) return;
 
       this.heuristicList.items = this.heuristicList.items.map((d) => {
-        // parse data to readable format
-        d.mod_time = new Date(d.mod_time).toLocaleString();
+        // convert date to unix time so it can be sorted in data table
+        d.mod_time = new Date(d.mod_time).getTime();
         return d;
       });
     },

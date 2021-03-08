@@ -76,11 +76,11 @@
               {{ icon.mdiDelete }}
             </v-icon>
           </template>
-          <template v-slot:[`item.created`]="{ item }">
-            <span>{{ item.created.toLocaleString() }}</span>
+          <template v-slot:[`item.user_created`]="{ item }">
+            <span>{{ new Date(item.user_created).toLocaleString() }}</span>
           </template>
-          <template v-slot:[`item.modified`]="{ item }">
-            <span>{{ item.modified.toLocaleString() }}</span>
+          <template v-slot:[`item.user_modified`]="{ item }">
+            <span>{{ new Date(item.user_modified).toLocaleString() }}</span>
           </template>
         </v-data-table>
         <v-dialog v-model="showCreateUserDialog" max-width="500px">
@@ -238,9 +238,10 @@ export default {
       if (!this.users) return;
 
       this.users = this.users.map((d) => {
-        // parse data to readable format
-        d.user_modified = new Date(d.user_modified).toLocaleString();
-        d.user_created = new Date(d.user_created).toLocaleString();
+        // convert dates to unix time so they can be sorted in data table
+        d.user_modified = new Date(d.user_modified).getTime();
+        d.user_created = new Date(d.user_created).getTime();
+
         d.user_roles = d.user_roles.map((f) => f.role_name);
         return d;
       });
