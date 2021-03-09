@@ -162,6 +162,7 @@ func (a *Analyzer) CalculateInitialState() error {
 func (a *Analyzer) AddToQueue(txHash string) bool {
 	// todo return a status instead to differentiate
 	//  between queue full and tx already in queue
+	// todo do some verification that tx is actually a destination transaction
 	a.mapLock.Lock()
 	defer a.mapLock.Unlock()
 	if _, ok := a.queueMap[txHash]; ok {
@@ -186,7 +187,6 @@ func (a *Analyzer) Iterate() (bool, error) {
 	select {
 	case destinationTransaction, ok := <-a.queue:
 		if ok {
-			// todo do some verification that tx is actually a destination transaction and not already analyzed
 			info("processing", destinationTransaction)
 			lookup, err := transactionReverseLookup(a.ctx, a.db, destinationTransaction)
 			if err != nil {
@@ -286,7 +286,7 @@ func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTran
 		queryTime := time.Since(timeNow)
 		var mutationTime time.Duration
 
-		// only set origins if not already done by previous function
+		// only set origins if not already done by previous step
 		if len(origins) >= dban.SameRequestMutationLimit {
 			// set origins
 			timeNow = time.Now()
