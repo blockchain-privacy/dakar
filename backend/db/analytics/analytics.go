@@ -442,13 +442,14 @@ func GetPaths(c *dgo.Dgraph, transactionHash string) (paths []TransactionPath,
 	return
 }
 
-// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+// GetNotAnalyzedInputTransactionsPerBlock gets all uids of the transactions which produce
+// the inputs for the transactions included in the block specified by blockUid
 func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (inputTransactions []string, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					transactions@filter(eq(privacytype,"destination")){
 						tx_inputs{
-							v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND NOT eq(isrlookupdone, true))
+							v as ~tx_outputs@filter(eq(privacytype, ["mixing"]) AND NOT eq(isrlookupdone, true))
 						}
 					} 
 				}
@@ -488,12 +489,13 @@ func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (in
 	return
 }
 
-// GetNotAnalyzedInputTransactionsPerTx gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+// GetNotAnalyzedInputTransactionsPerTx gets all uids of the transactions which produce the
+// inputs for the transactions included in the block specified by blockUid
 func GetNotAnalyzedInputTransactionsPerTx(c *dgo.Dgraph, txUid string) (inputTransactions []string, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs{
-						v as ~tx_outputs@filter(eq(privacytype, ["mixing", "origin"]) AND NOT eq(isrlookupdone, true))
+						v as ~tx_outputs@filter(eq(privacytype, ["mixing"]) AND NOT eq(isrlookupdone, true))
 					}
 				}
 				
