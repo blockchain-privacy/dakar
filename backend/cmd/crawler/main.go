@@ -60,8 +60,8 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort,
-		cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
+		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.DisableClassifier,
+		cli.HttpServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -231,6 +231,11 @@ func main() {
 		cliArgs.DisableAnalyzer = true
 	}
 
+	// disable classifying if it is disabled per configuration
+	if !analyserConfig.IsClassifyingEnabled {
+		cliArgs.DisableClassifier = true
+	}
+
 	info(processorConfig.BlockchainName, "mode active")
 
 	// create dgraph client
@@ -373,9 +378,11 @@ func main() {
 
 	crawlerContext, cancelCrawler := context.WithCancel(context.Background())
 	analyzerContext, cancelAnalyzer := context.WithCancel(context.Background())
+	classifierContext, cancelClassifier := context.WithCancel(context.Background())
 
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
+	chClassifyingStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
 	var wg sync.WaitGroup
@@ -426,6 +433,22 @@ func main() {
 		}()
 	}
 
+	// activate classifier
+	if !cliArgs.DisableClassifier {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chClassifyingStopped <- true
+			}()
+
+			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+				classifierContext, dgraph, analyserConfig)); classifierErr != nil {
+				info(classifierErr)
+			}
+		}()
+	}
+
 	// activate server
 	var srv server.Server
 	if !cliArgs.DisableHttpServer {
@@ -435,14 +458,16 @@ func main() {
 
 	var crawlerStopped bool
 	var analyzerStopped bool
+	var classifierStopped bool
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && analyzerStopped)) {
+	for !(interrupted || (crawlerStopped && analyzerStopped && classifierStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
 			cancelCrawler()
 			cancelAnalyzer()
+			cancelClassifier()
 			srv.ShutdownServer()
 		case <-chCrawlingStopped:
 			cancelCrawler()
@@ -450,11 +475,15 @@ func main() {
 		case <-chAnalyzingStopped:
 			cancelAnalyzer()
 			analyzerStopped = true
+		case <-chClassifyingStopped:
+			cancelClassifier()
+			classifierStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped {
-		// if the crawler and analyzer stopped working on there own accord, the server is still active at this point
+	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped && classifierStopped {
+		// if the crawler, analyzer and classifier stopped working on
+		// there own accord, the server is still active at this point
 		select {
 		case <-chSignal:
 			srv.ShutdownServer()

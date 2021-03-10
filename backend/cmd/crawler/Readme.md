@@ -69,4 +69,5 @@ echo yes | ./crawler -reset -continous
 | disableserver | false | Disable the http server (default: false) |
 | disablecrawler | false | Disable the crawler (default: false) |
 | disableanalyzer | false | Disable the analyzer (default: false) |
+| disableclassifier | false | Disable the classifier (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |
