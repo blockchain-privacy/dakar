@@ -39,6 +39,16 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 		fmt.Println("LastAnalysedBlockId:", *analyzerStatus.LastAnalysedBlockId)
 	}
 
+	classifierStatus, _ := GetClassifierStatus(dgraph)
+
+	if classifierStatus.IsClassifying != nil {
+		fmt.Println("Currently classifying:", *classifierStatus.IsClassifying)
+	}
+
+	if classifierStatus.LastClassifiedBlockId != nil {
+		fmt.Println("LastClassifiedBlockId:", *classifierStatus.LastClassifiedBlockId)
+	}
+
 	blockCount, _ := dbblk.GetCount(dgraph)
 	txCount, _ := dbtx.GetCount(dgraph)
 	opCount, _ := dbop.GetCount(dgraph)
@@ -55,7 +65,7 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 	fmt.Println("\tRoles:", roleCount)
 }
 
-// gets status information from the database
+// GetCrawlerStatus gets the crawler status from the database
 func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 	query := `{
 				 q(func: type(CrawlerStatus)){
@@ -67,7 +77,6 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 				}`
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
-
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -83,7 +92,7 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 	return r.payload()
 }
 
-// gets status information from the database
+// GetAnalyzerStatus gets the analyzer status from the database
 func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 	query := `{
 				 q(func: type(AnalyzerStatus)){
@@ -94,13 +103,38 @@ func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
 				}`
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
-
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	var r analyzerStatusQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
+// GetClassifierStatus gets the classifier status from the database
+func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
+	query := `{
+				 q(func: type(ClassifierStatus)){
+					uid
+					isclassifying
+					lastclassified
+				  }
+				}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r classifierStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -227,7 +261,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	return
 }
 
-// sets the new status
+// SetCrawlerStatus sets the new crawler status
 func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
@@ -255,7 +289,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 	return db.TxWithRetry(c, time.Second*20, req)
 }
 
-// sets the new status
+// SetAnalyzerStatus sets the new analyzer status
 func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
@@ -283,31 +317,73 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 	return db.TxWithRetry(c, time.Second*20, req)
 }
 
-// sets the crawling status
+// SetClassifierStatus sets the new classifier status
+func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
+	status.Uid = "uid(v)"
+	status.SetDType()
+
+	pb, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
+
+	query := `{
+				q(func: type(ClassifierStatus)){
+					v as uid
+				  }
+				}
+				`
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	return db.TxWithRetry(c, time.Second*20, req)
+}
+
+// SetCrawling sets the crawling status
 func SetCrawling(c *dgo.Dgraph, crawling bool) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
-// sets the analyzing status
+// SetAnalyzing sets the analyzing status
 func SetAnalyzing(c *dgo.Dgraph, analyzing bool) error {
 	return SetAnalyzerStatus(c, AnalyzerStatus{
 		IsAnalyzing: &analyzing,
 	})
 }
 
-// sets the last block id
+// SetClassifying sets the classifying status
+func SetClassifying(c *dgo.Dgraph, classifying bool) error {
+	return SetClassifierStatus(c, ClassifierStatus{
+		IsClassifying: &classifying,
+	})
+}
+
+// SetLastBlockId sets the last block id
 func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		LastBlockId: &id,
 	})
 }
 
-// sets the last analysed block id
+// SetLastAnalysedBlockId sets the last analysed block id
 func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
 	return SetAnalyzerStatus(c, AnalyzerStatus{
 		LastAnalysedBlockId: &id,
+	})
+}
+
+// SetLastClassifiedBlockId sets the last classified block id
+func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
+	return SetClassifierStatus(c, ClassifierStatus{
+		LastClassifiedBlockId: &id,
 	})
 }
 

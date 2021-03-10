@@ -9,6 +9,7 @@ import (
 
 const CrawlerStatusDType = "CrawlerStatus"
 const AnalyzerStatusDType = "AnalyzerStatus"
+const ClassifierStatusDType = "ClassifierStatus"
 
 type CrawlerStatus struct {
 	Uid string `json:"uid,omitempty"`
@@ -29,7 +30,7 @@ type CrawlerStatus struct {
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
-func (c CrawlerStatus) String() string {
+func (c *CrawlerStatus) String() string {
 	output := fmt.Sprintf("Uid: %s", c.Uid)
 
 	if c.IsCrawling != nil {
@@ -50,15 +51,15 @@ func (c *CrawlerStatus) SetDType() {
 type AnalyzerStatus struct {
 	Uid string `json:"uid,omitempty"`
 
-	// true if a analyze process is currently active
+	// IsAnalyzing true if an analyze process is currently active
 	IsAnalyzing *bool `json:"isanalyzing,omitempty"`
 
-	// The id of the last completely analysed block
+	// LastAnalysedBlockId is the id of the last completely analysed block
 	LastAnalysedBlockId *uint64  `json:"lastanalysedid,omitempty"`
 	DType               []string `json:"dgraph.type,omitempty"`
 }
 
-func (a AnalyzerStatus) String() string {
+func (a *AnalyzerStatus) String() string {
 	output := fmt.Sprintf("Uid: %s", a.Uid)
 
 	if a.IsAnalyzing != nil {
@@ -74,6 +75,35 @@ func (a AnalyzerStatus) String() string {
 
 func (a *AnalyzerStatus) SetDType() {
 	a.DType = []string{AnalyzerStatusDType}
+}
+
+type ClassifierStatus struct {
+	Uid string `json:"uid,omitempty"`
+
+	// IsClassifying is true if a classifier process is currently active
+	IsClassifying *bool `json:"isclassifying,omitempty"`
+
+	// LastClassifiedBlockId is the id of the last completely classified block
+	LastClassifiedBlockId *uint64  `json:"lastclassified,omitempty"`
+	DType                 []string `json:"dgraph.type,omitempty"`
+}
+
+func (c *ClassifierStatus) String() string {
+	output := fmt.Sprintf("Uid: %s", c.Uid)
+
+	if c.IsClassifying != nil {
+		output += fmt.Sprintf(", IsClassifying: %t", *c.IsClassifying)
+	}
+
+	if c.LastClassifiedBlockId != nil {
+		output += fmt.Sprintf(", LastClassifiedBlockId: %d", *c.LastClassifiedBlockId)
+	}
+
+	return output
+}
+
+func (c *ClassifierStatus) SetDType() {
+	c.DType = []string{ClassifierStatusDType}
 }
 
 type FrontendStatus struct {
@@ -125,6 +155,27 @@ type analyzerStatusQuery struct {
 }
 
 func (a analyzerStatusQuery) payload() (status AnalyzerStatus, err error) {
+	lenQ := len(a.Q)
+
+	if lenQ == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		return
+	}
+
+	status = a.Q[0]
+	return
+}
+
+type classifierStatusQuery struct {
+	Q []ClassifierStatus `json:"q"`
+}
+
+func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
