@@ -46,9 +46,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			iscrawling: bool .
 			isanalyzing: bool .
+			isclassifying: bool .
 			lastblockid: int .
 			lowestblockid: int .
 			lastanalysedid: int . 
+			lastclassified: int .
 
 			type: string @index(hash) .
 			parameter: string .
@@ -114,6 +116,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 				lastanalysedid
 			}
 
+			type ClassifierStatus {
+				isclassifying
+				lastclassified
+			}
+
 			type TransactionHeuristic {
 				type
 				parameter
@@ -170,71 +177,16 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	return
 }
 
-func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
+func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			isrlookupdone: bool @index(bool) .
+			isclassifying: bool .
+			lastclassified: int .
 
-			type Transaction {
-				txhash
-				privacytype
-				isrlookupdone
-				fee
-				origins
-				<~origins>
-				<~transactions>
-				tx_outputs
-				tx_inputs
+			type ClassifierStatus {
+				isclassifying
+				lastclassified
 			}
 		`,
-	})
-}
-
-func AlterSchemaAddScripts(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			keyasm: string @index(term) .
-			sigasm: string .
-			keyhex: string .
-			sighex: string .
-
-			type Output {
-				outputindex
-				inputindex
-				txtype
-				amount
-				iscoinbase
-				keyasm
-				sigasm
-				keyhex
-				sighex
-				<~tx_inputs>
-				<~tx_outputs>
-				<~addr_outputs>
-			}
-		`,
-	})
-}
-
-func AlterSchemaAddUserHeuristics(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			user_heuristics: [uid] @reverse .
-
-			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-				user_heuristics
-			}
-		`,
-	})
-}
-
-func AlterSchemaRemoveScript(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		DropAttr: "script",
 	})
 }
