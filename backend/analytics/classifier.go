@@ -58,15 +58,15 @@ func (a *Classifier) Empty() bool {
 }
 
 func (a *Classifier) CalculateInitialState() error {
-	if !a.config.IsAnalysingEnabled {
-		return errors.New("analysing is disabled per configuration")
+	if !a.config.IsClassifyingEnabled {
+		return errors.New("classifying is disabled per configuration")
 	}
 
-	if err := dbstat.SetAnalyzing(a.db, true); err != nil {
+	if err := dbstat.SetClassifying(a.db, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := setInitialAnalyserId(a.db, a.config.AnalyseStartBlock); err != nil {
+	if err := setInitialClassifierId(a.db, a.config.ClassifierStartBlock); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -75,22 +75,22 @@ func (a *Classifier) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	analyzerStatus, err := dbstat.GetAnalyzerStatus(a.db)
+	classifierStatus, err := dbstat.GetClassifierStatus(a.db)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if analyzerStatus.LastAnalysedBlockId == nil {
-		return errors.New("error last analysed block is not set")
+	if classifierStatus.LastClassifiedBlockId == nil {
+		return errors.New("error last classified block is not set")
 	}
 
 	var state blockIterator.State
 
-	state.Id = *analyzerStatus.LastAnalysedBlockId + 1
+	state.Id = *classifierStatus.LastClassifiedBlockId + 1
 
 	if crawlerStatus.LastBlockId == nil {
 		// nothing crawled yet, so set Top to a lower number as Id
-		state.Top = *analyzerStatus.LastAnalysedBlockId
+		state.Top = *classifierStatus.LastClassifiedBlockId
 	} else if *crawlerStatus.LowestBlockId > state.Id {
 		// happens the crawler is started with a high start block id in block range mode
 		state.Id = *crawlerStatus.LowestBlockId
@@ -132,7 +132,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
+	if err := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -140,9 +140,28 @@ func (a *Classifier) Iterate() (bool, error) {
 }
 
 func (a *Classifier) PostExecution() error {
-	if err := dbstat.SetAnalyzing(a.db, false); err != nil {
+	if err := dbstat.SetClassifying(a.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return nil
+}
+
+// setInitialClassifierId sets the starting classifier block id to the
+// value of startBlockClassifier if no value has been set yet
+func setInitialClassifierId(dgraph *dgo.Dgraph, startBlockClassifier uint64) (err error) {
+	status, err := dbstat.GetClassifierStatus(dgraph)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if status.LastClassifiedBlockId == nil ||
+		*status.LastClassifiedBlockId < startBlockClassifier {
+		if err = dbstat.SetLastClassifiedBlockId(dgraph, startBlockClassifier); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+	}
+	return
 }

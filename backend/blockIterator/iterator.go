@@ -167,7 +167,6 @@ func waitForNextDbBlockId(it BlockIterator) (isInterrupt bool, err error) {
 
 				return
 			}
-
 		}
 	}
 }
