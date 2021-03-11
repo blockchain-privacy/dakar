@@ -5,7 +5,6 @@ import (
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	dban "backend/db/analytics"
-	dbblk "backend/db/block"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"context"
@@ -200,49 +199,49 @@ func (a *Analyzer) Iterate() (bool, error) {
 		info("no value in queue -> doing block iteration")
 	}
 
-	currentBlock, err := dbblk.GetBlockById(a.db, a.state.Id)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
+	//currentBlock, err := dbblk.GetBlockById(a.db, a.state.Id)
+	//if err != nil {
+	//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//}
 
-	updatedBlock, err := processPrivacyType(a.ctx, a.db, currentBlock)
-	if err != nil {
-		if errors.Is(err, errorInterrupted) {
-			return false, nil
-		}
-
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	wasInterrupted := false
-	if len(updatedBlock.Transactions) > 0 {
-		// update the block in the database
-		// after that function call the privacy type of all transactions is set
-		if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
-		if err != nil {
-			if errors.Is(err, errorInterrupted) {
-				wasInterrupted = true
-			} else {
-				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
-		}
-		if originCount > 0 {
-			info("Block", *currentBlock.Id, "origin count", originCount)
-		}
-	}
+	//updatedBlock, err := processPrivacyType(a.ctx, a.db, currentBlock)
+	//if err != nil {
+	//	if errors.Is(err, errorInterrupted) {
+	//		return false, nil
+	//	}
+	//
+	//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//}
+	//
+	//wasInterrupted := false
+	//if len(updatedBlock.Transactions) > 0 {
+	//	// update the block in the database
+	//	// after that function call the privacy type of all transactions is set
+	//	if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
+	//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//	}
+	//
+	//	originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
+	//	if err != nil {
+	//		if errors.Is(err, errorInterrupted) {
+	//			wasInterrupted = true
+	//		} else {
+	//			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//		}
+	//	}
+	//	if originCount > 0 {
+	//		info("Block", *currentBlock.Id, "origin count", originCount)
+	//	}
+	//}
 
 	// only set last analysed flag if processes before were not interrupted
-	if wasInterrupted {
-		return false, nil
-	} else {
-		if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
+	//if wasInterrupted {
+	//	return false, nil
+	//} else {
+	//	if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
+	//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	//	}
+	//}
 
 	return true, nil
 }
@@ -349,7 +348,7 @@ func transactionReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinati
 	return num, nil
 }
 
-// returns the smaller of the two values
+// min returns the smaller of the two values
 func min(a, b int) int {
 	if a <= b {
 		return a
@@ -357,25 +356,17 @@ func min(a, b int) int {
 	return b
 }
 
-// Sets the privacy type for all transaction in block. The resulting updateBlock only has PrivateSend transactions
-func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, block dbblk.Block) (
-	updatedBlock dbblk.Block, err error) {
-	updatedBlock.Uid = block.Uid
-
-	for _, tx := range block.Transactions {
+// processPrivacyType sets the privacy type where possible for the given transaction.
+// The returned slice contains all classified transactions.
+func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (
+	txs []dbtx.Transaction, err error) {
+	for _, transaction := range transactions {
 		select {
 		case <-ctx.Done():
 			err = errorInterrupted
 			return
 		default:
 			// we do nothing
-		}
-
-		// get transaction data
-		transaction, txErr := dbtx.GetTransaction(dgraph, tx.Hash, block.Hash)
-		if txErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
 		}
 
 		// set the appropriate privacy type
@@ -387,7 +378,7 @@ func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, block dbblk.Blo
 
 		// append the transaction to the change set in case it is a PrivateSend transaction
 		if transaction.PrivacyType != "" {
-			updatedBlock.Transactions = append(updatedBlock.Transactions, dbtx.Transaction{
+			txs = append(txs, dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
 			})
@@ -396,7 +387,7 @@ func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, block dbblk.Blo
 	return
 }
 
-// sets the privacy type of the transaction
+// setPrivacyType sets the privacy type of the transaction
 func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transaction, err error) {
 	newTx = tx
 	if newTx.IsMixing() {

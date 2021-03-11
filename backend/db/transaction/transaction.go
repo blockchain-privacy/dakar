@@ -3,6 +3,7 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"strconv"
 	"time"
 
 	"encoding/json"
@@ -55,6 +56,60 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 	}
 
 	return r.payload()
+}
+
+// GetTransaction gets transaction information from the database by block id
+func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transaction, err error) {
+	query := `query Q($block:string) {
+				var(func: eq(id, $block)){
+					txs as transactions
+				}
+
+				q(func: uid(txs)){
+					uid
+					txhash
+					privacytype
+					fee
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+						iscoinbase
+						txtype
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+						iscoinbase
+						txtype
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r transactionQuery
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = ErrorTransactionNotFound
+		return
+	}
+
+	transactions = r.Q
+
+	return
 }
 
 // GetFrontendTransaction gets transaction information for the frontend

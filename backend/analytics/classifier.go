@@ -3,8 +3,8 @@ package analytics
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
-	dbblk "backend/db/block"
 	dbstat "backend/db/status"
+	dbtx "backend/db/transaction"
 	"context"
 	"errors"
 	"fmt"
@@ -110,12 +110,12 @@ func (a *Classifier) Iterate() (bool, error) {
 		return false, errors.New("got empty state")
 	}
 
-	currentBlock, err := dbblk.GetBlockById(a.db, a.state.Id)
+	transactions, err := dbtx.GetTransactionByBlock(a.db, a.state.Id)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	updatedBlock, err := processPrivacyType(a.ctx, a.db, currentBlock)
+	privacyTransactions, err := processPrivacyType(a.ctx, a.db, transactions)
 	if err != nil {
 		if errors.Is(err, errorInterrupted) {
 			return false, nil
@@ -124,12 +124,15 @@ func (a *Classifier) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if len(updatedBlock.Transactions) > 0 {
+	if len(privacyTransactions) > 0 {
+		info(len(privacyTransactions), "privacy transactions, block id:", a.state.Id)
 		// update the block in the database
 		// after that function call the privacy type of all transactions is set
-		if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+
+		// todo refactor into something like ''UpdatePrivacyType''
+		//if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
+		//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//}
 	}
 
 	if err := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); err != nil {
