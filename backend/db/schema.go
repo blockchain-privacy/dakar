@@ -50,7 +50,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			lastblockid: int .
 			lowestblockid: int .
 			lastanalysedid: int . 
-			lastclassified: int .
+			lastclassifiedid: int .
 
 			type: string @index(hash) .
 			parameter: string .
@@ -118,7 +118,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			type ClassifierStatus {
 				isclassifying
-				lastclassified
+				lastclassifiedid
 			}
 
 			type TransactionHeuristic {
@@ -181,11 +181,11 @@ func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			isclassifying: bool .
-			lastclassified: int .
+			lastclassifiedid: int .
 
 			type ClassifierStatus {
 				isclassifying
-				lastclassified
+				lastclassifiedid
 			}
 		`,
 	})

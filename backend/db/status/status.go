@@ -124,7 +124,7 @@ func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
 				 q(func: type(ClassifierStatus)){
 					uid
 					isclassifying
-					lastclassified
+					lastclassifiedid
 				  }
 				}`
 
@@ -198,6 +198,10 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 					isanalyzing
 					lastanalysedid
 				}
+				classifier(func: type(ClassifierStatus)){
+					isclassifying
+					lastclassifiedid
+				}
 			}`
 
 	ctx, cancel := db.GetFrontendContext()
@@ -209,8 +213,9 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	}
 
 	var r struct {
-		Crawler  []CrawlerStatus  `json:"crawler,omitempty"`
-		Analyzer []AnalyzerStatus `json:"analyzer,omitempty"`
+		Crawler    []CrawlerStatus    `json:"crawler,omitempty"`
+		Analyzer   []AnalyzerStatus   `json:"analyzer,omitempty"`
+		Classifier []ClassifierStatus `json:"classifier,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -247,6 +252,19 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		}
 	}
 
+	// if analyzer values exist check them
+	if len(r.Classifier) == 1 {
+		if r.Classifier[0].IsClassifying == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsClassifyingNotFound)
+			return
+		}
+
+		if r.Classifier[0].LastClassifiedBlockId == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastClassifiedBlockIdNotFound)
+			return
+		}
+	}
+
 	status = FrontendStatus{
 		IsCrawling:    *r.Crawler[0].IsCrawling,
 		LastBlockId:   *r.Crawler[0].LastBlockId,
@@ -256,6 +274,11 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	if len(r.Analyzer) == 1 {
 		status.IsAnalyzing = *r.Analyzer[0].IsAnalyzing
 		status.LastAnalysedBlockId = *r.Analyzer[0].LastAnalysedBlockId
+	}
+
+	if len(r.Classifier) == 1 {
+		status.IsClassifying = *r.Classifier[0].IsClassifying
+		status.LastClassifiedBlockId = *r.Classifier[0].LastClassifiedBlockId
 	}
 
 	return

@@ -84,7 +84,7 @@ type ClassifierStatus struct {
 	IsClassifying *bool `json:"isclassifying,omitempty"`
 
 	// LastClassifiedBlockId is the id of the last completely classified block
-	LastClassifiedBlockId *uint64  `json:"lastclassified,omitempty"`
+	LastClassifiedBlockId *uint64  `json:"lastclassifiedid,omitempty"`
 	DType                 []string `json:"dgraph.type,omitempty"`
 }
 
@@ -107,26 +107,31 @@ func (c *ClassifierStatus) SetDType() {
 }
 
 type FrontendStatus struct {
-	IsCrawling          bool   `json:"iscrawling"`
-	IsAnalyzing         bool   `json:"isanalyzing"`
-	LastBlockId         uint64 `json:"lastblockid"`
-	LowestBlockId       uint64 `json:"lowestblockid"`
-	LastAnalysedBlockId uint64 `json:"lastanalysedid"`
+	IsCrawling            bool   `json:"iscrawling"`
+	IsAnalyzing           bool   `json:"isanalyzing"`
+	IsClassifying         bool   `json:"isclassifying"`
+	LastBlockId           uint64 `json:"lastblockid"`
+	LowestBlockId         uint64 `json:"lowestblockid"`
+	LastAnalysedBlockId   uint64 `json:"lastanalysedid"`
+	LastClassifiedBlockId uint64 `json:"lastclassifiedid"`
 }
 
 func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, IsAnalyzing: %t, LastBlockId: %d, LastAnalysedBlockId: %d",
-		v.IsCrawling, v.IsAnalyzing, v.LastBlockId, v.LastAnalysedBlockId)
+	return fmt.Sprintf("IsCrawling: %t, IsAnalyzing: %t, IsClassifying: %t, LastBlockId: %d, "+
+		"LastAnalysedBlockId: %d, LastClassifiedBlockId: %d",
+		v.IsCrawling, v.IsAnalyzing, v.IsClassifying, v.LastBlockId, v.LastAnalysedBlockId, v.LastClassifiedBlockId)
 }
 
 var (
-	ErrorStatusNotFound              = errors.New("no status found")
-	ErrorInvalidNumber               = errors.New("wrong number of status objects returned")
-	ErrorLastBlockIdNotFound         = errors.New("last block id not found")
-	ErrorIsCrawlingNotFound          = errors.New("crawling status not found")
-	ErrorIsAnalyzingNotFound         = errors.New("analyzing status not found")
-	ErrorLastAnalysedBlockIdNotFound = errors.New("block id of last analysed block not found")
-	ErrorTopBlockNotFound            = errors.New("top block not found")
+	ErrorStatusNotFound                = errors.New("no status found")
+	ErrorInvalidNumber                 = errors.New("wrong number of status objects returned")
+	ErrorLastBlockIdNotFound           = errors.New("last block id not found")
+	ErrorIsCrawlingNotFound            = errors.New("crawler status not found")
+	ErrorIsAnalyzingNotFound           = errors.New("analyzer status not found")
+	ErrorIsClassifyingNotFound         = errors.New("classifier status not found")
+	ErrorLastAnalysedBlockIdNotFound   = errors.New("block id of last analysed block not found")
+	ErrorLastClassifiedBlockIdNotFound = errors.New("block id of last classified block not found")
+	ErrorTopBlockNotFound              = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {
