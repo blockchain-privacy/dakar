@@ -3,6 +3,7 @@ package analytics
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
+	"backend/db/analytics"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"context"
@@ -115,28 +116,38 @@ func (a *Classifier) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	privacyTransactions, err := processPrivacyType(a.ctx, a.db, transactions)
+	mixingTransactions, ccTransactions, err := getPrivacyTransactions(a.db, transactions)
 	if err != nil {
-		if errors.Is(err, errorInterrupted) {
-			return false, nil
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// set mixing type
+	if len(mixingTransactions) > 0 {
+		//info(len(mixingTransactions), "mixing transactions, block id:", a.state.Id)
+
+		if updateErr := dbtx.UpdateTransactions(a.db, mixingTransactions); updateErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 		}
-
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if len(privacyTransactions) > 0 {
-		info(len(privacyTransactions), "privacy transactions, block id:", a.state.Id)
-		// update the block in the database
-		// after that function call the privacy type of all transactions is set
-
-		// todo refactor into something like ''UpdatePrivacyType''
-		//if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
-		//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//}
+	// set origin and destination type
+	if updateErr := analytics.DoClassification(a.db, a.state.Id); updateErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 	}
 
-	if err := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	// set collateral creation type
+	if len(ccTransactions) > 0 {
+		var uids []string
+		for _, t := range ccTransactions {
+			uids = append(uids, t.Uid)
+		}
+		if ccErr := analytics.SetCollateralCreation(a.db, uids); ccErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
+		}
+	}
+
+	if statusErr := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); statusErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
 
 	return true, nil

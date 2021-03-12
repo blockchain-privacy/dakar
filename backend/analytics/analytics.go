@@ -204,7 +204,7 @@ func (a *Analyzer) Iterate() (bool, error) {
 	//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	//}
 
-	//updatedBlock, err := processPrivacyType(a.ctx, a.db, currentBlock)
+	//updatedBlock, err := getMixingTransactions(a.ctx, a.db, currentBlock)
 	//if err != nil {
 	//	if errors.Is(err, errorInterrupted) {
 	//		return false, nil
@@ -356,37 +356,48 @@ func min(a, b int) int {
 	return b
 }
 
-// processPrivacyType sets the privacy type where possible for the given transaction.
-// The returned slice contains all classified transactions.
-func processPrivacyType(ctx context.Context, dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (
-	txs []dbtx.Transaction, err error) {
+// getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
+// The returned slice contains all classified transactions or nil if no privacy transactions have been found.
+func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
+	cc []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
-		select {
-		case <-ctx.Done():
-			err = errorInterrupted
-			return
-		default:
-			// we do nothing
-		}
-
-		// set the appropriate privacy type
-		transaction, err = setPrivacyType(dgraph, transaction)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		// append the transaction to the change set in case it is a PrivateSend transaction
-		if transaction.PrivacyType != "" {
-			txs = append(txs, dbtx.Transaction{
+		if transaction.IsMixing() {
+			transaction.SetMixing()
+			mixing = append(mixing, dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
 			})
+			continue
+		}
+
+		// todo remove?
+		if transaction.IsProbablyMixing() {
+			transaction.SetProbablyMixing()
+			mixing = append(mixing, dbtx.Transaction{
+				Uid:         transaction.Uid,
+				PrivacyType: transaction.PrivacyType,
+			})
+			continue
+		}
+
+		isCollateralCreation, collateralErr := transaction.IsCollateralCreation(dgraph)
+		if collateralErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), collateralErr)
+		}
+
+		if isCollateralCreation {
+			transaction.SetCollateralCreation()
+			cc = append(cc, dbtx.Transaction{
+				Uid:         transaction.Uid,
+				PrivacyType: transaction.PrivacyType,
+			})
+			continue
 		}
 	}
 	return
 }
 
+// todo remove?
 // setPrivacyType sets the privacy type of the transaction
 func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transaction, err error) {
 	newTx = tx

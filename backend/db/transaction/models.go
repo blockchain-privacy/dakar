@@ -1,17 +1,21 @@
 package transaction
 
 import (
+	"backend/cmd/cliutil"
 	op "backend/db/output"
+	"github.com/dgraph-io/dgo/v2"
 
 	"errors"
 	"fmt"
 )
 
 const (
-	DType              = "Transaction"
-	PrivacyOrigin      = "origin"
-	PrivacyMixing      = "mixing"
-	PrivacyDestination = "destination"
+	DType                     = "Transaction"
+	PrivacyCollateralCreation = "cc"
+	PrivacyOrigin             = "origin"
+	PrivacyMixing             = "mixing"
+	PrivacyProbablyMixing     = "probmixing"
+	PrivacyDestination        = "destination"
 )
 
 var (
@@ -58,6 +62,14 @@ func (t *Transaction) SetPrivacyOrigin() {
 
 func (t *Transaction) SetMixing() {
 	t.PrivacyType = PrivacyMixing
+}
+
+func (t *Transaction) SetProbablyMixing() {
+	t.PrivacyType = PrivacyProbablyMixing
+}
+
+func (t *Transaction) SetCollateralCreation() {
+	t.PrivacyType = PrivacyCollateralCreation
 }
 
 func (t *Transaction) SetPrivacyDestination() {
@@ -122,9 +134,42 @@ func (t Transaction) IsOneOrTwoOutput() bool {
 		(len(t.Outputs) == 2 || len(t.Outputs) == 1)
 }
 
-// IsMixing checks if TX is mixing
+// IsCollateralCreation checks if the transactions is a collateral creation transaction
+func (t Transaction) IsCollateralCreation(dgraph *dgo.Dgraph) (bool, error) {
+	if *t.Fee == 0 || len(t.Inputs) < 1 || len(t.Outputs) != 2 {
+		return false, nil
+	}
+
+	// must have at least enough to pay MaxCollateral
+	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < op.MaxCollateral {
+		return false, nil
+	}
+
+	// check if both outputs do not fulfill the minimum collateral amount
+	if *t.Outputs[0].Amount < op.MinCollateral && *t.Outputs[1].Amount < op.MinCollateral {
+		return false, nil
+	}
+
+	// if both outputs have more than double the OldMaxCollateral it is not the right transaction
+	if *t.Outputs[0].Amount > op.OldMaxCollateral*2 && *t.Outputs[1].Amount > op.OldMaxCollateral*2 {
+		return false, nil
+	}
+
+	inputCount, outputCount, err := GetOutputAddressCounts(dgraph, t.Uid)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if inputCount != 1 || outputCount == 1 {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+// IsMixing checks if the transactions is a mixing transaction
 func (t Transaction) IsMixing() bool {
-	if len(t.Inputs) < 3 || len(t.Outputs) < 3 || len(t.Inputs) != len(t.Outputs) {
+	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 || len(t.Inputs) != len(t.Outputs) {
 		return false
 	}
 	denomIn := t.CountInputDenominations()
@@ -137,7 +182,7 @@ func (t Transaction) IsMixing() bool {
 		return false
 	}
 	sum = 0
-	for _, v := range denomIn {
+	for _, v := range denomOut {
 		sum += v
 	}
 	if sum == 0 {
@@ -148,6 +193,33 @@ func (t Transaction) IsMixing() bool {
 			return false
 		}
 	}
+	return true
+}
+
+// IsProbablyMixing checks if the transactions is a probably mixing transaction
+func (t Transaction) IsProbablyMixing() bool {
+	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 {
+		return false
+	}
+	denomIn := t.CountInputDenominations()
+	denomOut := t.CountOutputDenominations()
+
+	sumIn := 0
+	for _, v := range denomIn {
+		sumIn += v
+	}
+	if sumIn == 0 || sumIn != len(t.Inputs) {
+		return false
+	}
+
+	sumOut := 0
+	for _, v := range denomOut {
+		sumOut += v
+	}
+	if sumOut == 0 || sumOut != len(t.Outputs) {
+		return false
+	}
+
 	return true
 }
 

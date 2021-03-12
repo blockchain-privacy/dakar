@@ -124,8 +124,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// metrics
 		numIteratedBlocks++
-		if numIteratedBlocks%100 == 0 {
-			l.Println("avg 100 blocks:", time.Since(timerGlobal).Milliseconds()/100, "ms/block")
+		if numIteratedBlocks%10000 == 0 {
+			l.Println("avg 10000 blocks:", time.Since(timerGlobal).Milliseconds()/10000, "ms/block")
 			timerGlobal = time.Now()
 		}
 	}

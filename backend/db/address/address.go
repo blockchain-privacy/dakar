@@ -227,6 +227,7 @@ func convertJsonNumber(num json.Number) (number int64, err error) {
 	return
 }
 
+// todo remove?
 // GetInputAddressesOfTransaction gets all input addresses of the transaction specified by uid
 func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Address, err error) {
 	query := `query Q($uid: string){
@@ -240,7 +241,6 @@ func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Addr
 			   }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": uid})
-
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
