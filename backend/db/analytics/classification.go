@@ -53,7 +53,7 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (err error) {
 	return
 }
 
-// SetCollateralCreation set the collateral creation privacy type, if its input transaction are
+// SetCollateralCreation sets the collateral creation privacy type, if its input transaction are
 // either of the type origin, mixing or collateral creation
 func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (err error) {
 	// build uid list in this form: [uid1,uid2]
@@ -82,6 +82,46 @@ func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (err error) {
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cc), 0))",
 			SetNquads: []byte("uid(cc) <privacytype> \"" + dbtx.PrivacyCollateralCreation + "\" ."),
+		}},
+		CommitNow: true,
+	}
+
+	if err = db.TxWithRetry(c, time.Minute*10, req); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
+
+// SetCollateralPayment sets the collateral payment privacy type, if its input transaction are
+// either of the type origin, collateral creation or collateral payment
+func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (err error) {
+	// build uid list in this form: [uid1,uid2]
+	uidList := "["
+	for i, uid := range txUids {
+		uidList += uid
+		if i+1 < len(txUids) {
+			uidList += ","
+		}
+	}
+	uidList += "]"
+
+	// @filter(eq(privacytype, ["origin", "cc"]))
+	const filter = "@filter(eq(privacytype,[" + dbtx.PrivacyCollateralCreation + "," +
+		dbtx.PrivacyCollateralPayment + "," + dbtx.PrivacyOrigin + "]))"
+
+	query := `query Q($uids: string) {
+				cp as var(func: uid($uids))@cascade{	
+					tx_inputs{
+						~tx_outputs` + filter + `}}}`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uids": uidList},
+		Mutations: []*api.Mutation{{
+			Cond:      "@if(gt(len(cp), 0))",
+			SetNquads: []byte("uid(cp) <privacytype> \"" + dbtx.PrivacyCollateralPayment + "\" ."),
 		}},
 		CommitNow: true,
 	}

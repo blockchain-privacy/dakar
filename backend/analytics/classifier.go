@@ -116,7 +116,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	mixingTransactions, ccTransactions, err := getPrivacyTransactions(a.db, transactions)
+	mixingTransactions, ccTransactions, cpTransactions, err := getPrivacyTransactions(a.db, transactions)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -142,6 +142,17 @@ func (a *Classifier) Iterate() (bool, error) {
 			uids = append(uids, t.Uid)
 		}
 		if ccErr := analytics.SetCollateralCreation(a.db, uids); ccErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
+		}
+	}
+
+	// set collateral creation type
+	if len(cpTransactions) > 0 {
+		var uids []string
+		for _, t := range cpTransactions {
+			uids = append(uids, t.Uid)
+		}
+		if ccErr := analytics.SetCollateralPayment(a.db, uids); ccErr != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
 		}
 	}

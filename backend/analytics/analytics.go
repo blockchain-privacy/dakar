@@ -359,7 +359,7 @@ func min(a, b int) int {
 // getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
 func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
-	cc []dbtx.Transaction, err error) {
+	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
 		if transaction.IsMixing() {
 			transaction.SetMixing()
@@ -374,6 +374,15 @@ func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction)
 		if transaction.IsProbablyMixing() {
 			transaction.SetProbablyMixing()
 			mixing = append(mixing, dbtx.Transaction{
+				Uid:         transaction.Uid,
+				PrivacyType: transaction.PrivacyType,
+			})
+			continue
+		}
+
+		if transaction.IsCollateralPayment() {
+			transaction.SetCollateralPayment()
+			cp = append(cp, dbtx.Transaction{
 				Uid:         transaction.Uid,
 				PrivacyType: transaction.PrivacyType,
 			})

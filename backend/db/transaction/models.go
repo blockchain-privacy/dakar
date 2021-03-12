@@ -12,6 +12,7 @@ import (
 const (
 	DType                     = "Transaction"
 	PrivacyCollateralCreation = "cc"
+	PrivacyCollateralPayment  = "cp"
 	PrivacyOrigin             = "origin"
 	PrivacyMixing             = "mixing"
 	PrivacyProbablyMixing     = "probmixing"
@@ -70,6 +71,10 @@ func (t *Transaction) SetProbablyMixing() {
 
 func (t *Transaction) SetCollateralCreation() {
 	t.PrivacyType = PrivacyCollateralCreation
+}
+
+func (t *Transaction) SetCollateralPayment() {
+	t.PrivacyType = PrivacyCollateralPayment
 }
 
 func (t *Transaction) SetPrivacyDestination() {
@@ -165,6 +170,25 @@ func (t Transaction) IsCollateralCreation(dgraph *dgo.Dgraph) (bool, error) {
 	}
 
 	return true, nil
+}
+
+// IsCollateralPayment checks if the transactions is a collateral payment transaction
+func (t Transaction) IsCollateralPayment() bool {
+	if *t.Fee == 0 || len(t.Inputs) != 1 || len(t.Outputs) != 1 {
+		return false
+	}
+
+	// must be able to pay at least the minimum fee
+	if *t.Inputs[0].Amount < op.MinCollateral || *t.Fee < op.MinCollateral {
+		return false
+	}
+
+	// if the fee is too big it is not a collateral payment
+	if *t.Fee > op.OldMaxCollateral*2 {
+		return false
+	}
+
+	return true
 }
 
 // IsMixing checks if the transactions is a mixing transaction
