@@ -8,6 +8,7 @@ import (
 	"backend/db"
 	"backend/db/status"
 	dbus "backend/db/user"
+	"backend/external"
 	"backend/processor"
 	"backend/server"
 	"context"
@@ -127,7 +128,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 }
 
 // waitForRPCClient waits until the RPC client is ready to receive requests
-func waitForRPCClient(client *rpcclient.Client) bool {
+func waitForRPCClient(client external.RPCClient) bool {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 

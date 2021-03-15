@@ -1,6 +1,7 @@
 package server
 
 import (
+	"backend/external"
 	"context"
 	"fmt"
 	"io"
@@ -9,8 +10,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
 )
@@ -40,7 +39,7 @@ type Server struct {
 }
 
 // CreateServer creates a http server on the given port
-func CreateServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client *rpcclient.Client) Server {
+func CreateServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client external.RPCClient) Server {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	// setup REST API
 	setupHandlers(ctx, dgraph, client)

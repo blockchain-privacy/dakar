@@ -10,6 +10,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 
 	"context"
 	"encoding/csv"
@@ -23,8 +24,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/ristretto"
@@ -212,7 +211,7 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph *dgo.Dgraph,
-	client *rpcclient.Client) func(string, []byte) ([]byte, error) {
+	client external.RPCClient) func(string, []byte) ([]byte, error) {
 	return func(query string, body []byte) (response []byte, err error) {
 		// async request rpc info
 		futureBlockchainInfo := client.GetBlockChainInfoAsync()
@@ -809,7 +808,7 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
+func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient) {
 	// get signing keys
 
 	privkey, pubkey, err := GetSigningKeysFromEnv()

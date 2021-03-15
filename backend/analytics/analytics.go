@@ -389,6 +389,11 @@ func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction)
 			continue
 		}
 
+		// todo this fails sometime if the origin transaction has not been classified yet.
+		// this is the case if the collateral creation transaction occurs before the
+		// first mixing transaction connected to the origin tx. Solution:
+		// either do not do the lookup and "trust" the classification based on available data
+		// or classify origins beforehand only on available data (like before)
 		isCollateralCreation, collateralErr := transaction.IsCollateralCreation(dgraph)
 		if collateralErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), collateralErr)
