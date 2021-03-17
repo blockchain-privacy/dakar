@@ -71,7 +71,7 @@
           <v-card outlined>
             <v-toolbar :color="tx.privacytype?'purple':''" :dark="!!tx.privacytype" flat>
               <v-toolbar-title>
-                <router-link :to="{ name: txRoute, params: { id: tx.txhash }}">
+                <router-link class="linkColor" :to="{ name: txRoute, params: { id: tx.txhash }}">
                 {{ tx.txhash }}
                 </router-link>
               </v-toolbar-title>
@@ -188,6 +188,10 @@ export default {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+}
+
+.linkColor {
+  color: inherit;
 }
 
 </style>
