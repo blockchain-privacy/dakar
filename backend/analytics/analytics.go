@@ -370,16 +370,6 @@ func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction)
 			continue
 		}
 
-		// todo remove?
-		if transaction.IsProbablyMixing() {
-			transaction.SetProbablyMixing()
-			mixing = append(mixing, dbtx.Transaction{
-				Uid:         transaction.Uid,
-				PrivacyType: transaction.PrivacyType,
-			})
-			continue
-		}
-
 		if transaction.IsCollateralPayment() {
 			transaction.SetCollateralPayment()
 			cp = append(cp, dbtx.Transaction{

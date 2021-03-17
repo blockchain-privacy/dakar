@@ -18,12 +18,12 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (err error) {
 				var(func: eq(id,$bid))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
-							~tx_outputs@filter(eq(privacytype, ["mixing", "probmixing"]))
+							~tx_outputs@filter(eq(privacytype,"mixing"))
 						}
 					}
 				}
 				var(func: eq(id,$bid)){
-					transactions@filter(eq(privacytype, ["mixing", "probmixing"])){
+					transactions@filter(eq(privacytype,"mixing")){
 						tx_inputs{
 							orig as ~tx_outputs@filter(not has(privacytype))
 						}
@@ -66,10 +66,9 @@ func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (err error) {
 	}
 	uidList += "]"
 
-	// todo remove probmixing?
-	// @filter(eq(privacytype, ["mixing", "origin", "cc", "probmixing"]))
+	// @filter(eq(privacytype, ["mixing", "origin", "cc"]))
 	const filter = "@filter(eq(privacytype,[" + dbtx.PrivacyCollateralCreation + "," +
-		dbtx.PrivacyMixing + "," + dbtx.PrivacyOrigin + "," + dbtx.PrivacyProbablyMixing + "]))"
+		dbtx.PrivacyMixing + "," + dbtx.PrivacyOrigin + "]))"
 
 	query := `query Q($uids: string) {
 				cc as var(func: uid($uids))@cascade{	

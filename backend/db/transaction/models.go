@@ -15,7 +15,6 @@ const (
 	PrivacyCollateralPayment  = "cp"
 	PrivacyOrigin             = "origin"
 	PrivacyMixing             = "mixing"
-	PrivacyProbablyMixing     = "probmixing"
 	PrivacyDestination        = "destination"
 )
 
@@ -63,10 +62,6 @@ func (t *Transaction) SetPrivacyOrigin() {
 
 func (t *Transaction) SetMixing() {
 	t.PrivacyType = PrivacyMixing
-}
-
-func (t *Transaction) SetProbablyMixing() {
-	t.PrivacyType = PrivacyProbablyMixing
 }
 
 func (t *Transaction) SetCollateralCreation() {
@@ -155,8 +150,8 @@ func (t Transaction) IsCollateralCreation(dgraph *dgo.Dgraph) (bool, error) {
 		return false, nil
 	}
 
-	// if both outputs have more than double the OldMaxCollateral it is not the right transaction
-	if *t.Outputs[0].Amount > op.OldMaxCollateral*2 && *t.Outputs[1].Amount > op.OldMaxCollateral*2 {
+	// if one of the outputs has more than double the OldMaxCollateral it is not a collateral creation transaction
+	if *t.Outputs[0].Amount > op.OldMaxCollateral*2 || *t.Outputs[1].Amount > op.OldMaxCollateral*2 {
 		return false, nil
 	}
 
@@ -183,8 +178,8 @@ func (t Transaction) IsCollateralPayment() bool {
 		return false
 	}
 
-	// if the fee is too big it is not a collateral payment
-	if *t.Fee > op.OldMaxCollateral*2 {
+	// if the fee or amount is too big it is not a collateral payment
+	if *t.Fee > op.OldMaxCollateral*2 || *t.Inputs[0].Amount > op.OldMaxCollateral*2 {
 		return false
 	}
 
@@ -217,33 +212,6 @@ func (t Transaction) IsMixing() bool {
 			return false
 		}
 	}
-	return true
-}
-
-// IsProbablyMixing checks if the transactions is a probably mixing transaction
-func (t Transaction) IsProbablyMixing() bool {
-	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 {
-		return false
-	}
-	denomIn := t.CountInputDenominations()
-	denomOut := t.CountOutputDenominations()
-
-	sumIn := 0
-	for _, v := range denomIn {
-		sumIn += v
-	}
-	if sumIn == 0 || sumIn != len(t.Inputs) {
-		return false
-	}
-
-	sumOut := 0
-	for _, v := range denomOut {
-		sumOut += v
-	}
-	if sumOut == 0 || sumOut != len(t.Outputs) {
-		return false
-	}
-
 	return true
 }
 
