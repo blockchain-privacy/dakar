@@ -71,15 +71,23 @@
           <v-card outlined>
             <v-toolbar :color="tx.privacytype?'purple':''" :dark="!!tx.privacytype" flat>
               <v-toolbar-title>
-                {{ shortenHash(tx.txhash) }}
+                <router-link :to="{ name: txRoute, params: { id: tx.txhash }}">
+                {{ tx.txhash }}
+                </router-link>
               </v-toolbar-title>
             </v-toolbar>
             <v-card-text>
-              Privacytype: {{ tx.privacytype }}
-              <br/>
-              Blockhash: {{ shortenHash(tx.bhash) }}
-              <br/>
-              Block Id: {{ tx.bid }}
+              <p>Privacy type: {{ (!tx.privacytype) ? 'None' : tx.privacytype }}</p>
+              <p class="shorten">Blockhash:
+                <router-link :to="{ name: blockRoute, params: { id: tx.bhash }}">
+                  {{ tx.bhash }}
+                </router-link>
+              </p>
+              <p>Block Id:
+                <router-link :to="{ name: blockRoute, params: { id: tx.bid }}">
+                  {{ tx.bid }}
+                </router-link>
+              </p>
             </v-card-text>
           </v-card>
         </v-timeline-item>
@@ -93,7 +101,9 @@ import {
   mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
 } from '@mdi/js';
 import { doPost, handleError, shortenHash } from '../../utilities';
-import { PAGE_TITLE, ROUTE_SHORTEST_TRANSACTION_PATH } from '../../constants';
+import {
+  PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_SHORTEST_TRANSACTION_PATH,
+} from '../../constants';
 
 export default {
   name: 'ShortestPath',
@@ -102,6 +112,8 @@ export default {
       icon: {
         mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
       },
+      blockRoute: ROUTE_NAME_BLOCK_PAGE,
+      txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       // v-model
       fromTransaction: '',
       toTransaction: '',
@@ -171,5 +183,11 @@ export default {
 </script>
 
 <style scoped>
+
+.shorten {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
 
 </style>
