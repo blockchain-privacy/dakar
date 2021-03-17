@@ -106,36 +106,44 @@ func (a *Classifier) CalculateInitialState() error {
 	return nil
 }
 
+// Iterate does the classification for all transactions of the current block. Transactions are
+// classified based on their own properties (number of outputs/inputs, amounts, fee, etc...)
+// and how they are connected to other transactions.
 func (a *Classifier) Iterate() (bool, error) {
 	if a.Empty() {
 		return false, errors.New("got empty state")
 	}
 
+	// get the transaction of the current block height
 	transactions, err := dbtx.GetTransactionByBlock(a.db, a.state.Id)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
+	// step 1: classify all transactions of the current block based on their own properties
 	mixingTransactions, ccTransactions, cpTransactions, err := getPrivacyTransactions(a.db, transactions)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	// set mixing type
-	if len(mixingTransactions) > 0 {
-		//info(len(mixingTransactions), "mixing transactions, block id:", a.state.Id)
+	// the classifications of step 1 are in some cases only indications of the classifications.
+	// step 2: either insert the classified directly into the db or only if they are connected
+	// to a certain type of transactions
 
+	// step 2.1: set the privacy type of mixing transactions.
+	if len(mixingTransactions) > 0 {
 		if updateErr := dbtx.UpdateTransactions(a.db, mixingTransactions); updateErr != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 		}
 	}
 
-	// set origin and destination type
+	// step 2.2: set the privacy type of origin and destination transactions by
+	// analyzing the connected transactions.
 	if updateErr := analytics.DoClassification(a.db, a.state.Id); updateErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 	}
 
-	// set collateral creation type
+	// step 2.3: set collateral creation type
 	if len(ccTransactions) > 0 {
 		var uids []string
 		for _, t := range ccTransactions {
@@ -146,7 +154,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	// set collateral creation type
+	// step 2.4: set collateral creation type
 	if len(cpTransactions) > 0 {
 		var uids []string
 		for _, t := range cpTransactions {
@@ -157,6 +165,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		}
 	}
 
+	// set the last classified block
 	if statusErr := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); statusErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
