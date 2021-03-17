@@ -15,14 +15,15 @@ import (
 // the origin privacy type for all transactions which are connected to mixing transactions in this block
 func DoClassification(c *dgo.Dgraph, blockId uint64) (err error) {
 	query := `query Q($bid: string) {
-				var(func: eq(id,$bid))@cascade{
+				b as var(func: eq(id,$bid))
+				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
 							~tx_outputs@filter(eq(privacytype,"mixing"))
 						}
 					}
 				}
-				var(func: eq(id,$bid)){
+				var(func: uid(b)){
 					transactions@filter(eq(privacytype,"mixing")){
 						tx_inputs{
 							orig as ~tx_outputs@filter(not has(privacytype))
