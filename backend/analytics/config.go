@@ -17,11 +17,11 @@ func NewDashConfig() Config {
 	return Config{
 		BlockchainName:     "Dash",
 		IsAnalysingEnabled: true,
-		// found empirically; Before block height 323757 mixing transactions
-		// appear which do not have the most recent format (equal number of inputs and outputs)
-		AnalyseStartBlock:    323757,
+		// after block height 200000 the first mixing transactions appear
+		// which have the most recent format (same number of inputs and outputs)
+		AnalyseStartBlock:    200000,
 		IsClassifyingEnabled: true,
-		ClassifierStartBlock: 323757,
+		ClassifierStartBlock: 200000,
 	}
 }
 
