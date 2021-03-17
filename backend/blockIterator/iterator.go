@@ -77,6 +77,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
+	l.Println("starting at:", iterator.State().Id)
+
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
 	ctx := iterator.Context()
