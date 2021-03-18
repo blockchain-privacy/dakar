@@ -353,19 +353,35 @@ func main() {
 	}
 
 	// Setup the RPC connection, only if needed
-	var client *rpcclient.Client
+	var client external.RPCClient
 	if !cliArgs.DisableHttpServer || !cliArgs.DisableCrawler {
-		client, err = rpcclient.New(&rpcclient.ConnConfig{
-			Host:         cliArgs.RpcEndpoint,
-			User:         cliArgs.RpcUser,
-			Pass:         cliArgs.RpcPassword,
-			DisableTLS:   true,
-			HTTPPostMode: true,
-		}, nil)
-		if err != nil {
-			info(err)
-			return
+		if cliArgs.Dash {
+			client, err = external.NewDashWrapper(&rpcclient.ConnConfig{
+				Host:         cliArgs.RpcEndpoint,
+				User:         cliArgs.RpcUser,
+				Pass:         cliArgs.RpcPassword,
+				DisableTLS:   true,
+				HTTPPostMode: true,
+			}, nil)
+			if err != nil {
+				info(err)
+				return
+			}
+
 		}
+		//else {
+		//	client, err = btcrpc.New(&btcrpc.ConnConfig{
+		//		Host:         cliArgs.RpcEndpoint,
+		//		User:         cliArgs.RpcUser,
+		//		Pass:         cliArgs.RpcPassword,
+		//		DisableTLS:   true,
+		//		HTTPPostMode: true,
+		//	}, nil)
+		//	if err != nil {
+		//		info(err)
+		//		return
+		//	}
+		//}
 
 		// test if rpc client is active
 		if !waitForRPCClient(client) {
