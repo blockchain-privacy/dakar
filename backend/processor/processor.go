@@ -19,7 +19,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/dgraph-io/dgo/v2"
@@ -57,7 +59,7 @@ type crawlerProcessingState struct {
 	// current block hash
 	hash string
 	// current block hash as a chainhash.Hash
-	chainHash *external.Hash
+	chainHash *chainhash.Hash
 }
 
 func (p crawlerProcessingState) String() string {
@@ -66,7 +68,7 @@ func (p crawlerProcessingState) String() string {
 
 // increments the state for the next processing loop
 func (p *crawlerProcessingState) increment(nextHash string) (err error) {
-	p.chainHash, err = external.NewHashFromStr(nextHash)
+	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -220,8 +222,8 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 // BuildTransactionMapping processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
-func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction external.TxRawResult,
-	txHashMap map[string]external.TxRawResult, isContinuous bool, config Config) (
+func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawResult,
+	txHashMap map[string]btcjson.TxRawResult, isContinuous bool, config Config) (
 	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
@@ -322,8 +324,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction external.TxRawRe
 }
 
 // maps the input information to the output if it exists already in the database
-func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin external.Vin, index uint32,
-	txHashMap map[string]external.TxRawResult) error {
+func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -422,8 +423,8 @@ func processingInterrupted() {
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *external.Hash,
-	rpcNumBlocks uint64, config Config) (currentBlock *external.GetBlockVerboseResult, isInterrupt bool, err error) {
+func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
+	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(config.NewBlockIntervalTime)
 	defer ticker.Stop()
 	for {
@@ -529,7 +530,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client external.
 	timerStart := time.Now()
 	// Main loop
 
-	var currentBlock *external.GetBlockVerboseResult
+	var currentBlock *btcjson.GetBlockVerboseResult
 
 mainLoop:
 	for {
@@ -625,7 +626,7 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client e
 	// Main loop
 
 	firstLoop := true
-	var currentBlock *external.GetBlockVerboseResult
+	var currentBlock *btcjson.GetBlockVerboseResult
 
 mainLoop:
 	for {
@@ -693,10 +694,10 @@ mainLoop:
 }
 
 // creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]external.TxRawResult, error) {
-	txs := make(map[string]external.TxRawResult)
+func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
+	txs := make(map[string]btcjson.TxRawResult)
 	for _, t := range transactions {
-		txHash, err := external.NewHashFromStr(t)
+		txHash, err := chainhash.NewHashFromStr(t)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return txs, err
@@ -715,7 +716,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func ProcessRound(dgraph *dgo.Dgraph, client external.RPCClient, state crawlerProcessingState,
-	block *external.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
+	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
 	blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
