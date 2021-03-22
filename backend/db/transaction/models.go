@@ -188,9 +188,13 @@ func (t Transaction) IsCollateralPayment() bool {
 
 // IsMixing checks if the transactions is a mixing transaction
 func (t Transaction) IsMixing() bool {
-	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 || len(t.Inputs) != len(t.Outputs) {
+	// At least 3 clients per mixing transaction -> >2 inputs/outputs
+	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
+	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 ||
+		len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
 		return false
 	}
+
 	denomIn := t.CountInputDenominations()
 	denomOut := t.CountOutputDenominations()
 	sum := 0
