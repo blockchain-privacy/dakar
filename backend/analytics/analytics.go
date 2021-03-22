@@ -77,6 +77,10 @@ func NewAnalyzer(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) *Analyzer 
 	}
 }
 
+func (a *Analyzer) Name() string {
+	return "analyzer"
+}
+
 func (a *Analyzer) Logger() *log.Logger {
 	return analyticsLogger
 }

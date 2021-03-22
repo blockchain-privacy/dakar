@@ -38,6 +38,7 @@ type BlockIterator interface {
 	Context() context.Context
 	Db() *dgo.Dgraph
 	State() State
+	Name() string
 }
 
 // State holds the current state of the analyzing processing loop
@@ -53,15 +54,17 @@ func (s State) String() string {
 	return fmt.Sprintf("Id: %d, Top: %d", s.Id, s.Top)
 }
 
-func StartIteration(iterator BlockIterator) (err error) {
-	l := iterator.Logger()
+func info(iterator BlockIterator, v ...interface{}) {
+	iterator.Logger().Println(append([]interface{}{iterator.Name()}, v...))
+}
 
-	if l == nil {
-		return errors.New("logger is nil")
+func StartIteration(iterator BlockIterator) (err error) {
+	if l := iterator.Logger(); l == nil {
+		return errors.New(iterator.Name() + " logger is nil")
 	}
 
 	defer func() {
-		l.Println("iterator stopped")
+		info(iterator, "iterator stopped")
 		// if the call to PostExecution results in an error, then only set the
 		// error if the error is currently nil
 		postErr := iterator.PostExecution()
@@ -70,20 +73,20 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 	}()
 
-	l.Println("doing pre loop")
+	info(iterator, "doing pre loop")
 
 	if initErr := iterator.CalculateInitialState(); initErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), initErr)
 		return
 	}
 
-	l.Println("starting at:", iterator.State().Id)
+	info(iterator, "starting at:", iterator.State().Id)
 
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
 	ctx := iterator.Context()
 
-	l.Println("doing loop")
+	info(iterator, "doing loop")
 
 	for {
 		select {
@@ -95,7 +98,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// check if we need to wait
 		if iterator.Empty() {
-			l.Println("Waiting for next block", iterator.State())
+			info(iterator, "Waiting for next block", iterator.State())
 
 			isInterrupt, waitErr := waitForNextDbBlockId(iterator)
 			if waitErr != nil {
@@ -107,7 +110,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 				return
 			}
 
-			l.Println("Found next block. New state:", iterator.State())
+			info(iterator, "Found next block. New state:", iterator.State())
 		}
 
 		ok, iterateErr := iterator.Iterate()
@@ -127,7 +130,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		// metrics
 		numIteratedBlocks++
 		if numIteratedBlocks%10000 == 0 {
-			l.Println("avg 10000 blocks:", time.Since(timerGlobal).Milliseconds()/10000, "ms/block")
+			info(iterator, "avg 10000 blocks:", time.Since(timerGlobal).Milliseconds()/10000, "ms/block")
 			timerGlobal = time.Now()
 		}
 	}

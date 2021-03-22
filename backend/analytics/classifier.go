@@ -31,6 +31,10 @@ func NewClassifier(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) *Classif
 	}
 }
 
+func (a *Classifier) Name() string {
+	return "classifier"
+}
+
 func (a *Classifier) Logger() *log.Logger {
 	return analyticsLogger
 }

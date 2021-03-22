@@ -86,7 +86,7 @@ func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transa
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*40, query,
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
 		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
