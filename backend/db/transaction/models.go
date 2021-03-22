@@ -1,22 +1,12 @@
 package transaction
 
 import (
-	"backend/cmd/cliutil"
 	op "backend/db/output"
-	"github.com/dgraph-io/dgo/v2"
-
 	"errors"
 	"fmt"
 )
 
-const (
-	DType                     = "Transaction"
-	PrivacyCollateralCreation = "cc"
-	PrivacyCollateralPayment  = "cp"
-	PrivacyOrigin             = "origin"
-	PrivacyMixing             = "mixing"
-	PrivacyDestination        = "destination"
-)
+const DType = "Transaction"
 
 var (
 	ErrorTransactionNotFound = errors.New("no transaction found")
@@ -56,49 +46,6 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
 
-func (t *Transaction) SetPrivacyOrigin() {
-	t.PrivacyType = PrivacyOrigin
-}
-
-func (t *Transaction) SetMixing() {
-	t.PrivacyType = PrivacyMixing
-}
-
-func (t *Transaction) SetCollateralCreation() {
-	t.PrivacyType = PrivacyCollateralCreation
-}
-
-func (t *Transaction) SetCollateralPayment() {
-	t.PrivacyType = PrivacyCollateralPayment
-}
-
-func (t *Transaction) SetPrivacyDestination() {
-	t.PrivacyType = PrivacyDestination
-}
-
-// checks if the given transaction has all attributes filled
-func (t Transaction) IsComplete() bool {
-	return t.Uid != "" && t.Hash != "" && t.DType != nil
-}
-
-func (t Transaction) CountInputDenominations() [op.NumDenominations]int {
-	return op.CountOutputDenominations(t.Inputs)
-}
-
-func (t Transaction) CountOutputDenominations() [op.NumDenominations]int {
-	return op.CountOutputDenominations(t.Outputs)
-}
-
-// IsPrivacyOrigin checks if the TX creates denominations
-func (t Transaction) IsPrivacyOrigin(areAllInputAddressesEqual bool) bool {
-	return len(t.Inputs) >= 1 && areAllInputAddressesEqual && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
-}
-
-// IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
-func (t Transaction) IsPrivacyDestination() bool {
-	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
-}
-
 // checks if the cumulative amount of inputs and outputs matches
 func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountInputs int64
@@ -122,101 +69,6 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	t.Fee = &fee
 
 	return
-}
-
-func IsPrivacyTransaction(denom [op.NumDenominations]int) bool {
-	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2 || denom[4] > 2
-}
-
-// IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
-func (t Transaction) IsOneOrTwoOutput() bool {
-	return !t.IsMixing() &&
-		(len(t.Outputs) == 2 || len(t.Outputs) == 1)
-}
-
-// IsCollateralCreation checks if the transactions is a collateral creation transaction
-func (t Transaction) IsCollateralCreation(dgraph *dgo.Dgraph) (bool, error) {
-	if *t.Fee == 0 || len(t.Inputs) < 1 || len(t.Outputs) != 2 {
-		return false, nil
-	}
-
-	// must have at least enough to pay MaxCollateral
-	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < op.MaxCollateral {
-		return false, nil
-	}
-
-	// check if both outputs do not fulfill the minimum collateral amount
-	if *t.Outputs[0].Amount < op.MinCollateral && *t.Outputs[1].Amount < op.MinCollateral {
-		return false, nil
-	}
-
-	// if one of the outputs has more than double the OldMaxCollateral it is not a collateral creation transaction
-	if *t.Outputs[0].Amount > op.OldMaxCollateral*2 || *t.Outputs[1].Amount > op.OldMaxCollateral*2 {
-		return false, nil
-	}
-
-	inputCount, outputCount, err := GetOutputAddressCounts(dgraph, t.Uid)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	if inputCount != 1 || outputCount == 1 {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-// IsCollateralPayment checks if the transactions is a collateral payment transaction
-func (t Transaction) IsCollateralPayment() bool {
-	if *t.Fee == 0 || len(t.Inputs) != 1 || len(t.Outputs) != 1 {
-		return false
-	}
-
-	// must be able to pay at least the minimum fee
-	if *t.Inputs[0].Amount < op.MinCollateral || *t.Fee < op.MinCollateral {
-		return false
-	}
-
-	// if the fee or amount is too big it is not a collateral payment
-	if *t.Fee > op.OldMaxCollateral*2 || *t.Inputs[0].Amount > op.OldMaxCollateral*2 {
-		return false
-	}
-
-	return true
-}
-
-// IsMixing checks if the transactions is a mixing transaction
-func (t Transaction) IsMixing() bool {
-	// At least 3 clients per mixing transaction -> >2 inputs/outputs
-	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
-	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 ||
-		len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
-		return false
-	}
-
-	denomIn := t.CountInputDenominations()
-	denomOut := t.CountOutputDenominations()
-	sum := 0
-	for _, v := range denomIn {
-		sum += v
-	}
-	if sum == 0 {
-		return false
-	}
-	sum = 0
-	for _, v := range denomOut {
-		sum += v
-	}
-	if sum == 0 {
-		return false
-	}
-	for i := range denomIn {
-		if denomIn[i] != denomOut[i] {
-			return false
-		}
-	}
-	return true
 }
 
 type transactionQuery struct {

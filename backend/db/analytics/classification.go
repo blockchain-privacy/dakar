@@ -2,8 +2,8 @@ package analytics
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
-	dbtx "backend/db/transaction"
 	"fmt"
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -37,11 +37,11 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (err error) {
 		Vars:  map[string]string{"$bid": strconv.FormatUint(blockId, 10)},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(dest), 0))",
-			SetNquads: []byte("uid(dest) <privacytype> \"" + dbtx.PrivacyDestination + "\" ."),
+			SetNquads: []byte("uid(dest) <privacytype> \"" + constants.PrivacyDestination + "\" ."),
 		},
 			{
 				Cond:      "@if(gt(len(orig), 0))",
-				SetNquads: []byte("uid(orig) <privacytype> \"" + dbtx.PrivacyOrigin + "\" ."),
+				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.PrivacyOrigin + "\" ."),
 			}},
 		CommitNow: true,
 	}
@@ -68,8 +68,8 @@ func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (err error) {
 	uidList += "]"
 
 	// @filter(eq(privacytype, ["mixing", "origin", "cc"]))
-	const filter = "@filter(eq(privacytype,[" + dbtx.PrivacyCollateralCreation + "," +
-		dbtx.PrivacyMixing + "," + dbtx.PrivacyOrigin + "]))"
+	const filter = "@filter(eq(privacytype,[" + constants.PrivacyCollateralCreation + "," +
+		constants.PrivacyMixing + "," + constants.PrivacyOrigin + "]))"
 
 	query := `query Q($uids: string) {
 				cc as var(func: uid($uids))@cascade{	
@@ -81,7 +81,7 @@ func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (err error) {
 		Vars:  map[string]string{"$uids": uidList},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cc), 0))",
-			SetNquads: []byte("uid(cc) <privacytype> \"" + dbtx.PrivacyCollateralCreation + "\" ."),
+			SetNquads: []byte("uid(cc) <privacytype> \"" + constants.PrivacyCollateralCreation + "\" ."),
 		}},
 		CommitNow: true,
 	}
@@ -108,8 +108,8 @@ func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (err error) {
 	uidList += "]"
 
 	// @filter(eq(privacytype, ["origin", "cc"]))
-	const filter = "@filter(eq(privacytype,[" + dbtx.PrivacyCollateralCreation + "," +
-		dbtx.PrivacyCollateralPayment + "," + dbtx.PrivacyOrigin + "]))"
+	const filter = "@filter(eq(privacytype,[" + constants.PrivacyCollateralCreation + "," +
+		constants.PrivacyCollateralPayment + "," + constants.PrivacyOrigin + "]))"
 
 	query := `query Q($uids: string) {
 				cp as var(func: uid($uids))@cascade{	
@@ -121,7 +121,7 @@ func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (err error) {
 		Vars:  map[string]string{"$uids": uidList},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cp), 0))",
-			SetNquads: []byte("uid(cp) <privacytype> \"" + dbtx.PrivacyCollateralPayment + "\" ."),
+			SetNquads: []byte("uid(cp) <privacytype> \"" + constants.PrivacyCollateralPayment + "\" ."),
 		}},
 		CommitNow: true,
 	}

@@ -3,7 +3,6 @@ package analytics
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
-	dbaddr "backend/db/address"
 	dban "backend/db/analytics"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
@@ -361,21 +360,13 @@ func min(a, b int) int {
 func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
 	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
-		if transaction.IsMixing() {
-			transaction.SetMixing()
-			mixing = append(mixing, dbtx.Transaction{
-				Uid:         transaction.Uid,
-				PrivacyType: transaction.PrivacyType,
-			})
+		if isMixing(transaction) {
+			mixing = append(mixing, newMixingTransaction(transaction.Uid))
 			continue
 		}
 
-		if transaction.IsCollateralPayment() {
-			transaction.SetCollateralPayment()
-			cp = append(cp, dbtx.Transaction{
-				Uid:         transaction.Uid,
-				PrivacyType: transaction.PrivacyType,
-			})
+		if isCollateralPayment(transaction) {
+			cp = append(cp, newCollateralPaymentTransaction(transaction.Uid))
 			continue
 		}
 
@@ -384,66 +375,15 @@ func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction)
 		// first mixing transaction connected to the origin tx. Solution:
 		// either do not do the lookup and "trust" the classification based on available data
 		// or classify origins beforehand only on available data (like before)
-		isCollateralCreation, collateralErr := transaction.IsCollateralCreation(dgraph)
+		isCC, collateralErr := isCollateralCreation(dgraph, transaction)
 		if collateralErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), collateralErr)
 		}
 
-		if isCollateralCreation {
-			transaction.SetCollateralCreation()
-			cc = append(cc, dbtx.Transaction{
-				Uid:         transaction.Uid,
-				PrivacyType: transaction.PrivacyType,
-			})
+		if isCC {
+			cc = append(cc, newCollateralCreationTransaction(transaction.Uid))
 			continue
 		}
 	}
 	return
-}
-
-// todo remove?
-// setPrivacyType sets the privacy type of the transaction
-func setPrivacyType(dgraph *dgo.Dgraph, tx dbtx.Transaction) (newTx dbtx.Transaction, err error) {
-	newTx = tx
-	if newTx.IsMixing() {
-		newTx.SetMixing()
-		return
-	}
-
-	if newTx.IsPrivacyDestination() {
-		newTx.SetPrivacyDestination()
-		return
-	}
-
-	addresses, addErr := dbaddr.GetInputAddressesOfTransaction(dgraph, tx.Uid)
-	if addErr != nil && !errors.Is(addErr, dbaddr.ErrorAddressNotFound) {
-		// If the crawler is executed in range mode,
-		// it is possible for addresses not to be found
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
-		return
-	}
-
-	if newTx.IsPrivacyOrigin(areALLAddressesEqual(addresses)) {
-		newTx.SetPrivacyOrigin()
-	}
-
-	return
-}
-
-// returns true if all addresses are equal
-func areALLAddressesEqual(addresses []dbaddr.Address) bool {
-	if len(addresses) < 2 {
-		return true
-	}
-
-	hashes := make(map[string]bool)
-
-	for _, a := range addresses {
-		hashes[a.Hash] = true
-		if len(hashes) > 1 {
-			return false
-		}
-	}
-
-	return true
 }

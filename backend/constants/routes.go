@@ -8,7 +8,6 @@ const (
 	routeBlock               string = "blk"
 	routeAddress             string = "address"
 	routeMeta                string = "meta"
-	routePaths               string = "paths"
 	routeHeuristics          string = "heuristics"
 	routeHeuristicsSummary   string = "heuristicsSummary"
 	routeHeuristicsExecution string = "executeHeuristics"
@@ -44,10 +43,6 @@ func GetRouteAddress() string {
 
 func GetRouteMeta() string {
 	return getRoute(routeMeta)
-}
-
-func GetRouteOrigins() string {
-	return getRoute(routePaths)
 }
 
 func GetRouteHeuristics() string {
