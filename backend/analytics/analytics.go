@@ -3,6 +3,7 @@ package analytics
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	dban "backend/db/analytics"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
@@ -359,11 +360,27 @@ func min(a, b int) int {
 	return b
 }
 
+// hasValidPrivacyType check is the transaction has a valid privacy type
+func hasValidPrivacyType(tx dbtx.Transaction) bool {
+	t := tx.PrivacyType
+	if len(t) == 0 {
+		return false
+	}
+
+	return t == constants.PrivacyMixing || t == constants.PrivacyOrigin || t == constants.PrivacyDestination ||
+		t == constants.PrivacyCollateralPayment || t == constants.PrivacyCollateralCreation
+}
+
 // getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
 func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
 	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
+		// only do classification for non-classified transactions
+		if hasValidPrivacyType(transaction) {
+			continue
+		}
+
 		if isMixing(transaction) {
 			mixing = append(mixing, newMixingTransaction(transaction.Uid))
 			continue
