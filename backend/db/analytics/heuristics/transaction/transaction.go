@@ -208,15 +208,7 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
 func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
-	// build uid list in this form: [uid1,uid2]
-	uidList := "["
-	for i, uid := range uids {
-		uidList += uid
-		if i+1 < len(uids) {
-			uidList += ","
-		}
-	}
-	uidList += "]"
+	uidList := db.CreateUidList(uids)
 
 	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
 		"@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type))}"
@@ -594,7 +586,7 @@ func areALLAddressesEqual(addresses []string) bool {
 	return true
 }
 
-// Returns the input transactions of the given transaction
+// GetInputTransactions returns the input transactions of the given transaction
 func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
@@ -699,14 +691,7 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 
 // DoesHeuristicUidExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
 func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
-	uidList := "["
-	for i, uid := range uids {
-		uidList += uid
-		if i+1 < len(uids) {
-			uidList += ","
-		}
-	}
-	uidList += "]"
+	uidList := db.CreateUidList(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
 				# get tx uid

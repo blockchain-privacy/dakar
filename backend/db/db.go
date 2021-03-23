@@ -170,3 +170,17 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 
 	return
 }
+
+// CreateUidList returns a formatted string which contains all given uids for usage with Dgraph
+// Example: [0x123,0x1a1d]
+func CreateUidList(uids []string) string {
+	uidList := "["
+	for i, uid := range uids {
+		uidList += uid
+		if i+1 < len(uids) {
+			uidList += ","
+		}
+	}
+	uidList += "]"
+	return uidList
+}
