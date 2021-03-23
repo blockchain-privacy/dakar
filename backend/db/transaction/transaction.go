@@ -71,6 +71,7 @@ func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transa
 					uid
 					txhash
 					fee
+					privacytype
 					tx_inputs{
 						uid
 						amount
