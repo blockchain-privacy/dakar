@@ -15,6 +15,36 @@ import (
 	"log"
 )
 
+// ------------------------- Private Send Example Graph -------------------------
+//
+// Time ─────────────────────────────────────────────────────────────────────────►
+//
+//                                                 ┌──────────┐   ┌─────────┐
+//                                                 │C Creation├───┤C Payment│
+//                                                 └───┬──────┘   └─────────┘
+//                                                     │
+//        ┌──────────┐ ┌─────────┐ ┌─────────┐ ┌───────┴──┐  ┌─────────┐
+//      ┌─┤C Creation├─┤C Payment├─┤C Payment│ │C Creation├──┤C Payment│
+//      │ └──────────┘ └─────────┘ └─────────┘ └────┬─────┘  └─────────┘
+//      │                                           │
+//  ┌───┴──┐        ┌──────┐      ┌──────┐       ┌──┴───┐          ┌───────────┐
+//  │Origin├───┬────┤Mixing├──┬───┤Mixing├───┬───┤Mixing├──────────┤Destination│
+//  └──────┘   │    └──────┘  │   └──────┘   │   └──────┘          └───────────┘
+//             │              │              │
+//             │              │              │
+//             │    ┌──────┐  │   ┌──────┐   │   ┌──────┐
+//             └────┤Mixing├──┼───┤Mixing├───┼───┤Mixing├──────┐
+//                  └──────┘  │   └──────┘   │   └──────┘      │
+//                            │              │                 │
+//                            │              │                 │
+//  ┌──────┐        ┌──────┐  │   ┌──────┐   │   ┌──────┐      │   ┌───────────┐
+//  │Origin├────────┤Mixing├──┴───┤Mixing├───┴───┤Mixing├──────┴───┤Destination│
+//  └──┬───┘        └──────┘      └───┬──┘       └──────┘          └───────────┘
+//     │                              │
+//   ┌─┴───────┐ ┌─────────┐          │ ┌──────────┐ ┌─────────┐
+//   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
+//   └─────────┘ └─────────┘            └──────────┘ └─────────┘
+
 type Classifier struct {
 	config Config
 	db     *dgo.Dgraph
@@ -112,6 +142,54 @@ func (a *Classifier) CalculateInitialState() error {
 	return nil
 }
 
+// getUids return uid slice
+func getUids(txs []dbtx.Transaction) []string {
+	var uids []string
+	for _, t := range txs {
+		uids = append(uids, t.Uid)
+	}
+	return uids
+}
+
+// getConnectedCollaterals returns two sets of collateral transactions which are connected to the given transaction set.
+func getConnectedCollaterals(dgraph *dgo.Dgraph, potentialCollateralTransactions []dbtx.Transaction,
+	blockHeight uint64) (originCC []dbtx.Transaction, originCP []dbtx.Transaction, err error) {
+	for len(potentialCollateralTransactions) > 0 {
+		mixing, cc, cp, getErr := getPrivacyTransactions(dgraph, potentialCollateralTransactions)
+		if getErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+			return
+		}
+
+		// no mixing transaction should be recognized in this step
+		if len(mixing) > 0 {
+			err = errors.New("error mixing transaction after secondary classification loop")
+			return
+		}
+
+		// nothing to do?
+		if len(cc)+len(cp) == 0 {
+			break
+		}
+
+		// append new cc and cp transactions to set which gets inserted into the db later
+		originCC = append(originCC, cc...)
+		originCP = append(originCP, cp...)
+
+		// extract all uids from the transactions
+		txUids := getUids(append(cc, cp...))
+
+		var dbErr error
+		potentialCollateralTransactions, dbErr = dbtx.GetOutputTransactions(dgraph, txUids, blockHeight)
+		if dbErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
+			return
+		}
+	}
+
+	return
+}
+
 // Iterate does the classification for all transactions of the current block. Transactions are
 // classified based on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
@@ -126,7 +204,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	// step 1: classify all transactions of the current block based on their own properties
+	// step 1: classify all transactions of the current block locally based on their own properties
 	mixingTransactions, ccTransactions, cpTransactions, err := getPrivacyTransactions(a.db, transactions)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -143,31 +221,69 @@ func (a *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	// step 2.2: set the privacy type of origin and destination transactions by
+	// step 2.2.1: set the privacy type of origin and destination transactions by
 	// analyzing the connected transactions.
-	if updateErr := analytics.DoClassification(a.db, a.state.Id); updateErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
+	potentialCollateralTransactions, classErr := analytics.DoClassification(a.db, a.state.Id)
+	if classErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
+	}
+
+	// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
+	// been found they are getting classified, before appending them to the set of transactions
+	// which is getting inserted into the db
+	originCC, originCP, err := getConnectedCollaterals(a.db, potentialCollateralTransactions, a.state.Id)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if len(originCC)+len(originCP) > 0 {
+		if updateErr := dbtx.UpdateTransactions(a.db, append(originCC, originCP...)); updateErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
+		}
 	}
 
 	// step 2.3: set collateral creation type
 	if len(ccTransactions) > 0 {
-		var uids []string
-		for _, t := range ccTransactions {
-			uids = append(uids, t.Uid)
+		var insertedSum uint64
+		var numInserted uint64 = 1
+		var ccErr error
+
+		// need to set type multiple times for the same block as transactions
+		// could be connected to transactions in the same block
+		for numInserted > 0 {
+			numInserted, ccErr = analytics.SetCollateralCreation(a.db, getUids(ccTransactions))
+			if ccErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
+			}
+
+			insertedSum += numInserted
+			// all inserted -> no need for a second round
+			if insertedSum == uint64(len(ccTransactions)) {
+				break
+			}
 		}
-		if ccErr := analytics.SetCollateralCreation(a.db, uids); ccErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
-		}
+
 	}
 
 	// step 2.4: set collateral creation type
 	if len(cpTransactions) > 0 {
-		var uids []string
-		for _, t := range cpTransactions {
-			uids = append(uids, t.Uid)
-		}
-		if ccErr := analytics.SetCollateralPayment(a.db, uids); ccErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ccErr)
+		var insertedSum uint64
+		var numInserted uint64 = 1
+		var cpErr error
+
+		// need to set type multiple times for the same block as transactions
+		// could be connected to transactions in the same block
+		for numInserted > 0 {
+			numInserted, cpErr = analytics.SetCollateralPayment(a.db, getUids(cpTransactions))
+			if cpErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), cpErr)
+			}
+
+			insertedSum += numInserted
+			// all inserted -> no need for a second round
+			if insertedSum == uint64(len(cpTransactions)) {
+				break
+			}
 		}
 	}
 
@@ -222,16 +338,12 @@ func isCollateralCreation(dgraph *dgo.Dgraph, t dbtx.Transaction) (bool, error) 
 		return false, nil
 	}
 
-	// if one of the outputs has more than double the OldMaxCollateral it is not a collateral creation transaction
-	if *t.Outputs[0].Amount > op.OldMaxCollateral*2 || *t.Outputs[1].Amount > op.OldMaxCollateral*2 {
-		return false, nil
-	}
-
 	inputCount, outputCount, err := dbtx.GetOutputAddressCounts(dgraph, t.Uid)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
+	// inputs must be from the same address and outputs must go to different addresses
 	if inputCount != 1 || outputCount == 1 {
 		return false, nil
 	}

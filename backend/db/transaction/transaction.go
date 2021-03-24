@@ -348,3 +348,54 @@ func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
 
 	return err
 }
+
+// GetOutputTransactions returns the output transactions of the given transactions until the given block height
+func GetOutputTransactions(c *dgo.Dgraph, txUids []string,
+	blockHeight uint64) (outputTransactions []Transaction, err error) {
+	uidList := db.CreateUidList(txUids)
+
+	query := `query Q($uids: string, $bid: string){
+				var (func: uid($uids)){
+					tx_outputs{
+						v as ~tx_outputs@cascade{
+							~transaction@filter(le(id,$bid))
+						}
+					}
+				}
+
+				q(func: uid(v)){
+					uid
+					txhash
+					fee
+					privacytype
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
+		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r transactionQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return
+}
