@@ -262,7 +262,6 @@ func (a *Classifier) Iterate() (bool, error) {
 				break
 			}
 		}
-
 	}
 
 	// step 2.4: set collateral creation type

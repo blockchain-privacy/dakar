@@ -227,56 +227,6 @@ func convertJsonNumber(num json.Number) (number int64, err error) {
 	return
 }
 
-// todo remove?
-// GetInputAddressesOfTransaction gets all input addresses of the transaction specified by uid
-func GetInputAddressesOfTransaction(c *dgo.Dgraph, uid string) (addresses []Address, err error) {
-	query := `query Q($uid: string){
-				q(func: uid($uid)){
-					inputs: tx_inputs @normalize{
-						~addr_outputs{
-							addresshash: addresshash
-						}
-					}
-			  	}
-			   }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": uid})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Transaction []struct {
-			Inputs []struct {
-				AddressHash string `json:"addresshash"`
-			} `json:"inputs,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorAddressNotFound)
-		return
-	}
-
-	if len(r.Transaction) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
-		return
-	}
-
-	for _, e := range r.Transaction[0].Inputs {
-		addresses = append(addresses, Address{Hash: e.AddressHash})
-	}
-
-	return
-}
-
 // upserts addresses
 func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 	if addresses == nil {
