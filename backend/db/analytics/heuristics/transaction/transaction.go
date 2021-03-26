@@ -825,6 +825,32 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 		return
 	}
 
+	type mapKey struct {
+		txHash  string
+		address string
+	}
+
+	results := r.Heuristics[0].Results
+	var filteredResults []FrontendHeuristicResult
+	txAddressMap := make(map[mapKey]bool)
+
+	for _, result := range results {
+		k := mapKey{
+			txHash:  result.TxHash,
+			address: result.AddressHash,
+		}
+
+		// check if the address and tx combination already exists
+		if txAddressMap[k] {
+			continue
+		}
+
+		txAddressMap[k] = true
+		filteredResults = append(filteredResults, result)
+	}
+
+	r.Heuristics[0].Results = filteredResults
+
 	frontendHeuristic = r.Heuristics[0]
 
 	return
