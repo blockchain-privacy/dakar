@@ -73,8 +73,6 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 	}()
 
-	info(iterator, "doing pre loop")
-
 	if initErr := iterator.CalculateInitialState(); initErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), initErr)
 		return
@@ -85,8 +83,6 @@ func StartIteration(iterator BlockIterator) (err error) {
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
 	ctx := iterator.Context()
-
-	info(iterator, "doing loop")
 
 	for {
 		select {
@@ -129,8 +125,8 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// metrics
 		numIteratedBlocks++
-		if numIteratedBlocks%10000 == 0 {
-			info(iterator, "avg 10000 blocks:", time.Since(timerGlobal).Milliseconds()/10000, "ms/block")
+		if numIteratedBlocks%1000 == 0 {
+			info(iterator, "avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/1000, "ms/block")
 			timerGlobal = time.Now()
 		}
 	}
