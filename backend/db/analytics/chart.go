@@ -10,9 +10,16 @@ import (
 )
 
 // GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.
+// If the string is empty then all privacy transactions are considered.
 func GetPrivacyTypeData(c *dgo.Dgraph, privacyType string) (ts []time.Time, err error) {
+
+	filter := "eq(privacytype,$pt)"
+	if len(privacyType) == 0 {
+		filter = "has(privacytype)"
+	}
+
 	query := `query Q($pt: string){
-				q(func: eq(privacytype,$pt))@normalize{
+				q(func:` + filter + `)@normalize{
 					~transactions{
 						ts:ts
 					}
