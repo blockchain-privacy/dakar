@@ -20,7 +20,7 @@ import (
 // classified origin transaction which have no privacy type set yet.
 func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction, err error) {
 	query := `query Q($bid: string) {
-				b as var(func: eq(id,$bid))
+				b as var(func: eq(id,$bid)){t as ts}
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
@@ -35,16 +35,16 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 						}
 					}
 				}
-
+	
 				var(func: uid(orig)){
 					tx_outputs{
 						# do not limit by number of inputs as there could be multiple with the same address
 						to_classify as ~tx_inputs@filter(not has(privacytype) and le(count(tx_outputs),2))@cascade{
-							~transactions@filter(le(id,$bid))
+							~transactions@filter(le(ts,val(t)))
 						}
 					}
 				}
-
+	
 				q(func: uid(to_classify)){
 					uid
 					txhash

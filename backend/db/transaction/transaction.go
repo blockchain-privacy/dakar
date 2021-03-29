@@ -355,10 +355,11 @@ func GetOutputTransactions(c *dgo.Dgraph, txUids []string,
 	uidList := db.CreateUidList(txUids)
 
 	query := `query Q($uids: string, $bid: string){
+				var(func: eq(id,$bid)){t as ts}
 				var (func: uid($uids)){
 					tx_outputs{
 						v as ~tx_outputs@cascade{
-							~transaction@filter(le(id,$bid))
+							~transaction@filter(le(ts,val(t)))
 						}
 					}
 				}
