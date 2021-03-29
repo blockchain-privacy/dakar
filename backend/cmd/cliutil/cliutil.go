@@ -34,10 +34,9 @@ const (
 	DisableCrawler
 	DisableAnalyzer
 	DisableClassifier
+	ChartDir
 	Logfile
-	TxSearch
 	TxInfo
-	ClusterAddr
 	BTC
 	Dash
 	Doge
@@ -57,12 +56,12 @@ type Arguments struct {
 	Logfile           string
 	TxSearch          string
 	TxInfo            string
-	ClusterAddr       string
 	HttpServerPort    uint
 	DisableHttpServer bool
 	DisableCrawler    bool
 	DisableAnalyzer   bool
 	DisableClassifier bool
+	ChartDir          string
 	BTC               bool
 	Dash              bool
 	Doge              bool
@@ -199,14 +198,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case DisableClassifier:
 			addDisableClassifier(&args.DisableClassifier)
 			break
-		case TxSearch:
-			addTxSearch(&args.TxSearch)
-			break
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
-			break
-		case ClusterAddr:
-			addClusterAddr(&args.ClusterAddr)
 			break
 		case BTC:
 			addBTC(&args.BTC)
@@ -216,6 +209,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case Doge:
 			addDogecoin(&args.Doge)
+			break
+		case ChartDir:
+			addChartDir(&args.ChartDir)
 			break
 		default:
 			err = errors.New("flag not recognized")
@@ -239,16 +235,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	return args, err
 }
 
-func addClusterAddr(v *string) {
-	flag.StringVar(v, "clusteraddr", "", "Create cluster for the given address (default: none)")
-}
-
 func addTxInfo(v *string) {
 	flag.StringVar(v, "txinfo", "", "Get information about the given transaction hash (default: none)")
-}
-
-func addTxSearch(v *string) {
-	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash (default: none)")
 }
 
 func addContinuous(v *bool) {
@@ -333,4 +321,8 @@ func addDash(v *bool) {
 
 func addDogecoin(v *bool) {
 	flag.BoolVar(v, "doge", false, "Select Dogecoin mode (default: false)")
+}
+
+func addChartDir(v *string) {
+	flag.StringVar(v, "chartdir", "", "Output directory for charts (default: none)")
 }
