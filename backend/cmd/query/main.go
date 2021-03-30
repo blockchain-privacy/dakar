@@ -122,12 +122,24 @@ func findMaximum(data map[time.Time]int) (ts time.Time, maxVal int) {
 
 func drawChart(dir string, data map[time.Time]int, chartName string) error {
 	if len(dir) == 0 {
-		return errors.New("directory is empty")
+		return errors.New("chart directory is empty")
 	}
 
 	if len(chartName) == 0 {
 		return errors.New("chart name is empty")
 	}
+
+	file, err := os.Create(dir + "/" + chartName + ".png")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	type dataPoint struct {
 		ts    time.Time
@@ -147,10 +159,6 @@ func drawChart(dir string, data map[time.Time]int, chartName string) error {
 		return timeData[i].ts.Before(timeData[j].ts)
 	})
 
-	graph := chart.Chart{
-		Series: []chart.Series{},
-	}
-
 	var series chart.TimeSeries
 
 	for _, t := range timeData {
@@ -158,22 +166,12 @@ func drawChart(dir string, data map[time.Time]int, chartName string) error {
 		series.YValues = append(series.YValues, float64(t.count))
 	}
 
-	graph.Series = append(graph.Series, series)
-
-	file, err := os.Create(dir + "/" + chartName)
-	if err != nil {
-		return err
+	graph := chart.Chart{
+		Title:  "Number of '" + chartName + "' privacy transactions per block",
+		Height: 1080,
+		Width:  1920,
+		Series: []chart.Series{series},
 	}
 
-	err = graph.Render(chart.PNG, file)
-	if err != nil {
-		return err
-	}
-
-	err = file.Close()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return graph.Render(chart.PNG, file)
 }
