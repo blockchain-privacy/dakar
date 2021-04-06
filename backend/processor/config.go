@@ -26,7 +26,7 @@ func NewDashConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Dash",
 		BlockTime:        2*time.Minute + 30*time.Second,
-		ForkRangeLimit:   2000,
+		ForkRangeLimit:   500,
 		PubKeyHashAddrID: 0x4c,
 	})
 }
@@ -35,7 +35,7 @@ func NewBitcoinConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Bitcoin",
 		BlockTime:        10 * time.Minute,
-		ForkRangeLimit:   500,
+		ForkRangeLimit:   125,
 		PubKeyHashAddrID: 0x00,
 	})
 }
@@ -44,7 +44,7 @@ func NewDogecoinConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Doge",
 		BlockTime:        1 * time.Minute,
-		ForkRangeLimit:   5000,
+		ForkRangeLimit:   1250,
 		PubKeyHashAddrID: 0x1e,
 	})
 }
