@@ -94,8 +94,6 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// check if we need to wait
 		if iterator.Empty() {
-			info(iterator, "Waiting for next block", iterator.State())
-
 			isInterrupt, waitErr := waitForNextDbBlockId(iterator)
 			if waitErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), waitErr)
@@ -105,8 +103,6 @@ func StartIteration(iterator BlockIterator) (err error) {
 			if isInterrupt {
 				return
 			}
-
-			info(iterator, "Found next block. New state:", iterator.State())
 		}
 
 		ok, iterateErr := iterator.Iterate()
