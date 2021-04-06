@@ -5,16 +5,17 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/db/analytics"
-
 	"errors"
 	"flag"
 	"fmt"
+
 	"log"
 	"os"
 	"sort"
 	"time"
 
 	"github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 var thisLogger *log.Logger
@@ -41,6 +42,12 @@ func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
 	}
 
 	return cliArgs, err
+}
+
+type dur struct {
+	label string
+	d     time.Duration
+	sma   bool
 }
 
 func main() {
@@ -82,6 +89,9 @@ func main() {
 			constants.PrivacyCollateralCreation, constants.PrivacyCollateralPayment,
 			constants.PrivacyDestination, ""}
 
+		durations := []dur{{label: "block", d: 1}, {label: "day", d: time.Hour * 24, sma: true},
+			{label: "7 days", d: time.Hour * 24 * 7}}
+
 		for _, privacyType := range privacyTypes {
 			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType)
 			if dbErr != nil {
@@ -93,18 +103,7 @@ func main() {
 				privacyType = "all"
 			}
 
-			timeMap := make(map[time.Time]int)
-			for _, t := range ts {
-				timeMap[t] = timeMap[t] + 1
-			}
-			maxTs, maxVal := findMaximum(timeMap)
-			info(privacyType, "maximum count:", maxTs, maxVal)
-
-			chartErr := drawChart(cliArgs.ChartDir, timeMap, privacyType)
-			if chartErr != nil {
-				info(chartErr)
-				return
-			}
+			createCharts(durations, ts, cliArgs.ChartDir, privacyType)
 		}
 	}
 }
@@ -120,7 +119,24 @@ func findMaximum(data map[time.Time]int) (ts time.Time, maxVal int) {
 	return
 }
 
-func drawChart(dir string, data map[time.Time]int, chartName string) error {
+func createCharts(durations []dur, ts []time.Time, dir string, privacyType string) {
+	for _, d := range durations {
+		timeMap := make(map[time.Time]int)
+		for _, t := range ts {
+			timeMap[t.Truncate(d.d)] = timeMap[t.Truncate(d.d)] + 1
+		}
+		maxTs, maxVal := findMaximum(timeMap)
+		info(privacyType, "maximum count:", maxTs, maxVal)
+
+		chartErr := drawChart(dir, timeMap, privacyType, d.label, d.sma)
+		if chartErr != nil {
+			info(chartErr)
+			return
+		}
+	}
+}
+
+func drawChart(dir string, data map[time.Time]int, chartName string, durationLabel string, sma bool) error {
 	if len(dir) == 0 {
 		return errors.New("chart directory is empty")
 	}
@@ -129,7 +145,7 @@ func drawChart(dir string, data map[time.Time]int, chartName string) error {
 		return errors.New("chart name is empty")
 	}
 
-	file, err := os.Create(dir + "/" + chartName + ".png")
+	file, err := os.Create(dir + "/" + chartName + "_" + durationLabel + ".png")
 	if err != nil {
 		return err
 	}
@@ -166,11 +182,23 @@ func drawChart(dir string, data map[time.Time]int, chartName string) error {
 		series.YValues = append(series.YValues, float64(t.count))
 	}
 
+	allSeries := []chart.Series{series}
+
+	if sma {
+		allSeries = append(allSeries, chart.SMASeries{
+			Style: chart.Style{
+				StrokeColor: drawing.ColorRed,
+				StrokeWidth: 2.0,
+			},
+			InnerSeries: series,
+		})
+	}
+
 	graph := chart.Chart{
-		Title:  "Number of '" + chartName + "' privacy transactions per block",
+		Title:  "Number of '" + chartName + "' privacy transactions per " + durationLabel,
 		Height: 1080,
 		Width:  1920,
-		Series: []chart.Series{series},
+		Series: allSeries,
 	}
 
 	return graph.Render(chart.PNG, file)
