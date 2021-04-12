@@ -221,24 +221,39 @@ func (a *Classifier) Iterate() (bool, error) {
 		}
 	}
 
-	// step 2.2.1: set the privacy type of origin and destination transactions by
-	// analyzing the connected transactions.
-	potentialCollateralTransactions, classErr := analytics.DoClassification(a.db, a.state.Id)
+	// step 2.2.1: set the privacy type of destination transactions by analyzing the connected transactions.
+	// Origins are only returned in this step and not set directly, if the number of potentialCollateralTransactions
+	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
+	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
+	// origins are set in step 2.2.2
+	potentialCollateralTransactions, foundOrigins, classErr := analytics.DoClassification(a.db, a.state.Id)
 	if classErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
 	}
 
-	// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
-	// been found they are getting classified, before appending them to the set of transactions
-	// which is getting inserted into the db
-	originCC, originCP, err := getConnectedCollaterals(a.db, potentialCollateralTransactions, a.state.Id)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
+	// if no potentialCollateralTransactions were found, then the origins are already set
+	if len(potentialCollateralTransactions) > 0 {
+		// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
+		// been found they are getting classified, before appending them to the set of transactions
+		// which is getting inserted into the db
+		originCC, originCP, err := getConnectedCollaterals(a.db, potentialCollateralTransactions, a.state.Id)
+		if err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 
-	if len(originCC)+len(originCP) > 0 {
-		if updateErr := dbtx.UpdateTransactions(a.db, append(originCC, originCP...)); updateErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
+		var updatedTransactions []dbtx.Transaction
+
+		for _, o := range foundOrigins {
+			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.Uid))
+		}
+
+		updatedTransactions = append(updatedTransactions, originCC...)
+		updatedTransactions = append(updatedTransactions, originCP...)
+
+		if len(updatedTransactions) > 0 {
+			if updateErr := dbtx.UpdateTransactions(a.db, updatedTransactions); updateErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
+			}
 		}
 	}
 
@@ -416,4 +431,9 @@ func isMixing(t dbtx.Transaction) bool {
 // newMixingTransaction returns a new mixing transaction with the given uid
 func newMixingTransaction(uid string) dbtx.Transaction {
 	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyMixing}
+}
+
+// newOriginTransaction returns a new origin transaction with the given uid
+func newOriginTransaction(uid string) dbtx.Transaction {
+	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyOrigin}
 }

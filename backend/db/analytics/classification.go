@@ -18,7 +18,8 @@ import (
 // the origin privacy type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
-func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction, err error) {
+func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction,
+	origins []dbtx.Transaction, err error) {
 	query := `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}
 				var(func: uid(b))@cascade{
@@ -63,6 +64,25 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 						outputindex
 					}
 				}
+
+				o(func: uid(orig)){
+					uid
+					txhash
+					fee
+					privacytype
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+				}
 			  }`
 
 	req := &api.Request{
@@ -73,7 +93,8 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 			SetNquads: []byte("uid(dest) <privacytype> \"" + constants.PrivacyDestination + "\" ."),
 		},
 			{
-				Cond:      "@if(gt(len(orig), 0))",
+				// only insert origins if there are not transactions to classify
+				Cond:      "@if(gt(len(orig), 0) and eq(len(to_classify),0))",
 				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.PrivacyOrigin + "\" ."),
 			}},
 		CommitNow: true,
@@ -86,7 +107,8 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 
 	// json struct
 	var r struct {
-		Transaction []dbtx.Transaction `json:"q,omitempty"`
+		Collaterals []dbtx.Transaction `json:"q,omitempty"`
+		Origins     []dbtx.Transaction `json:"o,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -94,7 +116,8 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 		return
 	}
 
-	toClassify = r.Transaction
+	toClassify = r.Collaterals
+	origins = r.Origins
 
 	return
 }
