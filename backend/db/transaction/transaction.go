@@ -349,8 +349,8 @@ func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
 	return err
 }
 
-// GetOutputTransactions returns the output transactions of the given transactions until the given block height
-func GetOutputTransactions(c *dgo.Dgraph, txUids []string,
+// GetInputTransactions returns the input transactions of the provided transactions until the given block height
+func GetInputTransactions(c *dgo.Dgraph, txUids []string,
 	blockHeight uint64) (outputTransactions []Transaction, err error) {
 	uidList := db.CreateUidList(txUids)
 
@@ -358,8 +358,8 @@ func GetOutputTransactions(c *dgo.Dgraph, txUids []string,
 				var(func: eq(id,$bid)){t as ts}
 				var (func: uid($uids)){
 					tx_outputs{
-						v as ~tx_outputs@cascade{
-							~transaction@filter(le(ts,val(t)))
+						v as ~tx_inputs@cascade{
+							~transactions@filter(le(ts,val(t)))
 						}
 					}
 				}
@@ -397,6 +397,8 @@ func GetOutputTransactions(c *dgo.Dgraph, txUids []string,
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
+
+	outputTransactions = r.Q
 
 	return
 }

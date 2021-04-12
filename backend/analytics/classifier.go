@@ -180,7 +180,7 @@ func getConnectedCollaterals(dgraph *dgo.Dgraph, potentialCollateralTransactions
 		txUids := getUids(append(cc, cp...))
 
 		var dbErr error
-		potentialCollateralTransactions, dbErr = dbtx.GetOutputTransactions(dgraph, txUids, blockHeight)
+		potentialCollateralTransactions, dbErr = dbtx.GetInputTransactions(dgraph, txUids, blockHeight)
 		if dbErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 			return
