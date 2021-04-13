@@ -1,5 +1,6 @@
 package constants
 
+// MixingTypes is the set of all mixing denomination types
 var MixingTypes = [5]int{PrivacyMixing0, PrivacyMixing1, PrivacyMixing2, PrivacyMixing3, PrivacyMixing4}
 
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS

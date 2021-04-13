@@ -219,7 +219,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 	var r struct {
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
-			PrivacyType string           `json:"privacytype,omitempty"`
+			PrivacyType *int64           `json:"privacytype,omitempty"`
 			Fee         *int64           `json:"fee,omitempty"`
 			OriginCount *uint64          `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
@@ -254,9 +254,15 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 			fee = *t.Fee
 		}
 
+		// t.PrivacyType can be nil
+		pType := int64(-1)
+		if t.PrivacyType != nil {
+			pType = *t.PrivacyType
+		}
+
 		transactions = append(transactions, FrontendTransaction{
 			Hash:           t.Hash,
-			PrivacyType:    t.PrivacyType,
+			PrivacyType:    pType,
 			Fee:            fee,
 			OriginCount:    *t.OriginCount,
 			BlockHash:      t.Block[0].Hash,

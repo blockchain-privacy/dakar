@@ -46,7 +46,7 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
 
-// checks if the cumulative amount of inputs and outputs matches
+// CalculateTransactionFee checks if the cumulative amount of inputs and outputs matches
 func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountInputs int64
 	var amountOutputs int64
@@ -104,7 +104,7 @@ type FrontendTransaction struct {
 	Hash           string           `json:"txhash,omitempty"`
 	BlockHash      string           `json:"bhash,omitempty"`
 	Fee            int64            `json:"fee"`
-	PrivacyType    string           `json:"privacytype,omitempty"`
+	PrivacyType    int64            `json:"privacytype,omitempty"`
 	BlockId        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
@@ -114,7 +114,7 @@ type FrontendTransaction struct {
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Fee: %d, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
+		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }
