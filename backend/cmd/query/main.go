@@ -50,6 +50,12 @@ type dur struct {
 	sma   bool
 }
 
+type privacyTypePair struct {
+	label string
+	start string
+	stop  string
+}
+
 func main() {
 
 	cliArgs, err := getExplorerCLIArgs()
@@ -85,25 +91,34 @@ func main() {
 
 	if len(cliArgs.ChartDir) > 0 {
 
-		privacyTypes := []string{constants.PrivacyMixing, constants.PrivacyOrigin,
-			constants.PrivacyCollateralCreation, constants.PrivacyCollateralPayment,
-			constants.PrivacyDestination, ""}
+		privacyTypes := []privacyTypePair{
+			{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
+			//{label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
+			//{label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
+			//{label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
+			//{label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
+			//{label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
+			{label: "origin", start: constants.StrPrivacyOriginFirst, stop: constants.StrPrivacyOriginLast},
+			{label: "destination", start: constants.StrPrivacyDestinationFirst,
+				stop: constants.StrPrivacyDestinationLast},
+			{label: "collateral creation", start: constants.StrPrivacyCollateralCreationFirst,
+				stop: constants.StrPrivacyCollateralCreationLast},
+			{label: "collateral payment", start: constants.StrPrivacyCollateralPaymentFirst,
+				stop: constants.StrPrivacyCollateralPaymentLast},
+			{label: "all", start: "0", stop: "500"},
+		}
 
 		durations := []dur{{label: "block", d: 1}, {label: "day", d: time.Hour * 24, sma: true},
 			{label: "7 days", d: time.Hour * 24 * 7}}
 
 		for _, privacyType := range privacyTypes {
-			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType)
+			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)
 			if dbErr != nil {
 				info(err)
 				return
 			}
 
-			if len(privacyType) == 0 {
-				privacyType = "all"
-			}
-
-			createCharts(durations, ts, cliArgs.ChartDir, privacyType)
+			createCharts(durations, ts, cliArgs.ChartDir, privacyType.label)
 		}
 	}
 }
@@ -120,6 +135,10 @@ func findMaximum(data map[time.Time]int) (ts time.Time, maxVal int) {
 }
 
 func createCharts(durations []dur, ts []time.Time, dir string, privacyType string) {
+	if len(ts) == 0 {
+		return
+	}
+
 	for _, d := range durations {
 		timeMap := make(map[time.Time]int)
 		for _, t := range ts {
