@@ -171,3 +171,60 @@ export function isPrivilegedUser(userData) {
 export function isAdminUser(userData) {
   return isRole(userData, 'admin');
 }
+
+// getPrivacyTypeLabel translates the integer representation of privacy types to string
+export function getPrivacyTypeLabel(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0 || t > 499) return '';
+  if (t <= 99) return 'mixing';
+  if (t <= 199) return 'destination';
+  if (t <= 299) return 'origin';
+  if (t <= 399) return 'collateral creation';
+  if (t <= 499) return 'collateral payment';
+
+  return '';
+}
+
+// isMixing returns true if the provided privacyType is in the range of mixing transactions
+export function isMixing(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0) return false;
+  return t <= 99;
+}
+
+// isOrigin returns true if the provided privacyType is in the range of origin transactions
+export function isOrigin(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0) return false;
+  return t >= 200 && t <= 299;
+}
+
+// isDestination returns true if the provided privacyType is in the range of
+// destination transactions
+export function isDestination(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0) return false;
+  return t >= 100 && t <= 199;
+}
+
+// isCollateralCreation returns true if the provided privacyType is in the range of
+// collateral creation transactions
+export function isCollateralCreation(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0) return false;
+  return t >= 300 && t <= 399;
+}
+
+// isCollateralPayment returns true if the provided privacyType is in the range of
+// collateral payment transactions
+export function isCollateralPayment(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0) return false;
+  return t >= 400 && t <= 499;
+}
