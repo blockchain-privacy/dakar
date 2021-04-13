@@ -367,7 +367,8 @@ func isCollateralCreation(dgraph *dgo.Dgraph, t dbtx.Transaction) (bool, error) 
 
 // newCollateralPaymentTransaction returns a new collateral creation transaction with the given uid
 func newCollateralCreationTransaction(uid string) dbtx.Transaction {
-	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyCollateralCreation}
+	pt := constants.PrivacyCollateralCreation
+	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
 }
 
 // isCollateralPayment checks if the transactions is a collateral payment transaction
@@ -391,16 +392,20 @@ func isCollateralPayment(t dbtx.Transaction) bool {
 
 // newCollateralPaymentTransaction returns a new collateral payment transaction with the given uid
 func newCollateralPaymentTransaction(uid string) dbtx.Transaction {
-	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyCollateralPayment}
+	pt := constants.PrivacyCollateralPayment
+	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
 }
 
 // isMixing checks if the transactions is a mixing transaction
-func isMixing(t dbtx.Transaction) bool {
+// -1: not a mixing transation
+// 0-4: denomination type
+func isMixing(t dbtx.Transaction) (denominationIndex int) {
+	denominationIndex = -1
 	// At least 3 clients per mixing transaction -> >2 inputs/outputs
 	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
 	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 ||
 		len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
-		return false
+		return
 	}
 
 	denomIn := op.CountOutputDenominations(t.Inputs)
@@ -411,29 +416,35 @@ func isMixing(t dbtx.Transaction) bool {
 		sum += v
 	}
 	if sum == 0 {
-		return false
+		return
 	}
 	sum = 0
-	for _, v := range denomOut {
+	for i, v := range denomOut {
 		sum += v
+		if v != 0 {
+			denominationIndex = i
+		}
 	}
 	if sum == 0 {
-		return false
+		return
 	}
 	for i := range denomIn {
 		if denomIn[i] != denomOut[i] {
-			return false
+			return
 		}
 	}
-	return true
+	return
 }
 
-// newMixingTransaction returns a new mixing transaction with the given uid
-func newMixingTransaction(uid string) dbtx.Transaction {
-	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyMixing}
+// newMixingTransaction returns a new mixing transaction with the given type and uid.
+// bit must be a value between 0 and 4
+func newMixingTransaction(uid string, bit int) dbtx.Transaction {
+	pt := constants.MixingTypes[bit]
+	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
 }
 
 // newOriginTransaction returns a new origin transaction with the given uid
 func newOriginTransaction(uid string) dbtx.Transaction {
-	return dbtx.Transaction{Uid: uid, PrivacyType: constants.PrivacyOrigin}
+	pt := constants.PrivacyOrigin
+	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
 }

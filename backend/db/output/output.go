@@ -27,7 +27,7 @@ const (
 
 var DenominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
 
-// gets output information from the database
+// GetOutput gets output information from the database
 func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Output, err error) {
 	// build query
 	relationship := "tx_outputs"
@@ -72,7 +72,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	return r.payload()
 }
 
-// gets the number of outputs in the database
+// GetCount gets the number of outputs in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }

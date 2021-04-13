@@ -11,7 +11,7 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// Install a schema into dgraph.
+// SetupSchema installs a schema into dgraph
 func SetupSchema(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -37,7 +37,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			amount: int .
 			fee: int .
 			iscoinbase: bool .
-			privacytype: string @index(hash) .
+			privacytype: int @index(int) .
 			isrlookupdone: bool @index(bool) .
 			keyasm: string @index(term) .
 			sigasm: string .
@@ -146,7 +146,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 	})
 }
 
-// checks if a schema is set
+// IsSchemaSet checks if a schema is set
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
 	ctx, cancel := GetBackendContext()
@@ -187,6 +187,14 @@ func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 				isclassifying
 				lastclassifiedid
 			}
+		`,
+	})
+}
+
+func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			privacytype: int @index(int) .
 		`,
 	})
 }

@@ -81,4 +81,11 @@ func main() {
 		return
 	}
 	info("classifier migration done")
+
+	info("privacytype migration starting ...")
+	if err := db.AlterSchemaChangePrivacyTypePredicate(dgraph); err != nil {
+		info(err)
+		return
+	}
+	info("privacytype migration done")
 }

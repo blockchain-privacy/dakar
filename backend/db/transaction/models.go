@@ -15,7 +15,7 @@ var (
 
 type Transaction struct {
 	Uid         string        `json:"uid,omitempty"`
-	PrivacyType string        `json:"privacytype,omitempty"`
+	PrivacyType *int          `json:"privacytype,omitempty"`
 	Fee         *int64        `json:"fee,omitempty"`
 	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output   `json:"tx_inputs,omitempty"`

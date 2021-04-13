@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	dbtx "backend/db/transaction"
 	"context"
@@ -513,7 +514,8 @@ func GetDestinationTxOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicT
 
 				var (func: uid(tx)){
 					tx_inputs {
-						c as ~tx_outputs@filter(eq(privacytype, "origin"))
+						c as ~tx_outputs@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst +
+		`) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
 					}
 				}
 				
@@ -951,7 +953,8 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 	query := fmt.Sprintf(`{
 				shortest(from: %s, to: %s){
 					tx_inputs
-					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+					~tx_outputs@filter(le(privacytype,`+constants.StrPrivacyMixingLast+`) or (ge(privacytype,`+
+		constants.StrPrivacyOriginFirst+`) and le(privacytype,`+constants.StrPrivacyOriginLast+`)))
 				}
 			  }`, fromUid, toUid)
 

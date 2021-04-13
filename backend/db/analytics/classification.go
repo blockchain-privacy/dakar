@@ -20,17 +20,17 @@ import (
 // classified origin transaction which have no privacy type set yet.
 func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction,
 	origins []dbtx.Transaction, err error) {
-	query := `query Q($bid: string) {
+	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
-							~tx_outputs@filter(eq(privacytype,"mixing"))
+							~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `))
 						}
 					}
 				}
 				var(func: uid(b)){
-					transactions@filter(eq(privacytype,"mixing")){
+					transactions@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `)){
 						tx_inputs{
 							orig as ~tx_outputs@filter(not has(privacytype))
 						}
@@ -88,14 +88,15 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 	req := &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$bid": strconv.FormatUint(blockId, 10)},
-		Mutations: []*api.Mutation{{
-			Cond:      "@if(gt(len(dest), 0))",
-			SetNquads: []byte("uid(dest) <privacytype> \"" + constants.PrivacyDestination + "\" ."),
-		},
+		Mutations: []*api.Mutation{
+			{
+				Cond:      "@if(gt(len(dest), 0))",
+				SetNquads: []byte("uid(dest) <privacytype> \"" + constants.StrPrivacyDestination + "\" ."),
+			},
 			{
 				// only insert origins if there are not transactions to classify
 				Cond:      "@if(gt(len(orig), 0) and eq(len(to_classify),0))",
-				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.PrivacyOrigin + "\" ."),
+				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.StrPrivacyOrigin + "\" ."),
 			}},
 		CommitNow: true,
 	}
@@ -128,24 +129,26 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (insertCount uint64, err error) {
 	uidList := db.CreateUidList(txUids)
 
-	// @filter(eq(privacytype, ["mixing", "origin", "cc"]))
-	const filter = "@filter(eq(privacytype,[" + constants.PrivacyCollateralCreation + "," +
-		constants.PrivacyMixing + "," + constants.PrivacyOrigin + "]))"
+	// @filter(le(privacytype, 299))
+	const filter = "@filter(le(privacytype," + constants.StrPrivacyOriginLast + "))"
 
-	query := `query Q($uids: string) {
-				cc as var(func: uid($uids))@filter(not has(privacytype) or eq(privacytype,"destination"))@cascade{	
+	const query = `query Q($uids: string) {
+				cc as var(func: uid($uids))@filter(not has(privacytype) or (ge(privacytype,` +
+		constants.StrPrivacyDestinationFirst + `) and le(privacytype,` + constants.StrPrivacyDestinationLast + `)))@cascade{	
 					tx_inputs{
 						~tx_outputs` + filter + `}
 				}
 				q(func: uid(cc)){count(uid)}
 			  }`
 
+	const nQuad = "uid(cc) <privacytype> \"" + constants.StrPrivacyCollateralCreation + "\" ."
+
 	req := &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$uids": uidList},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cc), 0))",
-			SetNquads: []byte("uid(cc) <privacytype> \"" + constants.PrivacyCollateralCreation + "\" ."),
+			SetNquads: []byte(nQuad),
 		}},
 		CommitNow: true,
 	}
@@ -184,12 +187,13 @@ func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (insertCount uint64, 
 func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (insertCount uint64, err error) {
 	uidList := db.CreateUidList(txUids)
 
-	// @filter(eq(privacytype, ["origin", "cc"]))
-	const filter = "@filter(eq(privacytype,[" + constants.PrivacyCollateralCreation + "," +
-		constants.PrivacyCollateralPayment + "," + constants.PrivacyOrigin + "]))"
+	// collateral payments + collateral creations + origins
+	const filter = "@filter(ge(privacytype," + constants.StrPrivacyOriginFirst +
+		") and le(privacytype," + constants.StrPrivacyCollateralPaymentLast + "))"
 
 	query := `query Q($uids: string) {
-				cp as var(func: uid($uids))@filter(not has(privacytype) or eq(privacytype,"destination"))@cascade{	
+				cp as var(func: uid($uids))@filter(not has(privacytype) or (ge(privacytype,` + constants.StrPrivacyDestinationFirst + `) 
+													and le(privacytype,` + constants.StrPrivacyDestinationLast + `)))@cascade{	
 					tx_inputs{
 						~tx_outputs` + filter + `}
 				}
@@ -201,7 +205,7 @@ func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (insertCount uint64, e
 		Vars:  map[string]string{"$uids": uidList},
 		Mutations: []*api.Mutation{{
 			Cond:      "@if(gt(len(cp), 0))",
-			SetNquads: []byte("uid(cp) <privacytype> \"" + constants.PrivacyCollateralPayment + "\" ."),
+			SetNquads: []byte("uid(cp) <privacytype> \"" + constants.StrPrivacyCollateralPayment + "\" ."),
 		}},
 		CommitNow: true,
 	}

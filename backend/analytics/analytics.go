@@ -363,12 +363,11 @@ func min(a, b int) int {
 // hasValidPrivacyType check is the transaction has a valid privacy type
 func hasValidPrivacyType(tx dbtx.Transaction) bool {
 	t := tx.PrivacyType
-	if len(t) == 0 {
+	if t == nil {
 		return false
 	}
 
-	return t == constants.PrivacyMixing || t == constants.PrivacyOrigin || t == constants.PrivacyDestination ||
-		t == constants.PrivacyCollateralPayment || t == constants.PrivacyCollateralCreation
+	return *t <= constants.PrivacyCollateralPaymentLast
 }
 
 // getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
@@ -381,8 +380,8 @@ func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction)
 			continue
 		}
 
-		if isMixing(transaction) {
-			mixing = append(mixing, newMixingTransaction(transaction.Uid))
+		if dIndex := isMixing(transaction); dIndex >= 0 {
+			mixing = append(mixing, newMixingTransaction(transaction.Uid, dIndex))
 			continue
 		}
 

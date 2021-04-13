@@ -11,15 +11,9 @@ import (
 
 // GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.
 // If the string is empty then all privacy transactions are considered.
-func GetPrivacyTypeData(c *dgo.Dgraph, privacyType string) (ts []time.Time, err error) {
-
-	filter := "eq(privacytype,$pt)"
-	if len(privacyType) == 0 {
-		filter = "has(privacytype)"
-	}
-
-	query := `query Q($pt: string){
-				q(func:` + filter + `)@normalize{
+func GetPrivacyTypeData(c *dgo.Dgraph, startRange string, stopRange string) (ts []time.Time, err error) {
+	const query = `query Q($ge:string,$le:string){
+				q(func:has(privacytype))@filter(ge(privacytype,$ge) and le(privacytype,$le))@normalize{
 					~transactions{
 						ts:ts
 					}
@@ -27,7 +21,7 @@ func GetPrivacyTypeData(c *dgo.Dgraph, privacyType string) (ts []time.Time, err 
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$pt": privacyType})
+		map[string]string{"$ge": startRange, "$le": stopRange})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
