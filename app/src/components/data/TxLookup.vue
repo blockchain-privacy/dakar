@@ -85,12 +85,12 @@
               </v-row>
               <v-row v-if="getPrivacyTypeLabel(tx.privacytype)">
                 <v-col>
-                  <IconItem :icon="icon.mdiIncognito" title="Privacy Transaction Type">
+                  <IconItem :icon="icon.mdiIncognito" title="Privacy Type">
                     {{ getPrivacyTypeLabel(tx.privacytype) }}
                   </IconItem>
                 </v-col>
                 <v-col v-if="isMixing(tx.privacytype)">
-                  <IconItem :icon="icon.mdiCircleMultipleOutline" title="Mixing Denomination Type">
+                  <IconItem :icon="icon.mdiCircleMultipleOutline" title="Mixing Denomination">
                     {{ getMixingLabel(tx.privacytype) }}
                   </IconItem>
                 </v-col>
