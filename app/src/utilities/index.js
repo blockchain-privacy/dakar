@@ -186,6 +186,20 @@ export function getPrivacyTypeLabel(privacyType) {
   return '';
 }
 
+// getMixingDenomination translates the integer representation of privacy types to string
+export function getMixingLabel(privacyType) {
+  const t = parseInt(privacyType, 10);
+
+  if (Number.isNaN(t) || t < 0 || t > 99) return -1;
+  if (t <= 5) return 0;
+  if (t <= 10) return 1;
+  if (t <= 15) return 2;
+  if (t <= 20) return 3;
+  if (t <= 25) return 4;
+
+  return -1;
+}
+
 // isMixing returns true if the provided privacyType is in the range of mixing transactions
 export function isMixing(privacyType) {
   const t = parseInt(privacyType, 10);

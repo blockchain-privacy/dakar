@@ -63,13 +63,13 @@
       <v-timeline :dense="this.$vuetify.breakpoint.smAndDown" v-if="this.transactions.length > 0">
         <v-timeline-item
             v-for="(tx) in transactions" :key="tx.txhash"
-            :color="tx.privacytype?'purple':'primary'"
+            :color="tx.privacytype>=0?'purple':'primary'"
             small>
           <template v-slot:opposite>
             <span class="headline" v-text="new Date(tx.bts).toLocaleString()"></span>
           </template>
           <v-card outlined>
-            <v-toolbar :color="tx.privacytype?'purple':''" :dark="!!tx.privacytype" flat>
+            <v-toolbar :color="tx.privacytype>=0?'purple':''" :dark="!!tx.privacytype" flat>
               <v-toolbar-title>
                 <router-link class="linkColor" :to="{ name: txRoute, params: { id: tx.txhash }}">
                 {{ tx.txhash }}
@@ -77,7 +77,7 @@
               </v-toolbar-title>
             </v-toolbar>
             <v-card-text>
-              <p>Privacy type: {{ (!tx.privacytype) ? 'None' : tx.privacytype }}</p>
+              <p>Privacy type: {{ getPrivacyTypeLabel(tx.privacytype) }}</p>
               <p class="shorten">Blockhash:
                 <router-link :to="{ name: blockRoute, params: { id: tx.bhash }}">
                   {{ tx.bhash }}
@@ -100,7 +100,8 @@
 import {
   mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
 } from '@mdi/js';
-import { doPost, handleError, shortenHash } from '../../utilities';
+import { doPost, handleError, shortenHash, getPrivacyTypeLabel,
+} from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_SHORTEST_TRANSACTION_PATH,
 } from '../../constants';
@@ -131,6 +132,7 @@ export default {
     },
   },
   methods: {
+    getPrivacyTypeLabel,
     shortenHash,
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
