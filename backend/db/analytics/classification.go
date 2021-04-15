@@ -237,3 +237,59 @@ func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (insertCount uint64, e
 
 	return
 }
+
+// GetCollateralInputTransactions returns the input transactions of the provided transactions until the given block height
+func GetCollateralInputTransactions(c *dgo.Dgraph, txUids []string,
+	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
+	uidList := db.CreateUidList(txUids)
+
+	query := `query Q($uids: string, $bid: string){
+				var(func: eq(id,$bid)){t as ts}
+				var (func: uid($uids)){
+					tx_outputs{
+						v as ~tx_inputs@filter(le(count(tx_outputs),2))@cascade{
+							~transactions@filter(le(ts,val(t)))
+						}
+					}
+				}
+
+				q(func: uid(v)){
+					uid
+					txhash
+					fee
+					privacytype
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
+		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []dbtx.Transaction `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	outputTransactions = r.Q
+
+	return
+}
