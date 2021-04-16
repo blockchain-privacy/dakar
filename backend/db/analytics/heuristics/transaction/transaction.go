@@ -514,8 +514,8 @@ func GetDestinationTxOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicT
 
 				var (func: uid(tx)){
 					tx_inputs {
-						c as ~tx_outputs@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst +
-		`) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
+						c as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 					}
 				}
 				
@@ -953,8 +953,8 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 	query := fmt.Sprintf(`{
 				shortest(from: %s, to: %s){
 					tx_inputs
-					~tx_outputs@filter(le(privacytype,`+constants.StrPrivacyMixingLast+`) or (ge(privacytype,`+
-		constants.StrPrivacyOriginFirst+`) and le(privacytype,`+constants.StrPrivacyOriginLast+`)))
+					~tx_outputs@filter(between(privacytype,0,`+constants.StrPrivacyMixingLast+
+		`) or between(privacytype,`+constants.StrPrivacyOriginFirst+","+constants.StrPrivacyOriginLast+`))
 				}
 			  }`, fromUid, toUid)
 

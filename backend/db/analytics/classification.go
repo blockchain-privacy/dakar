@@ -25,12 +25,12 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 				var(func: uid(b))@cascade{
 					dest as transactions@filter(not has(privacytype)){
 						tx_inputs{
-							~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `))
+							~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
 						}
 					}
 				}
 				var(func: uid(b)){
-					transactions@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `)){
+					transactions@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
 						tx_inputs{
 							orig as ~tx_outputs@filter(not has(privacytype))
 						}
@@ -129,14 +129,12 @@ func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transact
 func SetCollateralCreation(c *dgo.Dgraph, txUids []string) (insertCount uint64, err error) {
 	uidList := db.CreateUidList(txUids)
 
-	// @filter(le(privacytype, 299))
-	const filter = "@filter(le(privacytype," + constants.StrPrivacyOriginLast + "))"
-
 	const query = `query Q($uids: string) {
-				cc as var(func: uid($uids))@filter(not has(privacytype) or (ge(privacytype,` +
-		constants.StrPrivacyDestinationFirst + `) and le(privacytype,` + constants.StrPrivacyDestinationLast + `)))@cascade{	
+				cc as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
+		constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + `))@cascade{	
 					tx_inputs{
-						~tx_outputs` + filter + `}
+						~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyCollateralCreationLast + `))}
 				}
 				q(func: uid(cc)){count(uid)}
 			  }`
@@ -188,12 +186,12 @@ func SetCollateralPayment(c *dgo.Dgraph, txUids []string) (insertCount uint64, e
 	uidList := db.CreateUidList(txUids)
 
 	// collateral payments + collateral creations + origins
-	const filter = "@filter(ge(privacytype," + constants.StrPrivacyOriginFirst +
-		") and le(privacytype," + constants.StrPrivacyCollateralPaymentLast + "))"
+	const filter = "@filter(between(privacytype," + constants.StrPrivacyOriginFirst +
+		"," + constants.StrPrivacyCollateralPaymentLast + "))"
 
-	query := `query Q($uids: string) {
-				cp as var(func: uid($uids))@filter(not has(privacytype) or (ge(privacytype,` + constants.StrPrivacyDestinationFirst + `) 
-													and le(privacytype,` + constants.StrPrivacyDestinationLast + `)))@cascade{	
+	const query = `query Q($uids: string) {
+				cp as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
+		constants.StrPrivacyDestinationLast + `))@cascade{	
 					tx_inputs{
 						~tx_outputs` + filter + `}
 				}

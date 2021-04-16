@@ -198,3 +198,9 @@ func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
 		`,
 	})
 }
+
+func DropAllPrivacyTypes(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "privacytype",
+	})
+}

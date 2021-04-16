@@ -88,7 +88,7 @@ func execReadOnlyTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q strin
 	return dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
 }
 
-// ReadOnlyTxVarWithRetryAndTimeout executes the given request. In case the request fails repeats it
+// ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
 func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
@@ -112,16 +112,16 @@ func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q 
 	return ReadOnlyTxVarWithRetry(dgraph, timeoutPerRequest, q, nil)
 }
 
-// drops ALL data from the database, schema included
+// DropAll drops ALL data from the database, schema included
 func DropAll(c *dgo.Dgraph) error {
 	ctx, cancel := GetBackendContext()
 	defer cancel()
 	return c.Alter(ctx, &api.Operation{
-		DropOp: api.Operation_ALL,
+		DropAll: true,
 	})
 }
 
-// create a new dgraph client connecting to the specified host and port
+// CreateClient create a new dgraph client connecting to the specified host and port
 func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
@@ -134,7 +134,7 @@ func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
 	return dgo.NewDgraphClient(api.NewDgraphClient(conn)), conn, nil
 }
 
-// gets the number of instances of the given type in the database
+// GetCount gets the number of instances of the given type in the database
 func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 	query := fmt.Sprintf(`{
 				 q(func: type(%s)){

@@ -26,13 +26,13 @@ func AnalyzeOrigins(c *dgo.Dgraph, txUid string) (origins []string, err error) {
 	query := `query Q($uid: string) {
 				var(func: uid($uid))@recurse{
 					tx_inputs
-					v as ~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `))
+					v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
 				}
 
 				var(func: uid(v,$uid)){
 					tx_inputs{
-						f as ~tx_outputs@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst +
-		`) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
+						f as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 					}
 				}
 
@@ -100,12 +100,12 @@ func buildAnalyzeAndSetOriginsRequest(transactionUids []string) *api.Request {
 				var(func: uid(u%d))@recurse{
 					tx_inputs
 					# mixing or origin
-					v%d as ~tx_outputs@filter(le(privacytype,`+constants.StrPrivacyMixingLast+`) or (ge(privacytype,`+
-			constants.StrPrivacyOriginFirst+`) and le(privacytype,`+constants.StrPrivacyOriginLast+`)))
+					v%d as ~tx_outputs@filter(between(privacytype,0,`+constants.StrPrivacyMixingLast+
+			`) or between(privacytype,`+constants.StrPrivacyOriginFirst+","+constants.StrPrivacyOriginLast+`))
 				}
 
-				o%d as var(func: uid(v%d))@filter(ge(privacytype,`+constants.StrPrivacyOriginFirst+
-			`) and le(privacytype,`+constants.StrPrivacyOriginLast+`))`, i, i, i, i, i, i)
+				o%d as var(func: uid(v%d))@filter(between(privacytype,`+constants.StrPrivacyOriginFirst+","+
+			constants.StrPrivacyOriginLast+`))`, i, i, i, i, i, i)
 
 		if i+1 < len(transactionUids) {
 			queryHeader += ","
@@ -139,15 +139,16 @@ func PartialReverseLookup(c *dgo.Dgraph, transactionUids []string) (err error) {
 // AnalyzeAndSetOrigins searches for all potential origins and sets them.
 // Non-batched version of PartialReverseLookup
 func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
-	query := `query Q($uid: string) {
+	const query = `query Q($uid: string) {
 				u as var(func: uid($uid))
 				var(func: uid(u))@recurse{
 					tx_inputs
-					v as ~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `) or (ge(privacytype,` +
-		constants.StrPrivacyOriginFirst + `) and le(privacytype,` + constants.StrPrivacyOriginLast + `)))
+					v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + `))
 				}
 
-				o as var(func: uid(v))@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst + `) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
+				o as var(func: uid(v))@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 			  }`
 
 	mu := &api.Mutation{
@@ -172,18 +173,18 @@ func AnalyzeAndSetOrigins(c *dgo.Dgraph, txUid string) (err error) {
 // GetAccumulatedOrigins gets all direct origin transactions and the accumulated
 // origins of all direct mixing and destination transactions
 func GetAccumulatedOrigins(c *dgo.Dgraph, uid string) (origins []string, err error) {
-	query := `query Q($uid: string) {
+	const query = `query Q($uid: string) {
 				var(func: uid($uid)){
 					tx_inputs{
-						u as ~tx_outputs@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst +
-		`) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
+						u as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 					}
 				}
 				
 				var(func: uid($uid)){
 					tx_inputs{
-						~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `) or (ge(privacytype,` +
-		constants.StrPrivacyOriginFirst + `) and le(privacytype,` + constants.StrPrivacyOriginLast + `))){
+						~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + `)){
 							o as origins
 						}
 					}
@@ -241,15 +242,15 @@ func buildIRTLRequest(transactionUids map[string]bool) *api.Request {
 		query += fmt.Sprintf(`
 				tx%d as var(func: uid($uid%d)){
 					tx_inputs{
-						u%d as ~tx_outputs@filter(ge(privacytype,`+constants.StrPrivacyOriginFirst+
-			`) and le(privacytype,`+constants.StrPrivacyOriginLast+`))
+						u%d as ~tx_outputs@filter(between(privacytype,`+constants.StrPrivacyOriginFirst+","+
+			constants.StrPrivacyOriginLast+`))
 					}
 				}
 				
 				var(func: uid($uid%d)){
 					tx_inputs{
-						~tx_outputs@filter(le(privacytype,`+constants.StrPrivacyMixingLast+`) or (ge(privacytype,`+
-			constants.StrPrivacyOriginFirst+`) and le(privacytype,`+constants.StrPrivacyOriginLast+`))){
+						~tx_outputs@filter(between(privacytype,0,`+constants.StrPrivacyMixingLast+
+			`) or between(privacytype,`+constants.StrPrivacyOriginFirst+","+constants.StrPrivacyOriginLast+`)){
 							o%d as origins
 						}
 					}
@@ -295,17 +296,18 @@ func IRTL(c *dgo.Dgraph, transactionUids map[string]bool) (err error) {
 func ConnectDirectNeighbours(c *dgo.Dgraph, transactionUid string) (err error) {
 	queryVars := map[string]string{"$uid": transactionUid}
 
-	query := `query Q($uid:string){
+	const query = `query Q($uid:string){
 				tx as var(func: uid($uid)){
 					tx_inputs{
-						u as ~tx_outputs@filter(ge(privacytype,` + constants.StrPrivacyOriginFirst + `) and le(privacytype,` + constants.StrPrivacyOriginLast + `))
+						u as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 					}
 				}
 				
 				var(func: uid($uid)){
 					tx_inputs{
-						~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast + `) or (ge(privacytype,` +
-		constants.StrPrivacyOriginFirst + `) and le(privacytype,` + constants.StrPrivacyOriginLast + `))){
+						~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + `)){
 							o as origins
 						}
 					}
@@ -403,10 +405,10 @@ func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 func GetNotAnalyzedInputTransactionsPerBlock(c *dgo.Dgraph, blockUid string) (inputTransactions []string, err error) {
 	const query = `query Q($uid: string){
 				var(func: uid($uid)){
-					transactions@filter(ge(privacytype,` + constants.StrPrivacyDestinationFirst +
-		`) and le(privacytype,` + constants.StrPrivacyDestinationLast + `)){
+					transactions@filter(between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
+		constants.StrPrivacyDestinationLast + `)){
 						tx_inputs{
-							v as ~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast +
+							v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
 		`) AND NOT eq(isrlookupdone, true))
 						}
 					} 
@@ -453,7 +455,7 @@ func GetNotAnalyzedInputTransactionsPerTx(c *dgo.Dgraph, txUid string) (inputTra
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs{
-						v as ~tx_outputs@filter(le(privacytype,` + constants.StrPrivacyMixingLast +
+						v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
 		`) AND NOT eq(isrlookupdone, true))
 					}
 				}

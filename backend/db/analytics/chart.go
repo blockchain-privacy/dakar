@@ -13,7 +13,7 @@ import (
 // If the string is empty then all privacy transactions are considered.
 func GetPrivacyTypeData(c *dgo.Dgraph, startRange string, stopRange string) (ts []time.Time, err error) {
 	const query = `query Q($ge:string,$le:string){
-				q(func:has(privacytype))@filter(ge(privacytype,$ge) and le(privacytype,$le))@normalize{
+				q(func:between(privacytype,$ge,$le))@normalize{
 					~transactions{
 						ts:ts
 					}
