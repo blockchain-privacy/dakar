@@ -190,6 +190,16 @@ func getConnectedCollaterals(dgraph *dgo.Dgraph, potentialCollateralTransactions
 	return
 }
 
+// GetHighestAvailableBlock returns the highest crawled block
+func (a *Classifier) GetHighestAvailableBlock() (uint64, error) {
+	status, err := dbstat.GetCrawlerStatus(a.db)
+	if err != nil || status.LastBlockId == nil {
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return *status.LastBlockId, nil
+}
+
 // Iterate does the classification for all transactions of the current block. Transactions are
 // classified based on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.

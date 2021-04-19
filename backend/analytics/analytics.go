@@ -141,20 +141,25 @@ func (a *Analyzer) CalculateInitialState() error {
 		return errors.New("error last analysed block is not set")
 	}
 
+	classifierStatus, err := dbstat.GetClassifierStatus(a.db)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
 	var state blockIterator.State
 
 	state.Id = *analyzerStatus.LastAnalysedBlockId + 1
 
-	if crawlerStatus.LastBlockId == nil {
+	if classifierStatus.LastClassifiedBlockId == nil {
 		// nothing crawled yet, so set Top to a lower number as Id
 		state.Top = *analyzerStatus.LastAnalysedBlockId
 	} else if *crawlerStatus.LowestBlockId > state.Id {
 		// happens the crawler is started with a high start block id in block range mode
 		state.Id = *crawlerStatus.LowestBlockId
-		state.Top = *crawlerStatus.LastBlockId
+		state.Top = *classifierStatus.LastClassifiedBlockId
 	} else {
 		// this is the usual case: Set Top to the current last crawled block height
-		state.Top = *crawlerStatus.LastBlockId
+		state.Top = *classifierStatus.LastClassifiedBlockId
 	}
 
 	a.state = state
@@ -163,7 +168,7 @@ func (a *Analyzer) CalculateInitialState() error {
 }
 
 func (a *Analyzer) AddToQueue(txHash string) bool {
-	// todo return a status instead to differentiate
+	// todo return a status instead, to differentiate
 	//  between queue full and tx already in queue
 	// todo do some verification that tx is actually a destination transaction
 	a.mapLock.Lock()
@@ -179,6 +184,16 @@ func (a *Analyzer) AddToQueue(txHash string) bool {
 	default:
 		return false
 	}
+}
+
+// GetHighestAvailableBlock returns the highest classified block
+func (a *Analyzer) GetHighestAvailableBlock() (uint64, error) {
+	status, err := dbstat.GetClassifierStatus(a.db)
+	if err != nil || status.LastClassifiedBlockId == nil {
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return *status.LastClassifiedBlockId, nil
 }
 
 func (a *Analyzer) Iterate() (bool, error) {
@@ -367,7 +382,7 @@ func hasValidPrivacyType(tx dbtx.Transaction) bool {
 		return false
 	}
 
-	return *t <= constants.PrivacyCollateralPaymentLast
+	return *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
 }
 
 // getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately

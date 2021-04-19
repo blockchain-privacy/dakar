@@ -24,6 +24,9 @@ type BlockIterator interface {
 	// Iterate does one execution loop
 	// false -> stop execution
 	Iterate() (bool, error)
+	// GetHighestAvailableBlock returns the highest block id/height which the
+	// iterator can process at the time of the call
+	GetHighestAvailableBlock() (uint64, error)
 	// PostExecution is always executed, even if PreLoop or Loop fail.
 	// This function should do operations like the setting the database status
 	PostExecution() error
@@ -155,12 +158,18 @@ func waitForNextDbBlockId(it BlockIterator) (isInterrupt bool, err error) {
 				return
 			}
 
-			if status.LastBlockId != nil && *status.LastBlockId >= currentState.Id {
+			highestBlock, highErr := it.GetHighestAvailableBlock()
+			if highErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), highErr)
+				return
+			}
+
+			if highestBlock >= currentState.Id {
 				if *status.LowestBlockId > currentState.Id {
 					currentState.Id = *status.LowestBlockId
 				}
 
-				it.SetState(State{currentState.Id, *status.LastBlockId})
+				it.SetState(State{currentState.Id, highestBlock})
 
 				return
 			}
