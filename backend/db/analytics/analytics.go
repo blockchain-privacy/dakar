@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
+	dbtx "backend/db/transaction"
 	"strconv"
 	"time"
 
@@ -367,7 +368,7 @@ func SetOrigins(c *dgo.Dgraph, txUid string, originUids []string, isDone bool) (
 	return
 }
 
-// gets the number of origins of a transaction
+// GetOriginCount gets the number of origins of a transaction
 func GetOriginCount(c *dgo.Dgraph, txHash string) (originCount int, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(txhash, $hash)){
@@ -495,7 +496,8 @@ func GetNotAnalyzedInputTransactionsPerTx(c *dgo.Dgraph, txUid string) (inputTra
 	return
 }
 
-// gets all uids of the transactions which produce the inputs for the transactions included in the block specified by blockUid
+// GetInputTransactions gets all uids of the transactions which produce the inputs for the transactions
+// included in the block specified by blockUid
 func GetInputTransactions(c *dgo.Dgraph, blockUid string) (inputTransactions map[string]map[string]bool, err error) {
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
@@ -628,6 +630,39 @@ func filterPaths(paths []TransactionPath) (filteredPaths []TransactionPath) {
 		pathMap[pathHash] = true
 		filteredPaths = append(filteredPaths, p)
 	}
+
+	return
+}
+
+// GetMixingAndDestinationsByBlock gets mixing and destination transactions from the database by block id
+func GetMixingAndDestinationsByBlock(c *dgo.Dgraph, blockId uint64) (transactions []dbtx.Transaction, err error) {
+	const query = `query Q($block:string) {
+				var(func: eq(id, $block)){
+					txs as transactions@filter(between(0,` + constants.StrPrivacyDestinationLast + `))
+				}
+
+				q(func: uid(txs)){
+					uid
+					privacytype
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
+		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []dbtx.Transaction `json:"q"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	transactions = r.Q
 
 	return
 }

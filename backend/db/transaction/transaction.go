@@ -60,12 +60,12 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 	return r.payload()
 }
 
-// GetTransaction gets transaction information from the database by block id
+// GetTransactionByBlock gets transaction information from the database by block id
 func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transaction, err error) {
-	query := `query Q($block:string) {
+	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
-				}
+		}
 
 				q(func: uid(txs)){
 					uid

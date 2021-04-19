@@ -13,7 +13,7 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// gets block information from the database
+// GetBlock gets block information from the database
 func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
@@ -49,42 +49,6 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 	return r.payload()
 }
 
-// gets block information from the database
-func GetBlockById(c *dgo.Dgraph, blockId uint64) (blk Block, err error) {
-	query := `query Q($id: string) {
-				q(func: eq(id, $id)){
-					uid
-					id
-					ts
-					blockhash
-					prevblock { 
-						uid
-						blockhash
-					}
-					transactions{
-						uid
-						txhash
-					}
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$id": strconv.FormatUint(blockId, 10)})
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	var r blockQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
 func isBlockIdentifier(field string) bool {
 	_, err := strconv.Atoi(field)
 	if err != nil {
@@ -93,7 +57,7 @@ func isBlockIdentifier(field string) bool {
 	return true
 }
 
-// gets verbose block information from the database
+// GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err error) {
 	searchProperty := "blockhash"
 	if isBlockIdentifier(blockHash) {
@@ -157,7 +121,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 	return
 }
 
-// updates a block
+// UpdateBlock updates a block
 func UpdateBlock(c *dgo.Dgraph, block Block) error {
 	pb, err := json.Marshal(block)
 	if err != nil {
@@ -179,7 +143,7 @@ func UpdateBlock(c *dgo.Dgraph, block Block) error {
 	return err
 }
 
-// upserts a block and the prevBlock relation
+// UpsertBlock upserts a block and the prevBlock relation
 func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	block.Uid = "uid(v)"
 	block.PrevBlock.Uid = "uid(x)"
@@ -226,52 +190,7 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 	return err
 }
 
-// inserts a block, the prevBlock relation is done via an upsert
-func InsertBlock(c *dgo.Dgraph, block Block) error {
-	block.PrevBlock.Uid = "uid(v)"
-	block.PrevBlock.SetDType()
-	block.SetDType()
-
-	for i := range block.Transactions {
-		block.Transactions[i].DType = []string{"Transaction"}
-		for y := range block.Transactions[i].Inputs {
-			block.Transactions[i].Inputs[y].SetDType()
-		}
-		for y := range block.Transactions[i].Outputs {
-			block.Transactions[i].Outputs[y].SetDType()
-		}
-	}
-
-	pb, err := json.Marshal(block)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	query := `
-		query Q($hash: string) {
-			q(func: eq(blockhash, $hash)) {
-				v as uid
-			}
-		}
-	`
-
-	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$hash": block.PrevBlock.Hash},
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	if err = db.TxWithRetry(c, time.Minute*5, req); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return err
-}
-
-// gets the number of blocks in the database
+// GetCount gets the number of blocks in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }

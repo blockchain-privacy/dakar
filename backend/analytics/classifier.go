@@ -458,3 +458,46 @@ func newOriginTransaction(uid string) dbtx.Transaction {
 	pt := constants.PrivacyOrigin
 	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
 }
+
+// hasValidPrivacyType check is the transaction has a valid privacy type
+func hasValidPrivacyType(tx dbtx.Transaction) bool {
+	t := tx.PrivacyType
+	if t == nil {
+		return false
+	}
+
+	return *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
+}
+
+// getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
+// The returned slice contains all classified transactions or nil if no privacy transactions have been found.
+func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
+	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
+	for _, transaction := range transactions {
+		// only do classification for non-classified transactions
+		if hasValidPrivacyType(transaction) {
+			continue
+		}
+
+		if dIndex := isMixing(transaction); dIndex >= 0 {
+			mixing = append(mixing, newMixingTransaction(transaction.Uid, dIndex))
+			continue
+		}
+
+		if isCollateralPayment(transaction) {
+			cp = append(cp, newCollateralPaymentTransaction(transaction.Uid))
+			continue
+		}
+
+		isCC, collateralErr := isCollateralCreation(dgraph, transaction)
+		if collateralErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), collateralErr)
+		}
+
+		if isCC {
+			cc = append(cc, newCollateralCreationTransaction(transaction.Uid))
+			continue
+		}
+	}
+	return
+}

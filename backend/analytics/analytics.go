@@ -3,10 +3,8 @@ package analytics
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
-	"backend/constants"
 	dban "backend/db/analytics"
 	dbstat "backend/db/status"
-	dbtx "backend/db/transaction"
 	"context"
 	"errors"
 	"fmt"
@@ -215,52 +213,37 @@ func (a *Analyzer) Iterate() (bool, error) {
 			info("queue closed!")
 		}
 	default:
-		info("no value in queue -> doing block iteration")
 	}
 
-	//currentBlock, err := dbblk.GetBlockById(a.db, a.state.Id)
-	//if err != nil {
-	//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//}
+	transactions, err := dban.GetMixingAndDestinationsByBlock(a.db, a.state.Id)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
 
-	//updatedBlock, err := getMixingTransactions(a.ctx, a.db, currentBlock)
-	//if err != nil {
-	//	if errors.Is(err, errorInterrupted) {
-	//		return false, nil
-	//	}
-	//
-	//	return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//}
-	//
-	//wasInterrupted := false
-	//if len(updatedBlock.Transactions) > 0 {
-	//	// update the block in the database
-	//	// after that function call the privacy type of all transactions is set
-	//	if err := dbblk.UpdateBlock(a.db, updatedBlock); err != nil {
-	//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//	}
-	//
-	//	originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
-	//	if err != nil {
-	//		if errors.Is(err, errorInterrupted) {
-	//			wasInterrupted = true
-	//		} else {
-	//			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//		}
-	//	}
-	//	if originCount > 0 {
-	//		info("Block", *currentBlock.Id, "origin count", originCount)
-	//	}
-	//}
+	wasInterrupted := false
+	if len(transactions) > 0 {
+		// todo: add new reverselookup implementation here
+		//originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
+		//if err != nil {
+		//	if errors.Is(err, errorInterrupted) {
+		//		wasInterrupted = true
+		//	} else {
+		//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		//	}
+		//}
+		//if originCount > 0 {
+		//	info("Block", *currentBlock.Id, "origin count", originCount)
+		//}
+	}
 
 	// only set last analysed flag if processes before were not interrupted
-	//if wasInterrupted {
-	//	return false, nil
-	//} else {
-	//	if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
-	//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//	}
-	//}
+	if wasInterrupted {
+		return false, nil
+	} else {
+		if err := dbstat.SetLastAnalysedBlockId(a.db, a.state.Id); err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
 
 	return true, nil
 }
@@ -373,47 +356,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// hasValidPrivacyType check is the transaction has a valid privacy type
-func hasValidPrivacyType(tx dbtx.Transaction) bool {
-	t := tx.PrivacyType
-	if t == nil {
-		return false
-	}
-
-	return *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
-}
-
-// getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
-// The returned slice contains all classified transactions or nil if no privacy transactions have been found.
-func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
-	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
-	for _, transaction := range transactions {
-		// only do classification for non-classified transactions
-		if hasValidPrivacyType(transaction) {
-			continue
-		}
-
-		if dIndex := isMixing(transaction); dIndex >= 0 {
-			mixing = append(mixing, newMixingTransaction(transaction.Uid, dIndex))
-			continue
-		}
-
-		if isCollateralPayment(transaction) {
-			cp = append(cp, newCollateralPaymentTransaction(transaction.Uid))
-			continue
-		}
-
-		isCC, collateralErr := isCollateralCreation(dgraph, transaction)
-		if collateralErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), collateralErr)
-		}
-
-		if isCC {
-			cc = append(cc, newCollateralCreationTransaction(transaction.Uid))
-			continue
-		}
-	}
-	return
 }
