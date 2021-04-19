@@ -95,4 +95,18 @@ func main() {
 		return
 	}
 	info("privacytype migration done")
+
+	//info("origins deletion starting ...")
+	//if err := db.DropAllOrigins(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("origins deletion done")
+	//
+	//info("origins migration starting ...")
+	//if err := db.AlterSchemaAddOriginsPredicate(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("origins migration done")
 }

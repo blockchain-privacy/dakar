@@ -19,7 +19,6 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -421,12 +420,12 @@ func main() {
 			analyzer := analytics.NewAnalyzer(analyzerContext, dgraph, analyserConfig)
 
 			// todo remove
-			go func() {
-				for i := 0; i < 30; i++ {
-					time.Sleep(time.Second * 5)
-					info(analyzer.AddToQueue(strconv.Itoa(i)))
-				}
-			}()
+			//go func() {
+			//	for i := 0; i < 30; i++ {
+			//		time.Sleep(time.Second * 5)
+			//		info(analyzer.AddToQueue(strconv.Itoa(i)))
+			//	}
+			//}()
 
 			if analyserErr := blockIterator.StartIteration(analyzer); analyserErr != nil {
 				info(analyserErr)

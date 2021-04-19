@@ -204,3 +204,17 @@ func DropAllPrivacyTypes(c *dgo.Dgraph) error {
 		DropAttr: "privacytype",
 	})
 }
+
+func DropAllOrigins(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "origins",
+	})
+}
+
+func AlterSchemaAddOriginsPredicate(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			origins: [uid] @count @reverse .
+		`,
+	})
+}
