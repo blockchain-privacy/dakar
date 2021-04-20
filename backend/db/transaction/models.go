@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/constants"
 	op "backend/db/output"
 	"errors"
 	"fmt"
@@ -69,6 +70,22 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	t.Fee = &fee
 
 	return
+}
+
+func (t *Transaction) IsMixingTransaction() bool {
+	if t.PrivacyType == nil || *t.PrivacyType < 0 {
+		return false
+	}
+
+	return *t.PrivacyType <= constants.PrivacyMixingLast
+}
+
+func (t *Transaction) IsDestinationTransaction() bool {
+	if t.PrivacyType == nil || *t.PrivacyType < 0 {
+		return false
+	}
+
+	return *t.PrivacyType >= constants.PrivacyDestinationFirst && *t.PrivacyType <= constants.PrivacyDestinationLast
 }
 
 type transactionQuery struct {

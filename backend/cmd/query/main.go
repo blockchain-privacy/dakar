@@ -108,8 +108,11 @@ func main() {
 			{label: "all", start: "0", stop: "500"},
 		}
 
-		durations := []dur{{label: "block", d: 1}, {label: "day", d: time.Hour * 24, sma: true},
-			{label: "7 days", d: time.Hour * 24 * 7}}
+		durations := []dur{
+			//{label: "block", d: 1},
+			{label: "day", d: time.Hour * 24, sma: true},
+			//{label: "7 days", d: time.Hour * 24 * 7},
+		}
 
 		for _, privacyType := range privacyTypes {
 			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)

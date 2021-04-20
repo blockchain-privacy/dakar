@@ -46,7 +46,7 @@ func (b *Block) SetDType() {
 	b.DType = []string{DType}
 }
 
-// checks if the given block has all attributes filled
+// IsComplete checks if the given block has all attributes filled
 func (b Block) IsComplete() bool {
 	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" &&
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil

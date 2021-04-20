@@ -109,4 +109,11 @@ func main() {
 	//	return
 	//}
 	//info("origins migration done")
+
+	//info("checkpoint migration starting ...")
+	//if err := db.AlterSchemaAddCheckpoints(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("checkpoint migration done")
 }

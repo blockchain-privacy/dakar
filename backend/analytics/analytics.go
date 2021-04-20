@@ -222,17 +222,32 @@ func (a *Analyzer) Iterate() (bool, error) {
 
 	wasInterrupted := false
 	if len(transactions) > 0 {
-		// todo: add new reverselookup implementation here
-		//originCount, err := blockReverseLookup(a.ctx, a.db, updatedBlock.Uid)
-		//if err != nil {
-		//	if errors.Is(err, errorInterrupted) {
-		//		wasInterrupted = true
-		//	} else {
-		//		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		//	}
-		//}
+		var mixingTransactions, destinationTransactions []string
+
+		for _, t := range transactions {
+			if t.IsMixingTransaction() {
+				mixingTransactions = append(mixingTransactions, t.Uid)
+				continue
+			}
+			if t.IsDestinationTransaction() {
+				destinationTransactions = append(destinationTransactions, t.Uid)
+				continue
+			}
+
+			return false, errors.New(
+				"error received a transaction which is neither of type 'destination' or 'mixing'")
+		}
+
+		_, reverseLookupErr := reverseLookupV2(a.ctx, a.db, mixingTransactions)
+		if reverseLookupErr != nil {
+			if errors.Is(reverseLookupErr, errorInterrupted) {
+				wasInterrupted = true
+			} else {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), reverseLookupErr)
+			}
+		}
 		//if originCount > 0 {
-		//	info("Block", *currentBlock.Id, "origin count", originCount)
+		//	info("Block", a.state.Id, "origin count", originCount, "mixing transactions", len(mixingTransactions))
 		//}
 	}
 
@@ -318,6 +333,48 @@ func reverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTran
 	return insertedOrigins, nil
 }
 
+// reverseLookupV2 performs for all destinationInputTransactions a reverse lookup.
+// The returned integer is the number of origins inserted. It is returned regardless of an error.
+// reverseLookupV2 process:
+// 1. Starting from a transaction traverse all connected mixing transactions
+// 2. Find all origin transaction which are directly connected to each mixing transaction and the
+//    initial transaction
+// 3. If the resulting number of origins is less than dban.SameRequestMutationLimit set the origins to the
+//    initial transaction in the same query
+// 4. If the resulting number of origins is bigger or equal to dban.SameRequestMutationLimit  set the origins
+//    in batches of mutationBatchSize.
+func reverseLookupV2(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTransactions []string) (int64, error) {
+	var insertedOrigins int64
+
+	for _, t := range destinationInputTransactions {
+		select {
+		case <-ctx.Done():
+			info("Stopping reverseLookup ...")
+			return insertedOrigins, errorInterrupted
+		default:
+			// we do nothing
+		}
+
+		// get origins
+		timeNow := time.Now()
+		numOrigins, numDirectCheckpoints, numIndirectCheckpoints, err := dban.AnalyzeOriginsV2(dgraph, t)
+		if err != nil {
+			return insertedOrigins, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		queryTime := time.Since(timeNow)
+
+		if numOrigins >= 1000 {
+			info("numOrigins:", numOrigins, "numDirectCheckpoints:", numDirectCheckpoints,
+				"numIndirectCheckpoints:", numIndirectCheckpoints)
+			info("analyzed", t, "origin count:", numOrigins, "query time:", queryTime)
+		}
+
+		insertedOrigins += int64(numOrigins)
+	}
+
+	return insertedOrigins, nil
+}
+
 // blockReverseLookup performs a reverse lookup for all input transactions of destination transactions included in the block
 // The returned integer is the number of origins inserted. It is returned regardless of an error.
 func blockReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, blockUid string) (int64, error) {
@@ -325,7 +382,7 @@ func blockReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, blockUid string
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-	num, err := reverseLookup(ctx, dgraph, inputTransactions)
+	num, err := reverseLookupV2(ctx, dgraph, inputTransactions)
 	if err != nil {
 		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 
@@ -342,7 +399,7 @@ func transactionReverseLookup(ctx context.Context, dgraph *dgo.Dgraph, destinati
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-	num, err := reverseLookup(ctx, dgraph, inputTransactions)
+	num, err := reverseLookupV2(ctx, dgraph, inputTransactions)
 	if err != nil {
 		return num, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

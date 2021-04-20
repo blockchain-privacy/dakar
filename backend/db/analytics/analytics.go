@@ -19,7 +19,144 @@ import (
 
 // SameRequestMutationLimit is the maximum number of origins a reverse
 // lookup can produce, while getting inserted into the db in the same request
-const SameRequestMutationLimit = 2000
+const (
+	SameRequestMutationLimit = 2000
+	// StrSameRequestMutationLimit is the string representation of SameRequestMutationLimit
+	StrSameRequestMutationLimit = "2000"
+
+	// MinCheckPointSize is the number of origins a transaction has to be connected to become
+	// a reverse lookup checkpoint
+	MinCheckPointSize = 1000
+	// StrMinCheckPointSize is the string representation of MinCheckPointSize
+	StrMinCheckPointSize = "1000"
+)
+
+// AnalyzeOriginsV2 searches for all potential origins of a transaction by traversing connected mixing
+// transactions. In case more than MinCheckPointSize origins are found, the origins are connected
+// to the transaction. These transaction are called checkpoints. Checkpoints are not traversed in further lookups.
+// If checkpoints are found in a backward traversal and the analysed transaction is becoming a checkpoint, the
+// checkpoints and their checkpoints are connected to the newly created checkpoint. See following ASCII graph:
+// The transaction at the bottom with three origins (O:3) is a checkpoint if the minimum Checkpoint size is 3. It has three
+// origins by itself and is also connected to another checkpoint with three origins.
+//
+// Time ────────────────────────────────────►
+//
+// ┌──────┐
+// │Origin├──┐  O:2
+// └──────┘  │ ┌──────┐
+//           ├─┤Mixing├─┐   O:3  C
+// ┌──────┐  │ └──────┘ │  ┌──────┐
+// │Origin├──┘          ├──┤Mixing├─┐
+// └──────┘     O:1     │  └──────┘ │
+//             ┌──────┐ │           │
+// ┌──────┐  ┌─┤Mixing├─┘   O:1     │
+// │Origin├──┤ └──────┘    ┌──────┐ │
+// └──────┘  │          ┌──┤Mixing├─┤
+//           │  O:1     │  └──────┘ │
+//           │ ┌──────┐ │           │
+//           └─┤Mixing├─┘           │
+// ┌──────┐    └──────┘             │
+// │Origin├──┐                      │
+// └──────┘  │                      │
+//           │  O:2         O:2     │
+// ┌──────┐  │ ┌──────┐    ┌──────┐ │
+// │Origin├──┴─┤Mixing├────┤Mixing├─┤  O:3  C
+// └──────┘    └──────┘    └──────┘ │ ┌──────┐
+//              O:1         O:1     ├─┤Mixing│
+// ┌──────┐    ┌──────┐    ┌──────┐ │ └──────┘
+// │Origin├────┤Mixing├────┤Mixing├─┘
+// └──────┘    └──────┘    └──────┘
+func AnalyzeOriginsV2(c *dgo.Dgraph, txUid string) (numOrigins uint64, numDirectCheckpoints uint64,
+	numIndirectCheckpoints uint64, err error) {
+	const query = `query Q($uid: string) {
+				var(func: uid($uid))@recurse{
+					tx_inputs
+					v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) AND not has(origins))
+				}
+
+				var(func: uid(v,$uid)){
+					tx_inputs{
+						dc as ~tx_outputs@filter(has(origins)){
+							dco as origins
+							c as checkpoints{
+								co as origins
+							}
+						}
+					}
+				}
+
+				dcoo as var(func: uid(dco, co))
+
+				var(func: uid(v,$uid)){
+					tx_inputs{
+						f as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `) AND NOT uid(dcoo))
+					}
+				}
+
+				dcc as var(func: uid(dc,c))
+
+				q(func: uid(f)){
+					count(uid)
+				}
+				x(func: uid(dc)){
+					count(uid)
+				}
+				y(func: uid(c)){
+					count(uid)
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": txUid},
+		Mutations: []*api.Mutation{
+			{
+				Cond:      "@if(ge(len(f)," + StrMinCheckPointSize + "))",
+				SetNquads: []byte("<" + txUid + "> <origins> uid(f) ."),
+			},
+			{
+				Cond:      "@if(ge(len(f)," + StrMinCheckPointSize + ") AND gt(len(dcc),0))",
+				SetNquads: []byte("<" + txUid + "> <checkpoints> uid(dcc) ."),
+			},
+		},
+		CommitNow: true,
+	}
+
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Origins []struct {
+			Count uint64 `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+		DirectCheckpoints []struct {
+			Count uint64 `json:"count,omitempty"`
+		} `json:"x,omitempty"`
+		IndirectCheckpoints []struct {
+			Count uint64 `json:"count,omitempty"`
+		} `json:"y,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Origins) != 1 || len(r.DirectCheckpoints) != 1 || len(r.IndirectCheckpoints) != 1 {
+		err = errors.New("error invalid number of counts")
+		return
+	}
+
+	numOrigins = r.Origins[0].Count
+	numDirectCheckpoints = r.DirectCheckpoints[0].Count
+	numIndirectCheckpoints = r.IndirectCheckpoints[0].Count
+	return
+}
 
 // AnalyzeOrigins searches for all potential origins. The returned string slice contains the uids of the found transactions
 // GET part of AnalyzeAndSetOrigins
@@ -638,7 +775,7 @@ func filterPaths(paths []TransactionPath) (filteredPaths []TransactionPath) {
 func GetMixingAndDestinationsByBlock(c *dgo.Dgraph, blockId uint64) (transactions []dbtx.Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
-					txs as transactions@filter(between(0,` + constants.StrPrivacyDestinationLast + `))
+					txs as transactions@filter(between(privacytype,0,` + constants.StrPrivacyDestinationLast + `))
 				}
 
 				q(func: uid(txs)){

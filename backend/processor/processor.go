@@ -492,7 +492,7 @@ func getInitialState(dgraph *dgo.Dgraph, client external.RPCClient, continuous b
 	return
 }
 
-// processes all blocks from startingBlockId to stoppingBlockId
+// ProcessBlockRange processes all blocks from startingBlockId to stoppingBlockId
 func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient,
 	startingBlockId uint64, stoppingBlockId uint64, config Config) error {
 
@@ -573,7 +573,7 @@ mainLoop:
 	return nil
 }
 
-// prints the given metrics
+// printMetrics prints the given metrics
 func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
 		info("Last Block:", state)
@@ -588,7 +588,7 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 	}
 }
 
-// processes all blocks provided by the RPC client continuously
+// ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
 func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {

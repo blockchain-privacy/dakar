@@ -24,6 +24,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
 			origins: [uid] @count @reverse .
+			checkpoints: [uid] @count @reverse .
 			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
 			h_transaction: uid @reverse .
@@ -79,6 +80,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 				isrlookupdone
 				fee
 				origins
+				checkpoints
 				<~origins>
 				<~transactions>
 				tx_outputs
@@ -215,6 +217,27 @@ func AlterSchemaAddOriginsPredicate(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			origins: [uid] @count @reverse .
+		`,
+	})
+}
+
+func AlterSchemaAddCheckpoints(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			checkpoints: [uid] @count @reverse .
+
+			type Transaction {
+				txhash
+				privacytype
+				isrlookupdone
+				fee
+				origins
+				checkpoints
+				<~origins>
+				<~transactions>
+				tx_outputs
+				tx_inputs
+			}
 		`,
 	})
 }
