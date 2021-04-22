@@ -777,11 +777,12 @@ func filterPaths(paths []TransactionPath) (filteredPaths []TransactionPath) {
 	return
 }
 
-// GetMixingAndDestinationsByBlock gets mixing and destination transactions from the database by block id
-func GetMixingAndDestinationsByBlock(c *dgo.Dgraph, blockId uint64) (transactions []dbtx.Transaction, err error) {
+// GetMixingTransactionsByBlock gets mixing transactions from the database by block id
+func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions []dbtx.Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
-					txs as transactions@filter(between(privacytype,0,` + constants.StrPrivacyDestinationLast + `))
+					txs as transactions@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
+		`) and not has(origins))
 				}
 
 				q(func: uid(txs)){

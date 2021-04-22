@@ -215,30 +215,14 @@ func (a *Analyzer) Iterate() (bool, error) {
 	default:
 	}
 
-	transactions, err := dban.GetMixingAndDestinationsByBlock(a.db, a.state.Id)
+	transactions, err := dban.GetMixingTransactionsByBlock(a.db, a.state.Id)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	wasInterrupted := false
 	if len(transactions) > 0 {
-		var mixingTransactions, destinationTransactions []string
-
-		for _, t := range transactions {
-			if t.IsMixingTransaction() {
-				mixingTransactions = append(mixingTransactions, t.Uid)
-				continue
-			}
-			if t.IsDestinationTransaction() {
-				destinationTransactions = append(destinationTransactions, t.Uid)
-				continue
-			}
-
-			return false, errors.New(
-				"error received a transaction which is neither of type 'destination' or 'mixing'")
-		}
-
-		_, reverseLookupErr := reverseLookupV2(a.ctx, a.db, mixingTransactions)
+		_, reverseLookupErr := reverseLookupV2(a.ctx, a.db, getUids(transactions))
 		if reverseLookupErr != nil {
 			if errors.Is(reverseLookupErr, errorInterrupted) {
 				wasInterrupted = true
