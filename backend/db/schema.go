@@ -221,6 +221,12 @@ func AlterSchemaAddOriginsPredicate(c *dgo.Dgraph) error {
 	})
 }
 
+func DropAllCheckpoints(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "checkpoints",
+	})
+}
+
 func AlterSchemaAddCheckpoints(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `

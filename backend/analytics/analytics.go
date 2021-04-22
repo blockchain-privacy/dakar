@@ -363,10 +363,9 @@ func reverseLookupV2(ctx context.Context, dgraph *dgo.Dgraph, destinationInputTr
 		}
 		queryTime := time.Since(timeNow)
 
-		if numOrigins >= 1000 {
+		if numOrigins >= dban.MinCheckPointSize {
 			info("numOrigins:", numOrigins, "numDirectCheckpoints:", numDirectCheckpoints,
-				"numIndirectCheckpoints:", numIndirectCheckpoints)
-			info("analyzed", t, "origin count:", numOrigins, "query time:", queryTime)
+				"numIndirectCheckpoints:", numIndirectCheckpoints, "query time:", queryTime)
 		}
 
 		insertedOrigins += int64(numOrigins)

@@ -17,18 +17,24 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// SameRequestMutationLimit is the maximum number of origins a reverse
-// lookup can produce, while getting inserted into the db in the same request
 const (
+	// SameRequestMutationLimit is the maximum number of origins a reverse
+	// lookup can produce, while getting inserted into the db in the same request
 	SameRequestMutationLimit = 2000
 	// StrSameRequestMutationLimit is the string representation of SameRequestMutationLimit
 	StrSameRequestMutationLimit = "2000"
 
 	// MinCheckPointSize is the number of origins a transaction has to be connected to become
 	// a reverse lookup checkpoint
-	MinCheckPointSize = 1000
+	MinCheckPointSize = 100
 	// StrMinCheckPointSize is the string representation of MinCheckPointSize
-	StrMinCheckPointSize = "1000"
+	StrMinCheckPointSize = "100"
+
+	// MaxCheckPointSize is the number of origins a transaction has to be connected to become
+	// a reverse lookup checkpoint
+	MaxCheckPointSize = 1000
+	// StrMaxCheckPointSize is the string representation of MaxCheckPointSize
+	StrMaxCheckPointSize = "1000"
 )
 
 // AnalyzeOriginsV2 searches for all potential origins of a transaction by traversing connected mixing
