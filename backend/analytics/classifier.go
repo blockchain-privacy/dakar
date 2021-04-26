@@ -462,11 +462,7 @@ func newOriginTransaction(uid string) dbtx.Transaction {
 // hasValidPrivacyType check is the transaction has a valid privacy type
 func hasValidPrivacyType(tx dbtx.Transaction) bool {
 	t := tx.PrivacyType
-	if t == nil {
-		return false
-	}
-
-	return *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
+	return t != nil && *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
 }
 
 // getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
