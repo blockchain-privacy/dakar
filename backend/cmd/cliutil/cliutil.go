@@ -33,10 +33,10 @@ const (
 	DisableHttpServer
 	DisableCrawler
 	DisableAnalyzer
+	DisableClassifier
+	ChartDir
 	Logfile
-	TxSearch
 	TxInfo
-	ClusterAddr
 	BTC
 	Dash
 	Doge
@@ -56,11 +56,12 @@ type Arguments struct {
 	Logfile           string
 	TxSearch          string
 	TxInfo            string
-	ClusterAddr       string
 	HttpServerPort    uint
 	DisableHttpServer bool
 	DisableCrawler    bool
 	DisableAnalyzer   bool
+	DisableClassifier bool
+	ChartDir          string
 	BTC               bool
 	Dash              bool
 	Doge              bool
@@ -84,16 +85,8 @@ func ShowCallInfo() string {
 	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
 }
 
-// creates a string in the format of "host:port"
+// buildEndpoint creates a string in the format of "host:port"
 func buildEndpoint(host string, port uint) (string, error) {
-	// the host can be in a form of IP address, or in a form of Label (e.g. in Docker), or proper hostname
-	// it is complicated to actually validate it properly
-	//
-	// check if ip is valid
-	// if ip := net.ParseIP(rpcHost); ip == nil {
-	//	return "", errors.New("IP is not valid")
-	// }
-
 	host = strings.TrimSpace(host)
 	response := host + ":" + strconv.Itoa(int(port))
 	if len(host) > 0 && port > 0 {
@@ -202,14 +195,11 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case DisableAnalyzer:
 			addDisableAnalyzer(&args.DisableAnalyzer)
 			break
-		case TxSearch:
-			addTxSearch(&args.TxSearch)
+		case DisableClassifier:
+			addDisableClassifier(&args.DisableClassifier)
 			break
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
-			break
-		case ClusterAddr:
-			addClusterAddr(&args.ClusterAddr)
 			break
 		case BTC:
 			addBTC(&args.BTC)
@@ -219,6 +209,9 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			break
 		case Doge:
 			addDogecoin(&args.Doge)
+			break
+		case ChartDir:
+			addChartDir(&args.ChartDir)
 			break
 		default:
 			err = errors.New("flag not recognized")
@@ -242,16 +235,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	return args, err
 }
 
-func addClusterAddr(v *string) {
-	flag.StringVar(v, "clusteraddr", "", "Create cluster for the given address (default: none)")
-}
-
 func addTxInfo(v *string) {
 	flag.StringVar(v, "txinfo", "", "Get information about the given transaction hash (default: none)")
-}
-
-func addTxSearch(v *string) {
-	flag.StringVar(v, "txsearch", "", "Last PrivateSend transaction hash (default: none)")
 }
 
 func addContinuous(v *bool) {
@@ -322,6 +307,10 @@ func addDisableAnalyzer(v *bool) {
 	flag.BoolVar(v, "disableanalyzer", false, "Disable the analyzer (default: false)")
 }
 
+func addDisableClassifier(v *bool) {
+	flag.BoolVar(v, "disableclassifier", false, "Disable the classifier (default: false)")
+}
+
 func addBTC(v *bool) {
 	flag.BoolVar(v, "btc", false, "Select Bitcoin mode (default: false)")
 }
@@ -332,4 +321,8 @@ func addDash(v *bool) {
 
 func addDogecoin(v *bool) {
 	flag.BoolVar(v, "doge", false, "Select Dogecoin mode (default: false)")
+}
+
+func addChartDir(v *string) {
+	flag.StringVar(v, "chartdir", "", "Output directory for charts (default: none)")
 }

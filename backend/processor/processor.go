@@ -7,6 +7,7 @@ import (
 	dbop "backend/db/output"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	"backend/external"
 	"io"
 
 	"context"
@@ -21,7 +22,6 @@ import (
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/dgraph-io/dgo/v2"
@@ -423,7 +423,7 @@ func processingInterrupted() {
 // wait for the next block
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, hashObj *chainhash.Hash,
+func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
 	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(config.NewBlockIntervalTime)
 	defer ticker.Stop()
@@ -456,7 +456,7 @@ func waitForNextRPCBlock(client *rpcclient.Client, interrupt <-chan struct{}, ha
 }
 
 // getRPCNumberOfBlocks returns the number of blocks currently processed by the RPC client
-func getRPCNumberOfBlocks(client *rpcclient.Client) (uint64, error) {
+func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	rpcInfo, err := client.GetBlockChainInfo()
 	if err != nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -470,7 +470,7 @@ func getRPCNumberOfBlocks(client *rpcclient.Client) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
+func getInitialState(dgraph *dgo.Dgraph, client external.RPCClient, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if state.id, err = getStartingId(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -492,8 +492,8 @@ func getInitialState(dgraph *dgo.Dgraph, client *rpcclient.Client, continuous bo
 	return
 }
 
-// processes all blocks from startingBlockId to stoppingBlockId
-func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client,
+// ProcessBlockRange processes all blocks from startingBlockId to stoppingBlockId
+func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient,
 	startingBlockId uint64, stoppingBlockId uint64, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
@@ -573,7 +573,7 @@ mainLoop:
 	return nil
 }
 
-// prints the given metrics
+// printMetrics prints the given metrics
 func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
 		info("Last Block:", state)
@@ -588,8 +588,8 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 	}
 }
 
-// processes all blocks provided by the RPC client continuously
-func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client, config Config) error {
+// ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
+func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -694,7 +694,7 @@ mainLoop:
 }
 
 // creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client *rpcclient.Client, transactions []string) (map[string]btcjson.TxRawResult, error) {
+func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
 	txs := make(map[string]btcjson.TxRawResult)
 	for _, t := range transactions {
 		txHash, err := chainhash.NewHashFromStr(t)
@@ -715,7 +715,7 @@ func createTransactionHashmap(client *rpcclient.Client, transactions []string) (
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client *rpcclient.Client, state crawlerProcessingState,
+func ProcessRound(dgraph *dgo.Dgraph, client external.RPCClient, state crawlerProcessingState,
 	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
 	blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping

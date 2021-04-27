@@ -3,7 +3,7 @@
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8" v-for="tx in data" :key="tx.txhash+tx.bid">
         <v-card class="elevation-4">
-          <v-toolbar :color="tx.privacytype?'purple':'primary'" dark flat>
+          <v-toolbar :color="tx.privacytype>=0?'purple':'primary'" dark flat>
             <v-toolbar-title>
               <v-icon>{{ icon.mdiTransfer }}</v-icon>
               Transaction {{ tx.txhash }}
@@ -11,7 +11,7 @@
             <v-spacer></v-spacer>
             <v-btn
                 id="btn_open_heuristic_editor"
-                v-if="tx.privacytype === 'destination' && showHeuristicEditor"
+                v-if="isDestination(tx.privacytype) && showHeuristicEditor"
                 style="margin-right: 0" outlined icon
                 @click="goToHeuristicPage">
               <v-icon>{{ icon.mdiGraph }}</v-icon>
@@ -80,6 +80,18 @@
                 <v-col>
                   <IconItem :icon="icon.mdiPound" title="Number of inputs">
                     {{ !tx.inputs ? 0 : tx.inputs.length }}
+                  </IconItem>
+                </v-col>
+              </v-row>
+              <v-row v-if="getPrivacyTypeLabel(tx.privacytype)">
+                <v-col>
+                  <IconItem :icon="icon.mdiIncognito" title="Privacy Type">
+                    {{ getPrivacyTypeLabel(tx.privacytype) }}
+                  </IconItem>
+                </v-col>
+                <v-col v-if="isMixing(tx.privacytype)">
+                  <IconItem :icon="icon.mdiCircleMultipleOutline" title="Mixing Denomination">
+                    {{ getMixingLabel(tx.privacytype) }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -167,9 +179,12 @@
 import {
   mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
   mdiCash, mdiFormatHeaderPound, mdiPound, mdiCurrencyUsdCircleOutline,
-  mdiCurrencyUsdCircle,
+  mdiCurrencyUsdCircle, mdiIncognito, mdiCircleMultipleOutline,
 } from '@mdi/js';
-import { shortenHash, convertAmount, getCurrentDate } from '../../utilities';
+import {
+  shortenHash, convertAmount, getCurrentDate, isDestination, getPrivacyTypeLabel, isMixing,
+  getMixingLabel,
+} from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
   ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_ADDRESS_PAGE,
@@ -191,6 +206,8 @@ export default {
         mdiPound,
         mdiCurrencyUsdCircleOutline,
         mdiCurrencyUsdCircle,
+        mdiIncognito,
+        mdiCircleMultipleOutline,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
@@ -218,6 +235,10 @@ export default {
   methods: {
     shortenHash,
     convertAmount,
+    isDestination,
+    getPrivacyTypeLabel,
+    isMixing,
+    getMixingLabel,
     goToHeuristicPage() {
       this.$router.push({ name: ROUTE_NAME_HEURISTIC_PAGE });
     },

@@ -75,32 +75,56 @@ func main() {
 		return
 	}
 
-	info("lookupdoneflag migration starting ...")
-	if err := db.AlterSchemaAddReverseLookupDoneFlag(dgraph); err != nil {
+	info("classifier migration starting ...")
+	if err := db.AlterSchemaAddClassifier(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("lookupdoneflag migration done")
+	info("classifier migration done")
 
-	info("removing old script predicate ...")
-	if err := db.AlterSchemaRemoveScript(dgraph); err != nil {
+	info("privacytype deletion starting ...")
+	if err := db.DropAllPrivacyTypes(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("removing old script predicate done")
+	info("privacytype deletion done")
 
-	info("adding new script preditate starting ...")
-	if err := db.AlterSchemaAddScripts(dgraph); err != nil {
+	info("privacytype migration starting ...")
+	if err := db.AlterSchemaChangePrivacyTypePredicate(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("adding new script preditate  done")
+	info("privacytype migration done")
 
-	info("user heuristics migration starting ...")
-	if err := db.AlterSchemaAddUserHeuristics(dgraph); err != nil {
-		info(err)
-		return
-	}
-	info("user heuristics migration done")
+	// ---------------- ORIGINS
 
+	//info("origins deletion starting ...")
+	//if err := db.DropAllOrigins(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("origins deletion done")
+	//
+	//info("origins migration starting ...")
+	//if err := db.AlterSchemaAddOriginsPredicate(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("origins migration done")
+
+	// ---------------- CHECKPOINTS
+
+	//info("checkpoint deletion starting ...")
+	//if err := db.DropAllCheckpoints(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("checkpoint deletion done")
+	//
+	//info("checkpoint migration starting ...")
+	//if err := db.AlterSchemaAddCheckpoints(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("checkpoint migration done")
 }

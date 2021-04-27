@@ -99,10 +99,10 @@ If the new flag needs some **simple** input verification, implement it in this m
 | disableserver | false | Disable the http server (default: false) |
 | disablecrawler | false | Disable the crawler (default: false) |
 | disableanalyzer | false | Disable the analyzer (default: false) |
+| disableclassifier | false | Disable the classifier (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |
-| txsearch | < empty string > | Last PrivateSend transaction hash (default: none) |
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |
-| addrcluster | < empty string > | Create cluster for the given address (default: none) |
 | btc | false | Select Bitcoin mode (default: false) |
 | dash | false | Select Dash mode (default: false) |
 | doge | false | Select Dogecoin mode (default: false) |
+| chartdir | < empty string > | Output directory for charts (default: none) |

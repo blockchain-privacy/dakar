@@ -3,10 +3,12 @@ package main
 import (
 	"backend/analytics"
 	heuristic "backend/analytics/heuristics/transaction"
+	"backend/blockIterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
 	dbus "backend/db/user"
+	"backend/external"
 	"backend/processor"
 	"backend/server"
 	"context"
@@ -58,8 +60,8 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.HttpServerPort, cli.DBPort,
-		cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
+		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.DisableClassifier,
+		cli.HttpServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -125,7 +127,7 @@ func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
 }
 
 // waitForRPCClient waits until the RPC client is ready to receive requests
-func waitForRPCClient(client *rpcclient.Client) bool {
+func waitForRPCClient(client external.RPCClient) bool {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 
@@ -227,6 +229,11 @@ func main() {
 	// disable analyzing if it is disabled per configuration
 	if !analyserConfig.IsAnalysingEnabled {
 		cliArgs.DisableAnalyzer = true
+	}
+
+	// disable classifying if it is disabled per configuration
+	if !analyserConfig.IsClassifyingEnabled {
+		cliArgs.DisableClassifier = true
 	}
 
 	info(processorConfig.BlockchainName, "mode active")
@@ -371,9 +378,11 @@ func main() {
 
 	crawlerContext, cancelCrawler := context.WithCancel(context.Background())
 	analyzerContext, cancelAnalyzer := context.WithCancel(context.Background())
+	classifierContext, cancelClassifier := context.WithCancel(context.Background())
 
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
+	chClassifyingStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
 	var wg sync.WaitGroup
@@ -408,8 +417,34 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			if analyserErr := analytics.StartAnalysis(analyzerContext, dgraph, analyserConfig); analyserErr != nil {
+			analyzer := analytics.NewAnalyzer(analyzerContext, dgraph, analyserConfig)
+
+			// todo remove
+			//go func() {
+			//	for i := 0; i < 30; i++ {
+			//		time.Sleep(time.Second * 5)
+			//		info(analyzer.AddToQueue(strconv.Itoa(i)))
+			//	}
+			//}()
+
+			if analyserErr := blockIterator.StartIteration(analyzer); analyserErr != nil {
 				info(analyserErr)
+			}
+		}()
+	}
+
+	// activate classifier
+	if !cliArgs.DisableClassifier {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chClassifyingStopped <- true
+			}()
+
+			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+				classifierContext, dgraph, analyserConfig)); classifierErr != nil {
+				info(classifierErr)
 			}
 		}()
 	}
@@ -423,14 +458,16 @@ func main() {
 
 	var crawlerStopped bool
 	var analyzerStopped bool
+	var classifierStopped bool
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && analyzerStopped)) {
+	for !(interrupted || (crawlerStopped && analyzerStopped && classifierStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
 			cancelCrawler()
 			cancelAnalyzer()
+			cancelClassifier()
 			srv.ShutdownServer()
 		case <-chCrawlingStopped:
 			cancelCrawler()
@@ -438,11 +475,15 @@ func main() {
 		case <-chAnalyzingStopped:
 			cancelAnalyzer()
 			analyzerStopped = true
+		case <-chClassifyingStopped:
+			cancelClassifier()
+			classifierStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped {
-		// if the crawler and analyzer stopped working on there own accord, the server is still active at this point
+	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped && classifierStopped {
+		// if the crawler, analyzer and classifier stopped working on
+		// there own accord, the server is still active at this point
 		select {
 		case <-chSignal:
 			srv.ShutdownServer()

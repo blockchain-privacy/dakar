@@ -2,7 +2,7 @@
 
 ## Info
 
-This is a Dash transaction processor, written in Go.
+This is a blockchain transaction analyser, written in Go. The current main focus is on Dash.
 
 ## Dependencies
 
@@ -25,7 +25,6 @@ Only log if there is an error. Do not log metrics.
 
 Branches
 * `master` - main stable dev branch, must compile and should work.
-* `production` - deployed branch, no work/commits should be done in here.
 *  feature branches - main mechanism for new work.
 
 ## Start
@@ -37,10 +36,6 @@ dashd -rpcuser=rpc1user -rpcpassword=1234pass
 ```
 
 ### Setup Dgraph
-* Download submodules
-```shell script
-git submodule update --init --recursive
-```
 * Change to the `docker` directory and create a new external docker network
 ```shell script
 cd <project_dir>/backend/docker
@@ -53,14 +48,14 @@ docker network create dgraph_default
 ### Setup Crawler
 * Build the `crawler`
 ```shell script
-cd <project_dir>/backend
-go build ./cmd/crawler
+cd <project_dir>/backend/cmd/crawler
+go build .
 ```
 
 * Launch the crawler with the following command
 ```shell script
-# -reset will delete all data on the dgraph instance and setup a new schema
-./crawler -dash -continuous -reset -startserver
+# -reset will delete all data of the dgraph instance and setup a new schema
+./crawler -dash -continuous -reset
 ```
 * The REST API can be accessed via the address printed in the standard output.
 Check the [crawler description](cmd/crawler/Readme.md) for more details. 
@@ -87,13 +82,3 @@ App running at:
 - Local:   http://localhost:8082/ 
 - Network: http://<your-private-ip>:8082/
 ```
-
-## Screenshots
-
-Entry page
-
-![Entry page screenshot](../data/screenshots/EntryPage.png)
-
-Block page
-
-![Block page screenshot](../data/screenshots/BlockPage.png)

@@ -1,14 +1,21 @@
 package main
 
 import (
-	heuristic "backend/analytics/heuristics/transaction"
 	cli "backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
-
+	"backend/db/analytics"
 	"errors"
 	"flag"
 	"fmt"
+
 	"log"
+	"os"
+	"sort"
+	"time"
+
+	"github.com/wcharczuk/go-chart/v2"
+	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 var thisLogger *log.Logger
@@ -22,22 +29,33 @@ func info(v ...interface{}) {
 
 // setup cli
 func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.TxSearch, cli.Logfile, cli.TxInfo, cli.ClusterAddr, cli.DBPort, cli.DBHost)
+	cliArgs, err = cli.BuildArgs(cli.Logfile, cli.DBPort, cli.DBHost, cli.ChartDir)
 
 	if err != nil {
 		flag.PrintDefaults()
 		return cliArgs, err
 	}
 
-	if len(cliArgs.TxInfo) == 0 && len(cliArgs.TxSearch) == 0 && len(cliArgs.ClusterAddr) == 0 {
+	if len(cliArgs.ChartDir) == 0 {
 		flag.PrintDefaults()
-		return cliArgs, errors.New("provide one input hash")
+		return cliArgs, errors.New("specify output directory for charts")
 	}
 
 	return cliArgs, err
 }
 
-// Simple utility to browse/lookup the TXs from the database
+type dur struct {
+	label string
+	d     time.Duration
+	sma   bool
+}
+
+type privacyTypePair struct {
+	label string
+	start string
+	stop  string
+}
+
 func main() {
 
 	cliArgs, err := getExplorerCLIArgs()
@@ -71,81 +89,139 @@ func main() {
 		}
 	}()
 
-	if len(cliArgs.TxSearch) > 0 {
-		//interestTransaction := "6c3786e2a7b10319b2613236c3f5dbe0179d28e626989279b10c774c8bafeba1"
+	if len(cliArgs.ChartDir) > 0 {
 
-		// test transactions upper part
-		//testOneSource := "cfb95252da737464c9b37fcd294e1b19b3903b84ae7dd7a045bcb9765c0fb570"
-
-		//test transactions lower part
-		//twoSources := "78d7d55ecd30c78ea91bffdff536e9c4476d44aa1e2d874663cfba3a547a0eef"
-		//fourSources := "cc48f524a5201715428d25dc79a362a5a0fb21747370f224ca5cd2dc1e616862"
-		//threeSources := "f0db46cc9ca20502bd8265df9b201b38337511d825a3ffe93bdb708ddbc85b01"
-		oneSource := "cdfa16675b1320f84d4bb3569e295cb00bdb2372967eba475785f582a01de05b"
-
-		for i := 2; i < 3; i++ {
-			hours := uint32(i * 24)
-
-			typeHX := heuristic.BuildExecutor(heuristic.NewDenominationTypeHeuristic())
-			matchHX := heuristic.BuildExecutor(heuristic.NewPerfectMatchHeuristic())
-			amountHX := heuristic.BuildExecutor(heuristic.NewAmountHeuristic(), matchHX, typeHX)
-			oneSourceHX := heuristic.BuildExecutor(heuristic.NewOneSourceHeuristic(hours), amountHX)
-
-			if err := oneSourceHX.RunAsync(dgraph, oneSource, ""); err != nil {
-				log.Println(err)
-				return
-			}
+		privacyTypes := []privacyTypePair{
+			{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
+			//{label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
+			//{label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
+			//{label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
+			//{label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
+			//{label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
+			{label: "origin", start: constants.StrPrivacyOriginFirst, stop: constants.StrPrivacyOriginLast},
+			{label: "destination", start: constants.StrPrivacyDestinationFirst,
+				stop: constants.StrPrivacyDestinationLast},
+			{label: "collateral creation", start: constants.StrPrivacyCollateralCreationFirst,
+				stop: constants.StrPrivacyCollateralCreationLast},
+			{label: "collateral payment", start: constants.StrPrivacyCollateralPaymentFirst,
+				stop: constants.StrPrivacyCollateralPaymentLast},
+			{label: "all", start: "0", stop: "500"},
 		}
 
-		//if err := oneSourceHX.Run(dgraph, oneSource, ""); err != nil {
-		//	log.Println(err)
-		//	return
-		//}
-		//
-		//log.Println("----------")
+		durations := []dur{
+			//{label: "block", d: 1},
+			{label: "day", d: time.Hour * 24, sma: true},
+			//{label: "7 days", d: time.Hour * 24 * 7},
+		}
 
-		//log.Println("----------")
-		//if err := oneSourceHX.Run(dgraph, threeSources, ""); err != nil {
-		//	log.Println(err)
-		//	return
-		//}
-		//log.Println("----------")
-		//if err := oneSourceHX.Run(dgraph, fourSources, ""); err != nil {
-		//	log.Println(err)
-		//	return
-		//}
+		for _, privacyType := range privacyTypes {
+			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)
+			if dbErr != nil {
+				info(err)
+				return
+			}
 
-		// heuristic evaluation
-		//cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, oneSource)
-		//if err != nil {
-		//	log.Println(err)
-		//	return
-		//}
-		//log.Println("Analysed transactions:", cHeuristic.Uid, cHeuristic.Timestamp)
-		//
-		//inputTransactions, err := transaction.GetInputTransactions(dgraph, interestTransaction)
-		//if err != nil {
-		//	log.Println(err)
-		//	return
-		//}
-		//
-		//for _, it := range inputTransactions {
-		//	log.Println(it, it.Timestamp)
-		//}
-		//
-		//for _, h := range cHeuristic.Heuristics {
-		//
-		//	for _, r := range h.Results {
-		//		pathLen, err := transaction.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
-		//		if err != nil {
-		//			log.Println(err)
-		//			return
-		//		}
-		//		log.Println("path length:", pathLen)
-		//	}
-		//}
-
-	} else if len(cliArgs.ClusterAddr) > 0 {
-		log.Println("Clustering is not yet implemented")
+			createCharts(durations, ts, cliArgs.ChartDir, privacyType.label)
+		}
 	}
+}
+
+func findMaximum(data map[time.Time]int) (ts time.Time, maxVal int) {
+	for k, v := range data {
+		if v > maxVal {
+			ts = k
+			maxVal = v
+		}
+	}
+
+	return
+}
+
+func createCharts(durations []dur, ts []time.Time, dir string, privacyType string) {
+	if len(ts) == 0 {
+		return
+	}
+
+	for _, d := range durations {
+		timeMap := make(map[time.Time]int)
+		for _, t := range ts {
+			timeMap[t.Truncate(d.d)] = timeMap[t.Truncate(d.d)] + 1
+		}
+		maxTs, maxVal := findMaximum(timeMap)
+		info(privacyType, "maximum count:", maxTs, maxVal)
+
+		chartErr := drawChart(dir, timeMap, privacyType, d.label, d.sma)
+		if chartErr != nil {
+			info(chartErr)
+			return
+		}
+	}
+}
+
+func drawChart(dir string, data map[time.Time]int, chartName string, durationLabel string, sma bool) error {
+	if len(dir) == 0 {
+		return errors.New("chart directory is empty")
+	}
+
+	if len(chartName) == 0 {
+		return errors.New("chart name is empty")
+	}
+
+	file, err := os.Create(dir + "/" + chartName + "_" + durationLabel + ".png")
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = file.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	type dataPoint struct {
+		ts    time.Time
+		count int
+	}
+
+	var timeData []dataPoint
+
+	for k, v := range data {
+		timeData = append(timeData, dataPoint{
+			ts:    k,
+			count: v,
+		})
+	}
+
+	sort.Slice(timeData, func(i, j int) bool {
+		return timeData[i].ts.Before(timeData[j].ts)
+	})
+
+	var series chart.TimeSeries
+
+	for _, t := range timeData {
+		series.XValues = append(series.XValues, t.ts)
+		series.YValues = append(series.YValues, float64(t.count))
+	}
+
+	allSeries := []chart.Series{series}
+
+	if sma {
+		allSeries = append(allSeries, chart.SMASeries{
+			Style: chart.Style{
+				StrokeColor: drawing.ColorRed,
+				StrokeWidth: 2.0,
+			},
+			InnerSeries: series,
+		})
+	}
+
+	graph := chart.Chart{
+		Title:  "Number of '" + chartName + "' privacy transactions per " + durationLabel,
+		Height: 1080,
+		Width:  1920,
+		Series: allSeries,
+	}
+
+	return graph.Render(chart.PNG, file)
 }

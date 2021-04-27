@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   zero:
-    image: dgraph/dgraph:v20.11.2
+    image: dgraph/dgraph:v21.03.0
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -10,12 +10,12 @@ services:
       - ${CONTAINER_IP}:5080:5080
       - ${CONTAINER_IP}:6080:6080
     restart: ${RESTART_POLICY}
-    command: dgraph zero --my=zero:5080 --enable_sentry=false
+    command: dgraph zero --my=zero:5080 --telemetry "reports=false; sentry=false"
     networks:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v20.11.2
+    image: dgraph/dgraph:v21.03.0
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -25,12 +25,12 @@ services:
     expose:
       - 9080
     restart: ${RESTART_POLICY}
-    command: dgraph alpha --my=alpha:7080 --zero=zero:5080 --whitelist 172.17.0.0:172.25.0.255,192.168.188.0:192.168.188.255 --query_edge_limit 10000000 --enable_sentry=false
+    command: dgraph alpha --my=alpha:7080 --zero=zero:5080 --security "whitelist=192.168.188.0:192.168.188.255" --limit "query-edge=10000000" --telemetry "reports=false; sentry=false"
     networks:
       - dgraph_default
 
   ratel:
-    image: dgraph/dgraph:v20.11.2
+    image: dgraph/dgraph:v20.11.3
     container_name: ratel
     ports:
       - ${CONTAINER_IP}:8000:8000

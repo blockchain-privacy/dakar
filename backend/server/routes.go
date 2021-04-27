@@ -5,11 +5,10 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	dbaddr "backend/db/address"
-	dban "backend/db/analytics"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
-	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 
 	"context"
 	"encoding/csv"
@@ -17,25 +16,17 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/ed25519"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
-
-	"github.com/btcsuite/btcd/rpcclient"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/ristretto"
 )
 
-const (
-	maxOrigins = 1000
-)
-
 var (
-	errorPath               = "error getting paths"
 	errorHeuristicSummary   = "error getting heuristic summary"
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
@@ -212,7 +203,7 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph *dgo.Dgraph,
-	client *rpcclient.Client) func(string, []byte) ([]byte, error) {
+	client external.RPCClient) func(string, []byte) ([]byte, error) {
 	return func(query string, body []byte) (response []byte, err error) {
 		// async request rpc info
 		futureBlockchainInfo := client.GetBlockChainInfoAsync()
@@ -251,88 +242,6 @@ func handlerMeta(dgraph *dgo.Dgraph,
 
 		return
 	}
-}
-
-var lock sync.Mutex
-
-// API pattern: "/api/v1/paths/"
-func handlerPaths(dgraph *dgo.Dgraph) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		txHashString := r.URL.Path[len(constants.GetRouteOrigins()):]
-
-		if !isValid(txHashString) {
-			http.Error(w, errorPath, http.StatusNotFound)
-			return
-		}
-
-		originCount, err := dban.GetOriginCount(dgraph, txHashString)
-		if err != nil {
-			http.Error(w, errorPath, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-
-		// returned data is getting to big
-		if originCount > maxOrigins {
-			http.Error(w, "getting paths is only supported up to "+strconv.Itoa(maxOrigins)+" origins", http.StatusNotFound)
-			return
-		}
-
-		lock.Lock()
-		paths, transactions, err := dban.GetPaths(dgraph, txHashString)
-		if err != nil {
-			http.Error(w, errorPath, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-		lock.Unlock()
-
-		if len(paths) == 0 {
-			http.Error(w, errorPath, http.StatusNotFound)
-			return
-		}
-
-		// headers for streaming data to client
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
-		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-		w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
-
-		csvWriter := csv.NewWriter(w)
-		csvWriter.Comma = ';'
-
-		header := []string{"path id", "path step", "tx hash", "type", "block hash", "block height", "timestamp"}
-		if err = csvWriter.Write(header); err != nil {
-			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), err)
-		}
-
-		for i, p := range paths {
-			for j, e := range p {
-				tx := transactions[e.Hash]
-				var row []string
-				row = append(row, strconv.Itoa(i+1))
-				row = append(row, strconv.Itoa(j+1))
-				row = append(row, e.Hash)
-
-				if e.IsOrigin {
-					row = append(row, dbtx.PrivacyOrigin)
-				} else {
-					row = append(row, dbtx.PrivacyMixing)
-				}
-
-				row = append(row, tx.BlockHash)
-				row = append(row, strconv.FormatUint(tx.BlockId, 10))
-				row = append(row, tx.BlockTimestamp)
-				if err = csvWriter.Write(row); err != nil {
-					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
-				}
-			}
-			csvWriter.Flush()
-		}
-	})
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
@@ -774,7 +683,7 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 		setCacheHeader(w, ttl)
 
 		// extract body
-		body, err := ioutil.ReadAll(r.Body)
+		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			handleError(w, err)
 			return
@@ -809,7 +718,7 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Client) {
+func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient) {
 	// get signing keys
 
 	privkey, pubkey, err := GetSigningKeysFromEnv()
@@ -852,13 +761,6 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client *rpcclient.Cl
 	// Meta
 	http.HandleFunc(constants.GetRouteMeta(),
 		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
-
-	// Origins
-
-	// Analytics
-	http.Handle(constants.GetRouteOrigins(),
-		Adapt(handlerPaths(dgraph),
-			authorizationMiddleware(constants.GetRouteOrigins(), privkey, pubkey)))
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),

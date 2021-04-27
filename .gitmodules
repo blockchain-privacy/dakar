@@ -1,9 +1,0 @@
-[submodule "backend/btcsuite/btcd"]
-	path = backend/btcsuite/btcd
-	url = https://github.com/decfi/btcd.git
-[submodule "backend/btcsuite/btclog"]
-	path = backend/btcsuite/btclog
-	url = https://github.com/decfi/btclog.git
-[submodule "backend/btcsuite/btcutil"]
-	path = backend/btcsuite/btcutil
-	url = https://github.com/decfi/btcutil.git

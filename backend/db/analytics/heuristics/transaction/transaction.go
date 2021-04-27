@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	dbtx "backend/db/transaction"
 	"context"
@@ -208,15 +209,7 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
 func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
-	// build uid list in this form: [uid1,uid2]
-	uidList := "["
-	for i, uid := range uids {
-		uidList += uid
-		if i+1 < len(uids) {
-			uidList += ","
-		}
-	}
-	uidList += "]"
+	uidList := db.CreateUidList(uids)
 
 	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
 		"@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type))}"
@@ -521,7 +514,8 @@ func GetDestinationTxOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicT
 
 				var (func: uid(tx)){
 					tx_inputs {
-						c as ~tx_outputs@filter(eq(privacytype, "origin"))
+						c as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
 					}
 				}
 				
@@ -594,7 +588,7 @@ func areALLAddressesEqual(addresses []string) bool {
 	return true
 }
 
-// Returns the input transactions of the given transaction
+// GetInputTransactions returns the input transactions of the given transaction
 func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
@@ -699,14 +693,7 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 
 // DoesHeuristicUidExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
 func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
-	uidList := "["
-	for i, uid := range uids {
-		uidList += uid
-		if i+1 < len(uids) {
-			uidList += ","
-		}
-	}
-	uidList += "]"
+	uidList := db.CreateUidList(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
 				# get tx uid
@@ -840,6 +827,32 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 		return
 	}
 
+	type mapKey struct {
+		txHash  string
+		address string
+	}
+
+	results := r.Heuristics[0].Results
+	var filteredResults []FrontendHeuristicResult
+	txAddressMap := make(map[mapKey]bool)
+
+	for _, result := range results {
+		k := mapKey{
+			txHash:  result.TxHash,
+			address: result.AddressHash,
+		}
+
+		// check if the address and tx combination already exists
+		if txAddressMap[k] {
+			continue
+		}
+
+		txAddressMap[k] = true
+		filteredResults = append(filteredResults, result)
+	}
+
+	r.Heuristics[0].Results = filteredResults
+
 	frontendHeuristic = r.Heuristics[0]
 
 	return
@@ -940,7 +953,8 @@ func GetShortestPathLength(c *dgo.Dgraph, fromUid string, toUid string) (pathLen
 	query := fmt.Sprintf(`{
 				shortest(from: %s, to: %s){
 					tx_inputs
-					~tx_outputs@filter(eq(privacytype, ["mixing","origin"]))
+					~tx_outputs@filter(between(privacytype,0,`+constants.StrPrivacyMixingLast+
+		`) or between(privacytype,`+constants.StrPrivacyOriginFirst+","+constants.StrPrivacyOriginLast+`))
 				}
 			  }`, fromUid, toUid)
 

@@ -1,18 +1,13 @@
 package transaction
 
 import (
+	"backend/constants"
 	op "backend/db/output"
-
 	"errors"
 	"fmt"
 )
 
-const (
-	DType              = "Transaction"
-	PrivacyOrigin      = "origin"
-	PrivacyMixing      = "mixing"
-	PrivacyDestination = "destination"
-)
+const DType = "Transaction"
 
 var (
 	ErrorTransactionNotFound = errors.New("no transaction found")
@@ -21,7 +16,7 @@ var (
 
 type Transaction struct {
 	Uid         string        `json:"uid,omitempty"`
-	PrivacyType string        `json:"privacytype,omitempty"`
+	PrivacyType *int          `json:"privacytype,omitempty"`
 	Fee         *int64        `json:"fee,omitempty"`
 	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
@@ -52,42 +47,7 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
 
-func (t *Transaction) SetPrivacyOrigin() {
-	t.PrivacyType = PrivacyOrigin
-}
-
-func (t *Transaction) SetMixing() {
-	t.PrivacyType = PrivacyMixing
-}
-
-func (t *Transaction) SetPrivacyDestination() {
-	t.PrivacyType = PrivacyDestination
-}
-
-// checks if the given transaction has all attributes filled
-func (t Transaction) IsComplete() bool {
-	return t.Uid != "" && t.Hash != "" && t.DType != nil
-}
-
-func (t Transaction) CountInputDenominations() [op.NumDenominations]int {
-	return op.CountOutputDenominations(t.Inputs)
-}
-
-func (t Transaction) CountOutputDenominations() [op.NumDenominations]int {
-	return op.CountOutputDenominations(t.Outputs)
-}
-
-// IsPrivacyOrigin checks if the TX creates denominations
-func (t Transaction) IsPrivacyOrigin(areAllInputAddressesEqual bool) bool {
-	return len(t.Inputs) >= 1 && areAllInputAddressesEqual && len(t.Outputs) > 2 && IsPrivacyTransaction(t.CountOutputDenominations())
-}
-
-// IsPrivacyDestination checks if the TX is the end receiver of a private send transaction
-func (t Transaction) IsPrivacyDestination() bool {
-	return len(t.Outputs) == 1 && len(t.Inputs) > 2 && IsPrivacyTransaction(t.CountInputDenominations())
-}
-
-// checks if the cumulative amount of inputs and outputs matches
+// CalculateTransactionFee checks if the cumulative amount of inputs and outputs matches
 func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountInputs int64
 	var amountOutputs int64
@@ -112,43 +72,20 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	return
 }
 
-func IsPrivacyTransaction(denom [op.NumDenominations]int) bool {
-	return denom[0] > 2 || denom[1] > 2 || denom[2] > 2 || denom[3] > 2 || denom[4] > 2
+func (t *Transaction) IsMixingTransaction() bool {
+	if t.PrivacyType == nil || *t.PrivacyType < 0 {
+		return false
+	}
+
+	return *t.PrivacyType <= constants.PrivacyMixingLast
 }
 
-// IsOneOrTwoOutputs checks if TX has only 1 or 2 outputs. Used for clustering.
-func (t Transaction) IsOneOrTwoOutput() bool {
-	return !t.IsMixing() &&
-		(len(t.Outputs) == 2 || len(t.Outputs) == 1)
-}
+func (t *Transaction) IsDestinationTransaction() bool {
+	if t.PrivacyType == nil || *t.PrivacyType < 0 {
+		return false
+	}
 
-// IsMixing checks if TX is mixing
-func (t Transaction) IsMixing() bool {
-	if len(t.Inputs) < 3 || len(t.Outputs) < 3 || len(t.Inputs) != len(t.Outputs) {
-		return false
-	}
-	denomIn := t.CountInputDenominations()
-	denomOut := t.CountOutputDenominations()
-	sum := 0
-	for _, v := range denomIn {
-		sum += v
-	}
-	if sum == 0 {
-		return false
-	}
-	sum = 0
-	for _, v := range denomIn {
-		sum += v
-	}
-	if sum == 0 {
-		return false
-	}
-	for i := range denomIn {
-		if denomIn[i] != denomOut[i] {
-			return false
-		}
-	}
-	return true
+	return *t.PrivacyType >= constants.PrivacyDestinationFirst && *t.PrivacyType <= constants.PrivacyDestinationLast
 }
 
 type transactionQuery struct {
@@ -184,7 +121,7 @@ type FrontendTransaction struct {
 	Hash           string           `json:"txhash,omitempty"`
 	BlockHash      string           `json:"bhash,omitempty"`
 	Fee            int64            `json:"fee"`
-	PrivacyType    string           `json:"privacytype,omitempty"`
+	PrivacyType    int64            `json:"privacytype,omitempty"`
 	BlockId        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
@@ -194,7 +131,7 @@ type FrontendTransaction struct {
 
 func (f FrontendTransaction) String() string {
 	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
-		"Fee: %d, Privacy type: %s, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
+		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/dgraph-io/dgo/v2/protos/api"
 )
 
-// Install a schema into dgraph.
+// SetupSchema installs a schema into dgraph
 func SetupSchema(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -24,6 +24,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
 			origins: [uid] @count @reverse .
+			checkpoints: [uid] @count @reverse .
 			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
 			h_transaction: uid @reverse .
@@ -37,7 +38,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 			amount: int .
 			fee: int .
 			iscoinbase: bool .
-			privacytype: string @index(hash) .
+			privacytype: int @index(int) .
 			isrlookupdone: bool @index(bool) .
 			keyasm: string @index(term) .
 			sigasm: string .
@@ -46,9 +47,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 
 			iscrawling: bool .
 			isanalyzing: bool .
+			isclassifying: bool .
 			lastblockid: int .
 			lowestblockid: int .
 			lastanalysedid: int . 
+			lastclassifiedid: int .
 
 			type: string @index(hash) .
 			parameter: string .
@@ -77,6 +80,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 				isrlookupdone
 				fee
 				origins
+				checkpoints
 				<~origins>
 				<~transactions>
 				tx_outputs
@@ -114,6 +118,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 				lastanalysedid
 			}
 
+			type ClassifierStatus {
+				isclassifying
+				lastclassifiedid
+			}
+
 			type TransactionHeuristic {
 				type
 				parameter
@@ -139,7 +148,7 @@ func SetupSchema(c *dgo.Dgraph) error {
 	})
 }
 
-// checks if a schema is set
+// IsSchemaSet checks if a schema is set
 func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	query := "schema(type: Block){}"
 	ctx, cancel := GetBackendContext()
@@ -170,10 +179,58 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	return
 }
 
-func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
+func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			isrlookupdone: bool @index(bool) .
+			isclassifying: bool .
+			lastclassifiedid: int .
+
+			type ClassifierStatus {
+				isclassifying
+				lastclassifiedid
+			}
+		`,
+	})
+}
+
+func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			privacytype: int @index(int) .
+		`,
+	})
+}
+
+func DropAllPrivacyTypes(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "privacytype",
+	})
+}
+
+func DropAllOrigins(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "origins",
+	})
+}
+
+func AlterSchemaAddOriginsPredicate(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			origins: [uid] @count @reverse .
+		`,
+	})
+}
+
+func DropAllCheckpoints(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "checkpoints",
+	})
+}
+
+func AlterSchemaAddCheckpoints(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			checkpoints: [uid] @count @reverse .
 
 			type Transaction {
 				txhash
@@ -181,60 +238,12 @@ func AlterSchemaAddReverseLookupDoneFlag(c *dgo.Dgraph) error {
 				isrlookupdone
 				fee
 				origins
+				checkpoints
 				<~origins>
 				<~transactions>
 				tx_outputs
 				tx_inputs
 			}
 		`,
-	})
-}
-
-func AlterSchemaAddScripts(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			keyasm: string @index(term) .
-			sigasm: string .
-			keyhex: string .
-			sighex: string .
-
-			type Output {
-				outputindex
-				inputindex
-				txtype
-				amount
-				iscoinbase
-				keyasm
-				sigasm
-				keyhex
-				sighex
-				<~tx_inputs>
-				<~tx_outputs>
-				<~addr_outputs>
-			}
-		`,
-	})
-}
-
-func AlterSchemaAddUserHeuristics(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			user_heuristics: [uid] @reverse .
-
-			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-				user_heuristics
-			}
-		`,
-	})
-}
-
-func AlterSchemaRemoveScript(c *dgo.Dgraph) error {
-	return c.Alter(context.Background(), &api.Operation{
-		DropAttr: "script",
 	})
 }

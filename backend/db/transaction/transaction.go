@@ -3,6 +3,9 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"errors"
+	"github.com/dgraph-io/dgo/v2/protos/api"
+	"strconv"
 	"time"
 
 	"encoding/json"
@@ -57,6 +60,116 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 	return r.payload()
 }
 
+// GetTransactionByBlock gets transaction information from the database by block id
+func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transaction, err error) {
+	const query = `query Q($block:string) {
+				var(func: eq(id, $block)){
+					txs as transactions
+		}
+
+				q(func: uid(txs)){
+					uid
+					txhash
+					fee
+					privacytype
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
+		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r transactionQuery
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = ErrorTransactionNotFound
+		return
+	}
+
+	transactions = r.Q
+
+	return
+}
+
+// GetOutputAddressCounts returns the number of distinct addresses associated with the inputs and outputs of the transaction uid
+func GetOutputAddressCounts(c *dgo.Dgraph, uid string) (inputCount uint32, outputcount uint32, err error) {
+	query := `query Q($uid: string){
+				var(func: uid($uid)){
+					tx_inputs {
+						~addr_outputs{
+							ia as addresshash
+						}
+					}
+					tx_outputs {
+						~addr_outputs{
+							oa as addresshash
+						}
+					}
+				}
+				input(func: uid(ia)){
+					count(uid)
+				}
+				output(func: uid(oa)){
+					count(uid)
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*1, query, map[string]string{"$uid": uid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Input []struct {
+			Count uint32 `json:"count,omitempty"`
+		} `json:"input,omitempty"`
+		Output []struct {
+			Count uint32 `json:"count,omitempty"`
+		} `json:"output,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Input) == 0 || len(r.Output) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		return
+	}
+
+	if len(r.Input) > 1 || len(r.Output) > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		return
+	}
+
+	inputCount = r.Input[0].Count
+	outputcount = r.Output[0].Count
+
+	return
+}
+
 // GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []FrontendTransaction, err error) {
 	query := `query Q($hash: string){
@@ -106,7 +219,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 	var r struct {
 		Transaction []struct {
 			Hash        string           `json:"txhash,omitempty"`
-			PrivacyType string           `json:"privacytype,omitempty"`
+			PrivacyType *int64           `json:"privacytype,omitempty"`
 			Fee         *int64           `json:"fee,omitempty"`
 			OriginCount *uint64          `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
@@ -141,9 +254,15 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 			fee = *t.Fee
 		}
 
+		// t.PrivacyType can be nil
+		pType := int64(-1)
+		if t.PrivacyType != nil {
+			pType = *t.PrivacyType
+		}
+
 		transactions = append(transactions, FrontendTransaction{
 			Hash:           t.Hash,
-			PrivacyType:    t.PrivacyType,
+			PrivacyType:    pType,
 			Fee:            fee,
 			OriginCount:    *t.OriginCount,
 			BlockHash:      t.Block[0].Hash,
@@ -202,7 +321,36 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 	return
 }
 
-// gets the number of transactions in the database
+// GetCount gets the number of transactions in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
+}
+
+// UpdateTransactions sends the given transaction updates to the database.
+// The transaction uids must be set.
+func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
+	for _, tx := range transactions {
+		if len(tx.Uid) == 0 {
+			return errors.New("error uid is not set for transaction")
+		}
+	}
+
+	pb, err := json.Marshal(transactions)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+
+	if err = db.TxWithRetry(c, time.Minute*5, req); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
 }
