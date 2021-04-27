@@ -14,11 +14,14 @@ import (
 	"time"
 )
 
-// DoClassification sets the privacy type for destination transactions in the given block and
+// ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block and
 // the origin privacy type for all transactions which are connected to mixing
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
-func DoClassification(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction,
+// Destination transactions are transactions which are connected to outputs of mixing transactions and at the
+// same time are not mixing transactions themself. Origin transactions are transactions which are connected to
+// inputs of mixing transactions and at the same time are not mixing transactions themself.
+func ClassifyDestinationAndOriginsByBlock(c *dgo.Dgraph, blockId uint64) (toClassify []dbtx.Transaction,
 	origins []dbtx.Transaction, err error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}

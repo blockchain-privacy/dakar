@@ -8,11 +8,13 @@ import (
 	op "backend/db/output"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+
 	"context"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"log"
+
+	"github.com/dgraph-io/dgo/v2"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -155,7 +157,7 @@ func getUids(txs []dbtx.Transaction) []string {
 func getConnectedCollaterals(dgraph *dgo.Dgraph, potentialCollateralTransactions []dbtx.Transaction,
 	blockHeight uint64) (originCC []dbtx.Transaction, originCP []dbtx.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
-		mixing, cc, cp, getErr := getPrivacyTransactions(dgraph, potentialCollateralTransactions)
+		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
 		if getErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 			return
@@ -215,7 +217,7 @@ func (a *Classifier) Iterate() (bool, error) {
 	}
 
 	// step 1: classify all transactions of the current block locally based on their own properties
-	mixingTransactions, ccTransactions, cpTransactions, err := getPrivacyTransactions(a.db, transactions)
+	mixingTransactions, ccTransactions, cpTransactions, err := classifyTransactions(a.db, transactions)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -236,7 +238,7 @@ func (a *Classifier) Iterate() (bool, error) {
 	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
 	// origins are set in step 2.2.2
-	potentialCollateralTransactions, foundOrigins, classErr := analytics.DoClassification(a.db, a.state.Id)
+	potentialCollateralTransactions, foundOrigins, classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
 	if classErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
 	}
@@ -407,7 +409,7 @@ func newCollateralPaymentTransaction(uid string) dbtx.Transaction {
 }
 
 // isMixing checks if the transactions is a mixing transaction
-// -1: not a mixing transation
+// -1: not a mixing transaction
 // 0-4: denomination type
 func isMixing(t dbtx.Transaction) (denominationIndex int) {
 	denominationIndex = -1
@@ -465,9 +467,9 @@ func hasValidPrivacyType(tx dbtx.Transaction) bool {
 	return t != nil && *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
 }
 
-// getPrivacyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
+// classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
-func getPrivacyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
+func classifyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
 	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
