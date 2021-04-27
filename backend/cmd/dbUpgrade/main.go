@@ -96,6 +96,8 @@ func main() {
 	}
 	info("privacytype migration done")
 
+	// ---------------- ORIGINS
+
 	//info("origins deletion starting ...")
 	//if err := db.DropAllOrigins(dgraph); err != nil {
 	//	info(err)
@@ -110,6 +112,15 @@ func main() {
 	//}
 	//info("origins migration done")
 
+	// ---------------- CHECKPOINTS
+
+	//info("checkpoint deletion starting ...")
+	//if err := db.DropAllCheckpoints(dgraph); err != nil {
+	//	info(err)
+	//	return
+	//}
+	//info("checkpoint deletion done")
+	//
 	//info("checkpoint migration starting ...")
 	//if err := db.AlterSchemaAddCheckpoints(dgraph); err != nil {
 	//	info(err)
