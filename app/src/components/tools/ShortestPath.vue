@@ -101,7 +101,7 @@ import {
   mdiChartTimelineVariant, mdiInformation, mdiInformationOutline,
 } from '@mdi/js';
 import {
-  doPost, handleError, shortenHash, getPrivacyTypeLabel,
+  doPost, handleError, getPrivacyTypeLabel,
 } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_SHORTEST_TRANSACTION_PATH,
@@ -134,7 +134,6 @@ export default {
   },
   methods: {
     getPrivacyTypeLabel,
-    shortenHash,
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
