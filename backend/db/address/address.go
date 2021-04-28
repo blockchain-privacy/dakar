@@ -153,13 +153,10 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 			Count int64 `json:"count"`
 		} `json:"co"`
 		InputSum []struct {
-			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
-			// Because of this we have to first save it as a string and after that convert it to an int64.
-			// Can be reversed if https://github.com/dgraph-io/dgraph/pull/7176 is merged
-			Sum json.Number `json:"sum"`
+			Sum int64 `json:"sum"`
 		} `json:"input_sum"`
 		OutputSum []struct {
-			Sum json.Number `json:"sum"`
+			Sum int64 `json:"sum"`
 		} `json:"output_sum"`
 	}
 
@@ -182,27 +179,13 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return
 	}
 
-	// try to convert input sum to int64
-	inputSum, conversionErr := convertJsonNumber(r.InputSum[0].Sum)
-	if conversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
-		return
-	}
-
-	// try to convert output sum to int64
-	outputSum, conversionErr := convertJsonNumber(r.OutputSum[0].Sum)
-	if conversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
-		return
-	}
-
 	addr = FrontendAddress{
 		Hash:          addrHash,
 		QueryMaxCount: r.QueryMaxCount[0].Count,
 		InputCount:    r.InputCount[0].Count,
 		OutputCount:   r.OutputCount[0].Count,
-		InputSum:      inputSum,
-		OutputSum:     outputSum,
+		InputSum:      r.InputSum[0].Sum,
+		OutputSum:     r.OutputSum[0].Sum,
 		Outputs:       r.Outputs,
 		CoinbaseCount: r.CoinbaseCount[0].Count,
 	}
@@ -210,24 +193,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	return
 }
 
-// convertJsonNumber tries to convert num to an int64
-func convertJsonNumber(num json.Number) (number int64, err error) {
-	number, intErr := num.Int64()
-	if intErr != nil {
-		// also accept float 0.000
-		floatInputSum, floatErr := num.Float64()
-		if floatErr != nil || floatInputSum != 0 {
-			err = errors.New("could not convert json.Number to int64")
-			return
-		}
-
-		number = int64(floatInputSum)
-	}
-
-	return
-}
-
-// upserts addresses
+// UpsertAddresses upserts addresses
 func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 	if addresses == nil {
 		return errors.New("got null pointer for addresses")
@@ -278,7 +244,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 	return db.TxWithRetry(c, time.Minute*3, req)
 }
 
-// gets the number of addresses in the database
+// GetCount gets the number of addresses in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }
