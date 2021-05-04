@@ -14,7 +14,8 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// GetTransaction gets transaction information from the database
+// GetTransaction gets transaction information from the database.
+// Use this function if duplicate transaction hashes can not be tolerated.
 func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction Transaction, err error) {
 	query := `query Q($tx:string,$block:string) {
 				blk as var(func: eq(blockhash, $block))
@@ -353,4 +354,71 @@ func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
 	}
 
 	return err
+}
+
+// GetTransactionUid returns the uid of the given transaction
+func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
+	query := `query Q($tx:string) {
+				q(func: eq(txhash, $tx)){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+		map[string]string{"$tx": txHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			Uid string `json:"uid"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) != 1 {
+		err = errors.New("received invalid transaction")
+		return
+	}
+
+	uid = r.Q[0].Uid
+
+	return
+}
+
+// GetTransactionByUid returns the transaction hash of the given uid
+func GetTransactionByUid(c *dgo.Dgraph, uid string) (transactionHash string, err error) {
+	query := `query Q($uid:string) {
+				q(func: uid($uid)){
+					txhash
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+		map[string]string{"$uid": uid})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			TransactionHash string `json:"txhash"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	transactionHash = r.Q[0].TransactionHash
+	return
 }

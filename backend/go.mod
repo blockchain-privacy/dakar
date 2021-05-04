@@ -11,6 +11,7 @@ require (
 	github.com/wcharczuk/go-chart/v2 v2.1.0
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
+	gonum.org/v1/gonum v0.9.1
 	google.golang.org/grpc v1.30.0
 )
 

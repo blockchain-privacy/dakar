@@ -5,13 +5,12 @@ import (
 	"backend/constants"
 	"backend/db"
 	dbtx "backend/db/transaction"
-	"strconv"
-	"time"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/dgo/v2/protos/api"
@@ -809,4 +808,51 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 	transactions = r.Q
 
 	return
+}
+
+type MixingNode struct {
+	Uid    string `json:"uid"`
+	Inputs []struct {
+		Uid string `json:"uid"`
+	} `json:"i"`
+}
+
+// GetMixingTransactions gets all mixing transactions from the database by block id
+func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
+	//const max = 3300000
+	//const step = 50000
+	const max = 10
+	const step = 10
+	var nodes []MixingNode
+
+	for i := 0; i < max; i = i + step {
+		log.Println("Starting step", i)
+		query := fmt.Sprintf(`{
+				q(func: between(privacytype,0,`+constants.StrPrivacyMixingLast+`), first:%d, offset:%d ){
+					uid
+					i:tx_inputs@normalize{
+						~tx_outputs{
+							uid:uid
+						}
+					}
+				}
+			  }`, step, i)
+
+		resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		var r struct {
+			Q []MixingNode `json:"q"`
+		}
+
+		if err = json.Unmarshal(resp.Json, &r); err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		nodes = append(nodes, r.Q...)
+	}
+
+	return nodes, nil
 }
