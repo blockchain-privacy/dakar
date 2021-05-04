@@ -1,12 +1,14 @@
 package server
 
 import (
+	"backend/analytics"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
 	dbaddr "backend/db/address"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
+	"backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 
@@ -20,10 +22,12 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/ristretto"
+	"gonum.org/v1/gonum/graph/simple"
 )
 
 var (
@@ -674,6 +678,80 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
+var graphMutex sync.RWMutex
+var globalGraph *simple.DirectedGraph
+
+// API pattern: "/api/v1/reverseLookup/<txhash>"
+func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		graphMutex.RLock()
+		if globalGraph == nil {
+			if _, err := w.Write([]byte("{\"msg\":\"Graph is not loaded yet, try again later.\"}")); err != nil {
+				http.Error(w, "encoding error", http.StatusInternalServerError)
+				info(cliutil.ShowCallInfo(), err)
+			}
+			graphMutex.RUnlock()
+			return
+		}
+		graphMutex.RUnlock()
+
+		txhash := r.URL.Path[len(constants.GetRouteReverseLookup()):]
+
+		uid, err := transaction.GetTransactionUid(dgraph, txhash)
+		if err != nil {
+			if _, err := w.Write([]byte("{\"msg\":\"Transaction hash not found.\"}")); err != nil {
+				http.Error(w, "encoding error", http.StatusInternalServerError)
+				info(cliutil.ShowCallInfo(), err)
+			}
+			return
+		}
+		t1 := time.Now()
+		endpoints, err := analytics.ReverseLookup(globalGraph, uid)
+		if err != nil {
+			// todo handle better
+			if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
+				http.Error(w, "encoding error", http.StatusInternalServerError)
+				info(cliutil.ShowCallInfo(), err)
+			}
+			return
+		}
+		info("time for walk", time.Since(t1))
+
+		info("Number of endpoints:", len(endpoints))
+
+		var outputs []string
+
+		i := 0
+		for k := range endpoints {
+			txHash, getErr := transaction.GetTransactionByUid(dgraph, k)
+			if getErr != nil {
+				if _, writeErr := w.Write([]byte("{\"msg\":\"Could not get transaction hash.\"}")); writeErr != nil {
+					http.Error(w, "encoding error", http.StatusInternalServerError)
+					info(cliutil.ShowCallInfo(), writeErr)
+				}
+				return
+			}
+
+			outputs = append(outputs, txHash)
+			if i == 30 {
+				break
+			}
+			i++
+		}
+
+		// todo checkout dominators, but not here
+		//flow.Dominators(globalGraph.Nodes().Node(), globalGraph)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(outputs); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -720,7 +798,6 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 // setupHandlers creates endpoint handlers
 func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient) {
 	// get signing keys
-
 	privkey, pubkey, err := GetSigningKeysFromEnv()
 	if err != nil {
 		panic(fmt.Sprintln("error getting signing keys", err))
@@ -739,6 +816,18 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	// init worker
 	worker := heuristic.NewWorker()
 	worker.StartWorking(ctx, dgraph)
+
+	// load graph from db
+	go func() {
+		newGraph, loadErr := analytics.LoadGraph(dgraph)
+		if loadErr != nil {
+			panic(fmt.Sprintln("error loading graph", loadErr))
+		}
+
+		graphMutex.Lock()
+		globalGraph = newGraph
+		graphMutex.Unlock()
+	}()
 
 	// API end points
 
@@ -789,6 +878,10 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	http.Handle(constants.GetRouteShortestTransactionPath(),
 		Adapt(handlerShortestTransactionPath(dgraph),
 			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
+
+	http.Handle(constants.GetRouteReverseLookup(),
+		Adapt(handlerReverseLookup(dgraph),
+			authorizationMiddleware(constants.GetRouteReverseLookup(), privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))
