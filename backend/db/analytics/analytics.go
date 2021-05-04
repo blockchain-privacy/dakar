@@ -167,12 +167,13 @@ func AnalyzeOriginsV2(c *dgo.Dgraph, txUid string) (numOrigins uint64, numDirect
 // GET part of AnalyzeAndSetOrigins
 func AnalyzeOrigins(c *dgo.Dgraph, txUid string) (origins []string, err error) {
 	query := `query Q($uid: string) {
-				var(func: uid($uid))@recurse{
+				y as var(func: uid($uid))
+				var(func: uid(y))@recurse{
 					tx_inputs
 					v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
 				}
-
-				var(func: uid(v,$uid)){
+				
+				var(func: uid(v,y)){
 					tx_inputs{
 						f as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
 		constants.StrPrivacyOriginLast + `))
@@ -197,6 +198,52 @@ func AnalyzeOrigins(c *dgo.Dgraph, txUid string) (origins []string, err error) {
 	}
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, uid := range r.Transaction {
+		origins = append(origins, uid.Uid)
+	}
+
+	return
+}
+
+// AnalyzeOriginsTest searches for all potential origins. The returned string slice contains the uids of the found transactions
+// GET part of AnalyzeAndSetOrigins
+func AnalyzeOriginsTest(c *dgo.Dgraph, txUid string) (origins []string, err error) {
+	query := `query Q($uid: string) {
+				y as var(func: uid($uid))
+				var(func: uid(y))@recurse{
+					tx_inputs
+					v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
+				}
+				
+				var(func: uid(v,y)){
+					tx_inputs{
+						f as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyOriginLast + `))
+					}
+				}
+
+				q(func: uid(f)){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, map[string]string{"$uid": txUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -821,8 +868,8 @@ type MixingNode struct {
 func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
 	//const max = 3300000
 	//const step = 50000
-	const max = 10
-	const step = 10
+	const max = 10000
+	const step = 10000
 	var nodes []MixingNode
 
 	for i := 0; i < max; i = i + step {

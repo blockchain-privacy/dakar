@@ -6,6 +6,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	dbaddr "backend/db/address"
+	analytics2 "backend/db/analytics"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
 	"backend/db/transaction"
@@ -697,6 +698,8 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 		}
 		graphMutex.RUnlock()
 
+		doCompare := r.URL.Query().Get("compare") == "1"
+
 		txhash := r.URL.Path[len(constants.GetRouteReverseLookup()):]
 
 		uid, err := transaction.GetTransactionUid(dgraph, txhash)
@@ -707,8 +710,12 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 			}
 			return
 		}
+
+		info("Reverse Lookup for", txhash)
 		t1 := time.Now()
+		graphMutex.RLock()
 		endpoints, err := analytics.ReverseLookup(globalGraph, uid)
+		graphMutex.RUnlock()
 		if err != nil {
 			// todo handle better
 			if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
@@ -717,9 +724,28 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 			}
 			return
 		}
-		info("time for walk", time.Since(t1))
 
-		info("Number of endpoints:", len(endpoints))
+		inMemoryLookupTime := time.Since(t1)
+		info("time for in-memory search", inMemoryLookupTime)
+
+		if doCompare {
+			t2 := time.Now()
+			origins, err := analytics2.AnalyzeOriginsTest(dgraph, uid)
+			if err != nil {
+				// todo handle better
+				if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
+					http.Error(w, "encoding error", http.StatusInternalServerError)
+					info(cliutil.ShowCallInfo(), err)
+				}
+				return
+			}
+			inDbLookupTime := time.Since(t2)
+			info("time for database search", inDbLookupTime)
+			info("in-memory lookup is", inDbLookupTime.Nanoseconds()/inMemoryLookupTime.Nanoseconds(), "times faster")
+			info("Number of endpoints from db lookup:", len(origins))
+		}
+
+		info("Number of endpoints from in-memory lookup:", len(endpoints))
 
 		var outputs []string
 
