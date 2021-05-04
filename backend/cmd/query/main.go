@@ -4,11 +4,11 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
-	"backend/db/analytics"
+	dban "backend/db/analytics"
+
 	"errors"
 	"flag"
 	"fmt"
-
 	"log"
 	"os"
 	"sort"
@@ -88,7 +88,6 @@ func main() {
 			info(err)
 		}
 	}()
-
 	if len(cliArgs.ChartDir) > 0 {
 
 		privacyTypes := []privacyTypePair{
@@ -111,11 +110,11 @@ func main() {
 		durations := []dur{
 			//{label: "block", d: 1},
 			{label: "day", d: time.Hour * 24, sma: true},
-			//{label: "7 days", d: time.Hour * 24 * 7},
+			{label: "7 days", d: time.Hour * 24 * 7},
 		}
 
 		for _, privacyType := range privacyTypes {
-			ts, dbErr := analytics.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)
+			ts, dbErr := dban.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)
 			if dbErr != nil {
 				info(err)
 				return
