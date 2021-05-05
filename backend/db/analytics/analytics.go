@@ -858,7 +858,10 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 }
 
 type MixingNode struct {
-	Uid    string `json:"uid"`
+	Uid   string `json:"uid"`
+	Block []struct {
+		Ts time.Time `json:"ts"`
+	} `json:"block"`
 	Inputs []struct {
 		Uid string `json:"uid"`
 	} `json:"i"`
@@ -866,10 +869,10 @@ type MixingNode struct {
 
 // GetMixingTransactions gets all mixing transactions from the database by block id
 func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
-	//const max = 3300000
-	//const step = 50000
-	const max = 10000
-	const step = 10000
+	const max = 3300000
+	const step = 50000
+	//const max = 100000
+	//const step = 100000
 	var nodes []MixingNode
 
 	for i := 0; i < max; i = i + step {
@@ -877,6 +880,9 @@ func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
 		query := fmt.Sprintf(`{
 				q(func: between(privacytype,0,`+constants.StrPrivacyMixingLast+`), first:%d, offset:%d ){
 					uid
+					block:~transactions{
+						ts
+					}
 					i:tx_inputs@normalize{
 						~tx_outputs{
 							uid:uid

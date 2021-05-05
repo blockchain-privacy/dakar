@@ -700,6 +700,21 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 
 		doCompare := r.URL.Query().Get("compare") == "1"
 
+		fLockBackTime := r.URL.Query().Get("t")
+		var lookBackTime time.Duration
+		if len(fLockBackTime) > 0 {
+			n, err := strconv.Atoi(fLockBackTime)
+			if err != nil {
+				if _, err := w.Write([]byte("{\"msg\":\"Graph is not loaded yet, try again later.\"}")); err != nil {
+					http.Error(w, "encoding error", http.StatusInternalServerError)
+					info(cliutil.ShowCallInfo(), err)
+				}
+				return
+			}
+
+			lookBackTime = time.Duration(n)
+		}
+
 		txhash := r.URL.Path[len(constants.GetRouteReverseLookup()):]
 
 		uid, err := transaction.GetTransactionUid(dgraph, txhash)
@@ -712,21 +727,28 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 		}
 
 		info("Reverse Lookup for", txhash)
-		t1 := time.Now()
-		graphMutex.RLock()
-		endpoints, err := analytics.ReverseLookup(globalGraph, uid)
-		graphMutex.RUnlock()
-		if err != nil {
-			// todo handle better
-			if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
-				http.Error(w, "encoding error", http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-			}
-			return
-		}
 
-		inMemoryLookupTime := time.Since(t1)
-		info("time for in-memory search", inMemoryLookupTime)
+		var endpoints map[string]bool
+
+		durationTest := []int{3, 7, 14, 30, 60}
+		for _, d := range durationTest {
+			info("----", d, " day test ----")
+			t1 := time.Now()
+			graphMutex.RLock()
+			endpoints, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
+			graphMutex.RUnlock()
+			if err != nil {
+				// todo handle better
+				if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
+					http.Error(w, "encoding error", http.StatusInternalServerError)
+					info(cliutil.ShowCallInfo(), err)
+				}
+				return
+			}
+			inMemoryLookupTime := time.Since(t1)
+			info("time for in-memory search", inMemoryLookupTime)
+			info("Number of endpoints from in-memory lookup:", len(endpoints))
+		}
 
 		if doCompare {
 			t2 := time.Now()
@@ -741,11 +763,41 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 			}
 			inDbLookupTime := time.Since(t2)
 			info("time for database search", inDbLookupTime)
-			info("in-memory lookup is", inDbLookupTime.Nanoseconds()/inMemoryLookupTime.Nanoseconds(), "times faster")
+			//info("in-memory lookup is", inDbLookupTime.Nanoseconds()/inMemoryLookupTime.Nanoseconds(), "times faster")
 			info("Number of endpoints from db lookup:", len(origins))
+
+			// convert slice to map
+			dbOrigins := make(map[string]bool)
+			for _, o := range origins {
+				dbOrigins[o] = true
+			}
+
+			// find uids not in db set
+			var notInDB []string
+			for k := range endpoints {
+				if ok := dbOrigins[k]; !ok {
+					notInDB = append(notInDB, k)
+				}
+			}
+
+			if len(notInDB) > 0 {
+				info("found origins not in database:", notInDB)
+			}
+
+			// find uids not in in-memory set
+			var notInMemory []string
+			for k := range dbOrigins {
+				if ok := endpoints[k]; !ok {
+					notInMemory = append(notInMemory, k)
+				}
+			}
+
+			if len(notInMemory) > 0 {
+				info("found origins not in in-memory:", notInMemory)
+			}
 		}
 
-		info("Number of endpoints from in-memory lookup:", len(endpoints))
+		//info("Number of endpoints from in-memory lookup:", len(endpoints))
 
 		var outputs []string
 
@@ -766,9 +818,6 @@ func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 			}
 			i++
 		}
-
-		// todo checkout dominators, but not here
-		//flow.Dominators(globalGraph.Nodes().Node(), globalGraph)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(outputs); err != nil {
