@@ -3,18 +3,20 @@ package analytics
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
+
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 	"gonum.org/v1/gonum/graph/traverse"
-	"strconv"
-	"time"
 )
 
 // LoadGraph loads all relevant privacy transactions from the database and builds the returned graph
-func LoadGraph(c *dgo.Dgraph) (*simple.DirectedGraph, error) {
+func LoadGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	// load all mixing transaction from the database
 	nodes, err := analytics.GetMixingTransactions(c)
 	if err != nil {
@@ -76,7 +78,7 @@ func toHex(i int64) string {
 	return "0x" + strconv.FormatInt(i, 16)
 }
 
-func ReverseLookupById(g *simple.DirectedGraph, nodeId int64, maxGap time.Duration,
+func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxGap time.Duration,
 	maxLookBackTime time.Duration) (map[string]bool, error) {
 	node := g.Node(nodeId)
 	if node == nil {
@@ -101,7 +103,7 @@ func ReverseLookupById(g *simple.DirectedGraph, nodeId int64, maxGap time.Durati
 					return false
 				}
 			}
-
+			// todo check if direction impacts time comparisons
 			if maxLookBackTime > 0 {
 				toNode := e.To().(transactionNode)
 				if toNode.ts.IsZero() {
@@ -117,30 +119,43 @@ func ReverseLookupById(g *simple.DirectedGraph, nodeId int64, maxGap time.Durati
 		},
 	}
 
-	maxDepth := 0
 	w.Walk(g, node, func(n graph.Node, d int) bool {
-		if d > maxDepth {
-			maxDepth = d
-		}
 		from := g.From(n.ID())
 		if from.Len() == 0 {
 			foundEndpoints[toHex(n.ID())] = true
 		}
 		return false
 	})
-	info("max depth:", maxDepth)
+
 	return foundEndpoints, nil
 }
 
 // ReverseLookup returns all leaf nodes of the tree which has uid as its root
-func ReverseLookup(g *simple.DirectedGraph, uid string, maxGap time.Duration,
+func ReverseLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
+	maxLookBackTime time.Duration) (map[string]bool, error) {
+	nodeUid, err := strconv.ParseInt(uid[2:], 16, 64)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	g.SetReverse(false)
+	return ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime)
+}
+
+// ForwardLookup returns all leaf nodes of the tree which has uid as its root
+func ForwardLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
 	maxLookBackTime time.Duration) (map[string]bool, error) {
 	nodeUid, err := strconv.ParseInt(uid[2:], 16, 64)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime)
+	g.SetReverse(true)
+	origins, err := ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime)
+	if err != nil {
+		return nil, err
+	}
+	g.SetReverse(false)
+	return origins, err
 }
 
 type transactionNode struct {
@@ -151,11 +166,13 @@ type transactionNode struct {
 func (n transactionNode) ID() int64      { return n.id }
 func (n transactionNode) String() string { return toHex(n.id) }
 
-// createGraph builds a directed graph based on the provided nodes
-func createGraph(nodes []analytics.MixingNode) (*simple.DirectedGraph, error) {
-	g := simple.NewDirectedGraph()
+// createGraph builds a directed reversible graph based on the provided nodes
+func createGraph(nodes []analytics.MixingNode) (*ReversibleGraph, error) {
+	g := NewReversibleGraph()
 
-	// create all nodes
+	// creating the nodes and edges in two steps so already existing nodes are not overwritten in step 2
+
+	// 1. create all nodes
 	for _, node := range nodes {
 		nodeUid, err := strconv.ParseInt(node.Uid[2:], 16, 64)
 		if err != nil {
@@ -165,7 +182,7 @@ func createGraph(nodes []analytics.MixingNode) (*simple.DirectedGraph, error) {
 		g.AddNode(transactionNode{ts: node.Block[0].Ts, id: nodeUid})
 	}
 
-	// set edges
+	// 2. set edges between nodes
 	for _, node := range nodes {
 		// todo get uid from map
 		nodeUid, err := strconv.ParseInt(node.Uid[2:], 16, 64)

@@ -1,12 +1,17 @@
 package server
 
 import (
+	"backend/analytics"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
+	"net/url"
+	"strconv"
+	"time"
 
 	"encoding/json"
 	"errors"
@@ -453,6 +458,96 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 			info(cliutil.ShowCallInfo(), err)
 		}
 		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// getReverseLookupReply returns the result of a reverse lookup
+func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath string) (reply reverseLookupReply) {
+	graphMutex.RLock()
+	if globalGraph == nil {
+		reply.Msg = "Graph is not loaded yet, try again later"
+		graphMutex.RUnlock()
+		return
+	}
+	graphMutex.RUnlock()
+
+	fLockBackTime := urlValues.Get("t")
+	var lookBackTime time.Duration
+	if len(fLockBackTime) > 0 {
+		n, err := strconv.Atoi(fLockBackTime)
+		if err != nil {
+			reply.Msg = "error parsing input"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		lookBackTime = time.Duration(n)
+	}
+
+	txhash := urlPath[len(constants.GetRouteReverseLookup()):]
+
+	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
+	if err != nil {
+		reply.Msg = "Transaction hash not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
+
+	var endpoints map[string]bool
+
+	durationTest := []int{0, 3, 7, 14, 30, 60}
+	for _, d := range durationTest {
+		t1 := time.Now()
+		graphMutex.RLock()
+		endpoints, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
+		graphMutex.RUnlock()
+		if err != nil {
+			reply.Msg = "Lookup not successful"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+		inMemoryLookupTime := time.Since(t1)
+		info(d, " day gap", "time:", inMemoryLookupTime, "origins:", len(endpoints))
+
+		graphMutex.RLock()
+		endpointCount := 0
+		completeDuration := time.Duration(0)
+		for k := range endpoints {
+			t1 = time.Now()
+			forwardEndpoints, forwardErr := analytics.ForwardLookup(globalGraph, k, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
+			completeDuration += time.Since(t1)
+			if forwardErr != nil {
+				reply.Msg = "Forward lookup not successful"
+				info(cliutil.ShowCallInfo(), err)
+				return
+			}
+			endpointCount += len(forwardEndpoints)
+		}
+		info("endpoints -- time:", completeDuration, "avg. endpoints per lookup", endpointCount/len(endpoints))
+		graphMutex.RUnlock()
+	}
+
+	const numOutputNodes = 30
+	i := 0
+	for k := range endpoints {
+		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
+		if getErr != nil {
+			reply.Msg = "Could not get transaction hash"
+			info(cliutil.ShowCallInfo(), getErr)
+			return
+		}
+
+		reply.TxHashes = append(reply.TxHashes, txHash)
+		if i == numOutputNodes {
+			break
+		}
+		i++
 	}
 
 	reply.Success = true

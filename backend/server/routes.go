@@ -6,10 +6,8 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	dbaddr "backend/db/address"
-	analytics2 "backend/db/analytics"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbstat "backend/db/status"
-	"backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 
@@ -28,7 +26,6 @@ import (
 
 	"github.com/dgraph-io/dgo/v2"
 	"github.com/dgraph-io/ristretto"
-	"gonum.org/v1/gonum/graph/simple"
 )
 
 var (
@@ -680,147 +677,17 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 }
 
 var graphMutex sync.RWMutex
-var globalGraph *simple.DirectedGraph
+var globalGraph *analytics.ReversibleGraph
 
 // API pattern: "/api/v1/reverseLookup/<txhash>"
 func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		graphMutex.RLock()
-		if globalGraph == nil {
-			if _, err := w.Write([]byte("{\"msg\":\"Graph is not loaded yet, try again later.\"}")); err != nil {
-				http.Error(w, "encoding error", http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-			}
-			graphMutex.RUnlock()
-			return
-		}
-		graphMutex.RUnlock()
-
-		doCompare := r.URL.Query().Get("compare") == "1"
-
-		fLockBackTime := r.URL.Query().Get("t")
-		var lookBackTime time.Duration
-		if len(fLockBackTime) > 0 {
-			n, err := strconv.Atoi(fLockBackTime)
-			if err != nil {
-				if _, err := w.Write([]byte("{\"msg\":\"Graph is not loaded yet, try again later.\"}")); err != nil {
-					http.Error(w, "encoding error", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
-				}
-				return
-			}
-
-			lookBackTime = time.Duration(n)
-		}
-
-		txhash := r.URL.Path[len(constants.GetRouteReverseLookup()):]
-
-		uid, err := transaction.GetTransactionUid(dgraph, txhash)
-		if err != nil {
-			if _, err := w.Write([]byte("{\"msg\":\"Transaction hash not found.\"}")); err != nil {
-				http.Error(w, "encoding error", http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-			}
-			return
-		}
-
-		info("Reverse Lookup for", txhash)
-
-		var endpoints map[string]bool
-
-		durationTest := []int{3, 7, 14, 30, 60}
-		for _, d := range durationTest {
-			info("----", d, " day test ----")
-			t1 := time.Now()
-			graphMutex.RLock()
-			endpoints, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
-			graphMutex.RUnlock()
-			if err != nil {
-				// todo handle better
-				if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
-					http.Error(w, "encoding error", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
-				}
-				return
-			}
-			inMemoryLookupTime := time.Since(t1)
-			info("time for in-memory search", inMemoryLookupTime)
-			info("Number of endpoints from in-memory lookup:", len(endpoints))
-		}
-
-		if doCompare {
-			t2 := time.Now()
-			origins, err := analytics2.AnalyzeOriginsTest(dgraph, uid)
-			if err != nil {
-				// todo handle better
-				if _, err := w.Write([]byte("{\"msg\":\"Node not found.\"}")); err != nil {
-					http.Error(w, "encoding error", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
-				}
-				return
-			}
-			inDbLookupTime := time.Since(t2)
-			info("time for database search", inDbLookupTime)
-			//info("in-memory lookup is", inDbLookupTime.Nanoseconds()/inMemoryLookupTime.Nanoseconds(), "times faster")
-			info("Number of endpoints from db lookup:", len(origins))
-
-			// convert slice to map
-			dbOrigins := make(map[string]bool)
-			for _, o := range origins {
-				dbOrigins[o] = true
-			}
-
-			// find uids not in db set
-			var notInDB []string
-			for k := range endpoints {
-				if ok := dbOrigins[k]; !ok {
-					notInDB = append(notInDB, k)
-				}
-			}
-
-			if len(notInDB) > 0 {
-				info("found origins not in database:", notInDB)
-			}
-
-			// find uids not in in-memory set
-			var notInMemory []string
-			for k := range dbOrigins {
-				if ok := endpoints[k]; !ok {
-					notInMemory = append(notInMemory, k)
-				}
-			}
-
-			if len(notInMemory) > 0 {
-				info("found origins not in in-memory:", notInMemory)
-			}
-		}
-
-		//info("Number of endpoints from in-memory lookup:", len(endpoints))
-
-		var outputs []string
-
-		i := 0
-		for k := range endpoints {
-			txHash, getErr := transaction.GetTransactionByUid(dgraph, k)
-			if getErr != nil {
-				if _, writeErr := w.Write([]byte("{\"msg\":\"Could not get transaction hash.\"}")); writeErr != nil {
-					http.Error(w, "encoding error", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), writeErr)
-				}
-				return
-			}
-
-			outputs = append(outputs, txHash)
-			if i == 30 {
-				break
-			}
-			i++
-		}
+		reply := getReverseLookupReply(dgraph, r.URL.Query(), r.URL.Path)
 
 		// encoding
-		if err := json.NewEncoder(w).Encode(outputs); err != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
 		}
@@ -902,6 +769,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 		graphMutex.Lock()
 		globalGraph = newGraph
 		graphMutex.Unlock()
+		info("Graph is ready")
 	}()
 
 	// API end points

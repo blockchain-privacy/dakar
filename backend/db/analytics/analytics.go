@@ -869,10 +869,10 @@ type MixingNode struct {
 
 // GetMixingTransactions gets all mixing transactions from the database by block id
 func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
-	const max = 3300000
+	//const max = 3300000
+	//const step = 50000
+	const max = 100000
 	const step = 50000
-	//const max = 100000
-	//const step = 100000
 	var nodes []MixingNode
 
 	for i := 0; i < max; i = i + step {
