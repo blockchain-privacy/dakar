@@ -2,11 +2,10 @@ package analytics
 
 import (
 	"fmt"
-	"gonum.org/v1/gonum/graph/simple"
-
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/iterator"
 	"gonum.org/v1/gonum/graph/set/uid"
+	"gonum.org/v1/gonum/graph/simple"
 )
 
 var (
@@ -31,14 +30,14 @@ type ReversibleGraph struct {
 	nodeIDs *uid.Set
 }
 
-// NewReversibleGraph returns a ReversibleGraph.
-func NewReversibleGraph() *ReversibleGraph {
+// NewReversibleGraph returns a ReversibleGraph. Initializes internal data structures with the expected number of nodes.
+func NewReversibleGraph(numNodesHint int) *ReversibleGraph {
 	return &ReversibleGraph{
 		reversed: false,
 
-		nodes: make(map[int64]graph.Node),
-		from:  make(map[int64]map[int64]graph.Edge),
-		to:    make(map[int64]map[int64]graph.Edge),
+		nodes: make(map[int64]graph.Node, numNodesHint),
+		from:  make(map[int64]map[int64]graph.Edge, numNodesHint),
+		to:    make(map[int64]map[int64]graph.Edge, numNodesHint),
 
 		nodeIDs: uid.NewSet(),
 	}
@@ -57,7 +56,7 @@ func (g *ReversibleGraph) SetReverse(reversed bool) {
 // AddNode adds n to the graph. It panics if the added node ID matches an existing node ID.
 func (g *ReversibleGraph) AddNode(n graph.Node) {
 	if _, exists := g.nodes[n.ID()]; exists {
-		panic(fmt.Sprintf("simple: node ID collision: %d", n.ID()))
+		panic(fmt.Sprintf("reversible: node ID collision: %d", n.ID()))
 	}
 	g.nodes[n.ID()] = n
 	g.nodeIDs.Use(n.ID())
@@ -125,6 +124,13 @@ func (g *ReversibleGraph) HasEdgeBetween(xid, yid int64) bool {
 
 // HasEdgeFromTo returns whether an edge exists in the graph from u to v.
 func (g *ReversibleGraph) HasEdgeFromTo(uid, vid int64) bool {
+	if g.reversed {
+		if _, ok := g.to[uid][vid]; !ok {
+			return false
+		}
+		return true
+	}
+
 	if _, ok := g.from[uid][vid]; !ok {
 		return false
 	}
@@ -143,7 +149,7 @@ func (g *ReversibleGraph) NewNode() graph.Node {
 		return simple.Node(0)
 	}
 	if int64(len(g.nodes)) == uid.Max {
-		panic("simple: cannot allocate node: no slot")
+		panic("reversible: cannot allocate node: no slot")
 	}
 	return simple.Node(g.nodeIDs.NewID())
 }
@@ -212,7 +218,7 @@ func (g *ReversibleGraph) SetEdge(e graph.Edge) {
 	)
 
 	if fid == tid {
-		panic("simple: adding self edge")
+		panic("reversible: adding self edge")
 	}
 
 	if _, ok := g.nodes[fid]; !ok {
@@ -223,6 +229,45 @@ func (g *ReversibleGraph) SetEdge(e graph.Edge) {
 	if _, ok := g.nodes[tid]; !ok {
 		g.AddNode(to)
 	} else {
+		g.nodes[tid] = to
+	}
+
+	if fm, ok := g.from[fid]; ok {
+		fm[tid] = e
+	} else {
+		g.from[fid] = map[int64]graph.Edge{tid: e}
+	}
+	if tm, ok := g.to[tid]; ok {
+		tm[fid] = e
+	} else {
+		g.to[tid] = map[int64]graph.Edge{fid: e}
+	}
+}
+
+// SetEdgeCustom adds e, an edge from one node to another. If the nodes do not exist, they are added
+// and are set to the nodes of the edge otherwise.
+// It will panic if the IDs of the e.From and e.To are equal.
+// If overwriteTo is true, an already existing To node would be overridden
+func (g *ReversibleGraph) SetEdgeCustom(e graph.Edge, overwriteTo bool) {
+	var (
+		from = e.From()
+		fid  = from.ID()
+		to   = e.To()
+		tid  = to.ID()
+	)
+
+	if fid == tid {
+		panic("reversible: adding self edge")
+	}
+
+	if _, ok := g.nodes[fid]; !ok {
+		g.AddNode(from)
+	} else {
+		g.nodes[fid] = from
+	}
+	if _, ok := g.nodes[tid]; !ok {
+		g.AddNode(to)
+	} else if overwriteTo {
 		g.nodes[tid] = to
 	}
 

@@ -3,9 +3,9 @@ package analytics
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
-
 	"errors"
 	"fmt"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -15,100 +15,124 @@ import (
 	"gonum.org/v1/gonum/graph/traverse"
 )
 
-// LoadGraph loads all relevant privacy transactions from the database and builds the returned graph
-func LoadGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
+func LoadGraphInSteps(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	// todo actually load all transactions
 	// set to zero to load ALL nodes
-	const numNodesToLoad = 100000
+	const numNodesToLoad = 0
 
-	info("Loading mixing nodes")
-	// load all mixing transactions from the database
-	mixingNodes, err := analytics.GetMixingTransactions(c, numNodesToLoad)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	step := 50000
+	max := numNodesToLoad
+	if max == 0 {
+		max = 3300000
 	}
 
-	info("Loading destination nodes")
-	// load all destination transactions from the database
-	destinationNodes, err := analytics.GetDestinationTransactions(c, numNodesToLoad)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	if step > numNodesToLoad && numNodesToLoad > 0 {
+		step = numNodesToLoad
 	}
 
-	info("Loading origin nodes")
+	//mixingCount, originCount, ccCount, destinationCount, getErr :=
+	//	analytics.GetPrivacyTransactionCount(c)
+	//if getErr != nil {
+	//	return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+	//}
+
+	g := NewReversibleGraph(max / 2)
+
 	// load all origin transactions from the database
-	originNodes, err := analytics.GetOriginTransactions(c, numNodesToLoad)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	info("Loading origin nodes")
+	for i := 0; ; i += step {
+		originNodes, err := analytics.GetOriginTransactions(c, step, i)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		err = addSingleNodes(g, originNodes)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(originNodes) < step {
+			break
+		}
 	}
 
-	info("Loading collateral creation nodes")
 	// load all cc transactions from the database
-	ccNodes, err := analytics.GetCollateralCreationTransactions(c, numNodesToLoad)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	info("Loading cc nodes")
+	for i := 0; ; i += step {
+		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		err = addSingleNodes(g, ccNodes)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(ccNodes) < step {
+			break
+		}
 	}
 
-	// crates the graph
-	f, err := createGraph(mixingNodes, destinationNodes, originNodes, ccNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	// load all mixing transactions from the database
+	info("Loading mixing nodes")
+	for i := 0; ; i += step {
+		if i/step > 11 && (i/step)%3 == 0 {
+			runtime.GC()
+		}
+
+		mixingNodes, err := analytics.GetMixingTransactions(c, step, i)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		err = addEdges(g, mixingNodes)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(mixingNodes) < step {
+			break
+		}
 	}
 
-	if numNodesToLoad > 0 {
-		// only need to prune if a subset of transaction is loaded
-		info("pruning nodes")
-		pruneNodes(f)
+	// destination transactions often have a big number of inputs,
+	// thus decrease the number to load
+	destinationStep := step / 5
+	// load all destination transactions from the database
+	info("Loading destination nodes")
+	for i := 0; ; i += destinationStep {
+		if i/destinationStep > 11 && (i/destinationStep)%3 == 0 {
+			runtime.GC()
+		}
+		destinationNodes, err := analytics.GetDestinationTransactions(c, destinationStep, i)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		err = addEdges(g, destinationNodes)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		if len(destinationNodes) < destinationStep {
+			break
+		}
 	}
+
+	// only need to prune if a subset of transaction is loaded
+	info("pruning nodes")
+	pruneNodes(g)
 
 	// check
 	info("verifying graph")
-	if verificationErr := verifyGraph(f); verificationErr != nil {
+	if verificationErr := verifyGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
 
-	//nodeSet := f.Nodes()
-	//
-	//const rootNodeId = int64(99999999999)
-	//
-	//var tips []int64
-	//for nodeSet.Next() {
-	//	nid := nodeSet.Node().ID()
-	//	if f.To(nid).Len() == 0 {
-	//		tips = append(tips, nid)
-	//	}
-	//}
-	//
-	//for _, t := range tips {
-	//	f.SetEdge(simple.Edge{F: simple.Node(rootNodeId), T: simple.Node(t)})
-	//}
-	//
-	//info("found", len(tips), "tips")
-	//
-	//dom := flow.Dominators(f.Node(rootNodeId), f)
-	//_ = dom
-	//
-	//now := time.Now()
-	//allOrigins, err := ReverseLookupById(f, rootNodeId)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//info("time for complete reverse lookup", time.Since(now))
-	//
-	//info("allOrigins", len(allOrigins))
+	runtime.GC()
 
-	// Render Graph
-	//err = RenderGraph(f)
-	//if err != nil {
-	//	return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	//}
-
-	// Export to Gephi
-	//if exportErr := ExportToGephi("/home/dark/Downloads/graph.csv", f); exportErr != nil {
-	//	return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), exportErr)
-	//}
-
-	return f, nil
+	return g, nil
 }
 
 // toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
@@ -222,20 +246,6 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	return nil
 }
 
-// addConnectedNodes adds the given nodes to g. Edges will not be set.
-func addConnectedNodes(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
-	for _, node := range nodes {
-		nodeUid, err := toInteger(node.Uid)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		g.AddNode(transactionNode{ts: node.Block[0].Ts, id: nodeUid})
-	}
-
-	return nil
-}
-
 // addEdges adds the edges defined in nodes to g. Before this function addConnectedNodes should be called with the same set of edges.
 func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {
@@ -244,7 +254,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		newNode := g.Node(nodeUid)
+		newNode := transactionNode{ts: node.Block[0].Ts, id: nodeUid}
 		for _, input := range node.Inputs {
 			inputUid, parseErr := toInteger(input.Uid)
 			if parseErr != nil {
@@ -256,59 +266,11 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 				toNode = transactionNode{ts: time.Time{}, id: inputUid}
 			}
 
-			g.SetEdge(simple.Edge{F: newNode, T: toNode})
+			g.SetEdgeCustom(simple.Edge{F: newNode, T: toNode}, false)
 		}
 	}
 
 	return nil
-}
-
-// createGraph builds a directed reversible graph based on the provided nodes
-func createGraph(mixingNodes []analytics.ConnectedNode, destinationNodes []analytics.ConnectedNode,
-	originNodes []analytics.Node, ccNodes []analytics.Node) (*ReversibleGraph, error) {
-	g := NewReversibleGraph()
-
-	// Nodes and edges are created in separate steps so already existing nodes are not overwritten in step 2
-
-	// 1. add nodes to graph
-	// 1.1. create origin nodes
-	err := addSingleNodes(g, originNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// 1.2. create cc nodes
-	err = addSingleNodes(g, ccNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// 1.3. create mixing nodes
-	err = addConnectedNodes(g, mixingNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// 1.4. create destination nodes
-	err = addConnectedNodes(g, destinationNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// 2. set edges between nodes
-	// 2.1 set edges defined by mixing nodes
-	err = addEdges(g, mixingNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// 2.2 set edges defined by destination nodes
-	err = addEdges(g, destinationNodes)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return g, nil
 }
 
 func pruneNodes(g *ReversibleGraph) {

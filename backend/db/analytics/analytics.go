@@ -903,21 +903,13 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 	return
 }
 
-// GetConnectedPrivacyTransactions gets the first maxTx privacy transactions including their input transaction
-// from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetConnectedPrivacyTransactions(c *dgo.Dgraph, maxTx int, privacyRangeFirst int, privacyRangeLast int) ([]ConnectedNode, error) {
-	step := 50000
-	max := maxTx
-	if max == 0 {
-		max = 3300000
-	}
-
-	if step > maxTx {
-		step = maxTx
-	}
-
-	queryString := `{
-				q(func: between(privacytype,` + strconv.Itoa(privacyRangeFirst) + "," + strconv.Itoa(privacyRangeLast) + `), first:%d, offset:%d ){
+// GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
+// from the database.
+func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst int,
+	privacyRangeLast int) ([]ConnectedNode, error) {
+	query := fmt.Sprintf(`{
+				q(func: between(privacytype,`+
+		strconv.Itoa(privacyRangeFirst)+","+strconv.Itoa(privacyRangeLast)+`), first:%d, offset:%d ){
 					uid
 					block:~transactions{
 						ts
@@ -928,97 +920,141 @@ func GetConnectedPrivacyTransactions(c *dgo.Dgraph, maxTx int, privacyRangeFirst
 						}
 					}
 				}
-			  }`
+			  }`, numNodes, offsetNodes)
 
-	var nodes []ConnectedNode
-	for i := 0; i < max; i = i + step {
-		query := fmt.Sprintf(queryString, step, i)
-
-		resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		var r struct {
-			Q []ConnectedNode `json:"q"`
-		}
-
-		if err = json.Unmarshal(resp.Json, &r); err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		nodes = append(nodes, r.Q...)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return nodes, nil
+	var r struct {
+		Q []ConnectedNode `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return r.Q, nil
 }
 
-// GetPrivacyTransactions gets the first maxTx privacy transactions from the database.
-// If maxTx is equal to 0, all origin transaction are returned.
-func GetPrivacyTransactions(c *dgo.Dgraph, maxTx int, privacyRangeFirst int, privacyRangeLast int) ([]Node, error) {
-	step := 50000
-	max := maxTx
-	if max == 0 {
-		max = 3300000
-	}
-
-	if step > maxTx {
-		step = maxTx
-	}
-	queryString := `{
-				q(func: between(privacytype,` +
-		strconv.Itoa(privacyRangeFirst) + "," + strconv.Itoa(privacyRangeLast) + `), first:%d, offset:%d ){
+// GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
+func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst int, privacyRangeLast int) ([]Node, error) {
+	query := fmt.Sprintf(`{
+				q(func: between(privacytype,`+
+		strconv.Itoa(privacyRangeFirst)+","+strconv.Itoa(privacyRangeLast)+`), first:%d, offset:%d ){
 					uid
 					block:~transactions{
 						ts
 					}
 				}
-			  }`
-	var nodes []Node
-	for i := 0; i < max; i = i + step {
-		query := fmt.Sprintf(queryString, step, i)
+			  }`, numNodes, offsetNodes)
 
-		resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		var r struct {
-			Q []Node `json:"q"`
-		}
-
-		if err = json.Unmarshal(resp.Json, &r); err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		nodes = append(nodes, r.Q...)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return nodes, nil
+	var r struct {
+		Q []Node `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return r.Q, nil
 }
 
-// GetMixingTransactions gets the first maxTx mixing transactions including their input transactions
+// GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
 // from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetMixingTransactions(c *dgo.Dgraph, maxTx int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, maxTx, 0, constants.PrivacyMixingLast)
+func GetMixingTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, 0, constants.PrivacyMixingLast)
 }
 
-// GetDestinationTransactions gets the first maxTx destination transactions including their input transactions
+// GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
 // from the database. If maxTx is equal to 0, all destination transaction are returned.
-func GetDestinationTransactions(c *dgo.Dgraph, maxTx int) ([]ConnectedNode, error) {
-	return GetConnectedPrivacyTransactions(c, maxTx, constants.PrivacyDestinationFirst,
+func GetDestinationTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyDestinationFirst,
 		constants.PrivacyDestinationLast)
 }
 
-// GetOriginTransactions gets the first maxTx origin transactions from the database.
+// GetOriginTransactions gets the first numNodes origin transactions from the database.
 // If maxTx is equal to 0, all origin transaction are returned.
-func GetOriginTransactions(c *dgo.Dgraph, maxTx int) ([]Node, error) {
-	return GetPrivacyTransactions(c, maxTx, constants.PrivacyOriginFirst, constants.PrivacyOriginLast)
+func GetOriginTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]Node, error) {
+	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyOriginFirst, constants.PrivacyOriginLast)
 }
 
-// GetCollateralCreationTransactions gets the first maxTx cc transactions from the database.
+// GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
 // If maxTx is equal to 0, all cc transaction are returned.
-func GetCollateralCreationTransactions(c *dgo.Dgraph, maxTx int) ([]Node, error) {
-	return GetPrivacyTransactions(c, maxTx, constants.PrivacyCollateralCreationFirst,
+func GetCollateralCreationTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]Node, error) {
+	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyCollateralCreationFirst,
 		constants.PrivacyCollateralCreationLast)
+}
+
+// GetPrivacyTransactionCount gets the number of transaction per privacy type
+func GetPrivacyTransactionCount(c *dgo.Dgraph) (mixingCount int, originCount int, ccCount int,
+	destinationCount int, err error) {
+
+	const query = `{
+				mixing(func: between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
+					count(uid)
+				}
+
+				origin(func: between(privacytype,` +
+		constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyOriginLast + `)){
+					count(uid)
+				}
+
+				destination(func: between(privacytype,` +
+		constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + `)){
+					count(uid)
+				}
+
+				cc(func: between(privacytype,` +
+		constants.StrPrivacyCollateralCreationFirst + "," + constants.StrPrivacyCollateralCreationLast + `)){
+					count(uid)
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Mixing []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"mixing,omitempty"`
+
+		Origin []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"origin,omitempty"`
+
+		Destination []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"destination,omitempty"`
+
+		CC []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"cc,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 || len(r.CC) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	mixingCount = r.Mixing[0].Count
+	originCount = r.Origin[0].Count
+	destinationCount = r.Destination[0].Count
+	ccCount = r.CC[0].Count
+
+	return
 }
