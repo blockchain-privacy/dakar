@@ -10,7 +10,6 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-
 	"context"
 	"encoding/csv"
 	"encoding/json"
@@ -20,6 +19,8 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -761,10 +762,14 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 
 	// load graph from db
 	go func() {
+		// todo keep?
+		debug.SetGCPercent(10)
 		newGraph, loadErr := analytics.LoadGraph(dgraph)
 		if loadErr != nil {
 			panic(fmt.Sprintln("error loading graph", loadErr))
 		}
+
+		runtime.GC()
 
 		graphMutex.Lock()
 		globalGraph = newGraph

@@ -267,6 +267,52 @@ func AnalyzeOriginsTest(c *dgo.Dgraph, txUid string) (origins []string, err erro
 	return
 }
 
+// AnalyzeDestinationsTest searches for all potential origins. The returned string slice contains the uids of the found transactions
+// GET part of AnalyzeAndSetOrigins
+func AnalyzeDestinationsTest(c *dgo.Dgraph, txUid string) (origins []string, err error) {
+	query := `query Q($uid: string) {
+				y as var(func: uid($uid))
+				var(func: uid(y))@recurse{
+					tx_outputs
+					v as ~tx_inputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
+				}
+				
+				var(func: uid(v,y)){
+					tx_outputs{
+						f as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
+		constants.StrPrivacyDestinationLast + `))
+					}
+				}
+
+				q(func: uid(f)){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, map[string]string{"$uid": txUid})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Transaction []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, uid := range r.Transaction {
+		origins = append(origins, uid.Uid)
+	}
+
+	return
+}
+
 func buildAnalyzeAndSetOriginsRequest(transactionUids []string) *api.Request {
 	queryHeader := "query Q("
 	var query string
@@ -857,28 +903,21 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 	return
 }
 
-type MixingNode struct {
-	Uid   string `json:"uid"`
-	Block []struct {
-		Ts time.Time `json:"ts"`
-	} `json:"block"`
-	Inputs []struct {
-		Uid string `json:"uid"`
-	} `json:"i"`
-}
+// GetConnectedPrivacyTransactions gets the first maxTx privacy transactions including their input transaction
+// from the database. If maxTx is equal to 0, all mixing transaction are returned.
+func GetConnectedPrivacyTransactions(c *dgo.Dgraph, maxTx int, privacyRangeFirst int, privacyRangeLast int) ([]ConnectedNode, error) {
+	step := 50000
+	max := maxTx
+	if max == 0 {
+		max = 3300000
+	}
 
-// GetMixingTransactions gets all mixing transactions from the database by block id
-func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
-	//const max = 3300000
-	//const step = 50000
-	const max = 100000
-	const step = 50000
-	var nodes []MixingNode
+	if step > maxTx {
+		step = maxTx
+	}
 
-	for i := 0; i < max; i = i + step {
-		log.Println("Starting step", i)
-		query := fmt.Sprintf(`{
-				q(func: between(privacytype,0,`+constants.StrPrivacyMixingLast+`), first:%d, offset:%d ){
+	queryString := `{
+				q(func: between(privacytype,` + strconv.Itoa(privacyRangeFirst) + "," + strconv.Itoa(privacyRangeLast) + `), first:%d, offset:%d ){
 					uid
 					block:~transactions{
 						ts
@@ -889,7 +928,11 @@ func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
 						}
 					}
 				}
-			  }`, step, i)
+			  }`
+
+	var nodes []ConnectedNode
+	for i := 0; i < max; i = i + step {
+		query := fmt.Sprintf(queryString, step, i)
 
 		resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 		if err != nil {
@@ -897,7 +940,7 @@ func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
 		}
 
 		var r struct {
-			Q []MixingNode `json:"q"`
+			Q []ConnectedNode `json:"q"`
 		}
 
 		if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -908,4 +951,74 @@ func GetMixingTransactions(c *dgo.Dgraph) ([]MixingNode, error) {
 	}
 
 	return nodes, nil
+}
+
+// GetPrivacyTransactions gets the first maxTx privacy transactions from the database.
+// If maxTx is equal to 0, all origin transaction are returned.
+func GetPrivacyTransactions(c *dgo.Dgraph, maxTx int, privacyRangeFirst int, privacyRangeLast int) ([]Node, error) {
+	step := 50000
+	max := maxTx
+	if max == 0 {
+		max = 3300000
+	}
+
+	if step > maxTx {
+		step = maxTx
+	}
+	queryString := `{
+				q(func: between(privacytype,` +
+		strconv.Itoa(privacyRangeFirst) + "," + strconv.Itoa(privacyRangeLast) + `), first:%d, offset:%d ){
+					uid
+					block:~transactions{
+						ts
+					}
+				}
+			  }`
+	var nodes []Node
+	for i := 0; i < max; i = i + step {
+		query := fmt.Sprintf(queryString, step, i)
+
+		resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		var r struct {
+			Q []Node `json:"q"`
+		}
+
+		if err = json.Unmarshal(resp.Json, &r); err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		nodes = append(nodes, r.Q...)
+	}
+
+	return nodes, nil
+}
+
+// GetMixingTransactions gets the first maxTx mixing transactions including their input transactions
+// from the database. If maxTx is equal to 0, all mixing transaction are returned.
+func GetMixingTransactions(c *dgo.Dgraph, maxTx int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(c, maxTx, 0, constants.PrivacyMixingLast)
+}
+
+// GetDestinationTransactions gets the first maxTx destination transactions including their input transactions
+// from the database. If maxTx is equal to 0, all destination transaction are returned.
+func GetDestinationTransactions(c *dgo.Dgraph, maxTx int) ([]ConnectedNode, error) {
+	return GetConnectedPrivacyTransactions(c, maxTx, constants.PrivacyDestinationFirst,
+		constants.PrivacyDestinationLast)
+}
+
+// GetOriginTransactions gets the first maxTx origin transactions from the database.
+// If maxTx is equal to 0, all origin transaction are returned.
+func GetOriginTransactions(c *dgo.Dgraph, maxTx int) ([]Node, error) {
+	return GetPrivacyTransactions(c, maxTx, constants.PrivacyOriginFirst, constants.PrivacyOriginLast)
+}
+
+// GetCollateralCreationTransactions gets the first maxTx cc transactions from the database.
+// If maxTx is equal to 0, all cc transaction are returned.
+func GetCollateralCreationTransactions(c *dgo.Dgraph, maxTx int) ([]Node, error) {
+	return GetPrivacyTransactions(c, maxTx, constants.PrivacyCollateralCreationFirst,
+		constants.PrivacyCollateralCreationLast)
 }

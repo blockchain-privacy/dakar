@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"time"
 )
 
 type input struct {
@@ -70,4 +71,21 @@ func (thisPath TransactionPath) hash() string {
 	shaSum := sha256.Sum256([]byte(buffer.String()))
 
 	return hex.EncodeToString(shaSum[:])
+}
+
+type ConnectedNode struct {
+	Uid   string `json:"uid"`
+	Block []struct {
+		Ts time.Time `json:"ts"`
+	} `json:"block"`
+	Inputs []struct {
+		Uid string `json:"uid"`
+	} `json:"i"`
+}
+
+type Node struct {
+	Uid   string `json:"uid"`
+	Block []struct {
+		Ts time.Time `json:"ts"`
+	} `json:"block"`
 }

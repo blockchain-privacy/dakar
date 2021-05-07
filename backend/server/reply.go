@@ -515,22 +515,40 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 		inMemoryLookupTime := time.Since(t1)
 		info(d, " day gap", "time:", inMemoryLookupTime, "origins:", len(endpoints))
 
-		graphMutex.RLock()
-		endpointCount := 0
-		completeDuration := time.Duration(0)
-		for k := range endpoints {
-			t1 = time.Now()
-			forwardEndpoints, forwardErr := analytics.ForwardLookup(globalGraph, k, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
-			completeDuration += time.Since(t1)
-			if forwardErr != nil {
-				reply.Msg = "Forward lookup not successful"
-				info(cliutil.ShowCallInfo(), err)
-				return
-			}
-			endpointCount += len(forwardEndpoints)
-		}
-		info("endpoints -- time:", completeDuration, "avg. endpoints per lookup", endpointCount/len(endpoints))
-		graphMutex.RUnlock()
+		//graphMutex.RLock()
+		//endpointCount := 0
+		//completeDuration := time.Duration(0)
+		//for k := range endpoints {
+		//	info("forwardlookup for", k)
+		//
+		//	t1 = time.Now()
+		//	forwardEndpoints, forwardErr := analytics.ForwardLookup(globalGraph, k, time.Hour*24*time.Duration(d), )
+		//	completeDuration += time.Since(t1)
+		//	if forwardErr != nil {
+		//		reply.Msg = "Forward lookup not successful"
+		//		info(cliutil.ShowCallInfo(), err)
+		//		return
+		//	}
+		//	endpointCount += len(forwardEndpoints)
+		//
+		//	// todo remove
+		//	info("mem endpoints -- time:", completeDuration, "avg. endpoints per lookup", len(forwardEndpoints))
+		//
+		//	t1 = time.Now()
+		//	origins, err := analytics2.AnalyzeDestinationsTest(dgraph, k)
+		//	if err != nil {
+		//		reply.Msg = "Forward lookup not successful"
+		//		info(cliutil.ShowCallInfo(), err)
+		//		return
+		//	}
+		//
+		//	info("db endpoints -- time:", time.Since(t1), "avg. endpoints per lookup", len(origins))
+		//
+		//	// todo remove
+		//	break
+		//}
+		//info("endpoints -- time:", completeDuration, "avg. endpoints per lookup", endpointCount/len(endpoints))
+		//graphMutex.RUnlock()
 	}
 
 	const numOutputNodes = 30
