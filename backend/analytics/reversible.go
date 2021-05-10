@@ -62,6 +62,14 @@ func (g *ReversibleGraph) AddNode(n graph.Node) {
 	g.nodeIDs.Use(n.ID())
 }
 
+// UpdateNode updates n. If the node does not already exists it gets added to the graph.
+func (g *ReversibleGraph) UpdateNode(n graph.Node) {
+	if _, exists := g.nodes[n.ID()]; !exists {
+		g.nodeIDs.Use(n.ID())
+	}
+	g.nodes[n.ID()] = n
+}
+
 // Edge returns the edge from u to v if such an edge exists and nil otherwise.
 // The node v must be directly reachable from u as defined by the From method.
 func (g *ReversibleGraph) Edge(uid, vid int64) graph.Edge {
@@ -244,11 +252,10 @@ func (g *ReversibleGraph) SetEdge(e graph.Edge) {
 	}
 }
 
-// SetEdgeCustom adds e, an edge from one node to another. If the nodes do not exist, they are added
+// SetEdgeWithoutOverwrite adds e, an edge from one node to another. If the nodes do not exist, they are added
 // and are set to the nodes of the edge otherwise.
 // It will panic if the IDs of the e.From and e.To are equal.
-// If overwriteTo is true, an already existing To node would be overridden
-func (g *ReversibleGraph) SetEdgeCustom(e graph.Edge, overwriteTo bool) {
+func (g *ReversibleGraph) SetEdgeWithoutOverwrite(e graph.Edge) {
 	var (
 		from = e.From()
 		fid  = from.ID()
@@ -262,13 +269,10 @@ func (g *ReversibleGraph) SetEdgeCustom(e graph.Edge, overwriteTo bool) {
 
 	if _, ok := g.nodes[fid]; !ok {
 		g.AddNode(from)
-	} else {
-		g.nodes[fid] = from
 	}
+
 	if _, ok := g.nodes[tid]; !ok {
 		g.AddNode(to)
-	} else if overwriteTo {
-		g.nodes[tid] = to
 	}
 
 	if fm, ok := g.from[fid]; ok {
