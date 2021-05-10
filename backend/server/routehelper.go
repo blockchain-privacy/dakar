@@ -209,5 +209,5 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 type reverseLookupReply struct {
 	Success  bool     `json:"success"`
 	Msg      string   `json:"msg,omitempty"`
-	TxHashes []string `json:"transaction_hashes"`
+	TxHashes []string `json:"transaction_hashes,omitempty"`
 }
