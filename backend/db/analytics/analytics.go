@@ -911,6 +911,7 @@ func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes in
 				q(func: between(privacytype,`+
 		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
 					uid
+					privacytype
 					block:~transactions{
 						ts
 					}
@@ -945,6 +946,7 @@ func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privac
 				q(func: between(privacytype,`+
 		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
 					uid
+					privacytype
 					block:~transactions{
 						ts
 					}

@@ -499,13 +499,14 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 
 	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
 
-	var endpoints map[string]bool
-
+	var origins map[string]bool
+	var cc map[string]bool
+	var other map[string]bool
 	durationTest := []int{0, 3, 7, 14, 30, 60}
 	for _, d := range durationTest {
 		t1 := time.Now()
 		graphMutex.RLock()
-		endpoints, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
+		origins, cc, other, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
 		graphMutex.RUnlock()
 		if err != nil {
 			reply.Msg = "Lookup not successful"
@@ -513,7 +514,7 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 			return
 		}
 		inMemoryLookupTime := time.Since(t1)
-		info(d, " day gap", "time:", inMemoryLookupTime, "origins:", len(endpoints))
+		info(d, " day gap", "time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
 
 		//graphMutex.RLock()
 		//endpointCount := 0
@@ -553,7 +554,7 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 
 	const numOutputNodes = 30
 	i := 0
-	for k := range endpoints {
+	for k := range origins {
 		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
 		if getErr != nil {
 			reply.Msg = "Could not get transaction hash"

@@ -3,7 +3,28 @@ package constants
 // MixingTypes is the set of all mixing denomination types
 var MixingTypes = [5]PrivacyType{PrivacyMixing0, PrivacyMixing1, PrivacyMixing2, PrivacyMixing3, PrivacyMixing4}
 
+// PrivacyType holds a number which maps to transaction classifications
 type PrivacyType uint16
+
+func (t PrivacyType) IsMixing() bool {
+	return t <= PrivacyMixingLast
+}
+
+func (t PrivacyType) IsDestination() bool {
+	return t >= PrivacyDestinationFirst && t <= PrivacyDestinationLast
+}
+
+func (t PrivacyType) IsOrigin() bool {
+	return t >= PrivacyOriginFirst && t <= PrivacyOriginLast
+}
+
+func (t PrivacyType) IsCC() bool {
+	return t >= PrivacyCollateralCreationFirst && t <= PrivacyCollateralCreationLast
+}
+
+func (t PrivacyType) IsCP() bool {
+	return t >= PrivacyCollateralPaymentFirst && t <= PrivacyCollateralPaymentLast
+}
 
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS

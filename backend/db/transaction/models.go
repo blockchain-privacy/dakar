@@ -73,19 +73,11 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 }
 
 func (t *Transaction) IsMixingTransaction() bool {
-	if t.PrivacyType == nil || *t.PrivacyType < 0 {
-		return false
-	}
-
-	return *t.PrivacyType <= constants.PrivacyMixingLast
+	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
 }
 
 func (t *Transaction) IsDestinationTransaction() bool {
-	if t.PrivacyType == nil || *t.PrivacyType < 0 {
-		return false
-	}
-
-	return *t.PrivacyType >= constants.PrivacyDestinationFirst && *t.PrivacyType <= constants.PrivacyDestinationLast
+	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
 }
 
 type transactionQuery struct {

@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db/analytics"
 	"errors"
 	"fmt"
@@ -169,22 +170,35 @@ func toHex(i int64) string {
 }
 
 func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxGap time.Duration,
-	maxLookBackTime time.Duration) (map[string]bool, error) {
+	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
 	node := g.Node(nodeId)
 	if node == nil {
-		return nil, errors.New("error node not found")
+		return nil, nil, nil, errors.New("error node not found")
 	}
 
-	foundEndpoints := make(map[string]bool)
+	foundOrigins := make(map[string]bool)
+	foundCC := make(map[string]bool)
+	foundOther := make(map[string]bool)
 	nodeTs := node.(transactionNode).ts
 	isGraphReversed := g.IsReversed()
 
 	w := traverse.BreadthFirst{
 		Traverse: func(e graph.Edge) bool {
+			toNode := g.Node(e.To().ID()).(transactionNode)
+
+			if !toNode.privacyType.IsMixing() {
+				if toNode.privacyType.IsOrigin() {
+					foundOrigins[toNode.String()] = true
+				} else if toNode.privacyType.IsCC() {
+					foundCC[toNode.String()] = true
+				} else {
+					foundOther[toNode.String()] = true
+				}
+				return false
+			}
+
 			// ALL nodes are of type transactionNode, therefore unsafe cast is okay
 			if maxGap > 0 {
-
-				toNode := g.Node(e.To().ID()).(transactionNode)
 				fromNode := g.Node(e.From().ID()).(transactionNode)
 
 				if fromNode.ts.Sub(toNode.ts) > maxGap {
@@ -193,7 +207,6 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxGap time.Duration,
 			}
 
 			if maxLookBackTime > 0 {
-				toNode := g.Node(e.To().ID()).(transactionNode)
 				if isGraphReversed {
 					return true
 					//return !(toNode.ts.Sub(nodeTs) >= maxLookBackTime)
@@ -209,20 +222,27 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxGap time.Duration,
 	w.Walk(g, node, func(n graph.Node, d int) bool {
 		from := g.From(n.ID())
 		if from.Len() == 0 {
-			foundEndpoints[toHex(n.ID())] = true
+			thisNode := n.(transactionNode)
+			if thisNode.privacyType.IsOrigin() {
+				foundOrigins[thisNode.String()] = true
+			} else if thisNode.privacyType.IsCC() {
+				foundCC[thisNode.String()] = true
+			} else {
+				foundOther[thisNode.String()] = true
+			}
 		}
 		return false
 	})
 
-	return foundEndpoints, nil
+	return foundOrigins, foundCC, foundOther, nil
 }
 
 // ReverseLookup returns all leaf nodes of the tree which has uid as its root
 func ReverseLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
-	maxLookBackTime time.Duration) (map[string]bool, error) {
+	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
 	nodeUid, err := toInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
 	return ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime)
@@ -245,7 +265,7 @@ func ForwardLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
 	maxLookBackTime.Sub(g.Node(nodeUid).(transactionNode).ts)
 	g.SetReverse(true)
 	// todo somehow get correct time from original node for which the reverse lookup was done
-	origins, err := ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime.Sub(g.Node(nodeUid).(transactionNode).ts))
+	origins, _, _, err := ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime.Sub(g.Node(nodeUid).(transactionNode).ts))
 	if err != nil {
 		return nil, err
 	}
@@ -254,8 +274,9 @@ func ForwardLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
 }
 
 type transactionNode struct {
-	ts time.Time
-	id int64
+	ts          time.Time
+	id          int64
+	privacyType constants.PrivacyType
 }
 
 func (n transactionNode) ID() int64      { return n.id }
@@ -269,7 +290,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.AddNode(transactionNode{ts: node.Block[0].Ts, id: nodeUid})
+		g.AddNode(transactionNode{id: nodeUid, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
 	}
 
 	return nil
@@ -283,7 +304,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{ts: node.Block[0].Ts, id: nodeUid})
+		g.UpdateNode(transactionNode{id: nodeUid, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
 
 		for _, input := range node.Inputs {
 			inputUid, parseErr := toInteger(input.Uid)

@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/constants"
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
@@ -74,8 +75,9 @@ func (thisPath TransactionPath) hash() string {
 }
 
 type ConnectedNode struct {
-	Uid   string `json:"uid"`
-	Block []struct {
+	Uid         string                `json:"uid"`
+	PrivacyType constants.PrivacyType `json:"privacytype"`
+	Block       []struct {
 		Ts time.Time `json:"ts"`
 	} `json:"block"`
 	Inputs []struct {
@@ -84,8 +86,9 @@ type ConnectedNode struct {
 }
 
 type Node struct {
-	Uid   string `json:"uid"`
-	Block []struct {
+	Uid         string                `json:"uid"`
+	PrivacyType constants.PrivacyType `json:"privacytype"`
+	Block       []struct {
 		Ts time.Time `json:"ts"`
 	} `json:"block"`
 }

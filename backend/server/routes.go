@@ -762,6 +762,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	go func() {
 		newGraph, loadErr := analytics.LoadGraphInSteps(dgraph)
 		if loadErr != nil {
+			// todo remove panic
 			panic(fmt.Sprintln("error loading graph", loadErr))
 		}
 
