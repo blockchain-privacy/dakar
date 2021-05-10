@@ -1,35 +1,37 @@
 package constants
 
 // MixingTypes is the set of all mixing denomination types
-var MixingTypes = [5]int{PrivacyMixing0, PrivacyMixing1, PrivacyMixing2, PrivacyMixing3, PrivacyMixing4}
+var MixingTypes = [5]PrivacyType{PrivacyMixing0, PrivacyMixing1, PrivacyMixing2, PrivacyMixing3, PrivacyMixing4}
+
+type PrivacyType uint16
 
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS
 // privacy type ranges
 const (
-	PrivacyMixing0    = 5  // 10.0001 -- 1000010000
-	PrivacyMixing1    = 10 // 01.00001 -- 100001000
-	PrivacyMixing2    = 15 // 00.100001 -- 10000100
-	PrivacyMixing3    = 20 // 00.0100001 -- 1000010
-	PrivacyMixing4    = 25 // 00.00100001 -- 100001
-	PrivacyMixingLast = 99 // the maximum id in the privacy mixing range (0 - 99)
+	PrivacyMixing0    = PrivacyType(5)  // 10.0001 -- 1000010000
+	PrivacyMixing1    = PrivacyType(10) // 01.00001 -- 100001000
+	PrivacyMixing2    = PrivacyType(15) // 00.100001 -- 10000100
+	PrivacyMixing3    = PrivacyType(20) // 00.0100001 -- 1000010
+	PrivacyMixing4    = PrivacyType(25) // 00.00100001 -- 100001
+	PrivacyMixingLast = PrivacyType(99) // the maximum id in the privacy mixing range (0 - 99)
 
-	PrivacyDestinationFirst = 100
-	PrivacyDestination      = 101
-	PrivacyDestinationLast  = 199
+	PrivacyDestinationFirst = PrivacyType(100)
+	PrivacyDestination      = PrivacyType(101)
+	PrivacyDestinationLast  = PrivacyType(199)
 
-	PrivacyOriginFirst = 200
-	PrivacyOrigin      = 201
-	PrivacyOriginLast  = 299
+	PrivacyOriginFirst = PrivacyType(200)
+	PrivacyOrigin      = PrivacyType(201)
+	PrivacyOriginLast  = PrivacyType(299)
 
-	PrivacyCollateralCreationFirst = 300
-	PrivacyCollateralCreation      = 301
-	PrivacyCollateralCreationLast  = 399
+	PrivacyCollateralCreationFirst = PrivacyType(300)
+	PrivacyCollateralCreation      = PrivacyType(301)
+	PrivacyCollateralCreationLast  = PrivacyType(399)
 
-	PrivacyCollateralPaymentFirst = 400
-	PrivacyCollateralPayment      = 401
-	PrivacyCollateralPaymentLast  = 499
+	PrivacyCollateralPaymentFirst = PrivacyType(400)
+	PrivacyCollateralPayment      = PrivacyType(401)
+	PrivacyCollateralPaymentLast  = PrivacyType(499)
 )
 
 // DO NOT CHANGE THE ORDER/NUMBERING OF THESE CONSTANTS

@@ -905,11 +905,11 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
-func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst int,
-	privacyRangeLast int) ([]ConnectedNode, error) {
+func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
+	privacyRangeLast constants.PrivacyType) ([]ConnectedNode, error) {
 	query := fmt.Sprintf(`{
 				q(func: between(privacytype,`+
-		strconv.Itoa(privacyRangeFirst)+","+strconv.Itoa(privacyRangeLast)+`), first:%d, offset:%d ){
+		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
 					uid
 					block:~transactions{
 						ts
@@ -939,10 +939,11 @@ func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes in
 }
 
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
-func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst int, privacyRangeLast int) ([]Node, error) {
+func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
+	privacyRangeLast constants.PrivacyType) ([]Node, error) {
 	query := fmt.Sprintf(`{
 				q(func: between(privacytype,`+
-		strconv.Itoa(privacyRangeFirst)+","+strconv.Itoa(privacyRangeLast)+`), first:%d, offset:%d ){
+		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){
 					uid
 					block:~transactions{
 						ts

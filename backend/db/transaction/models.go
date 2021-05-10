@@ -15,14 +15,14 @@ var (
 )
 
 type Transaction struct {
-	Uid         string        `json:"uid,omitempty"`
-	PrivacyType *int          `json:"privacytype,omitempty"`
-	Fee         *int64        `json:"fee,omitempty"`
-	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
-	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
-	Hash        string        `json:"txhash,omitempty"`
-	Origins     []Transaction `json:"origins,omitempty"`
-	DType       []string      `json:"dgraph.type,omitempty"`
+	Uid         string                 `json:"uid,omitempty"`
+	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
+	Fee         *int64                 `json:"fee,omitempty"`
+	Outputs     []op.Output            `json:"tx_outputs,omitempty"`
+	Inputs      []op.Output            `json:"tx_inputs,omitempty"`
+	Hash        string                 `json:"txhash,omitempty"`
+	Origins     []Transaction          `json:"origins,omitempty"`
+	DType       []string               `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
