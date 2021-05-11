@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
@@ -15,7 +16,7 @@ type DenominationTypeHeuristic struct {
 	parameterDescription string
 }
 
-// DenominationTypeHeuristic constructor
+// NewDenominationTypeHeuristic constructs a DenominationTypeHeuristic
 func NewDenominationTypeHeuristic() DenominationTypeHeuristic {
 	return DenominationTypeHeuristic{
 		heuristicType: "denomination_type",
@@ -50,7 +51,7 @@ func (h DenominationTypeHeuristic) clone() heuristic {
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
-func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)

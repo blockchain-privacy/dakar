@@ -1,4 +1,4 @@
-package analytics
+package graph
 
 import (
 	"fmt"
@@ -78,7 +78,8 @@ func (g *ReversibleGraph) Edge(uid, vid int64) graph.Edge {
 		if !ok {
 			return nil
 		}
-		return edge
+
+		return g.NewEdge(edge.To(), edge.From())
 	}
 
 	edge, ok := g.from[uid][vid]

@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -17,8 +18,7 @@ type TimeConstraintHeuristic struct {
 	lookBackTime         time.Duration
 }
 
-// TimeConstraintHeuristic constructor
-// hoursToLookBack in hours
+// NewTimeConstraintHeuristic constructs a TimeConstraintHeuristic. hoursToLookBack in hours.
 func NewTimeConstraintHeuristic(hoursToLookBack uint32) *TimeConstraintHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &TimeConstraintHeuristic{
@@ -62,7 +62,7 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {

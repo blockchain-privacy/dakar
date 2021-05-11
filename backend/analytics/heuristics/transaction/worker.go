@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -125,15 +126,15 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 	return StatusHeuristicInQueue
 }
 
-func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph) {
-	go w.work(ctx, dgraph)
+func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) {
+	go w.work(ctx, dgraph, g)
 }
 
 func stoppingWorker() {
 	info("stopping ...")
 }
 
-func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
+func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) {
 
 	var work Work
 	ticker := time.NewTicker(time.Second * 5)
@@ -146,6 +147,11 @@ mainLoop:
 			stoppingWorker()
 			break mainLoop
 		case <-ticker.C:
+			// check if graph is ready
+			if g == nil {
+				continue
+			}
+
 			// get work for this cycle
 			w.mutex.Lock()
 			for k, v := range w.executionMap {
@@ -179,7 +185,7 @@ mainLoop:
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							if err = e.RunSynchronous(dgraph, w.currentWorkItem.txhash, "",
+							if err = e.RunSynchronous(dgraph, g, w.currentWorkItem.txhash, "",
 								w.currentWorkItem.userUid); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}

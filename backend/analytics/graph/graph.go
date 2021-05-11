@@ -1,9 +1,11 @@
-package analytics
+package graph
 
 import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db/analytics"
+	"log"
+
 	"errors"
 	"fmt"
 	"runtime"
@@ -14,11 +16,20 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
-	"gonum.org/v1/gonum/graph/traverse"
 )
 
-// loadOriginTransactions loads origin transactions from the database into the graph
-func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
+type transactionNode struct {
+	ts          time.Time
+	id          int64
+	privacyType constants.PrivacyType
+}
+
+func (n transactionNode) ID() int64      { return n.id }
+func (n transactionNode) String() string { return toHex(n.id) }
+
+// loadOriginTransactions loads origin transactions from the database into the graph.
+// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		originNodes, err := analytics.GetOriginTransactions(c, step, i)
@@ -31,7 +42,7 @@ func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(originNodes) < step {
+		if len(originNodes) < step || (max > 0 && i+step >= max) {
 			break
 		}
 	}
@@ -39,8 +50,9 @@ func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 	return nil
 }
 
-// loadCCTransactions loads cc transactions from the database into the graph
-func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
+// loadCCTransactions loads cc transactions from the database into the graph.
+//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
@@ -53,7 +65,7 @@ func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(ccNodes) < step {
+		if len(ccNodes) < step || (max > 0 && i+step >= max) {
 			break
 		}
 	}
@@ -61,8 +73,9 @@ func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 	return nil
 }
 
-// loadMixingTransactions loads mixing transactions from the database into the graph
-func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
+// loadMixingTransactions loads mixing transactions from the database into the graph.
+//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		if i/step > 10 && (i/step)%3 == 0 {
@@ -78,7 +91,7 @@ func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(mixingNodes) < step {
+		if len(mixingNodes) < step || (max > 0 && i+step >= max) {
 			break
 		}
 	}
@@ -87,7 +100,8 @@ func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 }
 
 // loadDestinationTransactions loads destination transactions from the database into the graph
-func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
+//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 	const step = 10000
 	for i := 0; ; i += step {
 		if i/step > 5 && (i/step)%2 == 0 {
@@ -103,7 +117,7 @@ func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(destinationNodes) < step {
+		if len(destinationNodes) < step || (max > 0 && i+step >= max) {
 			break
 		}
 	}
@@ -118,43 +132,45 @@ func LoadGraphInSteps(c *dgo.Dgraph) (*ReversibleGraph, error) {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 	}
 
-	info("db stats: mixing count:", mixingCount, "origin count:", originCount,
+	log.Println("db stats: mixing count:", mixingCount, "origin count:", originCount,
 		"destination count:", destinationCount, "cc count:", ccCount)
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 
+	const numTxToLoad = 0
+
 	// load all origin transactions from the database
-	info("Loading origin nodes")
-	if err := loadOriginTransactions(c, g); err != nil {
+	log.Println("Loading origin nodes")
+	if err := loadOriginTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// load all cc transactions from the database
-	info("Loading cc nodes")
-	if err := loadCCTransactions(c, g); err != nil {
+	log.Println("Loading cc nodes")
+	if err := loadCCTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// load all mixing transactions from the database
-	info("Loading mixing nodes")
-	if err := loadMixingTransactions(c, g); err != nil {
+	log.Println("Loading mixing nodes")
+	if err := loadMixingTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	// load all destination transactions from the database
-	info("Loading destination nodes")
-	if err := loadDestinationTransactions(c, g); err != nil {
+	log.Println("Loading destination nodes")
+	if err := loadDestinationTransactions(c, g, numTxToLoad/10); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// only need to prune if a subset of transaction is loaded
-	info("pruning nodes")
+	log.Println("pruning nodes")
 	if err := pruneNodes(g); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	info("graph contains", g.Nodes().Len(), "nodes")
+	log.Println("graph contains", g.Nodes().Len(), "nodes")
 	// check
-	info("verifying graph")
+	log.Println("verifying graph")
 	if verificationErr := verifyGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
@@ -169,118 +185,10 @@ func toHex(i int64) string {
 	return "0x" + strconv.FormatInt(i, 16)
 }
 
-func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxGap time.Duration,
-	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
-	node := g.Node(nodeId)
-	if node == nil {
-		return nil, nil, nil, errors.New("error node not found")
-	}
-
-	foundOrigins := make(map[string]bool)
-	foundCC := make(map[string]bool)
-	foundOther := make(map[string]bool)
-	nodeTs := node.(transactionNode).ts
-	isGraphReversed := g.IsReversed()
-
-	w := traverse.BreadthFirst{
-		Traverse: func(e graph.Edge) bool {
-			toNode := g.Node(e.To().ID()).(transactionNode)
-
-			if !toNode.privacyType.IsMixing() {
-				if toNode.privacyType.IsOrigin() {
-					foundOrigins[toNode.String()] = true
-				} else if toNode.privacyType.IsCC() {
-					foundCC[toNode.String()] = true
-				} else {
-					foundOther[toNode.String()] = true
-				}
-				return false
-			}
-
-			// ALL nodes are of type transactionNode, therefore unsafe cast is okay
-			if maxGap > 0 {
-				fromNode := g.Node(e.From().ID()).(transactionNode)
-
-				if fromNode.ts.Sub(toNode.ts) > maxGap {
-					return false
-				}
-			}
-
-			if maxLookBackTime > 0 {
-				if isGraphReversed {
-					return true
-					//return !(toNode.ts.Sub(nodeTs) >= maxLookBackTime)
-				}
-
-				return !(nodeTs.Sub(toNode.ts) >= maxLookBackTime)
-			}
-
-			return true
-		},
-	}
-
-	w.Walk(g, node, func(n graph.Node, d int) bool {
-		from := g.From(n.ID())
-		if from.Len() == 0 {
-			thisNode := n.(transactionNode)
-			if thisNode.privacyType.IsOrigin() {
-				foundOrigins[thisNode.String()] = true
-			} else if thisNode.privacyType.IsCC() {
-				foundCC[thisNode.String()] = true
-			} else {
-				foundOther[thisNode.String()] = true
-			}
-		}
-		return false
-	})
-
-	return foundOrigins, foundCC, foundOther, nil
-}
-
-// ReverseLookup returns all leaf nodes of the tree which has uid as its root
-func ReverseLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
-	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
-	nodeUid, err := toInteger(uid)
-	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-	g.SetReverse(false)
-	return ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime)
-}
-
 // toInteger a hex string in the form of "0x123" to an integer
 func toInteger(hexString string) (int64, error) {
 	return strconv.ParseInt(hexString[2:], 16, 64)
 }
-
-// ForwardLookup returns all leaf nodes of the tree which has uid as its root
-func ForwardLookup(g *ReversibleGraph, uid string, maxGap time.Duration,
-	maxLookBackTime time.Time) (map[string]bool, error) {
-	nodeUid, err := toInteger(uid)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// get duration from time
-	maxLookBackTime.Sub(g.Node(nodeUid).(transactionNode).ts)
-	g.SetReverse(true)
-	// todo somehow get correct time from original node for which the reverse lookup was done
-	origins, _, _, err := ReverseLookupById(g, nodeUid, maxGap, maxLookBackTime.Sub(g.Node(nodeUid).(transactionNode).ts))
-	if err != nil {
-		return nil, err
-	}
-	g.SetReverse(false)
-	return origins, err
-}
-
-type transactionNode struct {
-	ts          time.Time
-	id          int64
-	privacyType constants.PrivacyType
-}
-
-func (n transactionNode) ID() int64      { return n.id }
-func (n transactionNode) String() string { return toHex(n.id) }
 
 // addSingleNodes adds the given nodes to g. Edges will not be set.
 func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
@@ -319,6 +227,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	return nil
 }
 
+// pruneNodes removes all nodes from the graph which are shallow or have no edges
 func pruneNodes(g *ReversibleGraph) error {
 	var node graph.Node
 	var nodeId int64

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"backend/analytics"
+	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -676,7 +676,7 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 }
 
 var graphMutex sync.RWMutex
-var globalGraph *analytics.ReversibleGraph
+var globalGraph *graph.ReversibleGraph
 
 // API pattern: "/api/v1/reverseLookup/<txhash>"
 func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
@@ -754,23 +754,22 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 		panic(fmt.Sprintln("error initializing cache", err))
 	}
 
+	// load graph from db
+
+	newGraph, loadErr := graph.LoadGraphInSteps(dgraph)
+	if loadErr != nil {
+		// todo remove panic
+		panic(fmt.Sprintln("error loading graph", loadErr))
+	}
+
+	graphMutex.Lock()
+	globalGraph = newGraph
+	graphMutex.Unlock()
+	info("Graph is ready")
+
 	// init worker
 	worker := heuristic.NewWorker()
-	worker.StartWorking(ctx, dgraph)
-
-	// load graph from db
-	go func() {
-		newGraph, loadErr := analytics.LoadGraphInSteps(dgraph)
-		if loadErr != nil {
-			// todo remove panic
-			panic(fmt.Sprintln("error loading graph", loadErr))
-		}
-
-		graphMutex.Lock()
-		globalGraph = newGraph
-		graphMutex.Unlock()
-		info("Graph is ready")
-	}()
+	worker.StartWorking(ctx, dgraph, globalGraph)
 
 	// API end points
 

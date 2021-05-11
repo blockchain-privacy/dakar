@@ -1,6 +1,9 @@
 package transaction
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 const DType = "TransactionHeuristic"
 
@@ -34,7 +37,7 @@ type HeuristicTransaction struct {
 	// Uid holds the uid of the transaction
 	Uid string `json:"uid,omitempty"`
 	// Timestamp holds the timestamp of the corresponding block
-	Timestamp string `json:"ts,omitempty"`
+	Timestamp time.Time `json:"ts,omitempty"`
 	// Address holds the address associated with this transaction.
 	// Depending on the context this could be the address of an input or an output
 	Address string
@@ -59,7 +62,7 @@ type queryHeuristicTransaction struct {
 		AddressHash string `json:"addresshash,omitempty"`
 	} `json:"tx_inputs,omitempty"`
 	Block []struct {
-		Timestamp string `json:"ts,omitempty"`
+		Timestamp time.Time `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
 }
 

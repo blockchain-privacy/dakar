@@ -1,7 +1,7 @@
 package server
 
 import (
-	"backend/analytics"
+	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -502,58 +502,62 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 	var origins map[string]bool
 	var cc map[string]bool
 	var other map[string]bool
-	durationTest := []int{0, 3, 7, 14, 30, 60}
-	for _, d := range durationTest {
-		t1 := time.Now()
-		graphMutex.RLock()
-		origins, cc, other, err = analytics.ReverseLookup(globalGraph, uid, time.Hour*24*time.Duration(d), time.Hour*24*lookBackTime)
-		graphMutex.RUnlock()
-		if err != nil {
-			reply.Msg = "Lookup not successful"
+
+	t1 := time.Now()
+	graphMutex.RLock()
+	origins, cc, other, err = graph.ReverseLookup(globalGraph, uid, time.Hour*24*lookBackTime)
+	graphMutex.RUnlock()
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+	inMemoryLookupTime := time.Since(t1)
+	info("time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
+
+	graphMutex.RLock()
+	endpointCount := 0
+	completeDuration := time.Duration(0)
+	i := 0
+	for k := range origins {
+		t1 = time.Now()
+		fOrigins, fCC, fOther, forwardErr := graph.ForwardLookup(globalGraph, k, uid)
+		completeDuration += time.Since(t1)
+		if forwardErr != nil {
+			reply.Msg = "Forward lookup not successful"
 			info(cliutil.ShowCallInfo(), err)
 			return
 		}
-		inMemoryLookupTime := time.Since(t1)
-		info(d, " day gap", "time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
+		endpointCount += len(fOrigins) + len(fCC) + len(fOther)
 
-		//graphMutex.RLock()
-		//endpointCount := 0
-		//completeDuration := time.Duration(0)
-		//for k := range endpoints {
-		//	info("forwardlookup for", k)
-		//
-		//	t1 = time.Now()
-		//	forwardEndpoints, forwardErr := analytics.ForwardLookup(globalGraph, k, time.Hour*24*time.Duration(d), )
-		//	completeDuration += time.Since(t1)
-		//	if forwardErr != nil {
-		//		reply.Msg = "Forward lookup not successful"
-		//		info(cliutil.ShowCallInfo(), err)
-		//		return
-		//	}
-		//	endpointCount += len(forwardEndpoints)
-		//
-		//	// todo remove
-		//	info("mem endpoints -- time:", completeDuration, "avg. endpoints per lookup", len(forwardEndpoints))
-		//
-		//	t1 = time.Now()
-		//	origins, err := analytics2.AnalyzeDestinationsTest(dgraph, k)
-		//	if err != nil {
-		//		reply.Msg = "Forward lookup not successful"
-		//		info(cliutil.ShowCallInfo(), err)
-		//		return
-		//	}
-		//
-		//	info("db endpoints -- time:", time.Since(t1), "avg. endpoints per lookup", len(origins))
-		//
-		//	// todo remove
-		//	break
-		//}
-		//info("endpoints -- time:", completeDuration, "avg. endpoints per lookup", endpointCount/len(endpoints))
-		//graphMutex.RUnlock()
+		if len(fOther) < 20 {
+			// todo remove
+			info("forward look up", k, "mem endpoints -- time:", completeDuration, "origins:", len(fOrigins), "cc:",
+				len(fCC), "other:", len(fOther))
+		}
+	}
+	info("forward look up -- avg. time:", completeDuration/time.Duration(len(origins)),
+		"avg. endpoints per lookup", endpointCount/len(origins))
+	graphMutex.RUnlock()
+
+	const numOutputNodes = 10
+	i = 0
+	for k := range other {
+		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
+		if getErr != nil {
+			reply.Msg = "Could not get transaction hash"
+			info(cliutil.ShowCallInfo(), getErr)
+			return
+		}
+
+		reply.Others = append(reply.Others, txHash)
+		if i == numOutputNodes {
+			break
+		}
+		i++
 	}
 
-	const numOutputNodes = 30
-	i := 0
+	i = 0
 	for k := range origins {
 		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
 		if getErr != nil {
@@ -562,7 +566,23 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 			return
 		}
 
-		reply.TxHashes = append(reply.TxHashes, txHash)
+		reply.Origins = append(reply.Origins, txHash)
+		if i == numOutputNodes {
+			break
+		}
+		i++
+	}
+
+	i = 0
+	for k := range cc {
+		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
+		if getErr != nil {
+			reply.Msg = "Could not get transaction hash"
+			info(cliutil.ShowCallInfo(), getErr)
+			return
+		}
+
+		reply.CCs = append(reply.CCs, txHash)
 		if i == numOutputNodes {
 			break
 		}

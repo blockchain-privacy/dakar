@@ -424,6 +424,7 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 				addresses = append(addresses, a.AddressHash)
 			}
 
+			// todo handle case with more addresses
 			if !areALLAddressesEqual(addresses) {
 				err = errors.New("error invalid response")
 				return
@@ -647,7 +648,63 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 	return
 }
 
-// get the amounts of the inputs
+// GetTransactions returns a HeuristicTransaction for each passed uid
+func GetTransactions(c *dgo.Dgraph, uids []string) (inputTransactions []HeuristicTransaction, err error) {
+
+	uidList := db.CreateUidList(uids)
+
+	query := `query Q($uids: string){
+				q(func: uid($uids)){
+					uid
+					tx_outputs@normalize{
+						amount:amount
+						~tx_inputs{
+							input_tx:txhash
+						}
+					}
+					~transactions{
+						ts
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": uidList})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Transaction) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
+		return
+	}
+
+	for _, t := range r.Transaction {
+		if len(t.Block) != 1 || len(t.Outputs) == 0 {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
+			return
+		}
+		inputTransactions = append(inputTransactions, HeuristicTransaction{
+			Uid:       t.Uid,
+			Timestamp: t.Block[0].Timestamp,
+			Outputs:   t.Outputs,
+		})
+	}
+
+	return
+}
+
+// GetInputAmounts gets the amounts of the inputs
 func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				q(func: eq(txhash,$txhash)){

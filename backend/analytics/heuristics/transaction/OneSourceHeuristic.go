@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -17,8 +18,7 @@ type OneSourceHeuristic struct {
 	lookBackTime         time.Duration
 }
 
-// OneSourceHeuristic constructor
-// hoursToLookBack in hours
+// NewOneSourceHeuristic constructs an OneSourceHeuristic. hoursToLookBack in hours
 func NewOneSourceHeuristic(hoursToLookBack uint32) *OneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &OneSourceHeuristic{
@@ -66,7 +66,7 @@ func (h OneSourceHeuristic) clone() heuristic {
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
-func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([]string, error) {
+func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, _ string) ([]string, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
@@ -86,7 +86,7 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 	var inputSources []map[string]bool
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOriginsV2(dgraph, g, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
