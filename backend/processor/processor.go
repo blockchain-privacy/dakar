@@ -161,6 +161,10 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs
 
 // processAddresses inserts mappings between addresses and outputs in database
 func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping, blockHash string) (err error) {
+	if len(transactionMappings) == 0 {
+		return
+	}
+
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
 		if err = buildAddresses(dgraph, mapping.hash, blockHash, mapping.outputs, &addrMap); err != nil {
