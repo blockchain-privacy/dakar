@@ -85,7 +85,7 @@ type outputMapping struct {
 	indexes []uint32
 }
 
-// maps a address to one or more indexes of a transaction
+// TransactionMapping maps a address to one or more indexes of a transaction
 type TransactionMapping struct {
 	hash    string
 	outputs map[string]outputMapping
@@ -107,7 +107,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 	return mapping
 }
 
-// adds the given uids of outputs to the address specified by addr in addresses
+// addOutputsToAddresses adds the given uids of outputs to the address specified by addr in addresses
 // addr is inserted into addresses if it does not yet exist
 func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) map[string]dbaddr.Address {
 	var (
@@ -159,7 +159,7 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs
 	return
 }
 
-// inserts mappings between addresses and outputs in database
+// processAddresses inserts mappings between addresses and outputs in database
 func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping, blockHash string) (err error) {
 	addrMap := make(map[string]dbaddr.Address)
 	for _, mapping := range transactionMappings {
@@ -323,7 +323,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	return
 }
 
-// maps the input information to the output if it exists already in the database
+// processTxVin maps the input information to the output if it exists already in the database
 func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
@@ -366,7 +366,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 	return nil
 }
 
-// builds a block with the provided arguments and inserts it in the database
+// ProcessBlock builds a block with the provided arguments and inserts it in the database
 func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) (err error) {
 
@@ -386,7 +386,7 @@ func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHa
 
 var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
 
-// Gets the block id from which the crawling will be resumed. If no crawling has
+// getStartingId gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
 func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
@@ -420,9 +420,8 @@ func processingInterrupted() {
 	info("### Block processing interrupted ###")
 }
 
-// wait for the next block
-// if the interrupt receives a signal isInterrupt is true
-// if the next block is available, currentBlock gets updated
+// waitForNextRPCBlock waits for the next block. If the interrupt receives a signal isInterrupt is true.
+// If the next block is available, currentBlock gets updated.
 func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
 	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	ticker := time.NewTicker(config.NewBlockIntervalTime)
@@ -693,7 +692,7 @@ mainLoop:
 	return nil
 }
 
-// creates a hash map of btcjson.TxRawResult
+// createTransactionHashmap creates a hash map of btcjson.TxRawResult
 func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
 	txs := make(map[string]btcjson.TxRawResult)
 	for _, t := range transactions {
