@@ -97,7 +97,7 @@ func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph) bool {
 		var cancelContext context.Context
 		cancelContext, w.cancel = context.WithCancel(ctx)
 		go w.work(cancelContext, dgraph)
-		go w.loadGraph(cancelContext)
+		go w.loadGraph(dgraph)
 		return true
 	}
 	return false
@@ -179,10 +179,7 @@ func stoppingWork() {
 	info("stopping work ...")
 }
 
-func stoppingGraphLoading() {
-	info("stopping loading graph ...")
-}
-
+// work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
 
 	var work Work
@@ -202,13 +199,13 @@ mainLoop:
 			}
 
 			// get work for this cycle
-			w.mapMutex.Lock()
+			w.mapMutex.RLock()
 			for k, v := range w.executionMap {
 				work = v
 				w.currentWorkItem = k
 				break
 			}
-			w.mapMutex.Unlock()
+			w.mapMutex.RUnlock()
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
@@ -264,20 +261,19 @@ func (w *Worker) IsGraphLoaded() bool {
 	return w.graph != nil
 }
 
-func (w *Worker) loadGraph(ctx context.Context) {
-	ticker := time.NewTicker(time.Second * 5)
-	defer ticker.Stop()
-
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			stoppingGraphLoading()
-			break mainLoop
-		case <-ticker.C:
-
-		}
+func (w *Worker) loadGraph(dgraph *dgo.Dgraph) {
+	if w.IsGraphLoaded() {
+		return
 	}
+
+	newGraph, err := graph.LoadGraphInSteps(dgraph)
+	if err != nil {
+		info("graph failed to load", err)
+		return
+	}
+	w.graphMutex.Lock()
+	w.graph = newGraph
+	w.graphMutex.Unlock()
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
@@ -286,7 +282,7 @@ func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[s
 	if !w.IsGraphLoaded() {
 		return nil, nil, nil, errors.New("graph is not loaded yet")
 	}
-	w.graphMutex.RLock()
+	w.graphMutex.Lock()
 	defer w.graphMutex.Unlock()
 	return graph.ReverseLookup(w.graph, uid, maxLookBackTime)
 }
@@ -297,7 +293,7 @@ func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, m
 	if !w.IsGraphLoaded() {
 		return nil, nil, nil, errors.New("graph is not loaded yet")
 	}
-	w.graphMutex.RLock()
+	w.graphMutex.Lock()
 	defer w.graphMutex.Unlock()
 	return graph.ForwardLookup(w.graph, uid, targetUid)
 }
