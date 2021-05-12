@@ -1,7 +1,6 @@
 package server
 
 import (
-	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -466,14 +465,13 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 }
 
 // getReverseLookupReply returns the result of a reverse lookup
-func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath string) (reply reverseLookupReply) {
-	graphMutex.RLock()
-	if globalGraph == nil {
+func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
+	urlPath string) (reply reverseLookupReply) {
+
+	if !worker.IsGraphLoaded() {
 		reply.Msg = "Graph is not loaded yet, try again later"
-		graphMutex.RUnlock()
 		return
 	}
-	graphMutex.RUnlock()
 
 	fLockBackTime := urlValues.Get("t")
 	var lookBackTime time.Duration
@@ -504,9 +502,7 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 	var other map[string]bool
 
 	t1 := time.Now()
-	graphMutex.RLock()
-	origins, cc, other, err = graph.ReverseLookup(globalGraph, uid, time.Hour*24*lookBackTime)
-	graphMutex.RUnlock()
+	origins, cc, other, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
 	if err != nil {
 		reply.Msg = "Lookup not successful"
 		info(cliutil.ShowCallInfo(), err)
@@ -515,13 +511,12 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 	inMemoryLookupTime := time.Since(t1)
 	info("time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
 
-	graphMutex.RLock()
 	endpointCount := 0
 	completeDuration := time.Duration(0)
 	i := 0
 	for k := range origins {
 		t1 = time.Now()
-		fOrigins, fCC, fOther, forwardErr := graph.ForwardLookup(globalGraph, k, uid)
+		fOrigins, fCC, fOther, forwardErr := worker.ForwardLookup(k, uid)
 		completeDuration += time.Since(t1)
 		if forwardErr != nil {
 			reply.Msg = "Forward lookup not successful"
@@ -538,7 +533,6 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, urlValues url.Values, urlPath str
 	}
 	info("forward look up -- avg. time:", completeDuration/time.Duration(len(origins)),
 		"avg. endpoints per lookup", endpointCount/len(origins))
-	graphMutex.RUnlock()
 
 	const numOutputNodes = 10
 	i = 0

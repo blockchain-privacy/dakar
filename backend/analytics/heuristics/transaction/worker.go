@@ -6,6 +6,7 @@ import (
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -74,23 +75,29 @@ type Worker struct {
 	mapMutex        *sync.RWMutex
 	currentWorkItem workKey
 	executionMap    map[workKey]Work
+
+	// graphMutex acts as a mutex for graph
+	graphMutex *sync.RWMutex
+	graph      *graph.ReversibleGraph
 }
 
 // NewWorker constructs a new Worker
 func NewWorker() Worker {
-	return Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex), activeMutex: new(sync.RWMutex)}
+	return Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex),
+		activeMutex: new(sync.RWMutex), graphMutex: new(sync.RWMutex)}
 }
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
 // Returns false if the worker was already started.
-func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) bool {
+func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph) bool {
 	w.activeMutex.Lock()
 	defer w.activeMutex.Unlock()
 	if !w.active {
 		w.active = true
 		var cancelContext context.Context
 		cancelContext, w.cancel = context.WithCancel(ctx)
-		go w.work(cancelContext, dgraph, g)
+		go w.work(cancelContext, dgraph)
+		go w.loadGraph(cancelContext)
 		return true
 	}
 	return false
@@ -168,11 +175,15 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 	return StatusHeuristicInQueue
 }
 
-func stoppingWorker() {
-	info("stopping ...")
+func stoppingWork() {
+	info("stopping work ...")
 }
 
-func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) {
+func stoppingGraphLoading() {
+	info("stopping loading graph ...")
+}
+
+func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
 
 	var work Work
 	ticker := time.NewTicker(time.Second * 5)
@@ -182,11 +193,11 @@ mainLoop:
 	for {
 		select {
 		case <-ctx.Done():
-			stoppingWorker()
+			stoppingWork()
 			break mainLoop
 		case <-ticker.C:
 			// check if graph is ready
-			if g == nil {
+			if !w.IsGraphLoaded() {
 				continue
 			}
 
@@ -223,10 +234,12 @@ mainLoop:
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							if err = e.RunSynchronous(dgraph, g, w.currentWorkItem.txhash, "",
+							w.graphMutex.RLock()
+							if err = e.RunSynchronous(dgraph, w.graph, w.currentWorkItem.txhash, "",
 								w.currentWorkItem.userUid); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
+							w.graphMutex.RUnlock()
 						}
 					}
 				}
@@ -242,4 +255,49 @@ mainLoop:
 			work = Work{}
 		}
 	}
+}
+
+// IsGraphLoaded returns true if the graph is loaded
+func (w *Worker) IsGraphLoaded() bool {
+	w.graphMutex.RLock()
+	defer w.graphMutex.RUnlock()
+	return w.graph != nil
+}
+
+func (w *Worker) loadGraph(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 5)
+	defer ticker.Stop()
+
+mainLoop:
+	for {
+		select {
+		case <-ctx.Done():
+			stoppingGraphLoading()
+			break mainLoop
+		case <-ticker.C:
+
+		}
+	}
+}
+
+// ReverseLookup performs a reverse lookup of the given uid.
+func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool,
+	error) {
+	if !w.IsGraphLoaded() {
+		return nil, nil, nil, errors.New("graph is not loaded yet")
+	}
+	w.graphMutex.RLock()
+	defer w.graphMutex.Unlock()
+	return graph.ReverseLookup(w.graph, uid, maxLookBackTime)
+}
+
+// ForwardLookup performs a forward lookup of the given uid.
+func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, map[string]bool, map[string]bool,
+	error) {
+	if !w.IsGraphLoaded() {
+		return nil, nil, nil, errors.New("graph is not loaded yet")
+	}
+	w.graphMutex.RLock()
+	defer w.graphMutex.Unlock()
+	return graph.ForwardLookup(w.graph, uid, targetUid)
 }

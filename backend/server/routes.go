@@ -1,7 +1,6 @@
 package server
 
 import (
-	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -20,7 +19,6 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/dgraph-io/dgo/v2"
@@ -675,15 +673,12 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
-var graphMutex sync.RWMutex
-var globalGraph *graph.ReversibleGraph
-
 // API pattern: "/api/v1/reverseLookup/<txhash>"
-func handlerReverseLookup(dgraph *dgo.Dgraph) http.Handler {
+func handlerReverseLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getReverseLookupReply(dgraph, r.URL.Query(), r.URL.Path)
+		reply := getReverseLookupReply(dgraph, worker, r.URL.Query(), r.URL.Path)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -769,7 +764,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 
 	// init worker
 	worker := heuristic.NewWorker()
-	if ok := worker.Start(ctx, dgraph, globalGraph); !ok {
+	if ok := worker.Start(ctx, dgraph); !ok {
 		panic("could not start worker")
 	}
 
@@ -824,7 +819,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
 
 	http.Handle(constants.GetRouteReverseLookup(),
-		Adapt(handlerReverseLookup(dgraph),
+		Adapt(handlerReverseLookup(dgraph, &worker),
 			authorizationMiddleware(constants.GetRouteReverseLookup(), privkey, pubkey)))
 
 	// User
