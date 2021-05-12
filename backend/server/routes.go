@@ -756,20 +756,22 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 
 	// load graph from db
 
-	newGraph, loadErr := graph.LoadGraphInSteps(dgraph)
-	if loadErr != nil {
-		// todo remove panic
-		panic(fmt.Sprintln("error loading graph", loadErr))
-	}
+	//newGraph, loadErr := graph.LoadGraphInSteps(dgraph)
+	//if loadErr != nil {
+	//	// todo remove panic
+	//	panic(fmt.Sprintln("error loading graph", loadErr))
+	//}
 
-	graphMutex.Lock()
-	globalGraph = newGraph
-	graphMutex.Unlock()
-	info("Graph is ready")
+	//graphMutex.Lock()
+	//globalGraph = newGraph
+	//graphMutex.Unlock()
+	//info("Graph is ready")
 
 	// init worker
 	worker := heuristic.NewWorker()
-	worker.StartWorking(ctx, dgraph, globalGraph)
+	if ok := worker.Start(ctx, dgraph, globalGraph); !ok {
+		panic("could not start worker")
+	}
 
 	// API end points
 

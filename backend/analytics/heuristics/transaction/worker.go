@@ -63,14 +63,56 @@ type Work struct {
 }
 
 type Worker struct {
+	// cancel stops the go routine started by Start
+	cancel context.CancelFunc
+
+	// activeMutex acts as a mutex for active and cancel
+	activeMutex *sync.RWMutex
+	active      bool
+
+	// mapMutex acts as a mutex for executionMap and currentWorkItem
+	mapMutex        *sync.RWMutex
 	currentWorkItem workKey
 	executionMap    map[workKey]Work
-	mutex           *sync.Mutex
 }
 
+// NewWorker constructs a new Worker
 func NewWorker() Worker {
-	var mLock sync.Mutex
-	return Worker{executionMap: make(map[workKey]Work), mutex: &mLock}
+	return Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex), activeMutex: new(sync.RWMutex)}
+}
+
+// Start starts the worker. To stop the worker cancel the context or call Stop.
+// Returns false if the worker was already started.
+func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) bool {
+	w.activeMutex.Lock()
+	defer w.activeMutex.Unlock()
+	if !w.active {
+		w.active = true
+		var cancelContext context.Context
+		cancelContext, w.cancel = context.WithCancel(ctx)
+		go w.work(cancelContext, dgraph, g)
+		return true
+	}
+	return false
+}
+
+// Stop stops the worker.
+func (w *Worker) Stop() {
+	w.activeMutex.Lock()
+	defer w.activeMutex.Unlock()
+	if !w.active {
+		return
+	}
+
+	w.cancel()
+	w.active = false
+}
+
+// IsActive returns true if the worker is active
+func (w *Worker) IsActive() bool {
+	w.activeMutex.RLock()
+	defer w.activeMutex.RUnlock()
+	return w.active
 }
 
 func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool {
@@ -79,8 +121,8 @@ func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.Lock()
+	defer w.mapMutex.Unlock()
 
 	if _, exists := w.executionMap[key]; exists {
 		return false
@@ -98,8 +140,8 @@ func (w *Worker) IsInQueue(tx string, userUid string) bool {
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.RLock()
+	defer w.mapMutex.RUnlock()
 	_, ok := w.executionMap[key]
 	return ok
 }
@@ -111,8 +153,8 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.RLock()
+	defer w.mapMutex.RUnlock()
 	_, ok := w.executionMap[key]
 
 	if !ok {
@@ -124,10 +166,6 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 	}
 
 	return StatusHeuristicInQueue
-}
-
-func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph, g *graph.ReversibleGraph) {
-	go w.work(ctx, dgraph, g)
 }
 
 func stoppingWorker() {
@@ -153,13 +191,13 @@ mainLoop:
 			}
 
 			// get work for this cycle
-			w.mutex.Lock()
+			w.mapMutex.Lock()
 			for k, v := range w.executionMap {
 				work = v
 				w.currentWorkItem = k
 				break
 			}
-			w.mutex.Unlock()
+			w.mapMutex.Unlock()
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
@@ -195,10 +233,10 @@ mainLoop:
 				info("processing work done")
 			}
 
-			w.mutex.Lock()
+			w.mapMutex.Lock()
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}
-			w.mutex.Unlock()
+			w.mapMutex.Unlock()
 
 			// reset memory
 			work = Work{}
