@@ -440,137 +440,6 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 	return
 }
 
-// GetOriginsByDate returns all origins which are created after the specified date
-func GetOriginsByDate(c *dgo.Dgraph, uid string, timestamp string) (origins []HeuristicTransaction, err error) {
-	query := `query Q($uid: string,$ts: string){
-				var (func: uid($uid))@cascade{
-					v as origins{
-						~transactions@filter(gt(ts,$ts))
-					}
-				}
-				
-				q(func: uid(v)){
-					uid
-					tx_outputs{
-						amount
-					}
-					tx_inputs@normalize{
-						~addr_outputs{
-							addresshash:addresshash
-						}
-					}
-				}
-			   }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": uid, "$ts": timestamp})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Origins []queryHeuristicTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, o := range r.Origins {
-		if len(o.Inputs) != 1 {
-			var addresses []string
-			for _, a := range o.Inputs {
-				addresses = append(addresses, a.AddressHash)
-			}
-
-			if !areALLAddressesEqual(addresses) {
-				err = errors.New("error invalid response")
-				return
-			}
-		}
-		origins = append(origins, HeuristicTransaction{
-			Uid:     o.Uid,
-			Address: o.Inputs[0].AddressHash,
-			Outputs: o.Outputs,
-		})
-	}
-
-	return
-}
-
-// GetDestinationTxOrigins collects all previously found origins of the
-// direct input transactions of the given destination transaction
-func GetDestinationTxOrigins(c *dgo.Dgraph, txhash string) (origins []HeuristicTransaction, err error) {
-	query := `query Q($txhash: string){
-				tx as var (func: eq(txhash,$txhash))
-				var (func: uid(tx)){
-					tx_inputs {
-						~tx_outputs {
-							v as origins
-						}
-					}
-				}
-
-				var (func: uid(tx)){
-					tx_inputs {
-						c as ~tx_outputs@filter(between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
-		constants.StrPrivacyOriginLast + `))
-					}
-				}
-				
-				q(func: uid(v,c)){
-					uid
-					tx_outputs{
-						amount
-					}
-					tx_inputs@normalize{
-						~addr_outputs{
-							addresshash:addresshash
-						}
-					}
-				}
-			   }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": txhash})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Origins []queryHeuristicTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, o := range r.Origins {
-		if len(o.Inputs) != 1 {
-			var addresses []string
-			for _, a := range o.Inputs {
-				addresses = append(addresses, a.AddressHash)
-			}
-
-			if !areALLAddressesEqual(addresses) {
-				err = errors.New("error invalid response")
-				return
-			}
-		}
-		origins = append(origins, HeuristicTransaction{
-			Uid:     o.Uid,
-			Address: o.Inputs[0].AddressHash,
-			Outputs: o.Outputs,
-		})
-	}
-
-	return
-}
-
 // return true if all addresses are equal
 func areALLAddressesEqual(addresses []string) bool {
 	if len(addresses) < 2 {
@@ -648,12 +517,11 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 	return
 }
 
-// GetTransactions returns a HeuristicTransaction for each passed uid
-func GetTransactions(c *dgo.Dgraph, uids []string) (inputTransactions []HeuristicTransaction, err error) {
-
-	uidList := db.CreateUidList(uids)
-
-	query := `query Q($uids: string){
+// GetTransactionsWithOutputTransaction returns a slice of transactions.
+// Each transaction contains its timestamp and its output transactions.
+func GetTransactionsWithOutputTransaction(c *dgo.Dgraph, uids []string) (inputTransactions []HeuristicTransaction,
+	err error) {
+	const query = `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
 					tx_outputs@normalize{
@@ -668,7 +536,7 @@ func GetTransactions(c *dgo.Dgraph, uids []string) (inputTransactions []Heuristi
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": uidList})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUidList(uids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -698,6 +566,62 @@ func GetTransactions(c *dgo.Dgraph, uids []string) (inputTransactions []Heuristi
 			Uid:       t.Uid,
 			Timestamp: t.Block[0].Timestamp,
 			Outputs:   t.Outputs,
+		})
+	}
+
+	return
+}
+
+// GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
+// Each transaction contains its output amounts and the addresses of all inputs.
+func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($uids:string){
+				q(func: uid($uids)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs@normalize{
+						~addr_outputs{
+							addresshash:addresshash
+						}
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUidList(uids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []queryHeuristicTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			var addresses []string
+			for _, a := range o.Inputs {
+				addresses = append(addresses, a.AddressHash)
+			}
+
+			// todo handle multiple input addresses
+			if !areALLAddressesEqual(addresses) {
+				err = errors.New("error invalid response")
+				return
+			}
+		}
+		origins = append(origins, HeuristicTransaction{
+			Uid:     o.Uid,
+			Address: o.Inputs[0].AddressHash,
+			Outputs: o.Outputs,
 		})
 	}
 

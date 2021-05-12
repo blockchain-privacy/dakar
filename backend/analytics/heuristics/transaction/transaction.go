@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
+	"backend/db/transaction"
 
 	"errors"
 	"fmt"
@@ -88,16 +89,6 @@ type originSource struct {
 	sources map[string]int
 }
 
-// returns a map of sources
-func buildSources(origins []dbtxh.HeuristicTransaction) map[string]bool {
-	sources := make(map[string]bool)
-	for _, o := range origins {
-		sources[o.Address] = true
-	}
-
-	return sources
-}
-
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
 func addOriginsToMap(sourceTransactionMap map[string]map[string]dbtxh.HeuristicTransaction,
@@ -143,38 +134,72 @@ func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[strin
 	return sourceAmounts
 }
 
-func getTimeLimitedOrigins(dgraph *dgo.Dgraph, it dbtxh.HeuristicTransaction,
-	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
-	// get time limited origins
-	t := it.Timestamp.Add(-1 * lookBackTime)
-	origins, err = dbtxh.GetOriginsByDate(dgraph, it.Uid, t.Format(time.RFC3339))
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+// concatMaps returns a slice containing all keys of the given maps. The keys are not checked for uniqueness.
+func concatMaps(maps ...map[string]bool) (uids []string) {
+	for _, m := range maps {
+		for k := range m {
+			uids = append(uids, k)
+		}
 	}
+
 	return
 }
 
-func getTimeLimitedOriginsV2(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, it dbtxh.HeuristicTransaction,
+// getTimeLimitedOrigins returns all origins of the given transaction.
+// If lookBackTime is bigger than zero only origins in the time range of
+// tx.ts - lookBackTime will be returned.
+func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, tx dbtxh.HeuristicTransaction,
 	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
-
-	origin, cc, other, err := graph.ReverseLookup(g, it.Uid, lookBackTime)
+	// do reverse lookup
+	origin, cc, other, err := graph.ReverseLookup(g, tx.Uid, lookBackTime)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	var uids []string
-	for txUid := range origin {
-		uids = append(uids, txUid)
-	}
-	for txUid := range cc {
-		uids = append(uids, txUid)
-	}
-	for txUid := range other {
-		uids = append(uids, txUid)
+	// get tx details for each uid
+	origins, err = dbtxh.GetTransactionsWithOutputTransaction(dgraph, concatMaps(origin, cc, other))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	origins, err = dbtxh.GetTransactions(dgraph, uids)
+	return
+}
+
+// getDestinationTxOrigins returns all origins of the given transaction.
+func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph,
+	txHash string) (origins []dbtxh.HeuristicTransaction, err error) {
+	// get uid for txhash
+	uid, err := transaction.GetTransactionUid(dgraph, txHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	inputTransactions, err := graph.GetInputTransactions(g, uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	uidMap := make(map[string]bool)
+	// do reverse lookup for all input transactions
+	for _, it := range inputTransactions {
+		origin, cc, other, err := graph.ReverseLookup(g, it, time.Hour*24*90)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		for _, o := range concatMaps(origin, cc, other) {
+			uidMap[o] = true
+		}
+	}
+
+	// store all uids from the map into a slice
+	var uids []string
+	for k := range uidMap {
+		uids = append(uids, k)
+	}
+
+	// get tx details for each uid
+	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, uids)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -275,18 +300,6 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Reversib
 	var returnError error
 
 	return returnError
-}
-
-// fetchHeuristicSources returns the sources based on the results of the specified heuristic
-func fetchHeuristicSources(dgraph *dgo.Dgraph, heuristicUid string) (sources map[string]bool, err error) {
-	results, err := dbtxh.GetHeuristicResults(dgraph, heuristicUid)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	sources = buildSources(results)
-	return
 }
 
 // Exec executes the heuristic on the transaction specified by txHash for the given userUid

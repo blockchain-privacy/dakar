@@ -114,7 +114,25 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUid string) (map[string
 	return origins, cc, destination, err
 }
 
-// GetInputTransactions returns all transactions which
-func GetInputTransactions() {
+// GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
+func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
+	// convert hex string to integer
+	nodeUid, err := toInteger(uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
 
+	// check if node exists
+	if g.Node(nodeUid) == nil {
+		return nil, fmt.Errorf("error node %s (base 10: %d) not found", uid, nodeUid)
+	}
+
+	var uids []string
+	fromNodes := g.From(nodeUid)
+	for fromNodes.Next() {
+		n := fromNodes.Node()
+		uids = append(uids, toHex(n.ID()))
+	}
+
+	return uids, nil
 }

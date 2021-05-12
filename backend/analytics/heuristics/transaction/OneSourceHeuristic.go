@@ -86,7 +86,7 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, t
 	var inputSources []map[string]bool
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOriginsV2(dgraph, g, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

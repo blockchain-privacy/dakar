@@ -71,7 +71,7 @@ func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleG
 			}
 		} else {
 			var err error
-			results, err = dbtxh.GetDestinationTxOrigins(dgraph, txHash)
+			results, err = getDestinationTxOrigins(dgraph, g, txHash)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

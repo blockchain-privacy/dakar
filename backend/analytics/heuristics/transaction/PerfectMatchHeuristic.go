@@ -71,7 +71,7 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph
 			}
 		} else {
 			var err error
-			results, err = dbtxh.GetDestinationTxOrigins(dgraph, txHash)
+			results, err = getDestinationTxOrigins(dgraph, g, txHash)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

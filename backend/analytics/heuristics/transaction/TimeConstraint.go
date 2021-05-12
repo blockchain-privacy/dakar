@@ -96,7 +96,7 @@ func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGra
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
