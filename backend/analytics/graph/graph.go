@@ -132,6 +132,11 @@ func LoadGraphInSteps(c *dgo.Dgraph) (*ReversibleGraph, error) {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 	}
 
+	// nothing to do
+	if mixingCount == 0 {
+		return nil, nil
+	}
+
 	log.Println("db stats: mixing count:", mixingCount, "origin count:", originCount,
 		"destination count:", destinationCount, "cc count:", ccCount)
 
