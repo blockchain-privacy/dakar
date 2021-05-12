@@ -749,19 +749,6 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 		panic(fmt.Sprintln("error initializing cache", err))
 	}
 
-	// load graph from db
-
-	//newGraph, loadErr := graph.LoadGraphInSteps(dgraph)
-	//if loadErr != nil {
-	//	// todo remove panic
-	//	panic(fmt.Sprintln("error loading graph", loadErr))
-	//}
-
-	//graphMutex.Lock()
-	//globalGraph = newGraph
-	//graphMutex.Unlock()
-	//info("Graph is ready")
-
 	// init worker
 	worker := heuristic.NewWorker()
 	if ok := worker.Start(ctx, dgraph); !ok {

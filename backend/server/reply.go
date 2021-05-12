@@ -501,23 +501,23 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValu
 	var cc map[string]bool
 	var other map[string]bool
 
-	t1 := time.Now()
+	rLookupTime := time.Now()
 	origins, cc, other, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
 	if err != nil {
 		reply.Msg = "Lookup not successful"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	inMemoryLookupTime := time.Since(t1)
+	inMemoryLookupTime := time.Since(rLookupTime)
 	info("time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
 
 	endpointCount := 0
-	completeDuration := time.Duration(0)
+	var completeDuration time.Duration
 	i := 0
 	for k := range origins {
-		t1 = time.Now()
+		fLookupTime := time.Now()
 		fOrigins, fCC, fOther, forwardErr := worker.ForwardLookup(k, uid)
-		completeDuration += time.Since(t1)
+		completeDuration += time.Since(fLookupTime)
 		if forwardErr != nil {
 			reply.Msg = "Forward lookup not successful"
 			info(cliutil.ShowCallInfo(), err)
