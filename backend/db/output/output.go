@@ -56,7 +56,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 	vars["$hash"] = txHash
 	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query, vars)
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, vars)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

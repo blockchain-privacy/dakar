@@ -44,7 +44,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$tx": txHash, "$block": blockHash})
 
 	if err != nil {

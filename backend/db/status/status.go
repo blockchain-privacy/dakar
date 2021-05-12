@@ -186,7 +186,7 @@ func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
 	return
 }
 
-// gets verbose status information from the database
+// GetFrontendStatus gets verbose status information from the database
 func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(CrawlerStatus)){
@@ -309,7 +309,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Second*20, req)
+	return db.TxWithRetry(c, time.Minute*10, req)
 }
 
 // SetAnalyzerStatus sets the new analyzer status
@@ -337,7 +337,7 @@ func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Second*20, req)
+	return db.TxWithRetry(c, time.Minute*10, req)
 }
 
 // SetClassifierStatus sets the new classifier status
@@ -365,7 +365,7 @@ func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Second*20, req)
+	return db.TxWithRetry(c, time.Minute*10, req)
 }
 
 // SetCrawling sets the crawling status
