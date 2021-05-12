@@ -8,12 +8,12 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"backend/external"
-	"io"
 
 	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"strconv"
 	"strings"
@@ -227,7 +227,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
-	isCoinbaseTransaction := false
+	var isCoinbaseTransaction bool
 	if len(rawTransaction.Vin) == 1 && rawTransaction.Vin[0].IsCoinBase() {
 		isCoinbaseTransaction = true
 	} else {
@@ -728,12 +728,9 @@ func ProcessRound(dgraph *dgo.Dgraph, client external.RPCClient, state crawlerPr
 	}
 
 	for _, t := range txHashMap {
-		var newTx dbtx.Transaction
-		var tMap TransactionMapping
-
-		newTx, tMap, err = BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+		newTx, tMap, buildErr := BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
+		if buildErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), buildErr)
 			return
 		}
 
