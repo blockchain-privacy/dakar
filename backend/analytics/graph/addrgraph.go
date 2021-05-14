@@ -14,7 +14,7 @@ import (
 )
 
 // addAddressEdges adds the edges defined in nodes to g.
-func addAddressEdges(g *UndirectedGraph, nodes []analytics.ConnectedNode) error {
+func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 	for _, node := range nodes {
 		nodeUid, err := toInteger(node.Uid)
 		if err != nil {
@@ -39,8 +39,7 @@ func addAddressEdges(g *UndirectedGraph, nodes []analytics.ConnectedNode) error 
 	return nil
 }
 
-// loadAddresses loads origin addresses from the database into the graph.
-// max is the number of addresses which get maximally loaded. If max is zero all possible addresses are loaded.
+// loadAddresses loads origin addresses from the database into the graph
 func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
 	txNodes := transactionGraph.Nodes()
 
@@ -48,13 +47,14 @@ func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *Reversib
 		return errors.New("error nothing to load")
 	}
 
-	const step = 50000
+	const step = 20000
 
 	var uidsToLoad []string
 	var i int64
 	for txNodes.Next() {
 		uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
 		i++
+		// todo check if txNodes.len is right
 		if len(uidsToLoad) == step || txNodes.Len() == 0 {
 			originNodes, err := analytics.GetInputAddresses(c, uidsToLoad)
 			if err != nil {

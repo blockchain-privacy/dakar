@@ -92,3 +92,10 @@ type Node struct {
 		Ts time.Time `json:"ts"`
 	} `json:"block"`
 }
+
+type AddressNode struct {
+	Uid    string `json:"uid"`
+	Inputs []struct {
+		Uid string `json:"uid"`
+	} `json:"i"`
+}

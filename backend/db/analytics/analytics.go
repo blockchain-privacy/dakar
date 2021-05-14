@@ -904,14 +904,10 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 }
 
 // GetInputAddresses returns all input addresses of the given transactions
-func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]ConnectedNode, error) {
+func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]AddressNode, error) {
 	const query = `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
-					privacytype
-					block:~transactions{
-						ts
-					}
 					i:tx_inputs@normalize{
 						~tx_outputs{
 							uid:uid
@@ -927,7 +923,7 @@ func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]ConnectedNode, error) 
 	}
 
 	var r struct {
-		Q []ConnectedNode `json:"q"`
+		Q []AddressNode `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
