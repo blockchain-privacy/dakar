@@ -130,7 +130,7 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 
-	const numTxToLoad = 0
+	const numTxToLoad = 50000
 
 	// load all origin transactions from the database
 	log.Println("Loading origin nodes")
@@ -168,7 +168,7 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	}
 	debug.SetGCPercent(10)
 	runtime.GC()
-	log.Println("transaction graph loaded graph")
+	log.Println("transaction graph loaded")
 	return g, nil
 }
 

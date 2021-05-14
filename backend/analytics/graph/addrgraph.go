@@ -53,7 +53,7 @@ func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *Reversib
 	var uidsToLoad []string
 	var i int64
 	for txNodes.Next() {
-		uidsToLoad = append(uidsToLoad, txNodes.Node().(addressGraphNode).String())
+		uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
 		i++
 		if len(uidsToLoad) == step || txNodes.Len() == 0 {
 			originNodes, err := analytics.GetInputAddresses(c, uidsToLoad)
@@ -101,7 +101,7 @@ func LoadAddressGraph(c *dgo.Dgraph, transactionGraph *ReversibleGraph) (*Undire
 	}
 	debug.SetGCPercent(10)
 	runtime.GC()
-	log.Println("address graph loaded graph")
+	log.Println("address graph loaded")
 	return g, nil
 }
 
