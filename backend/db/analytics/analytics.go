@@ -903,6 +903,40 @@ func GetMixingTransactionsByBlock(c *dgo.Dgraph, blockId uint64) (transactions [
 	return
 }
 
+// GetInputAddresses returns all input addresses of the given transactions
+func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]ConnectedNode, error) {
+	const query = `query Q($uids:string){
+				q(func: uid($uids)){
+					uid
+					privacytype
+					block:~transactions{
+						ts
+					}
+					i:tx_inputs@normalize{
+						~tx_outputs{
+							uid:uid
+						}
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
+		map[string]string{"$uids": db.CreateUidList(txUids)})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	var r struct {
+		Q []ConnectedNode `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return r.Q, nil
+}
+
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
 func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,

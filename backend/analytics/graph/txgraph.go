@@ -9,22 +9,11 @@ import (
 	"log"
 	"runtime"
 	"runtime/debug"
-	"strconv"
 
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
-
-// toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
-func toHex(i int64) string {
-	return "0x" + strconv.FormatInt(i, 16)
-}
-
-// toInteger a hex string in the form of "0x123" to an integer
-func toInteger(hexString string) (int64, error) {
-	return strconv.ParseInt(hexString[2:], 16, 64)
-}
 
 // loadOriginTransactions loads origin transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
@@ -174,7 +163,7 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	log.Println("transaction graph contains", g.Nodes().Len(), "nodes")
 	// check
 	log.Println("verifying transaction graph")
-	if verificationErr := verifyGraph(g); verificationErr != nil {
+	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
 	debug.SetGCPercent(10)
@@ -197,7 +186,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	return nil
 }
 
-// addEdges adds the edges defined in nodes to g. Before this function addConnectedNodes should be called with the same set of edges.
+// addEdges adds the edges defined in nodes to g.
 func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {
 		nodeUid, err := toInteger(node.Uid)
@@ -253,8 +242,8 @@ func pruneNodes(g *ReversibleGraph) error {
 	return nil
 }
 
-// verifyGraph checks the integrity of the graph
-func verifyGraph(g *ReversibleGraph) error {
+// verifyTransactionGraph checks the integrity of the graph
+func verifyTransactionGraph(g *ReversibleGraph) error {
 	var node graph.Node
 	var nodeId int64
 	var txNode transactionNode

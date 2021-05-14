@@ -14,9 +14,10 @@ type transactionNode struct {
 func (n transactionNode) ID() int64      { return n.id }
 func (n transactionNode) String() string { return toHex(n.id) }
 
-type addressNode struct {
-	id int64
+type addressGraphNode struct {
+	id        int64
+	isAddress bool
 }
 
-func (a addressNode) ID() int64      { return a.id }
-func (a addressNode) String() string { return toHex(a.id) }
+func (a addressGraphNode) ID() int64      { return a.id }
+func (a addressGraphNode) String() string { return toHex(a.id) }

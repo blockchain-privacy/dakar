@@ -2,6 +2,7 @@ package graph
 
 import (
 	"backend/cmd/cliutil"
+	"strconv"
 
 	"errors"
 	"fmt"
@@ -10,6 +11,16 @@ import (
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
 )
+
+// toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
+func toHex(i int64) string {
+	return "0x" + strconv.FormatInt(i, 16)
+}
+
+// toInteger a hex string in the form of "0x123" to an integer
+func toInteger(hexString string) (int64, error) {
+	return strconv.ParseInt(hexString[2:], 16, 64)
+}
 
 func ReverseLookupById(g *ReversibleGraph, nodeId int64,
 	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {

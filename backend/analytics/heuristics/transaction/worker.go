@@ -76,15 +76,20 @@ type Worker struct {
 	currentWorkItem workKey
 	executionMap    map[workKey]Work
 
-	// graphMutex acts as a mutex for graph
-	graphMutex *sync.RWMutex
-	graph      *graph.ReversibleGraph
+	// transactionGraphMutex acts as a mutex for transactionGraph
+	transactionGraphMutex *sync.RWMutex
+	transactionGraph      *graph.ReversibleGraph
+
+	// addressGraphMutex acts as a mutex for addressGraph
+	addressGraphMutex *sync.RWMutex
+	addressGraph      *graph.UndirectedGraph
 }
 
 // NewWorker constructs a new Worker
 func NewWorker() Worker {
 	return Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex),
-		activeMutex: new(sync.RWMutex), graphMutex: new(sync.RWMutex)}
+		activeMutex: new(sync.RWMutex), transactionGraphMutex: new(sync.RWMutex),
+		addressGraphMutex: new(sync.RWMutex)}
 }
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
@@ -97,7 +102,7 @@ func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph) bool {
 		var cancelContext context.Context
 		cancelContext, w.cancel = context.WithCancel(ctx)
 		go w.work(cancelContext, dgraph)
-		go w.loadGraph(dgraph)
+		go w.loadGraphs(dgraph)
 		return true
 	}
 	return false
@@ -193,8 +198,8 @@ mainLoop:
 			stoppingWork()
 			break mainLoop
 		case <-ticker.C:
-			// check if graph is ready
-			if !w.IsGraphLoaded() {
+			// check if transaction graph is ready
+			if !w.IsTransactionGraphLoaded() {
 				continue
 			}
 
@@ -231,12 +236,12 @@ mainLoop:
 					} else {
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
-							w.graphMutex.RLock()
-							if err = e.RunSynchronous(dgraph, w.graph, w.currentWorkItem.txhash, "",
+							w.transactionGraphMutex.RLock()
+							if err = e.RunSynchronous(dgraph, w.transactionGraph, w.currentWorkItem.txhash, "",
 								w.currentWorkItem.userUid); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
-							w.graphMutex.RUnlock()
+							w.transactionGraphMutex.RUnlock()
 						}
 					}
 				}
@@ -254,46 +259,76 @@ mainLoop:
 	}
 }
 
-// IsGraphLoaded returns true if the graph is loaded
-func (w *Worker) IsGraphLoaded() bool {
-	w.graphMutex.RLock()
-	defer w.graphMutex.RUnlock()
-	return w.graph != nil
+// IsTransactionGraphLoaded returns true if the transaction graph is loaded
+func (w *Worker) IsTransactionGraphLoaded() bool {
+	w.transactionGraphMutex.RLock()
+	defer w.transactionGraphMutex.RUnlock()
+	return w.transactionGraph != nil
 }
 
-func (w *Worker) loadGraph(dgraph *dgo.Dgraph) {
-	if w.IsGraphLoaded() {
+// IsAddressGraphLoaded returns true if the address graph is loaded
+func (w *Worker) IsAddressGraphLoaded() bool {
+	w.addressGraphMutex.RLock()
+	defer w.addressGraphMutex.RUnlock()
+	return w.addressGraph != nil
+}
+
+func (w *Worker) loadGraphs(dgraph *dgo.Dgraph) {
+	if w.IsTransactionGraphLoaded() {
 		return
 	}
 
-	newGraph, err := graph.LoadTransactionGraph(dgraph)
+	txGraph, err := graph.LoadTransactionGraph(dgraph)
 	if err != nil {
-		info("graph failed to load", err)
+		info("transactionGraph failed to load", err)
 		return
 	}
-	w.graphMutex.Lock()
-	w.graph = newGraph
-	w.graphMutex.Unlock()
+
+	addressGraph, err := graph.LoadAddressGraph(dgraph, txGraph)
+	if err != nil {
+		info("transactionGraph failed to load", err)
+		return
+	}
+
+	w.transactionGraphMutex.Lock()
+	w.transactionGraph = txGraph
+	w.transactionGraphMutex.Unlock()
+
+	w.addressGraphMutex.Lock()
+	w.addressGraph = addressGraph
+	w.addressGraphMutex.Unlock()
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
 func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool,
 	error) {
-	if !w.IsGraphLoaded() {
-		return nil, nil, nil, errors.New("graph is not loaded yet")
+	if !w.IsTransactionGraphLoaded() {
+		return nil, nil, nil, errors.New("transactionGraph is not loaded yet")
 	}
-	w.graphMutex.Lock()
-	defer w.graphMutex.Unlock()
-	return graph.ReverseLookup(w.graph, uid, maxLookBackTime)
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
+	return graph.ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
 func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, map[string]bool, map[string]bool,
 	error) {
-	if !w.IsGraphLoaded() {
-		return nil, nil, nil, errors.New("graph is not loaded yet")
+	if !w.IsTransactionGraphLoaded() {
+		return nil, nil, nil, errors.New("transactionGraph is not loaded yet")
 	}
-	w.graphMutex.Lock()
-	defer w.graphMutex.Unlock()
-	return graph.ForwardLookup(w.graph, uid, targetUid)
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
+	return graph.ForwardLookup(w.transactionGraph, uid, targetUid)
+}
+
+// GetClusters returns a mapping between address uids and clusters
+func (w *Worker) GetClusters(addressUids []string) error {
+	if !w.IsAddressGraphLoaded() {
+		return errors.New("transactionGraph is not loaded yet")
+	}
+	w.addressGraphMutex.Lock()
+	defer w.addressGraphMutex.Unlock()
+
+	// todo implement
+	return nil
 }
