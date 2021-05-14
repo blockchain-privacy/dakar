@@ -54,7 +54,8 @@ func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *Reversib
 	for txNodes.Next() {
 		uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
 		i++
-		// todo check if txNodes.len is right
+
+		// either step was reached or this was the last node to load
 		if len(uidsToLoad) == step || txNodes.Len() == 0 {
 			originNodes, err := analytics.GetInputAddresses(c, uidsToLoad)
 			if err != nil {
