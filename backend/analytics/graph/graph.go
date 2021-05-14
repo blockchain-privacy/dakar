@@ -2,30 +2,29 @@ package graph
 
 import (
 	"backend/cmd/cliutil"
-	"backend/constants"
 	"backend/db/analytics"
-	"log"
 
 	"errors"
 	"fmt"
+	"log"
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"time"
 
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
-type transactionNode struct {
-	ts          time.Time
-	id          int64
-	privacyType constants.PrivacyType
+// toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
+func toHex(i int64) string {
+	return "0x" + strconv.FormatInt(i, 16)
 }
 
-func (n transactionNode) ID() int64      { return n.id }
-func (n transactionNode) String() string { return toHex(n.id) }
+// toInteger a hex string in the form of "0x123" to an integer
+func toInteger(hexString string) (int64, error) {
+	return strconv.ParseInt(hexString[2:], 16, 64)
+}
 
 // loadOriginTransactions loads origin transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
@@ -125,7 +124,7 @@ func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) err
 	return nil
 }
 
-func LoadGraphInSteps(c *dgo.Dgraph) (*ReversibleGraph, error) {
+func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
@@ -168,31 +167,20 @@ func LoadGraphInSteps(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	}
 
 	// only need to prune if a subset of transaction is loaded
-	log.Println("pruning nodes")
 	if err := pruneNodes(g); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	log.Println("graph contains", g.Nodes().Len(), "nodes")
+	log.Println("transaction graph contains", g.Nodes().Len(), "nodes")
 	// check
-	log.Println("verifying graph")
+	log.Println("verifying transaction graph")
 	if verificationErr := verifyGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
 	debug.SetGCPercent(10)
 	runtime.GC()
-
+	log.Println("transaction graph loaded graph")
 	return g, nil
-}
-
-// toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
-func toHex(i int64) string {
-	return "0x" + strconv.FormatInt(i, 16)
-}
-
-// toInteger a hex string in the form of "0x123" to an integer
-func toInteger(hexString string) (int64, error) {
-	return strconv.ParseInt(hexString[2:], 16, 64)
 }
 
 // addSingleNodes adds the given nodes to g. Edges will not be set.

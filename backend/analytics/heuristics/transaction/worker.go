@@ -266,7 +266,7 @@ func (w *Worker) loadGraph(dgraph *dgo.Dgraph) {
 		return
 	}
 
-	newGraph, err := graph.LoadGraphInSteps(dgraph)
+	newGraph, err := graph.LoadTransactionGraph(dgraph)
 	if err != nil {
 		info("graph failed to load", err)
 		return

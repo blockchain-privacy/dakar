@@ -38,9 +38,9 @@ type HeuristicTransaction struct {
 	Uid string `json:"uid,omitempty"`
 	// Timestamp holds the timestamp of the corresponding block
 	Timestamp time.Time `json:"ts,omitempty"`
-	// Address holds the address associated with this transaction.
+	// Addresses holds the address associated with this transaction.
 	// Depending on the context this could be the address of an input or an output
-	Address string
+	Addresses []string
 	// Outputs holds a slice of amounts.
 	// Depending on the context this could be the input or the output amounts.
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
@@ -52,16 +52,18 @@ type HeuristicOutput struct {
 }
 
 func (h HeuristicTransaction) String() string {
-	return fmt.Sprintf("Uid: %s, timestamp: %s, associated address: %s, output count: %d", h.Uid, h.Timestamp, h.Address, len(h.Outputs))
+	return fmt.Sprintf("Uid: %s, timestamp: %s, associated address: %s, output count: %d", h.Uid, h.Timestamp, h.Addresses, len(h.Outputs))
+}
+
+type HeuristicInput struct {
+	AddressHash string `json:"addresshash,omitempty"`
 }
 
 type queryHeuristicTransaction struct {
 	Uid     string            `json:"uid,omitempty"`
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
-	Inputs  []struct {
-		AddressHash string `json:"addresshash,omitempty"`
-	} `json:"tx_inputs,omitempty"`
-	Block []struct {
+	Inputs  []HeuristicInput  `json:"tx_inputs,omitempty"`
+	Block   []struct {
 		Timestamp time.Time `json:"ts,omitempty"`
 	} `json:"~transactions,omitempty"`
 }

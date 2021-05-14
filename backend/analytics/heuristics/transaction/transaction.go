@@ -95,15 +95,17 @@ func addOriginsToMap(sourceTransactionMap map[string]map[string]dbtxh.HeuristicT
 	origins []dbtxh.HeuristicTransaction) map[string]map[string]dbtxh.HeuristicTransaction {
 
 	for _, o := range origins {
+		// todo use clustering
 		// add transaction to sourceTransactionMap
-		transactions := sourceTransactionMap[o.Address]
+		transactions := sourceTransactionMap[o.Addresses[0]]
 
 		if len(transactions) == 0 {
 			transactions = make(map[string]dbtxh.HeuristicTransaction)
 		}
 
+		// todo use clustering
 		transactions[o.Uid] = o
-		sourceTransactionMap[o.Address] = transactions
+		sourceTransactionMap[o.Addresses[0]] = transactions
 	}
 
 	return sourceTransactionMap
@@ -115,7 +117,8 @@ func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIn
 	oSource.sources = make(map[string]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
-		oSource.sources[o.Address] += nDenominations
+		// todo use clustering
+		oSource.sources[o.Addresses[0]] += nDenominations
 	}
 
 	return
@@ -127,9 +130,11 @@ func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[strin
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)
 		for i := range denominationSlice {
-			denominationSlice[i] += sourceAmounts[o.Address][i]
+			// todo use clustering
+			denominationSlice[i] += sourceAmounts[o.Addresses[0]][i]
 		}
-		sourceAmounts[o.Address] = denominationSlice
+		// todo use clustering
+		sourceAmounts[o.Addresses[0]] = denominationSlice
 	}
 	return sourceAmounts
 }

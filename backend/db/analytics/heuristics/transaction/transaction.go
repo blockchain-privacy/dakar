@@ -418,44 +418,29 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 	}
 
 	for _, t := range r.Transaction {
-		if len(t.Inputs) != 1 {
-			var addresses []string
-			for _, a := range t.Inputs {
-				addresses = append(addresses, a.AddressHash)
-			}
-
-			// todo handle case with more addresses
-			if !areALLAddressesEqual(addresses) {
-				err = errors.New("error invalid response")
-				return
-			}
-		}
 		results = append(results, HeuristicTransaction{
-			Uid:     t.Uid,
-			Address: t.Inputs[0].AddressHash,
-			Outputs: t.Outputs,
+			Uid:       t.Uid,
+			Addresses: getInputAddresses(t.Inputs),
+			Outputs:   t.Outputs,
 		})
 	}
 
 	return
 }
 
-// return true if all addresses are equal
-func areALLAddressesEqual(addresses []string) bool {
-	if len(addresses) < 2 {
-		return true
+// getInputAddresses returns all addresses without duplicates
+func getInputAddresses(inputs []HeuristicInput) []string {
+	addressMap := make(map[string]bool)
+	for _, i := range inputs {
+		addressMap[i.AddressHash] = true
 	}
 
-	hashes := make(map[string]bool)
-
-	for _, a := range addresses {
-		hashes[a] = true
-		if len(hashes) > 1 {
-			return false
-		}
+	var addresses []string
+	for k := range addressMap {
+		addresses = append(addresses, k)
 	}
 
-	return true
+	return addresses
 }
 
 // GetInputTransactions returns the input transactions of the given transaction
@@ -606,22 +591,10 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []stri
 	}
 
 	for _, o := range r.Origins {
-		if len(o.Inputs) != 1 {
-			var addresses []string
-			for _, a := range o.Inputs {
-				addresses = append(addresses, a.AddressHash)
-			}
-
-			// todo handle multiple input addresses
-			if !areALLAddressesEqual(addresses) {
-				err = errors.New("error invalid response")
-				return
-			}
-		}
 		origins = append(origins, HeuristicTransaction{
-			Uid:     o.Uid,
-			Address: o.Inputs[0].AddressHash,
-			Outputs: o.Outputs,
+			Uid:       o.Uid,
+			Addresses: getInputAddresses(o.Inputs),
+			Outputs:   o.Outputs,
 		})
 	}
 
