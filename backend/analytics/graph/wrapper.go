@@ -218,5 +218,8 @@ func (w *Wrapper) Empty() bool {
 // destination transactions of the current block into the in-memory graphs
 func (w *Wrapper) Iterate() (bool, error) {
 	// todo implement
+	// get per block: all mixing transactions, all destination transactions,
+	// and all transactions which are connected to them
+	// todo also check if starting state is correct +/-1
 	return false, nil
 }

@@ -238,7 +238,8 @@ func (a *Classifier) Iterate() (bool, error) {
 	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
 	// origins are set in step 2.2.2
-	potentialCollateralTransactions, foundOrigins, classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
+	potentialCollateralTransactions, foundOrigins,
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
 	if classErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
 	}
