@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"runtime/debug"
 
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
@@ -130,7 +129,7 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 
-	const numTxToLoad = 50000
+	const numTxToLoad = 0
 
 	// load all origin transactions from the database
 	log.Println("Loading origin nodes")
@@ -166,7 +165,6 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
-	debug.SetGCPercent(10)
 	runtime.GC()
 	log.Println("transaction graph loaded")
 	return g, nil

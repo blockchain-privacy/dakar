@@ -237,10 +237,12 @@ mainLoop:
 						// if no error occurred -> execute the new heuristics
 						for _, e := range work.executors {
 							w.transactionGraphMutex.RLock()
-							if err = e.RunSynchronous(dgraph, w.transactionGraph, w.currentWorkItem.txhash, "",
-								w.currentWorkItem.userUid); err != nil {
+							w.addressGraphMutex.RLock()
+							if err = e.RunSynchronous(dgraph, w.transactionGraph, w.addressGraph,
+								w.currentWorkItem.txhash, "", w.currentWorkItem.userUid); err != nil {
 								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 							}
+							w.addressGraphMutex.RUnlock()
 							w.transactionGraphMutex.RUnlock()
 						}
 					}
@@ -319,16 +321,4 @@ func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, m
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 	return graph.ForwardLookup(w.transactionGraph, uid, targetUid)
-}
-
-// GetClusters returns a mapping between address uids and clusters
-func (w *Worker) GetClusters(addressUids []string) error {
-	if !w.IsAddressGraphLoaded() {
-		return errors.New("transactionGraph is not loaded yet")
-	}
-	w.addressGraphMutex.Lock()
-	defer w.addressGraphMutex.Unlock()
-
-	// todo implement
-	return nil
 }

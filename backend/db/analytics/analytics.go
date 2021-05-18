@@ -909,7 +909,7 @@ func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]AddressNode, error) {
 				q(func: uid($uids)){
 					uid
 					i:tx_inputs@normalize{
-						~tx_outputs{
+						~addr_outputs{
 							uid:uid
 						}
 					}

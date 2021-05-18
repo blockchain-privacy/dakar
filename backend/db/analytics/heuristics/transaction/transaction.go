@@ -394,7 +394,7 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 					}
 					tx_inputs@normalize{
 						~addr_outputs{
-							addresshash:addresshash
+							uid:uid
 						}
 					}
 				}
@@ -432,7 +432,7 @@ func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []Heuristi
 func getInputAddresses(inputs []HeuristicInput) []string {
 	addressMap := make(map[string]bool)
 	for _, i := range inputs {
-		addressMap[i.AddressHash] = true
+		addressMap[i.AddressUid] = true
 	}
 
 	var addresses []string
@@ -502,61 +502,6 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 	return
 }
 
-// GetTransactionsWithOutputTransaction returns a slice of transactions.
-// Each transaction contains its timestamp and its output transactions.
-func GetTransactionsWithOutputTransaction(c *dgo.Dgraph, uids []string) (inputTransactions []HeuristicTransaction,
-	err error) {
-	const query = `query Q($uids:string){
-				q(func: uid($uids)){
-					uid
-					tx_outputs@normalize{
-						amount:amount
-						~tx_inputs{
-							input_tx:txhash
-						}
-					}
-					~transactions{
-						ts
-					}
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUidList(uids)})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Transaction []queryHeuristicTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
-		return
-	}
-
-	for _, t := range r.Transaction {
-		if len(t.Block) != 1 || len(t.Outputs) == 0 {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
-			return
-		}
-		inputTransactions = append(inputTransactions, HeuristicTransaction{
-			Uid:       t.Uid,
-			Timestamp: t.Block[0].Timestamp,
-			Outputs:   t.Outputs,
-		})
-	}
-
-	return
-}
-
 // GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
 // Each transaction contains its output amounts and the addresses of all inputs.
 func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []string) (origins []HeuristicTransaction, err error) {
@@ -568,7 +513,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []stri
 					}
 					tx_inputs@normalize{
 						~addr_outputs{
-							addresshash:addresshash
+							uid:uid
 						}
 					}
 				}

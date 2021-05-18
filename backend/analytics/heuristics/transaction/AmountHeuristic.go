@@ -50,13 +50,14 @@ func (h AmountHeuristic) clone() heuristic {
 
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
+	txHash string, parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
-
+	sourceTransactionMap := make(map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction)
+	var clusters map[string]graph.ClusterId
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
@@ -76,7 +77,11 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHa
 			}
 		}
 
-		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
+		var err error
+		sourceTransactionMap, clusters, err = addOriginsToMap(ag, sourceTransactionMap, results)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 
 		// Convert from slice to Hash
 		for _, r := range results {
@@ -95,7 +100,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHa
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 
-	originAmounts := buildSourceAmounts(origins)
+	originAmounts := buildSourceAmounts(origins, clusters)
 
 	var filteredOrigins []string
 	for k, o := range originAmounts {

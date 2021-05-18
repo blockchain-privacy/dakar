@@ -41,6 +41,7 @@ func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 
 // loadAddresses loads origin addresses from the database into the graph
 func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
+	transactionGraph.SetReverse(false)
 	txNodes := transactionGraph.Nodes()
 
 	if txNodes.Len() == 0 {
@@ -50,24 +51,25 @@ func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *Reversib
 	const step = 20000
 
 	var uidsToLoad []string
-	var i int64
 	for txNodes.Next() {
-		uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
-		i++
-
 		// either step was reached or this was the last node to load
 		if len(uidsToLoad) == step || txNodes.Len() == 0 {
+			runtime.GC()
 			originNodes, err := analytics.GetInputAddresses(c, uidsToLoad)
 			if err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
-			err = addAddressEdges(g, originNodes)
-			if err != nil {
+			if err = addAddressEdges(g, originNodes); err != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 
 			uidsToLoad = []string{}
+		}
+
+		n := transactionGraph.From(txNodes.Node().ID())
+		if n.Len() == 0 {
+			uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
 		}
 	}
 
@@ -100,7 +102,7 @@ func LoadAddressGraph(c *dgo.Dgraph, transactionGraph *ReversibleGraph) (*Undire
 	if verificationErr := verifyAddressGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
-	debug.SetGCPercent(10)
+	debug.SetGCPercent(30)
 	runtime.GC()
 	log.Println("address graph loaded")
 	return g, nil

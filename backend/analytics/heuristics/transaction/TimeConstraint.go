@@ -62,7 +62,8 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
+	txHash string, parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {
@@ -80,7 +81,7 @@ func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGra
 			origins = append(origins, o.Uid)
 		}
 	}
-
+	// todo also handle non-parent heuristic case
 	// gather input information
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {

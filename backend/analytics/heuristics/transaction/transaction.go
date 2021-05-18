@@ -6,7 +6,6 @@ import (
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
 	"backend/db/transaction"
-
 	"errors"
 	"fmt"
 	"sync"
@@ -21,7 +20,8 @@ var (
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string) ([]string, error)
+	exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph, txHash string,
+		parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -38,17 +38,19 @@ type heuristic interface {
 	clone() heuristic
 }
 
-// Returns the number of denominations.
-// If filterTx is set, it only counts outputs with input transactions equal to filterTx
-// An error is returned if more than one type of denominations is found
-func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int, denomIndex int, err error) {
+// getNumberOfDenominations returns the number of denominations. If destinationTransaction is set, it
+// only counts outputs with input transactions equal to destinationTransaction. An error is returned
+// if more than one type of denominations is found
+func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int,
+	denomIndex int, err error) {
 	numDenominations := getDenominationCountsWithFilter(it, destinationTransaction)
 
 	found := false
 	for i, nd := range numDenominations {
 		if nd > 0 {
 			if found {
-				err = errors.New("found more than one type of denominations in input transaction")
+				err = fmt.Errorf("found more than one denomination type in input transaction %s for destination tx %s",
+					it, destinationTransaction)
 				return
 			}
 			denomIndex = i
@@ -59,8 +61,8 @@ func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransact
 	return
 }
 
-// gets the counts of each denomination type.
-// If filterTx is set, it only counts outputs with input transactions equal to filterTx
+// getDenominationCountsWithFilter gets the counts of each denomination type.
+// If filterTx is set, it only counts outputs with input transactions equal to filterTx.
 func getDenominationCountsWithFilter(it dbtxh.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
 	var denominations []int64
 	for _, output := range it.Outputs {
@@ -85,56 +87,73 @@ func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations
 
 type originSource struct {
 	denominationIndex int
-	// key: address hash, value: number of denominations of type denominationIndex
-	sources map[string]int
+	// key: cluster id, value: number of denominations of type denominationIndex
+	sources map[graph.ClusterId]int
 }
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
-func addOriginsToMap(sourceTransactionMap map[string]map[string]dbtxh.HeuristicTransaction,
-	origins []dbtxh.HeuristicTransaction) map[string]map[string]dbtxh.HeuristicTransaction {
+func addOriginsToMap(ag *graph.UndirectedGraph, sourceTransactionMap map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
+	origins []dbtxh.HeuristicTransaction) (map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
+	map[string]graph.ClusterId, error) {
+
+	allAddresses := make(map[string]bool)
 
 	for _, o := range origins {
-		// todo use clustering
+		// add to map
+		for _, a := range o.Addresses {
+			allAddresses[a] = true
+		}
+	}
+
+	clusters, err := graph.GetClusters(ag, allAddresses)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	for _, o := range origins {
+		clusterId := clusters[o.Addresses[0]]
+
 		// add transaction to sourceTransactionMap
-		transactions := sourceTransactionMap[o.Addresses[0]]
+		transactions := sourceTransactionMap[clusterId]
 
 		if len(transactions) == 0 {
 			transactions = make(map[string]dbtxh.HeuristicTransaction)
 		}
 
-		// todo use clustering
 		transactions[o.Uid] = o
-		sourceTransactionMap[o.Addresses[0]] = transactions
+		sourceTransactionMap[clusterId] = transactions
 	}
 
-	return sourceTransactionMap
+	return sourceTransactionMap, clusters, nil
 }
 
-// buildSourcesWithAmount creates an array of sources with the number of denominations of the specified denomination type
-func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource originSource, err error) {
+// buildSourcesWithAmount creates an array of sources with the
+// number of denominations of the specified denomination type
+func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int,
+	clusters map[string]graph.ClusterId) (oSource originSource, err error) {
 	oSource.denominationIndex = denominationIndex
-	oSource.sources = make(map[string]int)
+	oSource.sources = make(map[graph.ClusterId]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
-		// todo use clustering
-		oSource.sources[o.Addresses[0]] += nDenominations
+		oSource.sources[clusters[o.Addresses[0]]] += nDenominations
 	}
 
 	return
 }
 
-func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[string][dbop.NumDenominations]int {
-	sourceAmounts := make(map[string][dbop.NumDenominations]int)
+func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction,
+	clusters map[string]graph.ClusterId) map[graph.ClusterId][dbop.NumDenominations]int {
+	sourceAmounts := make(map[graph.ClusterId][dbop.NumDenominations]int)
 
 	for _, o := range origins {
+		clusterId := clusters[o.Addresses[0]]
 		denominationSlice := getDenominationCounts(o)
 		for i := range denominationSlice {
-			// todo use clustering
-			denominationSlice[i] += sourceAmounts[o.Addresses[0]][i]
+			denominationSlice[i] += sourceAmounts[clusterId][i]
 		}
-		// todo use clustering
-		sourceAmounts[o.Addresses[0]] = denominationSlice
+
+		sourceAmounts[clusterId] = denominationSlice
 	}
 	return sourceAmounts
 }
@@ -162,7 +181,7 @@ func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, tx dbtx
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithOutputTransaction(dgraph, concatMaps(origin, cc, other))
+	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, concatMaps(origin, cc, other))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -236,8 +255,9 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 // of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
 // is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
 // For a cleaner version, function use RunSynchronous
-func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string, userUid string) error {
-	newUid, err := Exec(dgraph, g, txHash, parentHeuristicUid, hx.ThisHeuristic, userUid)
+func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
+	txHash string, parentHeuristicUid string, userUid string) error {
+	newUid, err := Exec(dgraph, g, ag, txHash, parentHeuristicUid, hx.ThisHeuristic, userUid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
@@ -250,7 +270,7 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGrap
 		waitGroup.Add(1)
 		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
 			defer wg.Done()
-			if asyncErr := e.RunAsync(dgraph, g, txHash, newUid, userUid); asyncErr != nil {
+			if asyncErr := e.RunAsync(dgraph, g, ag, txHash, newUid, userUid); asyncErr != nil {
 				errChannel <- asyncErr
 				return
 			}
@@ -277,14 +297,14 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGrap
 // RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
 // triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUid is not
 // set (e.g. "") than the HeuristicExecutor.RootUid is used
-func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string,
-	parentHeuristicUid string, userUid string) error {
+func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
+	txHash string, parentHeuristicUid string, userUid string) error {
 	thisRootUid := hx.RootUid
 	if parentHeuristicUid != "" {
 		thisRootUid = parentHeuristicUid
 	}
 
-	newUid, err := Exec(dgraph, g, txHash, thisRootUid, hx.ThisHeuristic, userUid)
+	newUid, err := Exec(dgraph, g, ag, txHash, thisRootUid, hx.ThisHeuristic, userUid)
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
@@ -293,7 +313,7 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Reversib
 	}
 
 	for _, executor := range hx.NextHeuristics {
-		if runErr := executor.RunSynchronous(dgraph, g, txHash, newUid, userUid); runErr != nil {
+		if runErr := executor.RunSynchronous(dgraph, g, ag, txHash, newUid, userUid); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
@@ -308,9 +328,10 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Reversib
 }
 
 // Exec executes the heuristic on the transaction specified by txHash for the given userUid
-func Exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, txHash string, parentHeuristicUid string, h heuristic,
+func Exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
+	txHash string, parentHeuristicUid string, h heuristic,
 	userUid string) (thisUid string, err error) {
-	originUids, err := h.exec(dgraph, g, txHash, parentHeuristicUid)
+	originUids, err := h.exec(dgraph, g, ag, txHash, parentHeuristicUid)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

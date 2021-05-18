@@ -12,6 +12,10 @@ import (
 	"gonum.org/v1/gonum/graph/traverse"
 )
 
+var (
+	ErrNodeNotFound = errors.New("error node does not exist in graph")
+)
+
 // toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
 func toHex(i int64) string {
 	return "0x" + strconv.FormatInt(i, 16)
@@ -26,7 +30,7 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64,
 	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
 	node := g.Node(nodeId)
 	if node == nil {
-		return nil, nil, nil, errors.New("error node not found")
+		return nil, nil, nil, ErrNodeNotFound
 	}
 
 	foundOrigins := make(map[string]bool)
@@ -146,4 +150,51 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 	}
 
 	return uids, nil
+}
+
+type ClusterId uint
+
+// GetClusters returns a mapping between address uids and ClusterId's
+func GetClusters(g *UndirectedGraph, addressUids map[string]bool) (map[string]ClusterId, error) {
+	var w traverse.BreadthFirst
+	clusterMap := make(map[string]ClusterId)
+
+	i := ClusterId(0)
+
+	for uid := range addressUids {
+		if _, ok := clusterMap[uid]; ok {
+			// uid already processed
+			continue
+		}
+
+		nodeUid, err := toInteger(uid)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		node := g.Node(nodeUid)
+		if node == nil {
+			return nil, ErrNodeNotFound
+		}
+
+		var addressesInCluster []string
+
+		w.Walk(g, node, func(n graph.Node, d int) bool {
+			addrNode := g.Node(n.ID()).(addressGraphNode)
+			// todo optimize map lookup from string to int64
+			if addrNode.isAddress && addressUids[toHex(n.ID())] {
+				addressesInCluster = append(addressesInCluster, addrNode.String())
+			}
+
+			return false
+		})
+
+		// set all address to same cluster, the initial address is included in the cluster
+		for _, a := range addressesInCluster {
+			clusterMap[a] = i
+		}
+
+		i++
+	}
+
+	return clusterMap, nil
 }

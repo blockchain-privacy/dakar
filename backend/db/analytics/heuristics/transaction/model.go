@@ -56,7 +56,7 @@ func (h HeuristicTransaction) String() string {
 }
 
 type HeuristicInput struct {
-	AddressHash string `json:"addresshash,omitempty"`
+	AddressUid string `json:"uid,omitempty"`
 }
 
 type queryHeuristicTransaction struct {
