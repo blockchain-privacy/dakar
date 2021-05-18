@@ -430,20 +430,31 @@ func main() {
 		}()
 	}
 
-	graphWrapper := graph.NewWrapper()
+	graphWrapper := graph.NewWrapper(appContext, dgraph)
 	worker := heuristic.NewWorker(graphWrapper)
 	var classifierStarted bool
 	if !cliArgs.DisableHttpServer && !cliArgs.DisableHeuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
-			graphErr := graphWrapper.LoadGraphs(dgraph)
+			graphErr := graphWrapper.LoadGraphs()
 			if graphErr != nil {
 				info(graphErr)
 				return
 			}
 
 			if !cliArgs.DisableClassifier {
+				go func() {
+					defer wg.Done()
+					defer func() {
+						chClassifyingStopped <- true
+					}()
+
+					if iterErr := blockIterator.StartIteration(graphWrapper); iterErr != nil {
+						info(iterErr)
+					}
+				}()
+
 				go func() {
 					defer wg.Done()
 					defer func() {

@@ -1,7 +1,10 @@
 package graph
 
 import (
+	"backend/blockIterator"
 	"backend/cmd/cliutil"
+	"backend/db/status"
+	"context"
 
 	"errors"
 	"fmt"
@@ -29,6 +32,10 @@ func info(v ...interface{}) {
 }
 
 type Wrapper struct {
+	context context.Context
+	db      *dgo.Dgraph
+	state   blockIterator.State
+
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
 	isLoading bool
@@ -43,8 +50,9 @@ type Wrapper struct {
 }
 
 // NewWrapper constructs a new Wrapper
-func NewWrapper() *Wrapper {
-	return &Wrapper{transactionGraphMutex: new(sync.RWMutex), addressGraphMutex: new(sync.RWMutex)}
+func NewWrapper(ctx context.Context, dgraph *dgo.Dgraph) *Wrapper {
+	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
+		addressGraphMutex: new(sync.RWMutex)}
 }
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
@@ -104,17 +112,36 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 }
 
 // LoadGraphs loads the transaction and address graph into the wrapper
-func (w *Wrapper) LoadGraphs(dgraph *dgo.Dgraph) error {
+func (w *Wrapper) LoadGraphs() error {
 	if w.isLoading {
 		return errors.New("error can not load graph as it is already loaded or still loading")
 	}
 
-	txGraph, err := LoadTransactionGraph(dgraph)
+	w.isLoading = true
+
+	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	addressGraph, err := LoadAddressGraph(dgraph, txGraph)
+	if *classifierStatus.IsClassifying {
+		return errors.New("error can not load graphs in memory if classifier is active")
+	}
+
+	if classifierStatus.LastClassifiedBlockId == nil {
+		// there are no classifications yet -> do not try to load graph
+		return nil
+	}
+
+	w.state.Id = *classifierStatus.LastClassifiedBlockId
+	w.state.Top = *classifierStatus.LastClassifiedBlockId
+
+	txGraph, err := LoadTransactionGraph(w.db)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	addressGraph, err := LoadAddressGraph(w.db, txGraph)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -128,4 +155,68 @@ func (w *Wrapper) LoadGraphs(dgraph *dgo.Dgraph) error {
 	w.addressGraphMutex.Unlock()
 
 	return nil
+}
+
+// ------------ Block Iterator interface methods ------------
+
+func (w *Wrapper) Logger() *log.Logger {
+	return graphLogger
+}
+
+func (w *Wrapper) Context() context.Context {
+	return w.context
+}
+
+func (w *Wrapper) Db() *dgo.Dgraph {
+	return w.db
+}
+
+func (w *Wrapper) State() blockIterator.State {
+	return w.state
+}
+func (w *Wrapper) Name() string {
+	return "graph wrapper"
+}
+
+func (w *Wrapper) CalculateInitialState() error {
+	// check if state was set by LoadGraphs
+	if !w.isLoading {
+		return errors.New("error graphs were not loaded before iteration started")
+	}
+	return nil
+}
+
+// GetHighestAvailableBlock returns the highest classified block
+func (w *Wrapper) GetHighestAvailableBlock() (uint64, error) {
+	classifierStatus, err := status.GetClassifierStatus(w.db)
+	if err != nil || classifierStatus.LastClassifiedBlockId == nil {
+		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return *classifierStatus.LastClassifiedBlockId, nil
+}
+
+func (w *Wrapper) PostExecution() error {
+	// nothing to do
+	return nil
+}
+
+func (w *Wrapper) IncrementState() {
+	w.state.Id++
+}
+
+func (w *Wrapper) SetState(newState blockIterator.State) {
+	w.state = newState
+}
+
+// Empty checks if there are more blocks above the current one
+func (w *Wrapper) Empty() bool {
+	return w.state.Id > w.state.Top
+}
+
+// Iterate loads the mixing transactions and all connected origin and
+// destination transactions of the current block into the in-memory graphs
+func (w *Wrapper) Iterate() (bool, error) {
+	// todo implement
+	return false, nil
 }
