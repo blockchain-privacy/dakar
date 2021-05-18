@@ -51,7 +51,8 @@ func (h DenominationTypeHeuristic) clone() heuristic {
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
-func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+	parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
@@ -78,7 +79,7 @@ func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleG
 		}
 
 		var err error
-		sourceTransactionMap, clusters, err = addOriginsToMap(ag, sourceTransactionMap, results)
+		sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, results)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

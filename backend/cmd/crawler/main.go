@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/analytics"
+	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/blockIterator"
 	cli "backend/cmd/cliutil"
@@ -429,8 +430,43 @@ func main() {
 		}()
 	}
 
+	graphWrapper := graph.NewWrapper()
+	worker := heuristic.NewWorker(graphWrapper)
+	var classifierStarted bool
+	if !cliArgs.DisableHttpServer && !cliArgs.DisableHeuristics {
+		// the classifier must be started after the in-memory graphs are loaded
+		classifierStarted = true
+		go func() {
+			graphErr := graphWrapper.LoadGraphs(dgraph)
+			if graphErr != nil {
+				info(graphErr)
+				return
+			}
+
+			if !cliArgs.DisableClassifier {
+				go func() {
+					defer wg.Done()
+					defer func() {
+						chClassifyingStopped <- true
+					}()
+
+					if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+						appContext, dgraph, analyserConfig)); classifierErr != nil {
+						info(classifierErr)
+					}
+				}()
+			}
+		}()
+
+		if ok := worker.Start(appContext, dgraph); !ok {
+			info("could not start worker")
+			return
+		}
+	}
+
 	// activate classifier
-	if !cliArgs.DisableClassifier {
+	if !cliArgs.DisableClassifier && !classifierStarted {
+		// in-memory graphs are not loaded -> start classifier
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -448,15 +484,6 @@ func main() {
 	// activate server
 	var srv *http.Server
 	if !cliArgs.DisableHttpServer {
-		worker := heuristic.NewWorker()
-
-		if !cliArgs.DisableHeuristics {
-			if ok := worker.Start(appContext, dgraph); !ok {
-				info("could not start worker")
-				return
-			}
-		}
-
 		wg.Add(1)
 		srv = server.StartServer(&wg, cliArgs.HttpServerPort, dgraph, client, worker)
 	}

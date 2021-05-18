@@ -62,8 +62,8 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+	parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {

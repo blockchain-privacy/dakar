@@ -50,8 +50,7 @@ func (h AmountHeuristic) clone() heuristic {
 
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, parentHeuristicUid string) ([]string, error) {
+func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
@@ -78,7 +77,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *
 		}
 
 		var err error
-		sourceTransactionMap, clusters, err = addOriginsToMap(ag, sourceTransactionMap, results)
+		sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, results)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

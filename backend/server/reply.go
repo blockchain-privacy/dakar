@@ -468,8 +468,8 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
 	urlPath string) (reply reverseLookupReply) {
 
-	if !worker.IsTransactionGraphLoaded() {
-		reply.Msg = "Graph is not loaded yet, try again later"
+	if !worker.IsReady() {
+		reply.Msg = "worker is not ready, try again later"
 		return
 	}
 

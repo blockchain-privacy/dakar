@@ -20,8 +20,7 @@ var (
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph, txHash string,
-		parentHeuristicUid string) ([]string, error)
+	exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -93,7 +92,7 @@ type originSource struct {
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
-func addOriginsToMap(ag *graph.UndirectedGraph, sourceTransactionMap map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
+func addOriginsToMap(g *graph.Wrapper, sourceTransactionMap map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
 	origins []dbtxh.HeuristicTransaction) (map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
 	map[string]graph.ClusterId, error) {
 
@@ -106,7 +105,7 @@ func addOriginsToMap(ag *graph.UndirectedGraph, sourceTransactionMap map[graph.C
 		}
 	}
 
-	clusters, err := graph.GetClusters(ag, allAddresses)
+	clusters, err := g.GetClusters(allAddresses)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -172,10 +171,10 @@ func concatMaps(maps ...map[string]bool) (uids []string) {
 // getTimeLimitedOrigins returns all origins of the given transaction.
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
-func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, tx dbtxh.HeuristicTransaction,
+func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper, tx dbtxh.HeuristicTransaction,
 	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
 	// do reverse lookup
-	origin, cc, other, err := graph.ReverseLookup(g, tx.Uid, lookBackTime)
+	origin, cc, other, err := g.ReverseLookup(tx.Uid, lookBackTime)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -190,7 +189,7 @@ func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, tx dbtx
 }
 
 // getDestinationTxOrigins returns all origins of the given transaction.
-func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph,
+func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper,
 	txHash string) (origins []dbtxh.HeuristicTransaction, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUid(dgraph, txHash)
@@ -198,7 +197,7 @@ func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph,
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	inputTransactions, err := graph.GetInputTransactions(g, uid)
+	inputTransactions, err := g.GetInputTransactions(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -206,7 +205,7 @@ func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.ReversibleGraph,
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		origin, cc, other, err := graph.ReverseLookup(g, it, time.Hour*24*90)
+		origin, cc, other, err := g.ReverseLookup(it, time.Hour*24*90)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -255,9 +254,9 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 // of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
 // is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
 // For a cleaner version, function use RunSynchronous
-func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, parentHeuristicUid string, userUid string) error {
-	newUid, err := Exec(dgraph, g, ag, txHash, parentHeuristicUid, hx.ThisHeuristic, userUid)
+func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string,
+	userUid string) error {
+	newUid, err := Exec(dgraph, g, txHash, parentHeuristicUid, hx.ThisHeuristic, userUid)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
@@ -270,7 +269,7 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGrap
 		waitGroup.Add(1)
 		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
 			defer wg.Done()
-			if asyncErr := e.RunAsync(dgraph, g, ag, txHash, newUid, userUid); asyncErr != nil {
+			if asyncErr := e.RunAsync(dgraph, g, txHash, newUid, userUid); asyncErr != nil {
 				errChannel <- asyncErr
 				return
 			}
@@ -297,14 +296,14 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.ReversibleGrap
 // RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
 // triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUid is not
 // set (e.g. "") than the HeuristicExecutor.RootUid is used
-func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, parentHeuristicUid string, userUid string) error {
+func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+	parentHeuristicUid string, userUid string) error {
 	thisRootUid := hx.RootUid
 	if parentHeuristicUid != "" {
 		thisRootUid = parentHeuristicUid
 	}
 
-	newUid, err := Exec(dgraph, g, ag, txHash, thisRootUid, hx.ThisHeuristic, userUid)
+	newUid, err := Exec(dgraph, g, txHash, thisRootUid, hx.ThisHeuristic, userUid)
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
@@ -313,7 +312,7 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Reversib
 	}
 
 	for _, executor := range hx.NextHeuristics {
-		if runErr := executor.RunSynchronous(dgraph, g, ag, txHash, newUid, userUid); runErr != nil {
+		if runErr := executor.RunSynchronous(dgraph, g, txHash, newUid, userUid); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
@@ -328,10 +327,9 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Reversib
 }
 
 // Exec executes the heuristic on the transaction specified by txHash for the given userUid
-func Exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, parentHeuristicUid string, h heuristic,
+func Exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string, h heuristic,
 	userUid string) (thisUid string, err error) {
-	originUids, err := h.exec(dgraph, g, ag, txHash, parentHeuristicUid)
+	originUids, err := h.exec(dgraph, g, txHash, parentHeuristicUid)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

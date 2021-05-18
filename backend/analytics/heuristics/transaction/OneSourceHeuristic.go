@@ -71,8 +71,7 @@ type txAndOrigins struct {
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
-func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, ag *graph.UndirectedGraph,
-	txHash string, _ string) ([]string, error) {
+func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, _ string) ([]string, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
@@ -113,7 +112,7 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.ReversibleGraph, a
 	// maps address uids to cluster id
 	var clusters map[string]graph.ClusterId
 	// save origins in global address->origin map
-	sourceTransactionMap, clusters, err = addOriginsToMap(ag, sourceTransactionMap, allTimeLimitedOrigins)
+	sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, allTimeLimitedOrigins)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
