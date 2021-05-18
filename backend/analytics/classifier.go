@@ -91,7 +91,7 @@ func (a *Classifier) IncrementState() {
 	a.state.Id++
 }
 
-// Empty checks if there is work in the queue or more block above the current one
+// Empty checks if there are more blocks above the current one
 func (a *Classifier) Empty() bool {
 	return a.state.Id > a.state.Top
 }
