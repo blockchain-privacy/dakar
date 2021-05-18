@@ -267,8 +267,8 @@ func main() {
 			info("error getting signing keys. Set the following environment variables:",
 				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField, keyErr)
 
-			publicKey, privateKey, err := ed25519.GenerateKey(nil)
-			if err != nil {
+			publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
+			if genErr != nil {
 				return
 			}
 
@@ -302,7 +302,7 @@ func main() {
 			info(err)
 			return
 		}
-		info("setup new schema")
+		info("Successfully set up new schema.")
 	}
 
 	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
@@ -343,7 +343,11 @@ func main() {
 				}
 				// do not log
 				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-				fmt.Println("Write the credentials down, this message is not logged.")
+				if len(cliArgs.Logfile) > 0 {
+					fmt.Println("Write the credentials down, they will not be written to the log file.")
+				} else {
+					fmt.Println("Write the credentials down.")
+				}
 			} else {
 				info(userErr)
 				return
