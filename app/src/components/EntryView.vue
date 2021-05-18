@@ -39,7 +39,7 @@
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.status.lastclassifiedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseEdit" title="Database classification"
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database classification"
                             :tooltip="tooltips.databaseClassification" is-color
                             :is-red="!data.status.isclassifying">
                     <v-progress-linear
@@ -126,7 +126,7 @@ import {
   mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
   mdiArrowDownCircleOutline, mdiTimelineClockOutline,
   mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
-  mdiWeight, mdiDatabaseEdit,
+  mdiWeight,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
@@ -147,7 +147,6 @@ export default {
         mdiProgressWrench,
         mdiCubeOffOutline,
         mdiWeight,
-        mdiDatabaseEdit,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
