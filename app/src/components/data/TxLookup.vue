@@ -19,27 +19,6 @@
             <v-tooltip bottom activator="#btn_open_heuristic_editor">
               <span>Open the heuristic editor for this transaction.</span>
             </v-tooltip>
-            <!--            todo remove?-->
-            <!--  <v-tooltip bottom>-->
-            <!--    <template v-slot:activator="{ on, attrs }">-->
-            <!--      <v-btn :loading="isLoading" style="padding-left: 2px; padding-right: 4px"-->
-            <!--             outlined v-on:click="getCSV" v-if="data.origincount > 0" -->
-            <!--             v-on="on" v-bind="attrs"-->
-            <!--             class="d-none d-sm-flex"-->
-            <!--             :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-            <!--        <v-icon>mdi-download</v-icon>-->
-            <!--        {{ data.origincount }} origins-->
-            <!--      </v-btn>-->
-            <!--      <v-btn :loading="isLoading" icon v-on:click="getCSV"-->
-            <!--             v-if="data.origincount > 0" v-on="on" v-bind="attrs"-->
-            <!--             class="d-flex d-sm-none"-->
-            <!--             :disabled="data.origincount > csvDownloadMaxOrigins || isLoading">-->
-            <!--        <v-icon large>mdi-download</v-icon>-->
-            <!--      </v-btn>-->
-            <!--    </template>-->
-            <!--    <span>Download potential origins of this transaction.-->
-            <!--      {{ data.origincount }} origins found.</span>-->
-            <!--  </v-tooltip>-->
           </v-toolbar>
           <v-card-text>
             <v-container>
@@ -182,11 +161,11 @@ import {
   mdiCurrencyUsdCircle, mdiIncognito, mdiCircleMultipleOutline,
 } from '@mdi/js';
 import {
-  shortenHash, convertAmount, getCurrentDate, isDestination, getPrivacyTypeLabel, isMixing,
+  shortenHash, convertAmount, isDestination, getPrivacyTypeLabel, isMixing,
   getMixingLabel,
 } from '../../utilities';
 import {
-  PAGE_TITLE, ROUTE_PATHS, CSV_DOWNLOAD_MAX_ORIGINS, ROUTE_NAME_HEURISTIC_PAGE,
+  PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE,
   ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_ADDRESS_PAGE,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
@@ -212,7 +191,6 @@ export default {
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       isLoading: false,
-      csvDownloadMaxOrigins: CSV_DOWNLOAD_MAX_ORIGINS,
     };
   },
   computed: {
@@ -251,30 +229,6 @@ export default {
       if (inputs == null) return null;
       const copiedInputs = JSON.parse(JSON.stringify(inputs));
       return copiedInputs.sort((a, b) => a.inputindex > b.inputindex);
-    },
-    getCSV() {
-      const options = {
-        headers: {
-          // header for pass through
-          Accept: '*/*',
-        },
-      };
-      this.isLoading = true;
-      fetch(ROUTE_PATHS + this.data.txhash, options)
-        .then((res) => res.blob())
-        .then((blob) => {
-          // looks hacky, but it is the only way with good UX
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-          a.setAttribute('download', `paths_${getCurrentDate}_${this.data.txhash}.csv`);
-          a.click();
-          a.remove();
-          this.isLoading = false;
-        })
-        .catch((error) => {
-          this.errorMsg = error;
-          this.isLoading = false;
-        });
     },
     setPageTitle() {
       let h = ' ';

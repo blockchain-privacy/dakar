@@ -78,53 +78,52 @@ func main() {
 	info("classifier migration starting ...")
 	if err := db.AlterSchemaAddClassifier(dgraph); err != nil {
 		info(err)
-		return
 	}
 	info("classifier migration done")
 
 	info("privacytype deletion starting ...")
 	if err := db.DropAllPrivacyTypes(dgraph); err != nil {
 		info(err)
-		return
 	}
 	info("privacytype deletion done")
 
 	info("privacytype migration starting ...")
 	if err := db.AlterSchemaChangePrivacyTypePredicate(dgraph); err != nil {
 		info(err)
-		return
 	}
 	info("privacytype migration done")
 
 	// ---------------- ORIGINS
 
-	//info("origins deletion starting ...")
-	//if err := db.DropAllOrigins(dgraph); err != nil {
-	//	info(err)
-	//	return
-	//}
-	//info("origins deletion done")
-	//
-	//info("origins migration starting ...")
-	//if err := db.AlterSchemaAddOriginsPredicate(dgraph); err != nil {
-	//	info(err)
-	//	return
-	//}
-	//info("origins migration done")
+	info("origins deletion starting ...")
+	if err := db.DropAllOrigins(dgraph); err != nil {
+		info(err)
+	}
+	info("origins deletion done")
 
-	// ---------------- CHECKPOINTS
+	info("setting transaction type starting ...")
+	if err := db.AlterSchemaSetTransactionType(dgraph); err != nil {
+		info(err)
+	}
+	info("setting transaction type done")
 
-	//info("checkpoint deletion starting ...")
-	//if err := db.DropAllCheckpoints(dgraph); err != nil {
-	//	info(err)
-	//	return
-	//}
-	//info("checkpoint deletion done")
-	//
-	//info("checkpoint migration starting ...")
-	//if err := db.AlterSchemaAddCheckpoints(dgraph); err != nil {
-	//	info(err)
-	//	return
-	//}
-	//info("checkpoint migration done")
+	// ---------------- ANALYZER
+
+	info("lastanalysedid deletion starting ...")
+	if err := db.DropLastAnalysedId(dgraph); err != nil {
+		info(err)
+	}
+	info("lastanalysedid deletion done")
+
+	info("isanalyzing deletion starting ...")
+	if err := db.DropIsAnalyzing(dgraph); err != nil {
+		info(err)
+	}
+	info("isanalyzing migration done")
+
+	info("type AnalyzerStatus deletion starting ...")
+	if err := db.DropTypeAnalyzerStatus(dgraph); err != nil {
+		info(err)
+	}
+	info("type AnalyzerStatus deletion done")
 }

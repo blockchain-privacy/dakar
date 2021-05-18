@@ -275,7 +275,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 			if d.ScriptPubKey.Addresses == nil {
 				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
 				if decodeErr != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
+					err = fmt.Errorf("%s: %s", cliutil.ShowCallInfo(),
 						fmt.Sprint(decodeErr, "hash", txDetails.Hash))
 					return
 				}

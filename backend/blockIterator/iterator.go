@@ -44,7 +44,7 @@ type BlockIterator interface {
 	Name() string
 }
 
-// State holds the current state of the analyzing processing loop
+// State holds the current state of the processing loop
 type State struct {
 	// Id is the current block height
 	Id uint64

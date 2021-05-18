@@ -8,7 +8,6 @@ export const ROUTE_BLOCK = `${routePrefix}blk/`;
 export const ROUTE_ADDRESS = `${routePrefix}address/`;
 export const ROUTE_ADDRESS_OUTPUT_RANGE = `${routePrefix}addressOutputRange/`;
 export const ROUTE_META = `${routePrefix}meta/`;
-export const ROUTE_PATHS = `${routePrefix}paths/`;
 export const ROUTE_HEURISTICS = `${routePrefix}heuristics/`;
 export const ROUTE_HEURISTICS_SUMMARY = `${routePrefix}heuristicsSummary/`;
 export const ROUTE_EXECUTE_HEURISTICS = `${routePrefix}executeHeuristics/`;
@@ -48,7 +47,6 @@ export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
-export const CSV_DOWNLOAD_MAX_ORIGINS = 1000;
 export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const DEFAULT_SETTINGS = { dark: false };

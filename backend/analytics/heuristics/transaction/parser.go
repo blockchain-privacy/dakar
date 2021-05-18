@@ -386,14 +386,5 @@ func CreateWork(dgraph *dgo.Dgraph, transactionHash string, changed []dbtxh.Fron
 
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
-	if copyOnModify && (len(changed) > 0 || len(w.removableHeuristics) > 0) {
-		// find heuristic roots
-		w.treeRoots, err = dbtxh.GetRootUids(dgraph, w.removableHeuristics)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
-		}
-	}
-
 	return
 }

@@ -403,7 +403,6 @@ func main() {
 
 	// channels which are set to true as soon as the associated go routine stops
 	chCrawlingStopped := make(chan bool, 1)
-	chAnalyzingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
@@ -463,11 +462,10 @@ func main() {
 	}
 
 	var crawlerStopped bool
-	var analyzerStopped bool
 	var classifierStopped bool
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && analyzerStopped && classifierStopped)) {
+	for !(interrupted || (crawlerStopped && classifierStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
@@ -476,18 +474,15 @@ func main() {
 		case <-chCrawlingStopped:
 			terminateApp()
 			crawlerStopped = true
-		case <-chAnalyzingStopped:
-			terminateApp()
-			analyzerStopped = true
 		case <-chClassifyingStopped:
 			terminateApp()
 			classifierStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped && classifierStopped {
-		// if the crawler, analyzer and classifier stopped working on
-		// there own accord, the server is still active at this point
+	if !cliArgs.DisableHttpServer && crawlerStopped && classifierStopped {
+		// if the crawler and classifier stopped working on their own accord,
+		// the server is still active at this point
 		select {
 		case <-chSignal:
 			shutdownServer(srv)

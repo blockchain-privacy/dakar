@@ -273,24 +273,6 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		// calculate shortest path
-		//shortestPaths := make(map[string]int)
-		//lock.Lock()
-		//for _, h := range cHeuristic.Heuristics {
-		//
-		//	for _, r := range h.Results {
-		//		if _, ok := shortestPaths[r.Uid]; !ok {
-		//			pathLen, pathErr := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
-		//			if pathErr != nil {
-		//				log.Println(pathErr)
-		//				return
-		//			}
-		//			shortestPaths[r.Uid] = pathLen
-		//		}
-		//	}
-		//}
-		//lock.Unlock()
-
 		// headers for streaming data to client
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
@@ -303,10 +285,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
 			"origin address hash"}
-		//header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
-		//	"heuristic type", "heuristic parameter", "heuristic timestamp",
-		//	"origin uid", "origin transaction hash", "origin timestamp",
-		//	"origin address hash", "origin shortest path"}
+
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)

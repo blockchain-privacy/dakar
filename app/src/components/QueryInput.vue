@@ -78,28 +78,28 @@ export default {
 
         switch (this.searchResultType) {
           case Constants.RESPONSE_EMPTY:
-            this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
+            await this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
             break;
           case Constants.RESPONSE_TYPE_ADDRESS:
-            this.$router.push({
+            await this.$router.push({
               name: Constants.ROUTE_NAME_ADDRESS_PAGE,
               params: { id: query, pushFromUserInput: true },
             });
             break;
           case Constants.RESPONSE_TYPE_BLOCK:
-            this.$router.push({
+            await this.$router.push({
               name: Constants.ROUTE_NAME_BLOCK_PAGE,
               params: { id: query, pushFromUserInput: true },
             });
             break;
           case Constants.RESPONSE_TYPE_TRANSACTION:
-            this.$router.push({
+            await this.$router.push({
               name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
               params: { id: query, pushFromUserInput: true },
             });
             break;
           default:
-            this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
+            await this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
             break;
         }
 

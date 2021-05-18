@@ -23,8 +23,6 @@ func SetupSchema(c *dgo.Dgraph) error {
 			tx_outputs: [uid] @reverse .
 			addr_outputs: [uid] @reverse .
 			transactions: [uid] @reverse .
-			origins: [uid] @count @reverse .
-			checkpoints: [uid] @count @reverse .
 			results: [uid] @count @reverse .
 			prevblock: uid @reverse .
 			h_transaction: uid @reverse .
@@ -46,11 +44,9 @@ func SetupSchema(c *dgo.Dgraph) error {
 			sighex: string .
 
 			iscrawling: bool .
-			isanalyzing: bool .
 			isclassifying: bool .
 			lastblockid: int .
 			lowestblockid: int .
-			lastanalysedid: int . 
 			lastclassifiedid: int .
 
 			type: string @index(hash) .
@@ -79,9 +75,6 @@ func SetupSchema(c *dgo.Dgraph) error {
 				privacytype
 				isrlookupdone
 				fee
-				origins
-				checkpoints
-				<~origins>
 				<~transactions>
 				tx_outputs
 				tx_inputs
@@ -111,11 +104,6 @@ func SetupSchema(c *dgo.Dgraph) error {
 				iscrawling
 				lastblockid
 				lowestblockid
-			}
-
-			type AnalyzerStatus {
-				isanalyzing
-				lastanalysedid
 			}
 
 			type ClassifierStatus {
@@ -213,33 +201,33 @@ func DropAllOrigins(c *dgo.Dgraph) error {
 	})
 }
 
-func AlterSchemaAddOriginsPredicate(c *dgo.Dgraph) error {
+func DropIsAnalyzing(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
-		Schema: `
-			origins: [uid] @count @reverse .
-		`,
+		DropAttr: "isanalyzing",
 	})
 }
 
-func DropAllCheckpoints(c *dgo.Dgraph) error {
+func DropLastAnalysedId(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
-		DropAttr: "checkpoints",
+		DropAttr: "lastanalysedid",
 	})
 }
 
-func AlterSchemaAddCheckpoints(c *dgo.Dgraph) error {
+func DropTypeAnalyzerStatus(c *dgo.Dgraph) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropOp:    api.Operation_TYPE,
+		DropValue: "AnalyzerStatus",
+	})
+}
+
+func AlterSchemaSetTransactionType(c *dgo.Dgraph) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			checkpoints: [uid] @count @reverse .
-
 			type Transaction {
 				txhash
 				privacytype
 				isrlookupdone
 				fee
-				origins
-				checkpoints
-				<~origins>
 				<~transactions>
 				tx_outputs
 				tx_inputs

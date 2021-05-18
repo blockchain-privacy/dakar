@@ -44,7 +44,7 @@ Print the current status of the database
 ./crawler -status
 ```
 
-Confirm the reset dialog and start crawler, analyzer and server.
+Confirm the reset dialog and start crawler, classifier and server.
 ```shell script
 echo yes | ./crawler -reset -continous
 ```

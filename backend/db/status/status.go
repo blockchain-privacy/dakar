@@ -29,16 +29,6 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 		fmt.Println("LastBlockId:", *crawlerStatus.LastBlockId)
 	}
 
-	analyzerStatus, _ := GetAnalyzerStatus(dgraph)
-
-	if analyzerStatus.IsAnalyzing != nil {
-		fmt.Println("Currently analyzing:", *analyzerStatus.IsAnalyzing)
-	}
-
-	if analyzerStatus.LastAnalysedBlockId != nil {
-		fmt.Println("LastAnalysedBlockId:", *analyzerStatus.LastAnalysedBlockId)
-	}
-
 	classifierStatus, _ := GetClassifierStatus(dgraph)
 
 	if classifierStatus.IsClassifying != nil {
@@ -83,32 +73,6 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 	}
 
 	var r crawlerStatusQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
-// GetAnalyzerStatus gets the analyzer status from the database
-func GetAnalyzerStatus(c *dgo.Dgraph) (status AnalyzerStatus, err error) {
-	query := `{
-				 q(func: type(AnalyzerStatus)){
-					uid
-					isanalyzing
-					lastanalysedid
-				  }
-				}`
-
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r analyzerStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -194,10 +158,6 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 					lastblockid
 					lowestblockid
 				}
-				analyzer(func: type(AnalyzerStatus)){
-					isanalyzing
-					lastanalysedid
-				}
 				classifier(func: type(ClassifierStatus)){
 					isclassifying
 					lastclassifiedid
@@ -214,7 +174,6 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 
 	var r struct {
 		Crawler    []CrawlerStatus    `json:"crawler,omitempty"`
-		Analyzer   []AnalyzerStatus   `json:"analyzer,omitempty"`
 		Classifier []ClassifierStatus `json:"classifier,omitempty"`
 	}
 
@@ -239,20 +198,6 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		return
 	}
 
-	// if analyzer values exist check them
-	if len(r.Analyzer) == 1 {
-		if r.Analyzer[0].IsAnalyzing == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsAnalyzingNotFound)
-			return
-		}
-
-		if r.Analyzer[0].LastAnalysedBlockId == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastAnalysedBlockIdNotFound)
-			return
-		}
-	}
-
-	// if analyzer values exist check them
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsClassifyingNotFound)
@@ -269,11 +214,6 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 		IsCrawling:    *r.Crawler[0].IsCrawling,
 		LastBlockId:   *r.Crawler[0].LastBlockId,
 		LowestBlockId: *r.Crawler[0].LowestBlockId,
-	}
-
-	if len(r.Analyzer) == 1 {
-		status.IsAnalyzing = *r.Analyzer[0].IsAnalyzing
-		status.LastAnalysedBlockId = *r.Analyzer[0].LastAnalysedBlockId
 	}
 
 	if len(r.Classifier) == 1 {
@@ -296,34 +236,6 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 
 	query := `{
 				q(func: type(CrawlerStatus)){
-					v as uid
-				  }
-				}
-				`
-
-	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
-}
-
-// SetAnalyzerStatus sets the new analyzer status
-func SetAnalyzerStatus(c *dgo.Dgraph, status AnalyzerStatus) error {
-	status.Uid = "uid(v)"
-	status.SetDType()
-
-	pb, err := json.Marshal(status)
-	if err != nil {
-		return err
-	}
-
-	query := `{
-				q(func: type(AnalyzerStatus)){
 					v as uid
 				  }
 				}
@@ -375,13 +287,6 @@ func SetCrawling(c *dgo.Dgraph, crawling bool) error {
 	})
 }
 
-// SetAnalyzing sets the analyzing status
-func SetAnalyzing(c *dgo.Dgraph, analyzing bool) error {
-	return SetAnalyzerStatus(c, AnalyzerStatus{
-		IsAnalyzing: &analyzing,
-	})
-}
-
 // SetClassifying sets the classifying status
 func SetClassifying(c *dgo.Dgraph, classifying bool) error {
 	return SetClassifierStatus(c, ClassifierStatus{
@@ -396,13 +301,6 @@ func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
 	})
 }
 
-// SetLastAnalysedBlockId sets the last analysed block id
-func SetLastAnalysedBlockId(c *dgo.Dgraph, id uint64) error {
-	return SetAnalyzerStatus(c, AnalyzerStatus{
-		LastAnalysedBlockId: &id,
-	})
-}
-
 // SetLastClassifiedBlockId sets the last classified block id
 func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
@@ -410,7 +308,7 @@ func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
 	})
 }
 
-// gets the number of status instances in the database
+// GetCount gets the number of status instances in the database
 // IMPORTANT: Should always be at most one
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, CrawlerStatusDType)

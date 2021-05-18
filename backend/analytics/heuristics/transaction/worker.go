@@ -16,9 +16,6 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 )
 
-// copyOnModify is true when existing heuristic trees should be copied before modification
-const copyOnModify = false
-
 type HeuristicQueueStatus int
 
 const (
@@ -215,38 +212,26 @@ mainLoop:
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
 				info("processing work package")
-				// copy tree
-				wasCopyingErrorFree := true
-				if copyOnModify {
-					for _, root := range work.treeRoots {
-						if err := dbtxh.CopyHeuristicTree(dgraph, root); err != nil {
+
+				// delete changed or removable heuristics
+				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
+					info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+					// no return/break because we want keep working even if we are failing
+					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
+				} else {
+					// if no error occurred -> execute the new heuristics
+					for _, e := range work.executors {
+						w.transactionGraphMutex.RLock()
+						w.addressGraphMutex.RLock()
+						if err = e.RunSynchronous(dgraph, w.transactionGraph, w.addressGraph,
+							w.currentWorkItem.txhash, "", w.currentWorkItem.userUid); err != nil {
 							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-							wasCopyingErrorFree = false
-							break
 						}
+						w.addressGraphMutex.RUnlock()
+						w.transactionGraphMutex.RUnlock()
 					}
 				}
 
-				if wasCopyingErrorFree {
-					// delete changed or removable heuristics
-					if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
-						info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-						// no return/break because we want keep working even if we are failing
-						// no continue because we still need to do the deletion of this (faulty) job and reset the memory
-					} else {
-						// if no error occurred -> execute the new heuristics
-						for _, e := range work.executors {
-							w.transactionGraphMutex.RLock()
-							w.addressGraphMutex.RLock()
-							if err = e.RunSynchronous(dgraph, w.transactionGraph, w.addressGraph,
-								w.currentWorkItem.txhash, "", w.currentWorkItem.userUid); err != nil {
-								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-							}
-							w.addressGraphMutex.RUnlock()
-							w.transactionGraphMutex.RUnlock()
-						}
-					}
-				}
 				info("processing work done")
 			}
 

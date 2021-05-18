@@ -127,7 +127,7 @@ func GetLogfile(fileName string) (f *os.File, err error) {
 	return
 }
 
-// parse arguments specified by the provided flags
+// BuildArgs parses the provided flags
 func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	var rpcHostString string
 	var rpcPortNumber uint

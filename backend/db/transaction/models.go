@@ -26,7 +26,7 @@ type Transaction struct {
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s, Fee: %d",
+	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %d, Fee: %d",
 		t.Uid, t.Hash, t.PrivacyType, *t.Fee)
 
 	if t.Outputs != nil {
