@@ -444,6 +444,7 @@ func main() {
 			}
 
 			if !cliArgs.DisableClassifier {
+				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					defer func() {
@@ -454,7 +455,7 @@ func main() {
 						info(iterErr)
 					}
 				}()
-
+				wg.Add(1)
 				go func() {
 					defer wg.Done()
 					defer func() {
