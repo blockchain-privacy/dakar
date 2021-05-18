@@ -380,9 +380,7 @@ func main() {
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
-	crawlerContext, cancelCrawler := context.WithCancel(context.Background())
-	analyzerContext, cancelAnalyzer := context.WithCancel(context.Background())
-	classifierContext, cancelClassifier := context.WithCancel(context.Background())
+	appContext, terminateApp := context.WithCancel(context.Background())
 
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
@@ -400,9 +398,9 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client, processorConfig)
+				err = processor.ProcessBlocksContinuously(appContext, dgraph, client, processorConfig)
 			} else {
-				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID,
+				err = processor.ProcessBlockRange(appContext, dgraph, client, cliArgs.StartBlockID,
 					cliArgs.StopBlockID, processorConfig)
 			}
 
@@ -421,16 +419,7 @@ func main() {
 				chAnalyzingStopped <- true
 			}()
 
-			analyzer := analytics.NewAnalyzer(analyzerContext, dgraph, analyserConfig)
-
-			// todo remove
-			//go func() {
-			//	for i := 0; i < 30; i++ {
-			//		time.Sleep(time.Second * 5)
-			//		info(analyzer.AddToQueue(strconv.Itoa(i)))
-			//	}
-			//}()
-
+			analyzer := analytics.NewAnalyzer(appContext, dgraph, analyserConfig)
 			if analyserErr := blockIterator.StartIteration(analyzer); analyserErr != nil {
 				info(analyserErr)
 			}
@@ -447,7 +436,7 @@ func main() {
 			}()
 
 			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
-				classifierContext, dgraph, analyserConfig)); classifierErr != nil {
+				appContext, dgraph, analyserConfig)); classifierErr != nil {
 				info(classifierErr)
 			}
 		}()
@@ -469,18 +458,16 @@ func main() {
 		select {
 		case <-chSignal:
 			interrupted = true
-			cancelCrawler()
-			cancelAnalyzer()
-			cancelClassifier()
+			terminateApp()
 			srv.ShutdownServer()
 		case <-chCrawlingStopped:
-			cancelCrawler()
+			terminateApp()
 			crawlerStopped = true
 		case <-chAnalyzingStopped:
-			cancelAnalyzer()
+			terminateApp()
 			analyzerStopped = true
 		case <-chClassifyingStopped:
-			cancelClassifier()
+			terminateApp()
 			classifierStopped = true
 		}
 	}
