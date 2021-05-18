@@ -61,7 +61,7 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.DisableClassifier,
+		cli.DisableHttpServer, cli.DisableHeuristics, cli.DisableCrawler, cli.DisableClassifier,
 		cli.HttpServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
@@ -245,9 +245,9 @@ func main() {
 		return
 	}
 
-	// disable analyzing if it is disabled per configuration
-	if !analyserConfig.IsAnalysingEnabled {
-		cliArgs.DisableAnalyzer = true
+	// disable the heuristic worker if it is disabled per configuration
+	if !analyserConfig.IsHeuristicWorkerEnabled {
+		cliArgs.DisableHeuristics = true
 	}
 
 	// disable classifying if it is disabled per configuration
@@ -324,7 +324,7 @@ func main() {
 		info("Successfully set up new schema.")
 	}
 
-	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
+	if cliArgs.DisableClassifier && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
 		return
 	}
 
@@ -430,22 +430,6 @@ func main() {
 		}()
 	}
 
-	// activate analyzer
-	if !cliArgs.DisableAnalyzer {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				chAnalyzingStopped <- true
-			}()
-
-			analyzer := analytics.NewAnalyzer(appContext, dgraph, analyserConfig)
-			if analyserErr := blockIterator.StartIteration(analyzer); analyserErr != nil {
-				info(analyserErr)
-			}
-		}()
-	}
-
 	// activate classifier
 	if !cliArgs.DisableClassifier {
 		wg.Add(1)
@@ -466,9 +450,12 @@ func main() {
 	var srv *http.Server
 	if !cliArgs.DisableHttpServer {
 		worker := heuristic.NewWorker()
-		if ok := worker.Start(appContext, dgraph); !ok {
-			info("could not start worker")
-			return
+
+		if !cliArgs.DisableHeuristics {
+			if ok := worker.Start(appContext, dgraph); !ok {
+				info("could not start worker")
+				return
+			}
 		}
 
 		wg.Add(1)

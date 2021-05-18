@@ -32,7 +32,7 @@ const (
 	HttpServerPort
 	DisableHttpServer
 	DisableCrawler
-	DisableAnalyzer
+	DisableHeuristics
 	DisableClassifier
 	ChartDir
 	Logfile
@@ -59,7 +59,7 @@ type Arguments struct {
 	HttpServerPort    uint
 	DisableHttpServer bool
 	DisableCrawler    bool
-	DisableAnalyzer   bool
+	DisableHeuristics bool
 	DisableClassifier bool
 	ChartDir          string
 	BTC               bool
@@ -192,8 +192,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case DisableCrawler:
 			addDisableCrawler(&args.DisableCrawler)
 			break
-		case DisableAnalyzer:
-			addDisableAnalyzer(&args.DisableAnalyzer)
+		case DisableHeuristics:
+			addDisableHeuristics(&args.DisableHeuristics)
 			break
 		case DisableClassifier:
 			addDisableClassifier(&args.DisableClassifier)
@@ -303,8 +303,8 @@ func addDisableCrawler(v *bool) {
 	flag.BoolVar(v, "disablecrawler", false, "Disable the crawler (default: false)")
 }
 
-func addDisableAnalyzer(v *bool) {
-	flag.BoolVar(v, "disableanalyzer", false, "Disable the analyzer (default: false)")
+func addDisableHeuristics(v *bool) {
+	flag.BoolVar(v, "disableheuristics", false, "Disable the heuristic worker (default: false)")
 }
 
 func addDisableClassifier(v *bool) {

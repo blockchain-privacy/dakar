@@ -6,7 +6,6 @@ import (
 
 	"errors"
 	"fmt"
-	"log"
 	"runtime"
 
 	"github.com/dgraph-io/dgo/v2"
@@ -124,7 +123,7 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 		return nil, nil
 	}
 
-	log.Println("db stats: mixing count:", mixingCount, "origin count:", originCount,
+	info("db stats: mixing count:", mixingCount, "origin count:", originCount,
 		"destination count:", destinationCount, "cc count:", ccCount)
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
@@ -132,24 +131,24 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 	const numTxToLoad = 0
 
 	// load all origin transactions from the database
-	log.Println("Loading origin nodes")
+	info("Loading origin nodes")
 	if err := loadOriginTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// load all cc transactions from the database
-	log.Println("Loading cc nodes")
+	info("Loading cc nodes")
 	if err := loadCCTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// load all mixing transactions from the database
-	log.Println("Loading mixing nodes")
+	info("Loading mixing nodes")
 	if err := loadMixingTransactions(c, g, numTxToLoad); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	// load all destination transactions from the database
-	log.Println("Loading destination nodes")
+	info("Loading destination nodes")
 	if err := loadDestinationTransactions(c, g, numTxToLoad/10); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -159,14 +158,14 @@ func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	log.Println("transaction graph contains", g.Nodes().Len(), "nodes")
+	info("transaction graph contains", g.Nodes().Len(), "nodes")
 	// check
-	log.Println("verifying transaction graph")
+	info("verifying transaction graph")
 	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
 	runtime.GC()
-	log.Println("transaction graph loaded")
+	info("transaction graph loaded")
 	return g, nil
 }
 

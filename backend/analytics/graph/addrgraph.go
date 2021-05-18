@@ -8,7 +8,6 @@ import (
 	"github.com/dgraph-io/dgo/v2"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
-	"log"
 	"runtime"
 	"runtime/debug"
 )
@@ -91,20 +90,20 @@ func LoadAddressGraph(c *dgo.Dgraph, transactionGraph *ReversibleGraph) (*Undire
 	g := NewUndirectedGraph(originCount + ccCount)
 
 	// load all origin transactions from the database
-	log.Println("Loading origin nodes")
+	info("Loading origin nodes")
 	if err := loadAddresses(c, g, transactionGraph); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	log.Println("address graph contains", g.Nodes().Len(), "nodes")
+	info("address graph contains", g.Nodes().Len(), "nodes")
 	// check
-	log.Println("verifying address graph")
+	info("verifying address graph")
 	if verificationErr := verifyAddressGraph(g); verificationErr != nil {
 		return nil, verificationErr
 	}
 	debug.SetGCPercent(30)
 	runtime.GC()
-	log.Println("address graph loaded")
+	info("address graph loaded")
 	return g, nil
 }
 
