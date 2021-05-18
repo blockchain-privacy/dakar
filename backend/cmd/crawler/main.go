@@ -17,6 +17,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -183,6 +184,24 @@ func waitForDatabase(dgraph *dgo.Dgraph) bool {
 	info("Database is not ready to receive requests.")
 
 	return false
+}
+
+// shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
+func shutdownServer(srv *http.Server) {
+	if srv == nil {
+		return
+	}
+	info("### Shutting down server###")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer func() {
+		// extra handling here
+		cancel()
+	}()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		info("Server was shutdown and returned error:", err)
+	}
 }
 
 // The crawler for the system. It needs to be run prior to using any of the other
@@ -382,6 +401,7 @@ func main() {
 
 	appContext, terminateApp := context.WithCancel(context.Background())
 
+	// channels which are set to true as soon as the associated go routine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chAnalyzingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
@@ -443,10 +463,16 @@ func main() {
 	}
 
 	// activate server
-	var srv server.Server
+	var srv *http.Server
 	if !cliArgs.DisableHttpServer {
+		worker := heuristic.NewWorker()
+		if ok := worker.Start(appContext, dgraph); !ok {
+			info("could not start worker")
+			return
+		}
+
 		wg.Add(1)
-		srv = server.CreateServer(&wg, cliArgs.HttpServerPort, dgraph, client)
+		srv = server.StartServer(&wg, cliArgs.HttpServerPort, dgraph, client, worker)
 	}
 
 	var crawlerStopped bool
@@ -459,7 +485,7 @@ func main() {
 		case <-chSignal:
 			interrupted = true
 			terminateApp()
-			srv.ShutdownServer()
+			shutdownServer(srv)
 		case <-chCrawlingStopped:
 			terminateApp()
 			crawlerStopped = true
@@ -477,7 +503,7 @@ func main() {
 		// there own accord, the server is still active at this point
 		select {
 		case <-chSignal:
-			srv.ShutdownServer()
+			shutdownServer(srv)
 		}
 	}
 

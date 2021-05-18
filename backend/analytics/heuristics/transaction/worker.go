@@ -86,8 +86,8 @@ type Worker struct {
 }
 
 // NewWorker constructs a new Worker
-func NewWorker() Worker {
-	return Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex),
+func NewWorker() *Worker {
+	return &Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex),
 		activeMutex: new(sync.RWMutex), transactionGraphMutex: new(sync.RWMutex),
 		addressGraphMutex: new(sync.RWMutex)}
 }

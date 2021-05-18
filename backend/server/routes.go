@@ -9,7 +9,6 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -732,7 +731,7 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient) {
+func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuristic.Worker) {
 	// get signing keys
 	privkey, pubkey, err := GetSigningKeysFromEnv()
 	if err != nil {
@@ -747,12 +746,6 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	})
 	if err != nil {
 		panic(fmt.Sprintln("error initializing cache", err))
-	}
-
-	// init worker
-	worker := heuristic.NewWorker()
-	if ok := worker.Start(ctx, dgraph); !ok {
-		panic("could not start worker")
 	}
 
 	// API end points
@@ -779,16 +772,16 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
-		Adapt(handlerHeuristics(dgraph, &worker),
+		Adapt(handlerHeuristics(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteHeuristics(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicStatus(),
-		Adapt(handlerHeuristicStatus(&worker),
+		Adapt(handlerHeuristicStatus(worker),
 			authorizationMiddleware(constants.GetRouteHeuristicStatus(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicDetails(),
 		Adapt(handlerHeuristicsDetails(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicDetails(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsExecution(),
-		Adapt(handlerHeuristicsExecution(dgraph, &worker),
+		Adapt(handlerHeuristicsExecution(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteHeuristicsExecution(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsSummary(),
 		Adapt(handlerHeuristicsSummary(dgraph),
@@ -806,7 +799,7 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
 
 	http.Handle(constants.GetRouteReverseLookup(),
-		Adapt(handlerReverseLookup(dgraph, &worker),
+		Adapt(handlerReverseLookup(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteReverseLookup(), privkey, pubkey)))
 
 	// User
