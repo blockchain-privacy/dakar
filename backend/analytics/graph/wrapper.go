@@ -3,9 +3,10 @@ package graph
 import (
 	"backend/blockIterator"
 	"backend/cmd/cliutil"
+	"backend/db/analytics"
 	"backend/db/status"
-	"context"
 
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +25,6 @@ var graphLogger = log.New(log.Writer(), graphLoggerPrefix, log.Flags())
 // InitLogger creates new loggers with the given parameters.
 func InitLogger(out io.Writer, flag int) {
 	graphLogger = log.New(out, graphLoggerPrefix, flag)
-
 }
 
 func info(v ...interface{}) {
@@ -124,16 +124,12 @@ func (w *Wrapper) LoadGraphs() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if *classifierStatus.IsClassifying {
-		return errors.New("error can not load graphs in memory if classifier is active")
-	}
-
 	if classifierStatus.LastClassifiedBlockId == nil {
 		// there are no classifications yet -> do not try to load graph
 		return nil
 	}
 
-	w.state.Id = *classifierStatus.LastClassifiedBlockId
+	w.state.Id = *classifierStatus.LastClassifiedBlockId + 1
 	w.state.Top = *classifierStatus.LastClassifiedBlockId
 
 	txGraph, err := LoadTransactionGraph(w.db)
@@ -217,9 +213,78 @@ func (w *Wrapper) Empty() bool {
 // Iterate loads the mixing transactions and all connected origin and
 // destination transactions of the current block into the in-memory graphs
 func (w *Wrapper) Iterate() (bool, error) {
-	// todo implement
-	// get per block: all mixing transactions, all destination transactions,
-	// and all transactions which are connected to them
-	// todo also check if starting state is correct +/-1
-	return false, nil
+	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.Id)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if len(connectedNodes) == 0 && len(singleNodes) == 0 {
+		// nothing to do
+		return true, nil
+	}
+
+	if len(connectedNodes) == 0 || len(singleNodes) == 0 {
+		// something is wrong
+		return false, errors.New("error count of single or connected nodes is zero")
+	}
+
+	w.addressGraphMutex.Lock()
+	w.transactionGraphMutex.Lock()
+	defer w.addressGraphMutex.Unlock()
+	defer w.transactionGraphMutex.Unlock()
+
+	if graphErr := upsertSingleNodes(w.transactionGraph, singleNodes); graphErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), graphErr)
+	}
+
+	if graphErr := addEdges(w.transactionGraph, connectedNodes); graphErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), graphErr)
+	}
+
+	nodeUidsToLoad, err := filterOrigins(w.transactionGraph, w.addressGraph, singleNodes)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if len(nodeUidsToLoad) > 0 {
+		originNodes, dbErr := analytics.GetInputAddresses(w.db, nodeUidsToLoad)
+		if dbErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
+		}
+
+		if len(originNodes) != len(nodeUidsToLoad) {
+			return false, errors.New("error number of requested origin nodes does not match number of received nodes")
+		}
+
+		if addErr := addAddressEdges(w.addressGraph, originNodes); addErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
+		}
+	}
+
+	return true, nil
+}
+
+// filterOrigins returns the nodes which are not already in the address graph and
+// which are endpoints in the transaction graph
+func filterOrigins(txGraph *ReversibleGraph, addrGraph *UndirectedGraph, nodes []analytics.Node) ([]string, error) {
+	var originUids []string
+	for _, node := range nodes {
+		id, err := toInteger(node.Uid)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		// check if node is already in address graph
+		if addrGraph.Node(id) != nil {
+			continue
+		}
+
+		// check if node is an endpoint
+		from := txGraph.From(id)
+		if from.Len() == 0 {
+			originUids = append(originUids, node.Uid)
+		}
+	}
+
+	return originUids, nil
 }

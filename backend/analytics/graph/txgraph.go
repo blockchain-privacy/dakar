@@ -183,6 +183,20 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	return nil
 }
 
+// upsertSingleNodes adds the given nodes to g or updates existing ones. Edges will not be set.
+func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
+	for _, node := range nodes {
+		nodeUid, err := toInteger(node.Uid)
+		if err != nil {
+			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		g.UpdateNode(transactionNode{id: nodeUid, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
+	}
+
+	return nil
+}
+
 // addEdges adds the edges defined in nodes to g.
 func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {

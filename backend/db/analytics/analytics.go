@@ -230,3 +230,65 @@ func GetPrivacyTransactionCount(c *dgo.Dgraph) (mixingCount int, originCount int
 
 	return
 }
+
+// GetPrivacyTransactionsByBlock gets all destination transactions, mixing transactions and
+// their connected transactions of the given blockHeight
+func GetPrivacyTransactionsByBlock(c *dgo.Dgraph, blockHeight uint64) ([]ConnectedNode, []Node, error) {
+	const query = `query Q($bid: string) {
+				b as var(func: eq(id,$bid))
+				var(func: uid(b)){
+					txs as transactions
+				}
+				# get mixing transactions
+				mx as var(func: uid(txs))@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
+					tx_inputs{
+						mxi as ~tx_outputs
+					}
+				}
+				# get destination transactions
+				dst as var(func: uid(txs))@filter(between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
+		constants.StrPrivacyDestinationLast + `)){
+					tx_inputs{
+						dsti as ~tx_outputs
+					}
+				}
+				
+				connected(func: uid(mx,dst)){
+					uid
+					privacytype
+					block:~transactions{
+						ts
+					}
+					i:tx_inputs@normalize{
+						~tx_outputs{
+							uid:uid
+						}
+					}
+				}
+
+				single(func: uid(mxi,dsti)){
+					uid
+					privacytype
+					block:~transactions{
+						ts
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
+		map[string]string{"$bid": strconv.FormatUint(blockHeight, 10)})
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	var r struct {
+		Connected []ConnectedNode `json:"connected"`
+		Single    []Node          `json:"single"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return r.Connected, r.Single, nil
+}
