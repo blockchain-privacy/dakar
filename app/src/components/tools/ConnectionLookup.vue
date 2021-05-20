@@ -62,7 +62,7 @@
               row
               label="Search direction:"
               :disabled="isLoading">
-            <v-radio class="mr-2" label="Reverse" :value="false"/>
+            <v-radio class="mr-2" label="Backward" :value="false"/>
             <div class="mr-3">
               <v-hover v-slot:default="{ hover }" open-delay="0">
                 <v-icon small id="reverse_lookup_tooltip">
@@ -204,7 +204,7 @@ export default {
     },
   },
   mounted() {
-    document.title = `Reverse Lookup - ${PAGE_TITLE}`;
+    document.title = `Connection Lookup - ${PAGE_TITLE}`;
   },
 };
 </script>
