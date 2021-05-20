@@ -206,7 +206,7 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	return
 }
 
-type reverseLookupReply struct {
+type connectionLookupReply struct {
 	Success          bool                       `json:"success"`
 	Msg              string                     `json:"msg,omitempty"`
 	Transactions     []dbtx.FrontendTransaction `json:"transactions"`

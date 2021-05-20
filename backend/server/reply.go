@@ -464,9 +464,9 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 	return
 }
 
-// getReverseLookupReply returns the result of a reverse lookup
-func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
-	urlPath string) (reply reverseLookupReply) {
+// getConnectionLookupReply returns the result of a reverse lookup
+func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
+	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
 		reply.Msg = "worker is not ready, try again later"
@@ -502,7 +502,7 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValu
 		isLookupForward = n == 1
 	}
 
-	txhash := urlPath[len(constants.GetRouteReverseLookup()):]
+	txhash := urlPath[len(constants.GetRouteConnectionLookup()):]
 
 	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
 	if err != nil {

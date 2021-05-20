@@ -651,12 +651,12 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/reverseLookup/<txhash>"
-func handlerReverseLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+// API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
+func handlerConnectionLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getReverseLookupReply(dgraph, worker, r.URL.Query(), r.URL.Path)
+		reply := getConnectionLookupReply(dgraph, worker, r.URL.Query(), r.URL.Path)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -777,9 +777,9 @@ func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuris
 		Adapt(handlerShortestTransactionPath(dgraph),
 			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
 
-	http.Handle(constants.GetRouteReverseLookup(),
-		Adapt(handlerReverseLookup(dgraph, worker),
-			authorizationMiddleware(constants.GetRouteReverseLookup(), privkey, pubkey)))
+	http.Handle(constants.GetRouteConnectionLookup(),
+		Adapt(handlerConnectionLookup(dgraph, worker),
+			authorizationMiddleware(constants.GetRouteConnectionLookup(), privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))

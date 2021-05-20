@@ -137,7 +137,7 @@ import {
   doGet, handleError, getPrivacyTypeLabel,
 } from '../../utilities';
 import {
-  PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_REVERSE_LOOKUP,
+  PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_CONNECTION_LOOKUP,
 } from '../../constants';
 
 export default {
@@ -182,7 +182,7 @@ export default {
       this.transactionCount = -1;
       this.isLoading = true;
       const txString = `${this.fromTransaction.trim()}?forward=${this.isDirectionForward ? '1' : '0'}&t=${this.maxLookBackTime}`;
-      doGet(ROUTE_REVERSE_LOOKUP, this.$router, txString)
+      doGet(ROUTE_CONNECTION_LOOKUP, this.$router, txString)
         .then((data) => {
           if (data.success === undefined) throw Error('error searching for paths');
           if (data.success === false) throw new Error(data.msg);

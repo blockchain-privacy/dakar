@@ -23,7 +23,7 @@ const (
 	routeLogout              string = "logout"
 	routeModifyUser          string = "modifyUser"
 	routeShortestTxPath      string = "shortestTransactionPath"
-	routeReverseLookup       string = "reverseLookup"
+	routeConnectionLookup    string = "connectionLookup"
 )
 
 func getRoute(r string) string {
@@ -110,6 +110,6 @@ func GetRouteShortestTransactionPath() string {
 	return getRoute(routeShortestTxPath)
 }
 
-func GetRouteReverseLookup() string {
-	return getRoute(routeReverseLookup)
+func GetRouteConnectionLookup() string {
+	return getRoute(routeConnectionLookup)
 }

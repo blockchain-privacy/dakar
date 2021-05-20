@@ -54,7 +54,7 @@ var (
 		constants.GetRouteDeleteHeuristic():     true,
 		// analytics
 		constants.GetRouteShortestTransactionPath(): true,
-		constants.GetRouteReverseLookup():           true,
+		constants.GetRouteConnectionLookup():        true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
