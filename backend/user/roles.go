@@ -41,6 +41,9 @@ var (
 		constants.GetRouteMeta():               true,
 		constants.GetRouteSearch():             true,
 		constants.GetRouteAddressOutputRange(): true,
+		// user
+		constants.GetRouteModifyUser(): true,
+		constants.GetRouteDeleteUser(): true,
 		// heuristics
 		constants.GetRouteHeuristicStatus():     true,
 		constants.GetRouteHeuristicDetails():    true,
@@ -49,11 +52,9 @@ var (
 		constants.GetRouteHeuristicsSummary():   true,
 		constants.GetRouteHeuristicList():       true,
 		constants.GetRouteDeleteHeuristic():     true,
-		// user
-		constants.GetRouteModifyUser(): true,
-		constants.GetRouteDeleteUser(): true,
 		// analytics
 		constants.GetRouteShortestTransactionPath(): true,
+		constants.GetRouteReverseLookup():           true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
