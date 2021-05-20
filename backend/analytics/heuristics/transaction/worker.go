@@ -239,12 +239,14 @@ mainLoop:
 	}
 }
 
-func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool,
-	error) {
+func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
 	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime)
 }
 
-func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, map[string]bool, map[string]bool,
-	error) {
+func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, error) {
 	return w.graphWrapper.ForwardLookup(uid, targetUid)
+}
+
+func (w *Worker) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
 }

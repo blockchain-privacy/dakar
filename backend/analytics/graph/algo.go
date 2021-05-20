@@ -26,16 +26,13 @@ func toInteger(hexString string) (int64, error) {
 	return strconv.ParseInt(hexString[2:], 16, 64)
 }
 
-func ReverseLookupById(g *ReversibleGraph, nodeId int64,
-	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
+func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxLookBackTime time.Duration) (map[string]bool, error) {
 	node := g.Node(nodeId)
 	if node == nil {
-		return nil, nil, nil, ErrNodeNotFound
+		return nil, ErrNodeNotFound
 	}
 
-	foundOrigins := make(map[string]bool)
-	foundCC := make(map[string]bool)
-	foundOther := make(map[string]bool)
+	foundEndpoints := make(map[string]bool)
 
 	nodeTs := node.(transactionNode).ts
 
@@ -61,13 +58,7 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64,
 
 			// if it is not a mixing transaction save it and stop following that edge
 			if !toNode.privacyType.IsMixing() {
-				if toNode.privacyType.IsOrigin() {
-					foundOrigins[toNode.String()] = true
-				} else if toNode.privacyType.IsCC() {
-					foundCC[toNode.String()] = true
-				} else {
-					foundOther[toNode.String()] = true
-				}
+				foundEndpoints[toNode.String()] = true
 				return false
 			}
 
@@ -79,54 +70,65 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64,
 		from := g.From(n.ID())
 		if from.Len() == 0 {
 			thisNode := n.(transactionNode)
-			if thisNode.privacyType.IsOrigin() {
-				foundOrigins[thisNode.String()] = true
-			} else if thisNode.privacyType.IsCC() {
-				foundCC[thisNode.String()] = true
-			} else {
-				foundOther[thisNode.String()] = true
-			}
+			foundEndpoints[thisNode.String()] = true
 		}
 		return false
 	})
 
-	return foundOrigins, foundCC, foundOther, nil
+	return foundEndpoints, nil
 }
 
 // ReverseLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph backward
 func ReverseLookup(g *ReversibleGraph, uid string,
-	maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool, error) {
+	maxLookBackTime time.Duration) (map[string]bool, error) {
 	nodeUid, err := toInteger(uid)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
 	return ReverseLookupById(g, nodeUid, maxLookBackTime)
 }
 
-// ForwardLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph forward
-func ForwardLookup(g *ReversibleGraph, uid string, targetUid string) (map[string]bool,
-	map[string]bool, map[string]bool, error) {
+// ForwardLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph forward.
+// It does not traverse paths which have a timestamp younger than the node specified by targetUid.
+func ForwardLookup(g *ReversibleGraph, uid string, targetUid string) (map[string]bool, error) {
 	nodeUid, err := toInteger(uid)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	targetNodeUid, err := toInteger(targetUid)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	node := g.Node(nodeUid).(transactionNode)
 	targetNode := g.Node(targetNodeUid).(transactionNode)
 
 	g.SetReverse(true)
-	origins, cc, destination, err := ReverseLookupById(g, nodeUid, targetNode.ts.Sub(node.ts))
+	origins, err := ReverseLookupById(g, nodeUid, targetNode.ts.Sub(node.ts))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	g.SetReverse(false)
-	return origins, cc, destination, err
+	return origins, err
+}
+
+// ForwardLookupByTime returns all leaf nodes of the tree which has uid as its root while traversing the graph forward
+// It does not traverse paths which are outside maxLookForwardTime.
+func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+	nodeUid, err := toInteger(uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	g.SetReverse(true)
+	origins, err := ReverseLookupById(g, nodeUid, maxLookForwardTime)
+	if err != nil {
+		return nil, err
+	}
+	g.SetReverse(false)
+	return origins, err
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid

@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
 import Misc from '../components/user/Misc.vue';
 import Settings from '../components/user/Settings.vue';
 import Profile from '../components/user/Profile.vue';
@@ -89,6 +90,11 @@ export default new Router({
           path: 'heuristics',
           name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
           component: Heuristics,
+        },
+        {
+          path: 'connectionLookup',
+          name: Constants.ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+          component: ConnectionLookup,
         },
       ],
     },

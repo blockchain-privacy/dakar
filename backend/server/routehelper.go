@@ -207,9 +207,8 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 }
 
 type reverseLookupReply struct {
-	Success bool     `json:"success"`
-	Msg     string   `json:"msg,omitempty"`
-	Origins []string `json:"origins,omitempty"`
-	CCs     []string `json:"ccs,omitempty"`
-	Others  []string `json:"others,omitempty"`
+	Success          bool                       `json:"success"`
+	Msg              string                     `json:"msg,omitempty"`
+	Transactions     []dbtx.FrontendTransaction `json:"transactions"`
+	TransactionCount *int                       `json:"count,omitempty"`
 }

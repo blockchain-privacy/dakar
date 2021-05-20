@@ -473,6 +473,7 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValu
 		return
 	}
 
+	// get time parameter
 	fLockBackTime := urlValues.Get("t")
 	var lookBackTime time.Duration
 	if len(fLockBackTime) > 0 {
@@ -486,6 +487,21 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValu
 		lookBackTime = time.Duration(n)
 	}
 
+	// get direction parameter
+	direction := urlValues.Get("forward")
+	var isLookupForward bool
+	// direction is either "0" or "1", thus check for a string with length equal to 1.
+	if len(direction) == 1 {
+		n, err := strconv.Atoi(direction)
+		if err != nil {
+			reply.Msg = "error parsing input"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		isLookupForward = n == 1
+	}
+
 	txhash := urlPath[len(constants.GetRouteReverseLookup()):]
 
 	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
@@ -497,92 +513,73 @@ func getReverseLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValu
 
 	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
 
-	var origins map[string]bool
-	var cc map[string]bool
-	var other map[string]bool
-
+	var endpoints map[string]bool
 	rLookupTime := time.Now()
-	origins, cc, other, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
+	if isLookupForward {
+		endpoints, err = worker.ForwardLookupByTime(uid, time.Hour*24*lookBackTime)
+		if err != nil {
+			reply.Msg = "Lookup not successful"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+	} else {
+		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
+		if err != nil {
+			reply.Msg = "Lookup not successful"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+	}
+
+	info("time:", time.Since(rLookupTime), "endpoints: origins:", len(endpoints))
+
+	// ------------- Forward lookup start -------------
+	//endpointCount := 0
+	//var completeDuration time.Duration
+	//
+	//for k := range endpoints {
+	//	fLookupTime := time.Now()
+	//	fEndpoints, forwardErr := worker.ForwardLookup(k, uid)
+	//	completeDuration += time.Since(fLookupTime)
+	//	if forwardErr != nil {
+	//		reply.Msg = "Forward lookup not successful"
+	//		info(cliutil.ShowCallInfo(), err)
+	//		return
+	//	}
+	//	endpointCount += len(fEndpoints)
+	//
+	//	if len(fEndpoints) < 20 {
+	//		// todo remove
+	//		info("forward look up", k, "mem endpoints -- time:", completeDuration, "origins:", len(fEndpoints))
+	//	}
+	//}
+	//info("forward look up -- avg. time:", completeDuration/time.Duration(len(endpoints)),
+	//	"avg. endpoints per lookup", endpointCount/len(endpoints))
+
+	// ------------- Forward lookup end -------------
+
+	// reply with the first 30 endpoints
+	var transactionUids []string
+	const numOutputNodes = 30
+	i := 0
+	for k := range endpoints {
+		transactionUids = append(transactionUids, k)
+		if i == numOutputNodes {
+			break
+		}
+		i++
+	}
+
+	frontendTransactions, err := dbtx.GetFrontendTransactionsByUid(dgraph, transactionUids)
 	if err != nil {
 		reply.Msg = "Lookup not successful"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	inMemoryLookupTime := time.Since(rLookupTime)
-	info("time:", inMemoryLookupTime, "endpoints: origins:", len(origins), "cc:", len(cc), "other:", len(other))
 
-	endpointCount := 0
-	var completeDuration time.Duration
-	i := 0
-	for k := range origins {
-		fLookupTime := time.Now()
-		fOrigins, fCC, fOther, forwardErr := worker.ForwardLookup(k, uid)
-		completeDuration += time.Since(fLookupTime)
-		if forwardErr != nil {
-			reply.Msg = "Forward lookup not successful"
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
-		endpointCount += len(fOrigins) + len(fCC) + len(fOther)
-
-		if len(fOther) < 20 {
-			// todo remove
-			info("forward look up", k, "mem endpoints -- time:", completeDuration, "origins:", len(fOrigins), "cc:",
-				len(fCC), "other:", len(fOther))
-		}
-	}
-	info("forward look up -- avg. time:", completeDuration/time.Duration(len(origins)),
-		"avg. endpoints per lookup", endpointCount/len(origins))
-
-	const numOutputNodes = 10
-	i = 0
-	for k := range other {
-		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
-		if getErr != nil {
-			reply.Msg = "Could not get transaction hash"
-			info(cliutil.ShowCallInfo(), getErr)
-			return
-		}
-
-		reply.Others = append(reply.Others, txHash)
-		if i == numOutputNodes {
-			break
-		}
-		i++
-	}
-
-	i = 0
-	for k := range origins {
-		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
-		if getErr != nil {
-			reply.Msg = "Could not get transaction hash"
-			info(cliutil.ShowCallInfo(), getErr)
-			return
-		}
-
-		reply.Origins = append(reply.Origins, txHash)
-		if i == numOutputNodes {
-			break
-		}
-		i++
-	}
-
-	i = 0
-	for k := range cc {
-		txHash, getErr := dbtx.GetTransactionByUid(dgraph, k)
-		if getErr != nil {
-			reply.Msg = "Could not get transaction hash"
-			info(cliutil.ShowCallInfo(), getErr)
-			return
-		}
-
-		reply.CCs = append(reply.CCs, txHash)
-		if i == numOutputNodes {
-			break
-		}
-		i++
-	}
-
+	endpointCount := len(endpoints)
+	reply.TransactionCount = &endpointCount
+	reply.Transactions = frontendTransactions
 	reply.Success = true
 
 	return

@@ -157,12 +157,10 @@ func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction,
 	return sourceAmounts
 }
 
-// concatMaps returns a slice containing all keys of the given maps. The keys are not checked for uniqueness.
-func concatMaps(maps ...map[string]bool) (uids []string) {
-	for _, m := range maps {
-		for k := range m {
-			uids = append(uids, k)
-		}
+// mapToSlice returns a slice containing all keys of the given map.
+func mapToSlice(m map[string]bool) (uids []string) {
+	for k := range m {
+		uids = append(uids, k)
 	}
 
 	return
@@ -174,13 +172,13 @@ func concatMaps(maps ...map[string]bool) (uids []string) {
 func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper, tx dbtxh.HeuristicTransaction,
 	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
 	// do reverse lookup
-	origin, cc, other, err := g.ReverseLookup(tx.Uid, lookBackTime)
+	endpoints, err := g.ReverseLookup(tx.Uid, lookBackTime)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, concatMaps(origin, cc, other))
+	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, mapToSlice(endpoints))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -205,13 +203,13 @@ func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper,
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		origin, cc, other, err := g.ReverseLookup(it, time.Hour*24*90)
+		endpoints, err := g.ReverseLookup(it, time.Hour*24*90)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		for _, o := range concatMaps(origin, cc, other) {
-			uidMap[o] = true
+		for k := range endpoints {
+			uidMap[k] = true
 		}
 	}
 

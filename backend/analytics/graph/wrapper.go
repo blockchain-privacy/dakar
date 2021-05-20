@@ -70,10 +70,9 @@ func (w *Wrapper) IsAddressGraphLoaded() bool {
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
-func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, map[string]bool, map[string]bool,
-	error) {
+func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, nil, nil, errors.New("transaction graph is not loaded yet")
+		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -81,14 +80,23 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookup(uid string, targetUid string) (map[string]bool, map[string]bool, map[string]bool,
-	error) {
+func (w *Wrapper) ForwardLookup(uid string, targetUid string) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, nil, nil, errors.New("transaction graph is not loaded yet")
+		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 	return ForwardLookup(w.transactionGraph, uid, targetUid)
+}
+
+// ForwardLookupByTime performs a forward lookup of the given uid.
+func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+	if !w.IsTransactionGraphLoaded() {
+		return nil, errors.New("transaction graph is not loaded yet")
+	}
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
+	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
 }
 
 // GetClusters returns a mapping between address uids and ClusterId's

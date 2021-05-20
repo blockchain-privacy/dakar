@@ -277,6 +277,46 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 	return
 }
 
+// GetFrontendTransactionsByUid returns the FrontendTransaction's specified by uid
+func GetFrontendTransactionsByUid(c *dgo.Dgraph, txUids []string) (txs []FrontendTransaction, err error) {
+
+	const query = `query Q($uids:string){
+				txs as var(func: uid($uids))
+				q(func: uid(txs))@normalize{
+					txhash:txhash
+					privacytype:privacytype
+					~transactions{
+						bid:id
+						bts:ts
+						bhash:blockhash
+					}
+				}
+			  }`
+
+	// without retry, as this request can easily timeout
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uids": db.CreateUidList(txUids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []FrontendTransaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	txs = r.Transactions
+
+	return
+}
+
 // GetTransactionBlockId gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err error) {
@@ -390,35 +430,5 @@ func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
 
 	uid = r.Q[0].Uid
 
-	return
-}
-
-// GetTransactionByUid returns the transaction hash of the given uid
-func GetTransactionByUid(c *dgo.Dgraph, uid string) (transactionHash string, err error) {
-	query := `query Q($uid:string) {
-				q(func: uid($uid)){
-					txhash
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
-		map[string]string{"$uid": uid})
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r struct {
-		Q []struct {
-			TransactionHash string `json:"txhash"`
-		} `json:"q"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	transactionHash = r.Q[0].TransactionHash
 	return
 }
