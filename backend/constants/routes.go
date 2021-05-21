@@ -24,6 +24,7 @@ const (
 	routeModifyUser          string = "modifyUser"
 	routeShortestTxPath      string = "shortestTransactionPath"
 	routeConnectionLookup    string = "connectionLookup"
+	routeClusterLookup       string = "clusterLookup"
 )
 
 func getRoute(r string) string {
@@ -112,4 +113,7 @@ func GetRouteShortestTransactionPath() string {
 
 func GetRouteConnectionLookup() string {
 	return getRoute(routeConnectionLookup)
+}
+func GetRouteClusterLookup() string {
+	return getRoute(routeClusterLookup)
 }

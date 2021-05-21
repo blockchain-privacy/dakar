@@ -14,6 +14,80 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
+// GetAddressUid returns the uid of the given address
+func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
+	query := `query Q($addr:string) {
+				q(func: eq(addresshash, $addr)){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+		map[string]string{"$addr": addressHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			Uid string `json:"uid"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) != 1 {
+		err = errors.New("received invalid address")
+		return
+	}
+
+	uid = r.Q[0].Uid
+
+	return
+}
+
+// GetAddressesByUid returns the address hashes of the given uids
+func GetAddressesByUid(c *dgo.Dgraph, addressUids []string) (addressHashes []string, err error) {
+
+	const query = `query Q($uids:string){
+				q(func: uid($uids)){
+					a:addresshash
+				}
+			  }`
+
+	// without retry, as this request can easily timeout
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uids": db.CreateUidList(addressUids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Query []struct {
+			AddressHash string `json:"a,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, address := range r.Query {
+		addressHashes = append(addressHashes, address.AddressHash)
+	}
+
+	return
+}
+
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
 func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,

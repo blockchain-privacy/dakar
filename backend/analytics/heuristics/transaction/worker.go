@@ -250,3 +250,7 @@ func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, e
 func (w *Worker) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
 	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
 }
+
+func (w *Worker) GetCluster(addressUid string) ([]string, error) {
+	return w.graphWrapper.GetCluster(addressUid)
+}

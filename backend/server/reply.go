@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
+	"backend/db/address"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
@@ -580,6 +581,42 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 	endpointCount := len(endpoints)
 	reply.TransactionCount = &endpointCount
 	reply.Transactions = frontendTransactions
+	reply.Success = true
+
+	return
+}
+
+// getClusterLookupReply returns the result of a cluster lookup
+func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
+	if !worker.IsReady() {
+		reply.Msg = "worker is not ready, try again later"
+		return
+	}
+
+	addressHash := urlPath[len(constants.GetRouteClusterLookup()):]
+
+	uid, err := address.GetAddressUid(dgraph, addressHash)
+	if err != nil {
+		reply.Msg = "Address hash not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addressCluster, err := worker.GetCluster(uid)
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addressHashes, err := address.GetAddressesByUid(dgraph, addressCluster)
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Addresses = addressHashes
 	reply.Success = true
 
 	return

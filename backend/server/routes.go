@@ -667,6 +667,21 @@ func handlerConnectionLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.
 	})
 }
 
+// API pattern: "/api/v1/clusterLookup0/<addressHash>"
+func handlerClusterLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getClusterLookupReply(dgraph, worker, r.URL.Path)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -781,6 +796,10 @@ func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuris
 	http.Handle(constants.GetRouteConnectionLookup(),
 		Adapt(handlerConnectionLookup(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteConnectionLookup(), privkey, pubkey)))
+
+	http.Handle(constants.GetRouteClusterLookup(),
+		Adapt(handlerClusterLookup(dgraph, worker),
+			authorizationMiddleware(constants.GetRouteClusterLookup(), privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))

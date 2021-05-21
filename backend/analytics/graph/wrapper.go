@@ -5,7 +5,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/db/status"
-
 	"context"
 	"errors"
 	"fmt"
@@ -107,6 +106,16 @@ func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterId, error
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
 	return GetClusters(w.addressGraph, addressUids)
+}
+
+// GetCluster returns the cluster of the given address
+func (w *Wrapper) GetCluster(addressUid string) ([]string, error) {
+	if !w.IsAddressGraphLoaded() {
+		return nil, errors.New("address graph is not loaded yet")
+	}
+	w.addressGraphMutex.Lock()
+	defer w.addressGraphMutex.Unlock()
+	return GetCluster(w.addressGraph, addressUid)
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid

@@ -213,3 +213,9 @@ type connectionLookupReply struct {
 	Transactions     []dbtx.FrontendTransaction `json:"transactions"`
 	TransactionCount *int                       `json:"count,omitempty"`
 }
+
+type clusterLookupReply struct {
+	Success   bool     `json:"success"`
+	Msg       string   `json:"msg,omitempty"`
+	Addresses []string `json:"addresses"`
+}

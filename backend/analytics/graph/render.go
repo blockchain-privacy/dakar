@@ -202,3 +202,37 @@ func ExportUndirectedGraphToGephi(g *UndirectedGraph, filePath string) error {
 
 	return nil
 }
+
+// ExportClustersToGephi writes all address cluster to disk
+func ExportClustersToGephi(g *UndirectedGraph, filePath string) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			log.Println(closeErr)
+		}
+	}()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	for _, cluster := range GetAllClusters(g) {
+		if len(cluster) < 2 {
+			continue
+		}
+
+		var line []string
+
+		for _, address := range cluster {
+			line = append(line, address)
+		}
+
+		if writeErr := writer.Write(line); writeErr != nil {
+			fmt.Println("Cannot write to file", writeErr)
+		}
+	}
+
+	return nil
+}

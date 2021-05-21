@@ -211,3 +211,60 @@ func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterId
 
 	return exportClusterMap, nil
 }
+
+// GetCluster returns the cluster of the given address
+func GetCluster(g *UndirectedGraph, uid string) ([]string, error) {
+	nodeUid, err := toInteger(uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	var w traverse.BreadthFirst
+
+	var addressIds []int64
+	node := g.Node(nodeUid)
+	w.Walk(g, node, func(n graph.Node, d int) bool {
+		addrNode := g.Node(n.ID()).(addressGraphNode)
+		if addrNode.isAddress {
+			addressIds = append(addressIds, n.ID())
+		}
+
+		return false
+	})
+
+	var addressUids []string
+	for _, id := range addressIds {
+		addressUids = append(addressUids, toHex(id))
+	}
+
+	return addressUids, nil
+}
+
+// GetAllClusters returns all address clusters
+func GetAllClusters(g *UndirectedGraph) map[ClusterId][]string {
+	var w traverse.BreadthFirst
+	clusterMap := make(map[ClusterId][]int64)
+
+	i := ClusterId(0)
+	w.WalkAll(g, nil, func() { i++ }, func(n graph.Node) {
+		addrNode := g.Node(n.ID()).(addressGraphNode)
+		if addrNode.isAddress {
+			clusters := clusterMap[i]
+			clusters = append(clusters, n.ID())
+			clusterMap[i] = clusters
+		}
+	})
+
+	exportClusterMap := make(map[ClusterId][]string)
+
+	for clusterId, cluster := range clusterMap {
+		var strCluster []string
+		for _, c := range cluster {
+			strCluster = append(strCluster, toHex(c))
+		}
+
+		exportClusterMap[clusterId] = strCluster
+	}
+
+	return exportClusterMap
+}
