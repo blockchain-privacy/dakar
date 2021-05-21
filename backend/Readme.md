@@ -13,6 +13,8 @@ This is a blockchain transaction analyser, written in Go. The current main focus
 * `paseto` - API authentication
 * `gonum` - graph algorithms
 
+For more detailed information check [here](./go.mod)
+
 ## Development
 
 Guide
