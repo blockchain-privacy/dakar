@@ -24,7 +24,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 const (

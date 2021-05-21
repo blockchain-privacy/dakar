@@ -3,13 +3,15 @@ package address
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.

@@ -6,12 +6,13 @@ import (
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
 	"backend/db/transaction"
+
 	"errors"
 	"fmt"
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 var (

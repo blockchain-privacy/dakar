@@ -9,19 +9,20 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
+
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"io"
 	"math"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/ristretto"
+	"golang.org/x/crypto/ed25519"
 )
 
 var (

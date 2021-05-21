@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // ------------------------- Private Send Example Graph -------------------------

@@ -3,15 +3,15 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+
+	"encoding/json"
 	"errors"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"fmt"
 	"strconv"
 	"time"
 
-	"encoding/json"
-	"fmt"
-
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetTransaction gets transaction information from the database.

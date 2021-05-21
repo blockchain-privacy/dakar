@@ -2,19 +2,19 @@ package db
 
 import (
 	"backend/cmd/cliutil"
-	"io"
 
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
 	"google.golang.org/grpc"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 const (

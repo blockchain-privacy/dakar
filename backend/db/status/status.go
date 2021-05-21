@@ -8,13 +8,13 @@ import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
-	"time"
 
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // PrintStatus outputs the stats for the given DB

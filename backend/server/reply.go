@@ -8,15 +8,15 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/user"
-	"net/url"
-	"strconv"
-	"time"
 
 	"encoding/json"
 	"errors"
 	"io"
+	"net/url"
+	"strconv"
+	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // getLoginReply reads the data from body and constructs a backendUserReply

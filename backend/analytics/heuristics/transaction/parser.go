@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // validHeuristicTypes includes all heuristics which are possible to receive from the frontend.

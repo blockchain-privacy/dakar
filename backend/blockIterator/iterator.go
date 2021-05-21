@@ -3,13 +3,14 @@ package blockIterator
 import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
+
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // BlockIterator defines the basic structure of a process which

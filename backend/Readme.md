@@ -6,8 +6,12 @@ This is a blockchain transaction analyser, written in Go. The current main focus
 
 ## Dependencies
 
-* `btcsuite` - core wire communication layer
+* `btcsuite` - blockchain rpc client access
 * `Dgraph` - data storage and processed blockchain data
+* `grpc` - network communication
+* `ristretto` - in-memory cache for API requests
+* `paseto` - API authentication
+* `gonum` - graph algorithms
 
 ## Development
 

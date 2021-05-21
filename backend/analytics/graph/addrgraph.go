@@ -3,13 +3,15 @@ package graph
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
+
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
-	"gonum.org/v1/gonum/graph"
-	"gonum.org/v1/gonum/graph/simple"
 	"runtime"
 	"runtime/debug"
+
+	"github.com/dgraph-io/dgo/v210"
+	"gonum.org/v1/gonum/graph"
+	"gonum.org/v1/gonum/graph/simple"
 )
 
 // addAddressEdges adds the edges defined in nodes to g.

@@ -9,13 +9,14 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+
 	"context"
 	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters

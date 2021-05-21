@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 type HeuristicQueueStatus int

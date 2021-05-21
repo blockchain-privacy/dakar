@@ -3,13 +3,15 @@ package server
 import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/external"
+
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
+
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // loggerPrefix is the prefix which is printed for each log message

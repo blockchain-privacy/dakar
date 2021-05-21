@@ -3,14 +3,14 @@ package output
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	"time"
 
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 const NumDenominations = 5

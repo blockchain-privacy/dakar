@@ -12,6 +12,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+
 	"context"
 	"encoding/hex"
 	"errors"
@@ -28,7 +29,7 @@ import (
 
 	"github.com/btcsuite/btcd/rpcclient"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 
 	"golang.org/x/crypto/ed25519"
 )
