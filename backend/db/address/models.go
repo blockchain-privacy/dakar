@@ -2,8 +2,8 @@ package address
 
 import (
 	op "backend/db/output"
-
 	"errors"
+
 	"fmt"
 )
 
@@ -31,6 +31,11 @@ const (
 	FilterByUnspent
 )
 
+var (
+	ErrorAddressNotFound = errors.New("no address found")
+	ErrorInvalidResult   = errors.New("invalid result")
+)
+
 // IsValidSortOrder returns true if sortOrder has a valid sort order value
 func IsValidSortOrder(sortOrder int) bool {
 	return sortOrder == SortAscendingByInputTime || sortOrder == SortDescendingByInputTime ||
@@ -48,11 +53,6 @@ func IsValidFilter(filters []int) bool {
 
 	return true
 }
-
-var (
-	ErrorAddressNotFound = errors.New("no address found")
-	ErrorInvalidResult   = errors.New("invalid result")
-)
 
 type Address struct {
 	Uid     string      `json:"uid,omitempty"`

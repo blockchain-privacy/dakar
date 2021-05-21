@@ -598,7 +598,9 @@ func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath
 	uid, err := address.GetAddressUid(dgraph, addressHash)
 	if err != nil {
 		reply.Msg = "Address hash not found"
-		info(cliutil.ShowCallInfo(), err)
+		if !errors.Is(err, address.ErrorAddressNotFound) {
+			info(cliutil.ShowCallInfo(), err)
+		}
 		return
 	}
 

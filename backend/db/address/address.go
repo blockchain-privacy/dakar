@@ -41,8 +41,11 @@ func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
 		return
 	}
 
-	if len(r.Q) != 1 {
-		err = errors.New("received invalid address")
+	if len(r.Q) == 0 {
+		err = ErrorAddressNotFound
+		return
+	} else if len(r.Q) > 1 {
+		err = errors.New("error received invalid response")
 		return
 	}
 
