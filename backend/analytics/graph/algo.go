@@ -157,34 +157,39 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 type ClusterId uint
 
 // GetClusters returns a mapping between address uids and ClusterId's
-func GetClusters(g *UndirectedGraph, addressUids map[string]bool) (map[string]ClusterId, error) {
+func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterId, error) {
 	var w traverse.BreadthFirst
-	clusterMap := make(map[string]ClusterId)
+
+	clusterMap := make(map[int64]ClusterId)
+	addresses := make(map[int64]bool)
+
+	// convert string slice to integer map
+	for _, a := range addressUids {
+		nodeUid, err := toInteger(a)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		addresses[nodeUid] = true
+	}
 
 	i := ClusterId(0)
-
-	for uid := range addressUids {
+	for uid := range addresses {
 		if _, ok := clusterMap[uid]; ok {
 			// uid already processed
 			continue
 		}
 
-		nodeUid, err := toInteger(uid)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-		node := g.Node(nodeUid)
+		node := g.Node(uid)
 		if node == nil {
 			return nil, ErrNodeNotFound
 		}
 
-		var addressesInCluster []string
+		var addressesInCluster []int64
 
 		w.Walk(g, node, func(n graph.Node, d int) bool {
 			addrNode := g.Node(n.ID()).(addressGraphNode)
-			// todo optimize map lookup from string to int64
-			if addrNode.isAddress && addressUids[toHex(n.ID())] {
-				addressesInCluster = append(addressesInCluster, addrNode.String())
+			if addrNode.isAddress && addresses[n.ID()] {
+				addressesInCluster = append(addressesInCluster, n.ID())
 			}
 
 			return false
@@ -198,5 +203,11 @@ func GetClusters(g *UndirectedGraph, addressUids map[string]bool) (map[string]Cl
 		i++
 	}
 
-	return clusterMap, nil
+	exportClusterMap := make(map[string]ClusterId)
+
+	for clusterId, cluster := range clusterMap {
+		exportClusterMap[toHex(clusterId)] = cluster
+	}
+
+	return exportClusterMap, nil
 }

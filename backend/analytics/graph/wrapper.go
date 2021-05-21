@@ -100,7 +100,7 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 }
 
 // GetClusters returns a mapping between address uids and ClusterId's
-func (w *Wrapper) GetClusters(addressUids map[string]bool) (map[string]ClusterId, error) {
+func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterId, error) {
 	if !w.IsAddressGraphLoaded() {
 		return nil, errors.New("address graph is not loaded yet")
 	}

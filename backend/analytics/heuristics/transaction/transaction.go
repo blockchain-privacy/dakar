@@ -97,12 +97,12 @@ func addOriginsToMap(g *graph.Wrapper, sourceTransactionMap map[graph.ClusterId]
 	origins []dbtxh.HeuristicTransaction) (map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction,
 	map[string]graph.ClusterId, error) {
 
-	allAddresses := make(map[string]bool)
+	var allAddresses []string
 
 	for _, o := range origins {
 		// add to map
 		for _, a := range o.Addresses {
-			allAddresses[a] = true
+			allAddresses = append(allAddresses, a)
 		}
 	}
 
