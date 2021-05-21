@@ -1,8 +1,6 @@
 # Backend
 
-## Info
-
-This is a blockchain transaction analyser, written in Go. The current main focus is on Dash.
+This is the backend of Dakar. It crawls the Dash blockchain and exposes its data via a REST API.
 
 ## Dependencies
 
@@ -13,7 +11,7 @@ This is a blockchain transaction analyser, written in Go. The current main focus
 * `paseto` - API authentication
 * `gonum` - graph algorithms
 
-For more detailed information check [here](./go.mod)
+For a more detailed overview check [here](./go.mod).
 
 ## Development
 
