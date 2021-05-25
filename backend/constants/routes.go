@@ -23,6 +23,8 @@ const (
 	routeLogout              string = "logout"
 	routeModifyUser          string = "modifyUser"
 	routeShortestTxPath      string = "shortestTransactionPath"
+	routeConnectionLookup    string = "connectionLookup"
+	routeClusterLookup       string = "clusterLookup"
 )
 
 func getRoute(r string) string {
@@ -107,4 +109,11 @@ func GetRouteModifyUser() string {
 
 func GetRouteShortestTransactionPath() string {
 	return getRoute(routeShortestTxPath)
+}
+
+func GetRouteConnectionLookup() string {
+	return getRoute(routeConnectionLookup)
+}
+func GetRouteClusterLookup() string {
+	return getRoute(routeClusterLookup)
 }

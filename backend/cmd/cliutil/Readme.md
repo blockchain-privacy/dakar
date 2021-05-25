@@ -98,7 +98,7 @@ If the new flag needs some **simple** input verification, implement it in this m
 | logfile | < empty string > | Specify log file (default: none) |
 | disableserver | false | Disable the http server (default: false) |
 | disablecrawler | false | Disable the crawler (default: false) |
-| disableanalyzer | false | Disable the analyzer (default: false) |
+| disableheuristics | false | Disable the heuristic worker (default: false) |
 | disableclassifier | false | Disable the classifier (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |
 | txinfo | < empty string > | Get information about the given transaction hash (default: none) |

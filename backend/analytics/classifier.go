@@ -14,7 +14,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -91,7 +91,7 @@ func (a *Classifier) IncrementState() {
 	a.state.Id++
 }
 
-// Empty checks if there is work in the queue or more block above the current one
+// Empty checks if there are more blocks above the current one
 func (a *Classifier) Empty() bool {
 	return a.state.Id > a.state.Top
 }
@@ -238,7 +238,8 @@ func (a *Classifier) Iterate() (bool, error) {
 	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
 	// origins are set in step 2.2.2
-	potentialCollateralTransactions, foundOrigins, classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
+	potentialCollateralTransactions, foundOrigins,
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
 	if classErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
 	}
@@ -464,7 +465,7 @@ func newOriginTransaction(uid string) dbtx.Transaction {
 // hasValidPrivacyType check is the transaction has a valid privacy type
 func hasValidPrivacyType(tx dbtx.Transaction) bool {
 	t := tx.PrivacyType
-	return t != nil && *t <= constants.PrivacyCollateralPaymentLast && *t >= 0
+	return t != nil && *t <= constants.PrivacyCollateralPaymentLast
 }
 
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately

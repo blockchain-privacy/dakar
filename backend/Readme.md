@@ -1,13 +1,17 @@
 # Backend
 
-## Info
-
-This is a blockchain transaction analyser, written in Go. The current main focus is on Dash.
+This is the backend of Dakar. It crawls the Dash blockchain and exposes its data via a REST API.
 
 ## Dependencies
 
-* `btcsuite` - core wire communication layer
+* `btcsuite` - blockchain rpc client access
 * `Dgraph` - data storage and processed blockchain data
+* `grpc` - network communication
+* `ristretto` - in-memory cache for API requests
+* `paseto` - API authentication
+* `gonum` - graph algorithms
+
+For a more detailed overview check [here](./go.mod).
 
 ## Development
 
@@ -66,8 +70,6 @@ Dakar v1.0.0
 crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
 crawler 2021/01/04 11:40:37 main.go:31: Current block count in the chain of the RPC client: 1399437
 server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
-analyse 2021/01/04 11:40:37 analytics.go:26: [Starting process]
-analyse 2021/01/04 11:40:37 analytics.go:26: [Waiting for next block Id: 206941, Top: 17940]
 process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
 ```
 ### Setup Frontend

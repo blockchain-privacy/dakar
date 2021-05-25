@@ -3,13 +3,14 @@ package blockIterator
 import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
+
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // BlockIterator defines the basic structure of a process which
@@ -44,7 +45,7 @@ type BlockIterator interface {
 	Name() string
 }
 
-// State holds the current state of the analyzing processing loop
+// State holds the current state of the processing loop
 type State struct {
 	// Id is the current block height
 	Id uint64

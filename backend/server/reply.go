@@ -3,6 +3,8 @@ package server
 import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
+	"backend/constants"
+	"backend/db/address"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
@@ -11,8 +13,11 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/url"
+	"strconv"
+	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // getLoginReply reads the data from body and constructs a backendUserReply
@@ -455,6 +460,165 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 		return
 	}
 
+	reply.Success = true
+
+	return
+}
+
+// getConnectionLookupReply returns the result of a reverse lookup
+func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
+	urlPath string) (reply connectionLookupReply) {
+
+	if !worker.IsReady() {
+		reply.Msg = "worker is not ready, try again later"
+		return
+	}
+
+	// get time parameter
+	fLockBackTime := urlValues.Get("t")
+	var lookBackTime time.Duration
+	if len(fLockBackTime) > 0 {
+		n, err := strconv.Atoi(fLockBackTime)
+		if err != nil {
+			reply.Msg = "error parsing input"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		lookBackTime = time.Duration(n)
+	}
+
+	// get direction parameter
+	direction := urlValues.Get("forward")
+	var isLookupForward bool
+	// direction is either "0" or "1", thus check for a string with length equal to 1.
+	if len(direction) == 1 {
+		n, err := strconv.Atoi(direction)
+		if err != nil {
+			reply.Msg = "error parsing input"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		isLookupForward = n == 1
+	}
+
+	txhash := urlPath[len(constants.GetRouteConnectionLookup()):]
+
+	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
+	if err != nil {
+		reply.Msg = "Transaction hash not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
+
+	var endpoints map[string]bool
+	rLookupTime := time.Now()
+	if isLookupForward {
+		endpoints, err = worker.ForwardLookupByTime(uid, time.Hour*24*lookBackTime)
+		if err != nil {
+			reply.Msg = "Lookup not successful"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+	} else {
+		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
+		if err != nil {
+			reply.Msg = "Lookup not successful"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+	}
+
+	info("time:", time.Since(rLookupTime), "endpoints: origins:", len(endpoints))
+
+	// ------------- Forward lookup start -------------
+	//endpointCount := 0
+	//var completeDuration time.Duration
+	//
+	//for k := range endpoints {
+	//	fLookupTime := time.Now()
+	//	fEndpoints, forwardErr := worker.ForwardLookup(k, uid)
+	//	completeDuration += time.Since(fLookupTime)
+	//	if forwardErr != nil {
+	//		reply.Msg = "Forward lookup not successful"
+	//		info(cliutil.ShowCallInfo(), err)
+	//		return
+	//	}
+	//	endpointCount += len(fEndpoints)
+	//
+	//	if len(fEndpoints) < 20 {
+	//		// todo remove
+	//		info("forward look up", k, "mem endpoints -- time:", completeDuration, "origins:", len(fEndpoints))
+	//	}
+	//}
+	//info("forward look up -- avg. time:", completeDuration/time.Duration(len(endpoints)),
+	//	"avg. endpoints per lookup", endpointCount/len(endpoints))
+
+	// ------------- Forward lookup end -------------
+
+	// reply with the first 30 endpoints
+	var transactionUids []string
+	const numOutputNodes = 30
+	i := 0
+	for k := range endpoints {
+		transactionUids = append(transactionUids, k)
+		if i == numOutputNodes {
+			break
+		}
+		i++
+	}
+
+	frontendTransactions, err := dbtx.GetFrontendTransactionsByUid(dgraph, transactionUids)
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	endpointCount := len(endpoints)
+	reply.TransactionCount = &endpointCount
+	reply.Transactions = frontendTransactions
+	reply.Success = true
+
+	return
+}
+
+// getClusterLookupReply returns the result of a cluster lookup
+func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
+	if !worker.IsReady() {
+		reply.Msg = "worker is not ready, try again later"
+		return
+	}
+
+	addressHash := urlPath[len(constants.GetRouteClusterLookup()):]
+
+	uid, err := address.GetAddressUid(dgraph, addressHash)
+	if err != nil {
+		reply.Msg = "Address hash not found"
+		if !errors.Is(err, address.ErrorAddressNotFound) {
+			info(cliutil.ShowCallInfo(), err)
+		}
+		return
+	}
+
+	addressCluster, err := worker.GetCluster(uid)
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addressHashes, err := address.GetAddressesByUid(dgraph, addressCluster)
+	if err != nil {
+		reply.Msg = "Lookup not successful"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Addresses = addressHashes
 	reply.Success = true
 
 	return

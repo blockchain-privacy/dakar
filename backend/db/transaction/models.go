@@ -15,18 +15,18 @@ var (
 )
 
 type Transaction struct {
-	Uid         string        `json:"uid,omitempty"`
-	PrivacyType *int          `json:"privacytype,omitempty"`
-	Fee         *int64        `json:"fee,omitempty"`
-	Outputs     []op.Output   `json:"tx_outputs,omitempty"`
-	Inputs      []op.Output   `json:"tx_inputs,omitempty"`
-	Hash        string        `json:"txhash,omitempty"`
-	Origins     []Transaction `json:"origins,omitempty"`
-	DType       []string      `json:"dgraph.type,omitempty"`
+	Uid         string                 `json:"uid,omitempty"`
+	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
+	Fee         *int64                 `json:"fee,omitempty"`
+	Outputs     []op.Output            `json:"tx_outputs,omitempty"`
+	Inputs      []op.Output            `json:"tx_inputs,omitempty"`
+	Hash        string                 `json:"txhash,omitempty"`
+	Origins     []Transaction          `json:"origins,omitempty"`
+	DType       []string               `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %s, Fee: %d",
+	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %d, Fee: %d",
 		t.Uid, t.Hash, t.PrivacyType, *t.Fee)
 
 	if t.Outputs != nil {
@@ -73,19 +73,11 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 }
 
 func (t *Transaction) IsMixingTransaction() bool {
-	if t.PrivacyType == nil || *t.PrivacyType < 0 {
-		return false
-	}
-
-	return *t.PrivacyType <= constants.PrivacyMixingLast
+	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
 }
 
 func (t *Transaction) IsDestinationTransaction() bool {
-	if t.PrivacyType == nil || *t.PrivacyType < 0 {
-		return false
-	}
-
-	return *t.PrivacyType >= constants.PrivacyDestinationFirst && *t.PrivacyType <= constants.PrivacyDestinationLast
+	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
 }
 
 type transactionQuery struct {

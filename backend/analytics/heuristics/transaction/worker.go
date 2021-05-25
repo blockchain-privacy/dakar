@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -11,11 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
-
-// copyOnModify is true when existing heuristic trees should be copied before modification
-const copyOnModify = false
 
 type HeuristicQueueStatus int
 
@@ -62,14 +60,60 @@ type Work struct {
 }
 
 type Worker struct {
+	// cancel stops the go routine started by Start
+	cancel context.CancelFunc
+
+	// activeMutex acts as a mutex for active and cancel
+	activeMutex *sync.RWMutex
+	active      bool
+
+	// mapMutex acts as a mutex for executionMap and currentWorkItem
+	mapMutex        *sync.RWMutex
 	currentWorkItem workKey
 	executionMap    map[workKey]Work
-	mutex           *sync.Mutex
+
+	// graphWrapper gives access to graph functions
+	graphWrapper *graph.Wrapper
 }
 
-func NewWorker() Worker {
-	var mLock sync.Mutex
-	return Worker{executionMap: make(map[workKey]Work), mutex: &mLock}
+// NewWorker constructs a new Worker
+func NewWorker(gWrapper *graph.Wrapper) *Worker {
+	return &Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex), activeMutex: new(sync.RWMutex),
+		graphWrapper: gWrapper}
+}
+
+// Start starts the worker. To stop the worker cancel the context or call Stop.
+// Returns false if the worker was already started.
+func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph) bool {
+	w.activeMutex.Lock()
+	defer w.activeMutex.Unlock()
+	if !w.active {
+		w.active = true
+		var cancelContext context.Context
+		cancelContext, w.cancel = context.WithCancel(ctx)
+		go w.work(cancelContext, dgraph)
+		return true
+	}
+	return false
+}
+
+// Stop stops the worker.
+func (w *Worker) Stop() {
+	w.activeMutex.Lock()
+	defer w.activeMutex.Unlock()
+	if !w.active {
+		return
+	}
+
+	w.cancel()
+	w.active = false
+}
+
+// IsActive returns true if the worker is active
+func (w *Worker) IsActive() bool {
+	w.activeMutex.RLock()
+	defer w.activeMutex.RUnlock()
+	return w.active
 }
 
 func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool {
@@ -78,8 +122,8 @@ func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.Lock()
+	defer w.mapMutex.Unlock()
 
 	if _, exists := w.executionMap[key]; exists {
 		return false
@@ -97,10 +141,15 @@ func (w *Worker) IsInQueue(tx string, userUid string) bool {
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.RLock()
+	defer w.mapMutex.RUnlock()
 	_, ok := w.executionMap[key]
 	return ok
+}
+
+// IsReady returns true the worker is ready to work
+func (w *Worker) IsReady() bool {
+	return w.graphWrapper.IsAddressGraphLoaded() && w.graphWrapper.IsTransactionGraphLoaded()
 }
 
 // GetStatus returns the current execution status of the given transaction hash and user id
@@ -110,8 +159,8 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 		userUid: userUid,
 	}
 
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
+	w.mapMutex.RLock()
+	defer w.mapMutex.RUnlock()
 	_, ok := w.executionMap[key]
 
 	if !ok {
@@ -125,14 +174,11 @@ func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
 	return StatusHeuristicInQueue
 }
 
-func (w *Worker) StartWorking(ctx context.Context, dgraph *dgo.Dgraph) {
-	go w.work(ctx, dgraph)
+func stoppingWork() {
+	info("stopping work ...")
 }
 
-func stoppingWorker() {
-	info("stopping ...")
-}
-
+// work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
 
 	var work Work
@@ -143,59 +189,68 @@ mainLoop:
 	for {
 		select {
 		case <-ctx.Done():
-			stoppingWorker()
+			stoppingWork()
 			break mainLoop
 		case <-ticker.C:
+			// check if transaction graph is ready
+			if !w.graphWrapper.IsTransactionGraphLoaded() {
+				continue
+			}
+
 			// get work for this cycle
-			w.mutex.Lock()
+			w.mapMutex.RLock()
 			for k, v := range w.executionMap {
 				work = v
 				w.currentWorkItem = k
 				break
 			}
-			w.mutex.Unlock()
+			w.mapMutex.RUnlock()
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
 				info("processing work package")
-				// copy tree
-				wasCopyingErrorFree := true
-				if copyOnModify {
-					for _, root := range work.treeRoots {
-						if err := dbtxh.CopyHeuristicTree(dgraph, root); err != nil {
+
+				// delete changed or removable heuristics
+				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
+					info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+					// no return/break because we want keep working even if we are failing
+					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
+				} else {
+					// if no error occurred -> execute the new heuristics
+					for _, e := range work.executors {
+						if err = e.RunSynchronous(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
+							w.currentWorkItem.userUid); err != nil {
 							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-							wasCopyingErrorFree = false
-							break
 						}
 					}
 				}
 
-				if wasCopyingErrorFree {
-					// delete changed or removable heuristics
-					if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
-						info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-						// no return/break because we want keep working even if we are failing
-						// no continue because we still need to do the deletion of this (faulty) job and reset the memory
-					} else {
-						// if no error occurred -> execute the new heuristics
-						for _, e := range work.executors {
-							if err = e.RunSynchronous(dgraph, w.currentWorkItem.txhash, "",
-								w.currentWorkItem.userUid); err != nil {
-								info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-							}
-						}
-					}
-				}
 				info("processing work done")
 			}
 
-			w.mutex.Lock()
+			w.mapMutex.Lock()
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}
-			w.mutex.Unlock()
+			w.mapMutex.Unlock()
 
 			// reset memory
 			work = Work{}
 		}
 	}
+}
+
+func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
+	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime)
+}
+
+func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, error) {
+	return w.graphWrapper.ForwardLookup(uid, targetUid)
+}
+
+func (w *Worker) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
+}
+
+func (w *Worker) GetCluster(addressUid string) ([]string, error) {
+	return w.graphWrapper.GetCluster(addressUid)
 }

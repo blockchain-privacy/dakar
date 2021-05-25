@@ -3,10 +3,12 @@ package analytics
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+
 	"encoding/json"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.

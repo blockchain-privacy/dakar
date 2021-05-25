@@ -29,6 +29,14 @@
                 Heuristics
               </v-list-item-title>
             </v-list-item>
+            <v-list-item :to="{ name: connectionLookupPage}">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiTextBoxSearch }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>
+                Connection Lookup
+              </v-list-item-title>
+            </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
@@ -47,16 +55,23 @@
         <span>Heuristics</span>
         <v-icon>{{ icon.mdiGraph }}</v-icon>
       </v-btn>
+      <v-btn :to="{ name: connectionLookupPage}">
+        <span>Connection Lookup</span>
+        <v-icon>{{ icon.mdiTextBoxSearch }}</v-icon>
+      </v-btn>
     </v-bottom-navigation>
   </div>
 </template>
 
 <script>
 import {
-  mdiGraph, mdiChartTimelineVariant, mdiToolbox,
+  mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch,
 } from '@mdi/js';
 import { isAdminUser, isPrivilegedUser } from '../../utilities';
-import { ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
+import {
+  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_LOGIN_PAGE,
+  ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+} from '../../constants';
 
 export default {
   name: 'Tools',
@@ -64,8 +79,9 @@ export default {
     return {
       heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
       shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
+      connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       icon: {
-        mdiGraph, mdiChartTimelineVariant, mdiToolbox,
+        mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch,
       },
     };
   },

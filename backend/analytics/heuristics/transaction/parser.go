@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // validHeuristicTypes includes all heuristics which are possible to receive from the frontend.
@@ -385,15 +385,6 @@ func CreateWork(dgraph *dgo.Dgraph, transactionHash string, changed []dbtxh.Fron
 	}
 
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
-
-	if copyOnModify && (len(changed) > 0 || len(w.removableHeuristics) > 0) {
-		// find heuristic roots
-		w.treeRoots, err = dbtxh.GetRootUids(dgraph, w.removableHeuristics)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
-		}
-	}
 
 	return
 }

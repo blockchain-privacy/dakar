@@ -1,13 +1,14 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
 
 	"fmt"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 type PerfectMatchHeuristic struct {
@@ -15,7 +16,7 @@ type PerfectMatchHeuristic struct {
 	parameterDescription string
 }
 
-// PerfectMatchHeuristic constructor
+// NewPerfectMatchHeuristic constructs a PerfectMatchHeuristic
 func NewPerfectMatchHeuristic() PerfectMatchHeuristic {
 	return PerfectMatchHeuristic{
 		heuristicType: "perfect_match",
@@ -50,13 +51,14 @@ func (h PerfectMatchHeuristic) clone() heuristic {
 // PerfectMatchHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction
-func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+	parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
-
+	sourceTransactionMap := make(map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction)
+	var clusters map[string]graph.ClusterId
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
@@ -70,14 +72,16 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeu
 			}
 		} else {
 			var err error
-			results, err = dbtxh.GetDestinationTxOrigins(dgraph, txHash)
+			results, err = getDestinationTxOrigins(dgraph, g, txHash)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		}
-
-		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
-
+		var err error
+		sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, results)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 		// Convert from slice to Hash
 		for _, r := range results {
 			origins[r.Uid] = r
@@ -95,7 +99,7 @@ func (h PerfectMatchHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeu
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 
-	originAmounts := buildSourceAmounts(origins)
+	originAmounts := buildSourceAmounts(origins, clusters)
 
 	var filteredOrigins []string
 	for k, o := range originAmounts {

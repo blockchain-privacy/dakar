@@ -3,14 +3,93 @@ package address
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
+
+// GetAddressUid returns the uid of the given address
+func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
+	query := `query Q($addr:string) {
+				q(func: eq(addresshash, $addr)){
+					uid
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+		map[string]string{"$addr": addressHash})
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Q []struct {
+			Uid string `json:"uid"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = ErrorAddressNotFound
+		return
+	} else if len(r.Q) > 1 {
+		err = errors.New("error received invalid response")
+		return
+	}
+
+	uid = r.Q[0].Uid
+
+	return
+}
+
+// GetAddressesByUid returns the address hashes of the given uids
+func GetAddressesByUid(c *dgo.Dgraph, addressUids []string) (addressHashes []string, err error) {
+
+	const query = `query Q($uids:string){
+				q(func: uid($uids)){
+					a:addresshash
+				}
+			  }`
+
+	// without retry, as this request can easily timeout
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uids": db.CreateUidList(addressUids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Query []struct {
+			AddressHash string `json:"a,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, address := range r.Query {
+		addressHashes = append(addressHashes, address.AddressHash)
+	}
+
+	return
+}
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
@@ -153,13 +232,10 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 			Count int64 `json:"count"`
 		} `json:"co"`
 		InputSum []struct {
-			// if the input sum is 0 it may be returned as a float, e.g. "0.00000".
-			// Because of this we have to first save it as a string and after that convert it to an int64.
-			// Can be reversed if https://github.com/dgraph-io/dgraph/pull/7176 is merged
-			Sum json.Number `json:"sum"`
+			Sum int64 `json:"sum"`
 		} `json:"input_sum"`
 		OutputSum []struct {
-			Sum json.Number `json:"sum"`
+			Sum int64 `json:"sum"`
 		} `json:"output_sum"`
 	}
 
@@ -182,27 +258,13 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		return
 	}
 
-	// try to convert input sum to int64
-	inputSum, conversionErr := convertJsonNumber(r.InputSum[0].Sum)
-	if conversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
-		return
-	}
-
-	// try to convert output sum to int64
-	outputSum, conversionErr := convertJsonNumber(r.OutputSum[0].Sum)
-	if conversionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
-		return
-	}
-
 	addr = FrontendAddress{
 		Hash:          addrHash,
 		QueryMaxCount: r.QueryMaxCount[0].Count,
 		InputCount:    r.InputCount[0].Count,
 		OutputCount:   r.OutputCount[0].Count,
-		InputSum:      inputSum,
-		OutputSum:     outputSum,
+		InputSum:      r.InputSum[0].Sum,
+		OutputSum:     r.OutputSum[0].Sum,
 		Outputs:       r.Outputs,
 		CoinbaseCount: r.CoinbaseCount[0].Count,
 	}
@@ -210,24 +272,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	return
 }
 
-// convertJsonNumber tries to convert num to an int64
-func convertJsonNumber(num json.Number) (number int64, err error) {
-	number, intErr := num.Int64()
-	if intErr != nil {
-		// also accept float 0.000
-		floatInputSum, floatErr := num.Float64()
-		if floatErr != nil || floatInputSum != 0 {
-			err = errors.New("could not convert json.Number to int64")
-			return
-		}
-
-		number = int64(floatInputSum)
-	}
-
-	return
-}
-
-// upserts addresses
+// UpsertAddresses upserts addresses
 func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 	if addresses == nil {
 		return errors.New("got null pointer for addresses")
@@ -278,7 +323,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 	return db.TxWithRetry(c, time.Minute*3, req)
 }
 
-// gets the number of addresses in the database
+// GetCount gets the number of addresses in the database
 func GetCount(c *dgo.Dgraph) (uint64, error) {
 	return db.GetCount(c, DType)
 }

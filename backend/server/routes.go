@@ -10,20 +10,19 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 
-	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/crypto/ed25519"
 	"io"
 	"math"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/ristretto"
+	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -275,24 +274,6 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		// calculate shortest path
-		//shortestPaths := make(map[string]int)
-		//lock.Lock()
-		//for _, h := range cHeuristic.Heuristics {
-		//
-		//	for _, r := range h.Results {
-		//		if _, ok := shortestPaths[r.Uid]; !ok {
-		//			pathLen, pathErr := dbtxh.GetShortestPathLength(dgraph, cHeuristic.Uid, r.Uid)
-		//			if pathErr != nil {
-		//				log.Println(pathErr)
-		//				return
-		//			}
-		//			shortestPaths[r.Uid] = pathLen
-		//		}
-		//	}
-		//}
-		//lock.Unlock()
-
 		// headers for streaming data to client
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
@@ -305,10 +286,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
 			"origin address hash"}
-		//header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
-		//	"heuristic type", "heuristic parameter", "heuristic timestamp",
-		//	"origin uid", "origin transaction hash", "origin timestamp",
-		//	"origin address hash", "origin shortest path"}
+
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), err)
@@ -674,6 +652,36 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
+func handlerConnectionLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getConnectionLookupReply(dgraph, worker, r.URL.Query(), r.URL.Path)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/clusterLookup0/<addressHash>"
+func handlerClusterLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getClusterLookupReply(dgraph, worker, r.URL.Path)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // cacheMiddleware caches the response of handler for the specified ttl
 func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
@@ -718,9 +726,8 @@ func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient) {
+func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuristic.Worker) {
 	// get signing keys
-
 	privkey, pubkey, err := GetSigningKeysFromEnv()
 	if err != nil {
 		panic(fmt.Sprintln("error getting signing keys", err))
@@ -735,10 +742,6 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	if err != nil {
 		panic(fmt.Sprintln("error initializing cache", err))
 	}
-
-	// init worker
-	worker := heuristic.NewWorker()
-	worker.StartWorking(ctx, dgraph)
 
 	// API end points
 
@@ -764,16 +767,16 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
-		Adapt(handlerHeuristics(dgraph, &worker),
+		Adapt(handlerHeuristics(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteHeuristics(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicStatus(),
-		Adapt(handlerHeuristicStatus(&worker),
+		Adapt(handlerHeuristicStatus(worker),
 			authorizationMiddleware(constants.GetRouteHeuristicStatus(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicDetails(),
 		Adapt(handlerHeuristicsDetails(dgraph),
 			authorizationMiddleware(constants.GetRouteHeuristicDetails(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsExecution(),
-		Adapt(handlerHeuristicsExecution(dgraph, &worker),
+		Adapt(handlerHeuristicsExecution(dgraph, worker),
 			authorizationMiddleware(constants.GetRouteHeuristicsExecution(), privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsSummary(),
 		Adapt(handlerHeuristicsSummary(dgraph),
@@ -789,6 +792,14 @@ func setupHandlers(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCC
 	http.Handle(constants.GetRouteShortestTransactionPath(),
 		Adapt(handlerShortestTransactionPath(dgraph),
 			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
+
+	http.Handle(constants.GetRouteConnectionLookup(),
+		Adapt(handlerConnectionLookup(dgraph, worker),
+			authorizationMiddleware(constants.GetRouteConnectionLookup(), privkey, pubkey)))
+
+	http.Handle(constants.GetRouteClusterLookup(),
+		Adapt(handlerClusterLookup(dgraph, worker),
+			authorizationMiddleware(constants.GetRouteClusterLookup(), privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))

@@ -8,7 +8,6 @@ import (
 )
 
 const CrawlerStatusDType = "CrawlerStatus"
-const AnalyzerStatusDType = "AnalyzerStatus"
 const ClassifierStatusDType = "ClassifierStatus"
 
 type CrawlerStatus struct {
@@ -48,35 +47,6 @@ func (c *CrawlerStatus) SetDType() {
 	c.DType = []string{CrawlerStatusDType}
 }
 
-type AnalyzerStatus struct {
-	Uid string `json:"uid,omitempty"`
-
-	// IsAnalyzing true if an analyze process is currently active
-	IsAnalyzing *bool `json:"isanalyzing,omitempty"`
-
-	// LastAnalysedBlockId is the id of the last completely analysed block
-	LastAnalysedBlockId *uint64  `json:"lastanalysedid,omitempty"`
-	DType               []string `json:"dgraph.type,omitempty"`
-}
-
-func (a *AnalyzerStatus) String() string {
-	output := fmt.Sprintf("Uid: %s", a.Uid)
-
-	if a.IsAnalyzing != nil {
-		output += fmt.Sprintf(", IsAnalyzing: %t", *a.IsAnalyzing)
-	}
-
-	if a.LastAnalysedBlockId != nil {
-		output += fmt.Sprintf(", LastAnalysedBlockId: %d", *a.LastAnalysedBlockId)
-	}
-
-	return output
-}
-
-func (a *AnalyzerStatus) SetDType() {
-	a.DType = []string{AnalyzerStatusDType}
-}
-
 type ClassifierStatus struct {
 	Uid string `json:"uid,omitempty"`
 
@@ -108,18 +78,16 @@ func (c *ClassifierStatus) SetDType() {
 
 type FrontendStatus struct {
 	IsCrawling            bool   `json:"iscrawling"`
-	IsAnalyzing           bool   `json:"isanalyzing"`
 	IsClassifying         bool   `json:"isclassifying"`
 	LastBlockId           uint64 `json:"lastblockid"`
 	LowestBlockId         uint64 `json:"lowestblockid"`
-	LastAnalysedBlockId   uint64 `json:"lastanalysedid"`
 	LastClassifiedBlockId uint64 `json:"lastclassifiedid"`
 }
 
 func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, IsAnalyzing: %t, IsClassifying: %t, LastBlockId: %d, "+
-		"LastAnalysedBlockId: %d, LastClassifiedBlockId: %d",
-		v.IsCrawling, v.IsAnalyzing, v.IsClassifying, v.LastBlockId, v.LastAnalysedBlockId, v.LastClassifiedBlockId)
+	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, LastBlockId: %d, "+
+		"LastClassifiedBlockId: %d",
+		v.IsCrawling, v.IsClassifying, v.LastBlockId, v.LastClassifiedBlockId)
 }
 
 var (
@@ -127,9 +95,7 @@ var (
 	ErrorInvalidNumber                 = errors.New("wrong number of status objects returned")
 	ErrorLastBlockIdNotFound           = errors.New("last block id not found")
 	ErrorIsCrawlingNotFound            = errors.New("crawler status not found")
-	ErrorIsAnalyzingNotFound           = errors.New("analyzer status not found")
 	ErrorIsClassifyingNotFound         = errors.New("classifier status not found")
-	ErrorLastAnalysedBlockIdNotFound   = errors.New("block id of last analysed block not found")
 	ErrorLastClassifiedBlockIdNotFound = errors.New("block id of last classified block not found")
 	ErrorTopBlockNotFound              = errors.New("top block not found")
 )
@@ -152,27 +118,6 @@ func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
 	}
 
 	status = c.Q[0]
-	return
-}
-
-type analyzerStatusQuery struct {
-	Q []AnalyzerStatus `json:"q"`
-}
-
-func (a analyzerStatusQuery) payload() (status AnalyzerStatus, err error) {
-	lenQ := len(a.Q)
-
-	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
-		return
-	}
-
-	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
-		return
-	}
-
-	status = a.Q[0]
 	return
 }
 

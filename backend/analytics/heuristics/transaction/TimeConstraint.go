@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -8,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 type TimeConstraintHeuristic struct {
@@ -17,8 +18,7 @@ type TimeConstraintHeuristic struct {
 	lookBackTime         time.Duration
 }
 
-// TimeConstraintHeuristic constructor
-// hoursToLookBack in hours
+// NewTimeConstraintHeuristic constructs a TimeConstraintHeuristic. hoursToLookBack in hours.
 func NewTimeConstraintHeuristic(hoursToLookBack uint32) *TimeConstraintHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &TimeConstraintHeuristic{
@@ -62,7 +62,8 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+	parentHeuristicUid string) ([]string, error) {
 	var origins []string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
 	if parentHeuristicSet {
@@ -80,7 +81,7 @@ func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentH
 			origins = append(origins, o.Uid)
 		}
 	}
-
+	// todo also handle non-parent heuristic case
 	// gather input information
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
@@ -96,7 +97,7 @@ func (h TimeConstraintHeuristic) exec(dgraph *dgo.Dgraph, txHash string, parentH
 	}
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

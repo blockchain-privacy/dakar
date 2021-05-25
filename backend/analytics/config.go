@@ -3,10 +3,8 @@ package analytics
 type Config struct {
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
-	// IsAnalysingEnabled controls if analysing is allowed
-	IsAnalysingEnabled bool
-	// AnalyseStartBlock is the block id after which analyzing starts.
-	AnalyseStartBlock uint64
+	// IsHeuristicWorkerEnabled controls if analysing is allowed
+	IsHeuristicWorkerEnabled bool
 	// IsClassifyingEnabled controls if classifying is allowed
 	IsClassifyingEnabled bool
 	// ClassifierStartBlock is the block id after classifications starts.
@@ -15,11 +13,10 @@ type Config struct {
 
 func NewDashConfig() Config {
 	return Config{
-		BlockchainName:     "Dash",
-		IsAnalysingEnabled: true,
-		// after block height 323756 the first mixing transactions appear
-		// which have the most recent format (same number of inputs and outputs)
-		AnalyseStartBlock:    323756,
+		BlockchainName:           "Dash",
+		IsHeuristicWorkerEnabled: true,
+		// after block height 323756 the first mixing transactions with the
+		// most recent format (same number of inputs and outputs) appear
 		IsClassifyingEnabled: true,
 		ClassifierStartBlock: 323756,
 	}
@@ -27,16 +24,16 @@ func NewDashConfig() Config {
 
 func NewBitcoinConfig() Config {
 	return Config{
-		BlockchainName:       "Bitcoin",
-		IsAnalysingEnabled:   false,
-		IsClassifyingEnabled: false,
+		BlockchainName:           "Bitcoin",
+		IsHeuristicWorkerEnabled: false,
+		IsClassifyingEnabled:     false,
 	}
 }
 
 func NewDogecoinConfig() Config {
 	return Config{
-		BlockchainName:       "Doge",
-		IsAnalysingEnabled:   false,
-		IsClassifyingEnabled: false,
+		BlockchainName:           "Doge",
+		IsHeuristicWorkerEnabled: false,
+		IsClassifyingEnabled:     false,
 	}
 }

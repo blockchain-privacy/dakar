@@ -9,13 +9,14 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+
 	"context"
 	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
@@ -204,4 +205,17 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	t = tUser
 
 	return
+}
+
+type connectionLookupReply struct {
+	Success          bool                       `json:"success"`
+	Msg              string                     `json:"msg,omitempty"`
+	Transactions     []dbtx.FrontendTransaction `json:"transactions"`
+	TransactionCount *int                       `json:"count,omitempty"`
+}
+
+type clusterLookupReply struct {
+	Success   bool     `json:"success"`
+	Msg       string   `json:"msg,omitempty"`
+	Addresses []string `json:"addresses"`
 }

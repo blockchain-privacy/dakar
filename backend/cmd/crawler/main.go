@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/analytics"
+	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/blockIterator"
 	cli "backend/cmd/cliutil"
@@ -11,12 +12,14 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+
 	"context"
 	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -26,7 +29,7 @@ import (
 
 	"github.com/btcsuite/btcd/rpcclient"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 
 	"golang.org/x/crypto/ed25519"
 )
@@ -60,7 +63,7 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
 		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableAnalyzer, cli.DisableCrawler, cli.DisableClassifier,
+		cli.DisableHttpServer, cli.DisableHeuristics, cli.DisableCrawler, cli.DisableClassifier,
 		cli.HttpServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
@@ -185,6 +188,24 @@ func waitForDatabase(dgraph *dgo.Dgraph) bool {
 	return false
 }
 
+// shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
+func shutdownServer(srv *http.Server) {
+	if srv == nil {
+		return
+	}
+	info("### Shutting down server###")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer func() {
+		// extra handling here
+		cancel()
+	}()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		info("Server was shutdown and returned error:", err)
+	}
+}
+
 // The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //
@@ -226,9 +247,9 @@ func main() {
 		return
 	}
 
-	// disable analyzing if it is disabled per configuration
-	if !analyserConfig.IsAnalysingEnabled {
-		cliArgs.DisableAnalyzer = true
+	// disable the heuristic worker if it is disabled per configuration
+	if !analyserConfig.IsHeuristicWorkerEnabled {
+		cliArgs.DisableHeuristics = true
 	}
 
 	// disable classifying if it is disabled per configuration
@@ -267,8 +288,8 @@ func main() {
 			info("error getting signing keys. Set the following environment variables:",
 				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField, keyErr)
 
-			publicKey, privateKey, err := ed25519.GenerateKey(nil)
-			if err != nil {
+			publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
+			if genErr != nil {
 				return
 			}
 
@@ -302,10 +323,10 @@ func main() {
 			info(err)
 			return
 		}
-		info("setup new schema")
+		info("Successfully set up new schema.")
 	}
 
-	if cliArgs.DisableAnalyzer && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
+	if cliArgs.DisableClassifier && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
 		return
 	}
 
@@ -343,7 +364,11 @@ func main() {
 				}
 				// do not log
 				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-				fmt.Println("Write the credentials down, this message is not logged.")
+				if len(cliArgs.Logfile) > 0 {
+					fmt.Println("Write the credentials down, they will not be written to the log file.")
+				} else {
+					fmt.Println("Write the credentials down.")
+				}
 			} else {
 				info(userErr)
 				return
@@ -376,12 +401,10 @@ func main() {
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
-	crawlerContext, cancelCrawler := context.WithCancel(context.Background())
-	analyzerContext, cancelAnalyzer := context.WithCancel(context.Background())
-	classifierContext, cancelClassifier := context.WithCancel(context.Background())
+	appContext, terminateApp := context.WithCancel(context.Background())
 
+	// channels which are set to true as soon as the associated go routine stops
 	chCrawlingStopped := make(chan bool, 1)
-	chAnalyzingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
@@ -396,9 +419,9 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(crawlerContext, dgraph, client, processorConfig)
+				err = processor.ProcessBlocksContinuously(appContext, dgraph, client, processorConfig)
 			} else {
-				err = processor.ProcessBlockRange(crawlerContext, dgraph, client, cliArgs.StartBlockID,
+				err = processor.ProcessBlockRange(appContext, dgraph, client, cliArgs.StartBlockID,
 					cliArgs.StopBlockID, processorConfig)
 			}
 
@@ -408,33 +431,51 @@ func main() {
 		}()
 	}
 
-	// activate analyzer
-	if !cliArgs.DisableAnalyzer {
-		wg.Add(1)
+	graphWrapper := graph.NewWrapper(appContext, dgraph)
+	worker := heuristic.NewWorker(graphWrapper)
+	var classifierStarted bool
+	if !cliArgs.DisableHttpServer && !cliArgs.DisableHeuristics {
+		// the classifier must be started after the in-memory graphs are loaded
+		classifierStarted = true
 		go func() {
-			defer wg.Done()
-			defer func() {
-				chAnalyzingStopped <- true
-			}()
+			graphErr := graphWrapper.LoadGraphs()
+			if graphErr != nil {
+				info(graphErr)
+				return
+			}
 
-			analyzer := analytics.NewAnalyzer(analyzerContext, dgraph, analyserConfig)
+			if !cliArgs.DisableClassifier {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					if iterErr := blockIterator.StartIteration(graphWrapper); iterErr != nil {
+						info(iterErr)
+					}
+				}()
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					defer func() {
+						chClassifyingStopped <- true
+					}()
 
-			// todo remove
-			//go func() {
-			//	for i := 0; i < 30; i++ {
-			//		time.Sleep(time.Second * 5)
-			//		info(analyzer.AddToQueue(strconv.Itoa(i)))
-			//	}
-			//}()
-
-			if analyserErr := blockIterator.StartIteration(analyzer); analyserErr != nil {
-				info(analyserErr)
+					if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+						appContext, dgraph, analyserConfig)); classifierErr != nil {
+						info(classifierErr)
+					}
+				}()
 			}
 		}()
+
+		if ok := worker.Start(appContext, dgraph); !ok {
+			info("could not start worker")
+			return
+		}
 	}
 
 	// activate classifier
-	if !cliArgs.DisableClassifier {
+	if !cliArgs.DisableClassifier && !classifierStarted {
+		// in-memory graphs are not loaded -> start classifier
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -443,50 +484,44 @@ func main() {
 			}()
 
 			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
-				classifierContext, dgraph, analyserConfig)); classifierErr != nil {
+				appContext, dgraph, analyserConfig)); classifierErr != nil {
 				info(classifierErr)
 			}
 		}()
 	}
 
 	// activate server
-	var srv server.Server
+	var srv *http.Server
 	if !cliArgs.DisableHttpServer {
 		wg.Add(1)
-		srv = server.CreateServer(&wg, cliArgs.HttpServerPort, dgraph, client)
+		srv = server.StartServer(&wg, cliArgs.HttpServerPort, dgraph, client, worker)
 	}
 
 	var crawlerStopped bool
-	var analyzerStopped bool
 	var classifierStopped bool
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && analyzerStopped && classifierStopped)) {
+	for !(interrupted || (crawlerStopped && classifierStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
-			cancelCrawler()
-			cancelAnalyzer()
-			cancelClassifier()
-			srv.ShutdownServer()
+			terminateApp()
+			shutdownServer(srv)
 		case <-chCrawlingStopped:
-			cancelCrawler()
+			terminateApp()
 			crawlerStopped = true
-		case <-chAnalyzingStopped:
-			cancelAnalyzer()
-			analyzerStopped = true
 		case <-chClassifyingStopped:
-			cancelClassifier()
+			terminateApp()
 			classifierStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHttpServer && crawlerStopped && analyzerStopped && classifierStopped {
-		// if the crawler, analyzer and classifier stopped working on
-		// there own accord, the server is still active at this point
+	if !cliArgs.DisableHttpServer && crawlerStopped && classifierStopped {
+		// if the crawler and classifier stopped working on their own accord,
+		// the server is still active at this point
 		select {
 		case <-chSignal:
-			srv.ShutdownServer()
+			shutdownServer(srv)
 		}
 	}
 

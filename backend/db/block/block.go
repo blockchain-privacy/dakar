@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetBlock gets block information from the database
@@ -119,28 +119,6 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 	}
 
 	return
-}
-
-// UpdateBlock updates a block
-func UpdateBlock(c *dgo.Dgraph, block Block) error {
-	pb, err := json.Marshal(block)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return err
-	}
-
-	req := &api.Request{
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
-
-	if err = db.TxWithRetry(c, time.Minute*5, req); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return err
 }
 
 // UpsertBlock upserts a block and the prevBlock relation

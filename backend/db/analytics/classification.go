@@ -5,13 +5,15 @@ import (
 	"backend/constants"
 	"backend/db"
 	dbtx "backend/db/transaction"
+
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/dgraph-io/dgo/v2"
-	"github.com/dgraph-io/dgo/v2/protos/api"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // ClassifyDestinationAndOriginsByBlock sets the privacy type for destination transactions in the given block and

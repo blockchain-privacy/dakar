@@ -38,22 +38,8 @@
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
-                <v-col v-if="data.status.lastanalysedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database analysis"
-                            :tooltip="tooltips.databaseAnalysation" is-color
-                            :is-red="!data.status.isanalyzing">
-                    <v-progress-linear
-                        :color="analyzerSyncProgress > 98?'green'
-                        :analyzerSyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="analyzerSyncProgress"
-                        rounded>
-                      {{ Math.round(analyzerSyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
                 <v-col v-if="data.status.lastclassifiedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseEdit" title="Database classification"
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database classification"
                             :tooltip="tooltips.databaseClassification" is-color
                             :is-red="!data.status.isclassifying">
                     <v-progress-linear
@@ -140,7 +126,7 @@ import {
   mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
   mdiArrowDownCircleOutline, mdiTimelineClockOutline,
   mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
-  mdiWeight, mdiDatabaseEdit,
+  mdiWeight,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
 import IconItem from './common/IconItem.vue';
@@ -161,14 +147,12 @@ export default {
         mdiProgressWrench,
         mdiCubeOffOutline,
         mdiWeight,
-        mdiDatabaseEdit,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
         lastBlockId: 'Last block which was completely saved in the database',
         lowestBlockId: 'Lowest block ID in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
-        databaseAnalysation: 'Percentage of analyzed blocks in the database. The analyzer is active if the icon is green.',
         databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
         rpcBlockHeight: 'Current block height of the RPC client',
         rpcDifficulty: 'Current mining difficulty',
@@ -196,15 +180,6 @@ export default {
 
       return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))
           / this.data.rpcinfo.blocks * 100;
-    },
-    analyzerSyncProgress() {
-      if (!this.data) {
-        return 0.0;
-      }
-      const percentage = ((1 + (this.data.status.lastanalysedid - this.data.status.lowestblockid))
-          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
-
-      return percentage > 100 ? 100 : percentage;
     },
     classifierSyncProgress() {
       if (!this.data) {

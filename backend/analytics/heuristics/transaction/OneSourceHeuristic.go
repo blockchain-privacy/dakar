@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 
@@ -8,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v2"
+	"github.com/dgraph-io/dgo/v210"
 )
 
 type OneSourceHeuristic struct {
@@ -17,8 +18,7 @@ type OneSourceHeuristic struct {
 	lookBackTime         time.Duration
 }
 
-// OneSourceHeuristic constructor
-// hoursToLookBack in hours
+// NewOneSourceHeuristic constructs an OneSourceHeuristic. hoursToLookBack in hours
 func NewOneSourceHeuristic(hoursToLookBack uint32) *OneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &OneSourceHeuristic{
@@ -60,13 +60,18 @@ func (h OneSourceHeuristic) clone() heuristic {
 	return &newHeuristic
 }
 
+type txAndOrigins struct {
+	inputTransaction dbtxh.HeuristicTransaction
+	origins          []dbtxh.HeuristicTransaction
+}
+
 // OneSourceHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 // - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
-func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([]string, error) {
+func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, _ string) ([]string, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
@@ -75,18 +80,22 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 	}
 
 	// sources holds all sources found in all input transactions
-	sources := make(map[string]bool)
+	sources := make(map[graph.ClusterId]bool)
 	// mRemovableSources holds all sources which can be removed,
 	// due to not being able to fund all connected input transactions
-	mRemovableSources := make(map[string]bool)
+	mRemovableSources := make(map[graph.ClusterId]bool)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[string]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction)
 	// for each input transaction to the destination transaction,
 	// inputSources holds one map with all its occurring sources
-	var inputSources []map[string]bool
+	var inputSources []map[graph.ClusterId]bool
 
+	var allTimeLimitedOrigins []dbtxh.HeuristicTransaction
+
+	// holds all
+	var allTxAndOrigins []txAndOrigins
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -95,22 +104,33 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 			continue
 		}
 
+		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
+
+		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
+	}
+
+	// maps address uids to cluster id
+	var clusters map[string]graph.ClusterId
+	// save origins in global address->origin map
+	sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, allTimeLimitedOrigins)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	for _, t := range allTxAndOrigins {
 		// get input denominations
-		nDenominations, denominationIndex, err := getNumberOfDenominations(it, txHash)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, txHash)
+		if getErr != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 		}
 
-		oSource, err := buildSourcesWithAmount(timeLimitedOrigins, denominationIndex)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		oSource, buildErr := buildSourcesWithAmount(t.origins, denominationIndex, clusters)
+		if buildErr != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
 		}
-
-		// save origins in global address->origin map
-		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, timeLimitedOrigins)
 
 		// add element inputSources and set index of current element
-		inputSources = append(inputSources, make(map[string]bool))
+		inputSources = append(inputSources, make(map[graph.ClusterId]bool))
 		iSSIndex := len(inputSources) - 1
 
 		// Loop through all sources of the current input transaction and mark
@@ -132,7 +152,7 @@ func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, txHash string, _ string) ([
 	}
 
 	// save all addresses (sources) which are not part of all input transactions
-	var omniSources []string
+	var omniSources []graph.ClusterId
 	for k := range sources {
 
 		found := true

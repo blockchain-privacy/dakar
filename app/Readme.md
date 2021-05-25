@@ -1,6 +1,15 @@
-# Dakar front-end app
+# Frontend
 
-This is the front-end of the Dash explorer.
+This is the frontend of Dakar. It gives access generic blockchain data like transactions, blocks and addresses.
+Additionally, it serves as an analytics platform for Dash private send transactions.
+
+## Dependencies
+
+* `vue` - frontend framework
+* `vuetify` - vue component library
+* `d3` -  chart and graph library
+
+For a more detailed overview check [here](./package.json).
 
 ## Getting started
 
