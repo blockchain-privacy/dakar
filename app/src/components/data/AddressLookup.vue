@@ -111,7 +111,7 @@
                   </v-row>
                 </v-sheet>
                 <v-row v-if="this.emptyResponse">
-                  <v-col align="center" justify="center">
+                  <v-col class="d-flex justify-center">
                     <p class="text-h6">No outputs found</p>
                   </v-col>
                 </v-row>

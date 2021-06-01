@@ -2,7 +2,7 @@
   <v-row align="center" no-gutters  class="fill-height">
     <v-col cols="12" md="6" class="hidden-md-and-down fill-height">
       <v-sheet color="primary darken-2" dark height="100%" width="100%">
-        <v-container fill-height class="justify-center">
+        <v-container class="justify-center fill-height">
           <div class="d-flex align-center flex-column text-center">
             <h1 class="text-xl-h1 text-md-h2 font-weight-bold">
               {{ applicationName }}
