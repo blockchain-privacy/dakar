@@ -470,7 +470,8 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
-		reply.Msg = "worker is not ready, try again later"
+		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
+		reply.Warning = true
 		return
 	}
 
@@ -589,7 +590,8 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 // getClusterLookupReply returns the result of a cluster lookup
 func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
 	if !worker.IsReady() {
-		reply.Msg = "worker is not ready, try again later"
+		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
+		reply.Warning = true
 		return
 	}
 
