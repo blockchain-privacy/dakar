@@ -8,7 +8,7 @@
         <v-icon icon="mdi-lock">{{ this.icon.mdiAlertOctagon }}</v-icon>
       </v-avatar>
       Server is not ready to accept request for new heuristics.
-      Please try again later. Existing heuristic result can be viewed.
+      Please try again later. Existing heuristic results can be viewed.
       <template v-slot:actions="{ dismiss }">
         <v-btn outlined @click="dismiss">Dismiss</v-btn>
       </template>
@@ -536,14 +536,17 @@ export default {
         case this.executionStatus.enum.added:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
           break;
         case this.executionStatus.enum.inQueue:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
           break;
         case this.executionStatus.enum.processing:
           this.executionStatus.value.processing = true;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
           break;
         case this.executionStatus.enum.notReady:
           this.executionStatus.value.processing = false;
@@ -553,6 +556,7 @@ export default {
         default:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = false;
+          this.banner.show = false;
       }
     },
     downloadHeuristicSummary() {
