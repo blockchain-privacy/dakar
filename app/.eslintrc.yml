@@ -3,6 +3,7 @@ env:
   es6: true
 extends:
   - 'plugin:vue/essential'
+  - 'plugin:vuetify/base'
   - airbnb-base
 globals:
   Atomics: readonly
