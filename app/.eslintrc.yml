@@ -4,6 +4,7 @@ env:
 extends:
   - 'plugin:vue/essential'
   - 'plugin:vuetify/base'
+  - 'plugin:vuetify/recommended'
   - airbnb-base
 globals:
   Atomics: readonly
