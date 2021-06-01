@@ -123,6 +123,12 @@ func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
 
 func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
 	txHashString string, userUid string) (reply heuristicExecutionReply) {
+	if !worker.IsReady() {
+		reply.Success = true
+		reply.Status = heuristic.StatusHeuristicWorkerNotReady
+		return
+	}
+
 	if worker.IsInQueue(txHashString, userUid) {
 		reply.Success = true
 		reply.Status = heuristic.StatusHeuristicDuplicate
