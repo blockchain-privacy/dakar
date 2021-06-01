@@ -514,7 +514,13 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 
 	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
 	if err != nil {
-		reply.Msg = "Transaction hash not found"
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Success = true
+			reply.Msg = "Transaction " + txhash + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for connections"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
