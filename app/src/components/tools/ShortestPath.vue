@@ -66,7 +66,7 @@
             :color="tx.privacytype>=0?'purple':'primary'"
             small>
           <template v-slot:opposite>
-            <span class="headline" v-text="new Date(tx.bts).toLocaleString()"></span>
+            <span class="text-h5" v-text="new Date(tx.bts).toLocaleString()"></span>
           </template>
           <v-card outlined>
             <v-toolbar :color="tx.privacytype>=0?'purple':''" :dark="!!tx.privacytype" flat>

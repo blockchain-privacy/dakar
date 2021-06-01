@@ -96,10 +96,10 @@
         max-width="500px">
       <v-card>
         <v-card-title>
-          <span class="headline">Delete all heuristics</span>
+          <span class="text-h5">Delete all heuristics</span>
         </v-card-title>
         <v-card-text>
-          <p class="font-weight-black body-1 my-0">
+          <p class="font-weight-black text-body-1 my-0">
             All your heuristics of all transactions will be deleted. Continue?
           </p>
         </v-card-text>
@@ -120,10 +120,10 @@
         v-if="this.transactionToDelete">
       <v-card>
         <v-card-title>
-          <span class="headline">Delete all transaction heuristics</span>
+          <span class="text-h5">Delete all transaction heuristics</span>
         </v-card-title>
         <v-card-text>
-          <p class="font-weight-black body-1 my-0">
+          <p class="font-weight-black text-body-1 my-0">
             All your heuristics of transaction
             {{ shortenHash(this.transactionToDelete.txhash) }}
             will be deleted. Continue?
