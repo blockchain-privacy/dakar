@@ -102,7 +102,9 @@
         </v-col>
       </v-row>
       <v-divider class="my-3" v-if="this.transactions.length > 0"/>
-      <p v-if="this.transactionCount >=0">Found {{ this.transactionCount }} transactions</p>
+      <p v-if="this.transactionCount >=0">
+        Found {{ this.transactionCount.toLocaleString() }} transactions
+      </p>
       <p v-if="this.transactions.length > 30">Transaction list is limited to 30 transactions.</p>
       <div v-if="this.transactions.length > 0">
         <v-card outlined v-for="(tx) in transactions" :key="tx.txhash" class="mt-2">
