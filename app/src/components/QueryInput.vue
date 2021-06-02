@@ -109,12 +109,6 @@ export default {
       }
     },
     async handleQuery(q, type) {
-      // if (origin === 'user' && q !== this.lastQuery) {
-      //   // update route only when input is from user and query is different
-      //   this.$router.push({name: Constants.ROUTE_NAME_SEARCH_PAGE, params: {id: q}});
-      // } else if (origin === 'route') {
-      //   // do nothing -> route is already up to date
-      // }
       this.query = '';
       // template string in case it is a number
       const query = `${q}`.trim();
