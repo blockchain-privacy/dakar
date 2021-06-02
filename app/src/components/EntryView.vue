@@ -25,13 +25,19 @@
           <p class="text-h1" style="position:relative; z-index: 5">Dakar</p>
         </div>
         <v-text-field
+            v-model="query"
             full-width
             label="Search for blocks, transactions and addresses"
             outlined
             class="search-field v-input--is-focused"
-            :background-color="this.$vuetify.theme.dark?'black':'white'">
+            :background-color="this.$vuetify.theme.dark?'black':'white'"
+            @keydown.enter="handleQuery(query)">
           <template v-slot:append-outer>
-            <v-btn outlined class="search-btn" color="primary">
+            <v-btn
+                outlined
+                class="search-btn"
+                color="primary"
+                @click="handleQuery(query)">
               <v-icon> {{ icons.mdiMagnify }}</v-icon>
             </v-btn>
           </template>
@@ -111,13 +117,18 @@ import {
   mdiMagnify, mdiAccount,
 } from '@mdi/js';
 import * as d3 from 'd3';
-import { ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import {
+  ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
+  RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
+  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE,
+} from '../constants';
 import '../style.scss';
 
 export default {
   name: 'EntryView',
   data() {
     return {
+      query: '',
       route: {
         statusPage: ROUTE_NAME_STATUS_PAGE,
         loginPage: ROUTE_NAME_LOGIN_PAGE,
@@ -127,14 +138,58 @@ export default {
       },
     };
   },
+  computed: {
+    searchResultType: {
+      get() {
+        return this.$store.getters.getSearchResultType;
+      },
+    },
+  },
   methods: {
     handleThemeChange(isDark) {
       d3.selectAll('.bg-svg')
         .selectAll('path')
         .attr('stroke', () => (isDark ? 'white' : 'black'));
     },
+    async executeQuery(query) {
+      await this.$store.dispatch('updateSearchResult', query);
+      return true;
+    },
+    async handleQuery(query) {
+      if (!await this.executeQuery(query)) {
+        return;
+      }
+
+      switch (this.searchResultType) {
+        case RESPONSE_EMPTY:
+          await this.$router.push({ name: ROUTE_NAME_NO_RESULTS });
+          break;
+        case RESPONSE_TYPE_ADDRESS:
+          await this.$router.push({
+            name: ROUTE_NAME_ADDRESS_PAGE,
+            params: { id: query, pushFromUserInput: true },
+          });
+          break;
+        case RESPONSE_TYPE_BLOCK:
+          await this.$router.push({
+            name: ROUTE_NAME_BLOCK_PAGE,
+            params: { id: query, pushFromUserInput: true },
+          });
+          break;
+        case RESPONSE_TYPE_TRANSACTION:
+          await this.$router.push({
+            name: ROUTE_NAME_TRANSACTION_PAGE,
+            params: { id: query, pushFromUserInput: true },
+          });
+          break;
+        default:
+          await this.$router.push({ name: ROUTE_NAME_NO_RESULTS });
+          break;
+      }
+    },
   },
   mounted() {
+    document.title = 'Dakar';
     this.handleThemeChange(this.$vuetify.theme.dark);
     // add attributes to root svg
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
