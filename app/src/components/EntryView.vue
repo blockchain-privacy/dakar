@@ -42,9 +42,6 @@
             </v-btn>
           </template>
         </v-text-field>
-        <router-link :to="{name: route.statusPage}">
-          click me
-        </router-link>
       </v-col>
     </v-row>
     <div class="hidden-sm-and-down">
@@ -118,7 +115,7 @@ import {
 } from '@mdi/js';
 import * as d3 from 'd3';
 import {
-  ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
+  ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
   RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
   RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE,
 } from '../constants';
@@ -130,7 +127,6 @@ export default {
     return {
       query: '',
       route: {
-        statusPage: ROUTE_NAME_STATUS_PAGE,
         loginPage: ROUTE_NAME_LOGIN_PAGE,
       },
       icons: {
