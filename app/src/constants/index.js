@@ -32,6 +32,7 @@ export const RESPONSE_TYPE_BLOCK = 'block';
 
 // frontend route names
 export const ROUTE_NAME_ENTRY_PAGE = 'Entry Page';
+export const ROUTE_NAME_STATUS_PAGE = 'Status Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
 export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';

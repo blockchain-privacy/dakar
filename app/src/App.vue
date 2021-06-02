@@ -1,6 +1,6 @@
 <template>
   <v-app>
-    <v-app-bar app absolute>
+    <v-app-bar app absolute v-if="![route.rootPage].includes($route.name)">
       <router-link :to="{name: route.rootPage}">
         <v-img
             style="cursor:pointer"
@@ -86,12 +86,15 @@ import {
 } from '@mdi/js';
 import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/notification/MsgBox.vue';
-import * as Constants from './constants';
 import '@fontsource/roboto';
 import {
   doGet, getLocalUser, resetLocal, getLocalSettings, isAdminUser, isPrivilegedUser,
 } from './utilities';
-import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
+import {
+  ROUTE_USER_LOGOUT, DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_USER_PROFILE_PAGE,
+  ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_LOGIN_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE,
+  ROUTE_NAME_ENTRY_PAGE,
+} from './constants';
 
 export default {
   name: 'App',
@@ -101,7 +104,7 @@ export default {
   },
   data() {
     return {
-      applicationName: Constants.APPLICATION_NAME,
+      applicationName: APPLICATION_NAME,
       icon: {
         mdiAccount,
         mdiLogin,
@@ -112,11 +115,11 @@ export default {
         mdiToolbox,
       },
       route: {
-        userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
-        userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
-        userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
-        shortestPathPage: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
-        rootPage: Constants.ROUTE_NAME_ENTRY_PAGE,
+        userProfilePage: ROUTE_NAME_USER_PROFILE_PAGE,
+        userAdminPage: ROUTE_NAME_USER_ADMIN_PAGE,
+        userLoginPage: ROUTE_NAME_LOGIN_PAGE,
+        shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
+        rootPage: ROUTE_NAME_ENTRY_PAGE,
       },
       isUserAdminDisabled: false,
       isUserLoginDisabled: false,
@@ -166,7 +169,7 @@ export default {
           resetLocal();
           this.userData = null;
           this.settings = null;
-          this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
+          this.goToPage(ROUTE_NAME_LOGIN_PAGE);
         })
         .catch((error) => {
           this.setErrorMessage(error);

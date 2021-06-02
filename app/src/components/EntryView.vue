@@ -1,244 +1,177 @@
 <template>
-  <v-container fluid>
+  <v-container fluid class="fill-height">
+    <v-toolbar
+        style="right: 3px; top: 3px"
+        color="transparent"
+        absolute
+        flat
+        dense
+        rounded>
+      <v-btn
+          style="min-width: 32px !important;"
+          class="ml-1 pa-2"
+          icon
+          outlined
+          :to="{name: route.loginPage}">
+        <v-icon>{{ icons.mdiAccount }}</v-icon>
+      </v-btn>
+    </v-toolbar>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
-        <v-card class="elevation-4">
-          <v-toolbar color="primary" dark flat>
-            <v-toolbar-title>
-              <v-icon>{{ icon.mdiDatabase }}</v-icon>
-              Server status
-            </v-toolbar-title>
-            <v-spacer></v-spacer>
-            <v-btn icon v-on:click="refreshData">
-              <v-progress-circular
-                  :value="timeoutData.percent" rotate="270" size="40">
-                <v-icon>
-                  {{ icon.mdiRefresh }}
-                </v-icon>
-              </v-progress-circular>
+        <div class="d-flex justify-center mb-2">
+          <v-img src="../assets/dakar_dash.svg" max-width="128px" style="z-index: 5"/>
+        </div>
+        <div class="d-flex justify-center ">
+          <p class="text-h1" style="position:relative; z-index: 5">Dakar</p>
+        </div>
+        <v-text-field
+            full-width
+            label="Search for blocks, transactions and addresses"
+            outlined
+            class="search-field v-input--is-focused"
+            :background-color="this.$vuetify.theme.dark?'black':'white'">
+          <template v-slot:append-outer>
+            <v-btn outlined class="search-btn" color="primary">
+              <v-icon> {{ icons.mdiMagnify }}</v-icon>
             </v-btn>
-          </v-toolbar>
-          <v-card-text>
-            <v-container v-if="!data">
-              <v-skeleton-loader type="table-tbody"></v-skeleton-loader>
-            </v-container>
-            <v-container v-if="data">
-              <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiDatabaseSync" title="Chain Synchronisation"
-                            :tooltip="tooltips.databaseSync"
-                            is-color :is-red="!data.status.iscrawling">
-                    <v-progress-linear
-                        :color="crawlerSyncProgress > 98?'green'
-                        :crawlerSyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="crawlerSyncProgress"
-                        rounded>
-                      {{ Math.round(crawlerSyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclassifiedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database classification"
-                            :tooltip="tooltips.databaseClassification" is-color
-                            :is-red="!data.status.isclassifying">
-                    <v-progress-linear
-                        :color="classifierSyncProgress > 98?'green'
-                        :classifierSyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="classifierSyncProgress"
-                        rounded>
-                      {{ Math.round(classifierSyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiArrowDownCircleOutline" title="Lowest block ID"
-                            :tooltip="tooltips.lowestBlockId">
-                    <router-link :to="'block/' + data.status.lowestblockid">
-                      {{ data.status.lowestblockid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem :icon="icon.mdiTimelineClockOutline" title="Last crawled block"
-                            :tooltip="tooltips.lastBlockId">
-                    <router-link :to="{ name: blockRoute,
-                    params: { id: data.status.lastblockid }}">
-                      {{ data.status.lastblockid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-divider v-if="data.rpcinfo"/>
-              <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiFormatListNumbered"
-                            title="Block Height" :tooltip="tooltips.rpcBlockHeight">
-                    {{ data.rpcinfo.blocks }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem :icon="icon.mdiProgressWrench"
-                            title="Verification Progress"
-                            :tooltip="tooltips.rpcVerificationProgress">
-                    <v-progress-linear
-                        :color="data.rpcinfo.verificationprogress > 98?'green'
-                        :data.rpcinfo.verificationprogress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="data.rpcinfo.verificationprogress"
-                        rounded>
-                      {{ Math.round(data.rpcinfo.verificationprogress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col>
-                  <IconItem
-                      :icon="icon.mdiCubeOffOutline"
-                      title="Pruned"
-                      :tooltip="tooltips.rpcPruned">
-                    {{ data.rpcinfo.pruned ? 'Yes' : 'No' }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem
-                      :icon="icon.mdiWeight"
-                      title="Difficulty"
-                      :tooltip="tooltips.rpcDifficulty">
-                    {{ data.rpcinfo.difficulty.toFixed() }}
-                  </IconItem>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-card-text>
-        </v-card>
+          </template>
+        </v-text-field>
+        <router-link :to="{name: route.statusPage}">
+          click me
+        </router-link>
       </v-col>
     </v-row>
+    <div class="hidden-sm-and-down">
+      <svg class="bg-svg" v-for="i in 10" :key="i +'a'"
+           width="25.946mm" height="25.946mm" version="1.1" viewBox="0 0 25.946 25.946"
+           xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(-79.261 -114.16)">
+          <g transform="rotate(45 134.89 -96.187)">
+            <path d="m252.01 91.883h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle cx="248.96" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+            <circle cx="276.32" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+          </g>
+        </g>
+      </svg>
+      <svg class="bg-svg" v-for="i in 10" :key="i +'b'"
+           width="30.295mm" height="28.285mm" version="1.1" viewBox="0 0 30.295 28.285"
+           xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(-54.613 -103.28)">
+          <g transform="translate(-192.88 29.538)">
+            <path d="m253.43 86.567 18.641 10.762" fill="none" stroke="#000" stroke-width=".25823"/>
+            <path d="m251.5 85.577 15.622-9.0193" fill="none" stroke="#000" stroke-width=".25823"/>
+            <g fill="#008ee5" stroke-width=".074983">
+              <circle transform="rotate(30)" cx="259.71" cy="-51.746" r="3.2982"/>
+              <circle transform="rotate(30)" cx="287.07" cy="-51.746" r="3.2982"/>
+              <circle transform="rotate(30)" cx="270.07" cy="-66.973" r="3.2982"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      <svg class="bg-svg" v-for="i in 10" :key="i +'c'"
+           width="58.463mm" height="47.275mm" version="1.1" viewBox="0 0 58.463 47.275"
+           xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(-45.709 -108.98)">
+          <g transform="translate(-147.34 34.424)">
+            <path d="m220.92 95.044 15.22 15.22" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle transform="rotate(45)" cx="247.74" cy="-89.01" r="3.2982"
+                    fill="#008ee5" stroke-width=".074983"/>
+            <path d="m220.92 95.044 5.571 20.791" fill="none"
+                  stroke="#000" stroke-width=".25829px"/>
+            <circle transform="rotate(75)" cx="173.3" cy="-188.8" r="3.2982"
+                    fill="#008ee5" stroke-width=".074983"/>
+            <path d="m220.92 95.044 15.22-15.22" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle transform="rotate(-45)" cx="113.32" cy="223.42" r="3.2982"
+                    fill="#008ee5" stroke-width=".074983"/>
+            <path d="m199.4 94.751h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle cx="196.35" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+            <path d="m223.9 94.751h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle cx="220.85" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+            <circle cx="248.22" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+          </g>
+        </g>
+      </svg>
+      <svg class="bg-svg" v-for="i in 10" :key="i +'d'"
+           width="33.961mm" height="6.5963mm" version="1.1" viewBox="0 0 33.961 6.5963"
+           xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(-92.84 -68.534)">
+          <g transform="translate(-152.82 -20.051)">
+            <path d="m252.01 91.883h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
+            <circle cx="248.96" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+            <circle cx="276.32" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
+          </g>
+        </g>
+      </svg>
+    </div>
   </v-container>
 </template>
 
 <script>
 import {
-  mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
-  mdiArrowDownCircleOutline, mdiTimelineClockOutline,
-  mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
-  mdiWeight,
+  mdiMagnify, mdiAccount,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
-import IconItem from './common/IconItem.vue';
+import * as d3 from 'd3';
+import { ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import '../style.scss';
 
 export default {
   name: 'EntryView',
-  components: { IconItem },
   data() {
     return {
-      icon: {
-        mdiRefresh,
-        mdiDatabase,
-        mdiDatabaseSync,
-        mdiDatabaseSearch,
-        mdiArrowDownCircleOutline,
-        mdiTimelineClockOutline,
-        mdiFormatListNumbered,
-        mdiProgressWrench,
-        mdiCubeOffOutline,
-        mdiWeight,
+      route: {
+        statusPage: ROUTE_NAME_STATUS_PAGE,
+        loginPage: ROUTE_NAME_LOGIN_PAGE,
       },
-      blockRoute: ROUTE_NAME_BLOCK_PAGE,
-      tooltips: {
-        lastBlockId: 'Last block which was completely saved in the database',
-        lowestBlockId: 'Lowest block ID in the database',
-        databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
-        databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
-        rpcBlockHeight: 'Current block height of the RPC client',
-        rpcDifficulty: 'Current mining difficulty',
-        rpcPruned: 'Whether the RPC client prunes blocks',
-        rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
-      },
-      timer: null,
-      timeoutData: {
-        start: 0,
-        refreshStep: 10000,
-        progressStep: 600,
-        remaining: 0,
-        percent: 0,
+      icons: {
+        mdiMagnify, mdiAccount,
       },
     };
   },
-  computed: {
-    data() {
-      return this.$store.getters.getMetaData;
-    },
-    crawlerSyncProgress() {
-      if (!this.data) {
-        return 0.0;
-      }
-
-      return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))
-          / this.data.rpcinfo.blocks * 100;
-    },
-    classifierSyncProgress() {
-      if (!this.data) {
-        return 0.0;
-      }
-      const percentage = ((1 + (this.data.status.lastclassifiedid - this.data.status.lowestblockid))
-          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
-
-      return percentage > 100 ? 100 : percentage;
-    },
-  },
-
   methods: {
-    startTimer() {
-      this.startProgressTimer();
-
-      this.timer = setInterval(async () => {
-        clearInterval(this.remainderTimer);
-        await this.$store.dispatch('updateMetaData');
-        this.startProgressTimer();
-      }, this.timeoutData.refreshStep);
+    handleThemeChange(isDark) {
+      d3.selectAll('.bg-svg')
+        .selectAll('path')
+        .attr('stroke', () => (isDark ? 'white' : 'black'));
     },
-    startProgressTimer() {
-      this.timeoutData.percent = 100;
-      this.timeoutData.start = new Date().getTime();
-      this.remainderTimer = setInterval(this.updateRemainingTime, this.timeoutData.progressStep);
-    },
-    updateRemainingTime() {
-      this.timeoutData.remaining = this.timeoutData.refreshStep
-          - (new Date().getTime() - this.timeoutData.start);
-      if (this.timeoutData.remaining < 0) {
-        this.timeoutData.percent = 0;
-        return;
-      }
-      this.timeoutData.percent = this.timeoutData.remaining / this.timeoutData.refreshStep * 100;
-    },
-    resetTimers() {
-      this.timeoutData.percent = 100;
-      clearInterval(this.timer);
-      clearInterval(this.remainderTimer);
-    },
-    async refreshData() {
-      this.resetTimers();
-      await this.$store.dispatch('updateMetaData');
-      this.startTimer();
-    },
-  },
-  created() {
-    this.refreshData();
   },
   mounted() {
-    document.title = `Status - ${PAGE_TITLE}`;
+    this.handleThemeChange(this.$vuetify.theme.dark);
+    // add attributes to root svg
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      this.handleThemeChange(e.matches);
+    });
   },
-  beforeDestroy() {
-    this.resetTimers();
+  beforeMount() {
+
   },
 };
 </script>
 
 <style scoped>
+
+.search-field {
+  z-index: 5;
+  border-bottom-right-radius: 0;
+  border-top-right-radius: 0;
+}
+
+>>> .search-field fieldset {
+  border-width: 3px 0 3px 3px;
+  border-color: #1976d2;
+}
+
+>>> .v-input--is-focused {
+  transform: none;
+}
+
+.search-btn {
+  /*background-color: white;*/
+  margin-left: -10px;
+  margin-top: -19px;
+  height: 57px !important;
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+  border-width: 3px 3px 3px 0;
+}
 
 </style>
