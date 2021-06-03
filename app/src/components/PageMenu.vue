@@ -24,7 +24,7 @@
               :to="{ name: routes.connectionLookupPage }"/>
         </v-col>
       </v-row>
-      <NamedDivider vertical-margin="1"/>
+      <v-divider class="my-2"/>
       <v-row no-gutters >
         <v-col>
           <LinkCard
@@ -47,7 +47,6 @@
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
 } from '@mdi/js';
-import NamedDivider from './common/NamedDivider.vue';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE,
@@ -57,7 +56,7 @@ import { isAdminUser, isPrivilegedUser } from '../utilities';
 
 export default {
   name: 'PageMenu',
-  components: { NamedDivider, LinkCard },
+  components: { LinkCard },
   props: {
     value: { type: Boolean, required: true },
   },

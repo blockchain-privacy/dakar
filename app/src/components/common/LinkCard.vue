@@ -4,7 +4,7 @@
       <v-icon size="40">{{ icon }}</v-icon>
     </div>
     <div class="d-flex justify-center pt-1">
-      <p class="text-subtitle-1 title-text">{{ title }}</p>
+      <div class="text-subtitle-1 title-text">{{ title }}</div>
     </div>
   </v-card>
 </template>
@@ -14,7 +14,7 @@ export default {
   name: 'LinkCard',
   props: {
     title: { type: String, required: true },
-    to: { type: String, required: true },
+    to: { type: Object, required: true },
     icon: { type: String, required: true },
   },
 };
