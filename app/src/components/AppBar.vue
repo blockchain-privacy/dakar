@@ -150,7 +150,7 @@ export default {
           resetLocal();
           this.userData = null;
           this.settings = null;
-          this.goToPage(ROUTE_NAME_LOGIN_PAGE);
+          this.goToPage(this.route.rootPage);
         })
         .catch((error) => {
           this.setErrorMessage(error);
