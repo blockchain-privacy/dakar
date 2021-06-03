@@ -26,7 +26,6 @@ var (
 		constants.GetRouteTransaction():        true,
 		constants.GetRouteBlock():              true,
 		constants.GetRouteAddress():            true,
-		constants.GetRouteMeta():               true,
 		constants.GetRouteSearch():             true,
 		constants.GetRouteAddressOutputRange(): true,
 		// user
