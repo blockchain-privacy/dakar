@@ -22,7 +22,7 @@
     <v-spacer></v-spacer>
     <QueryInput v-if="!minimize" class="mx-4"/>
     <v-spacer></v-spacer>
-    <PageMenu v-model="showPageMenu" v-if="this.userData">
+    <PageMenu v-model="showPageMenu" v-if="isPrivilegedOrHigher">
       <v-btn icon @click="showPageMenu = !showPageMenu">
         <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
       </v-btn>
@@ -75,7 +75,9 @@ import {
   APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
   ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_USER_LOGOUT,
 } from '../constants';
-import { doGet, isAdminUser, resetLocal } from '../utilities';
+import {
+  doGet, isAdminUser, resetLocal, isPrivilegedUser,
+} from '../utilities';
 
 export default {
   name: 'AppBar',
@@ -124,6 +126,9 @@ export default {
     },
     showUserAdmin() {
       return isAdminUser(this.userData);
+    },
+    isPrivilegedOrHigher() {
+      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
   },
   methods: {
