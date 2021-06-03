@@ -1,5 +1,5 @@
 <template>
-  <v-menu offset-y v-model="inputVal">
+  <v-menu offset-y v-model="inputVal" style="z-index: 99">
     <template v-slot:activator="{ on, attrs }">
       <slot v-bind="attrs" v-on="on"></slot>
     </template>
