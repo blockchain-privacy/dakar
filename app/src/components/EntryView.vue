@@ -11,9 +11,10 @@
         <v-text-field
             v-model="query"
             full-width
-            label="Search for blocks, transactions and addresses"
             outlined
             class="search-field v-input--is-focused"
+            label="Search for blocks, transactions and addresses"
+            :rules="[isValidQuery]"
             :background-color="this.$vuetify.theme.dark?'black':'white'"
             @keydown.enter="handleQuery(query)">
           <template v-slot:append-outer>
@@ -104,6 +105,7 @@ import {
   RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME,
 } from '../constants';
 import '../style.scss';
+import { isValidQuery, isValidQueryInput } from '../utilities';
 
 export default {
   name: 'EntryView',
@@ -128,6 +130,7 @@ export default {
     },
   },
   methods: {
+    isValidQuery,
     handleThemeChange(isDark) {
       d3.selectAll('.bg-svg')
         .selectAll('path')
@@ -137,7 +140,15 @@ export default {
       await this.$store.dispatch('updateSearchResult', query);
       return true;
     },
-    async handleQuery(query) {
+    async handleQuery(q) {
+      // template string in case it is a number
+      const query = `${q}`.trim();
+
+      if (!isValidQueryInput(query)) {
+        this.setWarningMessage('Input was not valid');
+        return;
+      }
+
       if (!await this.executeQuery(query)) {
         return;
       }
@@ -168,6 +179,9 @@ export default {
           await this.$router.push({ name: ROUTE_NAME_NO_RESULTS });
           break;
       }
+    },
+    setWarningMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
   },
   mounted() {
