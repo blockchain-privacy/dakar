@@ -22,10 +22,12 @@
     <v-spacer></v-spacer>
     <QueryInput v-if="!minimize" class="mx-4"/>
     <v-spacer></v-spacer>
-    <v-btn icon :to="{name: route.shortestPathPage}" v-if="showTools">
-      <v-icon>{{ icon.mdiToolbox }}</v-icon>
-    </v-btn>
-    <v-menu offset-y style="z-index: 99">
+    <PageMenu v-model="showPageMenu" v-if="this.userData">
+      <v-btn icon @click="showPageMenu = !showPageMenu">
+        <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
+      </v-btn>
+    </PageMenu>
+    <v-menu offset-y style="z-index: 99" v-if="this.userData">
       <template v-slot:activator="{ on, attrs }">
         <v-btn
             icon
@@ -35,35 +37,20 @@
         </v-btn>
       </template>
       <v-list nav dense>
-        <v-list-item v-if="this.userData">
+        <v-list-item>
           <v-list-item-icon>
             <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
           </v-list-item-icon>
           <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
         </v-list-item>
-        <v-divider v-if="this.userData"/>
-        <v-list-item :to="{name: route.userProfilePage}" v-if="this.userData"
-                     :disabled="isUserProfileDisabled">
+        <v-divider />
+        <v-list-item :to="{name: route.userProfilePage}">
           <v-list-item-icon>
             <v-icon>{{ icon.mdiCog }}</v-icon>
           </v-list-item-icon>
           <v-list-item-title>Settings</v-list-item-title>
         </v-list-item>
-        <v-list-item :to="{ name: route.userLoginPage }"
-                     v-if="!this.userData" :disabled="isUserLoginDisabled">
-          <v-list-item-icon>
-            <v-icon>{{ icon.mdiLogin }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Login</v-list-item-title>
-        </v-list-item>
-        <v-list-item :to="{ name: route.userAdminPage }" :disabled="isUserAdminDisabled"
-                     v-if="showUserAdmin">
-          <v-list-item-icon>
-            <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>User Administration</v-list-item-title>
-        </v-list-item>
-        <v-list-item @click="logout" v-if="this.userData">
+        <v-list-item @click="logout">
           <v-list-item-icon>
             <v-icon>{{ icon.mdiLogout }}</v-icon>
           </v-list-item-icon>
@@ -71,27 +58,29 @@
         </v-list-item>
       </v-list>
     </v-menu>
+    <v-btn color="primary" :to="{ name: route.userLoginPage }" v-if="!this.userData">
+      <v-icon>{{ icon.mdiLogin }}</v-icon> Login
+    </v-btn>
   </v-app-bar>
 </template>
 
 <script>
 import {
-  mdiAccount, mdiAccountCircle, mdiAccountSupervisor, mdiCog, mdiLogin, mdiLogout, mdiToolbox,
+  mdiAccount, mdiAccountCircle, mdiCog, mdiLogin, mdiLogout,
+  mdiDotsGrid,
 } from '@mdi/js';
+import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import {
-  APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
-  ROUTE_NAME_LOGIN_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE,
-  ROUTE_NAME_USER_ADMIN_PAGE,
+  APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
   ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_USER_LOGOUT,
 } from '../constants';
-import {
-  doGet, isAdminUser, isPrivilegedUser, resetLocal,
-} from '../utilities';
+import { doGet, isAdminUser, resetLocal } from '../utilities';
 
 export default {
   name: 'AppBar',
   components: {
+    PageMenu,
     QueryInput,
   },
   props: {
@@ -100,25 +89,20 @@ export default {
   data() {
     return {
       applicationName: APPLICATION_NAME,
+      showPageMenu: false,
       icon: {
         mdiAccount,
         mdiLogin,
         mdiLogout,
-        mdiAccountSupervisor,
         mdiAccountCircle,
         mdiCog,
-        mdiToolbox,
+        mdiDotsGrid,
       },
       route: {
         userProfilePage: ROUTE_NAME_USER_PROFILE_PAGE,
-        userAdminPage: ROUTE_NAME_USER_ADMIN_PAGE,
         userLoginPage: ROUTE_NAME_LOGIN_PAGE,
-        shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
         rootPage: ROUTE_NAME_ENTRY_PAGE,
       },
-      isUserAdminDisabled: false,
-      isUserLoginDisabled: false,
-      isUserProfileDisabled: false,
     };
   },
   computed: {
@@ -140,9 +124,6 @@ export default {
     },
     showUserAdmin() {
       return isAdminUser(this.userData);
-    },
-    showTools() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
   },
   methods: {
