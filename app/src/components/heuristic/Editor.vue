@@ -358,7 +358,12 @@ export default {
         x: 0,
         y: 0,
         items: [
-          { title: 'Delete Heuristic', icon: mdiDelete, action: this.deleteSubTree },
+          {
+            title: 'Delete Heuristic',
+            icon: mdiDelete,
+            action: this.deleteSubTree,
+            disabled: () => !this.banner.show,
+          },
           { title: 'Show Properties', icon: mdiChartBar, action: ht.simulateClick },
           { isDivider: true },
           {
@@ -367,6 +372,7 @@ export default {
             action: () => {
               this.isAddHeuristicSheetOpen = true;
             },
+            disabled: () => !this.banner.show,
           },
           {
             title: 'Actions',
@@ -489,7 +495,8 @@ export default {
       });
     },
     isExecutable() {
-      if (this.dbState !== null && ((this.changeSet !== null && this.changeSet.length > 0))) {
+      if (!this.banner.show && this.dbState !== null
+          && ((this.changeSet !== null && this.changeSet.length > 0))) {
         return true;
       }
 
