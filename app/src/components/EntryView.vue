@@ -3,10 +3,10 @@
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <div class="d-flex justify-center mb-2">
-          <v-img src="../assets/dakar_dash.svg" max-width="128px" style="z-index: 5"/>
+          <v-img src="../assets/dakar_dash.svg" max-width="105px" style="z-index: 5"/>
         </div>
         <div class="d-flex justify-center ">
-          <p class="text-h1" style="position:relative; z-index: 5">Dakar</p>
+          <p class="text-h2" style="position:relative; z-index: 5">{{ appName }}</p>
         </div>
         <v-text-field
             v-model="query"
@@ -101,7 +101,7 @@ import * as d3 from 'd3';
 import {
   ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
   RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
-  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE,
+  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME,
 } from '../constants';
 import '../style.scss';
 
@@ -117,6 +117,7 @@ export default {
         mdiMagnify, mdiAccount,
       },
       isMenuVisible: false,
+      appName: APPLICATION_NAME,
     };
   },
   computed: {
@@ -170,7 +171,7 @@ export default {
     },
   },
   mounted() {
-    document.title = 'Dakar';
+    document.title = this.appName;
     this.handleThemeChange(this.$vuetify.theme.dark);
     // add attributes to root svg
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
