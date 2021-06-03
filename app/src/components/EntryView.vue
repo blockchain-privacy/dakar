@@ -1,21 +1,5 @@
 <template>
   <v-container fluid class="fill-height">
-    <v-toolbar
-        style="right: 3px; top: 3px"
-        color="transparent"
-        absolute
-        flat
-        dense
-        rounded>
-      <v-btn
-          style="min-width: 32px !important;"
-          class="ml-1 pa-2"
-          icon
-          outlined
-          :to="{name: route.loginPage}">
-        <v-icon>{{ icons.mdiAccount }}</v-icon>
-      </v-btn>
-    </v-toolbar>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <div class="d-flex justify-center mb-2">
@@ -132,6 +116,7 @@ export default {
       icons: {
         mdiMagnify, mdiAccount,
       },
+      isMenuVisible: false,
     };
   },
   computed: {
