@@ -4,7 +4,7 @@
                 label="Search for blocks, transactions and addresses"
                 :append-icon="icon.mdiMagnify"
                 v-model="query"
-                :rules="[isQueryValid]"
+                :rules="[isValidQuery]"
                 @click:append="handleInput(query, 'user')"
                 @keydown.enter="handleInput(query, 'user')"/>
 </template>
@@ -14,7 +14,7 @@ import {
   mdiMagnify,
 } from '@mdi/js';
 import * as Constants from '../constants';
-import * as Utility from '../utilities';
+import { isValidQuery, isValidQueryInput, resetData } from '../utilities';
 
 function newRouting(context) {
   const { id, pushFromUserInput } = context.$route.params;
@@ -62,12 +62,13 @@ export default {
     },
   },
   methods: {
+    isValidQuery,
     async handleInput(q, origin) {
       // template string in case it is a number
       const query = `${q}`.trim();
       // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
-        if (!this.isValidData(query)) {
+        if (!isValidQueryInput(query)) {
           this.setWarningMessage('Input was not valid');
           return;
         }
@@ -117,9 +118,9 @@ export default {
 
       this.lastQuery = query;
 
-      Utility.resetData(this);
+      resetData(this);
 
-      if (!this.isValidData(query)) {
+      if (!isValidQueryInput(query)) {
         this.setWarningMessage('Input was not valid');
         return false;
       }
@@ -139,23 +140,6 @@ export default {
       }
 
       return true;
-    },
-    isValidData(str) {
-      const inputLen = str.length;
-      // 64 -> length of transaction hash and block hash
-      if (inputLen === 0 || inputLen > 64) return false;
-
-      // 33,34 -> address length; if smaller than it must be a block id
-      if (inputLen < 33) {
-        return Number.isInteger(Number(str));
-      }
-
-      return str.match(/^[0-9a-zA-Z]+$/);
-    },
-    isQueryValid(str) {
-      const trimmed = str.trim();
-
-      return trimmed.length === 0 ? true : this.isValidData(trimmed);
     },
     setWarningMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
