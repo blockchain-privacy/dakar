@@ -27,6 +27,11 @@
             </v-btn>
           </template>
         </v-text-field>
+        <div class="d-flex justify-center ">
+          <p class="text-h6" style="position:relative; z-index: 5">
+            Blockchain transaction analytics
+          </p>
+        </div>
       </v-col>
     </v-row>
     <div class="hidden-sm-and-down">
