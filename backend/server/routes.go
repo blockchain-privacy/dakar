@@ -138,6 +138,39 @@ func handlerDetails(dgraph *dgo.Dgraph, fn func(*dgo.Dgraph, string) (
 	}
 }
 
+// API pattern: "/api/v1/<type>/<query>"
+// API pattern: "/api/v1/blk/<query>"
+// API pattern: "/api/v1/address/<query>"
+// API pattern: "/api/v1/tx/<query>"
+func handlerDetailsV2(dgraph *dgo.Dgraph, route string, fn func(*dgo.Dgraph, string) (
+	SearchResult, bool, error)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		queryString := r.URL.Path[len(route):]
+
+		// set response struct
+		reply := searchResponse{
+			Type:    "response_empty",
+			Payload: nil,
+		}
+
+		if isValid(queryString) {
+			data, ok, fnErr := fn(dgraph, queryString)
+			if fnErr == nil && ok {
+				reply.Payload = data.result
+				reply.Type = data.resultType
+			}
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
 func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte, error) {
 	return func(query string, body []byte) (response []byte, err error) {
@@ -750,14 +783,29 @@ func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuris
 		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
 
 	// Common data
-	http.HandleFunc(constants.GetRouteTransaction(),
-		cacheMiddleware(cache, constants.GetRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
+
+	http.Handle(constants.GetRouteTransaction(),
+		Adapt(handlerDetailsV2(dgraph, constants.GetRouteTransaction(), GetTransaction),
+			cacheMiddlewareAdaptor(cache, constants.GetRouteTransaction(), time.Second*0)))
+
+	//http.HandleFunc(constants.GetRouteTransaction(),
+	//	cacheMiddleware(cache, constants.GetRouteTransaction(), time.Second*0, handlerDetails(dgraph, GetTransaction)))
+
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	http.HandleFunc(constants.GetRouteBlock(),
-		cacheMiddleware(cache, constants.GetRouteBlock(), time.Minute*10, handlerDetails(dgraph, GetBlock)))
-	http.HandleFunc(constants.GetRouteAddress(),
-		cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
+	//http.HandleFunc(constants.GetRouteBlock(),
+	//	cacheMiddleware(cache, constants.GetRouteBlock(), time.Minute*10, handlerDetails(dgraph, GetBlock)))
+
+	http.Handle(constants.GetRouteBlock(),
+		Adapt(handlerDetailsV2(dgraph, constants.GetRouteBlock(), GetBlock),
+			cacheMiddlewareAdaptor(cache, constants.GetRouteBlock(), time.Second*10)))
+
+	//http.HandleFunc(constants.GetRouteAddress(),
+	//	cacheMiddleware(cache, constants.GetRouteAddress(), time.Minute*10, handlerDetails(dgraph, GetAddress)))
+	http.Handle(constants.GetRouteAddress(),
+		Adapt(handlerDetailsV2(dgraph, constants.GetRouteAddress(), GetAddress),
+			cacheMiddlewareAdaptor(cache, constants.GetRouteAddress(), time.Second*10)))
+
 	http.HandleFunc(constants.GetRouteAddressOutputRange(),
 		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
 

@@ -5,8 +5,11 @@ import (
 	"backend/user"
 	"context"
 	"encoding/json"
+	"github.com/dgraph-io/ristretto"
 	"golang.org/x/crypto/ed25519"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"time"
 )
 
@@ -108,6 +111,45 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 			}
 			// call next handler and add to the request context the user information
 			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), middlewareContextUser, newUser)))
+		})
+	}
+}
+
+func cacheMiddlewareAdaptor(cache *ristretto.Cache, route string, ttl time.Duration) Adapter {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// set headers
+			setDefaultHeader(w)
+
+			// extract body
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+
+			query := r.URL.Path[len(route):]
+			cacheKey := buildKey(route, query, body)
+
+			// try to get request from cache
+			value, found := cache.Get(cacheKey)
+			var buf []byte
+			if found {
+				buf = value.([]byte)
+			} else {
+				recorder := httptest.NewRecorder()
+				// call next handler
+				h.ServeHTTP(recorder, r)
+				buf = recorder.Body.Bytes()
+
+				cache.SetWithTTL(cacheKey, buf, 1, ttl)
+			}
+			setCacheHeader(w, ttl)
+			_, err = w.Write(buf)
+			if err != nil {
+				handleError(w, err)
+			}
+
 		})
 	}
 }
