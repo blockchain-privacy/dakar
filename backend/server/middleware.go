@@ -3,6 +3,7 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/user"
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/dgraph-io/ristretto"
@@ -127,6 +128,8 @@ func cacheMiddlewareAdaptor(cache *ristretto.Cache, route string, ttl time.Durat
 				handleError(w, err)
 				return
 			}
+			// reset body so it can be read by the next handler
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 			query := r.URL.Path[len(route):]
 			cacheKey := buildKey(route, query, body)
@@ -137,6 +140,7 @@ func cacheMiddlewareAdaptor(cache *ristretto.Cache, route string, ttl time.Durat
 			if found {
 				buf = value.([]byte)
 			} else {
+				// record the writes of the next handler, so the response can be saved in the cache.
 				recorder := httptest.NewRecorder()
 				// call next handler
 				h.ServeHTTP(recorder, r)
@@ -149,7 +153,6 @@ func cacheMiddlewareAdaptor(cache *ristretto.Cache, route string, ttl time.Durat
 			if err != nil {
 				handleError(w, err)
 			}
-
 		})
 	}
 }
