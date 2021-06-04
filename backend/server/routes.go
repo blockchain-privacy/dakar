@@ -56,50 +56,51 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func handlerSearch(dgraph *dgo.Dgraph) func(string, []byte) ([]byte, error) {
-	return func(query string, body []byte) (response []byte, err error) {
+func handlerSearch(dgraph *dgo.Dgraph, route string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		queryString := r.URL.Path[len(route):]
+
 		// set response struct
-		resp := searchResponse{
+		reply := searchResponse{
 			Type:    typeEmpty,
 			Payload: nil,
 		}
 
-		if isValid(query) {
+		if isValid(queryString) {
 			searchOrder := []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
 
-			if isLikelyBlock(query) {
+			if isLikelyBlock(queryString) {
 				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
-			} else if isLikelyAddress(query) {
+			} else if isLikelyAddress(queryString) {
 				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
 			}
 
 			// iterate over db access functions
 			for _, fn := range searchOrder {
-				data, ok, handlerErr := fn(dgraph, query)
-				if handlerErr != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), handlerErr)
-					return
+				data, ok, err := fn(dgraph, queryString)
+				if err != nil {
+					info(cliutil.ShowCallInfo(), err)
+					break
 				}
 				// nothing found -> next try
 				if !ok {
 					continue
 				}
 
-				resp.Payload = data.result
-				resp.Type = data.resultType
+				reply.Payload = data.result
+				reply.Type = data.resultType
 				break
 			}
 		}
 
 		// encoding
-		response, err = json.Marshal(resp)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
 		}
-
-		return
-	}
+	})
 }
 
 // API pattern: "/api/v1/<type>/<query>"
@@ -743,15 +744,14 @@ func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuris
 	// API end points
 
 	// Search
-	http.HandleFunc(constants.GetRouteSearch(),
-		cacheMiddleware(cache, constants.GetRouteSearch(), time.Minute*10, handlerSearch(dgraph)))
+	http.Handle(constants.GetRouteSearch(),
+		Adapt(handlerSearch(dgraph, constants.GetRouteSearch()),
+			cacheMiddlewareAdaptor(cache, constants.GetRouteSearch(), time.Minute*10)))
 
 	// Common data
-
 	http.Handle(constants.GetRouteTransaction(),
 		Adapt(handlerDetails(dgraph, constants.GetRouteTransaction(), GetTransaction),
 			cacheMiddlewareAdaptor(cache, constants.GetRouteTransaction(), time.Second*0)))
-
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
 	http.Handle(constants.GetRouteBlock(),
