@@ -57,6 +57,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 
 // API pattern: "/api/v1/search/<hash>"
 func handlerSearch(dgraph *dgo.Dgraph, route string) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -122,7 +123,12 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn func(*dgo.Dgraph, strin
 
 		if isValid(queryString) {
 			data, ok, fnErr := fn(dgraph, queryString)
-			if fnErr == nil && ok {
+			if fnErr != nil {
+				handleError(w, fnErr)
+				return
+			}
+
+			if ok {
 				reply.Payload = data.result
 				reply.Type = data.resultType
 			}
@@ -137,14 +143,18 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn func(*dgo.Dgraph, strin
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte, error) {
-	return func(query string, body []byte) (response []byte, err error) {
-		resp := searchResponse{
+func handlerAddressOutputRange(dgraph *dgo.Dgraph, route string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		queryString := r.URL.Path[len(route):]
+
+		reply := searchResponse{
 			Type:    "response_empty",
 			Payload: nil,
 		}
 
-		if isValid(query) {
+		if isValid(queryString) {
 			type request struct {
 				Offset int   `json:"offset"`
 				Order  int   `json:"order"`
@@ -155,67 +165,71 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph) func(string, []byte) ([]byte,
 			addressRequest.Offset = -1
 			addressRequest.Order = -1
 
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+
 			if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr))
 				return
 			}
 
 			if !dbaddr.IsValidSortOrder(addressRequest.Order) {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidSortOrder))
+				handleError(w, errors.New(errorInvalidSortOrder))
 				return
 			}
 
 			if !dbaddr.IsValidFilter(addressRequest.Filter) {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidFilter))
+				handleError(w, errors.New(errorInvalidFilter))
 				return
 			}
 
 			if addressRequest.Offset < 0 {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errors.New(errorInvalidOffset))
+				handleError(w, errors.New(errorInvalidOffset))
 				return
 			}
 
-			data, ok, addrErr := GetAddressWithOptions(dgraph, query,
+			data, ok, addrErr := GetAddressWithOptions(dgraph, queryString,
 				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 			if addrErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addrErr)
+				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addrErr))
 				return
 			}
 			if ok {
-				resp.Payload = data.result
-				resp.Type = data.resultType
+				reply.Payload = data.result
+				reply.Type = data.resultType
 			}
 		}
 
 		// encoding
-		response, err = json.Marshal(resp)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
 		}
-
-		return
-	}
+	})
 }
 
 // API pattern: "/api/v1/meta/"
-func handlerMeta(dgraph *dgo.Dgraph,
-	client external.RPCClient) func(string, []byte) ([]byte, error) {
-	return func(query string, body []byte) (response []byte, err error) {
+func handlerMeta(dgraph *dgo.Dgraph, client external.RPCClient) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
 		// async request rpc info
 		futureBlockchainInfo := client.GetBlockChainInfoAsync()
 
 		// get data from db
 		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 			return
 		}
 
 		// receive async rpc info
 		rpcInfo, err := futureBlockchainInfo.Receive()
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 			return
 		}
 
@@ -231,14 +245,12 @@ func handlerMeta(dgraph *dgo.Dgraph,
 		}
 
 		// encoding
-		response, err = json.Marshal(stat)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+		if encErr := json.NewEncoder(w).Encode(stat); encErr != nil {
+			handleError(w, encErr)
 		}
 
 		return
-	}
+	})
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
@@ -680,49 +692,6 @@ func handlerClusterLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Han
 	})
 }
 
-// cacheMiddleware caches the response of handler for the specified ttl
-func cacheMiddleware(cache *ristretto.Cache, route string, ttl time.Duration,
-	handler func(query string, body []byte) ([]byte, error)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// set headers
-		setDefaultHeader(w)
-		setCacheHeader(w, ttl)
-
-		// extract body
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		query := r.URL.Path[len(route):]
-		cacheKey := buildKey(route, query, body)
-
-		// try to get request from cache
-		value, found := cache.Get(cacheKey)
-		var buf []byte
-		if found {
-			buf = value.([]byte)
-		} else {
-			var handlerErr error
-			buf, handlerErr = handler(query, body)
-			if handlerErr != nil {
-				handleError(w, handlerErr)
-				return
-			}
-
-			cache.SetWithTTL(cacheKey, buf, 1, ttl)
-		}
-
-		// write response
-		_, err = w.Write(buf)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-	}
-}
-
 // setupHandlers creates endpoint handlers
 func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuristic.Worker) {
 	// get signing keys
@@ -745,78 +714,77 @@ func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuris
 
 	// Search
 	http.Handle(constants.GetRouteSearch(),
-		Adapt(handlerSearch(dgraph, constants.GetRouteSearch()),
-			cacheMiddlewareAdaptor(cache, constants.GetRouteSearch(), time.Minute*10)))
+		adapt(handlerSearch(dgraph, constants.GetRouteSearch()), constants.GetRouteSearch(),
+			cacheMiddleware(cache, time.Minute*10)))
 
 	// Common data
 	http.Handle(constants.GetRouteTransaction(),
-		Adapt(handlerDetails(dgraph, constants.GetRouteTransaction(), GetTransaction),
-			cacheMiddlewareAdaptor(cache, constants.GetRouteTransaction(), time.Second*0)))
+		adapt(handlerDetails(dgraph, constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
+			cacheMiddleware(cache, time.Second*0)))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
 	http.Handle(constants.GetRouteBlock(),
-		Adapt(handlerDetails(dgraph, constants.GetRouteBlock(), GetBlock),
-			cacheMiddlewareAdaptor(cache, constants.GetRouteBlock(), time.Second*10)))
+		adapt(handlerDetails(dgraph, constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
+			cacheMiddleware(cache, time.Second*10)))
 	http.Handle(constants.GetRouteAddress(),
-		Adapt(handlerDetails(dgraph, constants.GetRouteAddress(), GetAddress),
-			cacheMiddlewareAdaptor(cache, constants.GetRouteAddress(), time.Second*10)))
+		adapt(handlerDetails(dgraph, constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
+			cacheMiddleware(cache, time.Second*10)))
 
-	http.HandleFunc(constants.GetRouteAddressOutputRange(),
-		cacheMiddleware(cache, constants.GetRouteAddressOutputRange(), time.Minute*10, handlerAddressOutputRange(dgraph)))
+	http.Handle(constants.GetRouteAddressOutputRange(),
+		adapt(handlerAddressOutputRange(dgraph, constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
+			cacheMiddleware(cache, time.Minute*10)))
 
 	// Meta
-	http.HandleFunc(constants.GetRouteMeta(),
-		cacheMiddleware(cache, constants.GetRouteMeta(), time.Second*10, handlerMeta(dgraph, client)))
+	http.Handle(constants.GetRouteMeta(),
+		adapt(handlerMeta(dgraph, client), constants.GetRouteMeta(),
+			authorizationMiddleware(privkey, pubkey),
+			cacheMiddleware(cache, time.Second*10)))
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
-		Adapt(handlerHeuristics(dgraph, worker),
-			authorizationMiddleware(constants.GetRouteHeuristics(), privkey, pubkey)))
+		adapt(handlerHeuristics(dgraph, worker), constants.GetRouteHeuristics(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicStatus(),
-		Adapt(handlerHeuristicStatus(worker),
-			authorizationMiddleware(constants.GetRouteHeuristicStatus(), privkey, pubkey)))
+		adapt(handlerHeuristicStatus(worker), constants.GetRouteHeuristicStatus(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicDetails(),
-		Adapt(handlerHeuristicsDetails(dgraph),
-			authorizationMiddleware(constants.GetRouteHeuristicDetails(), privkey, pubkey)))
+		adapt(handlerHeuristicsDetails(dgraph), constants.GetRouteHeuristicDetails(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsExecution(),
-		Adapt(handlerHeuristicsExecution(dgraph, worker),
-			authorizationMiddleware(constants.GetRouteHeuristicsExecution(), privkey, pubkey)))
+		adapt(handlerHeuristicsExecution(dgraph, worker), constants.GetRouteHeuristicsExecution(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicsSummary(),
-		Adapt(handlerHeuristicsSummary(dgraph),
-			authorizationMiddleware(constants.GetRouteHeuristicsSummary(), privkey, pubkey)))
+		adapt(handlerHeuristicsSummary(dgraph), constants.GetRouteHeuristicsSummary(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteHeuristicList(),
-		Adapt(handlerHeuristicList(dgraph),
-			authorizationMiddleware(constants.GetRouteHeuristicList(), privkey, pubkey)))
+		adapt(handlerHeuristicList(dgraph), constants.GetRouteHeuristicList(),
+			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteDeleteHeuristic(),
-		Adapt(handlerDeleteHeuristic(dgraph),
-			authorizationMiddleware(constants.GetRouteDeleteHeuristic(), privkey, pubkey)))
+		adapt(handlerDeleteHeuristic(dgraph), constants.GetRouteDeleteHeuristic(),
+			authorizationMiddleware(privkey, pubkey)))
 
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),
-		Adapt(handlerShortestTransactionPath(dgraph),
-			authorizationMiddleware(constants.GetRouteShortestTransactionPath(), privkey, pubkey)))
+		adapt(handlerShortestTransactionPath(dgraph), constants.GetRouteShortestTransactionPath(),
+			authorizationMiddleware(privkey, pubkey)))
 
 	http.Handle(constants.GetRouteConnectionLookup(),
-		Adapt(handlerConnectionLookup(dgraph, worker),
-			authorizationMiddleware(constants.GetRouteConnectionLookup(), privkey, pubkey)))
+		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
+			authorizationMiddleware(privkey, pubkey)))
 
 	http.Handle(constants.GetRouteClusterLookup(),
-		Adapt(handlerClusterLookup(dgraph, worker),
-			authorizationMiddleware(constants.GetRouteClusterLookup(), privkey, pubkey)))
+		adapt(handlerClusterLookup(dgraph, worker), constants.GetRouteClusterLookup(),
+			authorizationMiddleware(privkey, pubkey)))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))
 	http.Handle(constants.GetRouteLogout(), handlerLogout())
 	http.Handle(constants.GetRouteCreateUser(),
-		Adapt(handlerCreateUser(dgraph),
-			authorizationMiddleware(constants.GetRouteCreateUser(), privkey, pubkey)))
+		adapt(handlerCreateUser(dgraph), constants.GetRouteCreateUser(), authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteDeleteUser(),
-		Adapt(handlerDeleteUser(dgraph),
-			authorizationMiddleware(constants.GetRouteDeleteUser(), privkey, pubkey)))
+		adapt(handlerDeleteUser(dgraph), constants.GetRouteDeleteUser(), authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteGetUsers(),
-		Adapt(handlerGetUsers(dgraph),
-			authorizationMiddleware(constants.GetRouteGetUsers(), privkey, pubkey)))
+		adapt(handlerGetUsers(dgraph), constants.GetRouteGetUsers(), authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteModifyUser(),
-		Adapt(handlerModifyUser(dgraph),
-			authorizationMiddleware(constants.GetRouteModifyUser(), privkey, pubkey)))
+		adapt(handlerModifyUser(dgraph), constants.GetRouteModifyUser(), authorizationMiddleware(privkey, pubkey)))
 }
