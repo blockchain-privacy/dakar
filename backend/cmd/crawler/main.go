@@ -226,6 +226,9 @@ func main() {
 				fmt.Println(err)
 			}
 		}()
+	} else if len(cliArgs.Logfile) > 0 {
+		fmt.Println("Could not create logfile", cliArgs.Logfile)
+		return
 	}
 
 	initAllLoggers()
