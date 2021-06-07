@@ -18,5 +18,5 @@ func InitLogger(out io.Writer, flag int) {
 }
 
 func info(v ...interface{}) {
-	analyticsLogger.Println(v)
+	analyticsLogger.Println(v...)
 }

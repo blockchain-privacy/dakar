@@ -15,7 +15,7 @@ func initLogger() {
 }
 
 func info(v ...interface{}) {
-	thisLogger.Println(v)
+	thisLogger.Println(v...)
 }
 
 // setup cli

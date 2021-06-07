@@ -27,7 +27,7 @@ func InitLogger(out io.Writer, flag int) {
 }
 
 func info(v ...interface{}) {
-	graphLogger.Println(v)
+	graphLogger.Println(v...)
 }
 
 type Wrapper struct {

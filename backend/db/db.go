@@ -39,7 +39,7 @@ func InitLogger(out io.Writer, flag int) {
 }
 
 func info(v ...interface{}) {
-	thisLogger.Println(v)
+	thisLogger.Println(v...)
 }
 
 func GetBackendContext() (context.Context, context.CancelFunc) {
