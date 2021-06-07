@@ -88,12 +88,11 @@ func ShowCallInfo() string {
 // buildEndpoint creates a string in the format of "host:port"
 func buildEndpoint(host string, port uint) (string, error) {
 	host = strings.TrimSpace(host)
-	response := host + ":" + strconv.Itoa(int(port))
-	if len(host) > 0 && port > 0 {
-		return response, nil
+	if len(host) == 0 || port == 0 {
+		return "", errors.New("host or port is not valid")
 	}
 
-	return response, errors.New("host or port is not valid")
+	return host + ":" + strconv.Itoa(int(port)), nil
 }
 
 // NumBlockchainSelected returns the number of selected blockchains
@@ -115,15 +114,18 @@ func NumBlockchainSelected(args Arguments) int {
 }
 
 func GetLogfile(fileName string) (f *os.File, err error) {
-	if len(fileName) > 0 {
-		f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			return
-		}
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.SetOutput(io.MultiWriter(os.Stdout, f))
+	if len(fileName) == 0 {
+		err = errors.New("name for log file is invalid")
 	}
-	err = errors.New("name for log file is invalid")
+
+	f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		return
+	}
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetOutput(io.MultiWriter(os.Stdout, f))
+
 	return
 }
 
