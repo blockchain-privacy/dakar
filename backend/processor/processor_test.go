@@ -3,10 +3,12 @@ package processor
 import (
 	dbaddr "backend/db/address"
 	dbop "backend/db/output"
-
-	"testing"
-
+	"backend/mocks"
+	"errors"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/require"
+	"testing"
+	"time"
 )
 
 func TestIncrementProcessingState(t *testing.T) {
@@ -245,6 +247,48 @@ func TestBuildAddressMapping(t *testing.T) {
 			t.Error("Uids not set")
 		}
 	}
+}
+
+func TestWaitForNextRPCBlock(t *testing.T) {
+	var rpcClient mocks.RPCClient
+	hash := mocks.RpcVal.HeightMap[1423340]
+	nilHash := &chainhash.Hash{}
+	nilHash = nil
+	expectedBlock := mocks.RpcVal.BlockStore[hash]
+	interrupt := make(chan struct{})
+	blkInfo := mocks.RpcVal.BlockchainInfo
+	cfg := NewDashConfig()
+	// for a quick test
+	cfg.NewBlockIntervalTime = 1
+
+	rpcClient.On("GetBlockVerbose", &hash).Return(&expectedBlock, nil)
+	rpcClient.On("GetBlockVerbose", nilHash).Return(nil, errors.New("invalid argument"))
+	rpcClient.On("GetBlockChainInfo").Return(&blkInfo, nil)
+
+	// normal operation
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, 50000, cfg)
+	require.Nil(t, err)
+	require.False(t, wasInterrupted, "the interrupt flag should have been false")
+	require.NotNil(t, currentBlock)
+
+	// missing hash
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, 50000, cfg)
+	require.NotNil(t, err)
+	require.False(t, wasInterrupted, "the interrupt flag should have been false")
+	require.Nil(t, currentBlock)
+	var test struct{}
+
+	go func() {
+		interrupt <- test
+	}()
+
+	// normal operation but interrupted
+	cfg.NewBlockIntervalTime = time.Second
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, 50000, cfg)
+	require.Nil(t, err)
+	require.True(t, wasInterrupted, "the interrupt flag should have been true")
+	require.Nil(t, currentBlock)
+
 }
 
 //const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"
