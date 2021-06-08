@@ -1,5 +1,5 @@
 PROJECT_NAME := "dakar"
-PKG_LIST := $(shell go list ./... | grep -v /vendor/)
+PKG_LIST := $(shell go list ../../... | grep -v /vendor/)
 
 .PHONY: all dep build clean test lint #coverage coverhtml
 
