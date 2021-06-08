@@ -266,13 +266,13 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	rpcClient.On("GetBlockChainInfo").Return(&blkInfo, nil)
 
 	// normal operation
-	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, 50000, cfg)
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks-1), cfg)
 	require.Nil(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, 50000, cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, uint64(blkInfo.Blocks-1), cfg)
 	require.NotNil(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
@@ -282,13 +282,15 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 		interrupt <- test
 	}()
 
-	// normal operation but interrupted
+	// normal operation but interrupted and higher block
+	// count as available so it must wait or in this case get interrupted
 	cfg.NewBlockIntervalTime = time.Second
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, 50000, cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks+1), cfg)
 	require.Nil(t, err)
 	require.True(t, wasInterrupted, "the interrupt flag should have been true")
 	require.Nil(t, currentBlock)
 
+	rpcClient.AssertExpectations(t)
 }
 
 //const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"
