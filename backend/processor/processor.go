@@ -204,6 +204,9 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 	// that it is pay-to-pubkey. Thus, parsing is done manually
 
 	amsParts := strings.Split(asm, " ")
+	if len(amsParts[0]) == 0 {
+		return "", errors.New("error received invalid asm: " + asm)
+	}
 
 	decodeString, decodeErr := hex.DecodeString(amsParts[0])
 	if decodeErr != nil {
@@ -593,7 +596,6 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 
 // ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
 func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient, config Config) error {
-
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
