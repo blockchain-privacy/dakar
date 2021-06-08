@@ -3,14 +3,12 @@ package cliutil
 import (
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
-	"log"
 	"strings"
 	"testing"
 )
 
 func TestShowCallInfo(t *testing.T) {
 	info := ShowCallInfo()
-	log.Println(info)
 	require.NotEmpty(t, info, "call info is empty")
 }
 
