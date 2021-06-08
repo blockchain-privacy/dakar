@@ -8,6 +8,7 @@ import (
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 	"backend/user"
 
 	"encoding/json"
@@ -16,12 +17,10 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // getLoginReply reads the data from body and constructs a backendUserReply
-func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply backendUserReply) {
+func getLoginReply(dgraph *external.GraphDB, body io.Reader) (reply backendUserReply) {
 	const invalidUserData = "email and password combination does not match"
 
 	var loginData dbus.FrontendUserLogin
@@ -65,7 +64,7 @@ func getLoginReply(dgraph *dgo.Dgraph, body io.Reader) (reply backendUserReply) 
 }
 
 // getCreateUserReply reads the data from body and constructs a userReply
-func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
+func getCreateUserReply(dgraph *external.GraphDB, body io.Reader) (reply userReply) {
 	var frontEndUser dbus.FrontendUserRoles
 
 	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
@@ -104,7 +103,7 @@ func getCreateUserReply(dgraph *dgo.Dgraph, body io.Reader) (reply userReply) {
 	return
 }
 
-func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
+func getHeuristicReply(dgraph *external.GraphDB, worker *heuristic.Worker,
 	txHashString string, userUid string) (reply heuristicReply) {
 
 	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUid)
@@ -121,7 +120,7 @@ func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
 	return
 }
 
-func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
+func getHeuristicExecutionReply(dgraph *external.GraphDB, worker *heuristic.Worker, body io.Reader,
 	txHashString string, userUid string) (reply heuristicExecutionReply) {
 	if !worker.IsReady() {
 		reply.Success = true
@@ -178,7 +177,7 @@ func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, bo
 }
 
 // getModifyUserReply parses the input and creates a corresponding userReply
-func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (reply backendUserReply) {
+func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUser) (reply backendUserReply) {
 	// get clients user state
 	var modRequest dbus.ModifyUserRequest
 	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
@@ -319,7 +318,7 @@ func getModifyUserReply(dgraph *dgo.Dgraph, body io.Reader, tUser tokenUser) (re
 }
 
 // getDeleteUserReply deletes delUid if is the same uid as tUser.Id or if tUser is an admin
-func getDeleteUserReply(dgraph *dgo.Dgraph, delUid string, tUser tokenUser) (reply userReply) {
+func getDeleteUserReply(dgraph *external.GraphDB, delUid string, tUser tokenUser) (reply userReply) {
 	if delUid != tUser.Id {
 		// is user an admin
 		isAdmin := false
@@ -348,7 +347,7 @@ func getDeleteUserReply(dgraph *dgo.Dgraph, delUid string, tUser tokenUser) (rep
 }
 
 // getShortestTransactionPathReply searches for the shortest path between two transactions
-func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply shortestTransactionPathReply) {
+func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (reply shortestTransactionPathReply) {
 	// parse request
 	var req transaction.ShortestTransactionPathRequest
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -427,7 +426,7 @@ func getShortestTransactionPathReply(dgraph *dgo.Dgraph, body io.Reader) (reply 
 }
 
 // getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
-func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string) (reply deleteHeuristicReply) {
+func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUid string) (reply deleteHeuristicReply) {
 	var req transaction.DeleteHeuristicRequest
 
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -472,7 +471,7 @@ func getDeleteHeuristicReply(dgraph *dgo.Dgraph, body io.Reader, userUid string)
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlValues url.Values,
+func getConnectionLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, urlValues url.Values,
 	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
@@ -600,7 +599,7 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
 	if !worker.IsReady() {
 		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
 		reply.Warning = true

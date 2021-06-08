@@ -4,14 +4,13 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
+	"backend/external"
 
 	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // Time ────────────────────────────────────►
@@ -43,7 +42,7 @@ import (
 // └──────┘    └──────┘    └──────┘
 
 // GetInputAddresses returns all input addresses of the given transactions
-func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]AddressNode, error) {
+func GetInputAddresses(c *external.GraphDB, txUids []string) ([]AddressNode, error) {
 	const query = `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
@@ -74,7 +73,7 @@ func GetInputAddresses(c *dgo.Dgraph, txUids []string) ([]AddressNode, error) {
 
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
-func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
+func GetConnectedPrivacyTransactions(c *external.GraphDB, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
 	privacyRangeLast constants.PrivacyType) ([]ConnectedNode, error) {
 	query := fmt.Sprintf(`{
 				q(func: between(privacytype,`+
@@ -109,7 +108,7 @@ func GetConnectedPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes in
 }
 
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
-func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
+func GetPrivacyTransactions(c *external.GraphDB, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
 	privacyRangeLast constants.PrivacyType) ([]Node, error) {
 	query := fmt.Sprintf(`{
 				q(func: between(privacytype,`+
@@ -140,32 +139,32 @@ func GetPrivacyTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int, privac
 
 // GetMixingTransactions gets the first numNodes mixing transactions including their input transactions
 // from the database. If maxTx is equal to 0, all mixing transaction are returned.
-func GetMixingTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
+func GetMixingTransactions(c *external.GraphDB, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
 	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, 0, constants.PrivacyMixingLast)
 }
 
 // GetDestinationTransactions gets the first numNodes destination transactions including their input transactions
 // from the database. If maxTx is equal to 0, all destination transaction are returned.
-func GetDestinationTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
+func GetDestinationTransactions(c *external.GraphDB, numNodes int, offsetNodes int) ([]ConnectedNode, error) {
 	return GetConnectedPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyDestinationFirst,
 		constants.PrivacyDestinationLast)
 }
 
 // GetOriginTransactions gets the first numNodes origin transactions from the database.
 // If maxTx is equal to 0, all origin transaction are returned.
-func GetOriginTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]Node, error) {
+func GetOriginTransactions(c *external.GraphDB, numNodes int, offsetNodes int) ([]Node, error) {
 	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyOriginFirst, constants.PrivacyOriginLast)
 }
 
 // GetCollateralCreationTransactions gets the numNodes maxTx cc transactions from the database.
 // If maxTx is equal to 0, all cc transaction are returned.
-func GetCollateralCreationTransactions(c *dgo.Dgraph, numNodes int, offsetNodes int) ([]Node, error) {
+func GetCollateralCreationTransactions(c *external.GraphDB, numNodes int, offsetNodes int) ([]Node, error) {
 	return GetPrivacyTransactions(c, numNodes, offsetNodes, constants.PrivacyCollateralCreationFirst,
 		constants.PrivacyCollateralCreationLast)
 }
 
 // GetPrivacyTransactionCount gets the number of transaction per privacy type
-func GetPrivacyTransactionCount(c *dgo.Dgraph) (mixingCount int, originCount int, ccCount int,
+func GetPrivacyTransactionCount(c *external.GraphDB) (mixingCount int, originCount int, ccCount int,
 	destinationCount int, err error) {
 
 	const query = `{
@@ -233,7 +232,7 @@ func GetPrivacyTransactionCount(c *dgo.Dgraph) (mixingCount int, originCount int
 
 // GetPrivacyTransactionsByBlock gets all destination transactions, mixing transactions and
 // their connected transactions of the given blockHeight
-func GetPrivacyTransactionsByBlock(c *dgo.Dgraph, blockHeight uint64) ([]ConnectedNode, []Node, error) {
+func GetPrivacyTransactionsByBlock(c *external.GraphDB, blockHeight uint64) ([]ConnectedNode, []Node, error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid))
 				var(func: uid(b)){

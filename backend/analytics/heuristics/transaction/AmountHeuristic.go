@@ -5,10 +5,9 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
+	"backend/external"
 
 	"fmt"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 type AmountHeuristic struct {
@@ -50,7 +49,7 @@ func (h AmountHeuristic) clone() heuristic {
 
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h AmountHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)

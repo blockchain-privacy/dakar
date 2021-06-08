@@ -6,13 +6,12 @@ import (
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
 	"backend/db/transaction"
+	"backend/external"
 
 	"errors"
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 var (
@@ -21,7 +20,7 @@ var (
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error)
+	exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -170,7 +169,7 @@ func mapToSlice(m map[string]bool) (uids []string) {
 // getTimeLimitedOrigins returns all origins of the given transaction.
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
-func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper, tx dbtxh.HeuristicTransaction,
+func getTimeLimitedOrigins(dgraph *external.GraphDB, g *graph.Wrapper, tx dbtxh.HeuristicTransaction,
 	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.Uid, lookBackTime)
@@ -188,7 +187,7 @@ func getTimeLimitedOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper, tx dbtxh.Heuris
 }
 
 // getDestinationTxOrigins returns all origins of the given transaction.
-func getDestinationTxOrigins(dgraph *dgo.Dgraph, g *graph.Wrapper,
+func getDestinationTxOrigins(dgraph *external.GraphDB, g *graph.Wrapper,
 	txHash string) (origins []dbtxh.HeuristicTransaction, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUid(dgraph, txHash)
@@ -253,7 +252,7 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 // of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
 // is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
 // For a cleaner version, function use RunSynchronous
-func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string,
+func (hx HeuristicExecutor) RunAsync(dgraph *external.GraphDB, g *graph.Wrapper, txHash string, parentHeuristicUid string,
 	userUid string) error {
 	newUid, err := Exec(dgraph, g, txHash, parentHeuristicUid, hx.ThisHeuristic, userUid)
 	if err != nil {
@@ -295,7 +294,7 @@ func (hx HeuristicExecutor) RunAsync(dgraph *dgo.Dgraph, g *graph.Wrapper, txHas
 // RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
 // triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUid is not
 // set (e.g. "") than the HeuristicExecutor.RootUid is used
-func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+func (hx HeuristicExecutor) RunSynchronous(dgraph *external.GraphDB, g *graph.Wrapper, txHash string,
 	parentHeuristicUid string, userUid string) error {
 	thisRootUid := hx.RootUid
 	if parentHeuristicUid != "" {
@@ -326,7 +325,7 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph *dgo.Dgraph, g *graph.Wrapper,
 }
 
 // Exec executes the heuristic on the transaction specified by txHash for the given userUid
-func Exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string, h heuristic,
+func Exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string, parentHeuristicUid string, h heuristic,
 	userUid string) (thisUid string, err error) {
 	originUids, err := h.exec(dgraph, g, txHash, parentHeuristicUid)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {

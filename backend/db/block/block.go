@@ -3,18 +3,18 @@ package block
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 	"time"
 
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetBlock gets block information from the database
-func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
+func GetBlock(c *external.GraphDB, blockHash string) (blk Block, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
 					uid
@@ -58,7 +58,7 @@ func isBlockIdentifier(field string) bool {
 }
 
 // GetFrontendBlock gets verbose block information from the database
-func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err error) {
+func GetFrontendBlock(c *external.GraphDB, blockHash string) (block FrontendBlock, err error) {
 	searchProperty := "blockhash"
 	if isBlockIdentifier(blockHash) {
 		searchProperty = "id"
@@ -84,7 +84,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 			  }`, searchProperty)
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$ident": blockHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -122,7 +122,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 }
 
 // UpsertBlock upserts a block and the prevBlock relation
-func UpsertBlock(c *dgo.Dgraph, block Block) error {
+func UpsertBlock(c *external.GraphDB, block Block) error {
 	block.Uid = "uid(v)"
 	block.PrevBlock.Uid = "uid(x)"
 	block.SetDType()
@@ -169,6 +169,6 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 }
 
 // GetCount gets the number of blocks in the database
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c *external.GraphDB) (uint64, error) {
 	return db.GetCount(c, DType)
 }

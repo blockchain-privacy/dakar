@@ -3,19 +3,19 @@ package graph
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
+	"backend/external"
 
 	"errors"
 	"fmt"
 	"runtime"
 
-	"github.com/dgraph-io/dgo/v210"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
 
 // loadOriginTransactions loads origin transactions from the database into the graph.
 // max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
+func loadOriginTransactions(c *external.GraphDB, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		originNodes, err := analytics.GetOriginTransactions(c, step, i)
@@ -38,7 +38,7 @@ func loadOriginTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 
 // loadCCTransactions loads cc transactions from the database into the graph.
 //max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
+func loadCCTransactions(c *external.GraphDB, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
@@ -61,7 +61,7 @@ func loadCCTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 
 // loadMixingTransactions loads mixing transactions from the database into the graph.
 //max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
+func loadMixingTransactions(c *external.GraphDB, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
 		if i/step > 10 && (i/step)%3 == 0 {
@@ -87,7 +87,7 @@ func loadMixingTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
 
 // loadDestinationTransactions loads destination transactions from the database into the graph
 //max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
-func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) error {
+func loadDestinationTransactions(c *external.GraphDB, g *ReversibleGraph, max int) error {
 	const step = 10000
 	for i := 0; ; i += step {
 		if i/step > 5 && (i/step)%2 == 0 {
@@ -111,7 +111,7 @@ func loadDestinationTransactions(c *dgo.Dgraph, g *ReversibleGraph, max int) err
 	return nil
 }
 
-func LoadTransactionGraph(c *dgo.Dgraph) (*ReversibleGraph, error) {
+func LoadTransactionGraph(c *external.GraphDB) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {

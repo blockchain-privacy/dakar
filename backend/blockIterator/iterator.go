@@ -3,14 +3,13 @@ package blockIterator
 import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
+	"backend/external"
 
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // BlockIterator defines the basic structure of a process which
@@ -40,7 +39,7 @@ type BlockIterator interface {
 
 	Logger() *log.Logger
 	Context() context.Context
-	Db() *dgo.Dgraph
+	Db() *external.GraphDB
 	State() State
 	Name() string
 }

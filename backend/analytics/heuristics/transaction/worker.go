@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/external"
 
 	"context"
 	"fmt"
@@ -11,8 +12,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 type HeuristicQueueStatus int
@@ -86,7 +85,7 @@ func NewWorker(gWrapper *graph.Wrapper) *Worker {
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
 // Returns false if the worker was already started.
-func (w *Worker) Start(ctx context.Context, dgraph *dgo.Dgraph) bool {
+func (w *Worker) Start(ctx context.Context, dgraph *external.GraphDB) bool {
 	w.activeMutex.Lock()
 	defer w.activeMutex.Unlock()
 	if !w.active {
@@ -178,7 +177,7 @@ func stoppingWork() {
 }
 
 // work periodically checks for new Work to be executed
-func (w *Worker) work(ctx context.Context, dgraph *dgo.Dgraph) {
+func (w *Worker) work(ctx context.Context, dgraph *external.GraphDB) {
 
 	var work Work
 	ticker := time.NewTicker(time.Second * 5)

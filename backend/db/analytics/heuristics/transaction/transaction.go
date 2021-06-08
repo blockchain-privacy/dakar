@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbtx "backend/db/transaction"
+	"backend/external"
 
 	"context"
 	"encoding/json"
@@ -11,7 +12,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
@@ -21,7 +21,7 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid string, err error) {
+func InsertHeuristic(c *external.GraphDB, h Heuristic, userUid string) (insertUid string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
@@ -77,7 +77,7 @@ func InsertHeuristic(c *dgo.Dgraph, h Heuristic, userUid string) (insertUid stri
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err error) {
+func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUid string) (err error) {
 	uidList := db.CreateUidList(uids)
 
 	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
@@ -100,7 +100,7 @@ func DeleteUserHeuristics(c *dgo.Dgraph, uids []string, userUid string) (err err
 }
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c *dgo.Dgraph, userUid string) (err error) {
+func DeleteAllUserHeuristics(c *external.GraphDB, userUid string) (err error) {
 	req := &api.Request{
 		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics}}",
 		Vars:  map[string]string{"$uuid": userUid},
@@ -124,7 +124,7 @@ func DeleteAllUserHeuristics(c *dgo.Dgraph, userUid string) (err error) {
 }
 
 // DeleteAllUserTxHeuristics deletes all heuristics of a user for a particular transaction
-func DeleteAllUserTxHeuristics(c *dgo.Dgraph, txhash string, userUid string) (err error) {
+func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUid string) (err error) {
 	query := `query Q($uuid:string, $hash:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -157,7 +157,7 @@ func DeleteAllUserTxHeuristics(c *dgo.Dgraph, txhash string, userUid string) (er
 }
 
 // GetHeuristic gets heuristic information from the database
-func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
+func GetHeuristic(c *external.GraphDB, heuristicUid string) (h Heuristic, err error) {
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
 					uid
@@ -202,7 +202,7 @@ func GetHeuristic(c *dgo.Dgraph, heuristicUid string) (h Heuristic, err error) {
 	return
 }
 
-func GetHeuristicResults(c *dgo.Dgraph, heuristicUid string) (results []HeuristicTransaction, err error) {
+func GetHeuristicResults(c *external.GraphDB, heuristicUid string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
 				var (func: uid($uid)){
 					x as results
@@ -265,7 +265,7 @@ func getInputAddresses(inputs []HeuristicInput) []string {
 }
 
 // GetInputTransactions returns the input transactions of the given transaction
-func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []HeuristicTransaction, err error) {
+func GetInputTransactions(c *external.GraphDB, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
@@ -325,7 +325,7 @@ func GetInputTransactions(c *dgo.Dgraph, tx string) (inputTransactions []Heurist
 
 // GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
 // Each transaction contains its output amounts and the addresses of all inputs.
-func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []string) (origins []HeuristicTransaction, err error) {
+func GetTransactionsWithOutputAmountAndInputAddresses(c *external.GraphDB, uids []string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
@@ -368,7 +368,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *dgo.Dgraph, uids []stri
 }
 
 // GetInputAmounts gets the amounts of the inputs
-func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction, err error) {
+func GetInputAmounts(c *external.GraphDB, tx string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				q(func: eq(txhash,$txhash)){
 					uid
@@ -412,7 +412,7 @@ func GetInputAmounts(c *dgo.Dgraph, tx string) (transaction HeuristicTransaction
 }
 
 // DoesHeuristicUidExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
-func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExist bool, err error) {
+func DoesHeuristicUidExist(c *external.GraphDB, txhash string, uids []string) (allExist bool, err error) {
 	uidList := db.CreateUidList(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
@@ -455,7 +455,7 @@ func DoesHeuristicUidExist(c *dgo.Dgraph, txhash string, uids []string) (allExis
 }
 
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
-func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
+func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -480,7 +480,7 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (he
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -504,7 +504,7 @@ func GetBasicFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (he
 }
 
 // GetFrontendHeuristicByUid the heuristic for the given heuristicUid
-func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid string) (
+func GetFrontendHeuristicByUid(c *external.GraphDB, heuristicUid string, userUid string) (
 	frontendHeuristic FrontendHeuristic, err error) {
 	query := `query Q($uid: string, $uuid: string){
 					q(func: uid($uid))@cascade{
@@ -526,7 +526,7 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": heuristicUid, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUid, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -579,7 +579,7 @@ func GetFrontendHeuristicByUid(c *dgo.Dgraph, heuristicUid string, userUid strin
 }
 
 // GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (completeHeuristic FrontendHeuristicComplete, err error) {
+func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -620,7 +620,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (complet
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -670,7 +670,7 @@ func GetFrontendHeuristic(c *dgo.Dgraph, txHash string, userUid string) (complet
 // True: Both inputs and outputs are traversed
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
-func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo string,
+func GetShortestTransactionPathAnyDirection(c *external.GraphDB, txFrom string, txTo string,
 	withPrivacyTransactions bool, anyDirection bool) (txs []dbtx.FrontendTransaction, err error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
@@ -723,7 +723,7 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
+	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
 		if !errors.Is(err, context.DeadlineExceeded) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -748,7 +748,7 @@ func GetShortestTransactionPathAnyDirection(c *dgo.Dgraph, txFrom string, txTo s
 }
 
 // GetHeuristicListByUser returns all transactions for which the given user has created heuristics
-func GetHeuristicListByUser(c *dgo.Dgraph, userUid string) (frontendHeuristic []HeuristicListItem, err error) {
+func GetHeuristicListByUser(c *external.GraphDB, userUid string) (frontendHeuristic []HeuristicListItem, err error) {
 	query := `query Q($uuid:string){
 				# get transaction
 				var(func: uid($uuid)){

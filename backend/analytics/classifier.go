@@ -8,13 +8,12 @@ import (
 	op "backend/db/output"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
+	"backend/external"
 
 	"context"
 	"errors"
 	"fmt"
 	"log"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -49,13 +48,13 @@ import (
 
 type Classifier struct {
 	config Config
-	db     *dgo.Dgraph
+	db     *external.GraphDB
 	ctx    context.Context
 	state  blockIterator.State
 }
 
 // NewClassifier creates a new Classifier object
-func NewClassifier(ctx context.Context, dgraph *dgo.Dgraph, cfg Config) *Classifier {
+func NewClassifier(ctx context.Context, dgraph *external.GraphDB, cfg Config) *Classifier {
 	return &Classifier{
 		config: cfg,
 		db:     dgraph,
@@ -83,7 +82,7 @@ func (a *Classifier) Context() context.Context {
 	return a.ctx
 }
 
-func (a *Classifier) Db() *dgo.Dgraph {
+func (a *Classifier) Db() *external.GraphDB {
 	return a.db
 }
 
@@ -154,7 +153,7 @@ func getUids(txs []dbtx.Transaction) []string {
 }
 
 // getConnectedCollaterals returns two sets of collateral transactions which are connected to the given transaction set.
-func getConnectedCollaterals(dgraph *dgo.Dgraph, potentialCollateralTransactions []dbtx.Transaction,
+func getConnectedCollaterals(dgraph *external.GraphDB, potentialCollateralTransactions []dbtx.Transaction,
 	blockHeight uint64) (originCC []dbtx.Transaction, originCP []dbtx.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
 		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
@@ -332,7 +331,7 @@ func (a *Classifier) PostExecution() error {
 
 // setInitialClassifierId sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierId(dgraph *dgo.Dgraph, startBlockClassifier uint64) (err error) {
+func setInitialClassifierId(dgraph *external.GraphDB, startBlockClassifier uint64) (err error) {
 	status, err := dbstat.GetClassifierStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -350,7 +349,7 @@ func setInitialClassifierId(dgraph *dgo.Dgraph, startBlockClassifier uint64) (er
 }
 
 // isCollateralCreation checks if the transactions is a collateral creation transaction
-func isCollateralCreation(dgraph *dgo.Dgraph, t dbtx.Transaction) (bool, error) {
+func isCollateralCreation(dgraph *external.GraphDB, t dbtx.Transaction) (bool, error) {
 	if *t.Fee == 0 || len(t.Inputs) < 1 || len(t.Outputs) != 2 {
 		return false, nil
 	}
@@ -470,7 +469,7 @@ func hasValidPrivacyType(tx dbtx.Transaction) bool {
 
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
-func classifyTransactions(dgraph *dgo.Dgraph, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
+func classifyTransactions(dgraph *external.GraphDB, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
 	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions

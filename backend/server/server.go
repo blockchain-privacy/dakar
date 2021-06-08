@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // loggerPrefix is the prefix which is printed for each log message
@@ -33,7 +31,7 @@ func fatal(v ...interface{}) {
 }
 
 // StartServer creates a http server on the given port
-func StartServer(wg *sync.WaitGroup, port uint, dgraph *dgo.Dgraph, client external.RPCClient,
+func StartServer(wg *sync.WaitGroup, port uint, dgraph *external.GraphDB, client external.RPCClient,
 	worker *heuristic.Worker) *http.Server {
 	// setup REST API
 	setupHandlers(dgraph, client, worker)

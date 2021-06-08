@@ -3,14 +3,13 @@ package output
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 
 	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 const NumDenominations = 5
@@ -28,7 +27,7 @@ const (
 var DenominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
 
 // GetOutput gets output information from the database
-func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Output, err error) {
+func GetOutput(c *external.GraphDB, txHash string, index uint32, isInput bool) (op Output, err error) {
 	// build query
 	relationship := "tx_outputs"
 	indextype := "outputindex"
@@ -73,7 +72,7 @@ func GetOutput(c *dgo.Dgraph, txHash string, index uint32, isInput bool) (op Out
 }
 
 // GetCount gets the number of outputs in the database
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c *external.GraphDB) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 

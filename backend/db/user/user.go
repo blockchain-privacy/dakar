@@ -3,6 +3,7 @@ package user
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 	"backend/user"
 
 	"encoding/json"
@@ -10,7 +11,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
@@ -22,7 +22,7 @@ var (
 )
 
 // CreateUser creates a new user
-func CreateUser(c *dgo.Dgraph, user User) error {
+func CreateUser(c *external.GraphDB, user User) error {
 	if len(user.Email) == 0 ||
 		len(user.Roles) == 0 ||
 		len(user.PasswordHash) == 0 ||
@@ -88,7 +88,7 @@ func CreateUser(c *dgo.Dgraph, user User) error {
 }
 
 // GetUsers gets all users currently in the database
-func GetUsers(c *dgo.Dgraph) (users []User, err error) {
+func GetUsers(c *external.GraphDB) (users []User, err error) {
 	query := `query {
 				q(func: type(User)){
 					uid
@@ -128,7 +128,7 @@ func GetUsers(c *dgo.Dgraph) (users []User, err error) {
 }
 
 // GetUserByEmail gets a User by E-mail from the db
-func GetUserByEmail(c *dgo.Dgraph, email string) (user User, err error) {
+func GetUserByEmail(c *external.GraphDB, email string) (user User, err error) {
 	query := `query Q($email:string){
 				q(func: eq(user_email,$email))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
@@ -146,7 +146,7 @@ func GetUserByEmail(c *dgo.Dgraph, email string) (user User, err error) {
 	defer cancel()
 
 	// no retry
-	resp, txErr := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$email": email})
+	resp, txErr := c.Query(ctx, query, map[string]string{"$email": email})
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
@@ -175,7 +175,7 @@ func GetUserByEmail(c *dgo.Dgraph, email string) (user User, err error) {
 }
 
 // GetUser gets a User by uid from the db
-func GetUser(c *dgo.Dgraph, uid string) (user User, err error) {
+func GetUser(c *external.GraphDB, uid string) (user User, err error) {
 	query := `query Q($uid:string){
 				q(func: uid($uid))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
@@ -193,7 +193,7 @@ func GetUser(c *dgo.Dgraph, uid string) (user User, err error) {
 	defer cancel()
 
 	// no retry
-	resp, txErr := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": uid})
+	resp, txErr := c.Query(ctx, query, map[string]string{"$uid": uid})
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
@@ -222,14 +222,14 @@ func GetUser(c *dgo.Dgraph, uid string) (user User, err error) {
 }
 
 // existsUser checks if a User with the given uid exists
-func existsUser(c *dgo.Dgraph, uid string) (found bool, err error) {
+func existsUser(c *external.GraphDB, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + ")){uid}}"
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
 
 	// no retry
-	resp, txErr := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uid": uid})
+	resp, txErr := c.Query(ctx, query, map[string]string{"$uid": uid})
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
@@ -256,7 +256,7 @@ func existsUser(c *dgo.Dgraph, uid string) (found bool, err error) {
 }
 
 // DeleteUser deletes the User with the given uid
-func DeleteUser(c *dgo.Dgraph, uid string) (err error) {
+func DeleteUser(c *external.GraphDB, uid string) (err error) {
 	if found, existsErr := existsUser(c, uid); existsErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), existsErr)
 		return
@@ -283,17 +283,17 @@ func DeleteUser(c *dgo.Dgraph, uid string) (err error) {
 }
 
 // GetUserCount gets the number of users in the database
-func GetUserCount(c *dgo.Dgraph) (uint64, error) {
+func GetUserCount(c *external.GraphDB) (uint64, error) {
 	return db.GetCount(c, DTypeUser)
 }
 
 // GetRoleCount gets the number of roles in the database
-func GetRoleCount(c *dgo.Dgraph) (uint64, error) {
+func GetRoleCount(c *external.GraphDB) (uint64, error) {
 	return db.GetCount(c, DTypeRole)
 }
 
 // CreateAdminUser creates an new admin account with a random password
-func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
+func CreateAdminUser(c *external.GraphDB, email string) (string, error) {
 	pw, pwHash, err := user.GetRandomPasswordAndHash()
 	if err != nil {
 		return "", err
@@ -314,7 +314,7 @@ func CreateAdminUser(c *dgo.Dgraph, email string) (string, error) {
 
 // ModifyUser modifies the given user in the database. The uid must be filled.
 // Email and/or Roles can be set.
-func ModifyUser(c *dgo.Dgraph, user User) (err error) {
+func ModifyUser(c *external.GraphDB, user User) (err error) {
 
 	modifiedTime := time.Now()
 	user.Modified = &modifiedTime
@@ -355,7 +355,7 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
 
-	resp, txErr := c.NewTxn().Do(ctx, &api.Request{
+	resp, txErr := c.Mutate(ctx, &api.Request{
 		Query: queryStart + queryRoles + queryEnd,
 		Vars:  queryVars,
 		Mutations: []*api.Mutation{{
@@ -381,7 +381,7 @@ func ModifyUser(c *dgo.Dgraph, user User) (err error) {
 }
 
 // RemoveRolesFromUser removes all roles from a given user
-func RemoveRolesFromUser(c *dgo.Dgraph, uid string) (err error) {
+func RemoveRolesFromUser(c *external.GraphDB, uid string) (err error) {
 	query := `query Q($uid: string) {
 			 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DTypeUser + `"))
 	}`

@@ -29,8 +29,6 @@ import (
 
 	"github.com/btcsuite/btcd/rpcclient"
 
-	"github.com/dgraph-io/dgo/v210"
-
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -112,8 +110,8 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 }
 
 // checks if a crawling process is already running
-func isCrawling(dgraph *dgo.Dgraph) (bool, error) {
-	dbStatus, err := status.GetCrawlerStatus(dgraph)
+func isCrawling(db *external.GraphDB) (bool, error) {
+	dbStatus, err := status.GetCrawlerStatus(db)
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
@@ -159,14 +157,14 @@ func waitForRPCClient(client external.RPCClient) bool {
 }
 
 // waitForDatabase waits until the database is ready to receive requests
-func waitForDatabase(dgraph *dgo.Dgraph) bool {
+func waitForDatabase(db *external.GraphDB) bool {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 
 	var printedErrMessage bool
 
 	for i := 0; i < maxRetries; i++ {
-		if status.IsConnectionEstablished(dgraph) {
+		if status.IsConnectionEstablished(db) {
 			if printedErrMessage {
 				info("Successfully established connection to database.")
 			}
@@ -263,7 +261,7 @@ func main() {
 	info(processorConfig.BlockchainName, "mode active")
 
 	// create dgraph client
-	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
+	graphDB, c, err := db.CreateClient(cliArgs.DBEndpoint)
 	if err != nil {
 		info(err)
 		return
@@ -275,12 +273,12 @@ func main() {
 	}()
 
 	// test if database is active
-	if !waitForDatabase(dgraph) {
+	if !waitForDatabase(graphDB) {
 		return
 	}
 
 	if cliArgs.IsPrintStatus {
-		status.PrintStatus(dgraph)
+		status.PrintStatus(graphDB)
 		return
 	}
 
@@ -315,13 +313,13 @@ func main() {
 			return
 		}
 
-		err = db.DropAll(dgraph)
+		err = db.DropAll(graphDB)
 		if err != nil {
 			info(err)
 			return
 		}
 		info("Dropped all data.")
-		err = db.SetupSchema(dgraph)
+		err = db.SetupSchema(graphDB)
 		if err != nil {
 			info(err)
 			return
@@ -334,7 +332,7 @@ func main() {
 	}
 
 	// check if schema exists
-	if isSet, err := db.IsSchemaSet(dgraph); err != nil {
+	if isSet, err := db.IsSchemaSet(graphDB); err != nil {
 		info(err)
 		return
 	} else if !isSet {
@@ -343,7 +341,7 @@ func main() {
 	}
 
 	if !cliArgs.IgnoreSafeguard {
-		if ok, err := isCrawling(dgraph); err != nil {
+		if ok, err := isCrawling(graphDB); err != nil {
 			info(err)
 			return
 		} else if ok {
@@ -355,12 +353,12 @@ func main() {
 	// create admin account if none is set
 	if !cliArgs.DisableHttpServer {
 		// check if users already exist
-		_, userErr := dbus.GetUsers(dgraph)
+		_, userErr := dbus.GetUsers(graphDB)
 		if userErr != nil {
 			// no users exists -> create admin user
 			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
 				adminEmail := "admin@dakar.null"
-				pw, userCreationError := dbus.CreateAdminUser(dgraph, adminEmail)
+				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminEmail)
 				if userCreationError != nil {
 					info(err)
 					return
@@ -422,9 +420,9 @@ func main() {
 				chCrawlingStopped <- true
 			}()
 			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(appContext, dgraph, client, processorConfig)
+				err = processor.ProcessBlocksContinuously(appContext, graphDB, client, processorConfig)
 			} else {
-				err = processor.ProcessBlockRange(appContext, dgraph, client, cliArgs.StartBlockID,
+				err = processor.ProcessBlockRange(appContext, graphDB, client, cliArgs.StartBlockID,
 					cliArgs.StopBlockID, processorConfig)
 			}
 
@@ -434,7 +432,7 @@ func main() {
 		}()
 	}
 
-	graphWrapper := graph.NewWrapper(appContext, dgraph)
+	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	worker := heuristic.NewWorker(graphWrapper)
 	var classifierStarted bool
 	if !cliArgs.DisableHttpServer && !cliArgs.DisableHeuristics {
@@ -463,14 +461,14 @@ func main() {
 					}()
 
 					if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
-						appContext, dgraph, analyserConfig)); classifierErr != nil {
+						appContext, graphDB, analyserConfig)); classifierErr != nil {
 						info(classifierErr)
 					}
 				}()
 			}
 		}()
 
-		if ok := worker.Start(appContext, dgraph); !ok {
+		if ok := worker.Start(appContext, graphDB); !ok {
 			info("could not start worker")
 			return
 		}
@@ -487,7 +485,7 @@ func main() {
 			}()
 
 			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
-				appContext, dgraph, analyserConfig)); classifierErr != nil {
+				appContext, graphDB, analyserConfig)); classifierErr != nil {
 				info(classifierErr)
 			}
 		}()
@@ -497,7 +495,7 @@ func main() {
 	var srv *http.Server
 	if !cliArgs.DisableHttpServer {
 		wg.Add(1)
-		srv = server.StartServer(&wg, cliArgs.HttpServerPort, dgraph, client, worker)
+		srv = server.StartServer(&wg, cliArgs.HttpServerPort, graphDB, client, worker)
 	}
 
 	var crawlerStopped bool

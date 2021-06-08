@@ -4,12 +4,11 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/external"
 
 	"fmt"
 	"strconv"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 type OneSourceHeuristic struct {
@@ -71,7 +70,7 @@ type txAndOrigins struct {
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
-func (h OneSourceHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, _ string) ([]string, error) {
+func (h OneSourceHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string, _ string) ([]string, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)

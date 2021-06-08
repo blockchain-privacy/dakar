@@ -5,10 +5,9 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
+	"backend/external"
 
 	"fmt"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 type DenominationTypeHeuristic struct {
@@ -51,7 +50,7 @@ func (h DenominationTypeHeuristic) clone() heuristic {
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
-func (h DenominationTypeHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string,
+func (h DenominationTypeHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string,
 	parentHeuristicUid string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash

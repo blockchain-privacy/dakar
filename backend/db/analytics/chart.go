@@ -3,17 +3,16 @@ package analytics
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.
 // If the string is empty then all privacy transactions are considered.
-func GetPrivacyTypeData(c *dgo.Dgraph, startRange string, stopRange string) (ts []time.Time, err error) {
+func GetPrivacyTypeData(c *external.GraphDB, startRange string, stopRange string) (ts []time.Time, err error) {
 	const query = `query Q($ge:string,$le:string){
 				q(func:between(privacytype,$ge,$le))@normalize{
 					~transactions{

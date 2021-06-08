@@ -2,17 +2,17 @@ package db
 
 import (
 	"backend/cmd/cliutil"
+	"backend/external"
 
 	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // SetupSchema installs a schema into dgraph
-func SetupSchema(c *dgo.Dgraph) error {
+func SetupSchema(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			blockhash: string @index(hash) @upsert .
@@ -137,11 +137,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 }
 
 // IsSchemaSet checks if a schema is set
-func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
+func IsSchemaSet(c *external.GraphDB) (exists bool, err error) {
 	query := "schema(type: Block){}"
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
+	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -167,7 +167,7 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	return
 }
 
-func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
+func AlterSchemaAddClassifier(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			isclassifying: bool .
@@ -181,7 +181,7 @@ func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 	})
 }
 
-func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
+func AlterSchemaChangePrivacyTypePredicate(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			privacytype: int @index(int) .
@@ -189,38 +189,38 @@ func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
 	})
 }
 
-func DropAllPrivacyTypes(c *dgo.Dgraph) error {
+func DropAllPrivacyTypes(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "privacytype",
 	})
 }
 
-func DropAllOrigins(c *dgo.Dgraph) error {
+func DropAllOrigins(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "origins",
 	})
 }
 
-func DropIsAnalyzing(c *dgo.Dgraph) error {
+func DropIsAnalyzing(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "isanalyzing",
 	})
 }
 
-func DropLastAnalysedId(c *dgo.Dgraph) error {
+func DropLastAnalysedId(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "lastanalysedid",
 	})
 }
 
-func DropTypeAnalyzerStatus(c *dgo.Dgraph) error {
+func DropTypeAnalyzerStatus(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropOp:    api.Operation_TYPE,
 		DropValue: "AnalyzerStatus",
 	})
 }
 
-func AlterSchemaSetTransactionType(c *dgo.Dgraph) error {
+func AlterSchemaSetTransactionType(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			type Transaction {

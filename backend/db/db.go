@@ -2,6 +2,7 @@ package db
 
 import (
 	"backend/cmd/cliutil"
+	"backend/external"
 
 	"context"
 	"encoding/json"
@@ -51,23 +52,23 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 }
 
 // execTx executes the given request
-func execTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+func execTx(db *external.GraphDB, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
-	return dgraph.NewTxn().Do(ctx, req)
+	return db.Mutate(ctx, req)
 }
 
 // TxWithRetry executes the given request. In case the request fails repeat it
-func TxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, req *api.Request) error {
-	_, err := TxWithRetryAndResponse(dgraph, timeoutPerRequest, req)
+func TxWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
 	return err
 }
 
 // TxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func TxWithRetryAndResponse(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
+func TxWithRetryAndResponse(db *external.GraphDB, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if resp, err = execTx(dgraph, timeoutPerRequest, req); err == nil {
+		if resp, err = execTx(db, timeoutPerRequest, req); err == nil {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -80,20 +81,20 @@ func TxWithRetryAndResponse(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
 }
 
 // execReadOnlyTx executes the given request, vars is allowed to be nil
-func execReadOnlyTx(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+func execReadOnlyTx(db *external.GraphDB, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 
-	return dgraph.NewReadOnlyTxn().QueryWithVars(ctx, q, vars)
+	return db.Query(ctx, q, vars)
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string,
+func ReadOnlyTxVarWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
-		resp, txErr := execReadOnlyTx(dgraph, timeoutPerRequest, q, vars)
+		resp, txErr := execReadOnlyTx(db, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil
 		}
@@ -108,21 +109,21 @@ func ReadOnlyTxVarWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration,
 }
 
 // ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxWithRetry(dgraph *dgo.Dgraph, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
-	return ReadOnlyTxVarWithRetry(dgraph, timeoutPerRequest, q, nil)
+func ReadOnlyTxWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
+	return ReadOnlyTxVarWithRetry(db, timeoutPerRequest, q, nil)
 }
 
 // DropAll drops ALL data from the database, schema included
-func DropAll(c *dgo.Dgraph) error {
+func DropAll(db *external.GraphDB) error {
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	return c.Alter(ctx, &api.Operation{
+	return db.Alter(ctx, &api.Operation{
 		DropAll: true,
 	})
 }
 
 // CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
+func CreateClient(endpoint string) (*external.GraphDB, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
@@ -131,11 +132,11 @@ func CreateClient(endpoint string) (*dgo.Dgraph, *grpc.ClientConn, error) {
 		return nil, conn, err
 	}
 
-	return dgo.NewDgraphClient(api.NewDgraphClient(conn)), conn, nil
+	return &external.GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
 }
 
 // GetCount gets the number of instances of the given type in the database
-func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
+func GetCount(db *external.GraphDB, dbType string) (count uint64, err error) {
 	query := fmt.Sprintf(`{
 				 q(func: type(%s)){
 					count(uid)
@@ -145,7 +146,7 @@ func GetCount(c *dgo.Dgraph, dbType string) (count uint64, err error) {
 
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
+	resp, err := db.Query(ctx, query, nil)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

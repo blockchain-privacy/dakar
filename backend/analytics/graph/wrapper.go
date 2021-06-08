@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/db/status"
+	"backend/external"
 	"context"
 	"errors"
 	"fmt"
@@ -12,8 +13,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // graphLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
@@ -32,7 +31,7 @@ func info(v ...interface{}) {
 
 type Wrapper struct {
 	context context.Context
-	db      *dgo.Dgraph
+	db      *external.GraphDB
 	state   blockIterator.State
 
 	// isLoading is true if the graph loading was started.
@@ -49,7 +48,7 @@ type Wrapper struct {
 }
 
 // NewWrapper constructs a new Wrapper
-func NewWrapper(ctx context.Context, dgraph *dgo.Dgraph) *Wrapper {
+func NewWrapper(ctx context.Context, dgraph *external.GraphDB) *Wrapper {
 	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
 		addressGraphMutex: new(sync.RWMutex)}
 }
@@ -180,7 +179,7 @@ func (w *Wrapper) Context() context.Context {
 	return w.context
 }
 
-func (w *Wrapper) Db() *dgo.Dgraph {
+func (w *Wrapper) Db() *external.GraphDB {
 	return w.db
 }
 

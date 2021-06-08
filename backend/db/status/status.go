@@ -8,17 +8,17 @@ import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // PrintStatus outputs the stats for the given DB
-func PrintStatus(dgraph *dgo.Dgraph) {
+func PrintStatus(dgraph *external.GraphDB) {
 	crawlerStatus, _ := GetCrawlerStatus(dgraph)
 
 	if crawlerStatus.IsCrawling != nil {
@@ -56,7 +56,7 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 }
 
 // GetCrawlerStatus gets the crawler status from the database
-func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
+func GetCrawlerStatus(c *external.GraphDB) (status CrawlerStatus, err error) {
 	query := `{
 				 q(func: type(CrawlerStatus)){
 					uid
@@ -83,7 +83,7 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 }
 
 // GetClassifierStatus gets the classifier status from the database
-func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
+func GetClassifierStatus(c *external.GraphDB) (status ClassifierStatus, err error) {
 	query := `{
 				 q(func: type(ClassifierStatus)){
 					uid
@@ -109,7 +109,7 @@ func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
 }
 
 // GetHighestBlockId gets the highest block id.
-func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
+func GetHighestBlockId(c *external.GraphDB) (max uint64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -151,7 +151,7 @@ func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
 }
 
 // GetFrontendStatus gets verbose status information from the database
-func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
+func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(CrawlerStatus)){
 					iscrawling
@@ -166,7 +166,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
+	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -225,7 +225,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 }
 
 // SetCrawlerStatus sets the new crawler status
-func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
+func SetCrawlerStatus(c *external.GraphDB, status CrawlerStatus) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
 
@@ -253,7 +253,7 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 }
 
 // SetClassifierStatus sets the new classifier status
-func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
+func SetClassifierStatus(c *external.GraphDB, status ClassifierStatus) error {
 	status.Uid = "uid(v)"
 	status.SetDType()
 
@@ -281,28 +281,28 @@ func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
 }
 
 // SetCrawling sets the crawling status
-func SetCrawling(c *dgo.Dgraph, crawling bool) error {
+func SetCrawling(c *external.GraphDB, crawling bool) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
 // SetClassifying sets the classifying status
-func SetClassifying(c *dgo.Dgraph, classifying bool) error {
+func SetClassifying(c *external.GraphDB, classifying bool) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		IsClassifying: &classifying,
 	})
 }
 
 // SetLastBlockId sets the last block id
-func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
+func SetLastBlockId(c *external.GraphDB, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		LastBlockId: &id,
 	})
 }
 
 // SetLastClassifiedBlockId sets the last classified block id
-func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
+func SetLastClassifiedBlockId(c *external.GraphDB, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		LastClassifiedBlockId: &id,
 	})
@@ -310,12 +310,12 @@ func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
 
 // GetCount gets the number of status instances in the database
 // IMPORTANT: Should always be at most one
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c *external.GraphDB) (uint64, error) {
 	return db.GetCount(c, CrawlerStatusDType)
 }
 
 // IsConnectionEstablished test the database connection
-func IsConnectionEstablished(c *dgo.Dgraph) bool {
+func IsConnectionEstablished(c *external.GraphDB) bool {
 	query := `{
 				 q(func: has(blockhash), first:1){
 					uid
@@ -324,7 +324,7 @@ func IsConnectionEstablished(c *dgo.Dgraph) bool {
 
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	_, err := c.NewReadOnlyTxn().Query(ctx, query)
+	_, err := c.Query(ctx, query, nil)
 	if err != nil {
 		return false
 	}

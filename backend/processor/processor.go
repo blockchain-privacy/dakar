@@ -23,8 +23,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 const (
@@ -146,7 +144,7 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 	return
 }
 
-func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs map[string]outputMapping,
+func buildAddresses(dgraph *external.GraphDB, txHash string, blockHash string, outputs map[string]outputMapping,
 	addrMap *map[string]dbaddr.Address) (err error) {
 	txFromDB, err := dbtx.GetTransaction(dgraph, txHash, blockHash)
 	if err != nil {
@@ -160,7 +158,7 @@ func buildAddresses(dgraph *dgo.Dgraph, txHash string, blockHash string, outputs
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
-func processAddresses(dgraph *dgo.Dgraph, transactionMappings []TransactionMapping, blockHash string) (err error) {
+func processAddresses(dgraph *external.GraphDB, transactionMappings []TransactionMapping, blockHash string) (err error) {
 	if len(transactionMappings) == 0 {
 		return
 	}
@@ -229,7 +227,7 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 // BuildTransactionMapping processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
-func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawResult,
+func BuildTransactionMapping(dgraph *external.GraphDB, rawTransaction btcjson.TxRawResult,
 	txHashMap map[string]btcjson.TxRawResult, isContinuous bool, config Config) (
 	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
@@ -331,7 +329,7 @@ func BuildTransactionMapping(dgraph *dgo.Dgraph, rawTransaction btcjson.TxRawRes
 }
 
 // processTxVin maps the input information to the output if it exists already in the database
-func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
+func processTxVin(dgraph *external.GraphDB, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -374,7 +372,7 @@ func processTxVin(dgraph *dgo.Dgraph, details *dbtx.Transaction, vin btcjson.Vin
 }
 
 // ProcessBlock builds a block with the provided arguments and inserts it in the database
-func ProcessBlock(dgraph *dgo.Dgraph, transactions []dbtx.Transaction, currentHash string,
+func ProcessBlock(dgraph *external.GraphDB, transactions []dbtx.Transaction, currentHash string,
 	blockId uint64, timestamp string, prevBlockHash string) (err error) {
 
 	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
@@ -395,7 +393,7 @@ var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and hig
 
 // getStartingId gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
-func getStartingId(dgraph *dgo.Dgraph) (startId uint64, err error) {
+func getStartingId(dgraph *external.GraphDB) (startId uint64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -476,7 +474,7 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph *dgo.Dgraph, client external.RPCClient, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
+func getInitialState(dgraph *external.GraphDB, client external.RPCClient, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
 	if state.id, err = getStartingId(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -499,7 +497,7 @@ func getInitialState(dgraph *dgo.Dgraph, client external.RPCClient, continuous b
 }
 
 // ProcessBlockRange processes all blocks from startingBlockId to stoppingBlockId
-func ProcessBlockRange(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient,
+func ProcessBlockRange(ctx context.Context, dgraph *external.GraphDB, client external.RPCClient,
 	startingBlockId uint64, stoppingBlockId uint64, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
@@ -595,7 +593,7 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 }
 
 // ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
-func ProcessBlocksContinuously(ctx context.Context, dgraph *dgo.Dgraph, client external.RPCClient, config Config) error {
+func ProcessBlocksContinuously(ctx context.Context, dgraph *external.GraphDB, client external.RPCClient, config Config) error {
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -720,7 +718,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph *dgo.Dgraph, client external.RPCClient, state crawlerProcessingState,
+func ProcessRound(dgraph *external.GraphDB, client external.RPCClient, state crawlerProcessingState,
 	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
 	blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
