@@ -11,10 +11,12 @@ import (
 const DType = "Transaction"
 
 var (
+	// ErrorTransactionNotFound is returned if a requested transaction has not been found
 	ErrorTransactionNotFound = errors.New("no transaction found")
-	ErrorInvalidResult       = errors.New("invalid result")
+	errorInvalidResult       = errors.New("invalid result")
 )
 
+// Transaction is the database representation of a transaction
 type Transaction struct {
 	UID         string                 `json:"uid,omitempty"`
 	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
@@ -74,10 +76,12 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	return
 }
 
+// IsMixingTransaction returns true if the transaction is a mixing transaction
 func (t *Transaction) IsMixingTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
 }
 
+// IsDestinationTransaction returns true if the transaction is a destination transaction
 func (t *Transaction) IsDestinationTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
 }
@@ -101,6 +105,7 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 	return
 }
 
+// FrontendOutput holds the output data which is exposed to the frontend
 type FrontendOutput struct {
 	Amount      *int64  `json:"amount"`
 	InputIndex  *uint32 `json:"inputindex"`
@@ -111,6 +116,7 @@ type FrontendOutput struct {
 	KeyAsm      string  `json:"keyasm,omitempty"`
 }
 
+// FrontendTransaction holds the transaction data which is exposed to the frontend
 type FrontendTransaction struct {
 	Hash           string           `json:"txhash,omitempty"`
 	BlockHash      string           `json:"bhash,omitempty"`
@@ -128,18 +134,4 @@ func (f FrontendTransaction) String() string {
 		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
 		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
-}
-
-type FrontendRequest struct {
-	Hash        string           `json:"txhash,omitempty"`
-	PrivacyType string           `json:"privacytype,omitempty"`
-	Fee         string           `json:"fee,omitempty"`
-	OriginCount uint64           `json:"origincount,omitempty"`
-	Outputs     []FrontendOutput `json:"outputs,omitempty"`
-	Inputs      []FrontendOutput `json:"inputs,omitempty"`
-	Block       []struct {
-		Hash string `json:"blockhash,omitempty"`
-		Ts   string `json:"ts,omitempty"`
-		ID   uint64 `json:"id,omitempty"`
-	} `json:"block,omitempty"`
 }

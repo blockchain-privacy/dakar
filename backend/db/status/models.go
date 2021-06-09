@@ -99,6 +99,7 @@ func (v FrontendStatus) String() string {
 }
 
 var (
+	// ErrorStatusNotFound is returned if the status has not been set yet
 	ErrorStatusNotFound                = errors.New("no status found")
 	errorInvalidNumber                 = errors.New("wrong number of status objects returned")
 	errorLastBlockIDNotFound           = errors.New("last block id not found")

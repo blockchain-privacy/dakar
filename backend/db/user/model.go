@@ -31,6 +31,7 @@ func (r *Role) SetDType() {
 	r.DType = []string{DTypeRole}
 }
 
+// User is the database representation of a user
 type User struct {
 	UID          string                  `json:"uid,omitempty"`
 	Email        string                  `json:"user_email,omitempty"`
@@ -52,6 +53,7 @@ func (u *User) SetDType() {
 	u.DType = []string{DTypeUser}
 }
 
+// ToFrontendUserState returns user data for the frontend
 func (u User) ToFrontendUserState() FrontendUserClientState {
 	return FrontendUserClientState{
 		UID:   u.UID,
@@ -60,6 +62,7 @@ func (u User) ToFrontendUserState() FrontendUserClientState {
 	}
 }
 
+// ToFrontendUserBackendState converts frontend user data to the user backend representation
 func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
 	return FrontendUserBackendState{
 		UID:      u.UID,
@@ -70,7 +73,7 @@ func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
 	}
 }
 
-// ModifyUserRequest represents the client side state of the user
+// ModifyUserRequest holds the configuration data for a user modification request
 type ModifyUserRequest struct {
 	UID             string `json:"uid,omitempty"`
 	Email           string `json:"email,omitempty"`
@@ -79,6 +82,7 @@ type ModifyUserRequest struct {
 	Roles           []Role `json:"roles,omitempty"`
 }
 
+// ToUser returns a User object with the given password hash
 func (m ModifyUserRequest) ToUser(pwHash string) User {
 	return User{
 		UID:          m.UID,
@@ -95,6 +99,7 @@ type FrontendUserClientState struct {
 	Roles []Role `json:"roles,omitempty"`
 }
 
+// ToUser returns a User object
 func (f FrontendUserClientState) ToUser() User {
 	return User{
 		UID:   f.UID,
@@ -120,6 +125,7 @@ func (f FrontendUserClientState) IsValid() bool {
 	return true
 }
 
+// FrontendUserRoles is the role representation for the frontend
 type FrontendUserRoles struct {
 	Email string   `json:"user_email"`
 	Roles []string `json:"user_roles"`
@@ -129,6 +135,7 @@ func (f FrontendUserRoles) String() string {
 	return fmt.Sprintf("email %s, roles: %v", f.Email, f.Roles)
 }
 
+// ToUser returns a User object
 func (f FrontendUserRoles) ToUser() User {
 	var roles []Role
 
@@ -169,6 +176,7 @@ func (f FrontendUserRoles) IsValid() bool {
 	return true
 }
 
+// FrontendUserLogin holds data of a user login
 type FrontendUserLogin struct {
 	Email    string `json:"user_email"`
 	Password string `json:"user_pw"`
@@ -192,6 +200,7 @@ type FrontendUserBackendState struct {
 	Modified *time.Time `json:"modified,omitempty"`
 }
 
+// ToFrontendUserClientState converts the backend user state to a frontend user state
 func (l FrontendUserBackendState) ToFrontendUserClientState() FrontendUserClientState {
 	return FrontendUserClientState{
 		UID:   l.UID,
