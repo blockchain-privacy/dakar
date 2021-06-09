@@ -33,6 +33,7 @@ before_script:
 
 unit_tests:
   stage: test
+  needs: ["dependencies"]
   script: make test
   cache:
     <<: *modcache
@@ -40,6 +41,7 @@ unit_tests:
 
 lint_code:
   stage: test
+  needs: ["dependencies"]
   script: make lint
   cache:
     <<: *modcache
@@ -47,6 +49,7 @@ lint_code:
 
 vet:
   stage: test
+  needs: ["dependencies"]
   script: make vet
   cache:
     <<: *modcache
