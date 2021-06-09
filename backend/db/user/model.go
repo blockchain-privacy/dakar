@@ -15,6 +15,7 @@ const (
 	DTypeRole = "Role"
 )
 
+// Role is the database representation of a role
 type Role struct {
 	UID   string   `json:"uid,omitempty"`
 	Name  string   `json:"role_name"`

@@ -51,6 +51,7 @@ func (c *CrawlerStatus) SetDType() {
 	c.DType = []string{CrawlerStatusDType}
 }
 
+// ClassifierStatus is the database representation of the classifier status
 type ClassifierStatus struct {
 	UID string `json:"uid,omitempty"`
 

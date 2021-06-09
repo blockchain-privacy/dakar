@@ -10,6 +10,7 @@ import (
 // DType is the dgraph database type for the Output type
 const DType = "Output"
 
+// Output is the database representation of an output
 type Output struct {
 	UID         string   `json:"uid,omitempty"`
 	OutputIndex *uint32  `json:"outputindex,omitempty"`
@@ -55,6 +56,7 @@ type outputQuery struct {
 }
 
 var (
+	// ErrorNotFound is returned if an output was not found
 	ErrorNotFound      = errors.New("output not found")
 	errorMultipleFound = errors.New("found multiple outputs")
 )

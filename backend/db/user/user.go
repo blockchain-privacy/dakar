@@ -15,10 +15,12 @@ import (
 )
 
 var (
-	errorInvalidUser         = errors.New("error invalid user")
-	ErrorEmailExists         = errors.New("error email already exists")
+	// ErrorEmailExists is returned if a users' email already exists
+	ErrorEmailExists = errors.New("error email already exists")
+	// ErrorUsersNotFound is returned if no users are found
 	ErrorUsersNotFound       = errors.New("error no users found")
 	errorToManyUsersReturned = errors.New("error to many users returned")
+	errorInvalidUser         = errors.New("error invalid user")
 )
 
 // CreateUser creates a new user

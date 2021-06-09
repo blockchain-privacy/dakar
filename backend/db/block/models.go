@@ -17,6 +17,7 @@ var (
 	ErrorInvalidResult = errors.New("invalid result")
 )
 
+// Block is the database representation of a block
 type Block struct {
 	UID          string           `json:"uid,omitempty"`
 	Hash         string           `json:"blockhash,omitempty"`
@@ -56,6 +57,7 @@ func (b Block) IsComplete() bool {
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
 }
 
+// FrontendBlock holds all block data which is exposed to the frontend
 type FrontendBlock struct {
 	Hash          string   `json:"blockhash,omitempty"`
 	ID            uint64   `json:"id,omitempty"`

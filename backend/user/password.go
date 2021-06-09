@@ -12,6 +12,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+// DefaultPasswordConfig is the default password hashing configuration
 var DefaultPasswordConfig = &PasswordHashConfig{
 	time:    1,
 	memory:  65536, //64 * 1024
@@ -36,6 +37,7 @@ func GetRandomPasswordAndHash() (pw string, pwHash string, err error) {
 	return
 }
 
+// GenerateRandomPassword returns a random string if fixed length of 22
 func GenerateRandomPassword() (string, error) {
 	// Generate a Salt
 	pwByte := make([]byte, 16)
@@ -46,6 +48,7 @@ func GenerateRandomPassword() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil
 }
 
+// PasswordHashConfig is the configuration data to generate a password hash
 type PasswordHashConfig struct {
 	time    uint32
 	memory  uint32

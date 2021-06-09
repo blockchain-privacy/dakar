@@ -2,6 +2,7 @@ package processor
 
 import "time"
 
+// Config holds data related to the crawling process of a specific blockchain
 type Config struct {
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
@@ -22,6 +23,7 @@ func preprocessConfig(c Config) Config {
 	return c
 }
 
+// NewDashConfig returns the configuration for Dash
 func NewDashConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Dash",
@@ -31,6 +33,7 @@ func NewDashConfig() Config {
 	})
 }
 
+// NewBitcoinConfig returns the configuration for Bitcoin
 func NewBitcoinConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Bitcoin",
@@ -40,6 +43,7 @@ func NewBitcoinConfig() Config {
 	})
 }
 
+// NewDogecoinConfig returns the configuration for Dogecoin
 func NewDogecoinConfig() Config {
 	return preprocessConfig(Config{
 		BlockchainName:   "Doge",

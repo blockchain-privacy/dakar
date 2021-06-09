@@ -8,6 +8,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 )
 
+// RPCValues is a container of all data types used in the mock implementation of the RPCClient
 type RPCValues struct {
 	BlockHeight          int64
 	BlockStore           map[chainhash.Hash]btcjson.GetBlockVerboseResult
@@ -17,6 +18,7 @@ type RPCValues struct {
 	FutureBlockchainInfo rpcclient.FutureGetBlockChainInfoResult
 }
 
+// RPCVal is a global variable in which the mock values are saved
 var RPCVal RPCValues
 
 func init() {
