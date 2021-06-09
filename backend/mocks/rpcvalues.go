@@ -8,7 +8,7 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 )
 
-type RpcValues struct {
+type RPCValues struct {
 	BlockHeight          int64
 	BlockStore           map[chainhash.Hash]btcjson.GetBlockVerboseResult
 	TxStore              map[chainhash.Hash]btcjson.TxRawResult
@@ -17,7 +17,7 @@ type RpcValues struct {
 	FutureBlockchainInfo rpcclient.FutureGetBlockChainInfoResult
 }
 
-var RpcVal RpcValues
+var RPCVal RPCValues
 
 func init() {
 	blkInfo := btcjson.GetBlockChainInfoResult{
@@ -411,7 +411,7 @@ func init() {
 		Blocktime:     1613520445,
 	}
 
-	RpcVal = RpcValues{
+	RPCVal = RPCValues{
 		BlockHeight:    50000,
 		BlockchainInfo: blkInfo,
 		BlockStore:     store,

@@ -43,10 +43,12 @@ func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
 
+// GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
 func GetBackendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), backendTimeout)
 }
 
+// GetFrontendContext returns a context with a runtime of frontEndTimout and a cancel function
 func GetFrontendContext() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), frontEndTimout)
 }
@@ -172,9 +174,9 @@ func GetCount(db *external.GraphDB, dbType string) (count uint64, err error) {
 	return
 }
 
-// CreateUidList returns a formatted string which contains all given uids for usage with Dgraph
+// CreateUIDList returns a formatted string which contains all given uids for usage with Dgraph
 // Example: [0x123,0x1a1d]
-func CreateUidList(uids []string) string {
+func CreateUIDList(uids []string) string {
 	uidList := "["
 	for i, uid := range uids {
 		uidList += uid

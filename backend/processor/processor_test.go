@@ -139,12 +139,12 @@ func TestAddOutputsToAddresses(t *testing.T) {
 }
 
 func TestCreateOutputUid(t *testing.T) {
-	outputUid := createOutputUid("asdf", 50)
-	require.NotEmpty(t, outputUid)
-	if len(outputUid) < 2 {
-		t.Fatal("output uid is too short:", outputUid)
+	outputUID := createOutputUID("asdf", 50)
+	require.NotEmpty(t, outputUID)
+	if len(outputUID) < 2 {
+		t.Fatal("output uid is too short:", outputUID)
 	}
-	require.EqualValues(t, "_:", outputUid[:2])
+	require.EqualValues(t, "_:", outputUID[:2])
 }
 
 func TestDecodeAddress(t *testing.T) {
@@ -199,7 +199,7 @@ func TestBuildAddressMapping(t *testing.T) {
 	fourNines := int64(9999)
 	wrong := false
 	output1 := dbop.Output{
-		Uid:         "0x59b84",
+		UID:         "0x59b84",
 		OutputIndex: &zero,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
@@ -209,7 +209,7 @@ func TestBuildAddressMapping(t *testing.T) {
 	}
 
 	output2 := dbop.Output{
-		Uid:         "0x59b85",
+		UID:         "0x59b85",
 		OutputIndex: &one,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
@@ -223,10 +223,10 @@ func TestBuildAddressMapping(t *testing.T) {
 	}
 	addresses := make(map[string]dbaddr.Address)
 	addresses[fistAddress] = dbaddr.Address{
-		Uid:  "",
+		UID:  "",
 		Hash: fistAddress,
 		Outputs: []dbop.Output{{
-			Uid:         "0x59b81",
+			UID:         "0x59b81",
 			OutputIndex: nil,
 			InputIndex:  nil,
 			TxType:      "",
@@ -242,8 +242,8 @@ func TestBuildAddressMapping(t *testing.T) {
 	if val, ok := addresses[fistAddress]; ok {
 		if len(val.Outputs) != 2 {
 			t.Error("Wrong number of outputs")
-		} else if val.Outputs[0].Uid != "0x59b81" ||
-			val.Outputs[1].Uid != "0x59b84" {
+		} else if val.Outputs[0].UID != "0x59b81" ||
+			val.Outputs[1].UID != "0x59b84" {
 			t.Error("Uids not set")
 		}
 	}
@@ -251,12 +251,12 @@ func TestBuildAddressMapping(t *testing.T) {
 
 func TestWaitForNextRPCBlock(t *testing.T) {
 	var rpcClient mocks.RPCClient
-	hash := mocks.RpcVal.HeightMap[1423340]
+	hash := mocks.RPCVal.HeightMap[1423340]
 	nilHash := &chainhash.Hash{}
 	nilHash = nil
-	expectedBlock := mocks.RpcVal.BlockStore[hash]
+	expectedBlock := mocks.RPCVal.BlockStore[hash]
 	interrupt := make(chan struct{})
-	blkInfo := mocks.RpcVal.BlockchainInfo
+	blkInfo := mocks.RPCVal.BlockchainInfo
 	cfg := NewDashConfig()
 	// for a quick test
 	cfg.NewBlockIntervalTime = 1

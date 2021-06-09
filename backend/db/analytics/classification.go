@@ -23,7 +23,7 @@ import (
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themself. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themself.
-func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockId uint64) (toClassify []dbtx.Transaction,
+func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockID uint64) (toClassify []dbtx.Transaction,
 	origins []dbtx.Transaction, err error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}
@@ -92,7 +92,7 @@ func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockId uint64) (
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$bid": strconv.FormatUint(blockId, 10)},
+		Vars:  map[string]string{"$bid": strconv.FormatUint(blockID, 10)},
 		Mutations: []*api.Mutation{
 			{
 				Cond:      "@if(gt(len(dest), 0))",
@@ -132,7 +132,7 @@ func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockId uint64) (
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
 func SetCollateralCreation(c *external.GraphDB, txUids []string) (insertCount uint64, err error) {
-	uidList := db.CreateUidList(txUids)
+	uidList := db.CreateUIDList(txUids)
 
 	const query = `query Q($uids: string) {
 				cc as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
@@ -188,7 +188,7 @@ func SetCollateralCreation(c *external.GraphDB, txUids []string) (insertCount ui
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
 func SetCollateralPayment(c *external.GraphDB, txUids []string) (insertCount uint64, err error) {
-	uidList := db.CreateUidList(txUids)
+	uidList := db.CreateUIDList(txUids)
 
 	// collateral payments + collateral creations + origins
 	const filter = "@filter(between(privacytype," + constants.StrPrivacyOriginFirst +
@@ -244,7 +244,7 @@ func SetCollateralPayment(c *external.GraphDB, txUids []string) (insertCount uin
 // GetCollateralInputTransactions returns the input transactions of the provided transactions until the given block height
 func GetCollateralInputTransactions(c *external.GraphDB, txUids []string,
 	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
-	uidList := db.CreateUidList(txUids)
+	uidList := db.CreateUIDList(txUids)
 
 	query := `query Q($uids: string, $bid: string){
 				var(func: eq(id,$bid)){t as ts}

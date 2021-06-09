@@ -8,16 +8,16 @@ import (
 const DType = "TransactionHeuristic"
 
 type DummyOrigin struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type Heuristic struct {
-	Uid           string `json:"uid,omitempty"`
+	UID           string `json:"uid,omitempty"`
 	HeuristicType string `json:"type,omitempty"`
 	Parameter     string `json:"parameter,omitempty"`
-	UserUid       string `json:"~user_heuristics,omitempty"`
+	UserUID       string `json:"~user_heuristics,omitempty"`
 	Transaction   struct {
-		Uid string `json:"uid,omitempty"`
+		UID string `json:"uid,omitempty"`
 	} `json:"h_transaction,omitempty"`
 	Timestamp       string        `json:"ts,omitempty"`
 	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
@@ -34,8 +34,8 @@ func (h *Heuristic) SetDType() {
 }
 
 type HeuristicTransaction struct {
-	// Uid holds the uid of the transaction
-	Uid string `json:"uid,omitempty"`
+	// UID holds the uid of the transaction
+	UID string `json:"uid,omitempty"`
 	// Timestamp holds the timestamp of the corresponding block
 	Timestamp time.Time `json:"ts,omitempty"`
 	// Addresses holds the address associated with this transaction.
@@ -52,15 +52,15 @@ type HeuristicOutput struct {
 }
 
 func (h HeuristicTransaction) String() string {
-	return fmt.Sprintf("Uid: %s, timestamp: %s, associated address: %s, output count: %d", h.Uid, h.Timestamp, h.Addresses, len(h.Outputs))
+	return fmt.Sprintf("UID: %s, timestamp: %s, associated address: %s, output count: %d", h.UID, h.Timestamp, h.Addresses, len(h.Outputs))
 }
 
 type HeuristicInput struct {
-	AddressUid string `json:"uid,omitempty"`
+	AddressUID string `json:"uid,omitempty"`
 }
 
 type queryHeuristicTransaction struct {
-	Uid     string            `json:"uid,omitempty"`
+	UID     string            `json:"uid,omitempty"`
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
 	Inputs  []HeuristicInput  `json:"tx_inputs,omitempty"`
 	Block   []struct {
@@ -69,24 +69,24 @@ type queryHeuristicTransaction struct {
 }
 
 type FrontendHeuristicComplete struct {
-	Uid        string              `json:"uid,omitempty"`
+	UID        string              `json:"uid,omitempty"`
 	Timestamp  string              `json:"ts,omitempty"`
 	Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
 }
 
 func (f FrontendHeuristicComplete) String() string {
-	return fmt.Sprintf("Uid:%s, timestamp:%s, heuristic count:%d", f.Uid, f.Timestamp, len(f.Heuristics))
+	return fmt.Sprintf("UID:%s, timestamp:%s, heuristic count:%d", f.UID, f.Timestamp, len(f.Heuristics))
 }
 
 type FrontendHeuristicResult struct {
-	Uid         string `json:"uid,omitempty"`
+	UID         string `json:"uid,omitempty"`
 	Timestamp   string `json:"ts,omitempty"`
 	AddressHash string `json:"addresshash,omitempty"`
 	TxHash      string `json:"txhash,omitempty"`
 }
 
 type FrontendHeuristic struct {
-	Uid             string                    `json:"uid,omitempty"`
+	UID             string                    `json:"uid,omitempty"`
 	Timestamp       string                    `json:"ts,omitempty"`
 	Type            string                    `json:"type,omitempty"`
 	Parameter       string                    `json:"parameter,omitempty"`

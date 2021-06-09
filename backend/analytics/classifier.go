@@ -1,7 +1,7 @@
 package analytics
 
 import (
-	"backend/blockIterator"
+	"backend/blockiterator"
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db/analytics"
@@ -46,11 +46,12 @@ import (
 //   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
 //   └─────────┘ └─────────┘            └──────────┘ └─────────┘
 
+// Classifier implements BlockIterator which classifies the transactions of each traversed block
 type Classifier struct {
 	config Config
 	db     *external.GraphDB
 	ctx    context.Context
-	state  blockIterator.State
+	state  blockiterator.State
 }
 
 // NewClassifier creates a new Classifier object
@@ -62,39 +63,47 @@ func NewClassifier(ctx context.Context, dgraph *external.GraphDB, cfg Config) *C
 	}
 }
 
+// Name returns the name
 func (a *Classifier) Name() string {
 	return "classifier"
 }
 
+// Logger returns the Logger
 func (a *Classifier) Logger() *log.Logger {
 	return analyticsLogger
 }
 
-func (a *Classifier) State() blockIterator.State {
+// State returns the state
+func (a *Classifier) State() blockiterator.State {
 	return a.state
 }
 
-func (a *Classifier) SetState(newState blockIterator.State) {
+// SetState sets the new state
+func (a *Classifier) SetState(newState blockiterator.State) {
 	a.state = newState
 }
 
+// Context returns the context
 func (a *Classifier) Context() context.Context {
 	return a.ctx
 }
 
+// Db returns the database access
 func (a *Classifier) Db() *external.GraphDB {
 	return a.db
 }
 
+// IncrementState increments the state one block
 func (a *Classifier) IncrementState() {
-	a.state.Id++
+	a.state.ID++
 }
 
 // Empty checks if there are more blocks above the current one
 func (a *Classifier) Empty() bool {
-	return a.state.Id > a.state.Top
+	return a.state.ID > a.state.Top
 }
 
+// CalculateInitialState calculates the state on which the iterator starts processing
 func (a *Classifier) CalculateInitialState() error {
 	if !a.config.IsClassifyingEnabled {
 		return errors.New("classifying is disabled per configuration")
@@ -104,7 +113,7 @@ func (a *Classifier) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := setInitialClassifierId(a.db, a.config.ClassifierStartBlock); err != nil {
+	if err := setInitialClassifierID(a.db, a.config.ClassifierStartBlock); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -118,24 +127,24 @@ func (a *Classifier) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if classifierStatus.LastClassifiedBlockId == nil {
+	if classifierStatus.LastClassifiedBlockID == nil {
 		return errors.New("error last classified block is not set")
 	}
 
-	var state blockIterator.State
+	var state blockiterator.State
 
-	state.Id = *classifierStatus.LastClassifiedBlockId + 1
+	state.ID = *classifierStatus.LastClassifiedBlockID + 1
 
-	if crawlerStatus.LastBlockId == nil {
-		// nothing crawled yet, so set Top to a lower number as Id
-		state.Top = *classifierStatus.LastClassifiedBlockId
-	} else if *crawlerStatus.LowestBlockId > state.Id {
+	if crawlerStatus.LastBlockID == nil {
+		// nothing crawled yet, so set Top to a lower number as ID
+		state.Top = *classifierStatus.LastClassifiedBlockID
+	} else if *crawlerStatus.LowestBlockID > state.ID {
 		// happens the crawler is started with a high start block id in block range mode
-		state.Id = *crawlerStatus.LowestBlockId
-		state.Top = *crawlerStatus.LastBlockId
+		state.ID = *crawlerStatus.LowestBlockID
+		state.Top = *crawlerStatus.LastBlockID
 	} else {
 		// this is the usual case: Set Top to the current last crawled block height
-		state.Top = *crawlerStatus.LastBlockId
+		state.Top = *crawlerStatus.LastBlockID
 	}
 
 	a.state = state
@@ -147,7 +156,7 @@ func (a *Classifier) CalculateInitialState() error {
 func getUids(txs []dbtx.Transaction) []string {
 	var uids []string
 	for _, t := range txs {
-		uids = append(uids, t.Uid)
+		uids = append(uids, t.UID)
 	}
 	return uids
 }
@@ -194,11 +203,11 @@ func getConnectedCollaterals(dgraph *external.GraphDB, potentialCollateralTransa
 // GetHighestAvailableBlock returns the highest crawled block
 func (a *Classifier) GetHighestAvailableBlock() (uint64, error) {
 	status, err := dbstat.GetCrawlerStatus(a.db)
-	if err != nil || status.LastBlockId == nil {
+	if err != nil || status.LastBlockID == nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return *status.LastBlockId, nil
+	return *status.LastBlockID, nil
 }
 
 // Iterate does the classification for all transactions of the current block. Transactions are
@@ -210,7 +219,7 @@ func (a *Classifier) Iterate() (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := dbtx.GetTransactionByBlock(a.db, a.state.Id)
+	transactions, err := dbtx.GetTransactionByBlock(a.db, a.state.ID)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -238,7 +247,7 @@ func (a *Classifier) Iterate() (bool, error) {
 	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
-		classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.Id)
+		classErr := analytics.ClassifyDestinationAndOriginsByBlock(a.db, a.state.ID)
 	if classErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), classErr)
 	}
@@ -248,7 +257,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		// step 2.2.2: if potential collateral transaction (connected to origin transactions) have
 		// been found they are getting classified, before appending them to the set of transactions
 		// which is getting inserted into the db
-		originCC, originCP, err := getConnectedCollaterals(a.db, potentialCollateralTransactions, a.state.Id)
+		originCC, originCP, err := getConnectedCollaterals(a.db, potentialCollateralTransactions, a.state.ID)
 		if err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -256,7 +265,7 @@ func (a *Classifier) Iterate() (bool, error) {
 		var updatedTransactions []dbtx.Transaction
 
 		for _, o := range foundOrigins {
-			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.Uid))
+			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.UID))
 		}
 
 		updatedTransactions = append(updatedTransactions, originCC...)
@@ -314,13 +323,14 @@ func (a *Classifier) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClassifiedBlockId(a.db, a.state.Id); statusErr != nil {
+	if statusErr := dbstat.SetLastClassifiedBlockID(a.db, a.state.ID); statusErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
 
 	return true, nil
 }
 
+// PostExecution sets the classifier status activity flag to false
 func (a *Classifier) PostExecution() error {
 	if err := dbstat.SetClassifying(a.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -329,18 +339,18 @@ func (a *Classifier) PostExecution() error {
 	return nil
 }
 
-// setInitialClassifierId sets the starting classifier block id to the
+// setInitialClassifierID sets the starting classifier block id to the
 // value of startBlockClassifier if no value has been set yet
-func setInitialClassifierId(dgraph *external.GraphDB, startBlockClassifier uint64) (err error) {
+func setInitialClassifierID(dgraph *external.GraphDB, startBlockClassifier uint64) (err error) {
 	status, err := dbstat.GetClassifierStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	if status.LastClassifiedBlockId == nil ||
-		*status.LastClassifiedBlockId < startBlockClassifier {
-		if err = dbstat.SetLastClassifiedBlockId(dgraph, startBlockClassifier); err != nil {
+	if status.LastClassifiedBlockID == nil ||
+		*status.LastClassifiedBlockID < startBlockClassifier {
+		if err = dbstat.SetLastClassifiedBlockID(dgraph, startBlockClassifier); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -364,7 +374,7 @@ func isCollateralCreation(dgraph *external.GraphDB, t dbtx.Transaction) (bool, e
 		return false, nil
 	}
 
-	inputCount, outputCount, err := dbtx.GetOutputAddressCounts(dgraph, t.Uid)
+	inputCount, outputCount, err := dbtx.GetOutputAddressCounts(dgraph, t.UID)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -380,7 +390,7 @@ func isCollateralCreation(dgraph *external.GraphDB, t dbtx.Transaction) (bool, e
 // newCollateralPaymentTransaction returns a new collateral creation transaction with the given uid
 func newCollateralCreationTransaction(uid string) dbtx.Transaction {
 	pt := constants.PrivacyCollateralCreation
-	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
+	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // isCollateralPayment checks if the transactions is a collateral payment transaction
@@ -405,7 +415,7 @@ func isCollateralPayment(t dbtx.Transaction) bool {
 // newCollateralPaymentTransaction returns a new collateral payment transaction with the given uid
 func newCollateralPaymentTransaction(uid string) dbtx.Transaction {
 	pt := constants.PrivacyCollateralPayment
-	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
+	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // isMixing checks if the transactions is a mixing transaction
@@ -452,13 +462,13 @@ func isMixing(t dbtx.Transaction) (denominationIndex int) {
 // bit must be a value between 0 and 4
 func newMixingTransaction(uid string, bit int) dbtx.Transaction {
 	pt := constants.MixingTypes[bit]
-	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
+	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // newOriginTransaction returns a new origin transaction with the given uid
 func newOriginTransaction(uid string) dbtx.Transaction {
 	pt := constants.PrivacyOrigin
-	return dbtx.Transaction{Uid: uid, PrivacyType: &pt}
+	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // hasValidPrivacyType check is the transaction has a valid privacy type
@@ -478,12 +488,12 @@ func classifyTransactions(dgraph *external.GraphDB, transactions []dbtx.Transact
 		}
 
 		if dIndex := isMixing(transaction); dIndex >= 0 {
-			mixing = append(mixing, newMixingTransaction(transaction.Uid, dIndex))
+			mixing = append(mixing, newMixingTransaction(transaction.UID, dIndex))
 			continue
 		}
 
 		if isCollateralPayment(transaction) {
-			cp = append(cp, newCollateralPaymentTransaction(transaction.Uid))
+			cp = append(cp, newCollateralPaymentTransaction(transaction.UID))
 			continue
 		}
 
@@ -493,7 +503,7 @@ func classifyTransactions(dgraph *external.GraphDB, transactions []dbtx.Transact
 		}
 
 		if isCC {
-			cc = append(cc, newCollateralCreationTransaction(transaction.Uid))
+			cc = append(cc, newCollateralCreationTransaction(transaction.UID))
 			continue
 		}
 	}

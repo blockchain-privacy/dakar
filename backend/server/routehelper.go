@@ -195,7 +195,7 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 		return
 	}
 	tUser := userInfo.(tokenUser)
-	if len(tUser.Id) == 0 {
+	if len(tUser.ID) == 0 {
 		err = errors.New("invalid user id extracted from context")
 		return
 	}

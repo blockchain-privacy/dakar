@@ -14,8 +14,8 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// GetAddressUid returns the uid of the given address
-func GetAddressUid(c *external.GraphDB, addressHash string) (uid string, err error) {
+// GetAddressUID returns the uid of the given address
+func GetAddressUID(c *external.GraphDB, addressHash string) (uid string, err error) {
 	query := `query Q($addr:string) {
 				q(func: eq(addresshash, $addr)){
 					uid
@@ -32,7 +32,7 @@ func GetAddressUid(c *external.GraphDB, addressHash string) (uid string, err err
 
 	var r struct {
 		Q []struct {
-			Uid string `json:"uid"`
+			UID string `json:"uid"`
 		} `json:"q"`
 	}
 
@@ -49,13 +49,13 @@ func GetAddressUid(c *external.GraphDB, addressHash string) (uid string, err err
 		return
 	}
 
-	uid = r.Q[0].Uid
+	uid = r.Q[0].UID
 
 	return
 }
 
-// GetAddressesByUid returns the address hashes of the given uids
-func GetAddressesByUid(c *external.GraphDB, addressUids []string) (addressHashes []string, err error) {
+// GetAddressesByUID returns the address hashes of the given uids
+func GetAddressesByUID(c *external.GraphDB, addressUids []string) (addressHashes []string, err error) {
 
 	const query = `query Q($uids:string){
 				q(func: uid($uids)){
@@ -66,7 +66,7 @@ func GetAddressesByUid(c *external.GraphDB, addressUids []string) (addressHashes
 	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUidList(addressUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(addressUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -298,7 +298,7 @@ func UpsertAddresses(c *external.GraphDB, addresses []Address) error {
 			queryPrefix += ","
 		}
 
-		addresses[i].Uid = fmt.Sprintf("uid(a%d)", i)
+		addresses[i].UID = fmt.Sprintf("uid(a%d)", i)
 		addresses[i].SetDType()
 		query += fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i)
 		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash

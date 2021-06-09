@@ -17,23 +17,23 @@ import (
 // addAddressEdges adds the edges defined in nodes to g.
 func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 	for _, node := range nodes {
-		nodeUid, err := toInteger(node.Uid)
+		nodeUID, err := toInteger(node.UID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(addressGraphNode{id: nodeUid})
+		g.UpdateNode(addressGraphNode{id: nodeUID})
 
 		// inputs are here addresses
 		for _, input := range node.Inputs {
-			inputUid, parseErr := toInteger(input.Uid)
+			inputUID, parseErr := toInteger(input.UID)
 			if parseErr != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
 			}
 
-			g.UpdateNode(addressGraphNode{id: inputUid, isAddress: true})
+			g.UpdateNode(addressGraphNode{id: inputUID, isAddress: true})
 
-			g.SetEdgeWithoutOverwrite(simple.Edge{F: simple.Node(nodeUid), T: simple.Node(inputUid)})
+			g.SetEdgeWithoutOverwrite(simple.Edge{F: simple.Node(nodeUID), T: simple.Node(inputUID)})
 		}
 	}
 
@@ -112,15 +112,15 @@ func LoadAddressGraph(c *external.GraphDB, transactionGraph *ReversibleGraph) (*
 // verifyAddressGraph checks the integrity of the graph
 func verifyAddressGraph(g *UndirectedGraph) error {
 	var node graph.Node
-	var nodeId int64
+	var nodeID int64
 	var ok bool
 
 	nodes := g.Nodes()
 	for nodes.Next() {
 		node = nodes.Node()
-		nodeId = node.ID()
+		nodeID = node.ID()
 
-		if g.From(nodeId).Len() == 0 {
+		if g.From(nodeID).Len() == 0 {
 			return errors.New("error node exists with no edges")
 		}
 

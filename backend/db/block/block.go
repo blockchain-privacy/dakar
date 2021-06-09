@@ -123,8 +123,8 @@ func GetFrontendBlock(c *external.GraphDB, blockHash string) (block FrontendBloc
 
 // UpsertBlock upserts a block and the prevBlock relation
 func UpsertBlock(c *external.GraphDB, block Block) error {
-	block.Uid = "uid(v)"
-	block.PrevBlock.Uid = "uid(x)"
+	block.UID = "uid(v)"
+	block.PrevBlock.UID = "uid(x)"
 	block.SetDType()
 	block.PrevBlock.SetDType()
 

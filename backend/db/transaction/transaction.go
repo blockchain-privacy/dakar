@@ -62,7 +62,7 @@ func GetTransaction(c *external.GraphDB, txHash string, blockHash string) (trans
 }
 
 // GetTransactionByBlock gets transaction information from the database by block id
-func GetTransactionByBlock(c *external.GraphDB, blockId uint64) (transactions []Transaction, err error) {
+func GetTransactionByBlock(c *external.GraphDB, blockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
@@ -89,7 +89,7 @@ func GetTransactionByBlock(c *external.GraphDB, blockId uint64) (transactions []
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
+		map[string]string{"$block": strconv.FormatUint(blockID, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -228,7 +228,7 @@ func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []
 			Block       []struct {
 				Hash string `json:"blockhash,omitempty"`
 				Ts   string `json:"ts,omitempty"`
-				Id   uint64 `json:"id,omitempty"`
+				ID   uint64 `json:"id,omitempty"`
 			} `json:"block,omitempty"`
 		} `json:"q,omitempty"`
 	}
@@ -267,7 +267,7 @@ func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []
 			Fee:            fee,
 			OriginCount:    *t.OriginCount,
 			BlockHash:      t.Block[0].Hash,
-			BlockId:        t.Block[0].Id,
+			BlockID:        t.Block[0].ID,
 			BlockTimestamp: t.Block[0].Ts,
 			Outputs:        t.Outputs,
 			Inputs:         t.Inputs,
@@ -277,8 +277,8 @@ func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []
 	return
 }
 
-// GetFrontendTransactionsByUid returns the FrontendTransaction's specified by uid
-func GetFrontendTransactionsByUid(c *external.GraphDB, txUids []string) (txs []FrontendTransaction, err error) {
+// GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
+func GetFrontendTransactionsByUID(c *external.GraphDB, txUids []string) (txs []FrontendTransaction, err error) {
 
 	const query = `query Q($uids:string){
 				txs as var(func: uid($uids))
@@ -296,7 +296,7 @@ func GetFrontendTransactionsByUid(c *external.GraphDB, txUids []string) (txs []F
 	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUidList(txUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(txUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -317,9 +317,9 @@ func GetFrontendTransactionsByUid(c *external.GraphDB, txUids []string) (txs []F
 	return
 }
 
-// GetTransactionBlockId gets the block id of the transaction. If there exist multiple transactions
+// GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
-func GetTransactionBlockId(c *external.GraphDB, txHash string) (blockId uint64, err error) {
+func GetTransactionBlockID(c *external.GraphDB, txHash string) (blockID uint64, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash))@normalize{
 					~transactions {
@@ -339,7 +339,7 @@ func GetTransactionBlockId(c *external.GraphDB, txHash string) (blockId uint64, 
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Id uint64 `json:"id,omitempty"`
+			ID uint64 `json:"id,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -354,8 +354,8 @@ func GetTransactionBlockId(c *external.GraphDB, txHash string) (blockId uint64, 
 	}
 
 	for _, tx := range r.Transaction {
-		if tx.Id > blockId {
-			blockId = tx.Id
+		if tx.ID > blockID {
+			blockID = tx.ID
 		}
 	}
 
@@ -371,7 +371,7 @@ func GetCount(c *external.GraphDB) (uint64, error) {
 // The transaction uids must be set.
 func UpdateTransactions(c *external.GraphDB, transactions []Transaction) error {
 	for _, tx := range transactions {
-		if len(tx.Uid) == 0 {
+		if len(tx.UID) == 0 {
 			return errors.New("error uid is not set for transaction")
 		}
 	}
@@ -396,8 +396,8 @@ func UpdateTransactions(c *external.GraphDB, transactions []Transaction) error {
 	return err
 }
 
-// GetTransactionUid returns the uid of the given transaction
-func GetTransactionUid(c *external.GraphDB, txHash string) (uid string, err error) {
+// GetTransactionUID returns the uid of the given transaction
+func GetTransactionUID(c *external.GraphDB, txHash string) (uid string, err error) {
 	query := `query Q($tx:string) {
 				q(func: eq(txhash, $tx)){
 					uid
@@ -414,7 +414,7 @@ func GetTransactionUid(c *external.GraphDB, txHash string) (uid string, err erro
 
 	var r struct {
 		Q []struct {
-			Uid string `json:"uid"`
+			UID string `json:"uid"`
 		} `json:"q"`
 	}
 
@@ -428,7 +428,7 @@ func GetTransactionUid(c *external.GraphDB, txHash string) (uid string, err erro
 		return
 	}
 
-	uid = r.Q[0].Uid
+	uid = r.Q[0].UID
 
 	return
 }

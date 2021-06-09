@@ -167,6 +167,7 @@ func IsSchemaSet(c *external.GraphDB) (exists bool, err error) {
 	return
 }
 
+// AlterSchemaAddClassifier adds the new classifier status field
 func AlterSchemaAddClassifier(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -181,6 +182,7 @@ func AlterSchemaAddClassifier(c *external.GraphDB) error {
 	})
 }
 
+// AlterSchemaChangePrivacyTypePredicate adds the privacy type predicate
 func AlterSchemaChangePrivacyTypePredicate(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
@@ -189,30 +191,35 @@ func AlterSchemaChangePrivacyTypePredicate(c *external.GraphDB) error {
 	})
 }
 
+// DropAllPrivacyTypes drops the all data of the predicate privacytype
 func DropAllPrivacyTypes(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "privacytype",
 	})
 }
 
+// DropAllOrigins removes all data from the predicate origins
 func DropAllOrigins(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "origins",
 	})
 }
 
+// DropIsAnalyzing removes all data from the predicate isanalyzing
 func DropIsAnalyzing(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "isanalyzing",
 	})
 }
 
-func DropLastAnalysedId(c *external.GraphDB) error {
+// DropLastAnalysedID removes all data from the predicate lastanalysedid
+func DropLastAnalysedID(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "lastanalysedid",
 	})
 }
 
+// DropTypeAnalyzerStatus removes the type AnalyzerStatus
 func DropTypeAnalyzerStatus(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropOp:    api.Operation_TYPE,
@@ -220,6 +227,7 @@ func DropTypeAnalyzerStatus(c *external.GraphDB) error {
 	})
 }
 
+// AlterSchemaSetTransactionType adds the privacytype predicate to the transaction type
 func AlterSchemaSetTransactionType(c *external.GraphDB) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `

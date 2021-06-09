@@ -55,7 +55,7 @@ func GetInputAddresses(c *external.GraphDB, txUids []string) ([]AddressNode, err
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$uids": db.CreateUidList(txUids)})
+		map[string]string{"$uids": db.CreateUIDList(txUids)})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

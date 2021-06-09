@@ -61,7 +61,7 @@ type crawlerProcessingState struct {
 }
 
 func (p crawlerProcessingState) String() string {
-	return fmt.Sprintf("Id: %d, Hash: %s", p.id, p.hash)
+	return fmt.Sprintf("ID: %d, Hash: %s", p.id, p.hash)
 }
 
 // increments the state for the next processing loop
@@ -120,7 +120,7 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 
 	// add new outputs
 	for _, uid := range uids {
-		editAddress.Outputs = append(editAddress.Outputs, dbop.Output{Uid: uid})
+		editAddress.Outputs = append(editAddress.Outputs, dbop.Output{UID: uid})
 	}
 
 	// save in map
@@ -134,7 +134,7 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 		for _, idx := range mapping.indexes {
 			for _, o := range outputs {
 				if *o.OutputIndex == idx {
-					uids = append(uids, o.Uid)
+					uids = append(uids, o.UID)
 				}
 			}
 		}
@@ -185,9 +185,9 @@ func processAddresses(dgraph *external.GraphDB, transactionMappings []Transactio
 	return nil
 }
 
-// createOutputUid creates a named uid, parsable by dgraph
-func createOutputUid(transaction string, outputId uint32) string {
-	return "_:" + transaction + strconv.FormatUint(uint64(outputId), 10)
+// createOutputUID creates a named uid, parsable by dgraph
+func createOutputUID(transaction string, outputID uint32) string {
+	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
 }
 
 // decodeAddress tries to decode the address in asm
@@ -304,7 +304,7 @@ func BuildTransactionMapping(dgraph *external.GraphDB, rawTransaction btcjson.Tx
 
 		// create new output
 		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
-			Uid:         createOutputUid(rawTransaction.Txid, index),
+			UID:         createOutputUID(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
 			TxType:      d.ScriptPubKey.Type,
@@ -343,7 +343,7 @@ func processTxVin(dgraph *external.GraphDB, details *dbtx.Transaction, vin btcjs
 	}
 
 	if v, ok := txHashMap[vin.Txid]; ok {
-		refOutput.Uid = createOutputUid(vin.Txid, vin.Vout)
+		refOutput.UID = createOutputUID(vin.Txid, vin.Vout)
 		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
 		intAmount := int64(amt)
 		if err != nil {
@@ -364,7 +364,7 @@ func processTxVin(dgraph *external.GraphDB, details *dbtx.Transaction, vin btcjs
 		}
 
 		refOutput.Amount = output.Amount
-		refOutput.Uid = output.Uid
+		refOutput.UID = output.UID
 	}
 
 	details.Inputs = append(details.Inputs, refOutput)
@@ -373,12 +373,12 @@ func processTxVin(dgraph *external.GraphDB, details *dbtx.Transaction, vin btcjs
 
 // ProcessBlock builds a block with the provided arguments and inserts it in the database
 func ProcessBlock(dgraph *external.GraphDB, transactions []dbtx.Transaction, currentHash string,
-	blockId uint64, timestamp string, prevBlockHash string) (err error) {
+	blockID uint64, timestamp string, prevBlockHash string) (err error) {
 
 	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
-		Id:        &blockId,
+		ID:        &blockID,
 		PrevBlock: &dbblk.Block{
 			Hash: prevBlockHash,
 		},
@@ -391,32 +391,32 @@ func ProcessBlock(dgraph *external.GraphDB, transactions []dbtx.Transaction, cur
 
 var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
 
-// getStartingId gets the block id from which the crawling will be resumed. If no crawling has
+// getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
-func getStartingId(dgraph *external.GraphDB) (startId uint64, err error) {
+func getStartingID(dgraph *external.GraphDB) (startID uint64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	if status.LastBlockId == nil {
+	if status.LastBlockID == nil {
 		// last block id is not set -> we start at the beginning of the chain
-		startId = 1
+		startID = 1
 		return
 	}
 
-	highestBlockId, err := dbstat.GetHighestBlockId(dgraph)
+	highestBlockID, err := dbstat.GetHighestBlockID(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	if *status.LastBlockId != highestBlockId {
+	if *status.LastBlockID != highestBlockID {
 		err = errorBlockIdsDoNotMatch
 	}
 
-	startId = *status.LastBlockId
+	startID = *status.LastBlockID
 
 	return
 }
@@ -474,8 +474,8 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph *external.GraphDB, client external.RPCClient, continuous bool, startId uint64) (state crawlerProcessingState, err error) {
-	if state.id, err = getStartingId(dgraph); err != nil {
+func getInitialState(dgraph *external.GraphDB, client external.RPCClient, continuous bool, startID uint64) (state crawlerProcessingState, err error) {
+	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
@@ -483,8 +483,8 @@ func getInitialState(dgraph *external.GraphDB, client external.RPCClient, contin
 		info(errorBlockIdsDoNotMatch.Error(), "continuing...")
 	}
 
-	if !continuous && startId > state.id {
-		state.id = startId
+	if !continuous && startID > state.id {
+		state.id = startID
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
@@ -498,7 +498,7 @@ func getInitialState(dgraph *external.GraphDB, client external.RPCClient, contin
 
 // ProcessBlockRange processes all blocks from startingBlockId to stoppingBlockId
 func ProcessBlockRange(ctx context.Context, dgraph *external.GraphDB, client external.RPCClient,
-	startingBlockId uint64, stoppingBlockId uint64, config Config) error {
+	startingBlockID uint64, stoppingBlockID uint64, config Config) error {
 
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -511,7 +511,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *external.GraphDB, client ext
 		}
 	}()
 
-	state, err := getInitialState(dgraph, client, false, startingBlockId)
+	state, err := getInitialState(dgraph, client, false, startingBlockID)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -522,7 +522,7 @@ func ProcessBlockRange(ctx context.Context, dgraph *external.GraphDB, client ext
 	}
 
 	var isEmptyDatabase bool
-	if status.LastBlockId == nil {
+	if status.LastBlockID == nil {
 		isEmptyDatabase = true
 	}
 
@@ -562,7 +562,7 @@ mainLoop:
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if state.id >= stoppingBlockId || currentBlock.NextHash == "" {
+		if state.id >= stoppingBlockID || currentBlock.NextHash == "" {
 			// finished
 			break
 		}
@@ -616,7 +616,7 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph *external.GraphDB, cl
 	}
 
 	var isEmptyDatabase bool
-	if status.LastBlockId == nil {
+	if status.LastBlockID == nil {
 		isEmptyDatabase = true
 	}
 
@@ -719,7 +719,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func ProcessRound(dgraph *external.GraphDB, client external.RPCClient, state crawlerProcessingState,
-	block *btcjson.GetBlockVerboseResult, setLowestId bool, isContinuous bool, config Config) (
+	block *btcjson.GetBlockVerboseResult, setLowestID bool, isContinuous bool, config Config) (
 	blkCounter uint64, txCounter uint64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
@@ -780,14 +780,14 @@ func ProcessRound(dgraph *external.GraphDB, client external.RPCClient, state cra
 	}
 
 	// save processing state
-	if setLowestId {
-		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockId: &state.id,
-			LowestBlockId: &state.id}); err != nil {
+	if setLowestID {
+		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockID: &state.id,
+			LowestBlockID: &state.id}); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
 	} else {
-		if err = dbstat.SetLastBlockId(dgraph, state.id); err != nil {
+		if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}

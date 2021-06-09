@@ -30,7 +30,7 @@ func CreateUser(c *external.GraphDB, user User) error {
 		return errorInvalidUser
 	}
 
-	user.Uid = ""
+	user.UID = ""
 	timeNow := time.Now()
 	user.Created = &timeNow
 	user.Modified = &timeNow
@@ -41,16 +41,16 @@ func CreateUser(c *external.GraphDB, user User) error {
 	var queryRoles string
 	queryEnd := "user as var(func: eq(user_email, $email))}"
 	for i := range user.Roles {
-		roleUidPlaceholder := fmt.Sprintf("r%d", i)
+		roleUIDPlaceholder := fmt.Sprintf("r%d", i)
 
-		user.Roles[i].Uid = "uid(" + roleUidPlaceholder + ")"
+		user.Roles[i].UID = "uid(" + roleUIDPlaceholder + ")"
 		user.Roles[i].SetDType()
 
-		roleVarId := fmt.Sprintf("$role%d", i)
-		queryVars[roleVarId] = user.Roles[i].Name
+		roleVarID := fmt.Sprintf("$role%d", i)
+		queryVars[roleVarID] = user.Roles[i].Name
 
-		queryStart += roleVarId + ":string"
-		queryRoles += roleUidPlaceholder + " as var(func: eq(role_name," + roleVarId + "))\n"
+		queryStart += roleVarID + ":string"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","
@@ -237,7 +237,7 @@ func existsUser(c *external.GraphDB, uid string) (found bool, err error) {
 
 	var r struct {
 		Q []struct {
-			Uid string
+			UID string
 		} `json:"q,omitempty"`
 	}
 
@@ -246,7 +246,7 @@ func existsUser(c *external.GraphDB, uid string) (found bool, err error) {
 		return
 	}
 
-	if len(r.Q) != 1 || len(r.Q[0].Uid) == 0 {
+	if len(r.Q) != 1 || len(r.Q[0].UID) == 0 {
 		return
 	}
 
@@ -322,23 +322,23 @@ func ModifyUser(c *external.GraphDB, user User) (err error) {
 	queryStart := "query Q($uid: string"
 	var queryRoles string
 	queryEnd := "user as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}"
-	queryVars := map[string]string{"$uid": user.Uid}
+	queryVars := map[string]string{"$uid": user.UID}
 
 	if len(user.Roles) > 0 {
 		queryStart += ","
 	}
 
 	for i := range user.Roles {
-		roleUidPlaceholder := fmt.Sprintf("r%d", i)
+		roleUIDPlaceholder := fmt.Sprintf("r%d", i)
 
-		user.Roles[i].Uid = "uid(" + roleUidPlaceholder + ")"
+		user.Roles[i].UID = "uid(" + roleUIDPlaceholder + ")"
 		user.Roles[i].SetDType()
 
-		roleVarId := fmt.Sprintf("$role%d", i)
-		queryVars[roleVarId] = user.Roles[i].Name
+		roleVarID := fmt.Sprintf("$role%d", i)
+		queryVars[roleVarID] = user.Roles[i].Name
 
-		queryStart += roleVarId + ":string"
-		queryRoles += roleUidPlaceholder + " as var(func: eq(role_name," + roleVarId + "))\n"
+		queryStart += roleVarID + ":string"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","

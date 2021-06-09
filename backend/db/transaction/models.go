@@ -15,7 +15,7 @@ var (
 )
 
 type Transaction struct {
-	Uid         string                 `json:"uid,omitempty"`
+	UID         string                 `json:"uid,omitempty"`
 	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
 	Fee         *int64                 `json:"fee,omitempty"`
 	Outputs     []op.Output            `json:"tx_outputs,omitempty"`
@@ -26,8 +26,8 @@ type Transaction struct {
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %d, Fee: %d",
-		t.Uid, t.Hash, t.PrivacyType, *t.Fee)
+	output := fmt.Sprintf("UID: %s, Hash: %s, Privacy type: %d, Fee: %d",
+		t.UID, t.Hash, t.PrivacyType, *t.Fee)
 
 	if t.Outputs != nil {
 		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
@@ -114,7 +114,7 @@ type FrontendTransaction struct {
 	BlockHash      string           `json:"bhash,omitempty"`
 	Fee            int64            `json:"fee"`
 	PrivacyType    int64            `json:"privacytype,omitempty"`
-	BlockId        uint64           `json:"bid"`
+	BlockID        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
 	Inputs         []FrontendOutput `json:"inputs,omitempty"`
@@ -122,9 +122,9 @@ type FrontendTransaction struct {
 }
 
 func (f FrontendTransaction) String() string {
-	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
+	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockID: %d, "+
 		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
-		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
+		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
 }
 
@@ -138,6 +138,6 @@ type FrontendRequest struct {
 	Block       []struct {
 		Hash string `json:"blockhash,omitempty"`
 		Ts   string `json:"ts,omitempty"`
-		Id   uint64 `json:"id,omitempty"`
+		ID   uint64 `json:"id,omitempty"`
 	} `json:"block,omitempty"`
 }

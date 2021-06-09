@@ -7,6 +7,7 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the address type
 const DType = "Address"
 
 const (
@@ -32,8 +33,10 @@ const (
 )
 
 var (
+	// ErrorAddressNotFound is returned if no address has been found
 	ErrorAddressNotFound = errors.New("no address found")
-	ErrorInvalidResult   = errors.New("invalid result")
+	// ErrorInvalidResult is returned if no valid result was found
+	ErrorInvalidResult = errors.New("invalid result")
 )
 
 // IsValidSortOrder returns true if sortOrder has a valid sort order value
@@ -54,15 +57,16 @@ func IsValidFilter(filters []int) bool {
 	return true
 }
 
+// Address holds data for the database address type
 type Address struct {
-	Uid     string      `json:"uid,omitempty"`
+	UID     string      `json:"uid,omitempty"`
 	Hash    string      `json:"addresshash,omitempty"`
 	Outputs []op.Output `json:"addr_outputs,omitempty"`
 	DType   []string    `json:"dgraph.type,omitempty"`
 }
 
 func (a Address) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s", a.Uid, a.Hash)
+	output := fmt.Sprintf("UID: %s, Hash: %s", a.UID, a.Hash)
 
 	if a.Outputs != nil {
 		output += fmt.Sprintf(", OutputCount: %d", len(a.Outputs))
@@ -71,15 +75,17 @@ func (a Address) String() string {
 	return output
 }
 
+// SetDType sets the DType
 func (a *Address) SetDType() {
 	a.DType = []string{DType}
 }
 
 // checks if the given address has all attributes filled
 func (a Address) isComplete() bool {
-	return a.Uid != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
+	return a.UID != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
 }
 
+// FrontendOutput is the representation for the frontend of an output
 type FrontendOutput struct {
 	Amount                uint64 `json:"amount"`
 	IsCoinbase            bool   `json:"is_coinbase"`
@@ -95,6 +101,7 @@ func (o FrontendOutput) String() string {
 	return fmt.Sprintf("Amount: %d", o.Amount)
 }
 
+// FrontendAddress is the representation for the frontend of an address
 type FrontendAddress struct {
 	Hash          string           `json:"addresshash"`
 	QueryMaxCount int64            `json:"query_max_count"`

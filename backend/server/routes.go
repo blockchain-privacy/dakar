@@ -269,7 +269,7 @@ func handlerHeuristicsSummary(dgraph *external.GraphDB) http.Handler {
 			return
 		}
 
-		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.Id)
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -303,17 +303,17 @@ func handlerHeuristicsSummary(dgraph *external.GraphDB) http.Handler {
 			for _, result := range h.Results {
 				var row []string
 				// per heuristic information
-				row = append(row, h.Uid)
+				row = append(row, h.UID)
 				var parentHeuristic string
 				if len(h.ParentHeuristic) > 0 {
 					// only one parent heuristic is possible
-					parentHeuristic = h.ParentHeuristic[0].Uid
+					parentHeuristic = h.ParentHeuristic[0].UID
 				}
 				row = append(row, parentHeuristic)
 
 				var childHeuristics string
 				for i, c := range h.ChildHeuristics {
-					childHeuristics += c.Uid
+					childHeuristics += c.UID
 					if i+1 < len(h.ChildHeuristics) {
 						childHeuristics += ","
 					}
@@ -325,11 +325,11 @@ func handlerHeuristicsSummary(dgraph *external.GraphDB) http.Handler {
 				row = append(row, h.Timestamp)
 
 				// per origin information
-				row = append(row, result.Uid)
+				row = append(row, result.UID)
 				row = append(row, result.TxHash)
 				row = append(row, result.Timestamp)
 				row = append(row, result.AddressHash)
-				//row = append(row, strconv.Itoa(shortestPaths[result.Uid]))
+				//row = append(row, strconv.Itoa(shortestPaths[result.UID]))
 
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -359,7 +359,7 @@ func handlerHeuristics(dgraph *external.GraphDB, worker *heuristic.Worker) http.
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
+			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -389,7 +389,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply.Success = true
-			reply.Status = worker.GetStatus(txHashString, tUser.Id)
+			reply.Status = worker.GetStatus(txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -413,7 +413,7 @@ func handlerHeuristicsDetails(dgraph *external.GraphDB) http.Handler {
 		}
 
 		var heuristicRequest struct {
-			HeuristicUid string `json:"uid,omitempty"`
+			HeuristicUID string `json:"uid,omitempty"`
 		}
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
@@ -422,12 +422,12 @@ func handlerHeuristicsDetails(dgraph *external.GraphDB) http.Handler {
 			return
 		}
 
-		if len(heuristicRequest.HeuristicUid) == 0 {
+		if len(heuristicRequest.HeuristicUID) == 0 {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, tUser.Id)
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -460,7 +460,7 @@ func handlerHeuristicsExecution(dgraph *external.GraphDB, worker *heuristic.Work
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -482,7 +482,7 @@ func handlerHeuristicList(dgraph *external.GraphDB) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.ID)
 			if err != nil {
 				info(cliutil.ShowCallInfo(), err)
 			} else {
@@ -509,7 +509,7 @@ func handlerDeleteHeuristic(dgraph *external.GraphDB) http.Handler {
 			reply.Msg = "error extracting user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.Id)
+			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.ID)
 		}
 
 		// encoding
@@ -573,7 +573,7 @@ func handlerDeleteUser(dgraph *external.GraphDB) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		userUid := r.URL.Path[len(constants.GetRouteDeleteUser()):]
+		userUID := r.URL.Path[len(constants.GetRouteDeleteUser()):]
 
 		var reply userReply
 
@@ -582,7 +582,7 @@ func handlerDeleteUser(dgraph *external.GraphDB) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteUserReply(dgraph, userUid, tUser)
+			reply = getDeleteUserReply(dgraph, userUID, tUser)
 		}
 
 		// encoding

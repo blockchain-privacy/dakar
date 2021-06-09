@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// HeuristicQueueStatus is an enum which holds the status of the heuristic queue
 type HeuristicQueueStatus int
 
 const (
@@ -47,9 +48,10 @@ func info(v ...interface{}) {
 
 type workKey struct {
 	txhash  string
-	userUid string
+	userUID string
 }
 
+// Work holds all work related data for the Worker
 type Work struct {
 	// executors contains the HeuristicExecutor trees
 	executors []HeuristicExecutor
@@ -60,6 +62,7 @@ type Work struct {
 	treeRoots []string
 }
 
+// Worker works on the data defined in Work
 type Worker struct {
 	// cancel stops the go routine started by Start
 	cancel context.CancelFunc
@@ -110,10 +113,11 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool {
+// AddWork adds a work item
+func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool {
 	key := workKey{
 		txhash:  transactionHash,
-		userUid: userUid,
+		userUID: userUID,
 	}
 
 	w.mapMutex.Lock()
@@ -129,10 +133,10 @@ func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool
 }
 
 // IsInQueue returns true if the given transaction hash and user id is in the work queue
-func (w *Worker) IsInQueue(tx string, userUid string) bool {
+func (w *Worker) IsInQueue(tx string, userUID string) bool {
 	key := workKey{
 		txhash:  tx,
-		userUid: userUid,
+		userUID: userUID,
 	}
 
 	w.mapMutex.RLock()
@@ -147,14 +151,14 @@ func (w *Worker) IsReady() bool {
 }
 
 // GetStatus returns the current execution status of the given transaction hash and user id
-func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
+func (w *Worker) GetStatus(tx string, userUID string) HeuristicQueueStatus {
 	if !w.IsReady() {
 		return StatusHeuristicWorkerNotReady
 	}
 
 	key := workKey{
 		txhash:  tx,
-		userUid: userUid,
+		userUID: userUID,
 	}
 
 	w.mapMutex.RLock()
@@ -209,7 +213,7 @@ mainLoop:
 				info("processing work package")
 
 				// delete changed or removable heuristics
-				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUid); err != nil {
+				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
 					info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 					// no return/break because we want keep working even if we are failing
 					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
@@ -217,7 +221,7 @@ mainLoop:
 					// if no error occurred -> execute the new heuristics
 					for _, e := range work.executors {
 						if err = e.RunSynchronous(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
-							w.currentWorkItem.userUid); err != nil {
+							w.currentWorkItem.userUID); err != nil {
 							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						}
 					}
@@ -237,18 +241,22 @@ mainLoop:
 	}
 }
 
+// ReverseLookup performs a reverse lookup for the given uid. It looks back at most maxLookBackTime
 func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
 	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime)
 }
 
-func (w *Worker) ForwardLookup(uid string, targetUid string) (map[string]bool, error) {
-	return w.graphWrapper.ForwardLookup(uid, targetUid)
+// ForwardLookup performs a forward lookup for the given uid until the timestamp of targetUid
+func (w *Worker) ForwardLookup(uid string, targetUID string) (map[string]bool, error) {
+	return w.graphWrapper.ForwardLookup(uid, targetUID)
 }
 
+// ForwardLookupByTime performs a forward lookup for the given uid. It looks forward at most maxLookForwardTime
 func (w *Worker) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
 	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
 }
 
-func (w *Worker) GetCluster(addressUid string) ([]string, error) {
-	return w.graphWrapper.GetCluster(addressUid)
+// GetCluster returns the cluster for the given uid
+func (w *Worker) GetCluster(addressUID string) ([]string, error) {
+	return w.graphWrapper.GetCluster(addressUID)
 }

@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// Flag is an enum which can be used to define the flags which should be available for the CLI tool
 type Flag int
 
 // flag enum
@@ -20,17 +21,17 @@ const (
 	Continuous Flag = iota
 	IgnoreSafeguard
 	ResetDB
-	RpcUser
-	RpcPassword
-	RpcHost
-	RpcPort
+	RPCUser
+	RPCPassword
+	RPCHost
+	RPCPort
 	DBHost
 	DBPort
 	StartBlockID
 	StopBlockID
 	IsPrintStatus
-	HttpServerPort
-	DisableHttpServer
+	HTTPServerPort
+	DisableHTTPServer
 	DisableCrawler
 	DisableHeuristics
 	DisableClassifier
@@ -42,22 +43,23 @@ const (
 	Doge
 )
 
+// Arguments holds the state of the CLI arguments
 type Arguments struct {
 	Continuous        bool
 	IgnoreSafeguard   bool
 	ResetDB           bool
-	RpcUser           string
-	RpcPassword       string
+	RPCUser           string
+	RPCPassword       string
 	StartBlockID      uint64
 	StopBlockID       uint64
 	IsPrintStatus     bool
-	RpcEndpoint       string
+	RPCEndpoint       string
 	DBEndpoint        string
 	Logfile           string
 	TxSearch          string
 	TxInfo            string
-	HttpServerPort    uint
-	DisableHttpServer bool
+	HTTPServerPort    uint
+	DisableHTTPServer bool
 	DisableCrawler    bool
 	DisableHeuristics bool
 	DisableClassifier bool
@@ -67,6 +69,7 @@ type Arguments struct {
 	Doge              bool
 }
 
+// ShowCallInfo returns the current call stack
 func ShowCallInfo() string {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
@@ -113,6 +116,7 @@ func NumBlockchainSelected(args Arguments) int {
 	return numConfigs
 }
 
+// GetLogfile returns a file accessor for fileName
 func GetLogfile(fileName string) (f *os.File, err error) {
 	if len(fileName) == 0 {
 		err = errors.New("name for log file is invalid")
@@ -151,19 +155,19 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			addResetDB(&args.ResetDB)
 			isRPCused = true
 			break
-		case RpcUser:
-			addRpcUser(&args.RpcUser)
+		case RPCUser:
+			addRPCUser(&args.RPCUser)
 			isRPCused = true
 			break
-		case RpcPassword:
-			addRpcPassword(&args.RpcPassword)
+		case RPCPassword:
+			addRPCPassword(&args.RPCPassword)
 			isRPCused = true
 			break
-		case RpcHost:
-			addRpcHost(&rpcHostString)
+		case RPCHost:
+			addRPCHost(&rpcHostString)
 			break
-		case RpcPort:
-			addRpcPort(&rpcPortNumber)
+		case RPCPort:
+			addRPCPort(&rpcPortNumber)
 			break
 		case DBHost:
 			addDBHost(&dbHostString)
@@ -185,11 +189,11 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case Logfile:
 			addLogfile(&args.Logfile)
 			break
-		case HttpServerPort:
-			addHttpServerPort(&args.HttpServerPort)
+		case HTTPServerPort:
+			addHTTPServerPort(&args.HTTPServerPort)
 			break
-		case DisableHttpServer:
-			addDisableHttpServer(&args.DisableHttpServer)
+		case DisableHTTPServer:
+			addDisableHTTPServer(&args.DisableHTTPServer)
 			break
 		case DisableCrawler:
 			addDisableCrawler(&args.DisableCrawler)
@@ -224,7 +228,7 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 	flag.Parse()
 
 	if isRPCused {
-		args.RpcEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
+		args.RPCEndpoint, err = buildEndpoint(rpcHostString, rpcPortNumber)
 		if err != nil {
 			return args, err
 		}
@@ -253,31 +257,31 @@ func addResetDB(v *bool) {
 	flag.BoolVar(v, "reset", false, "Remove all data from the database (default: false)")
 }
 
-func addRpcUser(v *string) {
+func addRPCUser(v *string) {
 	flag.StringVar(v, "rpcuser", "rpc1user", "Dash RPC user (default: rpc1user)")
 }
 
-func addRpcPassword(v *string) {
+func addRPCPassword(v *string) {
 	flag.StringVar(v, "rpcpassword", "1234pass", "Dash RPC password (default: 1234pass)")
 }
 
 func addStartBlockID(v *uint64) {
-	flag.Uint64Var(v, "start", 0, "Start Block Id")
+	flag.Uint64Var(v, "start", 0, "Start Block ID")
 }
 
 func addStopBlockID(v *uint64) {
-	flag.Uint64Var(v, "stop", 0, "Stop Block Id")
+	flag.Uint64Var(v, "stop", 0, "Stop Block ID")
 }
 
 func addIsPrintStatus(v *bool) {
 	flag.BoolVar(v, "status", false, "Prints current processing status (default: false)")
 }
 
-func addRpcHost(v *string) {
+func addRPCHost(v *string) {
 	flag.StringVar(v, "rpchost", "0.0.0.0", "Dash RPC host IP (default: 0.0.0.0)")
 }
 
-func addRpcPort(v *uint) {
+func addRPCPort(v *uint) {
 	flag.UintVar(v, "rpcport", 9998, "Dash RPC port (default: 9998)")
 }
 
@@ -293,11 +297,11 @@ func addLogfile(v *string) {
 	flag.StringVar(v, "logfile", "", "Specify log file (default: none)")
 }
 
-func addHttpServerPort(v *uint) {
+func addHTTPServerPort(v *uint) {
 	flag.UintVar(v, "serverport", 8081, "Http server port (default: 8081)")
 }
 
-func addDisableHttpServer(v *bool) {
+func addDisableHTTPServer(v *bool) {
 	flag.BoolVar(v, "disableserver", false, "Disable the http server (default: false)")
 }
 

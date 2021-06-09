@@ -104,9 +104,9 @@ func getCreateUserReply(dgraph *external.GraphDB, body io.Reader) (reply userRep
 }
 
 func getHeuristicReply(dgraph *external.GraphDB, worker *heuristic.Worker,
-	txHashString string, userUid string) (reply heuristicReply) {
+	txHashString string, userUID string) (reply heuristicReply) {
 
-	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUid)
+	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
 		info(cliutil.ShowCallInfo(), err)
@@ -115,20 +115,20 @@ func getHeuristicReply(dgraph *external.GraphDB, worker *heuristic.Worker,
 
 	reply.Success = true
 	reply.Heuristics = heuristics
-	reply.Status = worker.GetStatus(txHashString, userUid)
+	reply.Status = worker.GetStatus(txHashString, userUID)
 
 	return
 }
 
 func getHeuristicExecutionReply(dgraph *external.GraphDB, worker *heuristic.Worker, body io.Reader,
-	txHashString string, userUid string) (reply heuristicExecutionReply) {
+	txHashString string, userUID string) (reply heuristicExecutionReply) {
 	if !worker.IsReady() {
 		reply.Success = true
 		reply.Status = heuristic.StatusHeuristicWorkerNotReady
 		return
 	}
 
-	if worker.IsInQueue(txHashString, userUid) {
+	if worker.IsInQueue(txHashString, userUID) {
 		reply.Success = true
 		reply.Status = heuristic.StatusHeuristicDuplicate
 		info(cliutil.ShowCallInfo(), "heuristic already in queue")
@@ -163,7 +163,7 @@ func getHeuristicExecutionReply(dgraph *external.GraphDB, worker *heuristic.Work
 		return
 	}
 
-	addedWork := worker.AddWork(txHashString, userUid, work)
+	addedWork := worker.AddWork(txHashString, userUID, work)
 
 	if addedWork {
 		reply.Status = heuristic.StatusHeuristicAdded
@@ -185,7 +185,7 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 		return
 	}
 
-	if len(modRequest.Uid) == 0 ||
+	if len(modRequest.UID) == 0 ||
 		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
 		reply.Msg = "nothing to change"
 		return
@@ -208,9 +208,9 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 	}
 
 	// if user ids does not match, check if this is a request from an admin user
-	if modRequest.Uid != tUser.Id && !isAdmin {
+	if modRequest.UID != tUser.ID && !isAdmin {
 		reply.Msg = "user ids do not match"
-		info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to modify user", modRequest.Uid)
+		info(cliutil.ShowCallInfo(), "user", tUser.ID, "tried to modify user", modRequest.UID)
 		return
 	}
 
@@ -221,7 +221,7 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 			return
 		}
 
-		dbUser, err := dbus.GetUser(dgraph, modRequest.Uid)
+		dbUser, err := dbus.GetUser(dgraph, modRequest.UID)
 		if err != nil {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err, modRequest)
@@ -248,7 +248,7 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 				info(cliutil.ShowCallInfo(), err, modRequest)
 				return
 			}
-		} else if emailUser.Uid != modRequest.Uid {
+		} else if emailUser.UID != modRequest.UID {
 			reply.Msg = "duplicate email"
 			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
@@ -275,19 +275,19 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 	if len(modRequest.Roles) > 0 {
 		if !isAdmin {
 			reply.Msg = "user can not change its roles"
-			info(cliutil.ShowCallInfo(), "user", tUser.Id, "tried to change its roles", modRequest.Roles)
+			info(cliutil.ShowCallInfo(), "user", tUser.ID, "tried to change its roles", modRequest.Roles)
 			return
 		}
 		// check if all roles exists
 		for _, r := range modRequest.Roles {
 			if _, err := user.GetRoleByName(r.Name); err != nil {
 				reply.Msg = "invalid role"
-				info(cliutil.ShowCallInfo(), "user", tUser.Id, "provided invalid role", r.Name)
+				info(cliutil.ShowCallInfo(), "user", tUser.ID, "provided invalid role", r.Name)
 				return
 			}
 		}
 		// delete existing roles if new roles are set
-		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.Uid); err != nil {
+		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.UID); err != nil {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
@@ -302,7 +302,7 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 	}
 
 	// get new user information
-	newUserInfo, err := dbus.GetUser(dgraph, modRequest.Uid)
+	newUserInfo, err := dbus.GetUser(dgraph, modRequest.UID)
 	if err != nil {
 		reply.Msg = "error modifying user"
 		info(cliutil.ShowCallInfo(), err, modRequest)
@@ -317,9 +317,9 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 	return
 }
 
-// getDeleteUserReply deletes delUid if is the same uid as tUser.Id or if tUser is an admin
-func getDeleteUserReply(dgraph *external.GraphDB, delUid string, tUser tokenUser) (reply userReply) {
-	if delUid != tUser.Id {
+// getDeleteUserReply deletes delUid if is the same uid as tUser.ID or if tUser is an admin
+func getDeleteUserReply(dgraph *external.GraphDB, delUID string, tUser tokenUser) (reply userReply) {
+	if delUID != tUser.ID {
 		// is user an admin
 		isAdmin := false
 		for _, r := range tUser.Roles {
@@ -331,12 +331,12 @@ func getDeleteUserReply(dgraph *external.GraphDB, delUid string, tUser tokenUser
 
 		if !isAdmin {
 			reply.Msg = "user can only delete his own account"
-			info(tUser.Id, "tried to delete", delUid)
+			info(tUser.ID, "tried to delete", delUID)
 			return
 		}
 	}
 
-	if err := dbus.DeleteUser(dgraph, delUid); err != nil {
+	if err := dbus.DeleteUser(dgraph, delUID); err != nil {
 		reply.Msg = "could not delete user"
 		info(cliutil.ShowCallInfo(), err)
 	}
@@ -361,7 +361,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 		return
 	}
 
-	fromBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.From)
+	fromBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.From)
 	if err != nil {
 		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
 			reply.Success = true
@@ -374,7 +374,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 		return
 	}
 
-	toBlockId, err := dbtx.GetTransactionBlockId(dgraph, req.To)
+	toBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.To)
 	if err != nil {
 		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
 			reply.Msg = "error transaction" + req.To + " does not exist"
@@ -388,7 +388,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 
 	anyDirection := req.AnyDirection
 
-	if fromBlockId == toBlockId {
+	if fromBlockID == toBlockID {
 		// set anyDirection to true, as the direction can not be calculated from the block ids
 		// and as the transactions are in the same block the query should be very quick
 		anyDirection = true
@@ -399,7 +399,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 
 	if !req.AnyDirection {
 		// switch transactions if necessary so we are searching in the right direction
-		if toBlockId > fromBlockId {
+		if toBlockID > fromBlockID {
 			oldTx = req.To
 			youngTx = req.From
 		}
@@ -426,7 +426,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 }
 
 // getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
-func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUid string) (reply deleteHeuristicReply) {
+func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUID string) (reply deleteHeuristicReply) {
 	var req transaction.DeleteHeuristicRequest
 
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -441,7 +441,7 @@ func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUid s
 	}
 
 	if req.DeleteAll {
-		if err := transaction.DeleteAllUserHeuristics(dgraph, userUid); err != nil {
+		if err := transaction.DeleteAllUserHeuristics(dgraph, userUID); err != nil {
 			if errors.Is(err, transaction.ErrNoMutationHappened) {
 				reply.Msg = "No data was deleted. The user may not have any heuristics."
 			} else {
@@ -455,7 +455,7 @@ func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUid s
 		return
 	}
 
-	if err := transaction.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUid); err != nil {
+	if err := transaction.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUID); err != nil {
 		if errors.Is(err, transaction.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
 		} else {
@@ -511,7 +511,7 @@ func getConnectionLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker
 
 	txhash := urlPath[len(constants.GetRouteConnectionLookup()):]
 
-	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
+	uid, err := dbtx.GetTransactionUID(dgraph, txhash)
 	if err != nil {
 		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
 			reply.Success = true
@@ -583,7 +583,7 @@ func getConnectionLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker
 		i++
 	}
 
-	frontendTransactions, err := dbtx.GetFrontendTransactionsByUid(dgraph, transactionUids)
+	frontendTransactions, err := dbtx.GetFrontendTransactionsByUID(dgraph, transactionUids)
 	if err != nil {
 		reply.Msg = "Lookup not successful"
 		info(cliutil.ShowCallInfo(), err)
@@ -608,7 +608,7 @@ func getClusterLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, u
 
 	addressHash := urlPath[len(constants.GetRouteClusterLookup()):]
 
-	uid, err := address.GetAddressUid(dgraph, addressHash)
+	uid, err := address.GetAddressUID(dgraph, addressHash)
 	if err != nil {
 		reply.Msg = "Address hash not found"
 		if !errors.Is(err, address.ErrorAddressNotFound) {
@@ -624,7 +624,7 @@ func getClusterLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, u
 		return
 	}
 
-	addressHashes, err := address.GetAddressesByUid(dgraph, addressCluster)
+	addressHashes, err := address.GetAddressesByUID(dgraph, addressCluster)
 	if err != nil {
 		reply.Msg = "Lookup not successful"
 		info(cliutil.ShowCallInfo(), err)

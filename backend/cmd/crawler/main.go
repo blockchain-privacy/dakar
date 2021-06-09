@@ -4,7 +4,7 @@ import (
 	"backend/analytics"
 	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
-	"backend/blockIterator"
+	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/db/status"
@@ -59,10 +59,10 @@ func initAllLoggers() {
 }
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RpcUser, cli.RpcPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.RpcHost, cli.RpcPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHttpServer, cli.DisableHeuristics, cli.DisableCrawler, cli.DisableClassifier,
-		cli.HttpServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
+	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.StartBlockID,
+		cli.StopBlockID, cli.IsPrintStatus, cli.RPCHost, cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard,
+		cli.DisableHTTPServer, cli.DisableHeuristics, cli.DisableCrawler, cli.DisableClassifier,
+		cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -283,7 +283,7 @@ func main() {
 	}
 
 	// check if signing keys are set
-	if !cliArgs.DisableHttpServer {
+	if !cliArgs.DisableHTTPServer {
 		_, _, keyErr := server.GetSigningKeysFromEnv()
 		if keyErr != nil {
 			info("error getting signing keys. Set the following environment variables:",
@@ -327,7 +327,7 @@ func main() {
 		info("Successfully set up new schema.")
 	}
 
-	if cliArgs.DisableClassifier && cliArgs.DisableCrawler && cliArgs.DisableHttpServer {
+	if cliArgs.DisableClassifier && cliArgs.DisableCrawler && cliArgs.DisableHTTPServer {
 		return
 	}
 
@@ -351,7 +351,7 @@ func main() {
 	}
 
 	// create admin account if none is set
-	if !cliArgs.DisableHttpServer {
+	if !cliArgs.DisableHTTPServer {
 		// check if users already exist
 		_, userErr := dbus.GetUsers(graphDB)
 		if userErr != nil {
@@ -379,11 +379,11 @@ func main() {
 
 	// Setup the RPC connection, only if needed
 	var client *rpcclient.Client
-	if !cliArgs.DisableHttpServer || !cliArgs.DisableCrawler {
+	if !cliArgs.DisableHTTPServer || !cliArgs.DisableCrawler {
 		client, err = rpcclient.New(&rpcclient.ConnConfig{
-			Host:         cliArgs.RpcEndpoint,
-			User:         cliArgs.RpcUser,
-			Pass:         cliArgs.RpcPassword,
+			Host:         cliArgs.RPCEndpoint,
+			User:         cliArgs.RPCUser,
+			Pass:         cliArgs.RPCPassword,
 			DisableTLS:   true,
 			HTTPPostMode: true,
 		}, nil)
@@ -435,7 +435,7 @@ func main() {
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	worker := heuristic.NewWorker(graphWrapper)
 	var classifierStarted bool
-	if !cliArgs.DisableHttpServer && !cliArgs.DisableHeuristics {
+	if !cliArgs.DisableHTTPServer && !cliArgs.DisableHeuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
@@ -449,7 +449,7 @@ func main() {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					if iterErr := blockIterator.StartIteration(graphWrapper); iterErr != nil {
+					if iterErr := blockiterator.StartIteration(graphWrapper); iterErr != nil {
 						info(iterErr)
 					}
 				}()
@@ -460,7 +460,7 @@ func main() {
 						chClassifyingStopped <- true
 					}()
 
-					if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+					if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
 						appContext, graphDB, analyserConfig)); classifierErr != nil {
 						info(classifierErr)
 					}
@@ -484,7 +484,7 @@ func main() {
 				chClassifyingStopped <- true
 			}()
 
-			if classifierErr := blockIterator.StartIteration(analytics.NewClassifier(
+			if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
 				appContext, graphDB, analyserConfig)); classifierErr != nil {
 				info(classifierErr)
 			}
@@ -493,9 +493,9 @@ func main() {
 
 	// activate server
 	var srv *http.Server
-	if !cliArgs.DisableHttpServer {
+	if !cliArgs.DisableHTTPServer {
 		wg.Add(1)
-		srv = server.StartServer(&wg, cliArgs.HttpServerPort, graphDB, client, worker)
+		srv = server.StartServer(&wg, cliArgs.HTTPServerPort, graphDB, client, worker)
 	}
 
 	var crawlerStopped bool
@@ -517,7 +517,7 @@ func main() {
 		}
 	}
 
-	if !cliArgs.DisableHttpServer && crawlerStopped && classifierStopped {
+	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped {
 		// if the crawler and classifier stopped working on their own accord,
 		// the server is still active at this point
 		select {

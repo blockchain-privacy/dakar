@@ -21,7 +21,7 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c *external.GraphDB, h Heuristic, userUid string) (insertUid string, err error) {
+func InsertHeuristic(c *external.GraphDB, h Heuristic, userUID string) (insertUID string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
@@ -29,18 +29,18 @@ func InsertHeuristic(c *external.GraphDB, h Heuristic, userUid string) (insertUi
 
 	// if TxHash is not empty we have to search for the transaction uid
 	if h.TxHash != "" {
-		h.Transaction.Uid = "uid(tx)"
+		h.Transaction.UID = "uid(tx)"
 		query = `query Q($txhash: string) {
 					tx as var(func: eq(txhash, $txhash))
 				  }`
 	}
 
 	type dummyUser struct {
-		Uid        string      `json:"uid,omitempty"`
+		UID        string      `json:"uid,omitempty"`
 		Heuristics []Heuristic `json:"user_heuristics,omitempty"`
 	}
 
-	pb, err := json.Marshal(dummyUser{Uid: userUid, Heuristics: []Heuristic{h}})
+	pb, err := json.Marshal(dummyUser{UID: userUID, Heuristics: []Heuristic{h}})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -68,26 +68,26 @@ func InsertHeuristic(c *external.GraphDB, h Heuristic, userUid string) (insertUi
 		return
 	}
 
-	// uids has only one element, so insertUid is only set once
+	// uids has only one element, so insertUID is only set once
 	for _, u := range uids {
-		insertUid = u
+		insertUID = u
 	}
 
 	return
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUid string) (err error) {
-	uidList := db.CreateUidList(uids)
+func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUID string) (err error) {
+	uidList := db.CreateUIDList(uids)
 
 	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
 		"@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type))}"
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$uuid": userUid, "$uids": uidList, "$type": DType},
+		Vars:  map[string]string{"$uuid": userUID, "$uids": uidList, "$type": DType},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -100,12 +100,12 @@ func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUid string) (e
 }
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c *external.GraphDB, userUid string) (err error) {
+func DeleteAllUserHeuristics(c *external.GraphDB, userUID string) (err error) {
 	req := &api.Request{
 		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics}}",
-		Vars:  map[string]string{"$uuid": userUid},
+		Vars:  map[string]string{"$uuid": userUID},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -124,7 +124,7 @@ func DeleteAllUserHeuristics(c *external.GraphDB, userUid string) (err error) {
 }
 
 // DeleteAllUserTxHeuristics deletes all heuristics of a user for a particular transaction
-func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUid string) (err error) {
+func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUID string) (err error) {
 	query := `query Q($uuid:string, $hash:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -136,9 +136,9 @@ func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUid strin
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$uuid": userUid, "$hash": txhash},
+		Vars:  map[string]string{"$uuid": userUID, "$hash": txhash},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUid + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -157,7 +157,7 @@ func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUid strin
 }
 
 // GetHeuristic gets heuristic information from the database
-func GetHeuristic(c *external.GraphDB, heuristicUid string) (h Heuristic, err error) {
+func GetHeuristic(c *external.GraphDB, heuristicUID string) (h Heuristic, err error) {
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
 					uid
@@ -179,7 +179,7 @@ func GetHeuristic(c *external.GraphDB, heuristicUid string) (h Heuristic, err er
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query, map[string]string{"$uid": heuristicUid})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query, map[string]string{"$uid": heuristicUID})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -202,7 +202,7 @@ func GetHeuristic(c *external.GraphDB, heuristicUid string) (h Heuristic, err er
 	return
 }
 
-func GetHeuristicResults(c *external.GraphDB, heuristicUid string) (results []HeuristicTransaction, err error) {
+func GetHeuristicResults(c *external.GraphDB, heuristicUID string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
 				var (func: uid($uid)){
 					x as results
@@ -221,7 +221,7 @@ func GetHeuristicResults(c *external.GraphDB, heuristicUid string) (results []He
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUid})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUID})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -240,7 +240,7 @@ func GetHeuristicResults(c *external.GraphDB, heuristicUid string) (results []He
 
 	for _, t := range r.Transaction {
 		results = append(results, HeuristicTransaction{
-			Uid:       t.Uid,
+			UID:       t.UID,
 			Addresses: getInputAddresses(t.Inputs),
 			Outputs:   t.Outputs,
 		})
@@ -253,7 +253,7 @@ func GetHeuristicResults(c *external.GraphDB, heuristicUid string) (results []He
 func getInputAddresses(inputs []HeuristicInput) []string {
 	addressMap := make(map[string]bool)
 	for _, i := range inputs {
-		addressMap[i.AddressUid] = true
+		addressMap[i.AddressUID] = true
 	}
 
 	var addresses []string
@@ -314,7 +314,7 @@ func GetInputTransactions(c *external.GraphDB, tx string) (inputTransactions []H
 			return
 		}
 		inputTransactions = append(inputTransactions, HeuristicTransaction{
-			Uid:       t.Uid,
+			UID:       t.UID,
 			Timestamp: t.Block[0].Timestamp,
 			Outputs:   t.Outputs,
 		})
@@ -340,7 +340,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *external.GraphDB, uids 
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUidList(uids)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUIDList(uids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -358,7 +358,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *external.GraphDB, uids 
 
 	for _, o := range r.Origins {
 		origins = append(origins, HeuristicTransaction{
-			Uid:       o.Uid,
+			UID:       o.UID,
 			Addresses: getInputAddresses(o.Inputs),
 			Outputs:   o.Outputs,
 		})
@@ -387,7 +387,7 @@ func GetInputAmounts(c *external.GraphDB, tx string) (transaction HeuristicTrans
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Uid     string            `json:"uid,omitempty"`
+			UID     string            `json:"uid,omitempty"`
 			Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
 		} `json:"q,omitempty"`
 	}
@@ -404,16 +404,16 @@ func GetInputAmounts(c *external.GraphDB, tx string) (transaction HeuristicTrans
 
 	t := r.Transaction[0]
 	transaction = HeuristicTransaction{
-		Uid:     t.Uid,
+		UID:     t.UID,
 		Outputs: t.Outputs,
 	}
 
 	return
 }
 
-// DoesHeuristicUidExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
-func DoesHeuristicUidExist(c *external.GraphDB, txhash string, uids []string) (allExist bool, err error) {
-	uidList := db.CreateUidList(uids)
+// DoesHeuristicUIDExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
+func DoesHeuristicUIDExist(c *external.GraphDB, txhash string, uids []string) (allExist bool, err error) {
+	uidList := db.CreateUIDList(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
 				# get tx uid
@@ -455,7 +455,7 @@ func DoesHeuristicUidExist(c *external.GraphDB, txhash string, uids []string) (a
 }
 
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
-func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (heuristics []FrontendHeuristic, err error) {
+func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUID string) (heuristics []FrontendHeuristic, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -480,7 +480,7 @@ func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUid strin
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -503,8 +503,8 @@ func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUid strin
 	return
 }
 
-// GetFrontendHeuristicByUid the heuristic for the given heuristicUid
-func GetFrontendHeuristicByUid(c *external.GraphDB, heuristicUid string, userUid string) (
+// GetFrontendHeuristicByUID the heuristic for the given heuristicUid
+func GetFrontendHeuristicByUID(c *external.GraphDB, heuristicUID string, userUID string) (
 	frontendHeuristic FrontendHeuristic, err error) {
 	query := `query Q($uid: string, $uuid: string){
 					q(func: uid($uid))@cascade{
@@ -526,7 +526,7 @@ func GetFrontendHeuristicByUid(c *external.GraphDB, heuristicUid string, userUid
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUid, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$uuid": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -579,7 +579,7 @@ func GetFrontendHeuristicByUid(c *external.GraphDB, heuristicUid string, userUid
 }
 
 // GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (completeHeuristic FrontendHeuristicComplete, err error) {
+func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUID string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -620,7 +620,7 @@ func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (c
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUid})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -638,7 +638,7 @@ func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (c
 	}
 
 	if len(r.Transaction) != 1 || len(r.Heuristics) == 0 ||
-		len(r.Transaction[0].Uid) == 0 || len(r.Transaction[0].Timestamp) == 0 {
+		len(r.Transaction[0].UID) == 0 || len(r.Transaction[0].Timestamp) == 0 {
 		err = errors.New("invalid response from database")
 		return
 	}
@@ -651,11 +651,11 @@ func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUid string) (c
 		var results []FrontendHeuristicResult
 		for _, r := range h.Results {
 			// only append a result once per transaction
-			if transactions[r.Uid] {
+			if transactions[r.UID] {
 				continue
 			}
 			results = append(results, r)
-			transactions[r.Uid] = true
+			transactions[r.UID] = true
 		}
 		r.Heuristics[i].Results = results
 	}
@@ -748,7 +748,7 @@ func GetShortestTransactionPathAnyDirection(c *external.GraphDB, txFrom string, 
 }
 
 // GetHeuristicListByUser returns all transactions for which the given user has created heuristics
-func GetHeuristicListByUser(c *external.GraphDB, userUid string) (frontendHeuristic []HeuristicListItem, err error) {
+func GetHeuristicListByUser(c *external.GraphDB, userUID string) (frontendHeuristic []HeuristicListItem, err error) {
 	query := `query Q($uuid:string){
 				# get transaction
 				var(func: uid($uuid)){
@@ -775,7 +775,7 @@ func GetHeuristicListByUser(c *external.GraphDB, userUid string) (frontendHeuris
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uuid": userUid})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uuid": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

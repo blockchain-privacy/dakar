@@ -18,14 +18,14 @@ var validHeuristicTypes = []heuristic{NewOneSourceHeuristic(0), NewAmountHeurist
 // typeMap K: heuristic types, v: heuristics
 var typeMap = make(map[string]heuristic)
 
-// newUidPrefix is the prefix of the uid of all newly created heuristics on the frontend
-const newUidPrefix = "newUid_"
+// newUIDPrefix is the prefix of the uid of all newly created heuristics on the frontend
+const newUIDPrefix = "newUid_"
 
 // errors for this file
 var (
 	errHeuristicTypeNotFound     = errors.New("error heuristic type not found")
-	errHeuristicDuplicateUid     = errors.New("error duplicate uids found")
-	errHeuristicUidNotFound      = errors.New("error uid not found")
+	errHeuristicDuplicateUID     = errors.New("error duplicate uids found")
+	errHeuristicUIDNotFound      = errors.New("error uid not found")
 	errHeuristicMultipleRoots    = errors.New("error multiple roots found")
 	errHeuristicNoRoots          = errors.New("error no roots") // ♩ ♬ no roots ♬ ♪
 	errHeuristicNotValid         = errors.New("error heuristics are not valid")
@@ -34,9 +34,9 @@ var (
 
 type heuristicTreeElement struct {
 	uid                string
-	parentHeuristicUid string
+	parentHeuristicUID string
 	heuristic          heuristic
-	childHeuristicUid  []string
+	childHeuristicUID  []string
 }
 
 // isValid checks if the given heuristics are all valid
@@ -74,8 +74,8 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.Fr
 
 			//newHeuristic := *modelHeuristic
 			// check heuristic was already built
-			if _, ok := builtHeuristics[h.Uid]; ok {
-				err = errHeuristicDuplicateUid
+			if _, ok := builtHeuristics[h.UID]; ok {
+				err = errHeuristicDuplicateUID
 				return
 			}
 
@@ -90,20 +90,20 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.Fr
 			var childHeuristicUids []string
 
 			for _, c := range h.ChildHeuristics {
-				childHeuristicUids = append(childHeuristicUids, c.Uid)
+				childHeuristicUids = append(childHeuristicUids, c.UID)
 			}
 
-			var parentUid string
+			var parentUID string
 
 			if len(h.ParentHeuristic) > 0 {
-				parentUid = h.ParentHeuristic[0].Uid
+				parentUID = h.ParentHeuristic[0].UID
 			}
 
-			builtHeuristics[h.Uid] = heuristicTreeElement{
-				uid:                h.Uid,
-				parentHeuristicUid: parentUid,
+			builtHeuristics[h.UID] = heuristicTreeElement{
+				uid:                h.UID,
+				parentHeuristicUID: parentUID,
 				heuristic:          newHeuristic,
-				childHeuristicUid:  childHeuristicUids,
+				childHeuristicUID:  childHeuristicUids,
 			}
 
 		} else {
@@ -122,9 +122,9 @@ type treeLeaf struct {
 
 // traverseHeuristicTree is a recursive function called by getNodeLevelDistribution. It traverses a tree starting
 // at root and returns the node level of itself and all child nodes
-func traverseHeuristicTree(nodes map[string]heuristicTreeElement, rootUid string, root heuristicTreeElement,
+func traverseHeuristicTree(nodes map[string]heuristicTreeElement, rootUID string, root heuristicTreeElement,
 	level int) (l []treeLeaf, err error) {
-	for _, uid := range root.childHeuristicUid {
+	for _, uid := range root.childHeuristicUID {
 		if h, ok := nodes[uid]; ok {
 
 			leafs, traverseErr := traverseHeuristicTree(nodes, uid, h, level+1)
@@ -135,13 +135,13 @@ func traverseHeuristicTree(nodes map[string]heuristicTreeElement, rootUid string
 
 			l = append(l, leafs...)
 		} else {
-			err = errHeuristicUidNotFound
+			err = errHeuristicUIDNotFound
 			return
 		}
 	}
 
 	l = append(l, treeLeaf{
-		uid:   rootUid,
+		uid:   rootUID,
 		level: level,
 	})
 
@@ -149,9 +149,9 @@ func traverseHeuristicTree(nodes map[string]heuristicTreeElement, rootUid string
 }
 
 // getNodeLevelDistribution returns a list of all nodes with the respective level in the tree
-func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUid string,
+func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUID string,
 	root heuristicTreeElement) (levelToNode [][]heuristicTreeElement, err error) {
-	treeNodes, err := traverseHeuristicTree(nodes, rootUid, root, 0)
+	treeNodes, err := traverseHeuristicTree(nodes, rootUID, root, 0)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -182,14 +182,14 @@ func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecuto
 	for i := len(levelToNode) - 1; i >= 0; i-- {
 		for _, n := range levelToNode[i] {
 			thisExec := BuildExecutor(n.heuristic)
-			thisExec.RootUid = n.parentHeuristicUid
-			for _, childUid := range n.childHeuristicUid {
-				if child, ok := executorStack[childUid]; ok {
+			thisExec.RootUID = n.parentHeuristicUID
+			for _, childUID := range n.childHeuristicUID {
+				if child, ok := executorStack[childUID]; ok {
 					// add child to this executor tree and delete it from the map
 					thisExec.NextHeuristics = append(thisExec.NextHeuristics, child)
-					delete(executorStack, childUid)
+					delete(executorStack, childUID)
 				} else {
-					err = errHeuristicUidNotFound
+					err = errHeuristicUIDNotFound
 					return
 				}
 			}
@@ -215,12 +215,12 @@ func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecuto
 
 func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTreeElement) bool {
 	// no parent uid -> must be a root element
-	if h.parentHeuristicUid == "" {
+	if h.parentHeuristicUID == "" {
 		return true
 	}
 
 	// parent uid does not exist in change set -> must be a root element in this context
-	if _, ok := heuristics[h.parentHeuristicUid]; !ok {
+	if _, ok := heuristics[h.parentHeuristicUID]; !ok {
 		return true
 	}
 
@@ -234,14 +234,14 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 	for _, uid := range rootHeuristicUids {
 		v, ok := heuristics[uid]
 		if !ok {
-			err = errHeuristicUidNotFound
+			err = errHeuristicUIDNotFound
 			return
 		}
 
-		if len(v.childHeuristicUid) == 0 {
+		if len(v.childHeuristicUID) == 0 {
 			executors = append(executors, HeuristicExecutor{
 				ThisHeuristic: v.heuristic,
-				RootUid:       v.parentHeuristicUid,
+				RootUID:       v.parentHeuristicUID,
 			})
 			// no children -> no work
 			continue
@@ -253,12 +253,13 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 			return
 		}
 
-		if newRootExecutor, buildErr := buildExecutorsFromLevels(levelDistribution); buildErr != nil {
+		newRootExecutor, buildErr := buildExecutorsFromLevels(levelDistribution)
+		if buildErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
 			return
-		} else {
-			executors = append(executors, newRootExecutor)
 		}
+
+		executors = append(executors, newRootExecutor)
 	}
 
 	return
@@ -292,7 +293,7 @@ func ConstructExecutors(dgraph *external.GraphDB, txhash string, heuristics []db
 		if isRootHeuristic(v, newHeuristics) {
 			rootUids = append(rootUids, v.uid)
 			// no need to check roots which are newly created and thus have no valid uid
-			if !strings.HasPrefix(v.uid, newUidPrefix) {
+			if !strings.HasPrefix(v.uid, newUIDPrefix) {
 				rootsToCheck = append(rootsToCheck, v.uid)
 			}
 		}
@@ -305,11 +306,11 @@ func ConstructExecutors(dgraph *external.GraphDB, txhash string, heuristics []db
 
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
-		if exists, checkErr := dbtxh.DoesHeuristicUidExist(dgraph, txhash, rootsToCheck); checkErr != nil {
+		if exists, checkErr := dbtxh.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
 			return
 		} else if !exists {
-			err = errHeuristicUidNotFound
+			err = errHeuristicUIDNotFound
 			return
 		}
 	}
@@ -339,7 +340,7 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 		// copy uids into map
 		changeMap := make(map[string]bool)
 		for _, c := range changed {
-			changeMap[c.Uid] = true
+			changeMap[c.UID] = true
 		}
 
 		for _, r := range removed {
@@ -356,8 +357,8 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []string {
 	for _, c := range changed {
 		// only add heuristics which actually exist in the database
-		if !strings.HasPrefix(c.Uid, newUidPrefix) {
-			removed = append(removed, c.Uid)
+		if !strings.HasPrefix(c.UID, newUIDPrefix) {
+			removed = append(removed, c.UID)
 		}
 	}
 

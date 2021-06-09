@@ -10,7 +10,7 @@ import (
 const DType = "Output"
 
 type Output struct {
-	Uid         string   `json:"uid,omitempty"`
+	UID         string   `json:"uid,omitempty"`
 	OutputIndex *uint32  `json:"outputindex,omitempty"`
 	InputIndex  *uint32  `json:"inputindex,omitempty"`
 	TxType      string   `json:"txtype,omitempty"`
@@ -24,8 +24,8 @@ type Output struct {
 }
 
 func (o Output) String() string {
-	output := fmt.Sprintf("Uid: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
-		o.Uid, *o.Amount, o.KeyAsm, o.SigAsm)
+	output := fmt.Sprintf("UID: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
+		o.UID, *o.Amount, o.KeyAsm, o.SigAsm)
 
 	if o.OutputIndex != nil {
 		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)

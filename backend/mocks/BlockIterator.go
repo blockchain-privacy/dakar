@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	blockIterator "backend/blockIterator"
+	blockIterator "backend/blockiterator"
 	context "context"
 
 	dgo "github.com/dgraph-io/dgo/v210"

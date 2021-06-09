@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// TimeConstraintHeuristic - see exec for description
 type TimeConstraintHeuristic struct {
 	heuristicType        string
 	parameterDescription string
@@ -62,12 +63,12 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string,
-	parentHeuristicUid string) ([]string, error) {
+	parentHeuristicUID string) ([]string, error) {
 	var origins []string
-	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
+	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
 		// get origins from parent heuristic
-		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUid)
+		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -77,7 +78,7 @@ func (h TimeConstraintHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper
 		}
 
 		for _, o := range parentHeuristic.Origins {
-			origins = append(origins, o.Uid)
+			origins = append(origins, o.UID)
 		}
 	}
 	// todo also handle non-parent heuristic case
@@ -104,10 +105,10 @@ func (h TimeConstraintHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
 			// only save the uid also exists in the maximal origin set
-			if parentHeuristicSet && !originLimit[t.Uid] {
+			if parentHeuristicSet && !originLimit[t.UID] {
 				continue
 			}
-			allTimeLimitedOrigins[t.Uid] = true
+			allTimeLimitedOrigins[t.UID] = true
 		}
 	}
 

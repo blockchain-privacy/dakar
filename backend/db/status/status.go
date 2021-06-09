@@ -25,8 +25,8 @@ func PrintStatus(dgraph *external.GraphDB) {
 		fmt.Println("Currently crawling:", *crawlerStatus.IsCrawling)
 	}
 
-	if crawlerStatus.LastBlockId != nil {
-		fmt.Println("LastBlockId:", *crawlerStatus.LastBlockId)
+	if crawlerStatus.LastBlockID != nil {
+		fmt.Println("LastBlockID:", *crawlerStatus.LastBlockID)
 	}
 
 	classifierStatus, _ := GetClassifierStatus(dgraph)
@@ -35,8 +35,8 @@ func PrintStatus(dgraph *external.GraphDB) {
 		fmt.Println("Currently classifying:", *classifierStatus.IsClassifying)
 	}
 
-	if classifierStatus.LastClassifiedBlockId != nil {
-		fmt.Println("LastClassifiedBlockId:", *classifierStatus.LastClassifiedBlockId)
+	if classifierStatus.LastClassifiedBlockID != nil {
+		fmt.Println("LastClassifiedBlockID:", *classifierStatus.LastClassifiedBlockID)
 	}
 
 	blockCount, _ := dbblk.GetCount(dgraph)
@@ -108,8 +108,8 @@ func GetClassifierStatus(c *external.GraphDB) (status ClassifierStatus, err erro
 	return r.payload()
 }
 
-// GetHighestBlockId gets the highest block id.
-func GetHighestBlockId(c *external.GraphDB) (max uint64, err error) {
+// GetHighestBlockID gets the highest block id.
+func GetHighestBlockID(c *external.GraphDB) (max uint64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -193,8 +193,8 @@ func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 		return
 	}
 
-	if r.Crawler[0].LastBlockId == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
+	if r.Crawler[0].LastBlockID == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIDNotFound)
 		return
 	}
 
@@ -204,21 +204,21 @@ func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 			return
 		}
 
-		if r.Classifier[0].LastClassifiedBlockId == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastClassifiedBlockIdNotFound)
+		if r.Classifier[0].LastClassifiedBlockID == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
 
 	status = FrontendStatus{
 		IsCrawling:    *r.Crawler[0].IsCrawling,
-		LastBlockId:   *r.Crawler[0].LastBlockId,
-		LowestBlockId: *r.Crawler[0].LowestBlockId,
+		LastBlockID:   *r.Crawler[0].LastBlockID,
+		LowestBlockID: *r.Crawler[0].LowestBlockID,
 	}
 
 	if len(r.Classifier) == 1 {
 		status.IsClassifying = *r.Classifier[0].IsClassifying
-		status.LastClassifiedBlockId = *r.Classifier[0].LastClassifiedBlockId
+		status.LastClassifiedBlockID = *r.Classifier[0].LastClassifiedBlockID
 	}
 
 	return
@@ -226,7 +226,7 @@ func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 
 // SetCrawlerStatus sets the new crawler status
 func SetCrawlerStatus(c *external.GraphDB, status CrawlerStatus) error {
-	status.Uid = "uid(v)"
+	status.UID = "uid(v)"
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -254,7 +254,7 @@ func SetCrawlerStatus(c *external.GraphDB, status CrawlerStatus) error {
 
 // SetClassifierStatus sets the new classifier status
 func SetClassifierStatus(c *external.GraphDB, status ClassifierStatus) error {
-	status.Uid = "uid(v)"
+	status.UID = "uid(v)"
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -294,17 +294,17 @@ func SetClassifying(c *external.GraphDB, classifying bool) error {
 	})
 }
 
-// SetLastBlockId sets the last block id
-func SetLastBlockId(c *external.GraphDB, id uint64) error {
+// SetLastBlockID sets the last block id
+func SetLastBlockID(c *external.GraphDB, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
-		LastBlockId: &id,
+		LastBlockID: &id,
 	})
 }
 
-// SetLastClassifiedBlockId sets the last classified block id
-func SetLastClassifiedBlockId(c *external.GraphDB, id uint64) error {
+// SetLastClassifiedBlockID sets the last classified block id
+func SetLastClassifiedBlockID(c *external.GraphDB, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
-		LastClassifiedBlockId: &id,
+		LastClassifiedBlockID: &id,
 	})
 }
 

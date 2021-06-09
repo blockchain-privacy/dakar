@@ -1,5 +1,6 @@
 package analytics
 
+// Config defines configuration values for a specific blockchain type
 type Config struct {
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
@@ -11,6 +12,7 @@ type Config struct {
 	ClassifierStartBlock uint64
 }
 
+// NewDashConfig returns a Config for Dash
 func NewDashConfig() Config {
 	return Config{
 		BlockchainName:           "Dash",
@@ -22,6 +24,7 @@ func NewDashConfig() Config {
 	}
 }
 
+// NewBitcoinConfig returns a Config for Bitcoin
 func NewBitcoinConfig() Config {
 	return Config{
 		BlockchainName:           "Bitcoin",
@@ -30,6 +33,7 @@ func NewBitcoinConfig() Config {
 	}
 }
 
+// NewDogecoinConfig returns a Config for Dogecoin
 func NewDogecoinConfig() Config {
 	return Config{
 		BlockchainName:           "Doge",
