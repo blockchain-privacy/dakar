@@ -160,6 +160,29 @@ export const passwordRules = [
         || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
 ];
 
+// isValidQueryInput returns true if the input query is valid. This function
+// should be used instead of isValidQuery if the input is expected to be trimmed.
+export function isValidQueryInput(str) {
+  const inputLen = str.length;
+  // 64 -> length of transaction hash and block hash
+  if (inputLen === 0 || inputLen > 64) return false;
+
+  // 33,34 -> address length; if smaller than it must be a block id
+  if (inputLen < 33) {
+    return Number.isInteger(Number(str));
+  }
+
+  return str.match(/^[0-9a-zA-Z]+$/) !== null;
+}
+
+// isValidQuery returns true if the input query is valid. This function should
+// be used instead of isValidQueryInput if the input is not expected to be trimmed.
+export function isValidQuery(str) {
+  const trimmed = str.trim();
+
+  return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
+}
+
 function isRole(userData, roleName) {
   return userData && userData.roles && userData.roles.some((d) => d.role_name === roleName);
 }

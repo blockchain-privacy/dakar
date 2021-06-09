@@ -1,75 +1,7 @@
 <template>
   <v-app>
-    <v-app-bar app absolute>
-      <router-link :to="{name: route.rootPage}">
-        <v-img
-            style="cursor:pointer"
-            alt="Dakar Logo"
-            class="shrink mr-2"
-            contain
-            src="./assets/dakar_dash.svg"
-            transition="scale-transition"
-            width="32">
-        </v-img>
-      </router-link>
-      <router-link :to="{name: route.rootPage}" style="color: inherit; text-decoration: inherit">
-        <v-toolbar-title class="mx-2 d-none d-sm-flex" style="cursor:pointer">
-          {{ applicationName }}
-        </v-toolbar-title>
-      </router-link>
-      <v-spacer></v-spacer>
-      <QueryInput class="mx-4"/>
-      <v-spacer></v-spacer>
-      <v-btn icon :to="{name: route.shortestPathPage}" v-if="showTools">
-        <v-icon>{{ icon.mdiToolbox }}</v-icon>
-      </v-btn>
-      <v-menu offset-y style="z-index: 99">
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              icon
-              v-bind="attrs"
-              v-on="on">
-            <v-icon>{{ icon.mdiAccount }}</v-icon>
-          </v-btn>
-        </template>
-        <v-list nav dense>
-          <v-list-item v-if="this.userData">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
-          </v-list-item>
-          <v-divider v-if="this.userData"/>
-          <v-list-item :to="{name: route.userProfilePage}" v-if="this.userData"
-                       :disabled="isUserProfileDisabled">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiCog }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Settings</v-list-item-title>
-          </v-list-item>
-          <v-list-item :to="{ name: route.userLoginPage }"
-                       v-if="!this.userData" :disabled="isUserLoginDisabled">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiLogin }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Login</v-list-item-title>
-          </v-list-item>
-          <v-list-item :to="{ name: route.userAdminPage }" :disabled="isUserAdminDisabled"
-                       v-if="showUserAdmin">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiAccountSupervisor }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>User Administration</v-list-item-title>
-          </v-list-item>
-          <v-list-item @click="logout" v-if="this.userData">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiLogout }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Logout</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-    </v-app-bar>
+    <!-- show custom nav bar on entry page -->
+    <AppBar :minimize="[route.rootPage].includes($route.name)"/>
     <v-main>
       <MsgBox/>
       <transition name="component-fade" mode="out-in">
@@ -80,47 +12,28 @@
 </template>
 
 <script>
-import {
-  mdiAccount, mdiLogin, mdiLogout, mdiAccountSupervisor, mdiAccountCircle,
-  mdiCog, mdiToolbox,
-} from '@mdi/js';
-import QueryInput from './components/QueryInput.vue';
 import MsgBox from './components/notification/MsgBox.vue';
-import * as Constants from './constants';
 import '@fontsource/roboto';
 import {
-  doGet, getLocalUser, resetLocal, getLocalSettings, isAdminUser, isPrivilegedUser,
+  getLocalUser, getLocalSettings,
 } from './utilities';
-import { ROUTE_USER_LOGOUT, DEFAULT_SETTINGS } from './constants';
+import {
+  DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
+} from './constants';
+import AppBar from './components/AppBar.vue';
 
 export default {
   name: 'App',
   components: {
+    AppBar,
     MsgBox,
-    QueryInput,
   },
   data() {
     return {
-      applicationName: Constants.APPLICATION_NAME,
-      icon: {
-        mdiAccount,
-        mdiLogin,
-        mdiLogout,
-        mdiAccountSupervisor,
-        mdiAccountCircle,
-        mdiCog,
-        mdiToolbox,
-      },
+      applicationName: APPLICATION_NAME,
       route: {
-        userProfilePage: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
-        userAdminPage: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
-        userLoginPage: Constants.ROUTE_NAME_LOGIN_PAGE,
-        shortestPathPage: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
-        rootPage: Constants.ROUTE_NAME_ENTRY_PAGE,
+        rootPage: ROUTE_NAME_ENTRY_PAGE,
       },
-      isUserAdminDisabled: false,
-      isUserLoginDisabled: false,
-      isUserProfileDisabled: false,
     };
   },
   computed: {
@@ -140,38 +53,8 @@ export default {
         this.$store.dispatch('setSettings', value);
       },
     },
-    showUserAdmin() {
-      return isAdminUser(this.userData);
-    },
-    showTools() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
-    },
   },
   methods: {
-    setErrorMessage(msg) {
-      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
-    },
-    // goToPage should receive a page name from ./constants
-    goToPage(pageName) {
-      // only change route if not already on page
-      if (this.$route.name !== pageName) this.$router.push({ name: pageName });
-    },
-    logout() {
-      doGet(ROUTE_USER_LOGOUT, this.$router)
-        .then((data) => {
-          if (data.success === undefined) throw Error('error logging out');
-          if (data.success === false) {
-            throw Error(data.msg);
-          }
-          resetLocal();
-          this.userData = null;
-          this.settings = null;
-          this.goToPage(Constants.ROUTE_NAME_LOGIN_PAGE);
-        })
-        .catch((error) => {
-          this.setErrorMessage(error);
-        });
-    },
     persistDarkTheme(isDark) {
       const set = this.settings;
       set.dark = isDark;

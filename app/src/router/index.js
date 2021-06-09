@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
 import Misc from '../components/user/Misc.vue';
 import Settings from '../components/user/Settings.vue';
@@ -11,7 +12,7 @@ import BlockLookup from '../components/data/BlockLookup.vue';
 import AddressLookup from '../components/data/AddressLookup.vue';
 import NoResults from '../components/NoResults.vue';
 import Editor from '../components/heuristic/Editor.vue';
-import EntryView from '../components/EntryView.vue';
+import StatusView from '../components/StatusView.vue';
 import PageNotFound from '../components/PageNotFound.vue';
 import Tools from '../components/tools/Tools.vue';
 import ShortestPath from '../components/tools/ShortestPath.vue';
@@ -27,6 +28,12 @@ export default new Router({
       path: '/',
       name: Constants.ROUTE_NAME_ENTRY_PAGE,
       component: EntryView,
+      meta: { title: 'Entry' },
+    },
+    {
+      path: '/status',
+      name: Constants.ROUTE_NAME_STATUS_PAGE,
+      component: StatusView,
       meta: { title: 'Status' },
     },
     {
