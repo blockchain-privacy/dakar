@@ -56,7 +56,7 @@ type outputQuery struct {
 
 var (
 	ErrorNotFound      = errors.New("output not found")
-	ErrorMultipleFound = errors.New("found multiple outputs")
+	errorMultipleFound = errors.New("found multiple outputs")
 )
 
 func (oq outputQuery) payload() (op Output, err error) {
@@ -74,7 +74,7 @@ func (oq outputQuery) payload() (op Output, err error) {
 
 	if lenQ > 1 || lenTx > 1 {
 		// found more than one output, which should not be possible
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorMultipleFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorMultipleFound)
 		return
 	}
 	op = oq.GetOutput[0].Outputs[0]
