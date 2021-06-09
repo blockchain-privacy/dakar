@@ -6,8 +6,8 @@ PKG_LIST := $(shell go list ../../... | grep -v /vendor/)
 all: build
 
 lint: # Lint the files
-	@go get -u golang.org/x/lint/golint
-	@${CI_PROJECT_DIR}/vendor/go/bin/golint -set_exit_status ${PKG_LIST}
+	@go get -u honnef.co/go/tools/cmd/staticcheck@latest
+	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
 
 test: ## Run unittests
 	@go test -short ${PKG_LIST}
