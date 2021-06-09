@@ -155,7 +155,6 @@ func GetBlock(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
 func GetTransaction(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
 	tx, err := dbtx.GetFrontendTransaction(dgraph, query)
 	if err != nil {
-
 		// only print error if it is not expected
 		if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
 			return SearchResult{}, false, err

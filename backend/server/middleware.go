@@ -3,20 +3,24 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/user"
+	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/dgraph-io/ristretto"
 	"golang.org/x/crypto/ed25519"
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"time"
 )
 
 const middlewareContextUser = "user"
 
-type Adapter func(http.Handler) http.Handler
+type adapter func(http.Handler, string) http.Handler
 
-func Adapt(h http.Handler, adapters ...Adapter) http.Handler {
+func adapt(h http.Handler, route string, adapters ...adapter) http.Handler {
 	for i := len(adapters) - 1; i >= 0; i-- {
-		h = adapters[i](h)
+		h = adapters[i](h, route)
 	}
 	return h
 }
@@ -42,8 +46,8 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	}
 }
 
-func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed25519.PublicKey) Adapter {
-	return func(h http.Handler) http.Handler {
+func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKey) adapter {
+	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(cookieTokenName)
 			if err != nil {
@@ -108,6 +112,72 @@ func authorizationMiddleware(route string, privkey ed25519.PrivateKey, pubkey ed
 			}
 			// call next handler and add to the request context the user information
 			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), middlewareContextUser, newUser)))
+		})
+	}
+}
+
+type cacheElement struct {
+	buffer     []byte
+	statusCode int
+}
+
+func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// set headers
+			setDefaultHeader(w)
+
+			// extract body
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+			// reset body so it can be read by the next handler
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+			query := r.URL.Path[len(route):]
+			cacheKey := buildKey(route, query, body)
+
+			// try to get request from cache
+			value, found := cache.Get(cacheKey)
+			var buf []byte
+			var httpStatusCode int
+			if found {
+				foundCache := value.(cacheElement)
+
+				httpStatusCode = foundCache.statusCode
+				buf = foundCache.buffer
+
+			} else {
+				// record the writes of the next handler, so the response can be saved in the cache.
+				recorder := httptest.NewRecorder()
+				// call next handler
+				h.ServeHTTP(recorder, r)
+
+				// get recorded values
+				httpStatusCode = recorder.Result().StatusCode
+				buf = recorder.Body.Bytes()
+
+				// create new cache element
+				ce := cacheElement{
+					buffer:     buf,
+					statusCode: httpStatusCode,
+				}
+
+				// only insert in cache if no error occurred
+				if httpStatusCode < http.StatusBadRequest {
+					cache.SetWithTTL(cacheKey, ce, 1, ttl)
+				}
+			}
+
+			setCacheHeader(w, ttl)
+
+			w.WriteHeader(httpStatusCode)
+			_, err = w.Write(buf)
+			if err != nil {
+				handleError(w, err)
+			}
 		})
 	}
 }
