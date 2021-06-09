@@ -59,6 +59,7 @@ var (
 	errorRoleDoesNotExist = errors.New("error role does not exist")
 )
 
+// Role defines an interface which allows to access the properties of Roles
 type Role interface {
 	// GetName returns the Role name
 	GetName() string
@@ -70,6 +71,7 @@ type Role interface {
 	String() string
 }
 
+// AdminRole has access to all possible routes
 type AdminRole struct {
 	name          string
 	allowedRoutes map[string]bool
@@ -83,14 +85,17 @@ func NewAdminRole() AdminRole {
 	}
 }
 
+// GetName returns the name of the role
 func (a AdminRole) GetName() string {
 	return a.name
 }
 
+// GetAllowedRoutes returns all routes which this role is allowed to access
 func (a AdminRole) GetAllowedRoutes() map[string]bool {
 	return a.allowedRoutes
 }
 
+// IsRouteAllowed returns true if the role is allowed to access the given route
 func (a AdminRole) IsRouteAllowed(_ string) bool {
 	return true
 }
@@ -110,10 +115,12 @@ func routeMapToString(m map[string]bool) string {
 	return allowedRoutesString
 }
 
+// String returns the string representation of the role
 func (a AdminRole) String() string {
 	return fmt.Sprintf("Name: %s, Allowed routes: [%s]", a.name, routeMapToString(a.allowedRoutes))
 }
 
+// DefaultUserRole has access to basic routes
 type DefaultUserRole struct {
 	name          string
 	allowedRoutes map[string]bool
@@ -127,22 +134,27 @@ func NewDefaultUserRole() DefaultUserRole {
 	}
 }
 
+// GetName returns the name of the role
 func (d DefaultUserRole) GetName() string {
 	return d.name
 }
 
+// GetAllowedRoutes returns all routes which this role is allowed to access
 func (d DefaultUserRole) GetAllowedRoutes() map[string]bool {
 	return d.allowedRoutes
 }
 
+// IsRouteAllowed returns true if the role is allowed to access the given route
 func (d DefaultUserRole) IsRouteAllowed(route string) bool {
 	return d.allowedRoutes[route]
 }
 
+// String returns the string representation of the role
 func (d DefaultUserRole) String() string {
 	return fmt.Sprintf("Name: %s, Allowed routes: [%s]", d.name, routeMapToString(d.allowedRoutes))
 }
 
+// PrivilegedRole has access to basic routes and routes which perform computationally heavy tasks
 type PrivilegedRole struct {
 	name          string
 	allowedRoutes map[string]bool
@@ -156,22 +168,27 @@ func NewPrivilegedRole() PrivilegedRole {
 	}
 }
 
+// GetName returns the name of the role
 func (p PrivilegedRole) GetName() string {
 	return p.name
 }
 
+// GetAllowedRoutes returns all routes which this role is allowed to access
 func (p PrivilegedRole) GetAllowedRoutes() map[string]bool {
 	return p.allowedRoutes
 }
 
+// IsRouteAllowed returns true if the role is allowed to access the given route
 func (p PrivilegedRole) IsRouteAllowed(route string) bool {
 	return p.allowedRoutes[route]
 }
 
+// String returns the string representation of the role
 func (p PrivilegedRole) String() string {
 	return fmt.Sprintf("Name: %s, Allowed routes: [%s]", p.name, routeMapToString(p.allowedRoutes))
 }
 
+// GetRoleByName returns for a given role name the Role object
 func GetRoleByName(name string) (Role, error) {
 	returnedRole, ok := roleMap[name]
 	if !ok {

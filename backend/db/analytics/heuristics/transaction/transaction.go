@@ -17,7 +17,8 @@ import (
 
 var (
 	errInvalidDatabaseResponse = errors.New("error invalid response")
-	ErrNoMutationHappened      = errors.New("no mutation happened")
+	// ErrNoMutationHappened is returned if no mutation occurred
+	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
 // InsertHeuristic inserts the given heuristic
@@ -202,6 +203,7 @@ func GetHeuristic(c *external.GraphDB, heuristicUID string) (h Heuristic, err er
 	return
 }
 
+// GetHeuristicResults returns the connected transactions of heuristic
 func GetHeuristicResults(c *external.GraphDB, heuristicUID string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
 				var (func: uid($uid)){

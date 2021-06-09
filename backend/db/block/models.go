@@ -11,7 +11,9 @@ import (
 const DType = "Block"
 
 var (
+	// ErrorBlockNotFound is returned if no block was found
 	ErrorBlockNotFound = errors.New("no block found")
+	// ErrorInvalidResult is returned if an invalid result was returned from the database
 	ErrorInvalidResult = errors.New("invalid result")
 )
 

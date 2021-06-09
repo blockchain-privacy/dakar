@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// ConnectedNode holds data for the current node and all connections on the input side
 type ConnectedNode struct {
 	UID         string                `json:"uid"`
 	PrivacyType constants.PrivacyType `json:"privacytype"`
@@ -16,6 +17,7 @@ type ConnectedNode struct {
 	} `json:"i"`
 }
 
+// Node holds data for the current node
 type Node struct {
 	UID         string                `json:"uid"`
 	PrivacyType constants.PrivacyType `json:"privacytype"`
@@ -24,6 +26,7 @@ type Node struct {
 	} `json:"block"`
 }
 
+// AddressNode can hold data for an address or transaction
 type AddressNode struct {
 	UID    string `json:"uid"`
 	Inputs []struct {

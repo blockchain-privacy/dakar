@@ -110,6 +110,7 @@ const typeAddr queryResultType = "addr"
 const typeTx queryResultType = "tx"
 const typeEmpty queryResultType = "response_empty"
 
+// SearchResult holds result data of a block, address or transaction search request
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
