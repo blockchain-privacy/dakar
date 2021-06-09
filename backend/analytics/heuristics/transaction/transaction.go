@@ -101,9 +101,7 @@ func addOriginsToMap(g *graph.Wrapper, sourceTransactionMap map[graph.ClusterID]
 
 	for _, o := range origins {
 		// add to map
-		for _, a := range o.Addresses {
-			allAddresses = append(allAddresses, a)
-		}
+		allAddresses = append(allAddresses, o.Addresses...)
 	}
 
 	clusters, err := g.GetClusters(allAddresses)

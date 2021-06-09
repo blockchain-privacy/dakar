@@ -252,8 +252,7 @@ func TestBuildAddressMapping(t *testing.T) {
 func TestWaitForNextRPCBlock(t *testing.T) {
 	var rpcClient mocks.RPCClient
 	hash := mocks.RPCVal.HeightMap[1423340]
-	nilHash := &chainhash.Hash{}
-	nilHash = nil
+	var nilHash *chainhash.Hash
 	expectedBlock := mocks.RPCVal.BlockStore[hash]
 	interrupt := make(chan struct{})
 	blkInfo := mocks.RPCVal.BlockchainInfo

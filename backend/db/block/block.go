@@ -51,10 +51,7 @@ func GetBlock(c *external.GraphDB, blockHash string) (blk Block, err error) {
 
 func isBlockIdentifier(field string) bool {
 	_, err := strconv.Atoi(field)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // GetFrontendBlock gets verbose block information from the database

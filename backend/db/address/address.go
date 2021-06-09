@@ -102,24 +102,18 @@ func GetFrontendAddress(c *external.GraphDB, addrHash string, sortOrder int, off
 	switch sortOrder {
 	case SortAscendingByInputTime:
 		sortBy = "val(its)"
-		break
 	case SortDescendingByInputTime:
 		sortDirection = "desc"
 		sortBy = "val(its)"
-		break
 	case SortAscendingByOutputTime:
 		// do nothing, values are already correctly set
-		break
 	case SortDescendingByOutputTime:
 		sortDirection = "desc"
-		break
 	case SortAscendingByAmount:
 		sortBy = "amount"
-		break
 	case SortDescendingByAmount:
 		sortDirection = "desc"
 		sortBy = "amount"
-		break
 	default:
 		err = errors.New("error unrecognized sort order")
 		return
@@ -129,10 +123,8 @@ func GetFrontendAddress(c *external.GraphDB, addrHash string, sortOrder int, off
 		switch f {
 		case FilterByCoinbase:
 			filter += "eq(iscoinbase, true)"
-			break
 		case FilterByUnspent:
 			filter += " NOT has(~tx_inputs)"
-			break
 		default:
 			err = errors.New("error unrecognized filter")
 			return

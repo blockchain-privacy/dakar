@@ -57,9 +57,6 @@ type Work struct {
 	executors []HeuristicExecutor
 	// removableHeuristics contains the uids of all heuristics are ready for deletion
 	removableHeuristics []string
-	// treeRoots contains the uids of the roots of all trees modified by the heuristics in executors
-	// needed for copying modified heuristic trees
-	treeRoots []string
 }
 
 // Worker works on the data defined in Work

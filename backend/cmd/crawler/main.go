@@ -520,10 +520,9 @@ func main() {
 	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped {
 		// if the crawler and classifier stopped working on their own accord,
 		// the server is still active at this point
-		select {
-		case <-chSignal:
-			shutdownServer(srv)
-		}
+
+		<-chSignal
+		shutdownServer(srv)
 	}
 
 	wg.Wait()

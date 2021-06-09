@@ -245,8 +245,6 @@ func handlerMeta(dgraph *external.GraphDB, client external.RPCClient) http.Handl
 		if encErr := json.NewEncoder(w).Encode(stat); encErr != nil {
 			handleError(w, encErr)
 		}
-
-		return
 	})
 }
 

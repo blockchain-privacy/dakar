@@ -140,8 +140,6 @@ func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output,
 		}
 		*addrs = addOutputsToAddresses(*addrs, mapping.hash, uids)
 	}
-
-	return
 }
 
 func buildAddresses(dgraph *external.GraphDB, txHash string, blockHash string, outputs map[string]outputMapping,

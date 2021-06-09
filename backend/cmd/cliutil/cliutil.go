@@ -120,6 +120,7 @@ func NumBlockchainSelected(args Arguments) int {
 func GetLogfile(fileName string) (f *os.File, err error) {
 	if len(fileName) == 0 {
 		err = errors.New("name for log file is invalid")
+		return
 	}
 
 	f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
@@ -147,78 +148,55 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		switch f {
 		case Continuous:
 			addContinuous(&args.Continuous)
-			break
 		case IgnoreSafeguard:
 			addIgnoreSafeguard(&args.IgnoreSafeguard)
-			break
 		case ResetDB:
 			addResetDB(&args.ResetDB)
 			isRPCused = true
-			break
 		case RPCUser:
 			addRPCUser(&args.RPCUser)
 			isRPCused = true
-			break
 		case RPCPassword:
 			addRPCPassword(&args.RPCPassword)
 			isRPCused = true
-			break
 		case RPCHost:
 			addRPCHost(&rpcHostString)
-			break
 		case RPCPort:
 			addRPCPort(&rpcPortNumber)
-			break
 		case DBHost:
 			addDBHost(&dbHostString)
 			isDBused = true
-			break
 		case DBPort:
 			addDBPort(&dbPortNumber)
 			isDBused = true
-			break
 		case StartBlockID:
 			addStartBlockID(&args.StartBlockID)
-			break
 		case StopBlockID:
 			addStopBlockID(&args.StopBlockID)
-			break
 		case IsPrintStatus:
 			addIsPrintStatus(&args.IsPrintStatus)
-			break
 		case Logfile:
 			addLogfile(&args.Logfile)
-			break
 		case HTTPServerPort:
 			addHTTPServerPort(&args.HTTPServerPort)
-			break
 		case DisableHTTPServer:
 			addDisableHTTPServer(&args.DisableHTTPServer)
-			break
 		case DisableCrawler:
 			addDisableCrawler(&args.DisableCrawler)
-			break
 		case DisableHeuristics:
 			addDisableHeuristics(&args.DisableHeuristics)
-			break
 		case DisableClassifier:
 			addDisableClassifier(&args.DisableClassifier)
-			break
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
-			break
 		case BTC:
 			addBTC(&args.BTC)
-			break
 		case Dash:
 			addDash(&args.Dash)
-			break
 		case Doge:
 			addDogecoin(&args.Doge)
-			break
 		case ChartDir:
 			addChartDir(&args.ChartDir)
-			break
 		default:
 			err = errors.New("flag not recognized")
 			return args, err

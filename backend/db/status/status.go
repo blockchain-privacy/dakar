@@ -325,9 +325,6 @@ func IsConnectionEstablished(c *external.GraphDB) bool {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
 	_, err := c.Query(ctx, query, nil)
-	if err != nil {
-		return false
-	}
 
-	return true
+	return err == nil
 }

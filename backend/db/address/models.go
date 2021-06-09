@@ -80,11 +80,6 @@ func (a *Address) SetDType() {
 	a.DType = []string{DType}
 }
 
-// checks if the given address has all attributes filled
-func (a Address) isComplete() bool {
-	return a.UID != "" && a.Hash != "" && a.DType != nil && a.Outputs != nil
-}
-
 // FrontendOutput is the representation for the frontend of an output
 type FrontendOutput struct {
 	Amount                uint64 `json:"amount"`
