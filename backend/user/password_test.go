@@ -9,10 +9,7 @@ func TestGenerateRandomPassword(t *testing.T) {
 	pw, err := GenerateRandomPassword()
 	require.Nil(t, err)
 	require.NotEmpty(t, pw, "password is empty")
-
-	if len(pw) != 22 {
-		t.Fatal("got random password with wrong size:", pw)
-	}
+	require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
 }
 
 func TestGetRandomPasswordAndHash(t *testing.T) {
@@ -30,16 +27,12 @@ func TestComparePassword(t *testing.T) {
 
 	ok, err := ComparePassword(pw, pwHash)
 	require.Nil(t, err)
-
-	if !ok {
-		t.Fatal("did not get a positive result for test. pw:", pw, "hash:", pwHash)
-	}
+	require.True(t, ok, "did not get a positive result for test. pw:", pw, "hash:", pwHash)
 
 	pw = "some_password"
 	pwHash = "some_hash"
 
 	ok, err = ComparePassword(pw, pwHash)
-	if err == nil || ok {
-		t.Fatal("dummy password and hash should have failed comparison", pw, "with hash", pwHash)
-	}
+
+	require.False(t, err == nil || ok, "dummy password and hash should have failed comparison", pw, "with hash", pwHash)
 }
