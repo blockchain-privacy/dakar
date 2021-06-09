@@ -7,6 +7,7 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Output type
 const DType = "Output"
 
 type Output struct {
@@ -41,6 +42,8 @@ func (o Output) String() string {
 
 	return output
 }
+
+// SetDType sets the DType for dgraph type recognition
 func (o *Output) SetDType() {
 	o.DType = []string{DType}
 }

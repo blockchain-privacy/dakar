@@ -7,6 +7,7 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Block type
 const DType = "Block"
 
 var (
@@ -42,6 +43,7 @@ func (b Block) String() string {
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (b *Block) SetDType() {
 	b.DType = []string{DType}
 }

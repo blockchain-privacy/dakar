@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// DType is the dgraph database type for the TransactionHeuristic type
 const DType = "TransactionHeuristic"
 
 type DummyOrigin struct {
@@ -29,6 +30,7 @@ type Heuristic struct {
 	TxHash string `json:"-"`
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (h *Heuristic) SetDType() {
 	h.DType = []string{DType}
 }

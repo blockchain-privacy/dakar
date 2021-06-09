@@ -9,7 +9,9 @@ import (
 )
 
 const (
+	// DTypeUser is the dgraph database type for the User type
 	DTypeUser = "User"
+	// DTypeRole is the dgraph database type for the Role type
 	DTypeRole = "Role"
 )
 
@@ -23,6 +25,7 @@ func (r Role) String() string {
 	return fmt.Sprintf("uid: %s, name: %s", r.UID, r.Name)
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (r *Role) SetDType() {
 	r.DType = []string{DTypeRole}
 }
@@ -43,6 +46,7 @@ func (u User) String() string {
 		u.UID, u.Email, u.Roles, u.Created, u.Modified, len(u.Heuristics))
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (u *User) SetDType() {
 	u.DType = []string{DTypeUser}
 }

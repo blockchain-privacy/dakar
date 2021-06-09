@@ -7,6 +7,7 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Transaction type
 const DType = "Transaction"
 
 var (
@@ -43,6 +44,7 @@ func (t Transaction) String() string {
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }

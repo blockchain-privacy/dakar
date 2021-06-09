@@ -7,7 +7,10 @@ import (
 	"fmt"
 )
 
+// CrawlerStatusDType is the dgraph database type for the CrawlerStatus type
 const CrawlerStatusDType = "CrawlerStatus"
+
+// ClassifierStatusDType is the dgraph database type for the ClassifierStatus type
 const ClassifierStatusDType = "ClassifierStatus"
 
 type CrawlerStatus struct {
@@ -43,6 +46,7 @@ func (c *CrawlerStatus) String() string {
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (c *CrawlerStatus) SetDType() {
 	c.DType = []string{CrawlerStatusDType}
 }
@@ -72,6 +76,7 @@ func (c *ClassifierStatus) String() string {
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }

@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-// DType is the dgraph database type for the address type
+// DType is the dgraph database type for the Address type
 const DType = "Address"
 
 const (
@@ -75,7 +75,7 @@ func (a Address) String() string {
 	return output
 }
 
-// SetDType sets the DType
+// SetDType sets the DType for dgraph type recognition
 func (a *Address) SetDType() {
 	a.DType = []string{DType}
 }
