@@ -161,7 +161,7 @@ func GetOutputAddressCounts(c *external.GraphDB, uid string) (inputCount uint32,
 	}
 
 	if len(r.Input) > 1 || len(r.Output) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
 		return
 	}
 
@@ -245,7 +245,7 @@ func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []
 
 	for _, t := range r.Transaction {
 		if len(t.Block) == 0 || len(t.Block) != 1 || t.OriginCount == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
 			return
 		}
 
