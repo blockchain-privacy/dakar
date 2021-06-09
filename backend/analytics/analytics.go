@@ -16,7 +16,3 @@ func InitLogger(out io.Writer, flag int) {
 	analyticsLogger = log.New(out, analyticsLoggerPrefix, flag)
 	graph.InitLogger(out, flag)
 }
-
-func info(v ...interface{}) {
-	analyticsLogger.Println(v...)
-}
