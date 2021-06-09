@@ -13,6 +13,7 @@ const CrawlerStatusDType = "CrawlerStatus"
 // ClassifierStatusDType is the dgraph database type for the ClassifierStatus type
 const ClassifierStatusDType = "ClassifierStatus"
 
+// CrawlerStatus is the database representation of the crawler status
 type CrawlerStatus struct {
 	UID string `json:"uid,omitempty"`
 
@@ -82,6 +83,7 @@ func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }
 
+// FrontendStatus is the frontend representation of the crawler status
 type FrontendStatus struct {
 	IsCrawling            bool   `json:"iscrawling"`
 	IsClassifying         bool   `json:"isclassifying"`
@@ -98,12 +100,12 @@ func (v FrontendStatus) String() string {
 
 var (
 	ErrorStatusNotFound                = errors.New("no status found")
-	ErrorInvalidNumber                 = errors.New("wrong number of status objects returned")
-	ErrorLastBlockIDNotFound           = errors.New("last block id not found")
-	ErrorIsCrawlingNotFound            = errors.New("crawler status not found")
-	ErrorIsClassifyingNotFound         = errors.New("classifier status not found")
-	ErrorLastClassifiedBlockIDNotFound = errors.New("block id of last classified block not found")
-	ErrorTopBlockNotFound              = errors.New("top block not found")
+	errorInvalidNumber                 = errors.New("wrong number of status objects returned")
+	errorLastBlockIDNotFound           = errors.New("last block id not found")
+	errorIsCrawlingNotFound            = errors.New("crawler status not found")
+	errorIsClassifyingNotFound         = errors.New("classifier status not found")
+	errorLastClassifiedBlockIDNotFound = errors.New("block id of last classified block not found")
+	errorTopBlockNotFound              = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {
@@ -119,7 +121,7 @@ func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	}
 
@@ -140,7 +142,7 @@ func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	}
 

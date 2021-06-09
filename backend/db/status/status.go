@@ -136,13 +136,13 @@ func GetHighestBlockID(c *external.GraphDB) (max uint64, err error) {
 	}
 
 	if len(r.TopBlock) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
 		return
 	} else if len(r.TopBlock) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	} else if r.TopBlock[0].Max == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
 		return
 	}
 	max = r.TopBlock[0].Max
@@ -184,28 +184,28 @@ func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 
 	// check if all values are set correctly
 	if len(r.Crawler) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	}
 
 	if r.Crawler[0].IsCrawling == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsCrawlingNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsCrawlingNotFound)
 		return
 	}
 
 	if r.Crawler[0].LastBlockID == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIDNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastBlockIDNotFound)
 		return
 	}
 
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsClassifyingNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClassifyingNotFound)
 			return
 		}
 
 		if r.Classifier[0].LastClassifiedBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastClassifiedBlockIDNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
