@@ -26,7 +26,7 @@
               </v-row>
               <v-row v-if="isHollow">
                 <v-col>
-                  <v-card-title class="headline">
+                  <v-card-title class="text-h5">
                     Not executed
                   </v-card-title>
                   <v-card-subtitle>
@@ -50,7 +50,7 @@
               </v-row>
               <v-row v-else>
                 <v-col>
-                  <v-card-title class="headline">
+                  <v-card-title class="text-h5">
                     No results
                   </v-card-title>
                   <v-card-subtitle>
@@ -63,7 +63,7 @@
           </v-card>
           <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
             <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
-            <v-card-title class="headline" v-if="!enoughDataForGraph">
+            <v-card-title class="text-h5" v-if="!enoughDataForGraph">
               Not enough data to display diagram
             </v-card-title>
             <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">

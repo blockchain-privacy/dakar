@@ -7,7 +7,7 @@
             <v-list-item-icon>
               <v-icon>{{ icon.mdiToolbox }}</v-icon>
             </v-list-item-icon>
-            <v-list-item-title class="title">
+            <v-list-item-title class="text-h6">
               Tools
             </v-list-item-title>
           </v-list-item>

@@ -11,7 +11,7 @@
     <v-row align="center" justify="center">
       <v-col class="col-12" sm="8" md="6" lg="4">
         <v-card style="top: -100px;">
-          <v-card-title class="headline">404 - Page not found!</v-card-title>
+          <v-card-title class="text-h5">404 - Page not found!</v-card-title>
           <v-card-subtitle>
             The requested page does not exist.
             Either navigate back or click below to get back to the entry page.

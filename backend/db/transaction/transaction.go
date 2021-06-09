@@ -423,8 +423,8 @@ func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
 		return
 	}
 
-	if len(r.Q) != 1 {
-		err = errors.New("received invalid transaction")
+	if len(r.Q) == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
 		return
 	}
 

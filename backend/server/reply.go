@@ -123,6 +123,12 @@ func getHeuristicReply(dgraph *dgo.Dgraph, worker *heuristic.Worker,
 
 func getHeuristicExecutionReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, body io.Reader,
 	txHashString string, userUid string) (reply heuristicExecutionReply) {
+	if !worker.IsReady() {
+		reply.Success = true
+		reply.Status = heuristic.StatusHeuristicWorkerNotReady
+		return
+	}
+
 	if worker.IsInQueue(txHashString, userUid) {
 		reply.Success = true
 		reply.Status = heuristic.StatusHeuristicDuplicate
@@ -470,7 +476,8 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
-		reply.Msg = "worker is not ready, try again later"
+		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
+		reply.Warning = true
 		return
 	}
 
@@ -507,7 +514,13 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 
 	uid, err := dbtx.GetTransactionUid(dgraph, txhash)
 	if err != nil {
-		reply.Msg = "Transaction hash not found"
+		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+			reply.Success = true
+			reply.Msg = "Transaction " + txhash + " does not exist"
+			return
+		}
+
+		reply.Msg = "error while searching for connections"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -589,7 +602,8 @@ func getConnectionLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlV
 // getClusterLookupReply returns the result of a cluster lookup
 func getClusterLookupReply(dgraph *dgo.Dgraph, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
 	if !worker.IsReady() {
-		reply.Msg = "worker is not ready, try again later"
+		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
+		reply.Warning = true
 		return
 	}
 

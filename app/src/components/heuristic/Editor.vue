@@ -1,5 +1,18 @@
 <template>
   <div class="flex-column d-flex" style="height: 100%;">
+    <v-banner v-if="banner.show"
+              v-model="banner.display"
+              transition="slide-y-transition"
+              color="warning">
+      <v-avatar slot="icon" size="40">
+        <v-icon icon="mdi-lock">{{ this.icon.mdiAlertOctagon }}</v-icon>
+      </v-avatar>
+      Server is not ready to accept request for new heuristics.
+      Please try again later. Existing heuristic results can be viewed.
+      <template v-slot:actions="{ dismiss }">
+        <v-btn outlined @click="dismiss">Dismiss</v-btn>
+      </template>
+    </v-banner>
     <nested-menu
         v-model="contextMenu.display"
         origin="center center"
@@ -27,7 +40,7 @@
           class="ml-1 pa-2"
           outlined
           @click="isAddHeuristicSheetOpen = !isAddHeuristicSheetOpen"
-          :disabled="this.executionStatus.value.executing">
+          :disabled="this.banner.show || this.executionStatus.value.executing">
         <v-icon>{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
         <div class="hidden-sm-and-down">Add Heuristic</div>
       </v-btn>
@@ -45,7 +58,7 @@
           class="ml-1 pa-2"
           outlined
           @click="executeHeuristics"
-          :disabled="this.executionStatus.value.executing || !isExecutable()">
+          :disabled="this.banner.show || this.executionStatus.value.executing || !isExecutable()">
         <v-icon>{{ icon.mdiSourceBranchCheck }}</v-icon>
         <div class="hidden-sm-and-down">Execute</div>
       </v-btn>
@@ -154,6 +167,7 @@
 import {
   mdiTransfer, mdiOpenInNew, mdiShapeSquareRoundedPlus, mdiFileDownloadOutline,
   mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus, mdiDotsVertical,
+  mdiAlertOctagon,
 } from '@mdi/js';
 import Details from './Details.vue';
 import {
@@ -240,10 +254,17 @@ export default {
         mdiFileDownloadOutline,
         mdiSourceBranchCheck,
         mdiDotsVertical,
+        mdiAlertOctagon,
       },
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
       routeHeuristicOverview: ROUTE_NAME_USER_HEURISTIC_PAGE,
       isHeuristicExecuting: false,
+      banner: {
+        // show is the switch for the warning banner
+        // which gets displayed if the heuristic worker is not ready to accept requests
+        show: false,
+        display: true,
+      },
       executionStatus: {
         dormantTimer: {
           timer: null,
@@ -263,6 +284,7 @@ export default {
           notInQueue: 2,
           inQueue: 3,
           processing: 4,
+          notReady: 5,
         },
       },
       isLinkMenuOpen: false,
@@ -346,7 +368,6 @@ export default {
               this.isAddHeuristicSheetOpen = true;
             },
           },
-
           {
             title: 'Actions',
             menu: [
@@ -515,18 +536,27 @@ export default {
         case this.executionStatus.enum.added:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
           break;
         case this.executionStatus.enum.inQueue:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
           break;
         case this.executionStatus.enum.processing:
           this.executionStatus.value.processing = true;
           this.executionStatus.value.executing = true;
+          this.banner.show = false;
+          break;
+        case this.executionStatus.enum.notReady:
+          this.executionStatus.value.processing = false;
+          this.executionStatus.value.executing = false;
+          this.banner.show = true;
           break;
         default:
           this.executionStatus.value.processing = false;
           this.executionStatus.value.executing = false;
+          this.banner.show = false;
       }
     },
     downloadHeuristicSummary() {

@@ -209,6 +209,7 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 
 type connectionLookupReply struct {
 	Success          bool                       `json:"success"`
+	Warning          bool                       `json:"warning,omitempty"`
 	Msg              string                     `json:"msg,omitempty"`
 	Transactions     []dbtx.FrontendTransaction `json:"transactions"`
 	TransactionCount *int                       `json:"count,omitempty"`
@@ -216,6 +217,7 @@ type connectionLookupReply struct {
 
 type clusterLookupReply struct {
 	Success   bool     `json:"success"`
+	Warning   bool     `json:"warning,omitempty"`
 	Msg       string   `json:"msg,omitempty"`
 	Addresses []string `json:"addresses"`
 }

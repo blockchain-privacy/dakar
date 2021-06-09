@@ -15,7 +15,7 @@
     <v-dialog v-model="showModifyEmailDialog" max-width="500px">
       <v-card>
         <v-card-title>
-          <span class="headline">Change E-mail</span>
+          <span class="text-h5">Change E-mail</span>
         </v-card-title>
         <v-card-text>
           <v-container>
@@ -47,7 +47,7 @@
     <v-dialog v-model="showModifyPasswordDialog" max-width="500px">
       <v-card>
         <v-card-title>
-          <span class="headline">Change Password</span>
+          <span class="text-h5">Change Password</span>
         </v-card-title>
         <v-card-text>
           <v-container>

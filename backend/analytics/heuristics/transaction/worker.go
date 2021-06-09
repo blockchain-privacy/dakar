@@ -28,6 +28,8 @@ const (
 	StatusHeuristicInQueue
 	// StatusHeuristicProcessing is set if the heuristic is currently being processed
 	StatusHeuristicProcessing
+	// StatusHeuristicWorkerNotReady is set if the heuristic worker is not ready yet
+	StatusHeuristicWorkerNotReady
 
 	// loggerPrefix is the prefix which is printed for each log message
 	loggerPrefix = "\033[0;34mhworker\u001B[0m\t"
@@ -109,13 +111,6 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-// IsActive returns true if the worker is active
-func (w *Worker) IsActive() bool {
-	w.activeMutex.RLock()
-	defer w.activeMutex.RUnlock()
-	return w.active
-}
-
 func (w *Worker) AddWork(transactionHash string, userUid string, work Work) bool {
 	key := workKey{
 		txhash:  transactionHash,
@@ -154,6 +149,10 @@ func (w *Worker) IsReady() bool {
 
 // GetStatus returns the current execution status of the given transaction hash and user id
 func (w *Worker) GetStatus(tx string, userUid string) HeuristicQueueStatus {
+	if !w.IsReady() {
+		return StatusHeuristicWorkerNotReady
+	}
+
 	key := workKey{
 		txhash:  tx,
 		userUid: userUid,

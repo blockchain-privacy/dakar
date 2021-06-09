@@ -23,8 +23,11 @@
       </div>
       <v-row>
         <v-col>
-          <v-text-field label="Start transaction" v-model="fromTransaction"
-                        :disabled="isLoading" autofocus/>
+          <v-text-field label="Start transaction"
+                        v-model="fromTransaction"
+                        :disabled="isLoading"
+                        @keydown.enter="handleSearch"
+                        autofocus/>
         </v-col>
       </v-row>
       <v-row>
@@ -47,7 +50,7 @@
                   </v-icon>
                 </v-hover>
                 <v-tooltip right activator="#max_time_tooltip">
-                <span>Maximum time to look forward or backward.</span>
+                  <span>Maximum time to look forward or backward.</span>
                 </v-tooltip>
               </div>
             </template>
@@ -99,7 +102,10 @@
         </v-col>
       </v-row>
       <v-divider class="my-3" v-if="this.transactions.length > 0"/>
-      <p v-if="this.transactionCount >=0">Found {{ this.transactionCount }} transactions</p>
+      <p v-if="this.transactionCount >=0">
+        Found {{ this.transactionCount.toLocaleString() }}
+        {{ this.transactionCount === 1?'transaction':'transactions'}}
+      </p>
       <p v-if="this.transactions.length > 30">Transaction list is limited to 30 transactions.</p>
       <div v-if="this.transactions.length > 0">
         <v-card outlined v-for="(tx) in transactions" :key="tx.txhash" class="mt-2">
@@ -168,6 +174,9 @@ export default {
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
+    setWarningMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
+    },
     handleSearch() {
       if (this.isLoading || !this.isSearchable) {
         return;
@@ -185,7 +194,11 @@ export default {
       doGet(ROUTE_CONNECTION_LOOKUP, this.$router, txString)
         .then((data) => {
           if (data.success === undefined) throw Error('error searching for paths');
-          if (data.success === false) throw new Error(data.msg);
+          if (data.success === false) {
+            if (data.warning) {
+              this.setWarningMessage(data.msg);
+            } else throw new Error(data.msg);
+          }
           if (data.success === true && data.msg !== undefined) {
             this.setInfoMessage(data.msg);
           }

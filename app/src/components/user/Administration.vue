@@ -86,7 +86,7 @@
         <v-dialog v-model="showCreateUserDialog" max-width="500px">
           <v-card>
             <v-card-title>
-              <span class="headline">{{ formTitle }}</span>
+              <span class="text-h5">{{ formTitle }}</span>
             </v-card-title>
             <v-card-text>
               <v-container>
@@ -121,12 +121,15 @@
             v-if="this.userToDelete">
           <v-card>
             <v-card-title>
-              <span class="headline">Delete User</span>
+              <span class="text-h5">Delete User</span>
             </v-card-title>
             <v-card-text>
-              <p class="font-weight-black body-1 my-0">Do you really want to delete the user?</p>
-              <p class="font-weight-black body-1 my-0"> Uid: {{ this.userToDelete.uid }} </p>
-              <p class="font-weight-black body-1"> E-mail: {{ this.userToDelete.user_email }} </p>
+              <p class="font-weight-black text-body-1 my-0">
+                Do you really want to delete the user?</p>
+              <p class="font-weight-black text-body-1 my-0">
+                Uid: {{ this.userToDelete.uid }} </p>
+              <p class="font-weight-black text-body-1">
+                E-mail: {{ this.userToDelete.user_email }} </p>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
