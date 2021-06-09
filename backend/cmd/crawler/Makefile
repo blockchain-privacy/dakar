@@ -11,18 +11,10 @@ lint: # Lint the files
 
 test: ## Run unittests
 	@go test -short ${PKG_LIST}
-
-race: ## Run data race detector
 	@go test -race -short ${PKG_LIST}
 
-# msan: dep ## Run memory sanitizer
-# 	@go test -msan -short ${PKG_LIST}
-
-#coverage: ## Generate global code coverage report
-#	./tools/coverage.sh;
-
-#coverhtml: ## Generate global code coverage report in HTML
-#	./tools/coverage.sh html;
+vet: ## Run vet
+	@go vet ${PKG_LIST}
 
 build: ## Build the binary file
 	@go build -i -v
