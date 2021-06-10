@@ -465,7 +465,7 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	}
 
 	if rpcInfo.Blocks < 0 {
-		return 0, errors.New("error RPC client block count is negativ")
+		return 0, errors.New("error RPC client block count is negative")
 	}
 
 	return uint64(rpcInfo.Blocks), nil
