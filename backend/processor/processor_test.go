@@ -292,6 +292,15 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	rpcClient.AssertExpectations(t)
 }
 
+func TestGetRPCNumberOfBlocks(t *testing.T) {
+	var rpcClient mocks.RPCClient
+	rpcClient.On("GetBlockChainInfo").Return(&mocks.RPCVal.BlockchainInfo, nil)
+
+	numBlocks, err := getRPCNumberOfBlocks(&rpcClient)
+	require.Nil(t, err)
+	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
+}
+
 //const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"
 //const block49999 = "000000000014f796bbd2312686a63cbe17401a1026ab2a8149b74553e8dcb96d"
 //const block50000 = "00000000000fa6230896498b3cc6f1015456b4512452ead9979f6b43ca0a74dc"
