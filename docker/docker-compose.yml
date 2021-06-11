@@ -30,7 +30,7 @@ services:
       - dgraph_default
 
   ratel:
-    image: dgraph/dgraph:v20.11.3
+    image: dgraph/ratel:latest
     container_name: ratel
     ports:
       - ${CONTAINER_IP}:8000:8000
