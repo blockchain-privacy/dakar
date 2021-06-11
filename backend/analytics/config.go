@@ -18,7 +18,7 @@ func NewDashConfig() Config {
 		// after block height 323756 the first mixing transactions with the
 		// most recent format (same number of inputs and outputs) appear
 		IsClassifyingEnabled: true,
-		ClassifierStartBlock: 323756,
+		ClassifierStartBlock: 1,
 	}
 }
 
