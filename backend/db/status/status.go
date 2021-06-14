@@ -234,18 +234,9 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 		return err
 	}
 
-	query := `{
-				q(func: type(CrawlerStatus)){
-					v as uid
-				  }
-				}
-				`
-
 	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+		Query:     "{q(func: type(CrawlerStatus)){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
 
@@ -262,18 +253,9 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 		return err
 	}
 
-	query := `{
-				q(func: type(ClassifierStatus)){
-					v as uid
-				  }
-				}
-				`
-
 	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+		Query:     "{q(func:type(ClassifierStatus)){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
 
@@ -316,15 +298,9 @@ func GetCount(c external.Database) (uint64, error) {
 
 // IsConnectionEstablished test the database connection
 func IsConnectionEstablished(c external.Database) bool {
-	query := `{
-				 q(func: has(blockhash), first:1){
-					uid
-				  }
-				}`
-
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	_, err := c.Query(ctx, query, nil)
+	_, err := c.Query(ctx, "{q(func: has(blockhash),first:1){uid}}", nil)
 
 	return err == nil
 }
