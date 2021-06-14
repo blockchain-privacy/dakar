@@ -15,6 +15,20 @@ type Database struct {
 	mock.Mock
 }
 
+// Alter provides a mock function with given fields: ctx, op
+func (_m *Database) Alter(ctx context.Context, op *api.Operation) error {
+	ret := _m.Called(ctx, op)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.Operation) error); ok {
+		r0 = rf(ctx, op)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Mutate provides a mock function with given fields: ctx, req
 func (_m *Database) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
 	ret := _m.Called(ctx, req)

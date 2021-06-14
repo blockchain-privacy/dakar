@@ -3,10 +3,10 @@
 package mocks
 
 import (
-	blockIterator "backend/blockiterator"
+	blockiterator "backend/blockiterator"
 	context "context"
 
-	dgo "github.com/dgraph-io/dgo/v210"
+	external "backend/external"
 
 	log "log"
 
@@ -49,15 +49,15 @@ func (_m *BlockIterator) Context() context.Context {
 }
 
 // Db provides a mock function with given fields:
-func (_m *BlockIterator) Db() *dgo.Dgraph {
+func (_m *BlockIterator) Db() external.Database {
 	ret := _m.Called()
 
-	var r0 *dgo.Dgraph
-	if rf, ok := ret.Get(0).(func() *dgo.Dgraph); ok {
+	var r0 external.Database
+	if rf, ok := ret.Get(0).(func() external.Database); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*dgo.Dgraph)
+			r0 = ret.Get(0).(external.Database)
 		}
 	}
 
@@ -170,19 +170,19 @@ func (_m *BlockIterator) PostExecution() error {
 }
 
 // SetState provides a mock function with given fields: _a0
-func (_m *BlockIterator) SetState(_a0 blockIterator.State) {
+func (_m *BlockIterator) SetState(_a0 blockiterator.State) {
 	_m.Called(_a0)
 }
 
 // State provides a mock function with given fields:
-func (_m *BlockIterator) State() blockIterator.State {
+func (_m *BlockIterator) State() blockiterator.State {
 	ret := _m.Called()
 
-	var r0 blockIterator.State
-	if rf, ok := ret.Get(0).(func() blockIterator.State); ok {
+	var r0 blockiterator.State
+	if rf, ok := ret.Get(0).(func() blockiterator.State); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(blockIterator.State)
+		r0 = ret.Get(0).(blockiterator.State)
 	}
 
 	return r0
