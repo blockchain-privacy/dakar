@@ -54,20 +54,20 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 }
 
 // execTx executes the given request
-func execTx(db *external.GraphDB, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 	return db.Mutate(ctx, req)
 }
 
 // TxWithRetry executes the given request. In case the request fails repeat it
-func TxWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, req *api.Request) error {
+func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api.Request) error {
 	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
 	return err
 }
 
 // TxWithRetryAndResponse executes the given request. In case the request fails repeat it
-func TxWithRetryAndResponse(db *external.GraphDB, timeoutPerRequest time.Duration,
+func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execTx(db, timeoutPerRequest, req); err == nil {
@@ -83,7 +83,7 @@ func TxWithRetryAndResponse(db *external.GraphDB, timeoutPerRequest time.Duratio
 }
 
 // execReadOnlyTx executes the given request, vars is allowed to be nil
-func execReadOnlyTx(db *external.GraphDB, timeoutPerRequest time.Duration, q string,
+func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
@@ -92,7 +92,7 @@ func execReadOnlyTx(db *external.GraphDB, timeoutPerRequest time.Duration, q str
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxVarWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, q string,
+func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
 	for i := 0; i < maxRetries; i++ {
@@ -111,12 +111,12 @@ func ReadOnlyTxVarWithRetry(db *external.GraphDB, timeoutPerRequest time.Duratio
 }
 
 // ReadOnlyTxWithRetry executes the given request. In case the request fails repeats it
-func ReadOnlyTxWithRetry(db *external.GraphDB, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
+func ReadOnlyTxWithRetry(db external.Database, timeoutPerRequest time.Duration, q string) (*api.Response, error) {
 	return ReadOnlyTxVarWithRetry(db, timeoutPerRequest, q, nil)
 }
 
 // DropAll drops ALL data from the database, schema included
-func DropAll(db *external.GraphDB) error {
+func DropAll(db external.Database) error {
 	ctx, cancel := GetBackendContext()
 	defer cancel()
 	return db.Alter(ctx, &api.Operation{
@@ -125,7 +125,7 @@ func DropAll(db *external.GraphDB) error {
 }
 
 // CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (*external.GraphDB, *grpc.ClientConn, error) {
+func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
@@ -138,7 +138,7 @@ func CreateClient(endpoint string) (*external.GraphDB, *grpc.ClientConn, error) 
 }
 
 // GetCount gets the number of instances of the given type in the database
-func GetCount(db *external.GraphDB, dbType string) (count uint64, err error) {
+func GetCount(db external.Database, dbType string) (count uint64, err error) {
 	query := fmt.Sprintf(`{
 				 q(func: type(%s)){
 					count(uid)

@@ -32,7 +32,7 @@ func info(v ...interface{}) {
 // Wrapper is wrapper for in-memory graphs
 type Wrapper struct {
 	context context.Context
-	db      *external.GraphDB
+	db      external.Database
 	state   blockiterator.State
 
 	// isLoading is true if the graph loading was started.
@@ -49,7 +49,7 @@ type Wrapper struct {
 }
 
 // NewWrapper constructs a new Wrapper
-func NewWrapper(ctx context.Context, dgraph *external.GraphDB) *Wrapper {
+func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
 		addressGraphMutex: new(sync.RWMutex)}
 }
@@ -183,7 +183,7 @@ func (w *Wrapper) Context() context.Context {
 }
 
 // Db returns the database access
-func (w *Wrapper) Db() *external.GraphDB {
+func (w *Wrapper) Db() external.Database {
 	return w.db
 }
 

@@ -23,7 +23,7 @@ import (
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themself. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themself.
-func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockID uint64) (toClassify []dbtx.Transaction,
+func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []dbtx.Transaction,
 	origins []dbtx.Transaction, err error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}
@@ -131,7 +131,7 @@ func ClassifyDestinationAndOriginsByBlock(c *external.GraphDB, blockID uint64) (
 // SetCollateralCreation sets the collateral creation privacy type, if its input transaction are
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
-func SetCollateralCreation(c *external.GraphDB, txUids []string) (insertCount uint64, err error) {
+func SetCollateralCreation(c external.Database, txUids []string) (insertCount uint64, err error) {
 	uidList := db.CreateUIDList(txUids)
 
 	const query = `query Q($uids: string) {
@@ -187,7 +187,7 @@ func SetCollateralCreation(c *external.GraphDB, txUids []string) (insertCount ui
 // SetCollateralPayment sets the collateral payment privacy type, if its input transaction are
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
-func SetCollateralPayment(c *external.GraphDB, txUids []string) (insertCount uint64, err error) {
+func SetCollateralPayment(c external.Database, txUids []string) (insertCount uint64, err error) {
 	uidList := db.CreateUIDList(txUids)
 
 	// collateral payments + collateral creations + origins
@@ -242,7 +242,7 @@ func SetCollateralPayment(c *external.GraphDB, txUids []string) (insertCount uin
 }
 
 // GetCollateralInputTransactions returns the input transactions of the provided transactions until the given block height
-func GetCollateralInputTransactions(c *external.GraphDB, txUids []string,
+func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
 	uidList := db.CreateUIDList(txUids)
 

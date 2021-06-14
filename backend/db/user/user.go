@@ -24,7 +24,7 @@ var (
 )
 
 // CreateUser creates a new user
-func CreateUser(c *external.GraphDB, user User) error {
+func CreateUser(c external.Database, user User) error {
 	if len(user.Email) == 0 ||
 		len(user.Roles) == 0 ||
 		len(user.PasswordHash) == 0 ||
@@ -90,7 +90,7 @@ func CreateUser(c *external.GraphDB, user User) error {
 }
 
 // GetUsers gets all users currently in the database
-func GetUsers(c *external.GraphDB) (users []User, err error) {
+func GetUsers(c external.Database) (users []User, err error) {
 	query := `query {
 				q(func: type(User)){
 					uid
@@ -130,7 +130,7 @@ func GetUsers(c *external.GraphDB) (users []User, err error) {
 }
 
 // GetUserByEmail gets a User by E-mail from the db
-func GetUserByEmail(c *external.GraphDB, email string) (user User, err error) {
+func GetUserByEmail(c external.Database, email string) (user User, err error) {
 	query := `query Q($email:string){
 				q(func: eq(user_email,$email))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
@@ -177,7 +177,7 @@ func GetUserByEmail(c *external.GraphDB, email string) (user User, err error) {
 }
 
 // GetUser gets a User by uid from the db
-func GetUser(c *external.GraphDB, uid string) (user User, err error) {
+func GetUser(c external.Database, uid string) (user User, err error) {
 	query := `query Q($uid:string){
 				q(func: uid($uid))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
@@ -224,7 +224,7 @@ func GetUser(c *external.GraphDB, uid string) (user User, err error) {
 }
 
 // existsUser checks if a User with the given uid exists
-func existsUser(c *external.GraphDB, uid string) (found bool, err error) {
+func existsUser(c external.Database, uid string) (found bool, err error) {
 	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + ")){uid}}"
 
 	ctx, cancel := db.GetFrontendContext()
@@ -258,7 +258,7 @@ func existsUser(c *external.GraphDB, uid string) (found bool, err error) {
 }
 
 // DeleteUser deletes the User with the given uid
-func DeleteUser(c *external.GraphDB, uid string) (err error) {
+func DeleteUser(c external.Database, uid string) (err error) {
 	if found, existsErr := existsUser(c, uid); existsErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), existsErr)
 		return
@@ -285,17 +285,17 @@ func DeleteUser(c *external.GraphDB, uid string) (err error) {
 }
 
 // GetUserCount gets the number of users in the database
-func GetUserCount(c *external.GraphDB) (uint64, error) {
+func GetUserCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DTypeUser)
 }
 
 // GetRoleCount gets the number of roles in the database
-func GetRoleCount(c *external.GraphDB) (uint64, error) {
+func GetRoleCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DTypeRole)
 }
 
 // CreateAdminUser creates an new admin account with a random password
-func CreateAdminUser(c *external.GraphDB, email string) (string, error) {
+func CreateAdminUser(c external.Database, email string) (string, error) {
 	pw, pwHash, err := user.GetRandomPasswordAndHash()
 	if err != nil {
 		return "", err
@@ -316,7 +316,7 @@ func CreateAdminUser(c *external.GraphDB, email string) (string, error) {
 
 // ModifyUser modifies the given user in the database. The uid must be filled.
 // Email and/or Roles can be set.
-func ModifyUser(c *external.GraphDB, user User) (err error) {
+func ModifyUser(c external.Database, user User) (err error) {
 
 	modifiedTime := time.Now()
 	user.Modified = &modifiedTime
@@ -383,7 +383,7 @@ func ModifyUser(c *external.GraphDB, user User) (err error) {
 }
 
 // RemoveRolesFromUser removes all roles from a given user
-func RemoveRolesFromUser(c *external.GraphDB, uid string) (err error) {
+func RemoveRolesFromUser(c external.Database, uid string) (err error) {
 	query := `query Q($uid: string) {
 			 h as var(func: uid($uid))@filter(eq(dgraph.type,"` + DTypeUser + `"))
 	}`

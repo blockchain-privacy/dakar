@@ -51,7 +51,7 @@ func (h DenominationTypeHeuristic) clone() heuristic {
 // DenominationTypeHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
-func (h DenominationTypeHeuristic) exec(dgraph *external.GraphDB, g *graph.Wrapper, txHash string,
+func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash

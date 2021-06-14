@@ -16,7 +16,7 @@ import (
 
 // GetTransaction gets transaction information from the database.
 // Use this function if duplicate transaction hashes can not be tolerated.
-func GetTransaction(c *external.GraphDB, txHash string, blockHash string) (transaction Transaction, err error) {
+func GetTransaction(c external.Database, txHash string, blockHash string) (transaction Transaction, err error) {
 	query := `query Q($tx:string,$block:string) {
 				blk as var(func: eq(blockhash, $block))
 
@@ -62,7 +62,7 @@ func GetTransaction(c *external.GraphDB, txHash string, blockHash string) (trans
 }
 
 // GetTransactionByBlock gets transaction information from the database by block id
-func GetTransactionByBlock(c *external.GraphDB, blockID uint64) (transactions []Transaction, err error) {
+func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
@@ -112,7 +112,7 @@ func GetTransactionByBlock(c *external.GraphDB, blockID uint64) (transactions []
 }
 
 // GetOutputAddressCounts returns the number of distinct addresses associated with the inputs and outputs of the transaction uid
-func GetOutputAddressCounts(c *external.GraphDB, uid string) (inputCount uint32, outputcount uint32, err error) {
+func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs {
@@ -172,7 +172,7 @@ func GetOutputAddressCounts(c *external.GraphDB, uid string) (inputCount uint32,
 }
 
 // GetFrontendTransaction gets transaction information for the frontend
-func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []FrontendTransaction, err error) {
+func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash)){
 					txhash
@@ -278,7 +278,7 @@ func GetFrontendTransaction(c *external.GraphDB, txHash string) (transactions []
 }
 
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
-func GetFrontendTransactionsByUID(c *external.GraphDB, txUids []string) (txs []FrontendTransaction, err error) {
+func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
 
 	const query = `query Q($uids:string){
 				txs as var(func: uid($uids))
@@ -319,7 +319,7 @@ func GetFrontendTransactionsByUID(c *external.GraphDB, txUids []string) (txs []F
 
 // GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
-func GetTransactionBlockID(c *external.GraphDB, txHash string) (blockID uint64, err error) {
+func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash))@normalize{
 					~transactions {
@@ -363,13 +363,13 @@ func GetTransactionBlockID(c *external.GraphDB, txHash string) (blockID uint64, 
 }
 
 // GetCount gets the number of transactions in the database
-func GetCount(c *external.GraphDB) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
 // UpdateTransactions sends the given transaction updates to the database.
 // The transaction uids must be set.
-func UpdateTransactions(c *external.GraphDB, transactions []Transaction) error {
+func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	for _, tx := range transactions {
 		if len(tx.UID) == 0 {
 			return errors.New("error uid is not set for transaction")
@@ -397,7 +397,7 @@ func UpdateTransactions(c *external.GraphDB, transactions []Transaction) error {
 }
 
 // GetTransactionUID returns the uid of the given transaction
-func GetTransactionUID(c *external.GraphDB, txHash string) (uid string, err error) {
+func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
 	query := `query Q($tx:string) {
 				q(func: eq(txhash, $tx)){
 					uid

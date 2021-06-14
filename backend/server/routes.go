@@ -55,7 +55,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func handlerSearch(dgraph *external.GraphDB, route string) http.Handler {
+func handlerSearch(dgraph external.Database, route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -68,12 +68,12 @@ func handlerSearch(dgraph *external.GraphDB, route string) http.Handler {
 		}
 
 		if isValid(queryString) {
-			searchOrder := []func(*external.GraphDB, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+			searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
 
 			if isLikelyBlock(queryString) {
-				searchOrder = []func(*external.GraphDB, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
 			} else if isLikelyAddress(queryString) {
-				searchOrder = []func(*external.GraphDB, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
 			}
 
 			// iterate over db access functions
@@ -106,7 +106,7 @@ func handlerSearch(dgraph *external.GraphDB, route string) http.Handler {
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func handlerDetails(dgraph *external.GraphDB, route string, fn func(*external.GraphDB, string) (
+func handlerDetails(dgraph external.Database, route string, fn func(external.Database, string) (
 	SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -141,7 +141,7 @@ func handlerDetails(dgraph *external.GraphDB, route string, fn func(*external.Gr
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func handlerAddressOutputRange(dgraph *external.GraphDB, route string) http.Handler {
+func handlerAddressOutputRange(dgraph external.Database, route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -210,7 +210,7 @@ func handlerAddressOutputRange(dgraph *external.GraphDB, route string) http.Hand
 }
 
 // API pattern: "/api/v1/meta/"
-func handlerMeta(dgraph *external.GraphDB, client external.RPCClient) http.Handler {
+func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 		// async request rpc info
@@ -249,7 +249,7 @@ func handlerMeta(dgraph *external.GraphDB, client external.RPCClient) http.Handl
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
-func handlerHeuristicsSummary(dgraph *external.GraphDB) http.Handler {
+func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -340,7 +340,7 @@ func handlerHeuristicsSummary(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph *external.GraphDB, worker *heuristic.Worker) http.Handler {
+func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -399,7 +399,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicDetails/"
-func handlerHeuristicsDetails(dgraph *external.GraphDB) http.Handler {
+func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -441,7 +441,7 @@ func handlerHeuristicsDetails(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph *external.GraphDB, worker *heuristic.Worker) http.Handler {
+func handlerHeuristicsExecution(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -470,7 +470,7 @@ func handlerHeuristicsExecution(dgraph *external.GraphDB, worker *heuristic.Work
 }
 
 // API pattern: "/api/v1/heuristicList/"
-func handlerHeuristicList(dgraph *external.GraphDB) http.Handler {
+func handlerHeuristicList(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -498,7 +498,7 @@ func handlerHeuristicList(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/deleteHeuristic/"
-func handlerDeleteHeuristic(dgraph *external.GraphDB) http.Handler {
+func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -519,7 +519,7 @@ func handlerDeleteHeuristic(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/createUser"
-func handlerCreateUser(dgraph *external.GraphDB) http.Handler {
+func handlerCreateUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -534,7 +534,7 @@ func handlerCreateUser(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/getUsers/"
-func handlerGetUsers(dgraph *external.GraphDB) http.Handler {
+func handlerGetUsers(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -567,7 +567,7 @@ func handlerLogout() http.Handler {
 }
 
 // API pattern: "/api/v1/deleteUser/<userUid>"
-func handlerDeleteUser(dgraph *external.GraphDB) http.Handler {
+func handlerDeleteUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -592,7 +592,7 @@ func handlerDeleteUser(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/login/"
-func handlerLogin(dgraph *external.GraphDB, privateSigningKey ed25519.PrivateKey) http.Handler {
+func handlerLogin(dgraph external.Database, privateSigningKey ed25519.PrivateKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -620,7 +620,7 @@ func handlerLogin(dgraph *external.GraphDB, privateSigningKey ed25519.PrivateKey
 }
 
 // API pattern: "/api/v1/modifyUser/"
-func handlerModifyUser(dgraph *external.GraphDB) http.Handler {
+func handlerModifyUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -643,7 +643,7 @@ func handlerModifyUser(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/shortestTransactionPath/"
-func handlerShortestTransactionPath(dgraph *external.GraphDB) http.Handler {
+func handlerShortestTransactionPath(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -658,7 +658,7 @@ func handlerShortestTransactionPath(dgraph *external.GraphDB) http.Handler {
 }
 
 // API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
-func handlerConnectionLookup(dgraph *external.GraphDB, worker *heuristic.Worker) http.Handler {
+func handlerConnectionLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -673,7 +673,7 @@ func handlerConnectionLookup(dgraph *external.GraphDB, worker *heuristic.Worker)
 }
 
 // API pattern: "/api/v1/clusterLookup0/<addressHash>"
-func handlerClusterLookup(dgraph *external.GraphDB, worker *heuristic.Worker) http.Handler {
+func handlerClusterLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -688,7 +688,7 @@ func handlerClusterLookup(dgraph *external.GraphDB, worker *heuristic.Worker) ht
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(dgraph *external.GraphDB, client external.RPCClient, worker *heuristic.Worker) {
+func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker) {
 	// get signing keys
 	privkey, pubkey, err := GetSigningKeysFromEnv()
 	if err != nil {

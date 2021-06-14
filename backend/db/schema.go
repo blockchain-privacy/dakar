@@ -12,7 +12,7 @@ import (
 )
 
 // SetupSchema installs a schema into dgraph
-func SetupSchema(c *external.GraphDB) error {
+func SetupSchema(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			blockhash: string @index(hash) @upsert .
@@ -137,7 +137,7 @@ func SetupSchema(c *external.GraphDB) error {
 }
 
 // IsSchemaSet checks if a schema is set
-func IsSchemaSet(c *external.GraphDB) (exists bool, err error) {
+func IsSchemaSet(c external.Database) (exists bool, err error) {
 	query := "schema(type: Block){}"
 	ctx, cancel := GetBackendContext()
 	defer cancel()
@@ -168,7 +168,7 @@ func IsSchemaSet(c *external.GraphDB) (exists bool, err error) {
 }
 
 // AlterSchemaAddClassifier adds the new classifier status field
-func AlterSchemaAddClassifier(c *external.GraphDB) error {
+func AlterSchemaAddClassifier(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			isclassifying: bool .
@@ -183,7 +183,7 @@ func AlterSchemaAddClassifier(c *external.GraphDB) error {
 }
 
 // AlterSchemaChangePrivacyTypePredicate adds the privacy type predicate
-func AlterSchemaChangePrivacyTypePredicate(c *external.GraphDB) error {
+func AlterSchemaChangePrivacyTypePredicate(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			privacytype: int @index(int) .
@@ -192,35 +192,35 @@ func AlterSchemaChangePrivacyTypePredicate(c *external.GraphDB) error {
 }
 
 // DropAllPrivacyTypes drops the all data of the predicate privacytype
-func DropAllPrivacyTypes(c *external.GraphDB) error {
+func DropAllPrivacyTypes(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "privacytype",
 	})
 }
 
 // DropAllOrigins removes all data from the predicate origins
-func DropAllOrigins(c *external.GraphDB) error {
+func DropAllOrigins(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "origins",
 	})
 }
 
 // DropIsAnalyzing removes all data from the predicate isanalyzing
-func DropIsAnalyzing(c *external.GraphDB) error {
+func DropIsAnalyzing(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "isanalyzing",
 	})
 }
 
 // DropLastAnalysedID removes all data from the predicate lastanalysedid
-func DropLastAnalysedID(c *external.GraphDB) error {
+func DropLastAnalysedID(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "lastanalysedid",
 	})
 }
 
 // DropTypeAnalyzerStatus removes the type AnalyzerStatus
-func DropTypeAnalyzerStatus(c *external.GraphDB) error {
+func DropTypeAnalyzerStatus(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropOp:    api.Operation_TYPE,
 		DropValue: "AnalyzerStatus",
@@ -228,7 +228,7 @@ func DropTypeAnalyzerStatus(c *external.GraphDB) error {
 }
 
 // AlterSchemaSetTransactionType adds the privacytype predicate to the transaction type
-func AlterSchemaSetTransactionType(c *external.GraphDB) error {
+func AlterSchemaSetTransactionType(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			type Transaction {

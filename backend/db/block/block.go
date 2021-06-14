@@ -14,7 +14,7 @@ import (
 )
 
 // GetBlock gets block information from the database
-func GetBlock(c *external.GraphDB, blockHash string) (blk Block, err error) {
+func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
 					uid
@@ -55,7 +55,7 @@ func isBlockIdentifier(field string) bool {
 }
 
 // GetFrontendBlock gets verbose block information from the database
-func GetFrontendBlock(c *external.GraphDB, blockHash string) (block FrontendBlock, err error) {
+func GetFrontendBlock(c external.Database, blockHash string) (block FrontendBlock, err error) {
 	searchProperty := "blockhash"
 	if isBlockIdentifier(blockHash) {
 		searchProperty = "id"
@@ -119,7 +119,7 @@ func GetFrontendBlock(c *external.GraphDB, blockHash string) (block FrontendBloc
 }
 
 // UpsertBlock upserts a block and the prevBlock relation
-func UpsertBlock(c *external.GraphDB, block Block) error {
+func UpsertBlock(c external.Database, block Block) error {
 	block.UID = "uid(v)"
 	block.PrevBlock.UID = "uid(x)"
 	block.SetDType()
@@ -166,6 +166,6 @@ func UpsertBlock(c *external.GraphDB, block Block) error {
 }
 
 // GetCount gets the number of blocks in the database
-func GetCount(c *external.GraphDB) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }

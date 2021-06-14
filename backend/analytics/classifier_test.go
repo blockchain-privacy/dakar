@@ -3,6 +3,8 @@ package analytics
 import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
+	"backend/mocks"
+	"context"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -249,4 +251,10 @@ func TestIsCollateralPayment(t *testing.T) {
 	for _, c := range cases {
 		require.EqualValues(t, !c.shouldFail, isCollateralPayment(c.tx))
 	}
+}
+
+func TestNewClassifier(t *testing.T) {
+	var db mocks.Database
+
+	_ = NewClassifier(context.Background(), &db, NewDashConfig())
 }

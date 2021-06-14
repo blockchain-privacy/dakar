@@ -18,7 +18,7 @@ import (
 )
 
 // PrintStatus outputs the stats for the given DB
-func PrintStatus(dgraph *external.GraphDB) {
+func PrintStatus(dgraph external.Database) {
 	crawlerStatus, _ := GetCrawlerStatus(dgraph)
 
 	if crawlerStatus.IsCrawling != nil {
@@ -56,7 +56,7 @@ func PrintStatus(dgraph *external.GraphDB) {
 }
 
 // GetCrawlerStatus gets the crawler status from the database
-func GetCrawlerStatus(c *external.GraphDB) (status CrawlerStatus, err error) {
+func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 	query := `{
 				 q(func: type(CrawlerStatus)){
 					uid
@@ -83,7 +83,7 @@ func GetCrawlerStatus(c *external.GraphDB) (status CrawlerStatus, err error) {
 }
 
 // GetClassifierStatus gets the classifier status from the database
-func GetClassifierStatus(c *external.GraphDB) (status ClassifierStatus, err error) {
+func GetClassifierStatus(c external.Database) (status ClassifierStatus, err error) {
 	query := `{
 				 q(func: type(ClassifierStatus)){
 					uid
@@ -109,7 +109,7 @@ func GetClassifierStatus(c *external.GraphDB) (status ClassifierStatus, err erro
 }
 
 // GetHighestBlockID gets the highest block id.
-func GetHighestBlockID(c *external.GraphDB) (max uint64, err error) {
+func GetHighestBlockID(c external.Database) (max uint64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -151,7 +151,7 @@ func GetHighestBlockID(c *external.GraphDB) (max uint64, err error) {
 }
 
 // GetFrontendStatus gets verbose status information from the database
-func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
+func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(CrawlerStatus)){
 					iscrawling
@@ -225,7 +225,7 @@ func GetFrontendStatus(c *external.GraphDB) (status FrontendStatus, err error) {
 }
 
 // SetCrawlerStatus sets the new crawler status
-func SetCrawlerStatus(c *external.GraphDB, status CrawlerStatus) error {
+func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 	status.UID = "uid(v)"
 	status.SetDType()
 
@@ -253,7 +253,7 @@ func SetCrawlerStatus(c *external.GraphDB, status CrawlerStatus) error {
 }
 
 // SetClassifierStatus sets the new classifier status
-func SetClassifierStatus(c *external.GraphDB, status ClassifierStatus) error {
+func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 	status.UID = "uid(v)"
 	status.SetDType()
 
@@ -281,28 +281,28 @@ func SetClassifierStatus(c *external.GraphDB, status ClassifierStatus) error {
 }
 
 // SetCrawling sets the crawling status
-func SetCrawling(c *external.GraphDB, crawling bool) error {
+func SetCrawling(c external.Database, crawling bool) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
 // SetClassifying sets the classifying status
-func SetClassifying(c *external.GraphDB, classifying bool) error {
+func SetClassifying(c external.Database, classifying bool) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		IsClassifying: &classifying,
 	})
 }
 
 // SetLastBlockID sets the last block id
-func SetLastBlockID(c *external.GraphDB, id uint64) error {
+func SetLastBlockID(c external.Database, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		LastBlockID: &id,
 	})
 }
 
 // SetLastClassifiedBlockID sets the last classified block id
-func SetLastClassifiedBlockID(c *external.GraphDB, id uint64) error {
+func SetLastClassifiedBlockID(c external.Database, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		LastClassifiedBlockID: &id,
 	})
@@ -310,12 +310,12 @@ func SetLastClassifiedBlockID(c *external.GraphDB, id uint64) error {
 
 // GetCount gets the number of status instances in the database
 // IMPORTANT: Should always be at most one
-func GetCount(c *external.GraphDB) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, CrawlerStatusDType)
 }
 
 // IsConnectionEstablished test the database connection
-func IsConnectionEstablished(c *external.GraphDB) bool {
+func IsConnectionEstablished(c external.Database) bool {
 	query := `{
 				 q(func: has(blockhash), first:1){
 					uid

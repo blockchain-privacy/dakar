@@ -31,7 +31,7 @@ func fatal(v ...interface{}) {
 }
 
 // StartServer creates a http server on the given port
-func StartServer(wg *sync.WaitGroup, port uint, dgraph *external.GraphDB, client external.RPCClient,
+func StartServer(wg *sync.WaitGroup, port uint, dgraph external.Database, client external.RPCClient,
 	worker *heuristic.Worker) *http.Server {
 	// setup REST API
 	setupHandlers(dgraph, client, worker)

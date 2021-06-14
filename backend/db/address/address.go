@@ -15,7 +15,7 @@ import (
 )
 
 // GetAddressUID returns the uid of the given address
-func GetAddressUID(c *external.GraphDB, addressHash string) (uid string, err error) {
+func GetAddressUID(c external.Database, addressHash string) (uid string, err error) {
 	query := `query Q($addr:string) {
 				q(func: eq(addresshash, $addr)){
 					uid
@@ -55,7 +55,7 @@ func GetAddressUID(c *external.GraphDB, addressHash string) (uid string, err err
 }
 
 // GetAddressesByUID returns the address hashes of the given uids
-func GetAddressesByUID(c *external.GraphDB, addressUids []string) (addressHashes []string, err error) {
+func GetAddressesByUID(c external.Database, addressUids []string) (addressHashes []string, err error) {
 
 	const query = `query Q($uids:string){
 				q(func: uid($uids)){
@@ -93,7 +93,7 @@ func GetAddressesByUID(c *external.GraphDB, addressUids []string) (addressHashes
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
-func GetFrontendAddress(c *external.GraphDB, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
+func GetFrontendAddress(c external.Database, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
 	err error) {
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
@@ -265,7 +265,7 @@ func GetFrontendAddress(c *external.GraphDB, addrHash string, sortOrder int, off
 }
 
 // UpsertAddresses upserts addresses
-func UpsertAddresses(c *external.GraphDB, addresses []Address) error {
+func UpsertAddresses(c external.Database, addresses []Address) error {
 	if addresses == nil {
 		return errors.New("got null pointer for addresses")
 	}
@@ -316,6 +316,6 @@ func UpsertAddresses(c *external.GraphDB, addresses []Address) error {
 }
 
 // GetCount gets the number of addresses in the database
-func GetCount(c *external.GraphDB) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }

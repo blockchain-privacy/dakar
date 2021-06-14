@@ -266,7 +266,7 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph *external.GraphDB, txhash string, heuristics []dbtxh.FrontendHeuristic) (
+func ConstructExecutors(dgraph external.Database, txhash string, heuristics []dbtxh.FrontendHeuristic) (
 	executors []HeuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
@@ -366,7 +366,7 @@ func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []stri
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph *external.GraphDB, transactionHash string, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph external.Database, transactionHash string, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return

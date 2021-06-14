@@ -39,7 +39,7 @@ type BlockIterator interface {
 
 	Logger() *log.Logger
 	Context() context.Context
-	Db() *external.GraphDB
+	Db() external.Database
 	State() State
 	Name() string
 }

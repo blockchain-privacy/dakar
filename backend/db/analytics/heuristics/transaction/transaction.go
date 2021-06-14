@@ -22,7 +22,7 @@ var (
 )
 
 // InsertHeuristic inserts the given heuristic
-func InsertHeuristic(c *external.GraphDB, h Heuristic, userUID string) (insertUID string, err error) {
+func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUID string, err error) {
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
@@ -78,7 +78,7 @@ func InsertHeuristic(c *external.GraphDB, h Heuristic, userUID string) (insertUI
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUID string) (err error) {
+func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
 	uidList := db.CreateUIDList(uids)
 
 	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
@@ -101,7 +101,7 @@ func DeleteUserHeuristics(c *external.GraphDB, uids []string, userUID string) (e
 }
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c *external.GraphDB, userUID string) (err error) {
+func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 	req := &api.Request{
 		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics}}",
 		Vars:  map[string]string{"$uuid": userUID},
@@ -125,7 +125,7 @@ func DeleteAllUserHeuristics(c *external.GraphDB, userUID string) (err error) {
 }
 
 // DeleteAllUserTxHeuristics deletes all heuristics of a user for a particular transaction
-func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUID string) (err error) {
+func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) (err error) {
 	query := `query Q($uuid:string, $hash:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -158,7 +158,7 @@ func DeleteAllUserTxHeuristics(c *external.GraphDB, txhash string, userUID strin
 }
 
 // GetHeuristic gets heuristic information from the database
-func GetHeuristic(c *external.GraphDB, heuristicUID string) (h Heuristic, err error) {
+func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err error) {
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
 					uid
@@ -204,7 +204,7 @@ func GetHeuristic(c *external.GraphDB, heuristicUID string) (h Heuristic, err er
 }
 
 // GetHeuristicResults returns the connected transactions of heuristic
-func GetHeuristicResults(c *external.GraphDB, heuristicUID string) (results []HeuristicTransaction, err error) {
+func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
 				var (func: uid($uid)){
 					x as results
@@ -267,7 +267,7 @@ func getInputAddresses(inputs []HeuristicInput) []string {
 }
 
 // GetInputTransactions returns the input transactions of the given transaction
-func GetInputTransactions(c *external.GraphDB, tx string) (inputTransactions []HeuristicTransaction, err error) {
+func GetInputTransactions(c external.Database, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
@@ -327,7 +327,7 @@ func GetInputTransactions(c *external.GraphDB, tx string) (inputTransactions []H
 
 // GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
 // Each transaction contains its output amounts and the addresses of all inputs.
-func GetTransactionsWithOutputAmountAndInputAddresses(c *external.GraphDB, uids []string) (origins []HeuristicTransaction, err error) {
+func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids []string) (origins []HeuristicTransaction, err error) {
 	query := `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
@@ -370,7 +370,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c *external.GraphDB, uids 
 }
 
 // GetInputAmounts gets the amounts of the inputs
-func GetInputAmounts(c *external.GraphDB, tx string) (transaction HeuristicTransaction, err error) {
+func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				q(func: eq(txhash,$txhash)){
 					uid
@@ -414,7 +414,7 @@ func GetInputAmounts(c *external.GraphDB, tx string) (transaction HeuristicTrans
 }
 
 // DoesHeuristicUIDExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
-func DoesHeuristicUIDExist(c *external.GraphDB, txhash string, uids []string) (allExist bool, err error) {
+func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (allExist bool, err error) {
 	uidList := db.CreateUIDList(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
@@ -457,7 +457,7 @@ func DoesHeuristicUIDExist(c *external.GraphDB, txhash string, uids []string) (a
 }
 
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only
-func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUID string) (heuristics []FrontendHeuristic, err error) {
+func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID string) (heuristics []FrontendHeuristic, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -506,7 +506,7 @@ func GetBasicFrontendHeuristic(c *external.GraphDB, txHash string, userUID strin
 }
 
 // GetFrontendHeuristicByUID the heuristic for the given heuristicUid
-func GetFrontendHeuristicByUID(c *external.GraphDB, heuristicUID string, userUID string) (
+func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string) (
 	frontendHeuristic FrontendHeuristic, err error) {
 	query := `query Q($uid: string, $uuid: string){
 					q(func: uid($uid))@cascade{
@@ -581,7 +581,7 @@ func GetFrontendHeuristicByUID(c *external.GraphDB, heuristicUID string, userUID
 }
 
 // GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUID string) (completeHeuristic FrontendHeuristicComplete, err error) {
+func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (completeHeuristic FrontendHeuristicComplete, err error) {
 	query := `query Q($hash: string, $uuid: string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -672,7 +672,7 @@ func GetFrontendHeuristic(c *external.GraphDB, txHash string, userUID string) (c
 // True: Both inputs and outputs are traversed
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
-func GetShortestTransactionPathAnyDirection(c *external.GraphDB, txFrom string, txTo string,
+func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
 	withPrivacyTransactions bool, anyDirection bool) (txs []dbtx.FrontendTransaction, err error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
@@ -750,7 +750,7 @@ func GetShortestTransactionPathAnyDirection(c *external.GraphDB, txFrom string, 
 }
 
 // GetHeuristicListByUser returns all transactions for which the given user has created heuristics
-func GetHeuristicListByUser(c *external.GraphDB, userUID string) (frontendHeuristic []HeuristicListItem, err error) {
+func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuristic []HeuristicListItem, err error) {
 	query := `query Q($uuid:string){
 				# get transaction
 				var(func: uid($uuid)){

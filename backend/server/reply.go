@@ -20,7 +20,7 @@ import (
 )
 
 // getLoginReply reads the data from body and constructs a backendUserReply
-func getLoginReply(dgraph *external.GraphDB, body io.Reader) (reply backendUserReply) {
+func getLoginReply(dgraph external.Database, body io.Reader) (reply backendUserReply) {
 	const invalidUserData = "email and password combination does not match"
 
 	var loginData dbus.FrontendUserLogin
@@ -64,7 +64,7 @@ func getLoginReply(dgraph *external.GraphDB, body io.Reader) (reply backendUserR
 }
 
 // getCreateUserReply reads the data from body and constructs a userReply
-func getCreateUserReply(dgraph *external.GraphDB, body io.Reader) (reply userReply) {
+func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userReply) {
 	var frontEndUser dbus.FrontendUserRoles
 
 	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
@@ -103,7 +103,7 @@ func getCreateUserReply(dgraph *external.GraphDB, body io.Reader) (reply userRep
 	return
 }
 
-func getHeuristicReply(dgraph *external.GraphDB, worker *heuristic.Worker,
+func getHeuristicReply(dgraph external.Database, worker *heuristic.Worker,
 	txHashString string, userUID string) (reply heuristicReply) {
 
 	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
@@ -120,7 +120,7 @@ func getHeuristicReply(dgraph *external.GraphDB, worker *heuristic.Worker,
 	return
 }
 
-func getHeuristicExecutionReply(dgraph *external.GraphDB, worker *heuristic.Worker, body io.Reader,
+func getHeuristicExecutionReply(dgraph external.Database, worker *heuristic.Worker, body io.Reader,
 	txHashString string, userUID string) (reply heuristicExecutionReply) {
 	if !worker.IsReady() {
 		reply.Success = true
@@ -177,7 +177,7 @@ func getHeuristicExecutionReply(dgraph *external.GraphDB, worker *heuristic.Work
 }
 
 // getModifyUserReply parses the input and creates a corresponding userReply
-func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUser) (reply backendUserReply) {
+func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUser) (reply backendUserReply) {
 	// get clients user state
 	var modRequest dbus.ModifyUserRequest
 	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
@@ -318,7 +318,7 @@ func getModifyUserReply(dgraph *external.GraphDB, body io.Reader, tUser tokenUse
 }
 
 // getDeleteUserReply deletes delUid if is the same uid as tUser.ID or if tUser is an admin
-func getDeleteUserReply(dgraph *external.GraphDB, delUID string, tUser tokenUser) (reply userReply) {
+func getDeleteUserReply(dgraph external.Database, delUID string, tUser tokenUser) (reply userReply) {
 	if delUID != tUser.ID {
 		// is user an admin
 		isAdmin := false
@@ -347,7 +347,7 @@ func getDeleteUserReply(dgraph *external.GraphDB, delUID string, tUser tokenUser
 }
 
 // getShortestTransactionPathReply searches for the shortest path between two transactions
-func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (reply shortestTransactionPathReply) {
+func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply) {
 	// parse request
 	var req transaction.ShortestTransactionPathRequest
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -426,7 +426,7 @@ func getShortestTransactionPathReply(dgraph *external.GraphDB, body io.Reader) (
 }
 
 // getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
-func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUID string) (reply deleteHeuristicReply) {
+func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID string) (reply deleteHeuristicReply) {
 	var req transaction.DeleteHeuristicRequest
 
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -471,7 +471,7 @@ func getDeleteHeuristicReply(dgraph *external.GraphDB, body io.Reader, userUID s
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, urlValues url.Values,
+func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker, urlValues url.Values,
 	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
@@ -599,7 +599,7 @@ func getConnectionLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph *external.GraphDB, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph external.Database, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
 	if !worker.IsReady() {
 		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
 		reply.Warning = true

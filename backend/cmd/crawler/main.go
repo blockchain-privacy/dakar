@@ -110,7 +110,7 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 }
 
 // checks if a crawling process is already running
-func isCrawling(db *external.GraphDB) (bool, error) {
+func isCrawling(db external.Database) (bool, error) {
 	dbStatus, err := status.GetCrawlerStatus(db)
 	if err != nil {
 		// no status information found -> database is completely new
@@ -157,7 +157,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 }
 
 // waitForDatabase waits until the database is ready to receive requests
-func waitForDatabase(db *external.GraphDB) bool {
+func waitForDatabase(db external.Database) bool {
 	const maxRetries = 5
 	const retrySleepDuration = time.Second * 5
 

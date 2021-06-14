@@ -41,7 +41,7 @@ func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 }
 
 // loadAddresses loads origin addresses from the database into the graph
-func loadAddresses(c *external.GraphDB, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
+func loadAddresses(c external.Database, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
 	transactionGraph.SetReverse(false)
 	txNodes := transactionGraph.Nodes()
 
@@ -78,7 +78,7 @@ func loadAddresses(c *external.GraphDB, g *UndirectedGraph, transactionGraph *Re
 }
 
 // LoadAddressGraph returns a graph containing all origins of transactionGraph and their input addresses
-func LoadAddressGraph(c *external.GraphDB, transactionGraph *ReversibleGraph) (*UndirectedGraph, error) {
+func LoadAddressGraph(c external.Database, transactionGraph *ReversibleGraph) (*UndirectedGraph, error) {
 	mixingCount, originCount, ccCount, _, getErr := analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)

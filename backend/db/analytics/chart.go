@@ -12,7 +12,7 @@ import (
 
 // GetPrivacyTypeData returns timestamps when the transactions of the specified privacyType occur.
 // If the string is empty then all privacy transactions are considered.
-func GetPrivacyTypeData(c *external.GraphDB, startRange string, stopRange string) (ts []time.Time, err error) {
+func GetPrivacyTypeData(c external.Database, startRange string, stopRange string) (ts []time.Time, err error) {
 	const query = `query Q($ge:string,$le:string){
 				q(func:between(privacytype,$ge,$le))@normalize{
 					~transactions{

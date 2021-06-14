@@ -137,7 +137,7 @@ func buildKey(route string, query string, body []byte) (key string) {
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
-func GetBlock(dgraph *external.GraphDB, query string) (SearchResult, bool, error) {
+func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error) {
 	block, err := dbblk.GetFrontendBlock(dgraph, query)
 	if err != nil {
 
@@ -152,7 +152,7 @@ func GetBlock(dgraph *external.GraphDB, query string) (SearchResult, bool, error
 }
 
 // GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
-func GetTransaction(dgraph *external.GraphDB, query string) (SearchResult, bool, error) {
+func GetTransaction(dgraph external.Database, query string) (SearchResult, bool, error) {
 	tx, err := dbtx.GetFrontendTransaction(dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
@@ -167,14 +167,14 @@ func GetTransaction(dgraph *external.GraphDB, query string) (SearchResult, bool,
 
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
-func GetAddress(dgraph *external.GraphDB, query string) (SearchResult, bool, error) {
+func GetAddress(dgraph external.Database, query string) (SearchResult, bool, error) {
 	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, []int{})
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
 // A maximum of 20 elements is returned.
-func GetAddressWithOptions(dgraph *external.GraphDB, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
+func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
 	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 
