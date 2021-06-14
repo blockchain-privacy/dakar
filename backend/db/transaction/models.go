@@ -24,7 +24,6 @@ type Transaction struct {
 	Outputs     []op.Output            `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output            `json:"tx_inputs,omitempty"`
 	Hash        string                 `json:"txhash,omitempty"`
-	Origins     []Transaction          `json:"origins,omitempty"`
 	DType       []string               `json:"dgraph.type,omitempty"`
 }
 
@@ -40,9 +39,6 @@ func (t Transaction) String() string {
 		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
 	}
 
-	if t.Origins != nil {
-		output += fmt.Sprintf(", Origin count: %d", len(t.Origins))
-	}
 	return output
 }
 
