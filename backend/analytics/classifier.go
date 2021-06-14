@@ -421,41 +421,36 @@ func newCollateralPaymentTransaction(uid string) dbtx.Transaction {
 // isMixing checks if the transactions is a mixing transaction
 // -1: not a mixing transaction
 // 0-4: denomination type
-func isMixing(t dbtx.Transaction) (denominationIndex int) {
-	denominationIndex = -1
-	// At least 3 clients per mixing transaction -> >2 inputs/outputs
+func isMixing(t dbtx.Transaction) int {
+	// At least 3 clients per mixing transaction -> more than 2 inputs/outputs
 	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
-	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Outputs) < 3 ||
-		len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
-		return
+	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
+		return -1
 	}
 
-	denomIn := op.CountOutputDenominations(t.Inputs)
-	denomOut := op.CountOutputDenominations(t.Outputs)
+	denominationIn := op.CountOutputDenominations(t.Inputs)
+	denominationOut := op.CountOutputDenominations(t.Outputs)
+	denominationIndex := -1
+	for i := range denominationIn {
+		// inputs and outputs should have same amount of each denomination type
+		if denominationIn[i] != denominationOut[i] {
+			return -1
+		}
 
-	sum := 0
-	for _, v := range denomIn {
-		sum += v
-	}
-	if sum == 0 {
-		return
-	}
-	sum = 0
-	for i, v := range denomOut {
-		sum += v
-		if v != 0 {
+		if denominationIn[i] > 0 {
+			// there is more than one denomination type
+			if denominationIndex >= 0 {
+				return -1
+			}
+			// the number of denominations should be the same as the inputs/outputs
+			if denominationIn[i] != len(t.Inputs) {
+				return -1
+			}
 			denominationIndex = i
 		}
 	}
-	if sum == 0 {
-		return
-	}
-	for i := range denomIn {
-		if denomIn[i] != denomOut[i] {
-			return
-		}
-	}
-	return
+
+	return denominationIndex
 }
 
 // newMixingTransaction returns a new mixing transaction with the given type and uid.

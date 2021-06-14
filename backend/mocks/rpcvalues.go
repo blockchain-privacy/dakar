@@ -20,7 +20,7 @@ type RPCValues struct {
 	FutureBlockchainInfo rpcclient.FutureGetBlockChainInfoResult
 }
 
-// RPCVal is a global variable in which the mock values are saved
+// RPCVal is a global variable in which RPC mock values are saved
 var RPCVal RPCValues
 
 func init() {
