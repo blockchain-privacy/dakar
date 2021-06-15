@@ -183,3 +183,34 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 		})
 	}
 }
+
+func basicAuthMiddleware(u, pwhash string) adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// set headers
+			setDefaultHeader(w)
+			w.Header().Set("WWW-Authenticate", `Basic realm="Dakar Metrics"`)
+
+			requestUser, requestPassword, ok := r.BasicAuth()
+			if !ok {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			if u != requestUser {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			if equal, err := user.ComparePassword(requestPassword, pwhash); err != nil {
+				handleError(w, err)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			} else if !equal {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			h.ServeHTTP(w, r)
+		})
+	}
+}
