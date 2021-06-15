@@ -14,6 +14,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // ------------------------- Private Send Example Graph -------------------------
@@ -48,10 +51,12 @@ import (
 
 // Classifier implements BlockIterator which classifies the transactions of each traversed block
 type Classifier struct {
-	config Config
-	db     external.Database
-	ctx    context.Context
-	state  blockiterator.State
+	config       Config
+	db           external.Database
+	ctx          context.Context
+	state        blockiterator.State
+	blocks       prometheus.Counter
+	transactions prometheus.Counter
 }
 
 // NewClassifier creates a new Classifier object
@@ -60,6 +65,14 @@ func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *C
 		config: cfg,
 		db:     dgraph,
 		ctx:    ctx,
+		blocks: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_classifier_blocks_processed_total",
+			Help: "The total number of blocks processed by the classifier",
+		}),
+		transactions: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_classifier_transactions_processed_total",
+			Help: "The total number of transactions processed by the classifier",
+		}),
 	}
 }
 
@@ -326,6 +339,9 @@ func (a *Classifier) Iterate() (bool, error) {
 	if statusErr := dbstat.SetLastClassifiedBlockID(a.db, a.state.ID); statusErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
+
+	a.blocks.Inc()
+	a.transactions.Add(float64(len(mixingTransactions)))
 
 	return true, nil
 }
