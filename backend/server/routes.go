@@ -695,6 +695,12 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 		panic(fmt.Sprintln("error getting signing keys", err))
 	}
 
+	// get basic auth credentials
+	basicAuthUser, basicAuthPasswordHash, err := GetBasicAuthCredentialsFromEnv()
+	if err != nil {
+		panic(fmt.Sprintln("error getting basic auth credentials", err))
+	}
+
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
@@ -705,9 +711,11 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 		panic(fmt.Sprintln("error initializing cache", err))
 	}
 
-	http.Handle("/metrics", promhttp.Handler())
-
 	// API end points
+
+	// Metrics
+	http.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
+		basicAuthMiddleware(basicAuthUser, basicAuthPasswordHash)))
 
 	// Search
 	http.Handle(constants.GetRouteSearch(),
