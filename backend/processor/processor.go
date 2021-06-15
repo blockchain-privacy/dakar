@@ -23,6 +23,9 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -524,8 +527,8 @@ func ProcessBlockRange(ctx context.Context, dgraph external.Database, client ext
 		isEmptyDatabase = true
 	}
 
-	var blkCounter uint64
-	var txCounter uint64
+	var blkCounter int64
+	var txCounter int64
 
 	info("Starting crawling at", state)
 
@@ -533,6 +536,8 @@ func ProcessBlockRange(ctx context.Context, dgraph external.Database, client ext
 	// Main loop
 
 	var currentBlock *btcjson.GetBlockVerboseResult
+
+	blocksProcessed, transactionsProcessed := getMetrics()
 
 mainLoop:
 	for {
@@ -553,6 +558,8 @@ mainLoop:
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter,
 			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false, config); err == nil {
+			blocksProcessed.Add(float64(rBlockCounter))
+			transactionsProcessed.Add(float64(rTransactionCounter))
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -576,13 +583,13 @@ mainLoop:
 }
 
 // printMetrics prints the given metrics
-func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uint64, elapsedTime time.Duration) {
+func printMetrics(state crawlerProcessingState, blkCounter int64, txCounter int64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
 		info("Last Block:", state)
 		info("New blocks inserted:", blkCounter)
 		info("Final TX count:", txCounter)
 		info("Elapsed time:", elapsedTime)
-		info("Performance:", elapsedTime.Milliseconds()/int64(blkCounter), "ms/block")
+		info("Performance:", elapsedTime.Milliseconds()/blkCounter, "ms/block")
 	} else {
 		info("Processed no new blocks")
 		info("Final TX count:", txCounter)
@@ -590,8 +597,20 @@ func printMetrics(state crawlerProcessingState, blkCounter uint64, txCounter uin
 	}
 }
 
+// getMetrics returns the metric variables for block and transaction counting
+func getMetrics() (blk, tx prometheus.Counter) {
+	return promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_crawler_blocks_processed_total",
+			Help: "The total number of blocks processed by the crawler",
+		}), promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_crawler_transactions_processed_total",
+			Help: "The total number of transactions processed by the crawler",
+		})
+}
+
 // ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
-func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database, client external.RPCClient, config Config) error {
+func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database,
+	client external.RPCClient, config Config) error {
 	if err := dbstat.SetCrawling(dgraph, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -618,8 +637,8 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database, cl
 		isEmptyDatabase = true
 	}
 
-	var blkCounter uint64
-	var txCounter uint64
+	var blkCounter int64
+	var txCounter int64
 
 	info("Starting crawling at", state)
 
@@ -628,6 +647,8 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database, cl
 
 	firstLoop := true
 	var currentBlock *btcjson.GetBlockVerboseResult
+
+	blocksProcessed, transactionsProcessed := getMetrics()
 
 mainLoop:
 	for {
@@ -680,6 +701,8 @@ mainLoop:
 		// do the actual processing and aggregate the resulting metrics
 		if rBlockCounter, rTransactionCounter, processErr := ProcessRound(dgraph, client, state, currentBlock,
 			isEmptyDatabase, true, config); processErr == nil {
+			blocksProcessed.Add(float64(rBlockCounter))
+			transactionsProcessed.Add(float64(rTransactionCounter))
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -718,7 +741,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerProcessingState,
 	block *btcjson.GetBlockVerboseResult, setLowestID bool, isContinuous bool, config Config) (
-	blkCounter uint64, txCounter uint64, err error) {
+	blkCounter int64, txCounter int64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
 
