@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/blockiterator"
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	"backend/mocks"
@@ -254,7 +255,27 @@ func TestIsCollateralPayment(t *testing.T) {
 }
 
 func TestNewClassifier(t *testing.T) {
-	var db mocks.Database
+	var state blockiterator.State
+	db := new(mocks.Database)
+	classifier := NewClassifier(context.Background(), db, NewDashConfig())
+	require.NotEmpty(t, classifier.Name())
+	require.NotNil(t, classifier.Logger())
+	require.EqualValues(t, classifier.State().ID, state.ID)
+	require.EqualValues(t, classifier.State().Top, state.Top)
+	require.NotNil(t, classifier.Db())
+	state.ID = 5
+	state.Top = 10
+	classifier.SetState(state)
+	require.EqualValues(t, classifier.State().ID, state.ID)
+	require.EqualValues(t, classifier.State().Top, state.Top)
+	classifier.IncrementState()
+	require.EqualValues(t, classifier.State().ID, state.ID+1)
+	require.EqualValues(t, classifier.State().Top, state.Top)
+	require.False(t, classifier.Empty())
 
-	_ = NewClassifier(context.Background(), &db, NewDashConfig())
+	mocks.MapSetClassifying(db)
+	mocks.MapGetClassifierStatus(db)
+	mocks.MapGetCrawlerStatus(db)
+
+	require.NoError(t, classifier.CalculateInitialState())
 }
