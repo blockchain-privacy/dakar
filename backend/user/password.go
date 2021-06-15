@@ -5,12 +5,14 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
 	"golang.org/x/crypto/argon2"
 )
 
+// DefaultPasswordConfig is the default password hashing configuration
 var DefaultPasswordConfig = &PasswordHashConfig{
 	time:    1,
 	memory:  65536, //64 * 1024
@@ -35,6 +37,7 @@ func GetRandomPasswordAndHash() (pw string, pwHash string, err error) {
 	return
 }
 
+// GenerateRandomPassword returns a random string if fixed length of 22
 func GenerateRandomPassword() (string, error) {
 	// Generate a Salt
 	pwByte := make([]byte, 16)
@@ -45,6 +48,7 @@ func GenerateRandomPassword() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil
 }
 
+// PasswordHashConfig is the configuration data to generate a password hash
 type PasswordHashConfig struct {
 	time    uint32
 	memory  uint32
@@ -80,6 +84,9 @@ func GeneratePasswordHash(c *PasswordHashConfig, password string) (string, error
 func ComparePassword(password, hash string) (bool, error) {
 
 	parts := strings.Split(hash, "$")
+	if len(parts) != 6 {
+		return false, errors.New("password hash is too short")
+	}
 
 	c := &PasswordHashConfig{}
 	_, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &c.memory, &c.time, &c.threads)

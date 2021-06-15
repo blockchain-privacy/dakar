@@ -1,10 +1,11 @@
 package graph
 
 import (
-	"backend/blockIterator"
+	"backend/blockiterator"
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/db/status"
+	"backend/external"
 	"context"
 	"errors"
 	"fmt"
@@ -12,8 +13,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // graphLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
@@ -27,13 +26,14 @@ func InitLogger(out io.Writer, flag int) {
 }
 
 func info(v ...interface{}) {
-	graphLogger.Println(v)
+	graphLogger.Println(v...)
 }
 
+// Wrapper is wrapper for in-memory graphs
 type Wrapper struct {
 	context context.Context
-	db      *dgo.Dgraph
-	state   blockIterator.State
+	db      external.Database
+	state   blockiterator.State
 
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
@@ -49,7 +49,7 @@ type Wrapper struct {
 }
 
 // NewWrapper constructs a new Wrapper
-func NewWrapper(ctx context.Context, dgraph *dgo.Dgraph) *Wrapper {
+func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
 		addressGraphMutex: new(sync.RWMutex)}
 }
@@ -79,13 +79,13 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookup(uid string, targetUid string) (map[string]bool, error) {
+func (w *Wrapper) ForwardLookup(uid string, targetUID string) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ForwardLookup(w.transactionGraph, uid, targetUid)
+	return ForwardLookup(w.transactionGraph, uid, targetUID)
 }
 
 // ForwardLookupByTime performs a forward lookup of the given uid.
@@ -98,8 +98,8 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
 }
 
-// GetClusters returns a mapping between address uids and ClusterId's
-func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterId, error) {
+// GetClusters returns a mapping between address uids and ClusterID's
+func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterID, error) {
 	if !w.IsAddressGraphLoaded() {
 		return nil, errors.New("address graph is not loaded yet")
 	}
@@ -109,13 +109,13 @@ func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterId, error
 }
 
 // GetCluster returns the cluster of the given address
-func (w *Wrapper) GetCluster(addressUid string) ([]string, error) {
+func (w *Wrapper) GetCluster(addressUID string) ([]string, error) {
 	if !w.IsAddressGraphLoaded() {
 		return nil, errors.New("address graph is not loaded yet")
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetCluster(w.addressGraph, addressUid)
+	return GetCluster(w.addressGraph, addressUID)
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
@@ -141,13 +141,13 @@ func (w *Wrapper) LoadGraphs() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if classifierStatus.LastClassifiedBlockId == nil {
+	if classifierStatus.LastClassifiedBlockID == nil {
 		// there are no classifications yet -> do not try to load graph
 		return nil
 	}
 
-	w.state.Id = *classifierStatus.LastClassifiedBlockId + 1
-	w.state.Top = *classifierStatus.LastClassifiedBlockId
+	w.state.ID = *classifierStatus.LastClassifiedBlockID + 1
+	w.state.Top = *classifierStatus.LastClassifiedBlockID
 
 	txGraph, err := LoadTransactionGraph(w.db)
 	if err != nil {
@@ -172,25 +172,32 @@ func (w *Wrapper) LoadGraphs() error {
 
 // ------------ Block Iterator interface methods ------------
 
+// Logger returns the Logger
 func (w *Wrapper) Logger() *log.Logger {
 	return graphLogger
 }
 
+// Context returns the context
 func (w *Wrapper) Context() context.Context {
 	return w.context
 }
 
-func (w *Wrapper) Db() *dgo.Dgraph {
+// Db returns the database access
+func (w *Wrapper) Db() external.Database {
 	return w.db
 }
 
-func (w *Wrapper) State() blockIterator.State {
+// State returns the state
+func (w *Wrapper) State() blockiterator.State {
 	return w.state
 }
+
+// Name returns the name
 func (w *Wrapper) Name() string {
 	return "graph wrapper"
 }
 
+// CalculateInitialState calculates the state on which the iterator starts processing
 func (w *Wrapper) CalculateInitialState() error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
@@ -202,35 +209,38 @@ func (w *Wrapper) CalculateInitialState() error {
 // GetHighestAvailableBlock returns the highest classified block
 func (w *Wrapper) GetHighestAvailableBlock() (uint64, error) {
 	classifierStatus, err := status.GetClassifierStatus(w.db)
-	if err != nil || classifierStatus.LastClassifiedBlockId == nil {
+	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
 		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return *classifierStatus.LastClassifiedBlockId, nil
+	return *classifierStatus.LastClassifiedBlockID, nil
 }
 
+// PostExecution does nothing
 func (w *Wrapper) PostExecution() error {
 	// nothing to do
 	return nil
 }
 
+// IncrementState increments the state one block
 func (w *Wrapper) IncrementState() {
-	w.state.Id++
+	w.state.ID++
 }
 
-func (w *Wrapper) SetState(newState blockIterator.State) {
+// SetState sets the new state
+func (w *Wrapper) SetState(newState blockiterator.State) {
 	w.state = newState
 }
 
 // Empty checks if there are more blocks above the current one
 func (w *Wrapper) Empty() bool {
-	return w.state.Id > w.state.Top
+	return w.state.ID > w.state.Top
 }
 
 // Iterate loads the mixing transactions and all connected origin and
 // destination transactions of the current block into the in-memory graphs
 func (w *Wrapper) Iterate() (bool, error) {
-	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.Id)
+	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -286,7 +296,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 func filterOrigins(txGraph *ReversibleGraph, addrGraph *UndirectedGraph, nodes []analytics.Node) ([]string, error) {
 	var originUids []string
 	for _, node := range nodes {
-		id, err := toInteger(node.Uid)
+		id, err := toInteger(node.UID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -299,7 +309,7 @@ func filterOrigins(txGraph *ReversibleGraph, addrGraph *UndirectedGraph, nodes [
 		// check if node is an endpoint
 		from := txGraph.From(id)
 		if from.Len() == 0 {
-			originUids = append(originUids, node.Uid)
+			originUids = append(originUids, node.UID)
 		}
 	}
 

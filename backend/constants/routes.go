@@ -31,89 +31,112 @@ func getRoute(r string) string {
 	return routePrefix + r + "/"
 }
 
+// GetRouteTransaction returns a route
 func GetRouteTransaction() string {
 	return getRoute(routeTransaction)
 }
 
+// GetRouteBlock returns a route
 func GetRouteBlock() string {
 	return getRoute(routeBlock)
 }
 
+// GetRouteAddress returns a route
 func GetRouteAddress() string {
 	return getRoute(routeAddress)
 }
 
+// GetRouteMeta returns a route
 func GetRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
+// GetRouteHeuristics returns a route
 func GetRouteHeuristics() string {
 	return getRoute(routeHeuristics)
 }
 
+// GetRouteHeuristicsSummary returns a route
 func GetRouteHeuristicsSummary() string {
 	return getRoute(routeHeuristicsSummary)
 }
 
+// GetRouteHeuristicsExecution returns a route
 func GetRouteHeuristicsExecution() string {
 	return getRoute(routeHeuristicsExecution)
 }
 
+// GetRouteHeuristicDetails returns a route
 func GetRouteHeuristicDetails() string {
 	return getRoute(routeHeuristicDetails)
 }
 
+// GetRouteHeuristicStatus returns a route
 func GetRouteHeuristicStatus() string {
 	return getRoute(routeHeuristicStatus)
 }
 
+// GetRouteHeuristicList returns a route
 func GetRouteHeuristicList() string {
 	return getRoute(routeHeuristicList)
 }
 
+// GetRouteDeleteHeuristic returns a route
 func GetRouteDeleteHeuristic() string {
 	return getRoute(routeDeleteHeuristic)
 }
 
+// GetRouteSearch returns a route
 func GetRouteSearch() string {
 	return getRoute(routeSearch)
 }
 
+// GetRouteAddressOutputRange returns a route
 func GetRouteAddressOutputRange() string {
 	return getRoute(routeAddressOutputRange)
 }
 
+// GetRouteCreateUser returns a route
 func GetRouteCreateUser() string {
 	return getRoute(routeCreateUser)
 }
 
+// GetRouteGetUsers returns a route
 func GetRouteGetUsers() string {
 	return getRoute(routeGetUsers)
 }
 
+// GetRouteDeleteUser returns a route
 func GetRouteDeleteUser() string {
 	return getRoute(routeDeleteUser)
 }
 
+// GetRouteLogin returns a route
 func GetRouteLogin() string {
 	return getRoute(routeLogin)
 }
 
+// GetRouteLogout returns a route
 func GetRouteLogout() string {
 	return getRoute(routeLogout)
 }
 
+// GetRouteModifyUser returns a route
 func GetRouteModifyUser() string {
 	return getRoute(routeModifyUser)
 }
 
+// GetRouteShortestTransactionPath returns a route
 func GetRouteShortestTransactionPath() string {
 	return getRoute(routeShortestTxPath)
 }
 
+// GetRouteConnectionLookup returns a route
 func GetRouteConnectionLookup() string {
 	return getRoute(routeConnectionLookup)
 }
+
+// GetRouteClusterLookup returns a route
 func GetRouteClusterLookup() string {
 	return getRoute(routeClusterLookup)
 }

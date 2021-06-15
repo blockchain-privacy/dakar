@@ -224,10 +224,7 @@ func ExportClustersToGephi(g *UndirectedGraph, filePath string) error {
 		}
 
 		var line []string
-
-		for _, address := range cluster {
-			line = append(line, address)
-		}
+		line = append(line, cluster...)
 
 		if writeErr := writer.Write(line); writeErr != nil {
 			fmt.Println("Cannot write to file", writeErr)

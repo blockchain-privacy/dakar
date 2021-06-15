@@ -7,10 +7,12 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Output type
 const DType = "Output"
 
+// Output is the database representation of an output
 type Output struct {
-	Uid         string   `json:"uid,omitempty"`
+	UID         string   `json:"uid,omitempty"`
 	OutputIndex *uint32  `json:"outputindex,omitempty"`
 	InputIndex  *uint32  `json:"inputindex,omitempty"`
 	TxType      string   `json:"txtype,omitempty"`
@@ -24,8 +26,8 @@ type Output struct {
 }
 
 func (o Output) String() string {
-	output := fmt.Sprintf("Uid: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
-		o.Uid, *o.Amount, o.KeyAsm, o.SigAsm)
+	output := fmt.Sprintf("UID: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
+		o.UID, *o.Amount, o.KeyAsm, o.SigAsm)
 
 	if o.OutputIndex != nil {
 		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)
@@ -41,6 +43,8 @@ func (o Output) String() string {
 
 	return output
 }
+
+// SetDType sets the DType for dgraph type recognition
 func (o *Output) SetDType() {
 	o.DType = []string{DType}
 }
@@ -52,8 +56,9 @@ type outputQuery struct {
 }
 
 var (
+	// ErrorNotFound is returned if an output was not found
 	ErrorNotFound      = errors.New("output not found")
-	ErrorMultipleFound = errors.New("found multiple outputs")
+	errorMultipleFound = errors.New("found multiple outputs")
 )
 
 func (oq outputQuery) payload() (op Output, err error) {
@@ -71,7 +76,7 @@ func (oq outputQuery) payload() (op Output, err error) {
 
 	if lenQ > 1 || lenTx > 1 {
 		// found more than one output, which should not be possible
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorMultipleFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorMultipleFound)
 		return
 	}
 	op = oq.GetOutput[0].Outputs[0]

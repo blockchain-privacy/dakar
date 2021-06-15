@@ -7,17 +7,21 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Block type
 const DType = "Block"
 
 var (
+	// ErrorBlockNotFound is returned if no block was found
 	ErrorBlockNotFound = errors.New("no block found")
+	// ErrorInvalidResult is returned if an invalid result was returned from the database
 	ErrorInvalidResult = errors.New("invalid result")
 )
 
+// Block is the database representation of a block
 type Block struct {
-	Uid          string           `json:"uid,omitempty"`
+	UID          string           `json:"uid,omitempty"`
 	Hash         string           `json:"blockhash,omitempty"`
-	Id           *uint64          `json:"id,omitempty"`
+	ID           *uint64          `json:"id,omitempty"`
 	Timestamp    string           `json:"ts,omitempty"`
 	PrevBlock    *Block           `json:"prevblock,omitempty"`
 	Transactions []tx.Transaction `json:"transactions,omitempty"`
@@ -25,10 +29,10 @@ type Block struct {
 }
 
 func (b Block) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Timestamp: %s", b.Uid, b.Hash, b.Timestamp)
+	output := fmt.Sprintf("UID: %s, Hash: %s, Timestamp: %s", b.UID, b.Hash, b.Timestamp)
 
-	if b.Id != nil {
-		output += fmt.Sprintf(", Id: %d", *b.Id)
+	if b.ID != nil {
+		output += fmt.Sprintf(", ID: %d", *b.ID)
 	}
 
 	if b.PrevBlock != nil {
@@ -42,19 +46,21 @@ func (b Block) String() string {
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (b *Block) SetDType() {
 	b.DType = []string{DType}
 }
 
 // IsComplete checks if the given block has all attributes filled
 func (b Block) IsComplete() bool {
-	return b.Uid != "" && b.Hash != "" && b.Id != nil && b.Timestamp != "" &&
+	return b.UID != "" && b.Hash != "" && b.ID != nil && b.Timestamp != "" &&
 		b.DType != nil && b.Transactions != nil && b.PrevBlock != nil
 }
 
+// FrontendBlock holds all block data which is exposed to the frontend
 type FrontendBlock struct {
 	Hash          string   `json:"blockhash,omitempty"`
-	Id            uint64   `json:"id,omitempty"`
+	ID            uint64   `json:"id,omitempty"`
 	Timestamp     string   `json:"ts,omitempty"`
 	PrevBlockHash string   `json:"prevblockhash,omitempty"`
 	NextBlockHash string   `json:"nextblockhash,omitempty"`
@@ -62,9 +68,9 @@ type FrontendBlock struct {
 }
 
 func (v FrontendBlock) String() string {
-	output := fmt.Sprintf("Id: %d, Hash: %s, Timestamp: %s, "+
+	output := fmt.Sprintf("ID: %d, Hash: %s, Timestamp: %s, "+
 		"PrevBlockHash: %s, NextBlockHash: %s, transaction count: %d",
-		v.Id, v.Hash, v.Timestamp, v.PrevBlockHash, v.NextBlockHash, len(v.Transactions))
+		v.ID, v.Hash, v.Timestamp, v.PrevBlockHash, v.NextBlockHash, len(v.Transactions))
 
 	return output
 }

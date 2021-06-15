@@ -24,7 +24,7 @@ func initLogger() {
 	thisLogger = log.New(log.Writer(), "\033[0;31mquery\033[0m\t", log.Flags())
 }
 func info(v ...interface{}) {
-	thisLogger.Println(v)
+	thisLogger.Println(v...)
 }
 
 // setup cli

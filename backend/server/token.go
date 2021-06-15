@@ -34,14 +34,14 @@ const (
 )
 
 type tokenUser struct {
-	Id    string      `json:"uid,omitempty"`
+	ID    string      `json:"uid,omitempty"`
 	Roles []dbus.Role `json:"roles,omitempty"`
 }
 
 // toUser creates a new dbus.User and fill it with data from t
 func (t tokenUser) toUser() dbus.User {
 	return dbus.User{
-		Uid:   t.Id,
+		UID:   t.ID,
 		Roles: t.Roles,
 	}
 }
@@ -108,7 +108,7 @@ func invalidateToken(w http.ResponseWriter) {
 // issueToken creates a token from user
 func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
 	newTokenUser := tokenUser{
-		Id:    user.Uid,
+		ID:    user.UID,
 		Roles: user.Roles,
 	}
 
@@ -129,8 +129,8 @@ func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey
 }
 
 // verifyToken checks if token is valid
-func verifyToken(token string, publicKey ed25519.PublicKey) (newJsonToken paseto.JSONToken, newFooter string, err error) {
+func verifyToken(token string, publicKey ed25519.PublicKey) (newJSONToken paseto.JSONToken, newFooter string, err error) {
 	// Verify data
-	err = paseto.NewV2().Verify(token, publicKey, &newJsonToken, &newFooter)
+	err = paseto.NewV2().Verify(token, publicKey, &newJSONToken, &newFooter)
 	return
 }

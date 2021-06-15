@@ -15,7 +15,7 @@ func initLogger() {
 }
 
 func info(v ...interface{}) {
-	thisLogger.Println(v)
+	thisLogger.Println(v...)
 }
 
 // setup cli
@@ -110,7 +110,7 @@ func main() {
 	// ---------------- ANALYZER
 
 	info("lastanalysedid deletion starting ...")
-	if err := db.DropLastAnalysedId(dgraph); err != nil {
+	if err := db.DropLastAnalysedID(dgraph); err != nil {
 		info(err)
 	}
 	info("lastanalysedid deletion done")

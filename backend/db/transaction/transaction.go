@@ -3,6 +3,7 @@ package transaction
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 
 	"encoding/json"
 	"errors"
@@ -10,13 +11,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetTransaction gets transaction information from the database.
 // Use this function if duplicate transaction hashes can not be tolerated.
-func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction Transaction, err error) {
+func GetTransaction(c external.Database, txHash string, blockHash string) (transaction Transaction, err error) {
 	query := `query Q($tx:string,$block:string) {
 				blk as var(func: eq(blockhash, $block))
 
@@ -62,7 +62,7 @@ func GetTransaction(c *dgo.Dgraph, txHash string, blockHash string) (transaction
 }
 
 // GetTransactionByBlock gets transaction information from the database by block id
-func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transaction, err error) {
+func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
@@ -89,7 +89,7 @@ func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transa
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockId, 10)})
+		map[string]string{"$block": strconv.FormatUint(blockID, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -112,7 +112,7 @@ func GetTransactionByBlock(c *dgo.Dgraph, blockId uint64) (transactions []Transa
 }
 
 // GetOutputAddressCounts returns the number of distinct addresses associated with the inputs and outputs of the transaction uid
-func GetOutputAddressCounts(c *dgo.Dgraph, uid string) (inputCount uint32, outputcount uint32, err error) {
+func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs {
@@ -161,7 +161,7 @@ func GetOutputAddressCounts(c *dgo.Dgraph, uid string) (inputCount uint32, outpu
 	}
 
 	if len(r.Input) > 1 || len(r.Output) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
 		return
 	}
 
@@ -172,7 +172,7 @@ func GetOutputAddressCounts(c *dgo.Dgraph, uid string) (inputCount uint32, outpu
 }
 
 // GetFrontendTransaction gets transaction information for the frontend
-func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []FrontendTransaction, err error) {
+func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash)){
 					txhash
@@ -210,7 +210,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -228,7 +228,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 			Block       []struct {
 				Hash string `json:"blockhash,omitempty"`
 				Ts   string `json:"ts,omitempty"`
-				Id   uint64 `json:"id,omitempty"`
+				ID   uint64 `json:"id,omitempty"`
 			} `json:"block,omitempty"`
 		} `json:"q,omitempty"`
 	}
@@ -245,7 +245,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 
 	for _, t := range r.Transaction {
 		if len(t.Block) == 0 || len(t.Block) != 1 || t.OriginCount == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
 			return
 		}
 
@@ -267,7 +267,7 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 			Fee:            fee,
 			OriginCount:    *t.OriginCount,
 			BlockHash:      t.Block[0].Hash,
-			BlockId:        t.Block[0].Id,
+			BlockID:        t.Block[0].ID,
 			BlockTimestamp: t.Block[0].Ts,
 			Outputs:        t.Outputs,
 			Inputs:         t.Inputs,
@@ -277,8 +277,8 @@ func GetFrontendTransaction(c *dgo.Dgraph, txHash string) (transactions []Fronte
 	return
 }
 
-// GetFrontendTransactionsByUid returns the FrontendTransaction's specified by uid
-func GetFrontendTransactionsByUid(c *dgo.Dgraph, txUids []string) (txs []FrontendTransaction, err error) {
+// GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
+func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
 
 	const query = `query Q($uids:string){
 				txs as var(func: uid($uids))
@@ -296,7 +296,7 @@ func GetFrontendTransactionsByUid(c *dgo.Dgraph, txUids []string) (txs []Fronten
 	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uids": db.CreateUidList(txUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(txUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -317,9 +317,9 @@ func GetFrontendTransactionsByUid(c *dgo.Dgraph, txUids []string) (txs []Fronten
 	return
 }
 
-// GetTransactionBlockId gets the block id of the transaction. If there exist multiple transactions
+// GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
-func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err error) {
+func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash))@normalize{
 					~transactions {
@@ -330,7 +330,7 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$hash": txHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -339,7 +339,7 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Id uint64 `json:"id,omitempty"`
+			ID uint64 `json:"id,omitempty"`
 		} `json:"q,omitempty"`
 	}
 
@@ -354,8 +354,8 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 	}
 
 	for _, tx := range r.Transaction {
-		if tx.Id > blockId {
-			blockId = tx.Id
+		if tx.ID > blockID {
+			blockID = tx.ID
 		}
 	}
 
@@ -363,15 +363,15 @@ func GetTransactionBlockId(c *dgo.Dgraph, txHash string) (blockId uint64, err er
 }
 
 // GetCount gets the number of transactions in the database
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }
 
 // UpdateTransactions sends the given transaction updates to the database.
 // The transaction uids must be set.
-func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
+func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	for _, tx := range transactions {
-		if len(tx.Uid) == 0 {
+		if len(tx.UID) == 0 {
 			return errors.New("error uid is not set for transaction")
 		}
 	}
@@ -396,8 +396,8 @@ func UpdateTransactions(c *dgo.Dgraph, transactions []Transaction) error {
 	return err
 }
 
-// GetTransactionUid returns the uid of the given transaction
-func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
+// GetTransactionUID returns the uid of the given transaction
+func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
 	query := `query Q($tx:string) {
 				q(func: eq(txhash, $tx)){
 					uid
@@ -414,7 +414,7 @@ func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
 
 	var r struct {
 		Q []struct {
-			Uid string `json:"uid"`
+			UID string `json:"uid"`
 		} `json:"q"`
 	}
 
@@ -428,7 +428,7 @@ func GetTransactionUid(c *dgo.Dgraph, txHash string) (uid string, err error) {
 		return
 	}
 
-	uid = r.Q[0].Uid
+	uid = r.Q[0].UID
 
 	return
 }

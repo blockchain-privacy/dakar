@@ -3,6 +3,7 @@ package address
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 
 	"encoding/json"
 	"errors"
@@ -10,12 +11,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// GetAddressUid returns the uid of the given address
-func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
+// GetAddressUID returns the uid of the given address
+func GetAddressUID(c external.Database, addressHash string) (uid string, err error) {
 	query := `query Q($addr:string) {
 				q(func: eq(addresshash, $addr)){
 					uid
@@ -32,7 +32,7 @@ func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
 
 	var r struct {
 		Q []struct {
-			Uid string `json:"uid"`
+			UID string `json:"uid"`
 		} `json:"q"`
 	}
 
@@ -49,13 +49,13 @@ func GetAddressUid(c *dgo.Dgraph, addressHash string) (uid string, err error) {
 		return
 	}
 
-	uid = r.Q[0].Uid
+	uid = r.Q[0].UID
 
 	return
 }
 
-// GetAddressesByUid returns the address hashes of the given uids
-func GetAddressesByUid(c *dgo.Dgraph, addressUids []string) (addressHashes []string, err error) {
+// GetAddressesByUID returns the address hashes of the given uids
+func GetAddressesByUID(c external.Database, addressUids []string) (addressHashes []string, err error) {
 
 	const query = `query Q($uids:string){
 				q(func: uid($uids)){
@@ -66,7 +66,7 @@ func GetAddressesByUid(c *dgo.Dgraph, addressUids []string) (addressHashes []str
 	// without retry, as this request can easily timeout
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$uids": db.CreateUidList(addressUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(addressUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -93,7 +93,7 @@ func GetAddressesByUid(c *dgo.Dgraph, addressUids []string) (addressHashes []str
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
-func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
+func GetFrontendAddress(c external.Database, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
 	err error) {
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
@@ -102,24 +102,18 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	switch sortOrder {
 	case SortAscendingByInputTime:
 		sortBy = "val(its)"
-		break
 	case SortDescendingByInputTime:
 		sortDirection = "desc"
 		sortBy = "val(its)"
-		break
 	case SortAscendingByOutputTime:
 		// do nothing, values are already correctly set
-		break
 	case SortDescendingByOutputTime:
 		sortDirection = "desc"
-		break
 	case SortAscendingByAmount:
 		sortBy = "amount"
-		break
 	case SortDescendingByAmount:
 		sortDirection = "desc"
 		sortBy = "amount"
-		break
 	default:
 		err = errors.New("error unrecognized sort order")
 		return
@@ -129,10 +123,8 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 		switch f {
 		case FilterByCoinbase:
 			filter += "eq(iscoinbase, true)"
-			break
 		case FilterByUnspent:
 			filter += " NOT has(~tx_inputs)"
-			break
 		default:
 			err = errors.New("error unrecognized filter")
 			return
@@ -211,7 +203,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 	vars["$hash"] = addrHash
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, vars)
+	resp, err := c.Query(ctx, query, vars)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -273,7 +265,7 @@ func GetFrontendAddress(c *dgo.Dgraph, addrHash string, sortOrder int, offset in
 }
 
 // UpsertAddresses upserts addresses
-func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
+func UpsertAddresses(c external.Database, addresses []Address) error {
 	if addresses == nil {
 		return errors.New("got null pointer for addresses")
 	}
@@ -298,7 +290,7 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 			queryPrefix += ","
 		}
 
-		addresses[i].Uid = fmt.Sprintf("uid(a%d)", i)
+		addresses[i].UID = fmt.Sprintf("uid(a%d)", i)
 		addresses[i].SetDType()
 		query += fmt.Sprintf("a%d as var(func: eq(addresshash, $h%d))\n", i, i)
 		vars["$h"+strconv.Itoa(i)] = addresses[i].Hash
@@ -324,6 +316,6 @@ func UpsertAddresses(c *dgo.Dgraph, addresses []Address) error {
 }
 
 // GetCount gets the number of addresses in the database
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }

@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/ristretto"
 	"golang.org/x/crypto/ed25519"
 )
@@ -56,8 +55,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func handlerSearch(dgraph *dgo.Dgraph, route string) http.Handler {
-
+func handlerSearch(dgraph external.Database, route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -70,12 +68,12 @@ func handlerSearch(dgraph *dgo.Dgraph, route string) http.Handler {
 		}
 
 		if isValid(queryString) {
-			searchOrder := []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+			searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
 
 			if isLikelyBlock(queryString) {
-				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
 			} else if isLikelyAddress(queryString) {
-				searchOrder = []func(*dgo.Dgraph, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
 			}
 
 			// iterate over db access functions
@@ -108,7 +106,7 @@ func handlerSearch(dgraph *dgo.Dgraph, route string) http.Handler {
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func handlerDetails(dgraph *dgo.Dgraph, route string, fn func(*dgo.Dgraph, string) (
+func handlerDetails(dgraph external.Database, route string, fn func(external.Database, string) (
 	SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -143,7 +141,7 @@ func handlerDetails(dgraph *dgo.Dgraph, route string, fn func(*dgo.Dgraph, strin
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func handlerAddressOutputRange(dgraph *dgo.Dgraph, route string) http.Handler {
+func handlerAddressOutputRange(dgraph external.Database, route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -212,10 +210,9 @@ func handlerAddressOutputRange(dgraph *dgo.Dgraph, route string) http.Handler {
 }
 
 // API pattern: "/api/v1/meta/"
-func handlerMeta(dgraph *dgo.Dgraph, client external.RPCClient) http.Handler {
+func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
-
 		// async request rpc info
 		futureBlockchainInfo := client.GetBlockChainInfoAsync()
 
@@ -248,13 +245,11 @@ func handlerMeta(dgraph *dgo.Dgraph, client external.RPCClient) http.Handler {
 		if encErr := json.NewEncoder(w).Encode(stat); encErr != nil {
 			handleError(w, encErr)
 		}
-
-		return
 	})
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
-func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
+func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -272,7 +267,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.Id)
+		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -306,17 +301,17 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 			for _, result := range h.Results {
 				var row []string
 				// per heuristic information
-				row = append(row, h.Uid)
+				row = append(row, h.UID)
 				var parentHeuristic string
 				if len(h.ParentHeuristic) > 0 {
 					// only one parent heuristic is possible
-					parentHeuristic = h.ParentHeuristic[0].Uid
+					parentHeuristic = h.ParentHeuristic[0].UID
 				}
 				row = append(row, parentHeuristic)
 
 				var childHeuristics string
 				for i, c := range h.ChildHeuristics {
-					childHeuristics += c.Uid
+					childHeuristics += c.UID
 					if i+1 < len(h.ChildHeuristics) {
 						childHeuristics += ","
 					}
@@ -328,11 +323,11 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 				row = append(row, h.Timestamp)
 
 				// per origin information
-				row = append(row, result.Uid)
+				row = append(row, result.UID)
 				row = append(row, result.TxHash)
 				row = append(row, result.Timestamp)
 				row = append(row, result.AddressHash)
-				//row = append(row, strconv.Itoa(shortestPaths[result.Uid]))
+				//row = append(row, strconv.Itoa(shortestPaths[result.UID]))
 
 				if err = csvWriter.Write(row); err != nil {
 					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -345,7 +340,7 @@ func handlerHeuristicsSummary(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -362,7 +357,7 @@ func handlerHeuristics(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handle
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.Id)
+			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -392,7 +387,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply.Success = true
-			reply.Status = worker.GetStatus(txHashString, tUser.Id)
+			reply.Status = worker.GetStatus(txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -404,7 +399,7 @@ func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicDetails/"
-func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
+func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -416,7 +411,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 		}
 
 		var heuristicRequest struct {
-			HeuristicUid string `json:"uid,omitempty"`
+			HeuristicUID string `json:"uid,omitempty"`
 		}
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
@@ -425,12 +420,12 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 			return
 		}
 
-		if len(heuristicRequest.HeuristicUid) == 0 {
+		if len(heuristicRequest.HeuristicUID) == 0 {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUid(dgraph, heuristicRequest.HeuristicUid, tUser.Id)
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -446,7 +441,7 @@ func handlerHeuristicsDetails(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+func handlerHeuristicsExecution(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -463,7 +458,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.Id)
+			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -475,7 +470,7 @@ func handlerHeuristicsExecution(dgraph *dgo.Dgraph, worker *heuristic.Worker) ht
 }
 
 // API pattern: "/api/v1/heuristicList/"
-func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
+func handlerHeuristicList(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -485,7 +480,7 @@ func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.Id)
+			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.ID)
 			if err != nil {
 				info(cliutil.ShowCallInfo(), err)
 			} else {
@@ -503,7 +498,7 @@ func handlerHeuristicList(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/deleteHeuristic/"
-func handlerDeleteHeuristic(dgraph *dgo.Dgraph) http.Handler {
+func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -512,7 +507,7 @@ func handlerDeleteHeuristic(dgraph *dgo.Dgraph) http.Handler {
 			reply.Msg = "error extracting user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.Id)
+			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.ID)
 		}
 
 		// encoding
@@ -524,7 +519,7 @@ func handlerDeleteHeuristic(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/createUser"
-func handlerCreateUser(dgraph *dgo.Dgraph) http.Handler {
+func handlerCreateUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -539,7 +534,7 @@ func handlerCreateUser(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/getUsers/"
-func handlerGetUsers(dgraph *dgo.Dgraph) http.Handler {
+func handlerGetUsers(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -572,11 +567,11 @@ func handlerLogout() http.Handler {
 }
 
 // API pattern: "/api/v1/deleteUser/<userUid>"
-func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
+func handlerDeleteUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		userUid := r.URL.Path[len(constants.GetRouteDeleteUser()):]
+		userUID := r.URL.Path[len(constants.GetRouteDeleteUser()):]
 
 		var reply userReply
 
@@ -585,7 +580,7 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteUserReply(dgraph, userUid, tUser)
+			reply = getDeleteUserReply(dgraph, userUID, tUser)
 		}
 
 		// encoding
@@ -597,7 +592,7 @@ func handlerDeleteUser(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/login/"
-func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http.Handler {
+func handlerLogin(dgraph external.Database, privateSigningKey ed25519.PrivateKey) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -625,7 +620,7 @@ func handlerLogin(dgraph *dgo.Dgraph, privateSigningKey ed25519.PrivateKey) http
 }
 
 // API pattern: "/api/v1/modifyUser/"
-func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
+func handlerModifyUser(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -648,7 +643,7 @@ func handlerModifyUser(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/shortestTransactionPath/"
-func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
+func handlerShortestTransactionPath(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -663,7 +658,7 @@ func handlerShortestTransactionPath(dgraph *dgo.Dgraph) http.Handler {
 }
 
 // API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
-func handlerConnectionLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+func handlerConnectionLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -678,7 +673,7 @@ func handlerConnectionLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.
 }
 
 // API pattern: "/api/v1/clusterLookup0/<addressHash>"
-func handlerClusterLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Handler {
+func handlerClusterLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -693,7 +688,7 @@ func handlerClusterLookup(dgraph *dgo.Dgraph, worker *heuristic.Worker) http.Han
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(dgraph *dgo.Dgraph, client external.RPCClient, worker *heuristic.Worker) {
+func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker) {
 	// get signing keys
 	privkey, pubkey, err := GetSigningKeysFromEnv()
 	if err != nil {

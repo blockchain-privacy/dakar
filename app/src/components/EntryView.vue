@@ -15,12 +15,13 @@
             class="search-field v-input--is-focused"
             label="Search for blocks, transactions and addresses"
             :rules="[isValidQuery]"
-            :background-color="this.$vuetify.theme.dark?'black':'white'"
+            :background-color="$vuetify.theme.dark?'black':'white'"
             @keydown.enter="handleQuery(query)">
           <template v-slot:append-outer>
             <v-btn
                 outlined
                 class="search-btn"
+                :class="$vuetify.theme.dark?'dark-background':'light-background'"
                 color="primary"
                 @click="handleQuery(query)">
               <v-icon> {{ icons.mdiMagnify }}</v-icon>
@@ -220,8 +221,15 @@ export default {
   transform: none;
 }
 
+.light-background {
+  background-color: white;
+}
+
+.dark-background {
+  background-color: black;
+}
+
 .search-btn {
-  /*background-color: white;*/
   margin-left: -10px;
   margin-top: -19px;
   height: 57px !important;

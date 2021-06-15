@@ -1,16 +1,15 @@
-package blockIterator
+package blockiterator
 
 import (
 	"backend/cmd/cliutil"
 	dbstat "backend/db/status"
+	"backend/external"
 
 	"context"
 	"errors"
 	"fmt"
 	"log"
 	"time"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // BlockIterator defines the basic structure of a process which
@@ -40,28 +39,29 @@ type BlockIterator interface {
 
 	Logger() *log.Logger
 	Context() context.Context
-	Db() *dgo.Dgraph
+	Db() external.Database
 	State() State
 	Name() string
 }
 
 // State holds the current state of the processing loop
 type State struct {
-	// Id is the current block height
-	Id uint64
+	// ID is the current block height
+	ID uint64
 
 	// Top is the highest block height, which was observed at one point
 	Top uint64
 }
 
 func (s State) String() string {
-	return fmt.Sprintf("Id: %d, Top: %d", s.Id, s.Top)
+	return fmt.Sprintf("ID: %d, Top: %d", s.ID, s.Top)
 }
 
 func info(iterator BlockIterator, v ...interface{}) {
 	iterator.Logger().Println(append([]interface{}{iterator.Name()}, v...))
 }
 
+// StartIteration starts the iteration process
 func StartIteration(iterator BlockIterator) (err error) {
 	if l := iterator.Logger(); l == nil {
 		return errors.New(iterator.Name() + " logger is nil")
@@ -82,7 +82,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
-	info(iterator, "starting at:", iterator.State().Id)
+	info(iterator, "starting at:", iterator.State().ID)
 
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
@@ -98,7 +98,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// check if we need to wait
 		if iterator.Empty() {
-			isInterrupt, waitErr := waitForNextDbBlockId(iterator)
+			isInterrupt, waitErr := waitForNextDbBlockID(iterator)
 			if waitErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), waitErr)
 				return
@@ -132,10 +132,10 @@ func StartIteration(iterator BlockIterator) (err error) {
 	}
 }
 
-// waitForNextDbBlockId waits for the next block.
+// waitForNextDbBlockID waits for the next block.
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextDbBlockId(it BlockIterator) (isInterrupt bool, err error) {
+func waitForNextDbBlockID(it BlockIterator) (isInterrupt bool, err error) {
 	ctx := it.Context()
 	dgraph := it.Db()
 
@@ -165,12 +165,12 @@ func waitForNextDbBlockId(it BlockIterator) (isInterrupt bool, err error) {
 				return
 			}
 
-			if highestBlock >= currentState.Id {
-				if *status.LowestBlockId > currentState.Id {
-					currentState.Id = *status.LowestBlockId
+			if highestBlock >= currentState.ID {
+				if *status.LowestBlockID > currentState.ID {
+					currentState.ID = *status.LowestBlockID
 				}
 
-				it.SetState(State{currentState.Id, highestBlock})
+				it.SetState(State{currentState.ID, highestBlock})
 
 				return
 			}

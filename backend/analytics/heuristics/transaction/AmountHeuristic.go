@@ -5,12 +5,12 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	dbop "backend/db/output"
+	"backend/external"
 
 	"fmt"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
+// AmountHeuristic - see exec for description
 type AmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
@@ -50,21 +50,21 @@ func (h AmountHeuristic) clone() heuristic {
 
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash string, parentHeuristicUid string) ([]string, error) {
+func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]string, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[graph.ClusterId]map[string]dbtxh.HeuristicTransaction)
-	var clusters map[string]graph.ClusterId
+	sourceTransactionMap := make(map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction)
+	var clusters map[string]graph.ClusterID
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
-		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUid)
+		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUid)
+			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -84,7 +84,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash strin
 
 		// Convert from slice to Hash
 		for _, r := range results {
-			origins[r.Uid] = r
+			origins[r.UID] = r
 		}
 	}
 
@@ -105,7 +105,7 @@ func (h AmountHeuristic) exec(dgraph *dgo.Dgraph, g *graph.Wrapper, txHash strin
 	for k, o := range originAmounts {
 		if containsDenomination(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, tx.Uid)
+				filteredOrigins = append(filteredOrigins, tx.UID)
 			}
 		}
 	}

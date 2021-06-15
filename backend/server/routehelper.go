@@ -9,14 +9,13 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 
 	"context"
 	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
-
-	"github.com/dgraph-io/dgo/v210"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
@@ -111,6 +110,7 @@ const typeAddr queryResultType = "addr"
 const typeTx queryResultType = "tx"
 const typeEmpty queryResultType = "response_empty"
 
+// SearchResult holds result data of a block, address or transaction search request
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
@@ -137,7 +137,7 @@ func buildKey(route string, query string, body []byte) (key string) {
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
-func GetBlock(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
+func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error) {
 	block, err := dbblk.GetFrontendBlock(dgraph, query)
 	if err != nil {
 
@@ -152,7 +152,7 @@ func GetBlock(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
 }
 
 // GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
-func GetTransaction(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
+func GetTransaction(dgraph external.Database, query string) (SearchResult, bool, error) {
 	tx, err := dbtx.GetFrontendTransaction(dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
@@ -167,14 +167,14 @@ func GetTransaction(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error
 
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
-func GetAddress(dgraph *dgo.Dgraph, query string) (SearchResult, bool, error) {
+func GetAddress(dgraph external.Database, query string) (SearchResult, bool, error) {
 	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, []int{})
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
 // A maximum of 20 elements is returned.
-func GetAddressWithOptions(dgraph *dgo.Dgraph, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
+func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
 	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 
@@ -196,7 +196,7 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 		return
 	}
 	tUser := userInfo.(tokenUser)
-	if len(tUser.Id) == 0 {
+	if len(tUser.ID) == 0 {
 		err = errors.New("invalid user id extracted from context")
 		return
 	}

@@ -3,13 +3,13 @@ package graph
 import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
+	"backend/external"
 
 	"errors"
 	"fmt"
 	"runtime"
 	"runtime/debug"
 
-	"github.com/dgraph-io/dgo/v210"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/simple"
 )
@@ -17,23 +17,23 @@ import (
 // addAddressEdges adds the edges defined in nodes to g.
 func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 	for _, node := range nodes {
-		nodeUid, err := toInteger(node.Uid)
+		nodeUID, err := toInteger(node.UID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(addressGraphNode{id: nodeUid})
+		g.UpdateNode(addressGraphNode{id: nodeUID})
 
 		// inputs are here addresses
 		for _, input := range node.Inputs {
-			inputUid, parseErr := toInteger(input.Uid)
+			inputUID, parseErr := toInteger(input.UID)
 			if parseErr != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
 			}
 
-			g.UpdateNode(addressGraphNode{id: inputUid, isAddress: true})
+			g.UpdateNode(addressGraphNode{id: inputUID, isAddress: true})
 
-			g.SetEdgeWithoutOverwrite(simple.Edge{F: simple.Node(nodeUid), T: simple.Node(inputUid)})
+			g.SetEdgeWithoutOverwrite(simple.Edge{F: simple.Node(nodeUID), T: simple.Node(inputUID)})
 		}
 	}
 
@@ -41,7 +41,7 @@ func addAddressEdges(g *UndirectedGraph, nodes []analytics.AddressNode) error {
 }
 
 // loadAddresses loads origin addresses from the database into the graph
-func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
+func loadAddresses(c external.Database, g *UndirectedGraph, transactionGraph *ReversibleGraph) error {
 	transactionGraph.SetReverse(false)
 	txNodes := transactionGraph.Nodes()
 
@@ -78,7 +78,7 @@ func loadAddresses(c *dgo.Dgraph, g *UndirectedGraph, transactionGraph *Reversib
 }
 
 // LoadAddressGraph returns a graph containing all origins of transactionGraph and their input addresses
-func LoadAddressGraph(c *dgo.Dgraph, transactionGraph *ReversibleGraph) (*UndirectedGraph, error) {
+func LoadAddressGraph(c external.Database, transactionGraph *ReversibleGraph) (*UndirectedGraph, error) {
 	mixingCount, originCount, ccCount, _, getErr := analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
@@ -112,15 +112,15 @@ func LoadAddressGraph(c *dgo.Dgraph, transactionGraph *ReversibleGraph) (*Undire
 // verifyAddressGraph checks the integrity of the graph
 func verifyAddressGraph(g *UndirectedGraph) error {
 	var node graph.Node
-	var nodeId int64
+	var nodeID int64
 	var ok bool
 
 	nodes := g.Nodes()
 	for nodes.Next() {
 		node = nodes.Node()
-		nodeId = node.ID()
+		nodeID = node.ID()
 
-		if g.From(nodeId).Len() == 0 {
+		if g.From(nodeID).Len() == 0 {
 			return errors.New("error node exists with no edges")
 		}
 

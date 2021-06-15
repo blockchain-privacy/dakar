@@ -8,25 +8,25 @@ import (
 	dbop "backend/db/output"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
+	"backend/external"
 
 	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // PrintStatus outputs the stats for the given DB
-func PrintStatus(dgraph *dgo.Dgraph) {
+func PrintStatus(dgraph external.Database) {
 	crawlerStatus, _ := GetCrawlerStatus(dgraph)
 
 	if crawlerStatus.IsCrawling != nil {
 		fmt.Println("Currently crawling:", *crawlerStatus.IsCrawling)
 	}
 
-	if crawlerStatus.LastBlockId != nil {
-		fmt.Println("LastBlockId:", *crawlerStatus.LastBlockId)
+	if crawlerStatus.LastBlockID != nil {
+		fmt.Println("LastBlockID:", *crawlerStatus.LastBlockID)
 	}
 
 	classifierStatus, _ := GetClassifierStatus(dgraph)
@@ -35,8 +35,8 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 		fmt.Println("Currently classifying:", *classifierStatus.IsClassifying)
 	}
 
-	if classifierStatus.LastClassifiedBlockId != nil {
-		fmt.Println("LastClassifiedBlockId:", *classifierStatus.LastClassifiedBlockId)
+	if classifierStatus.LastClassifiedBlockID != nil {
+		fmt.Println("LastClassifiedBlockID:", *classifierStatus.LastClassifiedBlockID)
 	}
 
 	blockCount, _ := dbblk.GetCount(dgraph)
@@ -56,7 +56,7 @@ func PrintStatus(dgraph *dgo.Dgraph) {
 }
 
 // GetCrawlerStatus gets the crawler status from the database
-func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
+func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 	query := `{
 				 q(func: type(CrawlerStatus)){
 					uid
@@ -83,7 +83,7 @@ func GetCrawlerStatus(c *dgo.Dgraph) (status CrawlerStatus, err error) {
 }
 
 // GetClassifierStatus gets the classifier status from the database
-func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
+func GetClassifierStatus(c external.Database) (status ClassifierStatus, err error) {
 	query := `{
 				 q(func: type(ClassifierStatus)){
 					uid
@@ -108,8 +108,8 @@ func GetClassifierStatus(c *dgo.Dgraph) (status ClassifierStatus, err error) {
 	return r.payload()
 }
 
-// GetHighestBlockId gets the highest block id.
-func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
+// GetHighestBlockID gets the highest block id.
+func GetHighestBlockID(c external.Database) (max uint64, err error) {
 	query := `{
 				var(func: has(id))@filter(eq(dgraph.type, "Block")){
 					ids as id
@@ -136,13 +136,13 @@ func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
 	}
 
 	if len(r.TopBlock) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
 		return
 	} else if len(r.TopBlock) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	} else if r.TopBlock[0].Max == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
 		return
 	}
 	max = r.TopBlock[0].Max
@@ -151,7 +151,7 @@ func GetHighestBlockId(c *dgo.Dgraph) (max uint64, err error) {
 }
 
 // GetFrontendStatus gets verbose status information from the database
-func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
+func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	query := `{
 				crawler(func: type(CrawlerStatus)){
 					iscrawling
@@ -166,7 +166,7 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
+	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -184,49 +184,49 @@ func GetFrontendStatus(c *dgo.Dgraph) (status FrontendStatus, err error) {
 
 	// check if all values are set correctly
 	if len(r.Crawler) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
 		return
 	}
 
 	if r.Crawler[0].IsCrawling == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsCrawlingNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsCrawlingNotFound)
 		return
 	}
 
-	if r.Crawler[0].LastBlockId == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastBlockIdNotFound)
+	if r.Crawler[0].LastBlockID == nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastBlockIDNotFound)
 		return
 	}
 
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorIsClassifyingNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClassifyingNotFound)
 			return
 		}
 
-		if r.Classifier[0].LastClassifiedBlockId == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorLastClassifiedBlockIdNotFound)
+		if r.Classifier[0].LastClassifiedBlockID == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
 
 	status = FrontendStatus{
 		IsCrawling:    *r.Crawler[0].IsCrawling,
-		LastBlockId:   *r.Crawler[0].LastBlockId,
-		LowestBlockId: *r.Crawler[0].LowestBlockId,
+		LastBlockID:   *r.Crawler[0].LastBlockID,
+		LowestBlockID: *r.Crawler[0].LowestBlockID,
 	}
 
 	if len(r.Classifier) == 1 {
 		status.IsClassifying = *r.Classifier[0].IsClassifying
-		status.LastClassifiedBlockId = *r.Classifier[0].LastClassifiedBlockId
+		status.LastClassifiedBlockID = *r.Classifier[0].LastClassifiedBlockID
 	}
 
 	return
 }
 
 // SetCrawlerStatus sets the new crawler status
-func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
-	status.Uid = "uid(v)"
+func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
+	status.UID = "uid(v)"
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -234,18 +234,9 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 		return err
 	}
 
-	query := `{
-				q(func: type(CrawlerStatus)){
-					v as uid
-				  }
-				}
-				`
-
 	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+		Query:     "{q(func: type(CrawlerStatus)){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
 
@@ -253,8 +244,8 @@ func SetCrawlerStatus(c *dgo.Dgraph, status CrawlerStatus) error {
 }
 
 // SetClassifierStatus sets the new classifier status
-func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
-	status.Uid = "uid(v)"
+func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
+	status.UID = "uid(v)"
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -262,18 +253,9 @@ func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
 		return err
 	}
 
-	query := `{
-				q(func: type(ClassifierStatus)){
-					v as uid
-				  }
-				}
-				`
-
 	req := &api.Request{
-		Query: query,
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
+		Query:     "{q(func:type(ClassifierStatus)){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
 
@@ -281,53 +263,44 @@ func SetClassifierStatus(c *dgo.Dgraph, status ClassifierStatus) error {
 }
 
 // SetCrawling sets the crawling status
-func SetCrawling(c *dgo.Dgraph, crawling bool) error {
+func SetCrawling(c external.Database, crawling bool) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
 		IsCrawling: &crawling,
 	})
 }
 
 // SetClassifying sets the classifying status
-func SetClassifying(c *dgo.Dgraph, classifying bool) error {
+func SetClassifying(c external.Database, classifying bool) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		IsClassifying: &classifying,
 	})
 }
 
-// SetLastBlockId sets the last block id
-func SetLastBlockId(c *dgo.Dgraph, id uint64) error {
+// SetLastBlockID sets the last block id
+func SetLastBlockID(c external.Database, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
-		LastBlockId: &id,
+		LastBlockID: &id,
 	})
 }
 
-// SetLastClassifiedBlockId sets the last classified block id
-func SetLastClassifiedBlockId(c *dgo.Dgraph, id uint64) error {
+// SetLastClassifiedBlockID sets the last classified block id
+func SetLastClassifiedBlockID(c external.Database, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
-		LastClassifiedBlockId: &id,
+		LastClassifiedBlockID: &id,
 	})
 }
 
 // GetCount gets the number of status instances in the database
 // IMPORTANT: Should always be at most one
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, CrawlerStatusDType)
 }
 
 // IsConnectionEstablished test the database connection
-func IsConnectionEstablished(c *dgo.Dgraph) bool {
-	query := `{
-				 q(func: has(blockhash), first:1){
-					uid
-				  }
-				}`
-
+func IsConnectionEstablished(c external.Database) bool {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	_, err := c.NewReadOnlyTxn().Query(ctx, query)
-	if err != nil {
-		return false
-	}
+	_, err := c.Query(ctx, "{q(func: has(blockhash),first:1){uid}}", nil)
 
-	return true
+	return err == nil
 }

@@ -6,22 +6,27 @@ var MixingTypes = [5]PrivacyType{PrivacyMixing0, PrivacyMixing1, PrivacyMixing2,
 // PrivacyType holds a number which maps to transaction classifications
 type PrivacyType uint16
 
+// IsMixing returns true if a mixing transaction was recognized
 func (t PrivacyType) IsMixing() bool {
 	return t <= PrivacyMixingLast
 }
 
+// IsDestination returns true if a destination transaction was recognized
 func (t PrivacyType) IsDestination() bool {
 	return t >= PrivacyDestinationFirst && t <= PrivacyDestinationLast
 }
 
+// IsOrigin returns true if an origin transaction was recognized
 func (t PrivacyType) IsOrigin() bool {
 	return t >= PrivacyOriginFirst && t <= PrivacyOriginLast
 }
 
+// IsCC returns true if a collateral creation transaction was recognized
 func (t PrivacyType) IsCC() bool {
 	return t >= PrivacyCollateralCreationFirst && t <= PrivacyCollateralCreationLast
 }
 
+// IsCP returns true if a collateral payment transaction was recognized
 func (t PrivacyType) IsCP() bool {
 	return t >= PrivacyCollateralPaymentFirst && t <= PrivacyCollateralPaymentLast
 }

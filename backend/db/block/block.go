@@ -3,18 +3,18 @@ package block
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
 	"time"
 
 	"encoding/json"
 	"fmt"
 	"strconv"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetBlock gets block information from the database
-func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
+func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	query := `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
 					uid
@@ -51,14 +51,11 @@ func GetBlock(c *dgo.Dgraph, blockHash string) (blk Block, err error) {
 
 func isBlockIdentifier(field string) bool {
 	_, err := strconv.Atoi(field)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 // GetFrontendBlock gets verbose block information from the database
-func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err error) {
+func GetFrontendBlock(c external.Database, blockHash string) (block FrontendBlock, err error) {
 	searchProperty := "blockhash"
 	if isBlockIdentifier(blockHash) {
 		searchProperty = "id"
@@ -84,7 +81,7 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 			  }`, searchProperty)
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().QueryWithVars(ctx, query, map[string]string{"$ident": blockHash})
+	resp, err := c.Query(ctx, query, map[string]string{"$ident": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -122,9 +119,9 @@ func GetFrontendBlock(c *dgo.Dgraph, blockHash string) (block FrontendBlock, err
 }
 
 // UpsertBlock upserts a block and the prevBlock relation
-func UpsertBlock(c *dgo.Dgraph, block Block) error {
-	block.Uid = "uid(v)"
-	block.PrevBlock.Uid = "uid(x)"
+func UpsertBlock(c external.Database, block Block) error {
+	block.UID = "uid(v)"
+	block.PrevBlock.UID = "uid(x)"
 	block.SetDType()
 	block.PrevBlock.SetDType()
 
@@ -169,6 +166,6 @@ func UpsertBlock(c *dgo.Dgraph, block Block) error {
 }
 
 // GetCount gets the number of blocks in the database
-func GetCount(c *dgo.Dgraph) (uint64, error) {
+func GetCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DType)
 }

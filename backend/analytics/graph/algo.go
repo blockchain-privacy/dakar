@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	// ErrNodeNotFound defines an error which should be used if node was not found
 	ErrNodeNotFound = errors.New("error node does not exist in graph")
 )
 
@@ -26,8 +27,9 @@ func toInteger(hexString string) (int64, error) {
 	return strconv.ParseInt(hexString[2:], 16, 64)
 }
 
-func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxLookBackTime time.Duration) (map[string]bool, error) {
-	node := g.Node(nodeId)
+// ReverseLookupByID performs a reverse lookup starting at the given nodeId
+func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration) (map[string]bool, error) {
+	node := g.Node(nodeID)
 	if node == nil {
 		return nil, ErrNodeNotFound
 	}
@@ -81,32 +83,32 @@ func ReverseLookupById(g *ReversibleGraph, nodeId int64, maxLookBackTime time.Du
 // ReverseLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph backward
 func ReverseLookup(g *ReversibleGraph, uid string,
 	maxLookBackTime time.Duration) (map[string]bool, error) {
-	nodeUid, err := toInteger(uid)
+	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
-	return ReverseLookupById(g, nodeUid, maxLookBackTime)
+	return ReverseLookupByID(g, nodeUID, maxLookBackTime)
 }
 
 // ForwardLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph forward.
 // It does not traverse paths which have a timestamp younger than the node specified by targetUid.
-func ForwardLookup(g *ReversibleGraph, uid string, targetUid string) (map[string]bool, error) {
-	nodeUid, err := toInteger(uid)
+func ForwardLookup(g *ReversibleGraph, uid string, targetUID string) (map[string]bool, error) {
+	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	targetNodeUid, err := toInteger(targetUid)
+	targetNodeUID, err := toInteger(targetUID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	node := g.Node(nodeUid).(transactionNode)
-	targetNode := g.Node(targetNodeUid).(transactionNode)
+	node := g.Node(nodeUID).(transactionNode)
+	targetNode := g.Node(targetNodeUID).(transactionNode)
 
 	g.SetReverse(true)
-	origins, err := ReverseLookupById(g, nodeUid, targetNode.ts.Sub(node.ts))
+	origins, err := ReverseLookupByID(g, nodeUID, targetNode.ts.Sub(node.ts))
 	if err != nil {
 		return nil, err
 	}
@@ -117,13 +119,13 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUid string) (map[string
 // ForwardLookupByTime returns all leaf nodes of the tree which has uid as its root while traversing the graph forward
 // It does not traverse paths which are outside maxLookForwardTime.
 func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
-	nodeUid, err := toInteger(uid)
+	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	g.SetReverse(true)
-	origins, err := ReverseLookupById(g, nodeUid, maxLookForwardTime)
+	origins, err := ReverseLookupByID(g, nodeUID, maxLookForwardTime)
 	if err != nil {
 		return nil, err
 	}
@@ -134,18 +136,18 @@ func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
 func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 	// convert hex string to integer
-	nodeUid, err := toInteger(uid)
+	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// check if node exists
-	if g.Node(nodeUid) == nil {
-		return nil, fmt.Errorf("error node %s (base 10: %d) not found", uid, nodeUid)
+	if g.Node(nodeUID) == nil {
+		return nil, fmt.Errorf("error node %s (base 10: %d) not found", uid, nodeUID)
 	}
 
 	var uids []string
-	fromNodes := g.From(nodeUid)
+	fromNodes := g.From(nodeUID)
 	for fromNodes.Next() {
 		n := fromNodes.Node()
 		uids = append(uids, toHex(n.ID()))
@@ -154,25 +156,26 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 	return uids, nil
 }
 
-type ClusterId uint
+// ClusterID is an ID for a specific cluster of addresses
+type ClusterID uint
 
-// GetClusters returns a mapping between address uids and ClusterId's
-func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterId, error) {
+// GetClusters returns a mapping between address uids and ClusterID's
+func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterID, error) {
 	var w traverse.BreadthFirst
 
-	clusterMap := make(map[int64]ClusterId)
+	clusterMap := make(map[int64]ClusterID)
 	addresses := make(map[int64]bool)
 
 	// convert string slice to integer map
 	for _, a := range addressUids {
-		nodeUid, err := toInteger(a)
+		nodeUID, err := toInteger(a)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-		addresses[nodeUid] = true
+		addresses[nodeUID] = true
 	}
 
-	i := ClusterId(0)
+	i := ClusterID(0)
 	for uid := range addresses {
 		if _, ok := clusterMap[uid]; ok {
 			// uid already processed
@@ -203,10 +206,10 @@ func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterId
 		i++
 	}
 
-	exportClusterMap := make(map[string]ClusterId)
+	exportClusterMap := make(map[string]ClusterID)
 
-	for clusterId, cluster := range clusterMap {
-		exportClusterMap[toHex(clusterId)] = cluster
+	for clusterID, cluster := range clusterMap {
+		exportClusterMap[toHex(clusterID)] = cluster
 	}
 
 	return exportClusterMap, nil
@@ -214,7 +217,7 @@ func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterId
 
 // GetCluster returns the cluster of the given address
 func GetCluster(g *UndirectedGraph, uid string) ([]string, error) {
-	nodeUid, err := toInteger(uid)
+	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -222,7 +225,7 @@ func GetCluster(g *UndirectedGraph, uid string) ([]string, error) {
 	var w traverse.BreadthFirst
 
 	var addressIds []int64
-	node := g.Node(nodeUid)
+	node := g.Node(nodeUID)
 	w.Walk(g, node, func(n graph.Node, d int) bool {
 		addrNode := g.Node(n.ID()).(addressGraphNode)
 		if addrNode.isAddress {
@@ -241,11 +244,11 @@ func GetCluster(g *UndirectedGraph, uid string) ([]string, error) {
 }
 
 // GetAllClusters returns all address clusters
-func GetAllClusters(g *UndirectedGraph) map[ClusterId][]string {
+func GetAllClusters(g *UndirectedGraph) map[ClusterID][]string {
 	var w traverse.BreadthFirst
-	clusterMap := make(map[ClusterId][]int64)
+	clusterMap := make(map[ClusterID][]int64)
 
-	i := ClusterId(0)
+	i := ClusterID(0)
 	w.WalkAll(g, nil, func() { i++ }, func(n graph.Node) {
 		addrNode := g.Node(n.ID()).(addressGraphNode)
 		if addrNode.isAddress {
@@ -255,15 +258,15 @@ func GetAllClusters(g *UndirectedGraph) map[ClusterId][]string {
 		}
 	})
 
-	exportClusterMap := make(map[ClusterId][]string)
+	exportClusterMap := make(map[ClusterID][]string)
 
-	for clusterId, cluster := range clusterMap {
+	for clusterID, cluster := range clusterMap {
 		var strCluster []string
 		for _, c := range cluster {
 			strCluster = append(strCluster, toHex(c))
 		}
 
-		exportClusterMap[clusterId] = strCluster
+		exportClusterMap[clusterID] = strCluster
 	}
 
 	return exportClusterMap

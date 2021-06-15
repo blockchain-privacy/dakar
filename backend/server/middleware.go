@@ -14,7 +14,9 @@ import (
 	"time"
 )
 
-const middlewareContextUser = "user"
+type contextKeyUser int
+
+const middlewareContextUser contextKeyUser = iota
 
 type adapter func(http.Handler, string) http.Handler
 
@@ -99,7 +101,7 @@ func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKe
 
 			if !routeAllowed {
 				writeUnauthorized(w, "route not allowed")
-				info(cliutil.ShowCallInfo(), newUser.Id, "tried to access", route)
+				info(cliutil.ShowCallInfo(), newUser.ID, "tried to access", route)
 				return
 			}
 

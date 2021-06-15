@@ -3,8 +3,13 @@ package processor
 import (
 	dbaddr "backend/db/address"
 	dbop "backend/db/output"
-
+	"backend/mocks"
+	"errors"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 func TestIncrementProcessingState(t *testing.T) {
@@ -18,34 +23,26 @@ func TestIncrementProcessingState(t *testing.T) {
 	var p crawlerProcessingState
 
 	err := p.increment(firstHash)
-	if err != nil {
-		t.Error(err)
-	}
+	require.Nil(t, err)
+	require.NotEmpty(t, p.String())
 
 	if p.id != 1 || p.hash != firstHash {
-		t.Error(err)
+		t.Fatal("incrementation not successful")
 	}
 
 	err = p.increment(secondHash)
-	if err != nil {
-		t.Error(err)
-	}
-
+	require.Nil(t, err)
 	if p.id != 2 || p.hash != secondHash {
-		t.Error(err)
+		t.Fatal("incrementation not successful")
 	}
 
 	p2 := p
 
 	err = p2.increment(toLongHash)
-	if err == nil {
-		t.Error(err)
-	}
+	require.NotNil(t, err)
 
 	err = p.increment(invalidHash)
-	if err == nil {
-		t.Error(err)
-	}
+	require.NotNil(t, err)
 }
 
 func TestAddOutputToMapping(t *testing.T) {
@@ -57,52 +54,126 @@ func TestAddOutputToMapping(t *testing.T) {
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 0)
 	if val, ok := outputMappings[firstAddress]; ok {
 		if len(val.indexes) != 1 {
-			t.Error("wrong length of ids")
+			t.Fatal("wrong length of ids")
 		} else if val.hash != firstAddress {
-			t.Error("wrong hash")
+			t.Fatal("wrong hash")
 		} else if val.indexes[0] != 0 {
-			t.Error("wrong id")
+			t.Fatal("wrong id")
 		}
 	} else {
-		t.Error("Error getting address mapping")
+		t.Fatal("Error getting address mapping")
 	}
 
 	if len(outputMappings) != 1 {
-		t.Error("wrong length of output mapping")
+		t.Fatal("wrong length of output mapping")
 	}
 
 	outputMappings = addOutputToMapping(outputMappings, secondAddress, 10)
 	if val, ok := outputMappings[secondAddress]; ok {
 		if len(val.indexes) != 1 {
-			t.Error("wrong length of ids")
+			t.Fatal("wrong length of ids")
 		} else if val.hash != secondAddress {
-			t.Error("wrong hash")
+			t.Fatal("wrong hash")
 		} else if val.indexes[0] != 10 {
-			t.Error("wrong id")
+			t.Fatal("wrong id")
 		}
 	} else {
-		t.Error("Error getting address mapping")
+		t.Fatal("Error getting address mapping")
 	}
 
 	if len(outputMappings) != 2 {
-		t.Error("wrong length of output mapping")
+		t.Fatal("wrong length of output mapping")
 	}
 
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 5)
 	if val, ok := outputMappings[firstAddress]; ok {
 		if len(val.indexes) != 2 {
-			t.Error("wrong length of ids")
+			t.Fatal("wrong length of ids")
 		} else if val.hash != firstAddress {
-			t.Error("wrong hash")
+			t.Fatal("wrong hash")
 		} else if val.indexes[0] != 0 || val.indexes[1] != 5 {
-			t.Error("wrong id")
+			t.Fatal("wrong id")
 		}
 	} else {
-		t.Error("Error getting address mapping")
+		t.Fatal("Error getting address mapping")
 	}
 
 	if len(outputMappings) != 2 {
-		t.Error("wrong length of output mapping")
+		t.Fatal("wrong length of output mapping")
+	}
+}
+
+func TestAddOutputsToAddresses(t *testing.T) {
+	addresses := make(map[string]dbaddr.Address)
+	cases := []struct {
+		address        string
+		uids           []string
+		requiredLength int
+	}{
+		{
+			address:        "a",
+			uids:           []string{"o1", "o2", "o3"},
+			requiredLength: 1,
+		},
+		{
+			address:        "b",
+			uids:           []string{"o1", "o2", "o3"},
+			requiredLength: 2,
+		},
+		{
+			address:        "c",
+			uids:           []string{"o1", "o2", "o3"},
+			requiredLength: 3,
+		},
+		{
+			address:        "a",
+			uids:           []string{"o1", "o2", "o3"},
+			requiredLength: 3,
+		},
+	}
+
+	for _, c := range cases {
+		newAddressMap := addOutputsToAddresses(addresses, c.address, c.uids)
+		require.Len(t, newAddressMap, c.requiredLength)
+		addresses = newAddressMap
+	}
+}
+
+func TestCreateOutputUid(t *testing.T) {
+	outputUID := createOutputUID("asdf", 50)
+	require.NotEmpty(t, outputUID)
+	if len(outputUID) < 2 {
+		t.Fatal("output uid is too short:", outputUID)
+	}
+	require.EqualValues(t, "_:", outputUID[:2])
+}
+
+func TestDecodeAddress(t *testing.T) {
+	cfgDash := NewDashConfig()
+	cases := []struct {
+		works bool
+		asm   string
+	}{
+		{true, "02e5a489b4fb934af831a9553c6521b3bf1f155bfa5a6c72d13461039ebc594cff"},
+		{true, "036fc4628db906187d44ab325f8f8977c3686bc29ca76e1905b3afe82119bc5a7f"},
+		{true, "0204d9dc3bd0f5e83901fcec9410c4a28907405b783200d47bbc3e5c7e9414acca"},
+		{true, "029e2c658a15d18f7d4f44bbcdd80a18069b49ee2636b5937e28a2490536612b84"},
+		{true, "0226baf8c8c3707d6062e754e10ee46fa13dcd71aa64cc1a1c6d433fd53de45c07"},
+		{true, "02636234f12e46575b95e0c5a1251a211368dc0ec28abdf02986dc249be28f4eda"},
+		{false, "02636234f12e46575b95e0c5a1251a211368dc0ec28abdf02986dc249be28f4eda1"},
+		{false, ""},
+		{false, "asdfafdssafd.123,"},
+		{false, "  "},
+	}
+
+	for _, c := range cases {
+		address, err := decodeAddress(c.asm, cfgDash.PubKeyHashAddrID)
+		if c.works {
+			require.Nil(t, err)
+			require.NotEmpty(t, address)
+		} else {
+			require.NotNil(t, err)
+		}
 	}
 }
 
@@ -129,7 +200,7 @@ func TestBuildAddressMapping(t *testing.T) {
 	fourNines := int64(9999)
 	wrong := false
 	output1 := dbop.Output{
-		Uid:         "0x59b84",
+		UID:         "0x59b84",
 		OutputIndex: &zero,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
@@ -139,7 +210,7 @@ func TestBuildAddressMapping(t *testing.T) {
 	}
 
 	output2 := dbop.Output{
-		Uid:         "0x59b85",
+		UID:         "0x59b85",
 		OutputIndex: &one,
 		InputIndex:  nil,
 		TxType:      "pubkeyhash",
@@ -153,10 +224,10 @@ func TestBuildAddressMapping(t *testing.T) {
 	}
 	addresses := make(map[string]dbaddr.Address)
 	addresses[fistAddress] = dbaddr.Address{
-		Uid:  "",
+		UID:  "",
 		Hash: fistAddress,
 		Outputs: []dbop.Output{{
-			Uid:         "0x59b81",
+			UID:         "0x59b81",
 			OutputIndex: nil,
 			InputIndex:  nil,
 			TxType:      "",
@@ -172,11 +243,89 @@ func TestBuildAddressMapping(t *testing.T) {
 	if val, ok := addresses[fistAddress]; ok {
 		if len(val.Outputs) != 2 {
 			t.Error("Wrong number of outputs")
-		} else if val.Outputs[0].Uid != "0x59b81" ||
-			val.Outputs[1].Uid != "0x59b84" {
+		} else if val.Outputs[0].UID != "0x59b81" ||
+			val.Outputs[1].UID != "0x59b84" {
 			t.Error("Uids not set")
 		}
 	}
+}
+
+func TestWaitForNextRPCBlock(t *testing.T) {
+	var rpcClient mocks.RPCClient
+	hash := mocks.RPCVal.HeightMap[1423340]
+	var nilHash *chainhash.Hash
+	expectedBlock := mocks.RPCVal.BlockStore[hash]
+	interrupt := make(chan struct{})
+	blkInfo := mocks.RPCVal.BlockchainInfo
+	cfg := NewDashConfig()
+	// for a quick test
+	cfg.NewBlockIntervalTime = 1
+
+	rpcClient.On("GetBlockVerbose", &hash).Return(&expectedBlock, nil)
+	rpcClient.On("GetBlockVerbose", nilHash).Return(nil, errors.New("invalid argument"))
+	rpcClient.On("GetBlockChainInfo").Return(&blkInfo, nil)
+
+	// normal operation
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks-1), cfg)
+	require.Nil(t, err)
+	require.False(t, wasInterrupted, "the interrupt flag should have been false")
+	require.NotNil(t, currentBlock)
+
+	// missing hash
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, uint64(blkInfo.Blocks-1), cfg)
+	require.NotNil(t, err)
+	require.False(t, wasInterrupted, "the interrupt flag should have been false")
+	require.Nil(t, currentBlock)
+	var test struct{}
+
+	go func() {
+		interrupt <- test
+	}()
+
+	// normal operation but interrupted and higher block
+	// count as available so it must wait or in this case get interrupted
+	cfg.NewBlockIntervalTime = time.Second
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks+1), cfg)
+	require.Nil(t, err)
+	require.True(t, wasInterrupted, "the interrupt flag should have been true")
+	require.Nil(t, currentBlock)
+
+	rpcClient.AssertExpectations(t)
+}
+
+func TestGetRPCNumberOfBlocks(t *testing.T) {
+	var rpcClient mocks.RPCClient
+	rpcClient.On("GetBlockChainInfo").Return(&mocks.RPCVal.BlockchainInfo, nil)
+
+	numBlocks, err := getRPCNumberOfBlocks(&rpcClient)
+	require.Nil(t, err)
+	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
+}
+
+func TestCreateTransactionHashmap(t *testing.T) {
+	var rpcClient mocks.RPCClient
+	for _, v := range mocks.RPCVal.TxStore {
+		rpcClient.On("GetRawTransactionVerbose", mock.AnythingOfType("*chainhash.Hash")).
+			Return(&v, nil).Once()
+	}
+
+	hashmap, err := createTransactionHashmap(&rpcClient, mocks.RPCVal.TxHashes)
+	require.Nil(t, err)
+	require.NotNil(t, hashmap)
+	require.NotEmpty(t, hashmap)
+
+	txsWithInValidHashes := []string{"invalid_hash"}
+	hashmap, err = createTransactionHashmap(&rpcClient, txsWithInValidHashes)
+	require.NotNil(t, err)
+	require.Empty(t, hashmap)
+
+	rpcClient.On("GetRawTransactionVerbose", mock.AnythingOfType("*chainhash.Hash")).
+		Return(nil, errors.New("some_error"))
+
+	txsWithValidHashes := []string{"1fa6e94", "91646a615c"}
+	hashmap, err = createTransactionHashmap(&rpcClient, txsWithValidHashes)
+	require.NotNil(t, err)
+	require.Empty(t, hashmap)
 }
 
 //const block49998 = "000000000018692f3cd1e6255d9aa3edc427101e02da940f6e6673823118f016"

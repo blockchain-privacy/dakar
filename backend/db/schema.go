@@ -2,17 +2,17 @@ package db
 
 import (
 	"backend/cmd/cliutil"
+	"backend/external"
 
 	"context"
 	"encoding/json"
 	"fmt"
 
-	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // SetupSchema installs a schema into dgraph
-func SetupSchema(c *dgo.Dgraph) error {
+func SetupSchema(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			blockhash: string @index(hash) @upsert .
@@ -137,11 +137,11 @@ func SetupSchema(c *dgo.Dgraph) error {
 }
 
 // IsSchemaSet checks if a schema is set
-func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
+func IsSchemaSet(c external.Database) (exists bool, err error) {
 	query := "schema(type: Block){}"
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	resp, err := c.NewReadOnlyTxn().Query(ctx, query)
+	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -167,7 +167,8 @@ func IsSchemaSet(c *dgo.Dgraph) (exists bool, err error) {
 	return
 }
 
-func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
+// AlterSchemaAddClassifier adds the new classifier status field
+func AlterSchemaAddClassifier(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			isclassifying: bool .
@@ -181,7 +182,8 @@ func AlterSchemaAddClassifier(c *dgo.Dgraph) error {
 	})
 }
 
-func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
+// AlterSchemaChangePrivacyTypePredicate adds the privacy type predicate
+func AlterSchemaChangePrivacyTypePredicate(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			privacytype: int @index(int) .
@@ -189,38 +191,44 @@ func AlterSchemaChangePrivacyTypePredicate(c *dgo.Dgraph) error {
 	})
 }
 
-func DropAllPrivacyTypes(c *dgo.Dgraph) error {
+// DropAllPrivacyTypes drops the all data of the predicate privacytype
+func DropAllPrivacyTypes(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "privacytype",
 	})
 }
 
-func DropAllOrigins(c *dgo.Dgraph) error {
+// DropAllOrigins removes all data from the predicate origins
+func DropAllOrigins(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "origins",
 	})
 }
 
-func DropIsAnalyzing(c *dgo.Dgraph) error {
+// DropIsAnalyzing removes all data from the predicate isanalyzing
+func DropIsAnalyzing(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "isanalyzing",
 	})
 }
 
-func DropLastAnalysedId(c *dgo.Dgraph) error {
+// DropLastAnalysedID removes all data from the predicate lastanalysedid
+func DropLastAnalysedID(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "lastanalysedid",
 	})
 }
 
-func DropTypeAnalyzerStatus(c *dgo.Dgraph) error {
+// DropTypeAnalyzerStatus removes the type AnalyzerStatus
+func DropTypeAnalyzerStatus(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropOp:    api.Operation_TYPE,
 		DropValue: "AnalyzerStatus",
 	})
 }
 
-func AlterSchemaSetTransactionType(c *dgo.Dgraph) error {
+// AlterSchemaSetTransactionType adds the privacytype predicate to the transaction type
+func AlterSchemaSetTransactionType(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			type Transaction {

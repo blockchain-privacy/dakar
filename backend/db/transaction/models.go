@@ -7,27 +7,29 @@ import (
 	"fmt"
 )
 
+// DType is the dgraph database type for the Transaction type
 const DType = "Transaction"
 
 var (
+	// ErrorTransactionNotFound is returned if a requested transaction has not been found
 	ErrorTransactionNotFound = errors.New("no transaction found")
-	ErrorInvalidResult       = errors.New("invalid result")
+	errorInvalidResult       = errors.New("invalid result")
 )
 
+// Transaction is the database representation of a transaction
 type Transaction struct {
-	Uid         string                 `json:"uid,omitempty"`
+	UID         string                 `json:"uid,omitempty"`
 	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
 	Fee         *int64                 `json:"fee,omitempty"`
 	Outputs     []op.Output            `json:"tx_outputs,omitempty"`
 	Inputs      []op.Output            `json:"tx_inputs,omitempty"`
 	Hash        string                 `json:"txhash,omitempty"`
-	Origins     []Transaction          `json:"origins,omitempty"`
 	DType       []string               `json:"dgraph.type,omitempty"`
 }
 
 func (t Transaction) String() string {
-	output := fmt.Sprintf("Uid: %s, Hash: %s, Privacy type: %d, Fee: %d",
-		t.Uid, t.Hash, t.PrivacyType, *t.Fee)
+	output := fmt.Sprintf("UID: %s, Hash: %s, Privacy type: %d, Fee: %d",
+		t.UID, t.Hash, t.PrivacyType, *t.Fee)
 
 	if t.Outputs != nil {
 		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
@@ -37,12 +39,10 @@ func (t Transaction) String() string {
 		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
 	}
 
-	if t.Origins != nil {
-		output += fmt.Sprintf(", Origin count: %d", len(t.Origins))
-	}
 	return output
 }
 
+// SetDType sets the DType for dgraph type recognition
 func (t *Transaction) SetDType() {
 	t.DType = []string{DType}
 }
@@ -72,10 +72,12 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	return
 }
 
+// IsMixingTransaction returns true if the transaction is a mixing transaction
 func (t *Transaction) IsMixingTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
 }
 
+// IsDestinationTransaction returns true if the transaction is a destination transaction
 func (t *Transaction) IsDestinationTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
 }
@@ -99,6 +101,7 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 	return
 }
 
+// FrontendOutput holds the output data which is exposed to the frontend
 type FrontendOutput struct {
 	Amount      *int64  `json:"amount"`
 	InputIndex  *uint32 `json:"inputindex"`
@@ -109,12 +112,13 @@ type FrontendOutput struct {
 	KeyAsm      string  `json:"keyasm,omitempty"`
 }
 
+// FrontendTransaction holds the transaction data which is exposed to the frontend
 type FrontendTransaction struct {
 	Hash           string           `json:"txhash,omitempty"`
 	BlockHash      string           `json:"bhash,omitempty"`
 	Fee            int64            `json:"fee"`
 	PrivacyType    int64            `json:"privacytype,omitempty"`
-	BlockId        uint64           `json:"bid"`
+	BlockID        uint64           `json:"bid"`
 	BlockTimestamp string           `json:"bts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
 	Inputs         []FrontendOutput `json:"inputs,omitempty"`
@@ -122,22 +126,8 @@ type FrontendTransaction struct {
 }
 
 func (f FrontendTransaction) String() string {
-	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockId: %d, "+
+	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockID: %d, "+
 		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d, Origin Count: %d",
-		f.Hash, f.BlockHash, f.BlockId, f.Fee, f.PrivacyType, f.BlockTimestamp,
+		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp,
 		len(f.Outputs), len(f.Inputs), f.OriginCount)
-}
-
-type FrontendRequest struct {
-	Hash        string           `json:"txhash,omitempty"`
-	PrivacyType string           `json:"privacytype,omitempty"`
-	Fee         string           `json:"fee,omitempty"`
-	OriginCount uint64           `json:"origincount,omitempty"`
-	Outputs     []FrontendOutput `json:"outputs,omitempty"`
-	Inputs      []FrontendOutput `json:"inputs,omitempty"`
-	Block       []struct {
-		Hash string `json:"blockhash,omitempty"`
-		Ts   string `json:"ts,omitempty"`
-		Id   uint64 `json:"id,omitempty"`
-	} `json:"block,omitempty"`
 }
