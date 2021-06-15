@@ -9,6 +9,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/o1egl/paseto v1.0.0
+	github.com/prometheus/client_golang v1.11.0
 	github.com/stretchr/objx v0.3.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/wcharczuk/go-chart/v2 v2.1.0
