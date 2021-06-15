@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
+
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,9 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // graphLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
@@ -31,9 +35,12 @@ func info(v ...interface{}) {
 
 // Wrapper is wrapper for in-memory graphs
 type Wrapper struct {
-	context context.Context
-	db      external.Database
-	state   blockiterator.State
+	context      context.Context
+	db           external.Database
+	state        blockiterator.State
+	blocks       prometheus.Counter
+	transactions prometheus.Counter
+	newUids      prometheus.Counter
 
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
@@ -50,8 +57,24 @@ type Wrapper struct {
 
 // NewWrapper constructs a new Wrapper
 func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
-	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
-		addressGraphMutex: new(sync.RWMutex)}
+	return &Wrapper{
+		context:               ctx,
+		transactionGraphMutex: new(sync.RWMutex),
+		db:                    dgraph,
+		addressGraphMutex:     new(sync.RWMutex),
+		blocks: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_blocks_processed_total",
+			Help: "The total number of blocks processed by the graph wrapper",
+		}),
+		transactions: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_transactions_processed_total",
+			Help: "The total number of transactions processed by the graph wrapper",
+		}),
+		newUids: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_newuids_processed_total",
+			Help: "The total number of new uids processed by the graph wrapper",
+		}),
+	}
 }
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
@@ -287,6 +310,10 @@ func (w *Wrapper) Iterate() (bool, error) {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
 		}
 	}
+
+	w.blocks.Inc()
+	w.transactions.Add(float64(len(connectedNodes) + len(singleNodes)))
+	w.newUids.Add(float64(len(nodeUidsToLoad)))
 
 	return true, nil
 }
