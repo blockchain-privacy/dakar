@@ -21,6 +21,7 @@ Routes supported by the REST API. Consume the endpoints via GET requests.
 | /api/v1/address/ | Address details |
 | /api/v1/meta/ | Database details |
 | /api/v1/origins/ | Origins of transaction |
+| /metrics/ | Various metrics |
 
 ## Stopping the crawler
 

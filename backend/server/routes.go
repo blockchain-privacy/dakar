@@ -9,7 +9,6 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -704,6 +704,8 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	if err != nil {
 		panic(fmt.Sprintln("error initializing cache", err))
 	}
+
+	http.Handle("/metrics", promhttp.Handler())
 
 	// API end points
 
