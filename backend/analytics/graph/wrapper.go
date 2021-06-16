@@ -41,6 +41,7 @@ type Wrapper struct {
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
 	newUids      prometheus.Counter
+	blockHeight  prometheus.Gauge
 
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
@@ -73,6 +74,10 @@ func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 		newUids: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_graph_newuids_processed_total",
 			Help: "The total number of new uids processed by the graph wrapper",
+		}),
+		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "dakar_graph_last_block",
+			Help: "The last processed block by the graph wrapper",
 		}),
 	}
 }
@@ -171,6 +176,8 @@ func (w *Wrapper) LoadGraphs() error {
 
 	w.state.ID = *classifierStatus.LastClassifiedBlockID + 1
 	w.state.Top = *classifierStatus.LastClassifiedBlockID
+
+	w.blockHeight.Set(float64(w.state.ID))
 
 	txGraph, err := LoadTransactionGraph(w.db)
 	if err != nil {
@@ -314,6 +321,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 	w.blocks.Inc()
 	w.transactions.Add(float64(len(connectedNodes) + len(singleNodes)))
 	w.newUids.Add(float64(len(nodeUidsToLoad)))
+	w.blockHeight.Inc()
 
 	return true, nil
 }

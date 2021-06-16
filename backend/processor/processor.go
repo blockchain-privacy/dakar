@@ -537,7 +537,9 @@ func ProcessBlockRange(ctx context.Context, dgraph external.Database, client ext
 
 	var currentBlock *btcjson.GetBlockVerboseResult
 
-	blocksProcessed, transactionsProcessed := getMetrics()
+	blocksProcessed, transactionsProcessed, lastBlockHeight := getMetrics()
+
+	lastBlockHeight.Set(float64(state.id))
 
 mainLoop:
 	for {
@@ -560,6 +562,7 @@ mainLoop:
 			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false, config); err == nil {
 			blocksProcessed.Add(float64(rBlockCounter))
 			transactionsProcessed.Add(float64(rTransactionCounter))
+			lastBlockHeight.Set(float64(state.id))
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false
@@ -598,13 +601,16 @@ func printMetrics(state crawlerProcessingState, blkCounter int64, txCounter int6
 }
 
 // getMetrics returns the metric variables for block and transaction counting
-func getMetrics() (blk, tx prometheus.Counter) {
+func getMetrics() (blk, tx prometheus.Counter, height prometheus.Gauge) {
 	return promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_crawler_blocks_processed_total",
 			Help: "The total number of blocks processed by the crawler",
 		}), promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_crawler_transactions_processed_total",
 			Help: "The total number of transactions processed by the crawler",
+		}), promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "dakar_crawler_last_block",
+			Help: "The last processed block by the crawler",
 		})
 }
 
@@ -648,8 +654,8 @@ func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database,
 	firstLoop := true
 	var currentBlock *btcjson.GetBlockVerboseResult
 
-	blocksProcessed, transactionsProcessed := getMetrics()
-
+	blocksProcessed, transactionsProcessed, lastBlockHeight := getMetrics()
+	lastBlockHeight.Set(float64(state.id))
 mainLoop:
 	for {
 		select {
@@ -703,6 +709,7 @@ mainLoop:
 			isEmptyDatabase, true, config); processErr == nil {
 			blocksProcessed.Add(float64(rBlockCounter))
 			transactionsProcessed.Add(float64(rTransactionCounter))
+			lastBlockHeight.Set(float64(state.id))
 			blkCounter += rBlockCounter
 			txCounter += rTransactionCounter
 			isEmptyDatabase = false

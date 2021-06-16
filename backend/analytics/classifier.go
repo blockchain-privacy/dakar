@@ -57,6 +57,7 @@ type Classifier struct {
 	state        blockiterator.State
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
+	blockHeight  prometheus.Gauge
 }
 
 // NewClassifier creates a new Classifier object
@@ -72,6 +73,10 @@ func NewClassifier(ctx context.Context, dgraph external.Database, cfg Config) *C
 		transactions: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_classifier_transactions_processed_total",
 			Help: "The total number of transactions processed by the classifier",
+		}),
+		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "dakar_classifier_last_block",
+			Help: "The last processed block by the classifier",
 		}),
 	}
 }
@@ -161,6 +166,8 @@ func (a *Classifier) CalculateInitialState() error {
 	}
 
 	a.state = state
+
+	a.blockHeight.Set(float64(a.state.ID))
 
 	return nil
 }
@@ -342,6 +349,7 @@ func (a *Classifier) Iterate() (bool, error) {
 
 	a.blocks.Inc()
 	a.transactions.Add(float64(len(mixingTransactions)))
+	a.blockHeight.Inc()
 
 	return true, nil
 }
