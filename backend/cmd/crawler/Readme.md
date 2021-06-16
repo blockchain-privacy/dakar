@@ -8,20 +8,7 @@ An HTTP server can be activated (with `-startserver`), which exposes the databas
 
 The crawler can be started either in continuous mode (`-continuous`) or in range mode (`-start 1 -stop 10`). 
 In range mode some functionality is not completely available. This is the case if outputs of transactions **not** part of the 
-range are used as inputs of transactions part of the range. 
-
-## REST API Routes
-
-Routes supported by the REST API. Consume the endpoints via GET requests.
-
-| Route | Description |
-|----------| ------:|
-| /api/v1/tx/ | Transaction details |
-| /api/v1/blk/ | Block details |
-| /api/v1/address/ | Address details |
-| /api/v1/meta/ | Database details |
-| /api/v1/origins/ | Origins of transaction |
-| /metrics/ | Various metrics |
+range are used as inputs of transactions part of the range.
 
 ## Stopping the crawler
 
@@ -49,6 +36,10 @@ Confirm the reset dialog and start crawler, classifier and server.
 ```shell script
 echo yes | ./crawler -reset -continous
 ```
+
+## Metrics
+
+The crawler exposes prometheus metrics via `\metrics`.
 
 ## Commandline Arguments
 
