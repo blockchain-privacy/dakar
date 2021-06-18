@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"backend/cmd/cliutil"
+	"backend/constants"
 	"backend/db"
 	dbtx "backend/db/transaction"
 	"backend/external"
@@ -266,12 +267,12 @@ func getInputAddresses(inputs []HeuristicInput) []string {
 	return addresses
 }
 
-// GetInputTransactions returns the input transactions of the given transaction
+// GetInputTransactions returns the input mixing transactions of the given transaction.
 func GetInputTransactions(c external.Database, tx string) (inputTransactions []HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){
 				var (func: eq(txhash,$txhash)){
 					tx_inputs{
-						v as ~tx_outputs
+						v as ~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast + `))
 					}
 				}
 				
