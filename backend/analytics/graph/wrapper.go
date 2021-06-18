@@ -103,7 +103,12 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
+
+	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	return results, nil
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
@@ -113,7 +118,13 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string) (map[string]bool, 
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ForwardLookup(w.transactionGraph, uid, targetUID)
+
+	results, err := ForwardLookup(w.transactionGraph, uid, targetUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // ForwardLookupByTime performs a forward lookup of the given uid.
@@ -123,7 +134,13 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
+
+	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetClusters returns a mapping between address uids and ClusterID's
@@ -133,7 +150,13 @@ func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterID, error
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetClusters(w.addressGraph, addressUids)
+
+	results, err := GetClusters(w.addressGraph, addressUids)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetCluster returns the cluster of the given address
@@ -143,7 +166,13 @@ func (w *Wrapper) GetCluster(addressUID string) ([]string, error) {
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetCluster(w.addressGraph, addressUID)
+
+	results, err := GetCluster(w.addressGraph, addressUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
@@ -153,7 +182,13 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetInputTransactions(w.transactionGraph, uid)
+
+	results, err := GetInputTransactions(w.transactionGraph, uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, err
 }
 
 // LoadGraphs loads the transaction and address graph into the wrapper
