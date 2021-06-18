@@ -114,14 +114,16 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	return filteredOrigins, nil
 }
 
-// returns true if denom1 has only denominations for the same types as denom2
-func hasSameDenominationTypes(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
-	for i, d := range denom1 {
-		if denom2[i] == d && d == 0 {
+// returns true if both destinationDenominations and originDenominations have the exact same types
+func hasSameDenominationTypes(destinationDenominations [dbop.NumDenominations]int,
+	originDenominations [dbop.NumDenominations]int) bool {
+	for i, destinationDenomination := range destinationDenominations {
+		if originDenominations[i] == destinationDenomination && destinationDenomination == 0 {
 			continue
 		}
 
-		if (denom2[i] > 0 && d == 0) || (denom2[i] == 0 && d > 0) {
+		if (originDenominations[i] > 0 && destinationDenomination == 0) ||
+			(originDenominations[i] == 0 && destinationDenomination > 0) {
 			return false
 		}
 	}
