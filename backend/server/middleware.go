@@ -3,15 +3,19 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/user"
+
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
-	"github.com/dgraph-io/ristretto"
-	"golang.org/x/crypto/ed25519"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	"github.com/dgraph-io/ristretto"
+	"golang.org/x/crypto/ed25519"
 )
 
 type contextKeyUser int
@@ -196,16 +200,21 @@ func basicAuthMiddleware(u, pwhash string) adapter {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			if u != requestUser {
+
+			// constant time compare and sleep to avoid timing attacks
+			if subtle.ConstantTimeCompare([]byte(u), []byte(requestUser)) != 1 {
+				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
+			// constant time compare and sleep to avoid timing attacks
 			if equal, err := user.ComparePassword(requestPassword, pwhash); err != nil {
-				handleError(w, err)
+				info(cliutil.ShowCallInfo(), err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			} else if !equal {
+				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
