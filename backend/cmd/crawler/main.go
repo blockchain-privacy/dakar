@@ -12,6 +12,7 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
+	"backend/user"
 
 	"context"
 	"encoding/hex"
@@ -282,12 +283,12 @@ func main() {
 		return
 	}
 
-	// check if signing keys are set
+	// check if signing keys and basic auth are set
 	if !cliArgs.DisableHTTPServer {
 		_, _, keyErr := server.GetSigningKeysFromEnv()
 		if keyErr != nil {
 			info("error getting signing keys. Set the following environment variables:",
-				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField, keyErr)
+				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField)
 
 			publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
 			if genErr != nil {
@@ -295,6 +296,25 @@ func main() {
 			}
 
 			info("Generated new key pair:\npublic key:", hex.EncodeToString(publicKey), "\nprivate key:", hex.EncodeToString(privateKey))
+			return
+		}
+
+		_, _, authErr := server.GetBasicAuthCredentialsFromEnv()
+		if authErr != nil {
+			info("error getting basic auth credentials. Set the following environment variables:",
+				server.BasicAuthUserEnvironmentField, server.BasicAuthPasswordHashEnvironmentField)
+
+			password, pwErr := user.GenerateRandomPassword()
+			if pwErr != nil {
+				return
+			}
+
+			pwHash, pwErr := user.GeneratePasswordHash(user.DefaultPasswordConfig, password)
+			if pwErr != nil {
+				return
+			}
+
+			info("Generated new basic auth pair:\nuser: dakar", "\npassword:", password, "\npassword hash:", pwHash)
 			return
 		}
 	}

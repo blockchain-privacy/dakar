@@ -12,6 +12,9 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // HeuristicQueueStatus is an enum which holds the status of the heuristic queue
@@ -61,6 +64,11 @@ type Work struct {
 
 // Worker works on the data defined in Work
 type Worker struct {
+	jobsAdded      prometheus.Counter
+	jobsCompleted  prometheus.Counter
+	forwardLookups prometheus.Counter
+	reverseLookups prometheus.Counter
+
 	// cancel stops the go routine started by Start
 	cancel context.CancelFunc
 
@@ -79,8 +87,28 @@ type Worker struct {
 
 // NewWorker constructs a new Worker
 func NewWorker(gWrapper *graph.Wrapper) *Worker {
-	return &Worker{executionMap: make(map[workKey]Work), mapMutex: new(sync.RWMutex), activeMutex: new(sync.RWMutex),
-		graphWrapper: gWrapper}
+	return &Worker{
+		jobsAdded: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_heuristic_jobs_added_total",
+			Help: "The total number of jobs added to the heuristic worker",
+		}),
+		jobsCompleted: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_heuristic_jobs_completed_total",
+			Help: "The total number of jobs completed by the heuristic worker",
+		}),
+		reverseLookups: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_heuristic_reverse_lookups_total",
+			Help: "The total number of reverse lookups executed by the heuristic worker",
+		}),
+		forwardLookups: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_heuristic_forward_lookups_total",
+			Help: "The total number of forward lookups executed by the heuristic worker",
+		}),
+		executionMap: make(map[workKey]Work),
+		mapMutex:     new(sync.RWMutex),
+		activeMutex:  new(sync.RWMutex),
+		graphWrapper: gWrapper,
+	}
 }
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
@@ -125,6 +153,8 @@ func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool
 	}
 
 	w.executionMap[key] = work
+
+	w.jobsAdded.Inc()
 
 	return true
 }
@@ -223,7 +253,7 @@ mainLoop:
 						}
 					}
 				}
-
+				w.jobsCompleted.Inc()
 				info("processing work done")
 			}
 
@@ -240,16 +270,13 @@ mainLoop:
 
 // ReverseLookup performs a reverse lookup for the given uid. It looks back at most maxLookBackTime
 func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
+	w.reverseLookups.Inc()
 	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime)
 }
 
-// ForwardLookup performs a forward lookup for the given uid until the timestamp of targetUid
-func (w *Worker) ForwardLookup(uid string, targetUID string) (map[string]bool, error) {
-	return w.graphWrapper.ForwardLookup(uid, targetUID)
-}
-
-// ForwardLookupByTime performs a forward lookup for the given uid. It looks forward at most maxLookForwardTime
-func (w *Worker) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+// ForwardLookup performs a forward lookup for the given uid. It looks forward at most maxLookForwardTime
+func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+	w.forwardLookups.Inc()
 	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
 }
 

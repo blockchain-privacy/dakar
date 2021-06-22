@@ -102,9 +102,10 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 	originAmounts := buildSourceAmounts(origins, clusters)
 
 	var filteredOrigins []string
-	for k, o := range originAmounts {
-		if containsDenomination(inputDenominationCounts, o) {
-			for _, tx := range sourceTransactionMap[k] {
+	for clusterID, denominationSlice := range originAmounts {
+		if containsDenomination(inputDenominationCounts, denominationSlice) {
+			// save all transaction uids of a particular cluster to the return set
+			for _, tx := range sourceTransactionMap[clusterID] {
 				filteredOrigins = append(filteredOrigins, tx.UID)
 			}
 		}
@@ -113,7 +114,7 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 	return filteredOrigins, nil
 }
 
-// returns true if all denominations with at least the same amount of denom1 are contained in denom2
+// containsDenomination returns true if all denominations with at least the same amount of denom1 are contained in denom2
 func containsDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {

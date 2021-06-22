@@ -10,6 +10,7 @@ This is the backend of Dakar. It crawls the Dash blockchain and exposes its data
 * `ristretto` - in-memory cache for API requests
 * `paseto` - API authentication
 * `gonum` - graph algorithms
+* `prometheus client` - metrics
 
 For a more detailed overview check [here](./go.mod).
 
@@ -68,7 +69,6 @@ Example output:
 ```commandline
 Dakar v1.0.0
 crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
-crawler 2021/01/04 11:40:37 main.go:31: Current block count in the chain of the RPC client: 1399437
 server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
 process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
 ```

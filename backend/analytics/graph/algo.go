@@ -4,7 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"strconv"
 
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,10 +11,9 @@ import (
 	"gonum.org/v1/gonum/graph/traverse"
 )
 
-var (
-	// ErrNodeNotFound defines an error which should be used if node was not found
-	ErrNodeNotFound = errors.New("error node does not exist in graph")
-)
+func errNodeNotFound(nodeID int64) error {
+	return fmt.Errorf("error node %s does not exist in graph", toHex(nodeID))
+}
 
 // toHex returns a hexadecimal string representation of the given integer with the '0x' prefix
 func toHex(i int64) string {
@@ -31,7 +29,7 @@ func toInteger(hexString string) (int64, error) {
 func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration) (map[string]bool, error) {
 	node := g.Node(nodeID)
 	if node == nil {
-		return nil, ErrNodeNotFound
+		return nil, errNodeNotFound(nodeID)
 	}
 
 	foundEndpoints := make(map[string]bool)
@@ -88,7 +86,12 @@ func ReverseLookup(g *ReversibleGraph, uid string,
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
-	return ReverseLookupByID(g, nodeUID, maxLookBackTime)
+
+	results, err := ReverseLookupByID(g, nodeUID, maxLookBackTime)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	return results, nil
 }
 
 // ForwardLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph forward.
@@ -110,7 +113,7 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUID string) (map[string
 	g.SetReverse(true)
 	origins, err := ReverseLookupByID(g, nodeUID, targetNode.ts.Sub(node.ts))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
 	return origins, err
@@ -127,7 +130,7 @@ func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time
 	g.SetReverse(true)
 	origins, err := ReverseLookupByID(g, nodeUID, maxLookForwardTime)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
 	return origins, err
@@ -143,7 +146,7 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 
 	// check if node exists
 	if g.Node(nodeUID) == nil {
-		return nil, fmt.Errorf("error node %s (base 10: %d) not found", uid, nodeUID)
+		return nil, errNodeNotFound(nodeUID)
 	}
 
 	var uids []string
@@ -184,7 +187,7 @@ func GetClusters(g *UndirectedGraph, addressUids []string) (map[string]ClusterID
 
 		node := g.Node(uid)
 		if node == nil {
-			return nil, ErrNodeNotFound
+			return nil, errNodeNotFound(uid)
 		}
 
 		var addressesInCluster []int64

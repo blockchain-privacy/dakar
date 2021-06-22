@@ -3,15 +3,19 @@ package server
 import (
 	"backend/cmd/cliutil"
 	"backend/user"
+
 	"bytes"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
-	"github.com/dgraph-io/ristretto"
-	"golang.org/x/crypto/ed25519"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"time"
+
+	"github.com/dgraph-io/ristretto"
+	"golang.org/x/crypto/ed25519"
 )
 
 type contextKeyUser int
@@ -180,6 +184,42 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 			if err != nil {
 				handleError(w, err)
 			}
+		})
+	}
+}
+
+func basicAuthMiddleware(u, pwhash string) adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// set headers
+			setDefaultHeader(w)
+			w.Header().Set("WWW-Authenticate", `Basic realm="Dakar Metrics"`)
+
+			requestUser, requestPassword, ok := r.BasicAuth()
+			if !ok {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			// constant time compare and sleep to avoid timing attacks
+			if subtle.ConstantTimeCompare([]byte(u), []byte(requestUser)) != 1 {
+				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			// constant time compare and sleep to avoid timing attacks
+			if equal, err := user.ComparePassword(requestPassword, pwhash); err != nil {
+				info(cliutil.ShowCallInfo(), err)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			} else if !equal {
+				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			h.ServeHTTP(w, r)
 		})
 	}
 }

@@ -9,7 +9,6 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -695,6 +695,12 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 		panic(fmt.Sprintln("error getting signing keys", err))
 	}
 
+	// get basic auth credentials
+	basicAuthUser, basicAuthPasswordHash, err := GetBasicAuthCredentialsFromEnv()
+	if err != nil {
+		panic(fmt.Sprintln("error getting basic auth credentials", err))
+	}
+
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10M).
@@ -706,6 +712,10 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	}
 
 	// API end points
+
+	// Metrics
+	http.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
+		basicAuthMiddleware(basicAuthUser, basicAuthPasswordHash)))
 
 	// Search
 	http.Handle(constants.GetRouteSearch(),

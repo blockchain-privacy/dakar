@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
+
 	"context"
 	"errors"
 	"fmt"
@@ -13,6 +14,9 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // graphLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
@@ -31,9 +35,13 @@ func info(v ...interface{}) {
 
 // Wrapper is wrapper for in-memory graphs
 type Wrapper struct {
-	context context.Context
-	db      external.Database
-	state   blockiterator.State
+	context      context.Context
+	db           external.Database
+	state        blockiterator.State
+	blocks       prometheus.Counter
+	transactions prometheus.Counter
+	newUids      prometheus.Counter
+	blockHeight  prometheus.Gauge
 
 	// isLoading is true if the graph loading was started.
 	// It stays true even if the graphs are finished loading to prevent loading more than once.
@@ -50,8 +58,28 @@ type Wrapper struct {
 
 // NewWrapper constructs a new Wrapper
 func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
-	return &Wrapper{context: ctx, transactionGraphMutex: new(sync.RWMutex), db: dgraph,
-		addressGraphMutex: new(sync.RWMutex)}
+	return &Wrapper{
+		context:               ctx,
+		transactionGraphMutex: new(sync.RWMutex),
+		db:                    dgraph,
+		addressGraphMutex:     new(sync.RWMutex),
+		blocks: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_blocks_processed_total",
+			Help: "The total number of blocks processed by the graph wrapper",
+		}),
+		transactions: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_transactions_processed_total",
+			Help: "The total number of transactions processed by the graph wrapper",
+		}),
+		newUids: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_graph_newuids_processed_total",
+			Help: "The total number of new uids processed by the graph wrapper",
+		}),
+		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "dakar_graph_last_block",
+			Help: "The last processed block by the graph wrapper",
+		}),
+	}
 }
 
 // IsTransactionGraphLoaded returns true if the transaction graph is loaded
@@ -75,7 +103,12 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
+
+	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	return results, nil
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
@@ -85,7 +118,13 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string) (map[string]bool, 
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ForwardLookup(w.transactionGraph, uid, targetUID)
+
+	results, err := ForwardLookup(w.transactionGraph, uid, targetUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // ForwardLookupByTime performs a forward lookup of the given uid.
@@ -95,7 +134,13 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
-	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
+
+	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetClusters returns a mapping between address uids and ClusterID's
@@ -105,7 +150,13 @@ func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterID, error
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetClusters(w.addressGraph, addressUids)
+
+	results, err := GetClusters(w.addressGraph, addressUids)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetCluster returns the cluster of the given address
@@ -115,7 +166,13 @@ func (w *Wrapper) GetCluster(addressUID string) ([]string, error) {
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetCluster(w.addressGraph, addressUID)
+
+	results, err := GetCluster(w.addressGraph, addressUID)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
@@ -125,7 +182,13 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	}
 	w.addressGraphMutex.Lock()
 	defer w.addressGraphMutex.Unlock()
-	return GetInputTransactions(w.transactionGraph, uid)
+
+	results, err := GetInputTransactions(w.transactionGraph, uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, err
 }
 
 // LoadGraphs loads the transaction and address graph into the wrapper
@@ -148,6 +211,8 @@ func (w *Wrapper) LoadGraphs() error {
 
 	w.state.ID = *classifierStatus.LastClassifiedBlockID + 1
 	w.state.Top = *classifierStatus.LastClassifiedBlockID
+
+	w.blockHeight.Set(float64(w.state.ID))
 
 	txGraph, err := LoadTransactionGraph(w.db)
 	if err != nil {
@@ -287,6 +352,11 @@ func (w *Wrapper) Iterate() (bool, error) {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
 		}
 	}
+
+	w.blocks.Inc()
+	w.transactions.Add(float64(len(connectedNodes) + len(singleNodes)))
+	w.newUids.Add(float64(len(nodeUidsToLoad)))
+	w.blockHeight.Inc()
 
 	return true, nil
 }

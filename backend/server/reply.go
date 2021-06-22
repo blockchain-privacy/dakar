@@ -529,7 +529,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	var endpoints map[string]bool
 	rLookupTime := time.Now()
 	if isLookupForward {
-		endpoints, err = worker.ForwardLookupByTime(uid, time.Hour*24*lookBackTime)
+		endpoints, err = worker.ForwardLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
 			reply.Msg = "Lookup not successful"
 			info(cliutil.ShowCallInfo(), err)
@@ -545,31 +545,6 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	}
 
 	info("time:", time.Since(rLookupTime), "endpoints: origins:", len(endpoints))
-
-	// ------------- Forward lookup start -------------
-	//endpointCount := 0
-	//var completeDuration time.Duration
-	//
-	//for k := range endpoints {
-	//	fLookupTime := time.Now()
-	//	fEndpoints, forwardErr := worker.ForwardLookup(k, uid)
-	//	completeDuration += time.Since(fLookupTime)
-	//	if forwardErr != nil {
-	//		reply.Msg = "Forward lookup not successful"
-	//		info(cliutil.ShowCallInfo(), err)
-	//		return
-	//	}
-	//	endpointCount += len(fEndpoints)
-	//
-	//	if len(fEndpoints) < 20 {
-	//		// todo remove
-	//		info("forward look up", k, "mem endpoints -- time:", completeDuration, "origins:", len(fEndpoints))
-	//	}
-	//}
-	//info("forward look up -- avg. time:", completeDuration/time.Duration(len(endpoints)),
-	//	"avg. endpoints per lookup", endpointCount/len(endpoints))
-
-	// ------------- Forward lookup end -------------
 
 	// reply with the first 30 endpoints
 	var transactionUids []string

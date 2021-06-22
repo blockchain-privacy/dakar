@@ -3,7 +3,7 @@
     <template v-slot:activator="{ on, attrs }">
       <slot v-bind="attrs" v-on="on"></slot>
     </template>
-    <v-card class="pa-3">
+    <v-card class="pa-3" min-width="250px">
       <v-row no-gutters v-if="showTools">
         <v-col>
           <LinkCard

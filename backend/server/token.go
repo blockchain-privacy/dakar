@@ -24,7 +24,7 @@ const (
 	// secureCookie controls whether the secure attribute in cookies is set
 	secureCookie = false
 	// if only reissueDuration is left of the token lifetime it gets reissued
-	reissueDuration = tokenExpirationTime / 8
+	reissueDuration = tokenExpirationTime / 4
 	// tokenFieldUser is the name of the user field in the token
 	tokenFieldUser = "user_id"
 	// SigningPubkeyEnvironmentField is the name of the os environment field for the public signing key

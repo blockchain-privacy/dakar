@@ -41,7 +41,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:latest
+    image: dashpay/dashd:0.16
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/dash
