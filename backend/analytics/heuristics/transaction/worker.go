@@ -247,7 +247,7 @@ mainLoop:
 				} else {
 					// if no error occurred -> execute the new heuristics
 					for _, e := range work.executors {
-						if err = e.RunSynchronous(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
+						if err = e.Run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
 							w.currentWorkItem.userUID); err != nil {
 							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						}
