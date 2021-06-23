@@ -212,7 +212,8 @@ func (w *Wrapper) LoadGraphs() error {
 	w.state.ID = *classifierStatus.LastClassifiedBlockID + 1
 	w.state.Top = *classifierStatus.LastClassifiedBlockID
 
-	w.blockHeight.Set(float64(w.state.ID))
+	// state.ID - 1 because the ID is the next block
+	w.blockHeight.Set(float64(w.state.ID - 1))
 
 	txGraph, err := LoadTransactionGraph(w.db)
 	if err != nil {
@@ -356,7 +357,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 	w.blocks.Inc()
 	w.transactions.Add(float64(len(connectedNodes) + len(singleNodes)))
 	w.newUids.Add(float64(len(nodeUidsToLoad)))
-	w.blockHeight.Inc()
+	w.blockHeight.Set(float64(w.state.ID))
 
 	return true, nil
 }

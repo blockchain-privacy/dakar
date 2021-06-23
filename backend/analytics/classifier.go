@@ -167,7 +167,8 @@ func (a *Classifier) CalculateInitialState() error {
 
 	a.state = state
 
-	a.blockHeight.Set(float64(a.state.ID))
+	// state.ID - 1 because the ID is the next block
+	a.blockHeight.Set(float64(a.state.ID - 1))
 
 	return nil
 }
@@ -349,7 +350,7 @@ func (a *Classifier) Iterate() (bool, error) {
 
 	a.blocks.Inc()
 	a.transactions.Add(float64(len(mixingTransactions)))
-	a.blockHeight.Inc()
+	a.blockHeight.Set(float64(a.state.ID))
 
 	return true, nil
 }
