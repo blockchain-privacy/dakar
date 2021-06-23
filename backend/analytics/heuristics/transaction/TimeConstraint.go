@@ -81,7 +81,7 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			origins = append(origins, o.UID)
 		}
 	}
-	// todo also handle non-parent heuristic case
+
 	// gather input information
 	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
 	if err != nil {
@@ -104,7 +104,7 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
-			// only save the uid also exists in the maximal origin set
+			// only save if the uid also exists in the parent origin set
 			if parentHeuristicSet && !originLimit[t.UID] {
 				continue
 			}
