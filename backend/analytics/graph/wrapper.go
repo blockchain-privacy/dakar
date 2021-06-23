@@ -377,8 +377,7 @@ func filterOrigins(txGraph *ReversibleGraph, addrGraph *UndirectedGraph, nodes [
 		}
 
 		// check if node is an endpoint
-		from := txGraph.From(id)
-		if from.Len() == 0 {
+		if isEndpoint(txGraph, id) {
 			originUids = append(originUids, node.UID)
 		}
 	}
