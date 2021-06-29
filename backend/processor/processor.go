@@ -54,21 +54,27 @@ var (
 )
 
 // holds the current state of the crawling processing loop
-type crawlerProcessingState struct {
+type crawlerState struct {
 	// current block id
 	id uint64
+	// top is the last seen highest block id
+	top uint64
 	// current block hash
 	hash string
 	// current block hash as a chainhash.Hash
 	chainHash *chainhash.Hash
 }
 
-func (p crawlerProcessingState) String() string {
+func (p crawlerState) String() string {
 	return fmt.Sprintf("ID: %d, Hash: %s", p.id, p.hash)
 }
 
 // increments the state for the next processing loop
-func (p *crawlerProcessingState) increment(nextHash string) (err error) {
+func (p *crawlerState) increment(nextHash string) (err error) {
+	if nextHash == "" {
+		return
+	}
+
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -77,6 +83,7 @@ func (p *crawlerProcessingState) increment(nextHash string) (err error) {
 
 	p.hash = nextHash
 	p.id++
+
 	return
 }
 
@@ -460,7 +467,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 	return
 }
 
-// getRPCNumberOfBlocks returns the number of blocks currently processed by the RPC client
+// getRPCNumberOfBlocks returns the number of blocks currently in the chain of the RPC client
 func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	rpcInfo, err := client.GetBlockChainInfo()
 	if err != nil {
@@ -475,7 +482,7 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph external.Database, client external.RPCClient, continuous bool, startID uint64) (state crawlerProcessingState, err error) {
+func getInitialState(dgraph external.Database, client external.RPCClient, continuous bool, startID uint64) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -493,6 +500,15 @@ func getInitialState(dgraph external.Database, client external.RPCClient, contin
 		return
 	}
 	state.hash = state.chainHash.String()
+
+	// get RPC client block count
+	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
+	if rpcErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+		return
+	}
+
+	state.top = numBlocks
 
 	return
 }
@@ -586,7 +602,7 @@ mainLoop:
 }
 
 // printMetrics prints the given metrics
-func printMetrics(state crawlerProcessingState, blkCounter int64, txCounter int64, elapsedTime time.Duration) {
+func printMetrics(state crawlerState, blkCounter int64, txCounter int64, elapsedTime time.Duration) {
 	if blkCounter > 0 {
 		info("Last Block:", state)
 		info("New blocks inserted:", blkCounter)
@@ -746,7 +762,7 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerProcessingState,
+func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerState,
 	block *btcjson.GetBlockVerboseResult, setLowestID bool, isContinuous bool, config Config) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []TransactionMapping

@@ -201,6 +201,10 @@ func (w *Wrapper) LoadGraphs() error {
 
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil {
+		if errors.Is(err, status.ErrorStatusNotFound) {
+			info("Classifier status is not set. Classify at least one block before starting to load graphs.")
+			return nil
+		}
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -248,16 +252,6 @@ func (w *Wrapper) Context() context.Context {
 	return w.context
 }
 
-// Db returns the database access
-func (w *Wrapper) Db() external.Database {
-	return w.db
-}
-
-// State returns the state
-func (w *Wrapper) State() blockiterator.State {
-	return w.state
-}
-
 // Name returns the name
 func (w *Wrapper) Name() string {
 	return "graph wrapper"
@@ -272,14 +266,19 @@ func (w *Wrapper) CalculateInitialState() error {
 	return nil
 }
 
-// GetHighestAvailableBlock returns the highest classified block
-func (w *Wrapper) GetHighestAvailableBlock() (uint64, error) {
+// NextBlock tries to increase the internal state to the next block
+func (w *Wrapper) NextBlock() (bool, error) {
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
-		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return *classifierStatus.LastClassifiedBlockID, nil
+	return w.state.ID <= *classifierStatus.LastClassifiedBlockID, nil
+}
+
+// CurrentBlock returns the height of the block which is currently being loaded
+func (w *Wrapper) CurrentBlock() uint64 {
+	return w.state.ID
 }
 
 // PostExecution does nothing
@@ -289,13 +288,9 @@ func (w *Wrapper) PostExecution() error {
 }
 
 // IncrementState increments the state one block
-func (w *Wrapper) IncrementState() {
+func (w *Wrapper) IncrementState() error {
 	w.state.ID++
-}
-
-// SetState sets the new state
-func (w *Wrapper) SetState(newState blockiterator.State) {
-	w.state = newState
+	return nil
 }
 
 // Empty checks if there are more blocks above the current one

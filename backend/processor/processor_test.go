@@ -20,7 +20,7 @@ func TestIncrementProcessingState(t *testing.T) {
 		invalidHash = "."
 	)
 
-	var p crawlerProcessingState
+	var p crawlerState
 
 	err := p.increment(firstHash)
 	require.Nil(t, err)

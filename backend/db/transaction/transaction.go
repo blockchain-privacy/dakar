@@ -102,7 +102,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	}
 
 	if len(r.Q) == 0 {
-		err = ErrorTransactionNotFound
+		err = fmt.Errorf("%s: %w", ErrorTransactionNotFound, fmt.Errorf("block: %d", blockID))
 		return
 	}
 

@@ -8,8 +8,8 @@ type Config struct {
 	IsHeuristicWorkerEnabled bool
 	// IsClassifyingEnabled controls if classifying is allowed
 	IsClassifyingEnabled bool
-	// ClassifierStartBlock is the block id after classifications starts.
-	ClassifierStartBlock uint64
+	// ClassifierStartAfterBlock is the block id after classifications starts.
+	ClassifierStartAfterBlock uint64
 }
 
 // NewDashConfig returns a Config for Dash
@@ -17,10 +17,10 @@ func NewDashConfig() Config {
 	return Config{
 		BlockchainName:           "Dash",
 		IsHeuristicWorkerEnabled: true,
+		IsClassifyingEnabled:     true,
 		// after block height 323756 the first mixing transactions with the
 		// most recent format (same number of inputs and outputs) appear
-		IsClassifyingEnabled: true,
-		ClassifierStartBlock: 1,
+		ClassifierStartAfterBlock: 0,
 	}
 }
 

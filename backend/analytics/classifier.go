@@ -91,29 +91,15 @@ func (a *Classifier) Logger() *log.Logger {
 	return analyticsLogger
 }
 
-// State returns the state
-func (a *Classifier) State() blockiterator.State {
-	return a.state
-}
-
-// SetState sets the new state
-func (a *Classifier) SetState(newState blockiterator.State) {
-	a.state = newState
-}
-
 // Context returns the context
 func (a *Classifier) Context() context.Context {
 	return a.ctx
 }
 
-// Db returns the database access
-func (a *Classifier) Db() external.Database {
-	return a.db
-}
-
 // IncrementState increments the state one block
-func (a *Classifier) IncrementState() {
+func (a *Classifier) IncrementState() error {
 	a.state.ID++
+	return nil
 }
 
 // Empty checks if there are more blocks above the current one
@@ -131,7 +117,7 @@ func (a *Classifier) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := setInitialClassifierID(a.db, a.config.ClassifierStartBlock); err != nil {
+	if err := setInitialClassifierID(a.db, a.config.ClassifierStartAfterBlock); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -221,14 +207,24 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 	return
 }
 
-// GetHighestAvailableBlock returns the highest crawled block
-func (a *Classifier) GetHighestAvailableBlock() (uint64, error) {
+// NextBlock tries to increase the internal state to the next block
+func (a *Classifier) NextBlock() (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(a.db)
 	if err != nil || status.LastBlockID == nil {
-		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return *status.LastBlockID, nil
+	if a.state.ID <= *status.LastBlockID {
+		a.state.Top = *status.LastBlockID
+		return true, nil
+	}
+
+	return false, nil
+}
+
+// CurrentBlock returns the height of the block which is currently classified
+func (a *Classifier) CurrentBlock() uint64 {
+	return a.state.ID
 }
 
 // Iterate does the classification for all transactions of the current block. Transactions are

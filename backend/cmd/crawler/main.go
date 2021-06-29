@@ -418,13 +418,13 @@ func main() {
 		}
 	}
 
-	// We will handle CTRL-C and CTRL-Z nicely
+	// handle shutdown signals
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
 	appContext, terminateApp := context.WithCancel(context.Background())
 
-	// channels which are set to true as soon as the associated go routine stops
+	// channels which are set to true as soon as the associated goroutine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
 
@@ -439,17 +439,30 @@ func main() {
 			defer func() {
 				chCrawlingStopped <- true
 			}()
-			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(appContext, graphDB, client, processorConfig)
-			} else {
-				err = processor.ProcessBlockRange(appContext, graphDB, client, cliArgs.StartBlockID,
-					cliArgs.StopBlockID, processorConfig)
-			}
 
-			if err != nil {
-				info(err)
+			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
+				appContext, graphDB, client, processorConfig)); processorErr != nil {
+				info(processorErr)
 			}
 		}()
+
+		//wg.Add(1)
+		//go func() {
+		//	defer wg.Done()
+		//	defer func() {
+		//		chCrawlingStopped <- true
+		//	}()
+		//	if cliArgs.Continuous {
+		//		err = processor.ProcessBlocksContinuously(appContext, graphDB, client, processorConfig)
+		//	} else {
+		//		err = processor.ProcessBlockRange(appContext, graphDB, client, cliArgs.StartBlockID,
+		//			cliArgs.StopBlockID, processorConfig)
+		//	}
+		//
+		//	if err != nil {
+		//		info(err)
+		//	}
+		//}()
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
