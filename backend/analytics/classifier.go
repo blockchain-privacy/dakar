@@ -142,10 +142,6 @@ func (a *Classifier) CalculateInitialState() error {
 	if crawlerStatus.LastBlockID == nil {
 		// nothing crawled yet, so set Top to a lower number as ID
 		state.Top = *classifierStatus.LastClassifiedBlockID
-	} else if *crawlerStatus.LowestBlockID > state.ID {
-		// happens the crawler is started with a high start block id in block range mode
-		state.ID = *crawlerStatus.LowestBlockID
-		state.Top = *crawlerStatus.LastBlockID
 	} else {
 		// this is the usual case: Set Top to the current last crawled block height
 		state.Top = *crawlerStatus.LastBlockID

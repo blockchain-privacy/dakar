@@ -476,17 +476,13 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph external.Database, client external.RPCClient, continuous bool, startID uint64) (state crawlerState, err error) {
+func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
 		info(errorBlockIdsDoNotMatch.Error(), "continuing...")
-	}
-
-	if !continuous && startID > state.id {
-		state.id = startID
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {

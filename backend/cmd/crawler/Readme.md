@@ -10,7 +10,7 @@ Do not kill the crawling process, instead send a termination or interrupt signal
 
 ## Examples
 
-Write to a log file, reset the database, start the http server on the default port and start crawling continuously at block height 1.
+Write to a log file, reset the database, start the http server on the default port and start crawling at block height 1.
 
 ```shell script
 ./crawler -logfile /tmp/crawler.log -reset

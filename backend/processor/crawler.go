@@ -91,7 +91,7 @@ func (c *Crawler) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	state, err := getInitialState(c.db, c.rpc, true, 0)
+	state, err := getInitialState(c.db, c.rpc)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

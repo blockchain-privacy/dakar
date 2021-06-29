@@ -60,7 +60,7 @@ go build .
 * Launch the crawler with the following command
 ```shell script
 # -reset will delete all data of the dgraph instance and setup a new schema
-./crawler -dash -continuous -reset
+./crawler -dash -reset
 ```
 * The REST API can be accessed via the address printed in the standard output.
 Check the [crawler description](cmd/crawler/Readme.md) for more details. 
