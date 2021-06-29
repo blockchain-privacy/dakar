@@ -222,7 +222,6 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 			Hash        string           `json:"txhash,omitempty"`
 			PrivacyType *int64           `json:"privacytype,omitempty"`
 			Fee         *int64           `json:"fee,omitempty"`
-			OriginCount *uint64          `json:"origincount,omitempty"`
 			Outputs     []FrontendOutput `json:"outputs,omitempty"`
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
@@ -244,7 +243,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 	}
 
 	for _, t := range r.Transaction {
-		if len(t.Block) == 0 || len(t.Block) != 1 || t.OriginCount == nil {
+		if len(t.Block) == 0 || len(t.Block) != 1 {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
 			return
 		}
@@ -265,7 +264,6 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 			Hash:           t.Hash,
 			PrivacyType:    pType,
 			Fee:            fee,
-			OriginCount:    *t.OriginCount,
 			BlockHash:      t.Block[0].Hash,
 			BlockID:        t.Block[0].ID,
 			BlockTimestamp: t.Block[0].Ts,
