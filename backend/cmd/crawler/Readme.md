@@ -2,13 +2,7 @@
 
 This is the blockchain crawler. It loads data from `dashd` and stores it in a Dgraph database. 
 
-An HTTP server can be activated (with `-startserver`), which exposes the database entries via a REST API. 
-
-## Crawling Modes
-
-The crawler can be started either in continuous mode (`-continuous`) or in range mode (`-start 1 -stop 10`). 
-In range mode some functionality is not completely available. This is the case if outputs of transactions **not** part of the 
-range are used as inputs of transactions part of the range.
+An HTTP server can be activated (with `-startserver`), which exposes the database entries via a REST API.
 
 ## Stopping the crawler
 
@@ -19,12 +13,7 @@ Do not kill the crawling process, instead send a termination or interrupt signal
 Write to a log file, reset the database, start the http server on the default port and start crawling continuously at block height 1.
 
 ```shell script
-./crawler -continuous -logfile /tmp/crawler.log -reset
-```
-
-Write to a log file, reset the database and start crawling from block height 1268019 to 1269019. Also start the http server.
-```shell script
-./crawler -start 1268019 -stop 1269019 -logfile /tmp/crawler.log -reset
+./crawler -logfile /tmp/crawler.log -reset
 ```
 
 Print the current status of the database
@@ -34,7 +23,7 @@ Print the current status of the database
 
 Confirm the reset dialog and start crawler, classifier and server.
 ```shell script
-echo yes | ./crawler -reset -continous
+echo yes | ./crawler -reset
 ```
 
 ## Metrics
@@ -45,13 +34,10 @@ The crawler exposes prometheus metrics via `\metrics`.
 
 | Flag | Default Value | Description |
 |----------|:-------------:|------:|
-| continuous | false | Continuously syncs the whole chain (default: false) |
 | ignoresafeguard | false | Ignore the crawling safe guard (default: false) |
 | reset | false | Remove all data from the database (default: false) |
 | rpcuser | rpc1user | Dash RPC user (default: rpc1user) |
 | rpcpassword | 1234pass | Dash RPC password (default: 1234pass) |
-| start | 0 | Start Block Id (default: 0)|
-| stop | 0 | Stop Block Id (default: 0) |
 | status | false | Prints current processing status (default: false) |
 | rpchost | 0.0.0.0 | Dash RPC host IP (default: 0.0.0.0) |
 | rpcport | 9998 | Dash RPC port (default: 9998) |

@@ -172,7 +172,7 @@ func (c *Crawler) Iterate() (bool, error) {
 
 	// do the actual processing and aggregate the resulting metrics
 	if rBlockCounter, rTransactionCounter, processErr := ProcessRound(c.db, c.rpc, c.state, c.currentBlock,
-		c.isDatabaseEmpty, true, c.config); processErr == nil {
+		c.isDatabaseEmpty, c.config); processErr == nil {
 		c.isDatabaseEmpty = false
 
 		c.blocks.Add(float64(rBlockCounter))
