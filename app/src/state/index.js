@@ -15,6 +15,7 @@ function handleGet(context, route, mutation, parameter) {
     context.dispatch('resetMessages');
   }).catch((e) => {
     handleError(context, e);
+    return e;
   });
 }
 
