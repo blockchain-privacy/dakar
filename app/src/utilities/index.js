@@ -126,7 +126,7 @@ export function handleError(context, error) {
   if (error.message === '500 Internal Server Error') {
     errMsg = 'Server is not reachable';
   } else {
-    errMsg = `Error getting data: ${error}`;
+    errMsg = error.message;
   }
 
   context.dispatch('addMessage', { text: errMsg, type: 'error', temporary: true });
