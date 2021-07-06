@@ -223,8 +223,12 @@ export default {
     },
     async refreshData() {
       this.resetTimers();
-      await this.$store.dispatch('updateMetaData');
-      this.startTimer();
+      this.$store.dispatch('updateMetaData').then((err) => {
+        if (err !== undefined) {
+          return;
+        }
+        this.startTimer();
+      });
     },
   },
   created() {

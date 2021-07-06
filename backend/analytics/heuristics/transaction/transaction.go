@@ -10,7 +10,6 @@ import (
 
 	"errors"
 	"fmt"
-	"sync"
 	"time"
 )
 
@@ -185,9 +184,21 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx dbtxh.
 	return
 }
 
-// getDestinationTxOrigins returns all origins of the given transaction.
+// getDestinationTxOrigins returns all origins of the given
+// transaction, limited to a look back time of 90 days.
 func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper,
-	txHash string) (origins []dbtxh.HeuristicTransaction, err error) {
+	txHash string) ([]dbtxh.HeuristicTransaction, error) {
+	origins, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	return origins, nil
+}
+
+// getDestinationTxOriginsTimeLimited returns all origins of the given
+// transaction, for the given time limit.
+func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper,
+	txHash string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUID(dgraph, txHash)
 	if err != nil {
@@ -202,7 +213,7 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper,
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		endpoints, err := g.ReverseLookup(it, time.Hour*24*90)
+		endpoints, err := g.ReverseLookup(it, dur)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -246,55 +257,10 @@ func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor)
 	}
 }
 
-// RunAsync runs the given heuristic executor. The executor runs initial heuristic and
-// triggers the Run function of all NextHeuristics.
-// WARNING: This will throw errors in certain cases while upserting a heuristic. This is the result
-// of mutations of the same object. The upsert is built in a way, that in case of a failure this the mutation
-// is done again. This way the result is inserted, despite the thrown error. Thus, this method achieves its goal.
-// For a cleaner version, function use RunSynchronous
-func (hx HeuristicExecutor) RunAsync(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string,
-	userUID string) error {
-	newUID, err := Exec(dgraph, g, txHash, parentHeuristicUID, hx.ThisHeuristic, userUID)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
-				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
-	}
-	errChannel := make(chan error, len(hx.NextHeuristics))
-
-	waitGroup := sync.WaitGroup{}
-	for _, executor := range hx.NextHeuristics {
-		waitGroup.Add(1)
-		go func(e HeuristicExecutor, wg *sync.WaitGroup, eCH chan<- error) {
-			defer wg.Done()
-			if asyncErr := e.RunAsync(dgraph, g, txHash, newUID, userUID); asyncErr != nil {
-				errChannel <- asyncErr
-				return
-			}
-			errChannel <- nil
-		}(executor, &waitGroup, errChannel)
-	}
-
-	waitGroup.Wait()
-	var returnError error
-	close(errChannel)
-	for errs := range errChannel {
-		if errs != nil {
-			if returnError != nil {
-				returnError = fmt.Errorf("%s, next error: %s", returnError, errs)
-			} else {
-				returnError = errs
-			}
-		}
-	}
-
-	return returnError
-}
-
-// RunSynchronous runs the given heuristic executor. The executor runs initial heuristic and
-// triggers the RunSynchronous function of all NextHeuristics. If parentHeuristicUID is not
+// Run runs the given heuristic executor. The executor runs initial heuristic and
+// triggers the Run function of all NextHeuristics. If parentHeuristicUID is not
 // set (e.g. "") than the HeuristicExecutor.RootUID is used
-func (hx HeuristicExecutor) RunSynchronous(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string, userUID string) error {
 	thisRootUID := hx.RootUID
 	if parentHeuristicUID != "" {
@@ -310,7 +276,7 @@ func (hx HeuristicExecutor) RunSynchronous(dgraph external.Database, g *graph.Wr
 	}
 
 	for _, executor := range hx.NextHeuristics {
-		if runErr := executor.RunSynchronous(dgraph, g, txHash, newUID, userUID); runErr != nil {
+		if runErr := executor.Run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
 				fmt.Errorf("heuristic type: %s, parameter: %s, %s",

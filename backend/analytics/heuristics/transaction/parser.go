@@ -13,7 +13,7 @@ import (
 // validHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
 var validHeuristicTypes = []heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
-	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic()}
+	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewTimeConstraintHeuristic(0)}
 
 // typeMap K: heuristic types, v: heuristics
 var typeMap = make(map[string]heuristic)

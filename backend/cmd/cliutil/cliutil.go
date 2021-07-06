@@ -18,8 +18,7 @@ type Flag int
 
 // flag enum
 const (
-	Continuous Flag = iota
-	IgnoreSafeguard
+	IgnoreSafeguard Flag = iota
 	ResetDB
 	RPCUser
 	RPCPassword
@@ -27,8 +26,6 @@ const (
 	RPCPort
 	DBHost
 	DBPort
-	StartBlockID
-	StopBlockID
 	IsPrintStatus
 	HTTPServerPort
 	DisableHTTPServer
@@ -45,13 +42,10 @@ const (
 
 // Arguments holds the state of the CLI arguments
 type Arguments struct {
-	Continuous        bool
 	IgnoreSafeguard   bool
 	ResetDB           bool
 	RPCUser           string
 	RPCPassword       string
-	StartBlockID      uint64
-	StopBlockID       uint64
 	IsPrintStatus     bool
 	RPCEndpoint       string
 	DBEndpoint        string
@@ -146,8 +140,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 
 	for _, f := range flags {
 		switch f {
-		case Continuous:
-			addContinuous(&args.Continuous)
 		case IgnoreSafeguard:
 			addIgnoreSafeguard(&args.IgnoreSafeguard)
 		case ResetDB:
@@ -169,10 +161,6 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 		case DBPort:
 			addDBPort(&dbPortNumber)
 			isDBused = true
-		case StartBlockID:
-			addStartBlockID(&args.StartBlockID)
-		case StopBlockID:
-			addStopBlockID(&args.StopBlockID)
 		case IsPrintStatus:
 			addIsPrintStatus(&args.IsPrintStatus)
 		case Logfile:
@@ -223,10 +211,6 @@ func addTxInfo(v *string) {
 	flag.StringVar(v, "txinfo", "", "Get information about the given transaction hash (default: none)")
 }
 
-func addContinuous(v *bool) {
-	flag.BoolVar(v, "continuous", false, "Continuously syncs the whole chain (default: false)")
-}
-
 func addIgnoreSafeguard(v *bool) {
 	flag.BoolVar(v, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
 }
@@ -241,14 +225,6 @@ func addRPCUser(v *string) {
 
 func addRPCPassword(v *string) {
 	flag.StringVar(v, "rpcpassword", "1234pass", "Dash RPC password (default: 1234pass)")
-}
-
-func addStartBlockID(v *uint64) {
-	flag.Uint64Var(v, "start", 0, "Start Block ID")
-}
-
-func addStopBlockID(v *uint64) {
-	flag.Uint64Var(v, "stop", 0, "Stop Block ID")
 }
 
 func addIsPrintStatus(v *bool) {

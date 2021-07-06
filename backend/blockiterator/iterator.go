@@ -2,9 +2,6 @@ package blockiterator
 
 import (
 	"backend/cmd/cliutil"
-	dbstat "backend/db/status"
-	"backend/external"
-
 	"context"
 	"errors"
 	"fmt"
@@ -24,23 +21,22 @@ type BlockIterator interface {
 	// Iterate does one execution loop
 	// false -> stop execution
 	Iterate() (bool, error)
-	// GetHighestAvailableBlock returns the highest block id/height which the
-	// iterator can process at the time of the call
-	GetHighestAvailableBlock() (uint64, error)
+	// NextBlock tries to increase the internal state to the next block. Returns false if this fails.
+	// This will be called periodically when Empty returns true. Should return true if the state
+	//transition was successful.
+	NextBlock() (bool, error)
 	// PostExecution is always executed, even if PreLoop or Loop fail.
 	// This function should do operations like the setting the database status
 	PostExecution() error
-	IncrementState()
-	SetState(State)
-
+	IncrementState() error
 	// Empty returns true if the BlockIterator has no more data to iterate on.
 	// This happens if State.ID is higher than State.Top
 	Empty() bool
+	// CurrentBlock returns the height of the block which is currently processed
+	CurrentBlock() uint64
 
 	Logger() *log.Logger
 	Context() context.Context
-	Db() external.Database
-	State() State
 	Name() string
 }
 
@@ -58,7 +54,7 @@ func (s State) String() string {
 }
 
 func info(iterator BlockIterator, v ...interface{}) {
-	iterator.Logger().Println(append([]interface{}{iterator.Name()}, v...))
+	iterator.Logger().Println(append([]interface{}{iterator.Name()}, v...)...)
 }
 
 // StartIteration starts the iteration process
@@ -82,7 +78,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
-	info(iterator, "starting at:", iterator.State().ID)
+	info(iterator, "starting at:", iterator.CurrentBlock())
 
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
@@ -121,7 +117,10 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 
 		// set next state
-		iterator.IncrementState()
+		if incErr := iterator.IncrementState(); err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+			return
+		}
 
 		// metrics
 		numIteratedBlocks++
@@ -137,11 +136,9 @@ func StartIteration(iterator BlockIterator) (err error) {
 // if the next block is available, currentBlock gets updated
 func waitForNextDbBlockID(it BlockIterator) (isInterrupt bool, err error) {
 	ctx := it.Context()
-	dgraph := it.Db()
-
-	currentState := it.State()
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -153,25 +150,10 @@ func waitForNextDbBlockID(it BlockIterator) (isInterrupt bool, err error) {
 				return
 			}
 
-			status, statusError := dbstat.GetCrawlerStatus(dgraph)
-			if statusError != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusError)
+			if ok, nextErr := it.NextBlock(); err != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), nextErr)
 				return
-			}
-
-			highestBlock, highErr := it.GetHighestAvailableBlock()
-			if highErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), highErr)
-				return
-			}
-
-			if highestBlock >= currentState.ID {
-				if *status.LowestBlockID > currentState.ID {
-					currentState.ID = *status.LowestBlockID
-				}
-
-				it.SetState(State{currentState.ID, highestBlock})
-
+			} else if ok {
 				return
 			}
 		}

@@ -4,7 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/external"
-
 	"errors"
 	"fmt"
 	"runtime"
@@ -68,13 +67,33 @@ func loadAddresses(c external.Database, g *UndirectedGraph, transactionGraph *Re
 			uidsToLoad = []string{}
 		}
 
-		n := transactionGraph.From(txNodes.Node().ID())
-		if n.Len() == 0 {
-			uidsToLoad = append(uidsToLoad, txNodes.Node().(transactionNode).String())
+		txNode := txNodes.Node().(transactionNode)
+		if isEndpoint(transactionGraph, txNodes.Node().ID()) {
+			uidsToLoad = append(uidsToLoad, txNode.String())
 		}
 	}
 
 	return nil
+}
+
+func isEndpoint(transactionGraph *ReversibleGraph, nodeID int64) bool {
+	if transactionGraph.From(nodeID).Len() == 0 {
+		// no connections -> must be an endpoint
+		return true
+	} else {
+		txNode := transactionGraph.Node(nodeID).(transactionNode)
+		if !txNode.privacyType.IsMixing() {
+			// check if the non mixing node has a mixing node as a parent
+			parentNodes := transactionGraph.To(txNode.ID())
+			for parentNodes.Next() {
+				if parentNodes.Node().(transactionNode).privacyType.IsMixing() {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 // LoadAddressGraph returns a graph containing all origins of transactionGraph and their input addresses
@@ -121,12 +140,12 @@ func verifyAddressGraph(g *UndirectedGraph) error {
 		nodeID = node.ID()
 
 		if g.From(nodeID).Len() == 0 {
-			return errors.New("error node exists with no edges")
+			return fmt.Errorf("error node %s has no edges", toHex(nodeID))
 		}
 
 		_, ok = node.(addressGraphNode)
 		if !ok {
-			return fmt.Errorf("error node has wrong type: %T", node)
+			return fmt.Errorf("error node %s has wrong type: %T", toHex(node.ID()), node)
 		}
 	}
 

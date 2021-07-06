@@ -13,7 +13,7 @@ type DummyOrigin struct {
 	UID string `json:"uid,omitempty"`
 }
 
-// Heuristic is the database type represenation of a heuristic
+// Heuristic is the database type representation of a heuristic
 type Heuristic struct {
 	UID           string `json:"uid,omitempty"`
 	HeuristicType string `json:"type,omitempty"`

@@ -327,6 +327,22 @@ export default {
           action: this.addNewHeuristic,
         },
         {
+          id: 'time_constraint',
+          parameter: {
+            value: 48,
+            description: 'Look back time in hours',
+            rule: [(v) => {
+              if (!/^\d+$/.test(v)) return false;
+              const num = parseInt(v, 10);
+              return Number.isInteger(num) && num > 0;
+            }],
+            valid: false,
+          },
+          title: 'Time Constraint',
+          description: 'Filters by time.',
+          action: this.addNewHeuristic,
+        },
+        {
           id: 'global_amount',
           title: 'Global Amount',
           description: 'The amount heuristic filters all origins of sources, which do not have equal or '

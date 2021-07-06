@@ -9,7 +9,6 @@ import (
 	dbtx "backend/db/transaction"
 	"backend/external"
 
-	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -23,9 +22,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 const (
@@ -54,21 +50,27 @@ var (
 )
 
 // holds the current state of the crawling processing loop
-type crawlerProcessingState struct {
+type crawlerState struct {
 	// current block id
 	id uint64
+	// top is the last seen highest block id
+	top uint64
 	// current block hash
 	hash string
 	// current block hash as a chainhash.Hash
 	chainHash *chainhash.Hash
 }
 
-func (p crawlerProcessingState) String() string {
+func (p crawlerState) String() string {
 	return fmt.Sprintf("ID: %d, Hash: %s", p.id, p.hash)
 }
 
 // increments the state for the next processing loop
-func (p *crawlerProcessingState) increment(nextHash string) (err error) {
+func (p *crawlerState) increment(nextHash string) (err error) {
+	if nextHash == "" {
+		return
+	}
+
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -77,6 +79,7 @@ func (p *crawlerProcessingState) increment(nextHash string) (err error) {
 
 	p.hash = nextHash
 	p.id++
+
 	return
 }
 
@@ -229,7 +232,7 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
 func BuildTransactionMapping(dgraph external.Database, rawTransaction btcjson.TxRawResult,
-	txHashMap map[string]btcjson.TxRawResult, isContinuous bool, config Config) (
+	txHashMap map[string]btcjson.TxRawResult, config Config) (
 	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
@@ -250,9 +253,7 @@ func BuildTransactionMapping(dgraph external.Database, rawTransaction btcjson.Tx
 	if !isCoinbaseTransaction {
 		if len(rawTransaction.Vin) == len(txDetails.Inputs) {
 			foundAllInputs = true
-		} else if isContinuous {
-			// Only create error if this is a continuous crawl. If it is not a continuous crawl, missing inputs are
-			// expected as we only consider outputs created in the given block range
+		} else {
 			err = fmt.Errorf("not all inputs where found in transaction %s", rawTransaction.Txid)
 			return
 		}
@@ -460,7 +461,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 	return
 }
 
-// getRPCNumberOfBlocks returns the number of blocks currently processed by the RPC client
+// getRPCNumberOfBlocks returns the number of blocks currently in the chain of the RPC client
 func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	rpcInfo, err := client.GetBlockChainInfo()
 	if err != nil {
@@ -475,7 +476,7 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 }
 
 // getInitialState creates the initial state of the processing loop
-func getInitialState(dgraph external.Database, client external.RPCClient, continuous bool, startID uint64) (state crawlerProcessingState, err error) {
+func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errorBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -484,244 +485,22 @@ func getInitialState(dgraph external.Database, client external.RPCClient, contin
 		info(errorBlockIdsDoNotMatch.Error(), "continuing...")
 	}
 
-	if !continuous && startID > state.id {
-		state.id = startID
-	}
-
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 	state.hash = state.chainHash.String()
 
+	// get RPC client block count
+	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
+	if rpcErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+		return
+	}
+
+	state.top = numBlocks
+
 	return
-}
-
-// ProcessBlockRange processes all blocks from startingBlockId to stoppingBlockId
-func ProcessBlockRange(ctx context.Context, dgraph external.Database, client external.RPCClient,
-	startingBlockID uint64, stoppingBlockID uint64, config Config) error {
-
-	if err := dbstat.SetCrawling(dgraph, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	defer func() {
-		if err := dbstat.SetCrawling(dgraph, false); err != nil {
-			info("could not set crawling status:", err)
-			return
-		}
-	}()
-
-	state, err := getInitialState(dgraph, client, false, startingBlockID)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	status, err := dbstat.GetCrawlerStatus(dgraph)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	var isEmptyDatabase bool
-	if status.LastBlockID == nil {
-		isEmptyDatabase = true
-	}
-
-	var blkCounter int64
-	var txCounter int64
-
-	info("Starting crawling at", state)
-
-	timerStart := time.Now()
-	// Main loop
-
-	var currentBlock *btcjson.GetBlockVerboseResult
-
-	blocksProcessed, transactionsProcessed, lastBlockHeight := getMetrics()
-
-	lastBlockHeight.Set(float64(state.id))
-
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			processingInterrupted()
-			break mainLoop
-		default:
-			// we do nothing
-		}
-
-		// get block from RPC-Client
-		currentBlock, err = client.GetBlockVerbose(state.chainHash)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		// do the actual processing and aggregate the resulting metrics
-		if rBlockCounter, rTransactionCounter,
-			err := ProcessRound(dgraph, client, state, currentBlock, isEmptyDatabase, false, config); err == nil {
-			blocksProcessed.Add(float64(rBlockCounter))
-			transactionsProcessed.Add(float64(rTransactionCounter))
-			lastBlockHeight.Set(float64(state.id))
-			blkCounter += rBlockCounter
-			txCounter += rTransactionCounter
-			isEmptyDatabase = false
-		} else {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		if state.id >= stoppingBlockID || currentBlock.NextHash == "" {
-			// finished
-			break
-		}
-
-		if err = state.increment(currentBlock.NextHash); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
-
-	printMetrics(state, blkCounter, txCounter, time.Since(timerStart))
-
-	return nil
-}
-
-// printMetrics prints the given metrics
-func printMetrics(state crawlerProcessingState, blkCounter int64, txCounter int64, elapsedTime time.Duration) {
-	if blkCounter > 0 {
-		info("Last Block:", state)
-		info("New blocks inserted:", blkCounter)
-		info("Final TX count:", txCounter)
-		info("Elapsed time:", elapsedTime)
-		info("Performance:", elapsedTime.Milliseconds()/blkCounter, "ms/block")
-	} else {
-		info("Processed no new blocks")
-		info("Final TX count:", txCounter)
-		info("Elapsed time", elapsedTime)
-	}
-}
-
-// getMetrics returns the metric variables for block and transaction counting
-func getMetrics() (blk, tx prometheus.Counter, height prometheus.Gauge) {
-	return promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_crawler_blocks_processed_total",
-			Help: "The total number of blocks processed by the crawler",
-		}), promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_crawler_transactions_processed_total",
-			Help: "The total number of transactions processed by the crawler",
-		}), promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_crawler_last_block",
-			Help: "The last processed block by the crawler",
-		})
-}
-
-// ProcessBlocksContinuously processes all blocks provided by the RPC client continuously
-func ProcessBlocksContinuously(ctx context.Context, dgraph external.Database,
-	client external.RPCClient, config Config) error {
-	if err := dbstat.SetCrawling(dgraph, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	defer func() {
-		if err := dbstat.SetCrawling(dgraph, false); err != nil {
-			info("could not set crawling status:", err)
-			return
-		}
-	}()
-
-	state, err := getInitialState(dgraph, client, true, 0)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	status, err := dbstat.GetCrawlerStatus(dgraph)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	var isEmptyDatabase bool
-	if status.LastBlockID == nil {
-		isEmptyDatabase = true
-	}
-
-	var blkCounter int64
-	var txCounter int64
-
-	info("Starting crawling at", state)
-
-	timerStart := time.Now()
-	// Main loop
-
-	firstLoop := true
-	var currentBlock *btcjson.GetBlockVerboseResult
-
-	blocksProcessed, transactionsProcessed, lastBlockHeight := getMetrics()
-	lastBlockHeight.Set(float64(state.id))
-mainLoop:
-	for {
-		select {
-		case <-ctx.Done():
-			processingInterrupted()
-			break mainLoop
-		default:
-			// we do nothing
-		}
-
-		if !firstLoop {
-			// get RPC client block count
-			numBlocks, rpcErr := getRPCNumberOfBlocks(client)
-			if rpcErr != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
-			}
-			// set values for this round
-			if currentBlock.NextHash == "" || numBlocks < state.id+config.ForkRangeLimit {
-				info("Waiting for next block.", state)
-				var isInterrupt bool
-				// can not used short hand declaration, because it would mask currentBlock in the outer scope
-				currentBlock, isInterrupt, err = waitForNextRPCBlock(client, ctx.Done(), state.chainHash, numBlocks, config)
-				if err != nil {
-					return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-				}
-
-				if isInterrupt {
-					break mainLoop
-				}
-
-				info("Found next block. Old state:", state)
-			}
-		}
-
-		// if not first round -> increment state
-		if !firstLoop {
-			if err = state.increment(currentBlock.NextHash); err != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			}
-		}
-
-		firstLoop = false
-		// get block from RPC-Client
-		currentBlock, err = client.GetBlockVerbose(state.chainHash)
-		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		// do the actual processing and aggregate the resulting metrics
-		if rBlockCounter, rTransactionCounter, processErr := ProcessRound(dgraph, client, state, currentBlock,
-			isEmptyDatabase, true, config); processErr == nil {
-			blocksProcessed.Add(float64(rBlockCounter))
-			transactionsProcessed.Add(float64(rTransactionCounter))
-			lastBlockHeight.Set(float64(state.id))
-			blkCounter += rBlockCounter
-			txCounter += rTransactionCounter
-			isEmptyDatabase = false
-		} else {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
-			return err
-		}
-	}
-
-	printMetrics(state, blkCounter, txCounter, time.Since(timerStart))
-
-	return nil
 }
 
 // createTransactionHashmap creates a hash map of btcjson.TxRawResult
@@ -746,8 +525,8 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 
 // ProcessRound process the given block. Hat includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerProcessingState,
-	block *btcjson.GetBlockVerboseResult, setLowestID bool, isContinuous bool, config Config) (
+func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerState,
+	block *btcjson.GetBlockVerboseResult, setLowestID bool, config Config) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []TransactionMapping
 	var transactions []dbtx.Transaction
@@ -759,7 +538,7 @@ func ProcessRound(dgraph external.Database, client external.RPCClient, state cra
 	}
 
 	for _, t := range txHashMap {
-		newTx, tMap, buildErr := BuildTransactionMapping(dgraph, t, txHashMap, isContinuous, config)
+		newTx, tMap, buildErr := BuildTransactionMapping(dgraph, t, txHashMap, config)
 		if buildErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), buildErr)
 			return

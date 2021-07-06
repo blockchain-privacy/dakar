@@ -60,10 +60,10 @@ func initAllLoggers() {
 }
 
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.Continuous, cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.StartBlockID,
-		cli.StopBlockID, cli.IsPrintStatus, cli.RPCHost, cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard,
-		cli.DisableHTTPServer, cli.DisableHeuristics, cli.DisableCrawler, cli.DisableClassifier,
-		cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
+	cliArgs, err = cli.BuildArgs(cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.IsPrintStatus, cli.RPCHost,
+		cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard, cli.DisableHTTPServer, cli.DisableHeuristics,
+		cli.DisableCrawler, cli.DisableClassifier, cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC,
+		cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -79,31 +79,6 @@ func getCLIArgs() (cliArgs cli.Arguments, err error) {
 				"Only one selected blockchain is allowed"))
 		}
 
-		return
-	}
-
-	if !cliArgs.DisableCrawler && !cliArgs.Continuous && (cliArgs.StartBlockID == 0 || cliArgs.StopBlockID == 0) {
-		flag.PrintDefaults()
-		err = errors.New("select crawling mode")
-		return
-	}
-
-	if cliArgs.DisableCrawler && (cliArgs.StartBlockID > 0 || cliArgs.StopBlockID > 0 || cliArgs.Continuous) {
-		flag.PrintDefaults()
-		err = errors.New("enable crawler to use additional arguments")
-		return
-	}
-
-	if cliArgs.Continuous && (cliArgs.StartBlockID > 0 || cliArgs.StopBlockID > 0) {
-		flag.PrintDefaults()
-		err = errors.New("continuous syncing can not be used together with start and stop block id")
-		return
-	}
-
-	// startBlockID must be smaller or equal than stopBlockID, as we go forward
-	if cliArgs.StartBlockID > cliArgs.StopBlockID {
-		flag.PrintDefaults()
-		err = errors.New("start must be smaller or equal than stop")
 		return
 	}
 
@@ -418,13 +393,13 @@ func main() {
 		}
 	}
 
-	// We will handle CTRL-C and CTRL-Z nicely
+	// handle shutdown signals
 	chSignal := make(chan os.Signal, 1)
 	signal.Notify(chSignal, os.Interrupt, syscall.SIGTERM)
 
 	appContext, terminateApp := context.WithCancel(context.Background())
 
-	// channels which are set to true as soon as the associated go routine stops
+	// channels which are set to true as soon as the associated goroutine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
 
@@ -439,15 +414,10 @@ func main() {
 			defer func() {
 				chCrawlingStopped <- true
 			}()
-			if cliArgs.Continuous {
-				err = processor.ProcessBlocksContinuously(appContext, graphDB, client, processorConfig)
-			} else {
-				err = processor.ProcessBlockRange(appContext, graphDB, client, cliArgs.StartBlockID,
-					cliArgs.StopBlockID, processorConfig)
-			}
 
-			if err != nil {
-				info(err)
+			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
+				appContext, graphDB, client, processorConfig)); processorErr != nil {
+				info(processorErr)
 			}
 		}()
 	}
