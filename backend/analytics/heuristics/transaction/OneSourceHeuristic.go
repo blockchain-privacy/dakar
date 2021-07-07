@@ -178,10 +178,5 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		}
 	}
 
-	var filteredOrigins []string
-	for k := range remainingOrigins {
-		filteredOrigins = append(filteredOrigins, k)
-	}
-
-	return filteredOrigins, nil
+	return getKeySlice(remainingOrigins), nil
 }

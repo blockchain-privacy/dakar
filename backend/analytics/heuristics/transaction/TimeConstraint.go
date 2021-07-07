@@ -108,5 +108,5 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	return mapToSlice(allTimeLimitedOrigins), nil
+	return getKeySlice(allTimeLimitedOrigins), nil
 }
