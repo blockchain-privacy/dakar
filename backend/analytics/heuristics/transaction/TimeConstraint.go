@@ -64,7 +64,9 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]string, error) {
-	var origins []string
+	// holds all origins from either the parent heuristic or the associated destination transaction
+	originLimit := make(map[string]bool)
+
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
 		// get origins from parent heuristic
@@ -78,7 +80,7 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		for _, o := range parentHeuristic.Origins {
-			origins = append(origins, o.UID)
+			originLimit[o.UID] = true
 		}
 	}
 
@@ -89,12 +91,6 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	allTimeLimitedOrigins := make(map[string]bool)
-	// holds all origins from either the parent heuristic or the associated destination transaction
-	originLimit := make(map[string]bool)
-
-	for _, o := range origins {
-		originLimit[o] = true
-	}
 
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
@@ -112,11 +108,5 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	// convert map to string slice
-	var filteredOrigins []string
-	for k := range allTimeLimitedOrigins {
-		filteredOrigins = append(filteredOrigins, k)
-	}
-
-	return filteredOrigins, nil
+	return mapToSlice(allTimeLimitedOrigins), nil
 }
