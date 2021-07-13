@@ -543,14 +543,16 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 					q(func: uid($uid))@cascade{
 						~user_heuristics@filter(uid($uuid))
 						uid
-						results@normalize{
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-							tx_inputs{ 
-								~addr_outputs{
-									addresshash:addresshash
+						results{
+							origin@normalize{
+								txhash:txhash
+								~transactions{
+									ts:ts
+								}
+								tx_inputs{ 
+									~addr_outputs{
+										addresshash:addresshash
+									}
 								}
 							}
 						}
@@ -567,7 +569,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	// json struct
 	var r struct {
-		Heuristics []FrontendHeuristic `json:"q,omitempty"`
+		Heuristics []FrontendHeuristicResponse `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -591,8 +593,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	for _, result := range results {
 		k := mapKey{
-			txHash:  result.TxHash,
-			address: result.AddressHash,
+			txHash:  result.Origin[0].TxHash,
+			address: result.Origin[0].AddressHash,
 		}
 
 		// check if the address and tx combination already exists
@@ -601,12 +603,21 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		}
 
 		txAddressMap[k] = true
-		filteredResults = append(filteredResults, result)
+		filteredResults = append(filteredResults, FrontendHeuristicResult{
+			Origin: result.Origin[0],
+		})
 	}
 
-	r.Heuristics[0].Results = filteredResults
-
-	frontendHeuristic = r.Heuristics[0]
+	frontendHeuristic = FrontendHeuristic{
+		UID:             r.Heuristics[0].UID,
+		Timestamp:       r.Heuristics[0].Timestamp,
+		Type:            r.Heuristics[0].Type,
+		Parameter:       r.Heuristics[0].Parameter,
+		ParentHeuristic: r.Heuristics[0].ParentHeuristic,
+		ChildHeuristics: r.Heuristics[0].ChildHeuristics,
+		ResultCount:     r.Heuristics[0].ResultCount,
+		Results:         filteredResults,
+	}
 
 	return
 }
@@ -636,15 +647,17 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 					children: ~parent_heuristic{
 						uid
 					}
-					results@normalize{
-						uid:uid
-						txhash:txhash
-						~transactions{
-							ts:ts
-						}
-						tx_inputs{ 
-							~addr_outputs{
-								addresshash:addresshash
+					results{
+						origin@normalize{
+							uid:uid
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+							tx_inputs{ 
+								~addr_outputs{
+									addresshash:addresshash
+								}
 							}
 						}
 					}
@@ -661,7 +674,7 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 
 	// json struct
 	var r struct {
-		Heuristics  []FrontendHeuristic         `json:"q,omitempty"`
+		Heuristics  []FrontendHeuristicResponse `json:"q,omitempty"`
 		Transaction []FrontendHeuristicComplete `json:"t,omitempty"`
 	}
 
@@ -678,22 +691,30 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 
 	completeHeuristic = r.Transaction[0]
 
-	for i, h := range r.Heuristics {
+	for _, h := range r.Heuristics {
 		transactions := make(map[string]bool)
 
 		var results []FrontendHeuristicResult
 		for _, r := range h.Results {
 			// only append a result once per transaction
-			if transactions[r.UID] {
+			if transactions[r.Origin[0].UID] {
 				continue
 			}
-			results = append(results, r)
-			transactions[r.UID] = true
+			results = append(results, FrontendHeuristicResult{Origin: r.Origin[0]})
+			transactions[r.Origin[0].UID] = true
 		}
-		r.Heuristics[i].Results = results
-	}
 
-	completeHeuristic.Heuristics = r.Heuristics
+		completeHeuristic.Heuristics = append(completeHeuristic.Heuristics, FrontendHeuristic{
+			UID:             r.Heuristics[0].UID,
+			Timestamp:       r.Heuristics[0].Timestamp,
+			Type:            r.Heuristics[0].Type,
+			Parameter:       r.Heuristics[0].Parameter,
+			ParentHeuristic: r.Heuristics[0].ParentHeuristic,
+			ChildHeuristics: r.Heuristics[0].ChildHeuristics,
+			ResultCount:     r.Heuristics[0].ResultCount,
+			Results:         results,
+		})
+	}
 
 	return
 }

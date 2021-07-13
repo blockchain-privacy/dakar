@@ -103,10 +103,12 @@ func (f FrontendHeuristicComplete) String() string {
 
 // FrontendHeuristicResult holds heuristic result data which is exposed to the frontend
 type FrontendHeuristicResult struct {
-	UID         string `json:"uid,omitempty"`
-	Timestamp   string `json:"ts,omitempty"`
-	AddressHash string `json:"addresshash,omitempty"`
-	TxHash      string `json:"txhash,omitempty"`
+	Origin struct {
+		UID         string `json:"uid,omitempty"`
+		Timestamp   string `json:"ts,omitempty"`
+		AddressHash string `json:"addresshash,omitempty"`
+		TxHash      string `json:"txhash,omitempty"`
+	} `json:"origin,omitempty"`
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend
@@ -119,6 +121,25 @@ type FrontendHeuristic struct {
 	ChildHeuristics []Heuristic               `json:"children,omitempty"`
 	ResultCount     int                       `json:"num_results,omitempty"`
 	Results         []FrontendHeuristicResult `json:"results,omitempty"`
+}
+
+// FrontendHeuristicResponse holds all heuristic data of a heuristic frontend response
+type FrontendHeuristicResponse struct {
+	UID             string      `json:"uid,omitempty"`
+	Timestamp       string      `json:"ts,omitempty"`
+	Type            string      `json:"type,omitempty"`
+	Parameter       string      `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic `json:"children,omitempty"`
+	ResultCount     int         `json:"num_results,omitempty"`
+	Results         []struct {
+		Origin []struct {
+			UID         string `json:"uid,omitempty"`
+			Timestamp   string `json:"ts,omitempty"`
+			AddressHash string `json:"addresshash,omitempty"`
+			TxHash      string `json:"txhash,omitempty"`
+		} `json:"origin,omitempty"`
+	} `json:"results,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request

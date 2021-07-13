@@ -282,7 +282,9 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 		// headers for streaming data to client
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-		w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+		// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+		//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
 
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
@@ -323,10 +325,10 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 				row = append(row, h.Timestamp)
 
 				// per origin information
-				row = append(row, result.UID)
-				row = append(row, result.TxHash)
-				row = append(row, result.Timestamp)
-				row = append(row, result.AddressHash)
+				row = append(row, result.Origin.UID)
+				row = append(row, result.Origin.TxHash)
+				row = append(row, result.Origin.Timestamp)
+				row = append(row, result.Origin.AddressHash)
 				//row = append(row, strconv.Itoa(shortestPaths[result.UID]))
 
 				if err = csvWriter.Write(row); err != nil {
