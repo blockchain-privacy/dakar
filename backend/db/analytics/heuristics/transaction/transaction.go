@@ -191,7 +191,12 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 					type
 					parameter
 					results{
-						uid
+						origin {
+							uid
+						}
+						destinations {
+							uid
+						}
 					}
 					ts
 					h_transaction{
@@ -233,7 +238,7 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction, err error) {
 	query := `query Q($uid: string) {
 				var (func: uid($uid)){
-					x as results
+					results { x as origin }
 				}
 				
 				q(func: uid(x)){
