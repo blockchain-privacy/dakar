@@ -118,7 +118,30 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 		return
 	}
 
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || (ok && v == 0) {
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+		return ErrNoMutationHappened
+	}
+
+	return
+}
+
+// DeleteAllHeuristics deletes all heuristics
+func DeleteAllHeuristics(c external.Database) (err error) {
+	req := &api.Request{
+		Query: "query Q{h as var(func: type(TransactionHeuristic))\nu as var(func: type(User))}",
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(h) * * .\nuid(u) <user_heuristics> * ."),
+		}},
+		CommitNow: true,
+	}
+
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
 		return ErrNoMutationHappened
 	}
 
@@ -151,7 +174,7 @@ func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID strin
 		return
 	}
 
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || (ok && v == 0) {
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
 		return ErrNoMutationHappened
 	}
 
