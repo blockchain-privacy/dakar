@@ -61,6 +61,9 @@ func SetupSchema(c external.Database) error {
 			user_modified: dateTime @index(day) .
 			user_heuristics: [uid] @reverse .
 
+			origin: uid @reverse .
+			destinations: [uid] @reverse .
+
 			type Block {
 				blockhash
 				id
@@ -118,6 +121,11 @@ func SetupSchema(c external.Database) error {
 				results
 				ts
 				parent_heuristic
+			}
+
+			type TransactionHeuristicResult {
+				origin
+				destinations
 			}
 
 			type Role {
@@ -239,6 +247,21 @@ func AlterSchemaSetTransactionType(c external.Database) error {
 				<~transactions>
 				tx_outputs
 				tx_inputs
+			}
+		`,
+	})
+}
+
+// AlterSchemaAddHeuristicResult adds the heuristic result type
+func AlterSchemaAddHeuristicResult(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			origin: uid @reverse .
+			destinations: [uid] @reverse .
+
+			type TransactionHeuristicResult {
+				origin
+				destinations
 			}
 		`,
 	})
