@@ -7,10 +7,24 @@ import (
 
 // DType is the dgraph database type for the TransactionHeuristic type
 const DType = "TransactionHeuristic"
+const ResultDType = "TransactionHeuristicResult"
 
-// DummyOrigin holds only the uid of the transaction
-type DummyOrigin struct {
+// DummyNode holds the uid of a database node
+type DummyNode struct {
 	UID string `json:"uid,omitempty"`
+}
+
+// HeuristicResult holds one result (origin) of a heuristic and
+// optionally the results of a forward lookup (destinations)
+type HeuristicResult struct {
+	Origin       DummyNode   `json:"origin,omitempty"`
+	Destinations []DummyNode `json:"destinations,omitempty"`
+	DType        []string    `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (r *HeuristicResult) SetDType() {
+	r.DType = []string{ResultDType}
 }
 
 // Heuristic is the database type representation of a heuristic
@@ -22,10 +36,10 @@ type Heuristic struct {
 	Transaction   struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"h_transaction,omitempty"`
-	Timestamp       string        `json:"ts,omitempty"`
-	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
-	ChildHeuristics []Heuristic   `json:"~parent_heuristic,omitempty"`
-	Origins         []DummyOrigin `json:"results,omitempty"`
+	Timestamp       string            `json:"ts,omitempty"`
+	ParentHeuristic []Heuristic       `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic       `json:"~parent_heuristic,omitempty"`
+	Results         []HeuristicResult `json:"results,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step

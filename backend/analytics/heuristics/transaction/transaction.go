@@ -319,11 +319,11 @@ func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		return
 	}
 
-	// do not upsert heuristic for now
-	var dummyOrigins []dbtxh.DummyOrigin
-
+	var heuristicResults []dbtxh.HeuristicResult
 	for _, o := range originUIDs {
-		dummyOrigins = append(dummyOrigins, dbtxh.DummyOrigin{UID: o})
+		r := dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: o}}
+		r.SetDType()
+		heuristicResults = append(heuristicResults, r)
 	}
 
 	// only set parent heuristic if uid is provided
@@ -334,7 +334,7 @@ func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 
 	thisUID, err = dbtxh.InsertHeuristic(dgraph, dbtxh.Heuristic{
 		HeuristicType:   h.getType(),
-		Origins:         dummyOrigins,
+		Results:         heuristicResults,
 		Parameter:       h.getParameterString(),
 		ParentHeuristic: pHeuristic,
 		TxHash:          txHash,

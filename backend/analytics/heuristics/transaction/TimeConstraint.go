@@ -75,12 +75,12 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(parentHeuristic.Origins) == 0 {
+		if len(parentHeuristic.Results) == 0 {
 			return nil, ErrorNoOriginsAtStart
 		}
 
-		for _, o := range parentHeuristic.Origins {
-			originLimit[o.UID] = true
+		for _, r := range parentHeuristic.Results {
+			originLimit[r.Origin.UID] = true
 		}
 	}
 

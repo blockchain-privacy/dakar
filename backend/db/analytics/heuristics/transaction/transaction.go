@@ -27,6 +27,9 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 	h.SetDType()
 	h.Timestamp = time.Now().UTC().Format(time.RFC3339)
 
+	const newHeuristicDummyUID = "new_h"
+	h.UID = "_:" + newHeuristicDummyUID
+
 	var query string
 
 	// if TxHash is not empty we have to search for the transaction uid
@@ -62,17 +65,10 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
-
-	uids := resp.GetUids()
-	if len(uids) != 1 {
-		err = errors.New(fmt.Sprintln("invalid number of heuristics inserted. Heuristic count:",
-			len(resp.GetUids())))
+	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
+	if !ok {
+		err = errors.New(fmt.Sprintln("no new heuristic created"))
 		return
-	}
-
-	// uids has only one element, so insertUID is only set once
-	for _, u := range uids {
-		insertUID = u
 	}
 
 	return
