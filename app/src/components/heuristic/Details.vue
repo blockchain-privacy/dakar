@@ -172,11 +172,13 @@ export default {
       let highestDate = null;
 
       graphData.forEach((v) => {
-        v.dateTime = new Date(v.ts);
-        if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
-        if (highestDate === null || highestDate < v.dateTime) highestDate = v.dateTime;
+        v.origin.dateTime = new Date(v.origin.ts);
+        if (lowestDate === null || lowestDate > v.origin.dateTime) lowestDate = v.origin.dateTime;
+        if (highestDate === null || highestDate < v.origin.dateTime) {
+          highestDate = v.origin.dateTime;
+        }
 
-        detailArray.push(v);
+        detailArray.push(v.origin);
       });
 
       const duration = highestDate - lowestDate;

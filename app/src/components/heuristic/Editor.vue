@@ -353,6 +353,12 @@ export default {
           action: this.addNewHeuristic,
         },
         {
+          id: 'forward_amount',
+          title: 'Forward Global Amount',
+          description: 'todo',
+          action: this.addNewHeuristic,
+        },
+        {
           id: 'perfect_match',
           title: 'Perfect Match',
           description: 'The perfect match heuristic filters all origins of sources, which have denominations '
@@ -495,14 +501,14 @@ export default {
         const addressMap = new Map();
         results.forEach((d) => {
           // if key already exists
-          if (addressMap.has(d.addresshash)) {
-            const origins = addressMap.get(d.addresshash);
-            origins.push({ txhash: d.txhash, ts: d.ts });
-            addressMap.set(d.addresshash, origins);
+          if (addressMap.has(d.origin.addresshash)) {
+            const origins = addressMap.get(d.origin.addresshash);
+            origins.push({ txhash: d.origin.txhash, ts: d.origin.ts });
+            addressMap.set(d.origin.addresshash, origins);
             return;
           }
           // new entry
-          addressMap.set(d.addresshash, [{ txhash: d.txhash, ts: d.ts }]);
+          addressMap.set(d.origin.addresshash, [{ txhash: d.origin.txhash, ts: d.origin.ts }]);
         });
         // append values to context variable
         this.heuristicDetailsMap.set(heuristic.uid, addressMap);
