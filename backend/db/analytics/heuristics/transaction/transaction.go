@@ -78,14 +78,17 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
 	uidList := db.CreateUIDList(uids)
 
-	query := "query Q($uuid:string, $uids:string, $type:string){h as var(func: uid($uids))" +
-		"@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type))}"
+	const query = `query Q($uuid:string, $uids:string, $type:string){
+				h as var(func: uid($uids))@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type)){
+					hr as results
+				}
+			  }`
 
 	req := &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$uuid": userUID, "$uids": uidList, "$type": DType},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(hr) * * .\nuid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -100,10 +103,10 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 // DeleteAllUserHeuristics deletes all heuristics of a user
 func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 	req := &api.Request{
-		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics}}",
+		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics{hr as results}}}",
 		Vars:  map[string]string{"$uuid": userUID},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(hr) * * .\nuid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
@@ -123,6 +126,7 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 
 // DeleteAllHeuristics deletes all heuristics
 func DeleteAllHeuristics(c external.Database) (err error) {
+	// todo also including new heuristic results or remove function completely (was only used for db migration)
 	req := &api.Request{
 		Query: "query Q{h as var(func: type(TransactionHeuristic))\nu as var(func: type(User))}",
 		Mutations: []*api.Mutation{{
@@ -144,14 +148,16 @@ func DeleteAllHeuristics(c external.Database) (err error) {
 	return
 }
 
-// DeleteAllUserTxHeuristics deletes all heuristics of a user for a particular transaction
+// DeleteAllUserTxHeuristics deletes all heuristics of a user of a particular transaction
 func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) (err error) {
 	query := `query Q($uuid:string, $hash:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
 				# get all heuristic of that user and transaction
 				var(func: uid($uuid)){
-					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
+					h as user_heuristics@filter(uid_in(h_transaction, uid(tx))){
+						hr as results
+					}
 				}
 			  }`
 
@@ -159,7 +165,7 @@ func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID strin
 		Query: query,
 		Vars:  map[string]string{"$uuid": userUID, "$hash": txhash},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
+			DelNquads: []byte("uid(hr) * * .\nuid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
 		}},
 		CommitNow: true,
 	}
