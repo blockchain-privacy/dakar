@@ -3,6 +3,7 @@ package main
 import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/heuristics/transaction"
 	"flag"
 	"fmt"
 	"log"
@@ -75,55 +76,71 @@ func main() {
 		return
 	}
 
-	info("classifier migration starting ...")
-	if err := db.AlterSchemaAddClassifier(dgraph); err != nil {
+	// Enable for BTC db upgrade -- START
+
+	//info("classifier migration starting ...")
+	//if err := db.AlterSchemaAddClassifier(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("classifier migration done")
+	//
+	//info("privacytype deletion starting ...")
+	//if err := db.DropAllPrivacyTypes(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("privacytype deletion done")
+	//
+	//info("privacytype migration starting ...")
+	//if err := db.AlterSchemaChangePrivacyTypePredicate(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("privacytype migration done")
+	//
+	//// ---------------- ORIGINS
+	//
+	//info("origins deletion starting ...")
+	//if err := db.DropAllOrigins(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("origins deletion done")
+	//
+	//info("setting transaction type starting ...")
+	//if err := db.AlterSchemaSetTransactionType(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("setting transaction type done")
+	//
+	//// ---------------- ANALYZER
+	//
+	//info("lastanalysedid deletion starting ...")
+	//if err := db.DropLastAnalysedID(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("lastanalysedid deletion done")
+	//
+	//info("isanalyzing deletion starting ...")
+	//if err := db.DropIsAnalyzing(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("isanalyzing migration done")
+	//
+	//info("type AnalyzerStatus deletion starting ...")
+	//if err := db.DropTypeAnalyzerStatus(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("type AnalyzerStatus deletion done")
+
+	// Enable for BTC db upgrade -- END
+
+	info("type adding HeuristicResult starting ...")
+	if err := db.AlterSchemaAddHeuristicResult(dgraph); err != nil {
 		info(err)
 	}
-	info("classifier migration done")
+	info("type adding HeuristicResult starting done")
 
-	info("privacytype deletion starting ...")
-	if err := db.DropAllPrivacyTypes(dgraph); err != nil {
+	info("deletion of all heuristics starting ...")
+	if err := transaction.DeleteAllHeuristics(dgraph); err != nil {
 		info(err)
 	}
-	info("privacytype deletion done")
-
-	info("privacytype migration starting ...")
-	if err := db.AlterSchemaChangePrivacyTypePredicate(dgraph); err != nil {
-		info(err)
-	}
-	info("privacytype migration done")
-
-	// ---------------- ORIGINS
-
-	info("origins deletion starting ...")
-	if err := db.DropAllOrigins(dgraph); err != nil {
-		info(err)
-	}
-	info("origins deletion done")
-
-	info("setting transaction type starting ...")
-	if err := db.AlterSchemaSetTransactionType(dgraph); err != nil {
-		info(err)
-	}
-	info("setting transaction type done")
-
-	// ---------------- ANALYZER
-
-	info("lastanalysedid deletion starting ...")
-	if err := db.DropLastAnalysedID(dgraph); err != nil {
-		info(err)
-	}
-	info("lastanalysedid deletion done")
-
-	info("isanalyzing deletion starting ...")
-	if err := db.DropIsAnalyzing(dgraph); err != nil {
-		info(err)
-	}
-	info("isanalyzing migration done")
-
-	info("type AnalyzerStatus deletion starting ...")
-	if err := db.DropTypeAnalyzerStatus(dgraph); err != nil {
-		info(err)
-	}
-	info("type AnalyzerStatus deletion done")
+	info("deletion of all heuristics done")
 }
