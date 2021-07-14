@@ -343,6 +343,22 @@ export default {
           action: this.addNewHeuristic,
         },
         {
+          id: 'forward_time',
+          parameter: {
+            value: 48,
+            description: 'Look forward time in hours',
+            rule: [(v) => {
+              if (!/^\d+$/.test(v)) return false;
+              const num = parseInt(v, 10);
+              return Number.isInteger(num) && num > 0;
+            }],
+            valid: false,
+          },
+          title: 'Forward Time',
+          description: 'Filters by time.',
+          action: this.addNewHeuristic,
+        },
+        {
           id: 'global_amount',
           title: 'Global Amount',
           description: 'The amount heuristic filters all origins of sources, which do not have equal or '
@@ -350,12 +366,6 @@ export default {
               + 'Note that this is different from the direct input transaction amount filter, as '
               + 'this heuristic only checks the set of origin transactions and sources per destina- '
               + 'tion transaction, not per direct input transaction.',
-          action: this.addNewHeuristic,
-        },
-        {
-          id: 'forward_amount',
-          title: 'Forward Global Amount',
-          description: 'todo',
           action: this.addNewHeuristic,
         },
         {
