@@ -13,14 +13,12 @@ import (
 	"time"
 )
 
-var (
-	// ErrorNoOriginsAtStart defines an error which should be used when no origins are available
-	ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
-)
+// ErrorNoOriginsAtStart defines an error which should be used when no origins are available
+var ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]string, error)
+	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]dbtxh.HeuristicResult, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -213,9 +211,9 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		endpoints, err := g.ReverseLookup(it, dur)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		endpoints, lookupErr := g.ReverseLookup(it, dur)
+		if lookupErr != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
 
 		for k := range endpoints {
@@ -232,16 +230,16 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	return
 }
 
-// getOriginTxDestinationsTimeLimited returns all destinations of the given
-// transaction, for the given time limit.
+// getOriginTxDestinationsTimeLimited returns all destinations
+// of the given transactions limited by time.
 func getOriginTxDestinationsTimeLimited(dgraph external.Database, g *graph.Wrapper,
 	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
 	uidMap := make(map[string]bool)
 	// do forward lookup for all origin transactions
 	for _, it := range originUIDs {
-		endpoints, err := g.ForwardLookupByTime(it, dur)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		endpoints, lookupErr := g.ForwardLookupByTime(it, dur)
+		if lookupErr != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
 
 		for k := range endpoints {
@@ -313,17 +311,15 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 // Exec executes the heuristic on the transaction specified by txHash for the given userUID
 func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
 	userUID string) (thisUID string, err error) {
-	originUIDs, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
+	heuristicResults, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	var heuristicResults []dbtxh.HeuristicResult
-	for _, o := range originUIDs {
-		r := dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: o}}
-		r.SetDType()
-		heuristicResults = append(heuristicResults, r)
+	// set DType
+	for i := range heuristicResults {
+		heuristicResults[i].SetDType()
 	}
 
 	// only set parent heuristic if uid is provided

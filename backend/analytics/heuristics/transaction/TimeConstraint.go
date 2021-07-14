@@ -63,7 +63,7 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]string, error) {
+	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
@@ -108,5 +108,12 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	return getKeySlice(allTimeLimitedOrigins), nil
+	var ret []dbtxh.HeuristicResult
+	for k := range allTimeLimitedOrigins {
+		ret = append(ret, dbtxh.HeuristicResult{
+			Origin: dbtxh.DummyNode{UID: k},
+		})
+	}
+
+	return ret, nil
 }

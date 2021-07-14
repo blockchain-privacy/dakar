@@ -52,7 +52,7 @@ func (h PerfectMatchHeuristic) clone() heuristic {
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction
 func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]string, error) {
+	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
@@ -101,11 +101,11 @@ func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 
 	originAmounts := buildSourceAmounts(origins, clusters)
 
-	var filteredOrigins []string
+	var filteredOrigins []dbtxh.HeuristicResult
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, tx.UID)
+				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

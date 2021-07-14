@@ -52,7 +52,7 @@ func (h DenominationTypeHeuristic) clone() heuristic {
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
 func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]string, error) {
+	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
@@ -102,11 +102,11 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 
 	originAmounts := buildSourceAmounts(origins, clusters)
 
-	var filteredOrigins []string
+	var filteredOrigins []dbtxh.HeuristicResult
 	for k, o := range originAmounts {
 		if hasSameDenominationTypes(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, tx.UID)
+				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

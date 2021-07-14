@@ -50,7 +50,8 @@ func (h AmountHeuristic) clone() heuristic {
 
 // AmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]string, error) {
+func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+	[]dbtxh.HeuristicResult, error) {
 	// origins holds all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
@@ -101,12 +102,13 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 
 	originAmounts := buildSourceAmounts(origins, clusters)
 
-	var filteredOrigins []string
+	var filteredOrigins []dbtxh.HeuristicResult
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
 			// save all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
-				filteredOrigins = append(filteredOrigins, tx.UID)
+
+				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

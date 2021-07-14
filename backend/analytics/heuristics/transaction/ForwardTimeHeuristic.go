@@ -63,9 +63,9 @@ func (h ForwardTimeHeuristic) clone() heuristic {
 // ForwardTimeHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]string, error) {
+	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 
-	var origins []string
+	var hResult []dbtxh.HeuristicResult
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 
@@ -89,17 +89,20 @@ func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, t
 		}
 
 		for _, r := range results {
-			origins = append(origins, r.UID)
+			hResult = append(hResult, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: r.UID}})
 		}
 	}
 
-	for _, o := range origins {
-		destinations, err := getOriginTxDestinationsTimeLimited(dgraph, g, []string{o}, 48*time.Hour)
+	for i, o := range hResult {
+		destinations, err := getOriginTxDestinationsTimeLimited(dgraph, g, []string{o.Origin.UID}, 48*time.Hour)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-		info(o, "number of destinations :", len(destinations))
+
+		for _, v := range destinations {
+			hResult[i].Destinations = append(hResult[i].Destinations, dbtxh.DummyNode{UID: v.UID})
+		}
 	}
 
-	return origins, nil
+	return hResult, nil
 }
