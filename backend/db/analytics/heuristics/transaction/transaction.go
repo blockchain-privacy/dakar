@@ -6,7 +6,6 @@ import (
 	"backend/db"
 	dbtx "backend/db/transaction"
 	"backend/external"
-
 	"context"
 	"encoding/json"
 	"errors"
@@ -538,26 +537,33 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 
 // GetFrontendHeuristicByUID the heuristic for the given heuristicUid
 func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string) (
-	frontendHeuristic FrontendHeuristic, err error) {
-	query := `query Q($uid: string, $uuid: string){
-					q(func: uid($uid))@cascade{
-						~user_heuristics@filter(uid($uuid))
-						uid
-						results{
-							origin@normalize{
-								txhash:txhash
-								~transactions{
-									ts:ts
+	frontendHeuristic FrontendHeuristicShort, err error) {
+	query := `query Q($uid:string,$uuid:string){
+				var(func:uid($uid))@cascade{
+					~user_heuristics@filter(uid($uuid))
+					results {
+						origin {
+							tx_inputs{ 
+								~addr_outputs{
+									a as addresshash
 								}
-								tx_inputs{ 
-									~addr_outputs{
-										addresshash:addresshash
-									}
-								}
+								aa as min(val(a))
 							}
+							aaa as min(val(aa))
 						}
+						source as min(val(aaa))
+						destination_count  as count(destinations)
 					}
-				}`
+				}
+
+				c (func: uid(source)) {
+    				count(uid)
+  				}
+				q(func: uid(source), first:30, orderasc:val(destination_count)){
+					count:val(destination_count)
+					cluster:val(source)
+				}
+			   } `
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
@@ -569,7 +575,10 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	// json struct
 	var r struct {
-		Heuristics []FrontendHeuristicResponse `json:"q,omitempty"`
+		C []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"c,omitempty"`
+		Heuristics []FrontendHeuristicShortItem `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -577,46 +586,29 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		return
 	}
 
-	if len(r.Heuristics) != 1 {
+	if len(r.Heuristics) == 0 || len(r.C) != 1 {
 		err = errors.New("invalid response from database")
 		return
 	}
 
-	type mapKey struct {
-		txHash  string
-		address string
+	filteredMap := make(map[string]int)
+
+	for _, h := range r.Heuristics {
+		filteredMap[h.ClusterID] += h.CountForwardLookup
 	}
 
-	results := r.Heuristics[0].Results
-	var filteredResults []FrontendHeuristicResult
-	txAddressMap := make(map[mapKey]bool)
-
-	for _, result := range results {
-		k := mapKey{
-			txHash:  result.Origin[0].TxHash,
-			address: result.Origin[0].AddressHash,
-		}
-
-		// check if the address and tx combination already exists
-		if txAddressMap[k] {
-			continue
-		}
-
-		txAddressMap[k] = true
-		filteredResults = append(filteredResults, FrontendHeuristicResult{
-			Origin: result.Origin[0],
+	var unique []FrontendHeuristicShortItem
+	for k, v := range filteredMap {
+		unique = append(unique, FrontendHeuristicShortItem{
+			ClusterID:          k,
+			CountForwardLookup: v,
 		})
 	}
 
-	frontendHeuristic = FrontendHeuristic{
-		UID:             r.Heuristics[0].UID,
-		Timestamp:       r.Heuristics[0].Timestamp,
-		Type:            r.Heuristics[0].Type,
-		Parameter:       r.Heuristics[0].Parameter,
-		ParentHeuristic: r.Heuristics[0].ParentHeuristic,
-		ChildHeuristics: r.Heuristics[0].ChildHeuristics,
-		ResultCount:     r.Heuristics[0].ResultCount,
-		Results:         filteredResults,
+	frontendHeuristic = FrontendHeuristicShort{
+		UID:         heuristicUID,
+		ResultCount: r.C[0].Count,
+		Items:       unique,
 	}
 
 	return
