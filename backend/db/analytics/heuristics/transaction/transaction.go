@@ -550,20 +550,25 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 								aa as min(val(a))
 							}
 							aaa as min(val(aa))
+							t as txhash
+							~transactions {
+								time as ts
+							}
+							ttime as min(val(time))
 						}
+						tx as min(val(t))
+						tttime as min(val(ttime))
 						source as min(val(aaa))
-						destination_count  as count(destinations)
 					}
 				}
 
-				c (func: uid(source)) {
-    				count(uid)
-  				}
-				q(func: uid(source), first:30, orderasc:val(destination_count)){
-					count:val(destination_count)
-					cluster:val(source)
+				q(func: uid(source)){
+					c:val(source)
+					tx:val(tx)
+					ts:val(tttime)
+					d:destinations{uid}
 				}
-			   } `
+			   }`
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
@@ -575,10 +580,14 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	// json struct
 	var r struct {
-		C []struct {
-			Count int `json:"count,omitempty"`
-		} `json:"c,omitempty"`
-		Heuristics []FrontendHeuristicShortItem `json:"q,omitempty"`
+		Results []struct {
+			Cluster      string `json:"c,omitempty"`
+			Transaction  string `json:"tx,omitempty"`
+			Timestamp    string `json:"ts,omitempty"`
+			Destinations []struct {
+				UID string `json:"uid,omitempty"`
+			} `json:"d,omitempty"`
+		} `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -586,29 +595,48 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		return
 	}
 
-	if len(r.Heuristics) == 0 || len(r.C) != 1 {
+	if len(r.Results) == 0 {
 		err = errors.New("invalid response from database")
 		return
 	}
 
-	filteredMap := make(map[string]int)
+	clusterDestinations := make(map[string]struct {
+		destinations map[string]bool
+		transactions []FrontendTransactionResult
+	})
+	for _, r := range r.Results {
+		// get tx map
+		txMap := clusterDestinations[r.Cluster]
 
-	for _, h := range r.Heuristics {
-		filteredMap[h.ClusterID] += h.CountForwardLookup
+		txMap.transactions = append(txMap.transactions,
+			FrontendTransactionResult{Hash: r.Transaction, Timestamp: r.Timestamp})
+
+		if txMap.destinations == nil {
+			txMap.destinations = make(map[string]bool)
+		}
+
+		// add transaction uids
+		for _, d := range r.Destinations {
+			txMap.destinations[d.UID] = true
+		}
+
+		// set tx map
+		clusterDestinations[r.Cluster] = txMap
 	}
 
-	var unique []FrontendHeuristicShortItem
-	for k, v := range filteredMap {
-		unique = append(unique, FrontendHeuristicShortItem{
+	var results []FrontendHeuristicShortItem
+	for k, v := range clusterDestinations {
+		results = append(results, FrontendHeuristicShortItem{
 			ClusterID:          k,
-			CountForwardLookup: v,
+			CountForwardLookup: len(v.destinations),
+			Transactions:       v.transactions,
 		})
 	}
 
 	frontendHeuristic = FrontendHeuristicShort{
 		UID:         heuristicUID,
-		ResultCount: r.C[0].Count,
-		Items:       unique,
+		ResultCount: len(clusterDestinations),
+		Results:     results,
 	}
 
 	return

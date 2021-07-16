@@ -142,17 +142,23 @@ type FrontendHeuristicResponse struct {
 	} `json:"results,omitempty"`
 }
 
+type FrontendTransactionResult struct {
+	Timestamp string `json:"ts,omitempty"`
+	Hash      string `json:"txhash,omitempty"`
+}
+
 // FrontendHeuristicShortItem holds the results counts of a heuristic per cluster
 type FrontendHeuristicShortItem struct {
-	ClusterID          string `json:"cluster,omitempty"`
-	CountForwardLookup int    `json:"count,omitempty"`
+	ClusterID          string                      `json:"cluster,omitempty"`
+	Transactions       []FrontendTransactionResult `json:"txs,omitempty"`
+	CountForwardLookup int                         `json:"count,omitempty"`
 }
 
 // FrontendHeuristicShort holds all result counts of a heuristic
 type FrontendHeuristicShort struct {
 	UID         string                       `json:"uid,omitempty"`
-	ResultCount int                          `json:"count,omitempty"`
-	Items       []FrontendHeuristicShortItem `json:"items,omitempty"`
+	ResultCount int                          `json:"num_results,omitempty"`
+	Results     []FrontendHeuristicShortItem `json:"results,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request
