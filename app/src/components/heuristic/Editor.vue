@@ -131,7 +131,7 @@
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
           :new-heuristic-prefix="this.newUidPrefix"
-          :address-map="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+          :cluster-to-transactions="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -491,7 +491,7 @@ export default {
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
 
-      // check if data must be loaded from backend
+      // check if data has to be loaded from backend
       if (heuristic.num_results === undefined || heuristic.num_results === 0
           || this.heuristicDetails.has(heuristic.uid)
           || heuristic.uid.startsWith(this.newUidPrefix)) {
@@ -508,20 +508,7 @@ export default {
 
         if (results.length === 0) return;
 
-        const addressMap = new Map();
-        results.forEach((d) => {
-          // if key already exists
-          if (addressMap.has(d.origin.addresshash)) {
-            const origins = addressMap.get(d.origin.addresshash);
-            origins.push({ txhash: d.origin.txhash, ts: d.origin.ts });
-            addressMap.set(d.origin.addresshash, origins);
-            return;
-          }
-          // new entry
-          addressMap.set(d.origin.addresshash, [{ txhash: d.origin.txhash, ts: d.origin.ts }]);
-        });
-        // append values to context variable
-        this.heuristicDetailsMap.set(heuristic.uid, addressMap);
+        this.heuristicDetailsMap.set(heuristic.uid, results);
 
         sheet.isOpen = true;
       });
