@@ -15,16 +15,16 @@ import (
 type ForwardTimeHeuristic struct {
 	heuristicType        string
 	parameterDescription string
-	lookBackTime         time.Duration
+	lookForwardTime      time.Duration
 }
 
 // NewForwardTimeHeuristic constructs a ForwardTimeHeuristic. hoursToLookBack in hours.
-func NewForwardTimeHeuristic(hoursToLookBack uint32) *ForwardTimeHeuristic {
-	lBackTime := time.Duration(hoursToLookBack) * time.Hour
+func NewForwardTimeHeuristic(hoursToLookForward uint32) *ForwardTimeHeuristic {
+	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
 	return &ForwardTimeHeuristic{
 		heuristicType:        "forward_time",
-		lookBackTime:         lBackTime,
-		parameterDescription: lBackTime.String(),
+		lookForwardTime:      lForwardTime,
+		parameterDescription: lForwardTime.String(),
 	}
 }
 
@@ -45,8 +45,8 @@ func (h *ForwardTimeHeuristic) setParameter(p string) error {
 	if err != nil {
 		return err
 	}
-	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	h.lookBackTime = lBackTime
+
+	h.lookForwardTime = time.Duration(hoursToLookBack) * time.Hour
 	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
 	return nil
 }
@@ -78,7 +78,7 @@ func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, t
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOrigins(dgraph, g, txHash)
+			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*48)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -94,7 +94,7 @@ func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, t
 	}
 
 	for i, o := range hResult {
-		destinations, err := getOriginTxDestinationsTimeLimited(dgraph, g, []string{o.Origin.UID}, 48*time.Hour)
+		destinations, err := getOriginTxDestinationsTimeLimited(dgraph, g, []string{o.Origin.UID}, h.lookForwardTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

@@ -354,8 +354,10 @@ export default {
             }],
             valid: false,
           },
-          title: 'Forward Time',
-          description: 'Filters by time.',
+          title: 'Forward Lookup',
+          description: 'Performs a forward lookup for each origin transaction of the parent heuristic. '
+              + 'If this heuristic is placed at the root level a reverse lookup with 48h '
+              + 'look back time will be performed.',
           action: this.addNewHeuristic,
         },
         {
