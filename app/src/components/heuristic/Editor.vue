@@ -324,7 +324,6 @@ export default {
           },
           title: 'One Source',
           description: 'Filters by time, direct input transaction amount filter and omni sources',
-          action: this.addNewHeuristic,
         },
         {
           id: 'time_constraint',
@@ -340,7 +339,6 @@ export default {
           },
           title: 'Time Constraint',
           description: 'Filters by time.',
-          action: this.addNewHeuristic,
         },
         {
           id: 'forward_time',
@@ -358,7 +356,6 @@ export default {
           description: 'Performs a forward lookup for each origin transaction of the parent heuristic. '
               + 'If this heuristic is placed at the root level a reverse lookup with 48h '
               + 'look back time will be performed.',
-          action: this.addNewHeuristic,
         },
         {
           id: 'global_amount',
@@ -368,14 +365,12 @@ export default {
               + 'Note that this is different from the direct input transaction amount filter, as '
               + 'this heuristic only checks the set of origin transactions and sources per destina- '
               + 'tion transaction, not per direct input transaction.',
-          action: this.addNewHeuristic,
         },
         {
           id: 'perfect_match',
           title: 'Perfect Match',
           description: 'The perfect match heuristic filters all origins of sources, which have denominations '
               + 'without a perfect match for the denominations of the destination transaction.',
-          action: this.addNewHeuristic,
         },
         {
           id: 'denomination_type',
@@ -384,7 +379,6 @@ export default {
               + 'of types which do not occur in the denominations of the destination transaction.'
               + 'For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. '
               + 'Now all sources are excluded which do not have these exact two types of denominations.',
-          action: this.addNewHeuristic,
         },
       ],
       contextMenu: {
@@ -463,7 +457,8 @@ export default {
         return;
       }
       if (!this.isHeuristicSheetFixed) this.isAddHeuristicSheetOpen = false;
-      item.action(item);
+
+      this.addNewHeuristic(item);
     },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
