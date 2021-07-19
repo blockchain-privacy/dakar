@@ -292,7 +292,7 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
-			"origin address hash"}
+			"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
 
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -329,11 +329,29 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 				row = append(row, result.Origin.TxHash)
 				row = append(row, result.Origin.Timestamp)
 				row = append(row, result.Origin.AddressHash)
-				//row = append(row, strconv.Itoa(shortestPaths[result.UID]))
 
-				if err = csvWriter.Write(row); err != nil {
-					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
+				// add destination data if there exists any
+				if len(result.Destinations) > 0 {
+					for _, d := range result.Destinations {
+						withDestinations := make([]string, len(row))
+						// copy because for each destination the row gets reused
+						copy(withDestinations, row)
+
+						withDestinations = append(withDestinations, d.UID)
+						withDestinations = append(withDestinations, d.TxHash)
+						withDestinations = append(withDestinations, d.Timestamp)
+
+						if err = csvWriter.Write(withDestinations); err != nil {
+							http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+							info(cliutil.ShowCallInfo(), err)
+						}
+					}
+					csvWriter.Flush()
+				} else {
+					if err = csvWriter.Write(row); err != nil {
+						http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+						info(cliutil.ShowCallInfo(), err)
+					}
 				}
 			}
 			csvWriter.Flush()

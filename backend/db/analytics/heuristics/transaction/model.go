@@ -109,6 +109,11 @@ type FrontendHeuristicResult struct {
 		AddressHash string `json:"addresshash,omitempty"`
 		TxHash      string `json:"txhash,omitempty"`
 	} `json:"origin,omitempty"`
+	Destinations []struct {
+		UID       string `json:"uid,omitempty"`
+		Timestamp string `json:"ts,omitempty"`
+		TxHash    string `json:"txhash,omitempty"`
+	} `json:"destinations,omitempty"`
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend
@@ -139,6 +144,11 @@ type FrontendHeuristicResponse struct {
 			AddressHash string `json:"addresshash,omitempty"`
 			TxHash      string `json:"txhash,omitempty"`
 		} `json:"origin,omitempty"`
+		Destinations []struct {
+			UID       string `json:"uid,omitempty"`
+			Timestamp string `json:"ts,omitempty"`
+			TxHash    string `json:"txhash,omitempty"`
+		} `json:"destinations,omitempty"`
 	} `json:"results,omitempty"`
 }
 

@@ -680,6 +680,13 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 								}
 							}
 						}
+						destinations@normalize{
+							uid:uid
+							txhash:txhash
+							~transactions{
+								ts:ts
+							}
+						}
 					}
 				}
 			  }`
@@ -720,18 +727,18 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 			if transactions[r.Origin[0].UID] {
 				continue
 			}
-			results = append(results, FrontendHeuristicResult{Origin: r.Origin[0]})
+			results = append(results, FrontendHeuristicResult{Origin: r.Origin[0], Destinations: r.Destinations})
 			transactions[r.Origin[0].UID] = true
 		}
 
 		completeHeuristic.Heuristics = append(completeHeuristic.Heuristics, FrontendHeuristic{
-			UID:             r.Heuristics[0].UID,
-			Timestamp:       r.Heuristics[0].Timestamp,
-			Type:            r.Heuristics[0].Type,
-			Parameter:       r.Heuristics[0].Parameter,
-			ParentHeuristic: r.Heuristics[0].ParentHeuristic,
-			ChildHeuristics: r.Heuristics[0].ChildHeuristics,
-			ResultCount:     r.Heuristics[0].ResultCount,
+			UID:             h.UID,
+			Timestamp:       h.Timestamp,
+			Type:            h.Type,
+			Parameter:       h.Parameter,
+			ParentHeuristic: h.ParentHeuristic,
+			ChildHeuristics: h.ChildHeuristics,
+			ResultCount:     h.ResultCount,
 			Results:         results,
 		})
 	}
