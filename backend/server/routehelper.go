@@ -98,6 +98,12 @@ type heuristicListReply struct {
 	Item    []dbh.HeuristicListItem `json:"items"`
 }
 
+type heuristicDescriptorReply struct {
+	Success     bool                   `json:"success"`
+	Msg         string                 `json:"msg,omitempty"`
+	Descriptors []heuristic.Descriptor `json:"descriptors"`
+}
+
 type deleteHeuristicReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`

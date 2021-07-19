@@ -55,7 +55,27 @@ func (h ForwardTimeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h ForwardTimeHeuristic) clone() heuristic {
+func (h ForwardTimeHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title: "Forward Lookup",
+		Type:  h.heuristicType,
+		Description: "Performs a forward lookup for each origin " +
+			"transaction of the parent Heuristic. If this Heuristic " +
+			"is placed at the root level a reverse lookup with 48h " +
+			"look back time will be performed.",
+		Parameter: struct {
+			DefaultValue string `json:"default_value,omitempty"`
+			Description  string `json:"description,omitempty"`
+			Type         string `json:"type,omitempty"`
+		}{
+			DefaultValue: "48",
+			Description:  "Look forward time in hours",
+			Type:         "int",
+		},
+	}
+}
+
+func (h ForwardTimeHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
@@ -70,7 +90,7 @@ func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, t
 		var results []dbtxh.HeuristicTransaction
 
 		if isParentHeuristicSet(parentHeuristicUID) {
-			// get origins from parent heuristic
+			// get origins from parent Heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

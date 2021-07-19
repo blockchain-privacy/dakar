@@ -517,6 +517,27 @@ func handlerHeuristicList(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/heuristicDescriptors/"
+func handlerHeuristicDescriptors() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicDescriptorReply
+
+		for _, t := range heuristic.ValidHeuristicTypes {
+			reply.Descriptors = append(reply.Descriptors, t.GetDescriptor())
+		}
+
+		reply.Success = true
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/deleteHeuristic/"
 func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -784,6 +805,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	http.Handle(constants.GetRouteHeuristicList(),
 		adapt(handlerHeuristicList(dgraph), constants.GetRouteHeuristicList(),
 			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteHeuristicDescriptors(),
+		adapt(handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
+			authorizationMiddleware(privkey, pubkey), cacheMiddleware(cache, 0)))
 	http.Handle(constants.GetRouteDeleteHeuristic(),
 		adapt(handlerDeleteHeuristic(dgraph), constants.GetRouteDeleteHeuristic(),
 			authorizationMiddleware(privkey, pubkey)))

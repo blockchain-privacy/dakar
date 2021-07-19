@@ -16,23 +16,37 @@ import (
 // ErrorNoOriginsAtStart defines an error which should be used when no origins are available
 var ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
 
-type heuristic interface {
-	// exec executes the heuristic and returns the altered set of origin uids
+type Descriptor struct {
+	Title       string `json:"title,omitempty"`
+	Type        string `json:"type,omitempty"`
+	Description string `json:"description,omitempty"`
+	Parameter   struct {
+		DefaultValue string `json:"default_value,omitempty"`
+		Description  string `json:"description,omitempty"`
+		// Type must be one of the following values: 'int', 'string'
+		Type string `json:"type,omitempty"`
+	} `json:"parameter,omitempty"`
+}
+
+type Heuristic interface {
+	// exec executes the Heuristic and returns the altered set of origin uids
 	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]dbtxh.HeuristicResult, error)
-	// getType returns the heuristic type
+	// getType returns the Heuristic type
 	getType() string
-	// getParameterString returns the used parameter for this heuristic as a string
+	// getParameterString returns the used parameter for this Heuristic as a string
 	getParameterString() string
-	// hasParameter returns true if this heuristic has a parameter
+	// hasParameter returns true if this Heuristic has a parameter
 	hasParameter() bool
 	// setParameter sets the parameter
 	setParameter(string) error
-	// String returns the heuristic in string format
+	// String returns the Heuristic in string format
 	String() string
+	// GetDescriptor returns description of the Heuristic and its expected parameter for the frontend
+	GetDescriptor() Descriptor
 	// clone clones an instance of this interface. This method is needed because
 	// instances of interfaces can not be easily copied-by-value.
 	// More information: https://stackoverflow.com/questions/37851500/how-to-copy-an-interface-value-in-go
-	clone() heuristic
+	clone() Heuristic
 }
 
 // getNumberOfDenominations returns the number of denominations. If destinationTransaction is set, it
@@ -260,22 +274,22 @@ func isParentHeuristicSet(parentHeuristicUID string) bool {
 	return parentHeuristicUID != ""
 }
 
-// HeuristicExecutor holds information for executing on heuristic and its children
+// HeuristicExecutor holds information for executing on Heuristic and its children
 type HeuristicExecutor struct {
 	RootUID        string
-	ThisHeuristic  heuristic
+	ThisHeuristic  Heuristic
 	NextHeuristics []HeuristicExecutor
 }
 
-// BuildExecutor is a convenience function for building heuristic executors
-func BuildExecutor(thisHeuristic heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
+// BuildExecutor is a convenience function for building Heuristic executors
+func BuildExecutor(thisHeuristic Heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
 	return HeuristicExecutor{
 		ThisHeuristic:  thisHeuristic,
 		NextHeuristics: nextHeuristics,
 	}
 }
 
-// Run runs the given heuristic executor. The executor runs initial heuristic and
+// Run runs the given Heuristic executor. The executor runs initial Heuristic and
 // triggers the Run function of all NextHeuristics. If parentHeuristicUID is not
 // set (e.g. "") than the HeuristicExecutor.RootUID is used
 func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHash string,
@@ -289,7 +303,7 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+			fmt.Errorf("Heuristic type: %s, parameter: %s, %s",
 				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
 	}
 
@@ -297,7 +311,7 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 		if runErr := executor.Run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+				fmt.Errorf("Heuristic type: %s, parameter: %s, %s",
 					executor.ThisHeuristic.getType(), executor.ThisHeuristic.getParameterString(), runErr))
 		}
 
@@ -308,8 +322,8 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 	return returnError
 }
 
-// Exec executes the heuristic on the transaction specified by txHash for the given userUID
-func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
+// Exec executes the Heuristic on the transaction specified by txHash for the given userUID
+func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h Heuristic,
 	userUID string) (thisUID string, err error) {
 	heuristicResults, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
@@ -322,7 +336,7 @@ func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		heuristicResults[i].SetDType()
 	}
 
-	// only set parent heuristic if uid is provided
+	// only set parent Heuristic if uid is provided
 	var pHeuristic []dbtxh.Heuristic
 	if parentHeuristicUID != "" {
 		pHeuristic = []dbtxh.Heuristic{{UID: parentHeuristicUID}}

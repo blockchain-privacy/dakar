@@ -55,7 +55,24 @@ func (h TimeConstraintHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h TimeConstraintHeuristic) clone() heuristic {
+func (h TimeConstraintHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title:       "Time Constraint",
+		Type:        h.heuristicType,
+		Description: "Filters by time.",
+		Parameter: struct {
+			DefaultValue string `json:"default_value,omitempty"`
+			Description  string `json:"description,omitempty"`
+			Type         string `json:"type,omitempty"`
+		}{
+			DefaultValue: "48",
+			Description:  "Look back time in hours",
+			Type:         "int",
+		},
+	}
+}
+
+func (h TimeConstraintHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
@@ -64,12 +81,12 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
-	// holds all origins from either the parent heuristic or the associated destination transaction
+	// holds all origins from either the parent Heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
-		// get origins from parent heuristic
+		// get origins from parent Heuristic
 		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

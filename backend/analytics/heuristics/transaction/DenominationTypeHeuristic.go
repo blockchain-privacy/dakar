@@ -43,17 +43,31 @@ func (h DenominationTypeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h DenominationTypeHeuristic) clone() heuristic {
+func (h DenominationTypeHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title: "Denomination Type",
+		Type:  h.heuristicType,
+		Description: "The denomination type Heuristic filters " +
+			"all origins of sources, which have denominations of " +
+			"types which do not occur in the denominations of the " +
+			"destination transaction. For example a destination " +
+			"transaction spends 5 × 10.0001 and 10 × 1.00001. Now " +
+			"all sources are excluded which do not have these exact " +
+			"two types of denominations.",
+	}
+}
+
+func (h DenominationTypeHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// DenominationTypeHeuristic applies the following heuristic:
+// DenominationTypeHeuristic applies the following Heuristic:
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
 func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent heuristic
+	// origins holds all origins found bei either the parent Heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -64,7 +78,7 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
-			// get origins from parent heuristic
+			// get origins from parent Heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

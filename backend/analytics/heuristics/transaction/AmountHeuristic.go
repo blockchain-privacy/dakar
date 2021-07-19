@@ -43,16 +43,29 @@ func (h AmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h AmountHeuristic) clone() heuristic {
+func (h AmountHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title: "Global Amount",
+		Type:  h.heuristicType,
+		Description: "The amount Heuristic filters all origins of sources, " +
+			"which do not have equal or more denominations to fund the " +
+			"destination transaction. Note that this is different from the " +
+			"direct input transaction amount filter, as his Heuristic only " +
+			"checks the set of origin transactions and sources per destination " +
+			"transaction, not per direct input transaction.",
+	}
+}
+
+func (h AmountHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// AmountHeuristic applies the following heuristic:
+// AmountHeuristic applies the following Heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
 func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent heuristic
+	// origins holds all origins found bei either the parent Heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -63,7 +76,7 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
-			// get origins from parent heuristic
+			// get origins from parent Heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

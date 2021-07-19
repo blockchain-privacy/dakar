@@ -55,7 +55,24 @@ func (h OneSourceHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h OneSourceHeuristic) clone() heuristic {
+func (h OneSourceHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title:       "One Source",
+		Type:        h.heuristicType,
+		Description: "Filters by time, direct input transaction amount filter and omni sources",
+		Parameter: struct {
+			DefaultValue string `json:"default_value,omitempty"`
+			Description  string `json:"description,omitempty"`
+			Type         string `json:"type,omitempty"`
+		}{
+			DefaultValue: "48",
+			Description:  "Look back time in hours",
+			Type:         "int",
+		},
+	}
+}
+
+func (h OneSourceHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
@@ -70,7 +87,7 @@ type txAndOrigins struct {
 // - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
-// This heuristic does not use the results from its parent heuristic
+// This Heuristic does not use the results from its parent Heuristic
 func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
 	[]dbtxh.HeuristicResult, error) {
 	// Get all transactions which are connected via the inputs of the destination

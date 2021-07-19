@@ -3,29 +3,30 @@ package constants
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch              string = "search"
-	routeTransaction         string = "tx"
-	routeBlock               string = "blk"
-	routeAddress             string = "address"
-	routeMeta                string = "meta"
-	routeHeuristics          string = "heuristics"
-	routeHeuristicsSummary   string = "heuristicsSummary"
-	routeHeuristicsExecution string = "executeHeuristics"
-	routeHeuristicDetails    string = "heuristicDetails"
-	routeHeuristicStatus     string = "heuristicStatus"
-	routeHeuristicList       string = "heuristicList"
-	routeDeleteHeuristic     string = "deleteHeuristic"
-	routeAddressOutputRange  string = "addressOutputRange"
-	routeCreateUser          string = "createUser"
-	routeGetUsers            string = "getUsers"
-	routeDeleteUser          string = "deleteUser"
-	routeLogin               string = "login"
-	routeLogout              string = "logout"
-	routeModifyUser          string = "modifyUser"
-	routeShortestTxPath      string = "shortestTransactionPath"
-	routeConnectionLookup    string = "connectionLookup"
-	routeClusterLookup       string = "clusterLookup"
-	routeMetrics             string = "/metrics"
+	routeSearch               string = "search"
+	routeTransaction          string = "tx"
+	routeBlock                string = "blk"
+	routeAddress              string = "address"
+	routeMeta                 string = "meta"
+	routeHeuristics           string = "heuristics"
+	routeHeuristicsSummary    string = "heuristicsSummary"
+	routeHeuristicsExecution  string = "executeHeuristics"
+	routeHeuristicDetails     string = "heuristicDetails"
+	routeHeuristicStatus      string = "heuristicStatus"
+	routeHeuristicList        string = "heuristicList"
+	routeHeuristicDescriptors string = "heuristicDescriptors"
+	routeDeleteHeuristic      string = "deleteHeuristic"
+	routeAddressOutputRange   string = "addressOutputRange"
+	routeCreateUser           string = "createUser"
+	routeGetUsers             string = "getUsers"
+	routeDeleteUser           string = "deleteUser"
+	routeLogin                string = "login"
+	routeLogout               string = "logout"
+	routeModifyUser           string = "modifyUser"
+	routeShortestTxPath       string = "shortestTransactionPath"
+	routeConnectionLookup     string = "connectionLookup"
+	routeClusterLookup        string = "clusterLookup"
+	routeMetrics              string = "/metrics"
 )
 
 func getRoute(r string) string {
@@ -80,6 +81,11 @@ func GetRouteHeuristicStatus() string {
 // GetRouteHeuristicList returns a route
 func GetRouteHeuristicList() string {
 	return getRoute(routeHeuristicList)
+}
+
+// GetRouteHeuristicDescriptors returns a route
+func GetRouteHeuristicDescriptors() string {
+	return getRoute(routeHeuristicDescriptors)
 }
 
 // GetRouteDeleteHeuristic returns a route
