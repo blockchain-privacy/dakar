@@ -98,7 +98,7 @@
               <v-card
                   outlined
                   class="mx-auto mb-6"
-                  v-for="(item, index) in heuristicTypes"
+                  v-for="(item, index) in heuristicDescriptors"
                   :key="index"
                   max-width="300">
                 <v-card-title>
@@ -111,7 +111,7 @@
                   <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
                     <v-text-field
                         v-model="item.parameter.value"
-                        :rules="item.parameter.rule"
+                        :rules="parameterRules.get(item.parameter.type)"
                         :label="item.parameter.description"
                         required>
                     </v-text-field>
@@ -174,6 +174,7 @@ import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
+  ROUTE_HEURISTIC_DESCRIPTORS,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
@@ -258,6 +259,7 @@ export default {
       },
       routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
       routeHeuristicOverview: ROUTE_NAME_USER_HEURISTIC_PAGE,
+      routeHeuristicDescriptors: ROUTE_HEURISTIC_DESCRIPTORS,
       isHeuristicExecuting: false,
       banner: {
         // show is the switch for the warning banner
@@ -309,78 +311,15 @@ export default {
         heuristicParameter: '',
         resultCount: null,
       },
-      heuristicTypes: [
-        {
-          id: 'one_source',
-          parameter: {
-            value: 48,
-            description: 'Look back time in hours',
-            rule: [(v) => {
-              if (!/^\d+$/.test(v)) return false;
-              const num = parseInt(v, 10);
-              return Number.isInteger(num) && num > 0;
-            }],
-            valid: false,
-          },
-          title: 'One Source',
-          description: 'Filters by time, direct input transaction amount filter and omni sources',
-        },
-        {
-          id: 'time_constraint',
-          parameter: {
-            value: 48,
-            description: 'Look back time in hours',
-            rule: [(v) => {
-              if (!/^\d+$/.test(v)) return false;
-              const num = parseInt(v, 10);
-              return Number.isInteger(num) && num > 0;
-            }],
-            valid: false,
-          },
-          title: 'Time Constraint',
-          description: 'Filters by time.',
-        },
-        {
-          id: 'forward_time',
-          parameter: {
-            value: 48,
-            description: 'Look forward time in hours',
-            rule: [(v) => {
-              if (!/^\d+$/.test(v)) return false;
-              const num = parseInt(v, 10);
-              return Number.isInteger(num) && num > 0;
-            }],
-            valid: false,
-          },
-          title: 'Forward Lookup',
-          description: 'Performs a forward lookup for each origin transaction of the parent heuristic. '
-              + 'If this heuristic is placed at the root level a reverse lookup with 48h '
-              + 'look back time will be performed.',
-        },
-        {
-          id: 'global_amount',
-          title: 'Global Amount',
-          description: 'The amount heuristic filters all origins of sources, which do not have equal or '
-              + 'more denominations to fund the destination transaction. '
-              + 'Note that this is different from the direct input transaction amount filter, as '
-              + 'this heuristic only checks the set of origin transactions and sources per destina- '
-              + 'tion transaction, not per direct input transaction.',
-        },
-        {
-          id: 'perfect_match',
-          title: 'Perfect Match',
-          description: 'The perfect match heuristic filters all origins of sources, which have denominations '
-              + 'without a perfect match for the denominations of the destination transaction.',
-        },
-        {
-          id: 'denomination_type',
-          title: 'Denomination Type',
-          description: 'The denomination type heuristic filters all origins of sources, which have denominations '
-              + 'of types which do not occur in the denominations of the destination transaction.'
-              + 'For example a destination transaction spends 5 × 10.0001 and 10 × 1.00001. '
-              + 'Now all sources are excluded which do not have these exact two types of denominations.',
-        },
-      ],
+      heuristicDescriptors: [],
+      parameterRules: new Map([
+        ['int', [(v) => {
+          if (!/^\d+$/.test(v)) return false;
+          const num = parseInt(v, 10);
+          return Number.isInteger(num) && num > 0;
+        }]],
+        // string rule is not implemented yet
+        ['string', null]]),
       contextMenu: {
         display: false,
         x: 0,
@@ -461,7 +400,7 @@ export default {
       this.addNewHeuristic(item);
     },
     addNewHeuristic(heuristic) {
-      const newHeuristic = { type: heuristic.id, uid: `${this.newUidPrefix}${this.uidCounter}` };
+      const newHeuristic = { type: heuristic.type, uid: `${this.newUidPrefix}${this.uidCounter}` };
       if (heuristic.parameter) {
         newHeuristic.parameter = `${heuristic.parameter.value}`;
       }
@@ -475,8 +414,8 @@ export default {
 
       // lookup type title from type id
       let displayType = '';
-      this.heuristicTypes.some((d) => {
-        if (d.id === heuristic.type) {
+      this.heuristicDescriptors.some((d) => {
+        if (d.type === heuristic.type) {
           displayType = d.title;
           return true;
         }
@@ -714,7 +653,32 @@ export default {
         .map((d) => [d.uid, d]));
       this.updateGraph();
     },
-    onMounted() {
+    async getDescriptors() {
+      await doGet(this.routeHeuristicDescriptors, this.$router)
+        .then((data) => {
+          if (data.success === undefined) throw Error('error getting heuristic descriptors');
+          if (data.success === false) {
+            throw Error(data.msg);
+          }
+
+          if (!data.descriptors) {
+            throw Error('heuristic descriptor list is empty');
+          }
+
+          // add valid property
+          this.heuristicDescriptors = data.descriptors.map((e) => {
+            if (e.parameter) {
+              e.parameter.valid = false;
+            }
+
+            return e;
+          });
+        })
+        .catch((error) => {
+          this.setErrorMessage(error);
+        });
+    },
+    async onMounted() {
       const svgCanvasId = 'svg_canvas';
       // remove previous svg children
       document.getElementById(svgCanvasId).innerHTML = '';
@@ -731,10 +695,10 @@ export default {
       if (!ht.setContextMenuCallback(this.showContextMenu)) {
         this.setErrorMessage('error setting context menu handler');
       }
-
-      ht.setupSvg(this, svgCanvasId, this.heuristicTypes);
-      this.refreshData();
-      ht.centerGraph();
+      await this.getDescriptors();
+      ht.setupSvg(this, svgCanvasId, this.heuristicDescriptors);
+      await this.refreshData();
+      await ht.centerGraph();
     },
     onMenuItemClick(item) {
       if (item.action) {

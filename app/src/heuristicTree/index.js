@@ -445,7 +445,7 @@ function processGraphData(graphData) {
 // setupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
 function setupSvg(context, canvasId, heuristicDescriptions) {
   // titles to map
-  heuristicDescriptions.forEach((e) => heuristicTypeMap.set(e.id, e.title));
+  heuristicDescriptions.forEach((e) => heuristicTypeMap.set(e.type, e.title));
 
   // add attributes to root svg
   rootSvg = d3.select(`#${canvasId}`)
