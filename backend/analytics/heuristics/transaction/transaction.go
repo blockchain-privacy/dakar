@@ -20,8 +20,9 @@ type Descriptor struct {
 	Title       string `json:"title,omitempty"`
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
-	Parameter   struct {
-		DefaultValue string `json:"default_value,omitempty"`
+	// pointer so Parameter does not appear in JSON if not set
+	Parameter *struct {
+		DefaultValue string `json:"value,omitempty"`
 		Description  string `json:"description,omitempty"`
 		// Type must be one of the following values: 'int', 'string'
 		Type string `json:"type,omitempty"`

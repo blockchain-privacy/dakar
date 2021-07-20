@@ -63,8 +63,8 @@ func (h ForwardTimeHeuristic) GetDescriptor() Descriptor {
 			"transaction of the parent Heuristic. If this Heuristic " +
 			"is placed at the root level a reverse lookup with 48h " +
 			"look back time will be performed.",
-		Parameter: struct {
-			DefaultValue string `json:"default_value,omitempty"`
+		Parameter: &struct {
+			DefaultValue string `json:"value,omitempty"`
 			Description  string `json:"description,omitempty"`
 			Type         string `json:"type,omitempty"`
 		}{

@@ -60,8 +60,8 @@ func (h TimeConstraintHeuristic) GetDescriptor() Descriptor {
 		Title:       "Time Constraint",
 		Type:        h.heuristicType,
 		Description: "Filters by time.",
-		Parameter: struct {
-			DefaultValue string `json:"default_value,omitempty"`
+		Parameter: &struct {
+			DefaultValue string `json:"value,omitempty"`
 			Description  string `json:"description,omitempty"`
 			Type         string `json:"type,omitempty"`
 		}{

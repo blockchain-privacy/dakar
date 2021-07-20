@@ -60,8 +60,8 @@ func (h OneSourceHeuristic) GetDescriptor() Descriptor {
 		Title:       "One Source",
 		Type:        h.heuristicType,
 		Description: "Filters by time, direct input transaction amount filter and omni sources",
-		Parameter: struct {
-			DefaultValue string `json:"default_value,omitempty"`
+		Parameter: &struct {
+			DefaultValue string `json:"value,omitempty"`
 			Description  string `json:"description,omitempty"`
 			Type         string `json:"type,omitempty"`
 		}{
