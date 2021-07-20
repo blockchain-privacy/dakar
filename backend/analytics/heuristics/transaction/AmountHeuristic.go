@@ -73,9 +73,7 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 	var clusters map[string]graph.ClusterID
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
-		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
-
-		if parentHeuristicSet {
+		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent Heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
