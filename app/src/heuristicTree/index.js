@@ -502,6 +502,10 @@ function sleep(ms) {
 async function centerGraph() {
   const svgRect = rootSvg.node().getBoundingClientRect();
   let bbRect = null;
+
+  // wait a bit so svg elements can be properly added to the DOM
+  await sleep(100);
+
   while (true) {
     bbRect = rootGroup.node().getBoundingClientRect();
 
