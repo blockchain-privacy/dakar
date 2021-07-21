@@ -89,6 +89,11 @@ type queryHeuristicTransaction struct {
 	} `json:"~transactions,omitempty"`
 }
 
+type queryHeuristicTransactionInputs struct {
+	UID     string            `json:"uid,omitempty"`
+	Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+}
+
 // FrontendHeuristicComplete holds all heuristic tree data which is exposed to the frontend
 type FrontendHeuristicComplete struct {
 	UID        string              `json:"uid,omitempty"`

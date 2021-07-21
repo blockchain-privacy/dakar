@@ -114,7 +114,7 @@ func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, t
 	}
 
 	for i, o := range hResult {
-		destinations, err := getOriginTxDestinationsTimeLimited(dgraph, g, []string{o.Origin.UID}, h.lookForwardTime)
+		destinations, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.Origin.UID}, h.lookForwardTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

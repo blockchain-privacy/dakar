@@ -399,6 +399,43 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids 
 	return
 }
 
+// GetTransactionsWithInputAmount returns a slice of transactions. Each transaction contains its input amounts.
+func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins []HeuristicTransaction, err error) {
+	query := `query Q($uids:string){
+				q(func: uid($uids)){
+					uid
+					tx_inputs{
+						amount
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUIDList(uids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []queryHeuristicTransactionInputs `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, o := range r.Origins {
+		origins = append(origins, HeuristicTransaction{
+			UID:     o.UID,
+			Outputs: o.Outputs,
+		})
+	}
+
+	return
+}
+
 // GetInputAmounts gets the amounts of the inputs
 func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTransaction, err error) {
 	query := `query Q($txhash: string){

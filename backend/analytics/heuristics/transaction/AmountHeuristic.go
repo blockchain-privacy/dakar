@@ -47,12 +47,9 @@ func (h AmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title: "Global Amount",
 		Type:  h.heuristicType,
-		Description: "The amount Heuristic filters all origins of sources, " +
-			"which do not have equal or more denominations to fund the " +
-			"destination transaction. Note that this is different from the " +
-			"direct input transaction amount filter, as his Heuristic only " +
-			"checks the set of origin transactions and sources per destination " +
-			"transaction, not per direct input transaction.",
+		Description: "Returns all origins of sources, which " +
+			"have equal or more denominations to fund the " +
+			"destination transaction.",
 	}
 }
 

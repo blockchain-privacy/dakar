@@ -245,10 +245,9 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	return
 }
 
-// getOriginTxDestinationsTimeLimited returns all destinations
-// of the given transactions limited by time.
-func getOriginTxDestinationsTimeLimited(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+// getOriginDestinationTimeLimited returns UID map of all destinations of the given origin UIDs
+func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
+	dur time.Duration) (map[string]bool, error) {
 	uidMap := make(map[string]bool)
 	// do forward lookup for all origin transactions
 	for _, it := range originUIDs {
@@ -262,8 +261,38 @@ func getOriginTxDestinationsTimeLimited(dgraph external.Database, g *graph.Wrapp
 		}
 	}
 
+	return uidMap, nil
+}
+
+// getOriginDestinationsWithOutputs returns all destinations
+// of the given transactions limited by time. Each transaction contains its outputs.
+func getOriginDestinationsWithOutputs(dgraph external.Database, g *graph.Wrapper,
+	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
 	// get tx details for each uid
 	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return
+}
+
+// getOriginDestinationsWithInputs returns all destinations
+// of the given transactions limited by time. Each transaction contains its inputs.
+func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
+	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// get tx details for each uid
+	origins, err = dbtxh.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
