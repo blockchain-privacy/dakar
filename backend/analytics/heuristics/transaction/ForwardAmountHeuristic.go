@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics/transaction"
 	"backend/external"
+	"strconv"
 	"time"
 
 	"fmt"
@@ -14,52 +15,72 @@ import (
 type ForwardAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	lookForwardTime      time.Duration
 }
 
-// NewForwardAmountHeuristic constructs an ForwardAmountHeuristic
-func NewForwardAmountHeuristic() ForwardAmountHeuristic {
-	return ForwardAmountHeuristic{
-		heuristicType: "forward_amount",
+// NewForwardAmountHeuristic constructs an ForwardAmountHeuristic. hoursToLookForward in hours.
+func NewForwardAmountHeuristic(hoursToLookForward uint32) *ForwardAmountHeuristic {
+	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
+	return &ForwardAmountHeuristic{
+		heuristicType:        "forward_amount",
+		lookForwardTime:      lForwardTime,
+		parameterDescription: lForwardTime.String(),
 	}
 }
 
-func (h ForwardAmountHeuristic) getType() string {
+func (h *ForwardAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ForwardAmountHeuristic) getParameterString() string {
+func (h *ForwardAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ForwardAmountHeuristic) hasParameter() bool {
-	return false
+func (h *ForwardAmountHeuristic) hasParameter() bool {
+	return true
 }
 
-func (h ForwardAmountHeuristic) setParameter(_ string) error {
+func (h *ForwardAmountHeuristic) setParameter(p string) error {
+	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
+	if err != nil {
+		return err
+	}
+
+	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
+	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
 	return nil
 }
 
-func (h ForwardAmountHeuristic) String() string {
+func (h *ForwardAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h ForwardAmountHeuristic) GetDescriptor() Descriptor {
+func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title: "Forward Amount",
 		Type:  h.heuristicType,
 		Description: "Returns all destination transactions " +
 			"which can be fully funded by the origins of their source.",
+		Parameter: &struct {
+			DefaultValue string `json:"value,omitempty"`
+			Description  string `json:"description,omitempty"`
+			Type         string `json:"type,omitempty"`
+		}{
+			DefaultValue: "48",
+			Description:  "Look forward time in hours",
+			Type:         "int",
+		},
 	}
 }
 
-func (h ForwardAmountHeuristic) clone() Heuristic {
-	newHeuristic := h
+func (h *ForwardAmountHeuristic) clone() Heuristic {
+	newHeuristic := *h
 	return &newHeuristic
 }
 
 // ForwardAmountHeuristic applies the following Heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
 	// origins holds all origins found bei either the parent Heuristic
 	//or the destination transaction specified by txHash
@@ -111,7 +132,7 @@ func (h ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		for k := range txMap {
 			txUIDs = append(txUIDs, k)
 		}
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, time.Hour*48)
+		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

@@ -14,7 +14,7 @@ import (
 // New heuristics must be added here
 var ValidHeuristicTypes = []Heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
 	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewTimeConstraintHeuristic(0),
-	NewForwardTimeHeuristic(0), NewForwardAmountHeuristic()}
+	NewForwardTimeHeuristic(0), NewForwardAmountHeuristic(0)}
 
 // typeMap K: Heuristic types, v: heuristics
 var typeMap = make(map[string]Heuristic)

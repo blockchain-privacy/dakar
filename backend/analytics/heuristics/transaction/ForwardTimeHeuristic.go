@@ -18,7 +18,7 @@ type ForwardTimeHeuristic struct {
 	lookForwardTime      time.Duration
 }
 
-// NewForwardTimeHeuristic constructs a ForwardTimeHeuristic. hoursToLookBack in hours.
+// NewForwardTimeHeuristic constructs a ForwardTimeHeuristic. hoursToLookForward in hours.
 func NewForwardTimeHeuristic(hoursToLookForward uint32) *ForwardTimeHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
 	return &ForwardTimeHeuristic{
@@ -41,13 +41,13 @@ func (h ForwardTimeHeuristic) hasParameter() bool {
 }
 
 func (h *ForwardTimeHeuristic) setParameter(p string) error {
-	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
+	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
 	}
 
-	h.lookForwardTime = time.Duration(hoursToLookBack) * time.Hour
-	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
+	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
+	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
 	return nil
 }
 
