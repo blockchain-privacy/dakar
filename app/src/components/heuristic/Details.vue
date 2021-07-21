@@ -30,7 +30,7 @@
                     Not executed
                   </v-card-title>
                   <v-card-subtitle>
-                    This heuristic has not been executed, thus no results are available.
+                    This heuristic has not been executed, therefore no results are available.
                   </v-card-subtitle>
                 </v-col>
               </v-row>
@@ -167,9 +167,9 @@ export default {
         text: 'Address', align: 'start', sortable: false, value: 'cluster',
       };
       const transactionCountHeader = {
-        text: 'Number of Transactions', value: 'txCount',
+        text: 'Origin Tx Count', value: 'txCount',
       };
-      const destinationHeader = { text: 'Number of Destinations', value: 'count' };
+      const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
 
       // check if destination counts from forward lookup are set
       if (this.details.get(this.heuristicData.heuristicUid).results[0].count) {
