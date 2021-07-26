@@ -282,7 +282,9 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 		// headers for streaming data to client
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
 		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-		w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+		// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+		//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
 
 		csvWriter := csv.NewWriter(w)
 		csvWriter.Comma = ';'
@@ -290,7 +292,7 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
 			"heuristic type", "heuristic parameter", "heuristic timestamp",
 			"origin uid", "origin transaction hash", "origin timestamp",
-			"origin address hash"}
+			"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
 
 		if err = csvWriter.Write(header); err != nil {
 			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -323,15 +325,33 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 				row = append(row, h.Timestamp)
 
 				// per origin information
-				row = append(row, result.UID)
-				row = append(row, result.TxHash)
-				row = append(row, result.Timestamp)
-				row = append(row, result.AddressHash)
-				//row = append(row, strconv.Itoa(shortestPaths[result.UID]))
+				row = append(row, result.Origin.UID)
+				row = append(row, result.Origin.TxHash)
+				row = append(row, result.Origin.Timestamp)
+				row = append(row, result.Origin.AddressHash)
 
-				if err = csvWriter.Write(row); err != nil {
-					http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-					info(cliutil.ShowCallInfo(), err)
+				// add destination data if there exists any
+				if len(result.Destinations) > 0 {
+					for _, d := range result.Destinations {
+						withDestinations := make([]string, len(row))
+						// copy because for each destination the row gets reused
+						copy(withDestinations, row)
+
+						withDestinations = append(withDestinations, d.UID)
+						withDestinations = append(withDestinations, d.TxHash)
+						withDestinations = append(withDestinations, d.Timestamp)
+
+						if err = csvWriter.Write(withDestinations); err != nil {
+							http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+							info(cliutil.ShowCallInfo(), err)
+						}
+					}
+					csvWriter.Flush()
+				} else {
+					if err = csvWriter.Write(row); err != nil {
+						http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+						info(cliutil.ShowCallInfo(), err)
+					}
 				}
 			}
 			csvWriter.Flush()
@@ -488,6 +508,27 @@ func handlerHeuristicList(dgraph external.Database) http.Handler {
 				reply.Item = items
 			}
 		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/heuristicDescriptors/"
+func handlerHeuristicDescriptors() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply heuristicDescriptorReply
+
+		for _, t := range heuristic.ValidHeuristicTypes {
+			reply.Descriptors = append(reply.Descriptors, t.GetDescriptor())
+		}
+
+		reply.Success = true
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -764,6 +805,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	http.Handle(constants.GetRouteHeuristicList(),
 		adapt(handlerHeuristicList(dgraph), constants.GetRouteHeuristicList(),
 			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteHeuristicDescriptors(),
+		adapt(handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
+			authorizationMiddleware(privkey, pubkey), cacheMiddleware(cache, 0)))
 	http.Handle(constants.GetRouteDeleteHeuristic(),
 		adapt(handlerDeleteHeuristic(dgraph), constants.GetRouteDeleteHeuristic(),
 			authorizationMiddleware(privkey, pubkey)))

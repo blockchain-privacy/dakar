@@ -55,7 +55,24 @@ func (h TimeConstraintHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h TimeConstraintHeuristic) clone() heuristic {
+func (h TimeConstraintHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title:       "Time Constraint",
+		Type:        h.heuristicType,
+		Description: "Filters by time.",
+		Parameter: &struct {
+			DefaultValue string `json:"value,omitempty"`
+			Description  string `json:"description,omitempty"`
+			Type         string `json:"type,omitempty"`
+		}{
+			DefaultValue: "48",
+			Description:  "Look back time in hours",
+			Type:         "int",
+		},
+	}
+}
+
+func (h TimeConstraintHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
@@ -63,22 +80,24 @@ func (h TimeConstraintHeuristic) clone() heuristic {
 // TimeConstraintHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]string, error) {
-	var origins []string
+	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+	// holds all origins from either the parent Heuristic or the associated destination transaction
+	originLimit := make(map[string]bool)
+
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
-		// get origins from parent heuristic
+		// get origins from parent Heuristic
 		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(parentHeuristic.Origins) == 0 {
+		if len(parentHeuristic.Results) == 0 {
 			return nil, ErrorNoOriginsAtStart
 		}
 
-		for _, o := range parentHeuristic.Origins {
-			origins = append(origins, o.UID)
+		for _, r := range parentHeuristic.Results {
+			originLimit[r.Origin.UID] = true
 		}
 	}
 
@@ -89,12 +108,6 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	allTimeLimitedOrigins := make(map[string]bool)
-	// holds all origins from either the parent heuristic or the associated destination transaction
-	originLimit := make(map[string]bool)
-
-	for _, o := range origins {
-		originLimit[o] = true
-	}
 
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
@@ -112,11 +125,12 @@ func (h TimeConstraintHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	// convert map to string slice
-	var filteredOrigins []string
+	var ret []dbtxh.HeuristicResult
 	for k := range allTimeLimitedOrigins {
-		filteredOrigins = append(filteredOrigins, k)
+		ret = append(ret, dbtxh.HeuristicResult{
+			Origin: dbtxh.DummyNode{UID: k},
+		})
 	}
 
-	return filteredOrigins, nil
+	return ret, nil
 }

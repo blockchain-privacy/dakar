@@ -445,7 +445,7 @@ function processGraphData(graphData) {
 // setupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
 function setupSvg(context, canvasId, heuristicDescriptions) {
   // titles to map
-  heuristicDescriptions.forEach((e) => heuristicTypeMap.set(e.id, e.title));
+  heuristicDescriptions.forEach((e) => heuristicTypeMap.set(e.type, e.title));
 
   // add attributes to root svg
   rootSvg = d3.select(`#${canvasId}`)
@@ -502,6 +502,10 @@ function sleep(ms) {
 async function centerGraph() {
   const svgRect = rootSvg.node().getBoundingClientRect();
   let bbRect = null;
+
+  // wait a bit so svg elements can be properly added to the DOM
+  await sleep(100);
+
   while (true) {
     bbRect = rootGroup.node().getBoundingClientRect();
 

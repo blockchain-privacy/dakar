@@ -30,7 +30,7 @@
                     Not executed
                   </v-card-title>
                   <v-card-subtitle>
-                    This heuristic has not been executed, thus no results are available.
+                    This heuristic has not been executed, therefore no results are available.
                   </v-card-subtitle>
                 </v-col>
               </v-row>
@@ -44,7 +44,7 @@
                 <v-col>
                   <IconItem title="Number of addresses"
                             :icon="icon.mdiPoundBoxOutline">
-                    {{ addressMap === undefined ? 0 : addressMap.size }}
+                    {{ clusterToTransactions === undefined ? 0 : clusterToTransactions.length }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -80,6 +80,8 @@
             <v-data-table :headers="dataHeaders"
                           :items="dataItems"
                           :items-per-page="5"
+                          :sort-by.sync="sortBy"
+                          :sort-desc.sync="sortDesc"
             ></v-data-table>
           </v-card>
         </div>
@@ -109,8 +111,8 @@ export default {
     // v-model
     value: { type: Boolean, required: true },
     heuristicData: { type: Object, required: true },
-    // map[addresshash]array[origins]
-    addressMap: { type: Map, required: false },
+    // array[origins]
+    clusterToTransactions: { type: Array, required: false },
     newHeuristicPrefix: { type: String, required: true },
   },
   data() {
@@ -119,26 +121,23 @@ export default {
         mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
       },
       chart: null,
-      dataHeaders: [
-        {
-          text: 'Address', align: 'start', sortable: false, value: 'address',
-        },
-        { text: 'Number of Origins', value: 'len' },
-      ],
+      sortBy: 'count',
+      sortDesc: false,
       enoughDataForGraph: true,
       durationInMinutes: 0,
     };
   },
   computed: {
     dataItems() {
-      const dataItems = [];
-      if (this.addressMap !== undefined) {
-        this.addressMap.forEach((v, k) => {
-          dataItems.push({ address: k, len: v.length });
+      if (this.clusterToTransactions) {
+        this.clusterToTransactions.forEach((v) => {
+          v.txCount = v.txs.length;
         });
+
+        return this.clusterToTransactions;
       }
 
-      return dataItems;
+      return [];
     },
     isHollow() {
       return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
@@ -163,6 +162,21 @@ export default {
         this.$store.dispatch('setHeuristicDetails', value);
       },
     },
+    dataHeaders() {
+      const addressHeader = {
+        text: 'Address', align: 'start', sortable: false, value: 'cluster',
+      };
+      const transactionCountHeader = {
+        text: 'Origin Tx Count', value: 'txCount',
+      };
+      const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
+
+      // check if destination counts from forward lookup are set
+      if (this.details.get(this.heuristicData.heuristicUid).results[0].count) {
+        return [addressHeader, transactionCountHeader, destinationHeader];
+      }
+      return [addressHeader, transactionCountHeader];
+    },
   },
   methods: {
     updateData(graphData) {
@@ -171,12 +185,15 @@ export default {
       let lowestDate = null;
       let highestDate = null;
 
-      graphData.forEach((v) => {
-        v.dateTime = new Date(v.ts);
-        if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
-        if (highestDate === null || highestDate < v.dateTime) highestDate = v.dateTime;
-
-        detailArray.push(v);
+      graphData.forEach((d) => {
+        d.txs.forEach((v) => {
+          v.dateTime = new Date(v.ts);
+          if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
+          if (highestDate === null || highestDate < v.dateTime) {
+            highestDate = v.dateTime;
+          }
+          detailArray.push(v);
+        });
       });
 
       const duration = highestDate - lowestDate;
@@ -320,7 +337,6 @@ export default {
     documentSvg.innerHTML = '';
     if (!this.details.has(this.heuristicData.heuristicUid)) return;
 
-    // this.updateData(this.addressMap.entries().next().value[1]);
     this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
   },
 };

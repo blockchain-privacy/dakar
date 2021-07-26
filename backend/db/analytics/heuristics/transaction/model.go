@@ -7,10 +7,24 @@ import (
 
 // DType is the dgraph database type for the TransactionHeuristic type
 const DType = "TransactionHeuristic"
+const ResultDType = "TransactionHeuristicResult"
 
-// DummyOrigin holds only the uid of the transaction
-type DummyOrigin struct {
+// DummyNode holds the uid of a database node
+type DummyNode struct {
 	UID string `json:"uid,omitempty"`
+}
+
+// HeuristicResult holds one result (origin) of a heuristic and
+// optionally the results of a forward lookup (destinations)
+type HeuristicResult struct {
+	Origin       DummyNode   `json:"origin,omitempty"`
+	Destinations []DummyNode `json:"destinations,omitempty"`
+	DType        []string    `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (r *HeuristicResult) SetDType() {
+	r.DType = []string{ResultDType}
 }
 
 // Heuristic is the database type representation of a heuristic
@@ -22,10 +36,10 @@ type Heuristic struct {
 	Transaction   struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"h_transaction,omitempty"`
-	Timestamp       string        `json:"ts,omitempty"`
-	ParentHeuristic []Heuristic   `json:"parent_heuristic,omitempty"`
-	ChildHeuristics []Heuristic   `json:"~parent_heuristic,omitempty"`
-	Origins         []DummyOrigin `json:"results,omitempty"`
+	Timestamp       string            `json:"ts,omitempty"`
+	ParentHeuristic []Heuristic       `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic       `json:"~parent_heuristic,omitempty"`
+	Results         []HeuristicResult `json:"results,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
@@ -75,6 +89,11 @@ type queryHeuristicTransaction struct {
 	} `json:"~transactions,omitempty"`
 }
 
+type queryHeuristicTransactionInputs struct {
+	UID     string            `json:"uid,omitempty"`
+	Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
+}
+
 // FrontendHeuristicComplete holds all heuristic tree data which is exposed to the frontend
 type FrontendHeuristicComplete struct {
 	UID        string              `json:"uid,omitempty"`
@@ -89,10 +108,17 @@ func (f FrontendHeuristicComplete) String() string {
 
 // FrontendHeuristicResult holds heuristic result data which is exposed to the frontend
 type FrontendHeuristicResult struct {
-	UID         string `json:"uid,omitempty"`
-	Timestamp   string `json:"ts,omitempty"`
-	AddressHash string `json:"addresshash,omitempty"`
-	TxHash      string `json:"txhash,omitempty"`
+	Origin struct {
+		UID         string `json:"uid,omitempty"`
+		Timestamp   string `json:"ts,omitempty"`
+		AddressHash string `json:"addresshash,omitempty"`
+		TxHash      string `json:"txhash,omitempty"`
+	} `json:"origin,omitempty"`
+	Destinations []struct {
+		UID       string `json:"uid,omitempty"`
+		Timestamp string `json:"ts,omitempty"`
+		TxHash    string `json:"txhash,omitempty"`
+	} `json:"destinations,omitempty"`
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend
@@ -105,6 +131,49 @@ type FrontendHeuristic struct {
 	ChildHeuristics []Heuristic               `json:"children,omitempty"`
 	ResultCount     int                       `json:"num_results,omitempty"`
 	Results         []FrontendHeuristicResult `json:"results,omitempty"`
+}
+
+// FrontendHeuristicResponse holds all heuristic data of a heuristic frontend response
+type FrontendHeuristicResponse struct {
+	UID             string      `json:"uid,omitempty"`
+	Timestamp       string      `json:"ts,omitempty"`
+	Type            string      `json:"type,omitempty"`
+	Parameter       string      `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
+	ChildHeuristics []Heuristic `json:"children,omitempty"`
+	ResultCount     int         `json:"num_results,omitempty"`
+	Results         []struct {
+		Origin []struct {
+			UID         string `json:"uid,omitempty"`
+			Timestamp   string `json:"ts,omitempty"`
+			AddressHash string `json:"addresshash,omitempty"`
+			TxHash      string `json:"txhash,omitempty"`
+		} `json:"origin,omitempty"`
+		Destinations []struct {
+			UID       string `json:"uid,omitempty"`
+			Timestamp string `json:"ts,omitempty"`
+			TxHash    string `json:"txhash,omitempty"`
+		} `json:"destinations,omitempty"`
+	} `json:"results,omitempty"`
+}
+
+type FrontendTransactionResult struct {
+	Timestamp string `json:"ts,omitempty"`
+	Hash      string `json:"txhash,omitempty"`
+}
+
+// FrontendHeuristicShortItem holds the results counts of a heuristic per cluster
+type FrontendHeuristicShortItem struct {
+	ClusterID          string                      `json:"cluster,omitempty"`
+	Transactions       []FrontendTransactionResult `json:"txs,omitempty"`
+	CountForwardLookup int                         `json:"count,omitempty"`
+}
+
+// FrontendHeuristicShort holds all result counts of a heuristic
+type FrontendHeuristicShort struct {
+	UID         string                       `json:"uid,omitempty"`
+	ResultCount int                          `json:"num_results,omitempty"`
+	Results     []FrontendHeuristicShortItem `json:"results,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request

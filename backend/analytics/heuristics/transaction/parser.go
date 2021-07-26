@@ -10,13 +10,14 @@ import (
 	"strings"
 )
 
-// validHeuristicTypes includes all heuristics which are possible to receive from the frontend.
+// ValidHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
-var validHeuristicTypes = []heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
-	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewTimeConstraintHeuristic(0)}
+var ValidHeuristicTypes = []Heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
+	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewTimeConstraintHeuristic(0),
+	NewForwardTimeHeuristic(0), NewForwardAmountHeuristic(0)}
 
-// typeMap K: heuristic types, v: heuristics
-var typeMap = make(map[string]heuristic)
+// typeMap K: Heuristic types, v: heuristics
+var typeMap = make(map[string]Heuristic)
 
 // newUIDPrefix is the prefix of the uid of all newly created heuristics on the frontend
 const newUIDPrefix = "newUid_"
@@ -35,12 +36,12 @@ var (
 type heuristicTreeElement struct {
 	uid                string
 	parentHeuristicUID string
-	heuristic          heuristic
+	heuristic          Heuristic
 	childHeuristicUID  []string
 }
 
 // isValid checks if the given heuristics are all valid
-func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bool {
+func isValid(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) bool {
 	if len(heuristics) == 0 {
 		return false
 	}
@@ -60,20 +61,20 @@ func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bo
 	return true
 }
 
-func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
+func buildHeuristicTreeElements(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
 	err error) {
 	// create map
 	builtHeuristics = make(map[string]heuristicTreeElement)
 
 	// add elements to map
 	for _, h := range heuristics {
-		// create new heuristic
+		// create new Heuristic
 
 		if modelHeuristic, ok := hMap[h.Type]; ok {
 			newHeuristic := modelHeuristic.clone()
 
 			//newHeuristic := *modelHeuristic
-			// check heuristic was already built
+			// check Heuristic was already built
 			if _, ok := builtHeuristics[h.UID]; ok {
 				err = errHeuristicDuplicateUID
 				return
@@ -270,7 +271,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 	executors []HeuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
-		for _, h := range validHeuristicTypes {
+		for _, h := range ValidHeuristicTypes {
 			typeMap[h.getType()] = h
 		}
 	}

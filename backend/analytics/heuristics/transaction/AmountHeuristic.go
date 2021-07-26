@@ -43,15 +43,26 @@ func (h AmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h AmountHeuristic) clone() heuristic {
+func (h AmountHeuristic) GetDescriptor() Descriptor {
+	return Descriptor{
+		Title: "Global Amount",
+		Type:  h.heuristicType,
+		Description: "Returns all origins of sources, which " +
+			"have equal or more denominations to fund the " +
+			"destination transaction.",
+	}
+}
+
+func (h AmountHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// AmountHeuristic applies the following heuristic:
+// AmountHeuristic applies the following Heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]string, error) {
-	// origins holds all origins found bei either the parent heuristic
+func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+	[]dbtxh.HeuristicResult, error) {
+	// origins holds all origins found bei either the parent Heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -59,10 +70,8 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 	var clusters map[string]graph.ClusterID
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
-		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
-
-		if parentHeuristicSet {
-			// get origins from parent heuristic
+		if isParentHeuristicSet(parentHeuristicUID) {
+			// get origins from parent Heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
@@ -101,12 +110,13 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 
 	originAmounts := buildSourceAmounts(origins, clusters)
 
-	var filteredOrigins []string
+	var filteredOrigins []dbtxh.HeuristicResult
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
 			// save all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
-				filteredOrigins = append(filteredOrigins, tx.UID)
+
+				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
 			}
 		}
 	}
