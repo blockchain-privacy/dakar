@@ -12,7 +12,7 @@ import (
 
 // ValidHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
-var ValidHeuristicTypes = []Heuristic{NewOneSourceHeuristic(0), NewAmountHeuristic(),
+var ValidHeuristicTypes = []Heuristic{NewOneSourceHeuristic(0), NewReverseAmountHeuristic(),
 	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewTimeConstraintHeuristic(0),
 	NewForwardTimeHeuristic(0), NewForwardAmountHeuristic(0)}
 
