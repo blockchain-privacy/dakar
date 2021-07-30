@@ -13,6 +13,7 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/user"
+	"runtime"
 
 	"context"
 	"encoding/hex"
@@ -186,7 +187,7 @@ func shutdownServer(srv *http.Server) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Println("Dakar", VersionString)
+	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
 	cliArgs, err := getCLIArgs()
 	if err != nil {
 		fmt.Println(err)
