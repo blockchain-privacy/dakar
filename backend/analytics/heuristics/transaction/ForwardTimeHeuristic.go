@@ -11,36 +11,36 @@ import (
 	"time"
 )
 
-// ForwardTimeHeuristic - see exec for description
-type ForwardTimeHeuristic struct {
+// ForwardLookupHeuristic - see exec for description
+type ForwardLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
 }
 
-// NewForwardTimeHeuristic constructs a ForwardTimeHeuristic. hoursToLookForward in hours.
-func NewForwardTimeHeuristic(hoursToLookForward uint32) *ForwardTimeHeuristic {
+// NewForwardLookupHeuristic constructs a ForwardLookupHeuristic. hoursToLookForward in hours.
+func NewForwardLookupHeuristic(hoursToLookForward uint32) *ForwardLookupHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
-	return &ForwardTimeHeuristic{
-		heuristicType:        "forward_time",
+	return &ForwardLookupHeuristic{
+		heuristicType:        "forward_lookup",
 		lookForwardTime:      lForwardTime,
 		parameterDescription: lForwardTime.String(),
 	}
 }
 
-func (h ForwardTimeHeuristic) getType() string {
+func (h ForwardLookupHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ForwardTimeHeuristic) getParameterString() string {
+func (h ForwardLookupHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ForwardTimeHeuristic) hasParameter() bool {
+func (h ForwardLookupHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *ForwardTimeHeuristic) setParameter(p string) error {
+func (h *ForwardLookupHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *ForwardTimeHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h ForwardTimeHeuristic) String() string {
+func (h ForwardLookupHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h ForwardTimeHeuristic) GetDescriptor() Descriptor {
+func (h ForwardLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title: "Forward Lookup",
 		Type:  h.heuristicType,
@@ -75,14 +75,14 @@ func (h ForwardTimeHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h ForwardTimeHeuristic) clone() Heuristic {
+func (h ForwardLookupHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// ForwardTimeHeuristic applies the following heuristics:
+// ForwardLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h ForwardTimeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 
 	var hResult []dbtxh.HeuristicResult
