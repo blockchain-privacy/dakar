@@ -59,6 +59,7 @@ func (h ReverseLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:       "Reverse Lookup",
 		Type:        h.heuristicType,
+		Category:    heuristicCategoryReverse,
 		Description: "Filters by time.",
 		Parameter: &struct {
 			DefaultValue string `json:"value,omitempty"`

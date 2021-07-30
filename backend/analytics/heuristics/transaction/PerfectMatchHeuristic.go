@@ -41,8 +41,9 @@ func (h PerfectMatchHeuristic) setParameter(_ string) error {
 
 func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Perfect Match",
-		Type:  h.heuristicType,
+		Title:    "Perfect Match",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
 		Description: "The perfect match Heuristic filters all " +
 			"origins of sources, which have denominations " +
 			"without a perfect match for the denominations of " +

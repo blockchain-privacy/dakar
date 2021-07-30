@@ -16,10 +16,18 @@ import (
 // ErrorNoOriginsAtStart defines an error which should be used when no origins are available
 var ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
 
+const (
+	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
+	heuristicCategoryReverse = "Reverse"
+	// heuristicCategoryForward defines a category string for the frontend to order the heuristic
+	heuristicCategoryForward = "Forward"
+)
+
 type Descriptor struct {
 	Title       string `json:"title,omitempty"`
 	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
+	Category    string `json:"category,omitempty"`
 	// pointer so Parameter does not appear in JSON if not set
 	Parameter *struct {
 		DefaultValue string `json:"value,omitempty"`

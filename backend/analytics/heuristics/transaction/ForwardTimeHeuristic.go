@@ -57,8 +57,9 @@ func (h ForwardLookupHeuristic) String() string {
 
 func (h ForwardLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Forward Lookup",
-		Type:  h.heuristicType,
+		Title:    "Forward Lookup",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryForward,
 		Description: "Performs a forward lookup for each origin " +
 			"transaction of the parent Heuristic. If this Heuristic " +
 			"is placed at the root level a reverse lookup with 48h " +

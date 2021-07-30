@@ -45,8 +45,9 @@ func (h DenominationTypeHeuristic) String() string {
 
 func (h DenominationTypeHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Denomination Type",
-		Type:  h.heuristicType,
+		Title:    "Denomination Type",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
 		Description: "The denomination type Heuristic filters " +
 			"all origins of sources, which have denominations of " +
 			"types which do not occur in the denominations of the " +

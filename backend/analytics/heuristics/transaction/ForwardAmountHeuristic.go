@@ -57,8 +57,9 @@ func (h *ForwardAmountHeuristic) String() string {
 
 func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Forward Amount",
-		Type:  h.heuristicType,
+		Title:    "Forward Amount",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryForward,
 		Description: "Returns all destination transactions " +
 			"which can be fully funded by the origins of their source.",
 		Parameter: &struct {
