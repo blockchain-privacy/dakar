@@ -45,7 +45,7 @@ func (h ReverseAmountHeuristic) String() string {
 
 func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Global Amount",
+		Title: "Reverse Amount",
 		Type:  h.heuristicType,
 		Description: "Returns all origins of sources, which " +
 			"have equal or more denominations to fund the " +
