@@ -47,6 +47,14 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 			if maxLookBackTime > 0 {
 				if isReversed {
 					if toNode.ts.Sub(nodeTs) > maxLookBackTime {
+						// The forward lookup starts at an origin transaction and looks forward
+						// for a certain user-defined duration. Funds from mixing transaction are usually
+						// not spent directly after the mixing process finished. Because of this, the next
+						// connected non-mixing transaction must be included to the returned set.
+						if !toNode.privacyType.IsMixing() {
+							foundEndpoints[toNode.String()] = true
+						}
+
 						return false
 					}
 				} else if nodeTs.Sub(toNode.ts) > maxLookBackTime {
@@ -60,6 +68,8 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 				return false
 			}
 
+			// true: follow this link
+			// false: do not follow this link
 			return true
 		},
 	}
@@ -70,6 +80,9 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 			thisNode := n.(transactionNode)
 			foundEndpoints[thisNode.String()] = true
 		}
+
+		// true: stop traversing nodes
+		// false: do not stop traversing nodes
 		return false
 	})
 
