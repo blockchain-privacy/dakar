@@ -61,9 +61,10 @@ func (h ForwardLookupHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryForward,
 		Description: "Performs a forward lookup for each origin " +
-			"transaction of the parent Heuristic. If this Heuristic " +
-			"is placed at the root level a reverse lookup with 48h " +
-			"look back time will be performed.",
+			"transaction of the parent Heuristic. " +
+			"If this heuristic " +
+			"is placed at the root level a reverse lookup with the same " +
+			"time as the forward lookup will be performed.",
 		Parameter: &struct {
 			DefaultValue string `json:"value,omitempty"`
 			Description  string `json:"description,omitempty"`

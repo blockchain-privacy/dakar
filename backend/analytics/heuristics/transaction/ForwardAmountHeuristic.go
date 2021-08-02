@@ -61,7 +61,10 @@ func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryForward,
 		Description: "Returns all destination transactions " +
-			"which can be fully funded by the origins of their source.",
+			"which can be fully funded by the origins of their source. " +
+			"If this heuristic " +
+			"is placed at the root level a reverse lookup with the same " +
+			"time as the forward lookup will be performed.",
 		Parameter: &struct {
 			DefaultValue string `json:"value,omitempty"`
 			Description  string `json:"description,omitempty"`
