@@ -1,5 +1,5 @@
 <template>
-  <v-row align="center" no-gutters  class="fill-height">
+  <v-row align="center" no-gutters class="fill-height">
     <v-col cols="12" md="6" class="hidden-md-and-down fill-height">
       <v-sheet color="primary darken-2" dark height="100%" width="100%">
         <v-container class="justify-center fill-height">
@@ -25,6 +25,8 @@
                 </h3>
                 <v-form ref="loginForm" class="mt-4">
                   <v-text-field
+                      autocomplete="username"
+                      name="username"
                       v-model="email.value"
                       label="E-mail"
                       :prepend-inner-icon="icon.mdiEmail"
@@ -32,16 +34,19 @@
                       :disabled="isSubmittingForm"
                       :rules="rules.emailRules"
                       @keydown.enter="submitForm"/>
-                  <v-text-field label="Password"
-                                :prepend-inner-icon="icon.mdiLockOutline"
-                                v-model="password.value"
-                                :disabled="isSubmittingForm"
-                                :type="password.show ? 'text' : 'password'"
-                                :append-icon="password.show ?  icon.mdiEye : icon.mdiEyeOff"
-                                @click:append="password.show = !password.show"
-                                :hint="`At least ${passwordMinCharacters} characters`"
-                                :rules="rules.passwordRules"
-                                @keydown.enter="submitForm"/>
+                  <v-text-field
+                      label="Password"
+                      name="password"
+                      autocomplete="current-password"
+                      :prepend-inner-icon="icon.mdiLockOutline"
+                      v-model="password.value"
+                      :disabled="isSubmittingForm"
+                      :type="password.show ? 'text' : 'password'"
+                      :append-icon="password.show ?  icon.mdiEye : icon.mdiEyeOff"
+                      @click:append="password.show = !password.show"
+                      :hint="`At least ${passwordMinCharacters} characters`"
+                      :rules="rules.passwordRules"
+                      @keydown.enter="submitForm"/>
                   <v-alert type="error" v-if="loginFailed" dense>
                     Login failed!
                   </v-alert>
