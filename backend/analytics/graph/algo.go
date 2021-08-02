@@ -49,9 +49,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 					if toNode.ts.Sub(nodeTs) > maxLookBackTime {
 						return false
 					}
-				}
-
-				if nodeTs.Sub(toNode.ts) > maxLookBackTime {
+				} else if nodeTs.Sub(toNode.ts) > maxLookBackTime {
 					return false
 				}
 			}
