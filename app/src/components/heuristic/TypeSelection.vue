@@ -1,16 +1,16 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
     <v-card>
-      <div class="d-flex" style="align-items: center">
-        <div class="mr-auto ml-2 text-h6">
-          Add heuristic</div>
-        <v-switch
-            class="mr-2"
-            v-model="isHeuristicSheetFixed"
-            label="Fixed"
-        ></v-switch>
-      </div>
       <v-card-text style="height: 80%">
+        <div class="d-flex" style="align-items:center">
+          <v-icon class="mr-2">{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="mr-auto text-h6">Add Heuristic</div>
+          <v-switch
+              class="mr-2"
+              v-model="isHeuristicSheetFixed"
+              label="Fixed"
+          ></v-switch>
+        </div>
         <v-tabs v-model="heuristicTabs" v-if="tabItems">
           <v-tab v-for="item in tabItems" :key="item">
             {{ item }}
@@ -63,6 +63,8 @@
 </template>
 
 <script>
+import { mdiShapeSquareRoundedPlus } from '@mdi/js';
+
 export default {
   name: 'TypeSelection',
   props: {
@@ -73,6 +75,9 @@ export default {
   },
   data() {
     return {
+      icon: {
+        mdiShapeSquareRoundedPlus,
+      },
       isHeuristicSheetFixed: false,
       heuristicTabs: null,
       parameterRules: new Map([
