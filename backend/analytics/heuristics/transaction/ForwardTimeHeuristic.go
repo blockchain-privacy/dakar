@@ -99,7 +99,7 @@ func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*48)
+			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

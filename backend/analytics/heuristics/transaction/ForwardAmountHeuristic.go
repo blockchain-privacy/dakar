@@ -100,7 +100,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOrigins(dgraph, g, txHash)
+			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
