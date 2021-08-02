@@ -85,45 +85,62 @@
       </v-menu>
       <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
         <v-card>
-          <div>
-            <v-subheader class="float-left">Add heuristic</v-subheader>
+          <div class="d-flex" style="align-items: center">
+            <div class="mr-auto ml-2 text-h6">
+              Add heuristic</div>
             <v-switch
-                class="float-right mr-2"
+                class="mr-2"
                 v-model="isHeuristicSheetFixed"
                 label="Fixed"
             ></v-switch>
           </div>
           <v-card-text style="height: 80%">
-            <div class="d-flex flex-wrap" style="align-items: flex-start;">
-              <v-card
-                  outlined
-                  class="mx-auto mb-6"
-                  v-for="(item, index) in heuristicDescriptors"
-                  :key="index"
-                  max-width="300">
-                <v-card-title>
-                  {{ item.title }}
-                </v-card-title>
-                <v-card-subtitle>
-                  {{ item.description }}
-                </v-card-subtitle>
-                <v-card-subtitle>
-                  <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
-                    <v-text-field
-                        v-model="item.parameter.value"
-                        :rules="parameterRules.get(item.parameter.type)"
-                        :label="item.parameter.description"
-                        required>
-                    </v-text-field>
-                  </v-form>
-                </v-card-subtitle>
-                <v-card-actions class="pt-0">
-                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
-                    Add Heuristic
-                  </v-btn>
-                </v-card-actions>
-              </v-card>
-            </div>
+            <v-tabs v-model="heuristicTabs" v-if="heuristicTabItems">
+              <v-tab v-for="item in heuristicTabItems" :key="item">
+                {{ item }}
+              </v-tab>
+            </v-tabs>
+            <v-tabs-items v-model="heuristicTabs" class="mt-3">
+              <v-tab-item transition="fade-transition"
+                  v-for="item in heuristicTabItems"
+                  :key="item">
+                <div class="d-flex flex-wrap" style="align-items: flex-start;">
+                  <v-card
+                      outlined
+                      v-for="(item, index)
+                      in heuristicDescriptors.filter((e) => {
+                        if(!e.category && item === 'Other')
+                          return true;
+                        return e.category === item
+                      })"
+                      :key="index"
+                      class="mx-3 mb-6"
+                      max-width="300">
+                    <v-card-title>
+                      {{ item.title }}
+                    </v-card-title>
+                    <v-card-subtitle>
+                      {{ item.description }}
+                    </v-card-subtitle>
+                    <v-card-subtitle>
+                      <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
+                        <v-text-field
+                            v-model="item.parameter.value"
+                            :rules="parameterRules.get(item.parameter.type)"
+                            :label="item.parameter.description"
+                            required>
+                        </v-text-field>
+                      </v-form>
+                    </v-card-subtitle>
+                    <v-card-actions class="pt-0">
+                      <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
+                        Add Heuristic
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </div>
+              </v-tab-item>
+            </v-tabs-items>
           </v-card-text>
         </v-card>
       </v-bottom-sheet>
@@ -312,6 +329,8 @@ export default {
         resultCount: null,
       },
       heuristicDescriptors: [],
+      heuristicTabs: null,
+      heuristicTabItems: [],
       parameterRules: new Map([
         ['int', [(v) => {
           if (!/^\d+$/.test(v)) return false;
@@ -696,6 +715,24 @@ export default {
         this.setErrorMessage('error setting context menu handler');
       }
       await this.getDescriptors();
+
+      // get tab descriptions
+      const tabSet = new Set();
+      let isCategoryEmpty = false;
+      this.heuristicDescriptors.forEach((e) => {
+        if (e.category) {
+          tabSet.add(e.category);
+        } else {
+          // if no category is set
+          isCategoryEmpty = true;
+        }
+      });
+      this.heuristicTabItems = Array.from(tabSet).sort();
+
+      if (isCategoryEmpty) {
+        this.heuristicTabItems.push('Other');
+      }
+
       ht.setupSvg(this, svgCanvasId, this.heuristicDescriptors);
       await this.refreshData();
       await ht.centerGraph();
