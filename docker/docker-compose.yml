@@ -39,7 +39,7 @@ services:
     command: dgraph-ratel
 
   dashd:
-    image: dashpay/dashd:0.16
+    image: dashpay/dashd:0.17
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/dash
@@ -49,6 +49,7 @@ services:
     expose:
       - 9999
       - 9998
+    command: dashd
     restart: ${RESTART_POLICY}
 
 networks:
