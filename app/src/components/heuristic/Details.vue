@@ -44,7 +44,8 @@
                 <v-col>
                   <IconItem title="Number of addresses"
                             :icon="icon.mdiPoundBoxOutline">
-                    {{ clusterToTransactions === undefined ? 0 : clusterToTransactions.length }}
+                    {{ heuristicData.transactions === undefined ? 0
+                      : heuristicData.transactions.length }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -112,7 +113,6 @@ export default {
     value: { type: Boolean, required: true },
     heuristicData: { type: Object, required: true },
     // array[origins]
-    clusterToTransactions: { type: Array, required: false },
     newHeuristicPrefix: { type: String, required: true },
   },
   data() {
@@ -129,12 +129,12 @@ export default {
   },
   computed: {
     dataItems() {
-      if (this.clusterToTransactions) {
-        this.clusterToTransactions.forEach((v) => {
+      if (this.heuristicData.transactions) {
+        this.heuristicData.transactions.forEach((v) => {
           v.txCount = v.txs.length;
         });
 
-        return this.clusterToTransactions;
+        return this.heuristicData.transactions;
       }
 
       return [];
@@ -150,18 +150,6 @@ export default {
         this.$emit('input', val);
       },
     },
-    details: {
-      get() {
-        return this.$store.getters.getHeuristicDetails;
-      },
-      set(value) {
-        if (value === null) {
-          this.$store.dispatch('resetHeuristicDetails');
-          return;
-        }
-        this.$store.dispatch('setHeuristicDetails', value);
-      },
-    },
     dataHeaders() {
       const addressHeader = {
         text: 'Address', align: 'start', sortable: false, value: 'cluster',
@@ -171,8 +159,10 @@ export default {
       };
       const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
 
+      // todo check all transactions (in case the just the first one
+      //  does not have forward lookup results)
       // check if destination counts from forward lookup are set
-      if (this.details.get(this.heuristicData.heuristicUid).results[0].count) {
+      if (this.heuristicData.transactions[0].count) {
         return [addressHeader, transactionCountHeader, destinationHeader];
       }
       return [addressHeader, transactionCountHeader];
@@ -327,7 +317,7 @@ export default {
   },
   updated() {
     // do nothing if sheet is not open
-    if (!this.value || this.details.size === 0) return;
+    if (!this.value || !this.heuristicData.transactions) return;
     const svgCanvasId = 'heuristic_details_canvas';
 
     // check if svg exists yet
@@ -335,9 +325,8 @@ export default {
     if (documentSvg === null) return;
     // reset svg
     documentSvg.innerHTML = '';
-    if (!this.details.has(this.heuristicData.heuristicUid)) return;
 
-    this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
+    this.updateData(this.heuristicData.transactions);
   },
 };
 </script>

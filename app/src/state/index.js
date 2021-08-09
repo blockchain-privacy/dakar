@@ -1,24 +1,11 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, handleError, setLocalUser, setLocalSettings,
+  setLocalUser, setLocalSettings,
 } from '../utilities';
-import * as Constants from '../constants';
-
-import Router from '../router';
+import { RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS } from '../constants';
 
 Vue.use(Vuex);
-
-function handlePost(context, route, mutation, body, parameter) {
-  return doPost(route, Router, context, body, parameter)
-    .then((data) => {
-      context.commit(mutation, data);
-      context.dispatch('resetMessages');
-    })
-    .catch((e) => {
-      handleError(context, e);
-    });
-}
 
 // getInitialState returns the initial state of the store
 function getInitialState() {
@@ -29,7 +16,6 @@ function getInitialState() {
     searchResultType: null,
     address: null,
     block: null,
-    heuristicDetails: new Map(),
     activeUser: null,
     settings: null,
     // failedRoute is filled with the route which the user wanted
@@ -54,31 +40,19 @@ const mutations = {
   SET_BLOCK_DATA(state, payload) {
     state.block = payload;
   },
-  UPDATE_HEURISTIC_DATA(state, payload) {
-    state.heuristic = payload;
-  },
-  SET_HEURISTIC_DATA(state, payload) {
-    mutations.UPDATE_HEURISTIC_DATA(state, payload);
-  },
-  SET_HEURISTIC_DETAILS(state, payload) {
-    state.heuristicDetails = payload;
-  },
-  ADD_HEURISTIC_DETAILS(state, payload) {
-    state.heuristicDetails.set(payload.uid, payload);
-  },
   SET_SEARCH_RESULT_TYPE(state, payload) {
     state.searchResultType = payload;
   },
   UPDATE_SEARCH_RESULT(state, payload) {
     state.searchResultType = payload.type;
     switch (payload.type) {
-      case Constants.RESPONSE_TYPE_TRANSACTION:
+      case RESPONSE_TYPE_TRANSACTION:
         state.transaction = payload.payload;
         break;
-      case Constants.RESPONSE_TYPE_BLOCK:
+      case RESPONSE_TYPE_BLOCK:
         state.block = payload.payload;
         break;
-      case Constants.RESPONSE_TYPE_ADDRESS:
+      case RESPONSE_TYPE_ADDRESS:
         state.address = payload.payload;
         break;
       default:
@@ -139,15 +113,6 @@ const actions = {
   updateSearchResult(context, payload) {
     context.commit('UPDATE_SEARCH_RESULT', payload);
   },
-  updateHeuristicDetails(context, payload) {
-    return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS', payload);
-  },
-  resetHeuristicDetails(context) {
-    context.commit('SET_HEURISTIC_DETAILS', new Map());
-  },
-  setHeuristicDetails(context, payload) {
-    context.commit('SET_HEURISTIC_DETAILS', payload);
-  },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
   },
@@ -169,7 +134,6 @@ const getters = {
   getTransactionData: (state) => state.transaction,
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
-  getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,

@@ -92,8 +92,7 @@
       <Details
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
-          :new-heuristic-prefix="this.newUidPrefix"
-          :cluster-to-transactions="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+          :new-heuristic-prefix="this.newUidPrefix"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -137,7 +136,7 @@ import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
-  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
+  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS, ROUTE_HEURISTIC_DETAILS,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
@@ -272,6 +271,7 @@ export default {
         heuristicType: '',
         heuristicParameter: '',
         resultCount: null,
+        transactions: null,
       },
       heuristicDescriptors: [],
       heuristicTabItems: [],
@@ -317,20 +317,6 @@ export default {
       },
     };
   },
-  computed: {
-    heuristicDetails: {
-      get() {
-        return this.$store.getters.getHeuristicDetails;
-      },
-      set(value) {
-        if (value === null) {
-          this.$store.dispatch('resetHeuristicDetails');
-          return;
-        }
-        this.$store.dispatch('setHeuristicDetails', value);
-      },
-    },
-  },
   methods: {
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
@@ -347,6 +333,16 @@ export default {
 
       this.data.heuristics.push(newHeuristic);
       this.updateGraph();
+    },
+    loadHeuristicDetails(body) {
+      return doPost(ROUTE_HEURISTIC_DETAILS, this.$router, this.$store, body)
+        .then((data) => {
+          this.heuristicDetailsMap.set(data.uid, data);
+          this.$store.dispatch('resetMessages');
+        }).catch((e) => {
+          handleError(this.$store, e);
+          return e;
+        });
     },
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
@@ -365,26 +361,26 @@ export default {
       sheet.heuristicType = displayType;
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
+      sheet.transactions = null;
 
       // check if data has to be loaded from backend
       if (heuristic.num_results === undefined || heuristic.num_results === 0
-          || this.heuristicDetails.has(heuristic.uid)
           || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;
       }
 
+      if (this.heuristicDetailsMap.has(heuristic.uid)) {
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
+        sheet.isOpen = true;
+        return;
+      }
+
       // request data from backend
-      this.$store.dispatch('updateHeuristicDetails', { uid: heuristic.uid }).then(() => {
-        if (this.heuristicDetails === null || this.heuristicDetails.length === 0
-            || !this.heuristicDetails.has(heuristic.uid)) return;
-
-        const { results } = this.heuristicDetails.get(heuristic.uid);
-
-        if (results.length === 0) return;
-
-        this.heuristicDetailsMap.set(heuristic.uid, results);
-
+      this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
+        if (this.heuristicDetailsMap.size === 0
+            || !this.heuristicDetailsMap.has(heuristic.uid)) return;
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
         sheet.isOpen = true;
       });
     },
@@ -715,7 +711,6 @@ export default {
   },
   beforeDestroy() {
     // reset memory
-    this.heuristicDetails = null;
     this.resetExecutionStatus();
   },
   mounted() {
