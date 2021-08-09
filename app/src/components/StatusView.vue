@@ -128,8 +128,9 @@ import {
   mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
   mdiWeight,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE } from '../constants';
+import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_META } from '../constants';
 import IconItem from './common/IconItem.vue';
+import { doGet, handleError } from '../utilities';
 
 export default {
   name: 'StatusView',
@@ -167,12 +168,10 @@ export default {
         remaining: 0,
         percent: 0,
       },
+      data: null,
     };
   },
   computed: {
-    data() {
-      return this.$store.getters.getMetaData;
-    },
     crawlerSyncProgress() {
       if (!this.data) {
         return 0.0;
@@ -198,7 +197,7 @@ export default {
 
       this.timer = setInterval(async () => {
         clearInterval(this.remainderTimer);
-        await this.$store.dispatch('updateMetaData');
+        await this.getStatusData();
         this.startProgressTimer();
       }, this.timeoutData.refreshStep);
     },
@@ -221,9 +220,18 @@ export default {
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
+    getStatusData() {
+      return doGet(ROUTE_META, this.$router, this.$store).then((data) => {
+        this.data = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshData() {
       this.resetTimers();
-      this.$store.dispatch('updateMetaData').then((err) => {
+      this.getStatusData().then((err) => {
         if (err !== undefined) {
           return;
         }

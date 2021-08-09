@@ -39,7 +39,6 @@ function getInitialState() {
     searchResultType: null,
     address: null,
     block: null,
-    meta: null,
     heuristic: null,
     heuristicDetails: new Map(),
     userList: null,
@@ -67,9 +66,6 @@ const mutations = {
   },
   SET_BLOCK_DATA(state, payload) {
     state.block = payload;
-  },
-  UPDATE_META_DATA(state, payload) {
-    state.meta = payload;
   },
   UPDATE_HEURISTIC_DATA(state, payload) {
     state.heuristic = payload;
@@ -150,21 +146,17 @@ const actions = {
   setBlockData(context, payload) {
     context.commit('SET_BLOCK_DATA', payload);
   },
-  // todo refactor so each component gets the data and the store only sets it
   updateBlockData(context, payload) {
-    return handleGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
+    context.commit('UPDATE_BLOCK_DATA', payload);
   },
   updateTransactionData(context, payload) {
-    return handleGet(context, Constants.ROUTE_TRANSACTION, 'UPDATE_TRANSACTION_DATA', payload);
+    context.commit('UPDATE_TRANSACTION_DATA', payload);
   },
   updateAddressData(context, payload) {
-    return handleGet(context, Constants.ROUTE_ADDRESS, 'UPDATE_ADDRESS_DATA', payload);
+    context.commit('UPDATE_ADDRESS_DATA', payload);
   },
   updateSearchResult(context, payload) {
-    return handleGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
-  },
-  updateMetaData(context, payload) {
-    return handleGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
+    context.commit('UPDATE_SEARCH_RESULT', payload);
   },
   updateHeuristicData(context, payload) {
     return handleGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
@@ -214,7 +206,6 @@ const getters = {
   getTransactionData: (state) => state.transaction,
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
-  getMetaData: (state) => state.meta,
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,

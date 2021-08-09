@@ -108,10 +108,12 @@ import * as d3 from 'd3';
 import {
   ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
   RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
-  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME,
+  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_SEARCH,
 } from '../constants';
 import '../style.scss';
-import { isValidQuery, isValidQueryInput } from '../utilities';
+import {
+  doGet, handleError, isValidQuery, isValidQueryInput,
+} from '../utilities';
 
 export default {
   name: 'EntryView',
@@ -142,8 +144,17 @@ export default {
         .selectAll('path')
         .attr('stroke', () => (isDark ? 'white' : 'black'));
     },
+    execQuery(route, action, parameter) {
+      return doGet(route, this.$router, this.$store, parameter).then((data) => {
+        this.$store.dispatch(action, data);
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async executeQuery(query) {
-      await this.$store.dispatch('updateSearchResult', query);
+      await this.execQuery(ROUTE_SEARCH, 'updateSearchResult', query);
       return true;
     },
     async handleQuery(q) {
