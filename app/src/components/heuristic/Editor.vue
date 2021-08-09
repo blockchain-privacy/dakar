@@ -137,12 +137,12 @@ import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
-  ROUTE_HEURISTIC_DESCRIPTORS,
+  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
 import {
-  getCurrentDate, doPost, doGet,
+  getCurrentDate, doPost, doGet, handleError,
 } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
@@ -318,14 +318,6 @@ export default {
     };
   },
   computed: {
-    data: {
-      get() {
-        return this.$store.getters.getHeuristicData;
-      },
-      set(value) {
-        this.$store.dispatch('setHeuristicData', value);
-      },
-    },
     heuristicDetails: {
       get() {
         return this.$store.getters.getHeuristicDetails;
@@ -575,8 +567,17 @@ export default {
       // because otherwise it gets a not up to date descendant state
       this.updateChangeSet();
     },
+    loadHeuristicData(transactionHash) {
+      return doGet(ROUTE_HEURISTICS, this.$router, this.$store, transactionHash).then((data) => {
+        this.data = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshData() {
-      await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+      await this.loadHeuristicData(this.transactionHash);
 
       this.setExecutionStatus(this.data.status);
 

@@ -1,23 +1,13 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, doGet, handleError, setLocalUser, setLocalSettings,
+  doPost, handleError, setLocalUser, setLocalSettings,
 } from '../utilities';
 import * as Constants from '../constants';
 
 import Router from '../router';
 
 Vue.use(Vuex);
-
-function handleGet(context, route, mutation, parameter) {
-  return doGet(route, Router, context, parameter).then((data) => {
-    context.commit(mutation, data);
-    context.dispatch('resetMessages');
-  }).catch((e) => {
-    handleError(context, e);
-    return e;
-  });
-}
 
 function handlePost(context, route, mutation, body, parameter) {
   return doPost(route, Router, context, body, parameter)
@@ -39,7 +29,6 @@ function getInitialState() {
     searchResultType: null,
     address: null,
     block: null,
-    heuristic: null,
     heuristicDetails: new Map(),
     activeUser: null,
     settings: null,
@@ -150,9 +139,6 @@ const actions = {
   updateSearchResult(context, payload) {
     context.commit('UPDATE_SEARCH_RESULT', payload);
   },
-  updateHeuristicData(context, payload) {
-    return handleGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
-  },
   updateHeuristicDetails(context, payload) {
     return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS', payload);
   },
@@ -161,9 +147,6 @@ const actions = {
   },
   setHeuristicDetails(context, payload) {
     context.commit('SET_HEURISTIC_DETAILS', payload);
-  },
-  setHeuristicData(context, payload) {
-    context.commit('SET_HEURISTIC_DATA', payload);
   },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
@@ -186,7 +169,6 @@ const getters = {
   getTransactionData: (state) => state.transaction,
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
-  getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
   getActiveUser: (state) => state.activeUser,

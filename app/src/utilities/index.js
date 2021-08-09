@@ -12,7 +12,6 @@ export function resetData(context) {
   context.$store.dispatch('setBlockData', null);
   context.$store.dispatch('setTransactionData', null);
   context.$store.dispatch('setAddressData', null);
-  context.$store.dispatch('setHeuristicData', null);
 }
 
 export function setLocalUser(userData) {
