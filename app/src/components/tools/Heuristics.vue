@@ -215,7 +215,7 @@ export default {
       });
     },
     deleteHeuristics(body) {
-      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, body)
+      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, this.$store, body)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting heuristics');
           if (data.success === false) {

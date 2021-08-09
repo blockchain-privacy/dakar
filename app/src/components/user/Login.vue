@@ -89,8 +89,12 @@ import {
   doPost, emailRules, getLocalSettings, passwordRules,
 } from '../../utilities';
 
+function goToPage(context, pageName) {
+  context.$router.push({ name: pageName });
+}
+
 function goToRoot(context) {
-  context.$router.push({ name: ROUTE_NAME_ENTRY_PAGE });
+  goToPage(context, ROUTE_NAME_ENTRY_PAGE);
 }
 
 export default {
@@ -125,6 +129,14 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
+    failedRoute: {
+      get() {
+        return this.$store.getters.getFailedRoute;
+      },
+      set(value) {
+        this.$store.dispatch('setFailedRoute', value);
+      },
+    },
     settings: {
       get() {
         return this.$store.getters.getSettings;
@@ -141,11 +153,17 @@ export default {
     validateLoginForm() {
       return this.$refs.loginForm.validate();
     },
+    leave() {
+      if (this.failedRoute) {
+        goToPage(this, this.failedRoute);
+        this.failedRoute = null;
+      } else goToRoot(this);
+    },
     sendLoginRequest() {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      doPost(ROUTE_USER_LOGIN, this.$router,
+      doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
         { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
@@ -169,7 +187,8 @@ export default {
             this.settings = defaultSettings;
           }
 
-          goToRoot(this);
+          // user is logged in -> leave login page
+          this.leave();
         })
         .catch((error) => {
           this.setErrorMessage(error);

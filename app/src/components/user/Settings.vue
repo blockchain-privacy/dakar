@@ -80,6 +80,8 @@ export default {
   },
   methods: {
     checkRoute() {
+      // todo: this method is implemented several times in different components.
+      // todo contd. Refactor it to a hook in the router
       if (!this.userData) {
         this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
         return false;

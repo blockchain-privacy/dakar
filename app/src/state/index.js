@@ -10,7 +10,7 @@ import Router from '../router';
 Vue.use(Vuex);
 
 function handleGet(context, route, mutation, parameter) {
-  return doGet(route, Router, parameter).then((data) => {
+  return doGet(route, Router, context, parameter).then((data) => {
     context.commit(mutation, data);
     context.dispatch('resetMessages');
   }).catch((e) => {
@@ -20,7 +20,7 @@ function handleGet(context, route, mutation, parameter) {
 }
 
 function handlePost(context, route, mutation, body, parameter) {
-  return doPost(route, Router, body, parameter)
+  return doPost(route, Router, context, body, parameter)
     .then((data) => {
       context.commit(mutation, data);
       context.dispatch('resetMessages');
@@ -46,6 +46,9 @@ function getInitialState() {
     activeUser: null,
     settings: null,
     heuristicList: null,
+    // failedRoute is filled with the route which the user wanted
+    // to access but did for some reason (e.g. invalid credentials) fail
+    failedRoute: null,
   };
 }
 
@@ -124,6 +127,9 @@ const mutations = {
   UPDATE_HEURISTIC_LIST(state, payload) {
     state.heuristicList = payload;
   },
+  SET_FAILED_ROUTE(state, payload) {
+    state.failedRoute = payload;
+  },
 };
 
 const actions = {
@@ -144,6 +150,7 @@ const actions = {
   setBlockData(context, payload) {
     context.commit('SET_BLOCK_DATA', payload);
   },
+  // todo refactor so each component gets the data and the store only sets it
   updateBlockData(context, payload) {
     return handleGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
   },
@@ -197,6 +204,9 @@ const actions = {
     setLocalSettings(payload);
     context.commit('SET_SETTINGS', payload);
   },
+  setFailedRoute(context, payload) {
+    context.commit('SET_FAILED_ROUTE', payload);
+  },
 };
 
 const getters = {
@@ -212,6 +222,7 @@ const getters = {
   getHeuristicList: (state) => state.heuristicList,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,
+  getFailedRoute: (state) => state.failedRoute,
 };
 
 const state = getInitialState();

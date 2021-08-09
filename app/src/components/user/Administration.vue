@@ -267,7 +267,7 @@ export default {
     deleteItem(user) {
       this.isLoading = true;
 
-      doGet(ROUTE_USER_DELETE, this.$router, user.uid)
+      doGet(ROUTE_USER_DELETE, this.$router, this.$store, user.uid)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {
@@ -302,7 +302,7 @@ export default {
 
       if (this.editedIndex > -1) {
         this.isLoading = true;
-        doPost(ROUTE_USER_MODIFY, this.$router, {
+        doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
           uid: this.editedItem.uid,
           email: this.editedItem.user_email,
           roles: this.editedItem.user_roles.map((d) => ({ role_name: d })),
@@ -323,7 +323,7 @@ export default {
       } else {
         this.isLoading = true;
 
-        doPost(ROUTE_USER_CREATE, this.$router, this.editedItem)
+        doPost(ROUTE_USER_CREATE, this.$router, this.$store, this.editedItem)
           .then((data) => {
             if (data.success === undefined) throw Error('error creating user');
             if (data.success === false) {

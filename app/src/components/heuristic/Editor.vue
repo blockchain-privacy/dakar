@@ -420,7 +420,7 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router,
+      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
@@ -599,7 +599,7 @@ export default {
       this.updateGraph();
     },
     async getDescriptors() {
-      await doGet(this.routeHeuristicDescriptors, this.$router)
+      await doGet(this.routeHeuristicDescriptors, this.$router, this.$store)
         .then((data) => {
           if (data.success === undefined) throw Error('error getting heuristic descriptors');
           if (data.success === false) {
@@ -675,7 +675,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.transactionHash)
+      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.$store, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;
