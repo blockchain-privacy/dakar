@@ -41,7 +41,6 @@ function getInitialState() {
     block: null,
     heuristic: null,
     heuristicDetails: new Map(),
-    userList: null,
     activeUser: null,
     settings: null,
     // failedRoute is filled with the route which the user wanted
@@ -110,9 +109,6 @@ const mutations = {
     state.searchResultType = payload.type;
     state.address = payload.payload;
   },
-  UPDATE_USER_LIST(state, payload) {
-    state.userList = payload;
-  },
   SET_ACTIVE_USER(state, payload) {
     state.activeUser = payload;
   },
@@ -160,9 +156,6 @@ const actions = {
   updateHeuristicDetails(context, payload) {
     return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS', payload);
   },
-  updateUserList(context) {
-    return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
-  },
   resetHeuristicDetails(context) {
     context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
@@ -174,9 +167,6 @@ const actions = {
   },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
-  },
-  setUserList(context, payload) {
-    context.commit('UPDATE_USER_LIST', payload);
   },
   setActiveUser(context, payload) {
     setLocalUser(payload);
@@ -199,7 +189,6 @@ const getters = {
   getHeuristicData: (state) => state.heuristic,
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
-  getUserList: (state) => state.userList,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,
   getFailedRoute: (state) => state.failedRoute,

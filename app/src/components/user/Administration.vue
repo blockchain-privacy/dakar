@@ -152,7 +152,7 @@ import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
 } from '@mdi/js';
 import {
-  PAGE_TITLE,
+  PAGE_TITLE, ROUTE_USER_LIST,
   ROUTE_USER_CREATE,
   ROUTE_USER_DELETE,
   ROUTE_USER_MODIFY,
@@ -210,18 +210,11 @@ export default {
       user_email: '',
       user_roles: [],
     },
+    users: null,
   }),
   computed: {
     formTitle() {
       return this.editedIndex === -1 ? 'Create User' : 'Edit User';
-    },
-    users: {
-      get() {
-        return this.$store.getters.getUserList;
-      },
-      set(value) {
-        this.$store.dispatch('setUserList', value);
-      },
     },
   },
   watch: {
@@ -233,9 +226,18 @@ export default {
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
+    loadUserList() {
+      return doGet(ROUTE_USER_LIST, this.$router, this.$store).then((data) => {
+        this.users = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshUsers() {
       this.isLoading = true;
-      await this.$store.dispatch('updateUserList');
+      await this.loadUserList();
       this.isLoading = false;
       this.search = '';
       if (!this.users) return;
