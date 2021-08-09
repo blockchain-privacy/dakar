@@ -44,7 +44,6 @@ function getInitialState() {
     userList: null,
     activeUser: null,
     settings: null,
-    heuristicList: null,
     // failedRoute is filled with the route which the user wanted
     // to access but did for some reason (e.g. invalid credentials) fail
     failedRoute: null,
@@ -120,9 +119,6 @@ const mutations = {
   SET_SETTINGS(state, payload) {
     state.settings = payload;
   },
-  UPDATE_HEURISTIC_LIST(state, payload) {
-    state.heuristicList = payload;
-  },
   SET_FAILED_ROUTE(state, payload) {
     state.failedRoute = payload;
   },
@@ -167,9 +163,6 @@ const actions = {
   updateUserList(context) {
     return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
   },
-  updateHeuristicList(context) {
-    return handleGet(context, Constants.ROUTE_HEURISTIC_LIST, 'UPDATE_HEURISTIC_LIST');
-  },
   resetHeuristicDetails(context) {
     context.commit('SET_HEURISTIC_DETAILS', new Map());
   },
@@ -184,9 +177,6 @@ const actions = {
   },
   setUserList(context, payload) {
     context.commit('UPDATE_USER_LIST', payload);
-  },
-  setHeuristicList(context, payload) {
-    context.commit('UPDATE_HEURISTIC_LIST', payload);
   },
   setActiveUser(context, payload) {
     setLocalUser(payload);
@@ -210,7 +200,6 @@ const getters = {
   getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
   getUserList: (state) => state.userList,
-  getHeuristicList: (state) => state.heuristicList,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,
   getFailedRoute: (state) => state.failedRoute,
