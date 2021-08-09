@@ -159,10 +159,8 @@ export default {
       };
       const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
 
-      // todo check all transactions (in case the just the first one
-      //  does not have forward lookup results)
       // check if destination counts from forward lookup are set
-      if (this.heuristicData.transactions[0].count) {
+      if (this.heuristicData.transactions.some((d) => d.count)) {
         return [addressHeader, transactionCountHeader, destinationHeader];
       }
       return [addressHeader, transactionCountHeader];
