@@ -197,7 +197,7 @@ export default {
 
       this.timer = setInterval(async () => {
         clearInterval(this.remainderTimer);
-        await this.getStatusData();
+        await this.loadStatusData();
         this.startProgressTimer();
       }, this.timeoutData.refreshStep);
     },
@@ -220,7 +220,7 @@ export default {
       clearInterval(this.timer);
       clearInterval(this.remainderTimer);
     },
-    getStatusData() {
+    loadStatusData() {
       return doGet(ROUTE_META, this.$router, this.$store).then((data) => {
         this.data = data;
         this.$store.dispatch('resetMessages');
@@ -231,7 +231,7 @@ export default {
     },
     async refreshData() {
       this.resetTimers();
-      this.getStatusData().then((err) => {
+      this.loadStatusData().then((err) => {
         if (err !== undefined) {
           return;
         }
