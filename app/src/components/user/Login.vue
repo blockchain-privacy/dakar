@@ -173,13 +173,7 @@ export default {
           }
 
           // set user data
-          const newUser = data.user;
-
-          if (data.valid_until) {
-            newUser.validUntil = data.valid_until;
-          }
-
-          this.userData = newUser;
+          this.userData = data.user;
 
           // load settings from localStorage
           const localStorageSettingsData = getLocalSettings();

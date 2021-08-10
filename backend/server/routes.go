@@ -648,7 +648,6 @@ func handlerLogin(dgraph external.Database, privateSigningKey ed25519.PrivateKey
 				return
 			}
 			setTokenAsCookie(w, token, expirationTime)
-			reply.ValidUntil = expirationTime
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
 		}
