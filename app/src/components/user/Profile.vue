@@ -205,7 +205,7 @@ export default {
       if (!this.validateEmailForm()) return;
       this.$store.dispatch('resetMessages');
 
-      doPost(ROUTE_USER_MODIFY, {
+      doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
         uid: this.userData.uid,
         email: this.editedEmailItem.email,
         current_password: this.editedEmailItem.current_password,
@@ -245,7 +245,7 @@ export default {
       if (!this.validatePasswordForm()) return;
       this.$store.dispatch('resetMessages');
 
-      doPost(ROUTE_USER_MODIFY, {
+      doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
         uid: this.userData.uid,
         new_password: this.editedPasswordItem.new_password,
         current_password: this.editedPasswordItem.current_password,

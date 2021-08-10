@@ -4,6 +4,7 @@ import {
   LOCALSTORAGE_FIELD_SETTINGS,
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
+  ROUTE_NAME_LOGIN_PAGE,
 } from '../constants';
 
 export function resetData(context) {
@@ -72,11 +73,17 @@ export function getCurrentDate() {
 }
 
 // isInvalidTokenMsg checks if the page should be rerouted to the login page
-function isInvalidTokenMsg(msg) {
-  return msg.invalidToken !== undefined && msg.invalidToken === true;
+function isInvalidTokenMsg(msg, router, store) {
+  if (msg.invalidToken !== undefined && msg.invalidToken === true) {
+    // set failed route so we can reroute to it later
+    store.dispatch('setFailedRoute', router.history.current);
+    router.push({ name: ROUTE_NAME_LOGIN_PAGE });
+    return true;
+  }
+  return false;
 }
 
-export function doPost(route, body, parameter) {
+export function doPost(route, router, store, body, parameter) {
   let para = '';
   if (parameter !== undefined) para = parameter;
   return fetch(route + para, {
@@ -93,12 +100,12 @@ export function doPost(route, body, parameter) {
     return response;
   }).then((response) => response.json())
     .then((data) => {
-      if (isInvalidTokenMsg(data)) throw Error('Please login again.');
+      if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
       return data;
     });
 }
 
-export function doGet(route, parameter) {
+export function doGet(route, router, store, parameter) {
   let para = '';
   if (parameter !== undefined) para = parameter;
   return fetch(route + para, {
@@ -110,7 +117,7 @@ export function doGet(route, parameter) {
     })
     .then((response) => response.json())
     .then((data) => {
-      if (isInvalidTokenMsg(data)) throw Error('Please login again.');
+      if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
       return data;
     });
 }

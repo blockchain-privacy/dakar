@@ -114,7 +114,7 @@ export default {
       }
     },
     execQuery(route, action, parameter) {
-      return doGet(route, parameter).then((data) => {
+      return doGet(route, this.$router, this.$store, parameter).then((data) => {
         this.$store.dispatch(action, data);
         this.$store.dispatch('resetMessages');
       }).catch((e) => {

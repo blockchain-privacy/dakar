@@ -211,7 +211,7 @@ export default {
       if (this.offset >= this.data.query_max_count) return;
       this.isLoadingMore = true;
 
-      doPost(ROUTE_ADDRESS_OUTPUT_RANGE,
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router, this.$store,
         { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
         this.addressHash)
         .then((data) => {
@@ -286,7 +286,7 @@ export default {
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
-      doPost(ROUTE_ADDRESS_OUTPUT_RANGE,
+      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router, this.$store,
         { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
         this.addressHash)
         .then((data) => {

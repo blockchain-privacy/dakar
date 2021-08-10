@@ -335,7 +335,7 @@ export default {
       this.updateGraph();
     },
     loadHeuristicDetails(body) {
-      return doPost(ROUTE_HEURISTIC_DETAILS, body)
+      return doPost(ROUTE_HEURISTIC_DETAILS, this.$router, this.$store, body)
         .then((data) => {
           this.heuristicDetailsMap.set(data.uid, data);
           this.$store.dispatch('resetMessages');
@@ -408,7 +408,7 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS,
+      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
@@ -564,7 +564,7 @@ export default {
       this.updateChangeSet();
     },
     loadHeuristicData(transactionHash) {
-      return doGet(ROUTE_HEURISTICS, transactionHash).then((data) => {
+      return doGet(ROUTE_HEURISTICS, this.$router, this.$store, transactionHash).then((data) => {
         this.data = data;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
@@ -602,7 +602,7 @@ export default {
       return true;
     },
     async getDescriptors() {
-      await doGet(this.routeHeuristicDescriptors)
+      await doGet(this.routeHeuristicDescriptors, this.$router, this.$store)
         .then((data) => {
           if (data.success === undefined) throw Error('error getting heuristic descriptors');
           if (data.success === false) {
@@ -686,7 +686,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await doGet(ROUTE_HEURISTIC_STATUS, this.transactionHash)
+      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.$store, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;

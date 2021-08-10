@@ -163,7 +163,7 @@ export default {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      doPost(ROUTE_USER_LOGIN,
+      doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
         { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
