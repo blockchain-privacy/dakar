@@ -10,6 +10,7 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
+	"time"
 
 	"context"
 	"errors"
@@ -81,9 +82,10 @@ type userReply struct {
 }
 
 type backendUserReply struct {
-	Success bool                           `json:"success"`
-	Msg     string                         `json:"msg,omitempty"`
-	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
+	Success    bool                           `json:"success"`
+	Msg        string                         `json:"msg,omitempty"`
+	User       *dbus.FrontendUserBackendState `json:"user,omitempty"`
+	ValidUntil time.Time                      `json:"valid_until,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
