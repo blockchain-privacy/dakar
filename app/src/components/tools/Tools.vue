@@ -67,9 +67,8 @@
 import {
   mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch,
 } from '@mdi/js';
-import { isAdminUser, isPrivilegedUser } from '../../utilities';
 import {
-  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_LOGIN_PAGE,
+  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE,
   ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
 } from '../../constants';
 
@@ -94,19 +93,6 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
-  },
-  methods: {
-    checkRoute() {
-      if (!isPrivilegedUser(this.userData) && !isAdminUser(this.userData)) {
-        this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
-        return false;
-      }
-
-      return true;
-    },
-  },
-  mounted() {
-    this.checkRoute();
   },
 };
 </script>

@@ -145,7 +145,7 @@ export default {
         .attr('stroke', () => (isDark ? 'white' : 'black'));
     },
     execQuery(route, action, parameter) {
-      return doGet(route, this.$router, this.$store, parameter).then((data) => {
+      return doGet(route, parameter).then((data) => {
         this.$store.dispatch(action, data);
         this.$store.dispatch('resetMessages');
       }).catch((e) => {

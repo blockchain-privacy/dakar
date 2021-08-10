@@ -221,7 +221,7 @@ export default {
       clearInterval(this.remainderTimer);
     },
     loadStatusData() {
-      return doGet(ROUTE_META, this.$router, this.$store).then((data) => {
+      return doGet(ROUTE_META).then((data) => {
         this.data = data;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {

@@ -1,9 +1,11 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  setLocalUser, setLocalSettings,
+  setLocalUser, setLocalSettings, getLocalUser, getLocalSettings,
 } from '../utilities';
-import { RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS } from '../constants';
+import {
+  RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
+} from '../constants';
 
 Vue.use(Vuex);
 
@@ -140,7 +142,33 @@ const getters = {
   getFailedRoute: (state) => state.failedRoute,
 };
 
-const state = getInitialState();
+// insertLocalUserData inserts user data, which is
+// stored in LocalStorage, into the store. This is not done
+// in App.vue on purpose so user data is available in the
+// route guards even on page load.
+function insertLocalUserData(state) {
+  const localStorageUserData = getLocalUser();
+  if (localStorageUserData !== null) {
+    state.activeUser = localStorageUserData;
+  }
+  return state;
+}
+// insertLocalSettingsData inserts settings data, which is
+// stored in LocalStorage, into the store. This is not done
+// in App.vue on purpose so settings data is available in the
+// route guards even on page load.
+function insertLocalSettingsData(state) {
+  const localStorageSettingsData = getLocalSettings();
+  if (localStorageSettingsData !== null) {
+    state.settings = localStorageSettingsData;
+  }
+
+  return state;
+}
+
+let state = getInitialState();
+state = insertLocalUserData(state);
+state = insertLocalSettingsData(state);
 
 export default new Vuex.Store({
   state,

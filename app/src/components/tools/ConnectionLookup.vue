@@ -191,7 +191,7 @@ export default {
       this.transactionCount = -1;
       this.isLoading = true;
       const txString = `${this.fromTransaction.trim()}?forward=${this.isDirectionForward ? '1' : '0'}&t=${this.maxLookBackTime}`;
-      doGet(ROUTE_CONNECTION_LOOKUP, this.$router, this.$store, txString)
+      doGet(ROUTE_CONNECTION_LOOKUP, txString)
         .then((data) => {
           if (data.success === undefined) throw Error('error searching for paths');
           if (data.success === false) {

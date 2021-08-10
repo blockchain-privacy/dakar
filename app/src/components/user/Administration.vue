@@ -227,7 +227,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     loadUserList() {
-      return doGet(ROUTE_USER_LIST, this.$router, this.$store).then((data) => {
+      return doGet(ROUTE_USER_LIST).then((data) => {
         this.users = data;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
@@ -269,7 +269,7 @@ export default {
     deleteItem(user) {
       this.isLoading = true;
 
-      doGet(ROUTE_USER_DELETE, this.$router, this.$store, user.uid)
+      doGet(ROUTE_USER_DELETE, user.uid)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {
@@ -304,7 +304,7 @@ export default {
 
       if (this.editedIndex > -1) {
         this.isLoading = true;
-        doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
+        doPost(ROUTE_USER_MODIFY, {
           uid: this.editedItem.uid,
           email: this.editedItem.user_email,
           roles: this.editedItem.user_roles.map((d) => ({ role_name: d })),
@@ -325,7 +325,7 @@ export default {
       } else {
         this.isLoading = true;
 
-        doPost(ROUTE_USER_CREATE, this.$router, this.$store, this.editedItem)
+        doPost(ROUTE_USER_CREATE, this.editedItem)
           .then((data) => {
             if (data.success === undefined) throw Error('error creating user');
             if (data.success === false) {

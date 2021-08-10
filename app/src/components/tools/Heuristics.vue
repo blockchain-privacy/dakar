@@ -195,7 +195,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
     loadHeuristicList() {
-      return doGet(ROUTE_HEURISTIC_LIST, this.$router, this.$store).then((data) => {
+      return doGet(ROUTE_HEURISTIC_LIST).then((data) => {
         this.heuristicList = data;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
@@ -218,7 +218,7 @@ export default {
       });
     },
     deleteHeuristics(body) {
-      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, this.$store, body)
+      return doPost(ROUTE_DELETE_HEURISTIC, body)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting heuristics');
           if (data.success === false) {

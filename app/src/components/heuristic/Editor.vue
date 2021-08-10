@@ -335,7 +335,7 @@ export default {
       this.updateGraph();
     },
     loadHeuristicDetails(body) {
-      return doPost(ROUTE_HEURISTIC_DETAILS, this.$router, this.$store, body)
+      return doPost(ROUTE_HEURISTIC_DETAILS, body)
         .then((data) => {
           this.heuristicDetailsMap.set(data.uid, data);
           this.$store.dispatch('resetMessages');
@@ -408,7 +408,7 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
+      doPost(ROUTE_EXECUTE_HEURISTICS,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
@@ -564,7 +564,7 @@ export default {
       this.updateChangeSet();
     },
     loadHeuristicData(transactionHash) {
-      return doGet(ROUTE_HEURISTICS, this.$router, this.$store, transactionHash).then((data) => {
+      return doGet(ROUTE_HEURISTICS, transactionHash).then((data) => {
         this.data = data;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
@@ -574,6 +574,10 @@ export default {
     },
     async refreshData() {
       await this.loadHeuristicData(this.transactionHash);
+
+      if (!this.data) {
+        return false;
+      }
 
       this.setExecutionStatus(this.data.status);
 
@@ -594,9 +598,11 @@ export default {
       this.dbState = new Map(JSON.parse(JSON.stringify(this.data.heuristics))
         .map((d) => [d.uid, d]));
       this.updateGraph();
+
+      return true;
     },
     async getDescriptors() {
-      await doGet(this.routeHeuristicDescriptors, this.$router, this.$store)
+      await doGet(this.routeHeuristicDescriptors)
         .then((data) => {
           if (data.success === undefined) throw Error('error getting heuristic descriptors');
           if (data.success === false) {
@@ -650,20 +656,28 @@ export default {
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
         this.setErrorMessage('error setting heuristic click handler');
+        return false;
       }
       if (!ht.setContextMenuCallback(this.showContextMenu)) {
         this.setErrorMessage('error setting context menu handler');
+        return false;
       }
 
       // gets all heuristic type configurations
       await this.getDescriptors();
+      if (this.heuristicDescriptors.length === 0) {
+        return false;
+      }
 
       // creates the tab descriptions based on the heuristic categories
       this.createTabs();
 
       ht.setupSvg(this, svgCanvasId, this.heuristicDescriptors);
-      await this.refreshData();
+      if (!await this.refreshData()) {
+        return false;
+      }
       await ht.centerGraph();
+      return true;
     },
     onMenuItemClick(item) {
       if (item.action) {
@@ -672,7 +686,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.$store, this.transactionHash)
+      await doGet(ROUTE_HEURISTIC_STATUS, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;
@@ -713,8 +727,10 @@ export default {
     // reset memory
     this.resetExecutionStatus();
   },
-  mounted() {
-    this.onMounted();
+  async mounted() {
+    if (!await this.onMounted()) {
+      return;
+    }
     this.startDormantTimer();
   },
   watch: {

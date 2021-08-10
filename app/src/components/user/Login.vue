@@ -89,12 +89,12 @@ import {
   doPost, emailRules, getLocalSettings, passwordRules,
 } from '../../utilities';
 
-function goToPage(context, pageName) {
-  context.$router.push({ name: pageName });
+function goToPage(context, pageObj) {
+  context.$router.push(pageObj);
 }
 
 function goToRoot(context) {
-  goToPage(context, ROUTE_NAME_ENTRY_PAGE);
+  goToPage(context, { name: ROUTE_NAME_ENTRY_PAGE });
 }
 
 export default {
@@ -163,7 +163,7 @@ export default {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
+      doPost(ROUTE_USER_LOGIN,
         { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
