@@ -50,9 +50,7 @@
                   </v-form>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
-                    Add Heuristic
-                  </v-btn>
+                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">Add</v-btn>
                 </v-card-actions>
               </v-card>
             </div>
