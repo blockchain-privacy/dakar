@@ -84,7 +84,7 @@ func (h ReverseLookupHeuristic) clone() Heuristic {
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h ReverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
-	// holds all origins from either the parent Heuristic or the associated destination transaction
+	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)

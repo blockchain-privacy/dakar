@@ -86,7 +86,7 @@ func (h *ForwardAmountHeuristic) clone() Heuristic {
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
 func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent Heuristic
+	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps a cluster to its origin transactions
@@ -95,7 +95,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

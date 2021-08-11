@@ -48,7 +48,7 @@ func (h DenominationTypeHeuristic) GetDescriptor() Descriptor {
 		Title:    "Denomination Type",
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
-		Description: "The denomination type Heuristic filters " +
+		Description: "The denomination type heuristic filters " +
 			"all origins of sources, which have denominations of " +
 			"types which do not occur in the denominations of the " +
 			"destination transaction. For example a destination " +
@@ -68,7 +68,7 @@ func (h DenominationTypeHeuristic) clone() Heuristic {
 //		denominations of the destination transaction
 func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent Heuristic
+	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -79,7 +79,7 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

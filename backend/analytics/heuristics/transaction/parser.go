@@ -68,13 +68,13 @@ func buildHeuristicTreeElements(hMap map[string]Heuristic, heuristics []dbtxh.Fr
 
 	// add elements to map
 	for _, h := range heuristics {
-		// create new Heuristic
+		// create new heuristic
 
 		if modelHeuristic, ok := hMap[h.Type]; ok {
 			newHeuristic := modelHeuristic.clone()
 
 			//newHeuristic := *modelHeuristic
-			// check Heuristic was already built
+			// check if heuristic was already built
 			if _, ok := builtHeuristics[h.UID]; ok {
 				err = errHeuristicDuplicateUID
 				return

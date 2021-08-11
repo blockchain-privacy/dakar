@@ -92,7 +92,7 @@ func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		var results []dbtxh.HeuristicTransaction
 
 		if isParentHeuristicSet(parentHeuristicUID) {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

@@ -341,7 +341,7 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			fmt.Errorf("Heuristic type: %s, parameter: %s, %s",
+			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
 				hx.ThisHeuristic.getType(), hx.ThisHeuristic.getParameterString(), err))
 	}
 
@@ -349,7 +349,7 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 		if runErr := executor.Run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-				fmt.Errorf("Heuristic type: %s, parameter: %s, %s",
+				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
 					executor.ThisHeuristic.getType(), executor.ThisHeuristic.getParameterString(), runErr))
 		}
 
@@ -374,7 +374,7 @@ func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		heuristicResults[i].SetDType()
 	}
 
-	// only set parent Heuristic if uid is provided
+	// only set parent heuristic if uid is provided
 	var pHeuristic []dbtxh.Heuristic
 	if parentHeuristicUID != "" {
 		pHeuristic = []dbtxh.Heuristic{{UID: parentHeuristicUID}}

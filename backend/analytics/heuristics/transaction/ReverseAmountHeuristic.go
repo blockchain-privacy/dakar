@@ -63,7 +63,7 @@ func (h ReverseAmountHeuristic) clone() Heuristic {
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
 func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent Heuristic
+	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -72,7 +72,7 @@ func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
