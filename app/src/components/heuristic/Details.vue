@@ -3,15 +3,12 @@
     <v-card style="max-height: 600px">
       <v-card-title>
         <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>
-        Heuristic
+        Heuristic Properties
       </v-card-title>
       <v-divider/>
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
           <v-card outlined class="mr-auto my-4" max-width="500">
-            <v-card-title>
-              Properties
-            </v-card-title>
             <v-card-subtitle>
               <v-row>
                 <v-col>
