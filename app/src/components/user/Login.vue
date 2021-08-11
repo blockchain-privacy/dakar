@@ -8,7 +8,7 @@
               {{ applicationName }}
             </h1>
             <h3 class="text-xl-h3 text-md-h4 mt-4">
-              Blockchain transaction analytics.
+              {{ applicationSubtitle }}
             </h3>
           </div>
         </v-container>
@@ -83,7 +83,7 @@ import {
 import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS, APPLICATION_SUBTITLE,
 } from '../../constants';
 import {
   doPost, emailRules, getLocalSettings, passwordRules,
@@ -108,6 +108,7 @@ export default {
       isSubmittingForm: false,
       loginFailed: false,
       applicationName: APPLICATION_NAME,
+      applicationSubtitle: APPLICATION_SUBTITLE,
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
       rules: { passwordRules, emailRules },
