@@ -1,13 +1,16 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
-    <v-card style="max-height: 500px">
+    <v-card style="max-height: 600px">
+      <v-card-title>
+        <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>
+        Heuristic
+      </v-card-title>
+      <v-divider/>
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
-          <v-card outlined
-                  class="mx-auto my-12"
-                  max-width="500">
+          <v-card outlined class="mr-auto my-4" max-width="500">
             <v-card-title>
-              Heuristic Properties
+              Properties
             </v-card-title>
             <v-card-subtitle>
               <v-row>
@@ -44,8 +47,10 @@
                 <v-col>
                   <IconItem title="Number of addresses"
                             :icon="icon.mdiPoundBoxOutline">
-                    {{ heuristicData.transactions === undefined ? 0
-                      : heuristicData.transactions.length }}
+                    {{
+                      heuristicData.transactions === undefined ? 0
+                          : heuristicData.transactions.length
+                    }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -62,7 +67,7 @@
               </v-row>
             </v-card-subtitle>
           </v-card>
-          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
+          <v-card outlined class="mx-auto my-4" v-if="dataItems.length > 0" max-width="800px">
             <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
             <v-card-title class="text-h5" v-if="!enoughDataForGraph">
               Not enough data to display diagram
@@ -77,7 +82,7 @@
               All origins occur in the same point of time.
             </v-card-subtitle>
           </v-card>
-          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0">
+          <v-card outlined class="ml-auto my-4" v-if="dataItems.length > 0">
             <v-data-table :headers="dataHeaders"
                           :items="dataItems"
                           :items-per-page="5"
@@ -93,7 +98,7 @@
 
 <script>
 import {
-  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
 } from '@mdi/js';
 import * as d3 from 'd3';
 import IconItem from '../common/IconItem.vue';
@@ -118,7 +123,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
       },
       chart: null,
       sortBy: 'count',

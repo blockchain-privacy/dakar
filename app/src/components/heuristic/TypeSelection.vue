@@ -1,17 +1,18 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
     <v-card>
+      <v-card-title>
+        <v-icon class="mr-2">{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
+        <div class="mr-auto">Add Heuristic</div>
+        <v-switch
+            hide-details
+            class="mr-2 mt-0 pt-0"
+            v-model="isHeuristicSheetFixed"
+            label="Fixed"/>
+      </v-card-title>
+      <v-divider/>
       <v-card-text style="height: 80%">
-        <div class="d-flex" style="align-items:center">
-          <v-icon class="mr-2">{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
-          <div class="mr-auto text-h6">Add Heuristic</div>
-          <v-switch
-              class="mr-2"
-              v-model="isHeuristicSheetFixed"
-              label="Fixed"
-          ></v-switch>
-        </div>
-        <v-tabs v-model="heuristicTabs" v-if="tabItems">
+        <v-tabs v-model="heuristicTabs" v-if="tabItems" class="my-4">
           <v-tab v-for="item in tabItems" :key="item">
             {{ item }}
           </v-tab>
