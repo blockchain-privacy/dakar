@@ -1,5 +1,5 @@
 <template>
-  <v-row align="center" no-gutters  class="fill-height">
+  <v-row align="center" no-gutters class="fill-height">
     <v-col cols="12" md="6" class="hidden-md-and-down fill-height">
       <v-sheet color="primary darken-2" dark height="100%" width="100%">
         <v-container class="justify-center fill-height">
@@ -8,7 +8,7 @@
               {{ applicationName }}
             </h1>
             <h3 class="text-xl-h3 text-md-h4 mt-4">
-              Blockchain transaction analytics.
+              {{ applicationSubtitle }}
             </h3>
           </div>
         </v-container>
@@ -25,6 +25,8 @@
                 </h3>
                 <v-form ref="loginForm" class="mt-4">
                   <v-text-field
+                      autocomplete="username"
+                      name="username"
                       v-model="email.value"
                       label="E-mail"
                       :prepend-inner-icon="icon.mdiEmail"
@@ -32,16 +34,19 @@
                       :disabled="isSubmittingForm"
                       :rules="rules.emailRules"
                       @keydown.enter="submitForm"/>
-                  <v-text-field label="Password"
-                                :prepend-inner-icon="icon.mdiLockOutline"
-                                v-model="password.value"
-                                :disabled="isSubmittingForm"
-                                :type="password.show ? 'text' : 'password'"
-                                :append-icon="password.show ?  icon.mdiEye : icon.mdiEyeOff"
-                                @click:append="password.show = !password.show"
-                                :hint="`At least ${passwordMinCharacters} characters`"
-                                :rules="rules.passwordRules"
-                                @keydown.enter="submitForm"/>
+                  <v-text-field
+                      label="Password"
+                      name="password"
+                      autocomplete="current-password"
+                      :prepend-inner-icon="icon.mdiLockOutline"
+                      v-model="password.value"
+                      :disabled="isSubmittingForm"
+                      :type="password.show ? 'text' : 'password'"
+                      :append-icon="password.show ?  icon.mdiEye : icon.mdiEyeOff"
+                      @click:append="password.show = !password.show"
+                      :hint="`At least ${passwordMinCharacters} characters`"
+                      :rules="rules.passwordRules"
+                      @keydown.enter="submitForm"/>
                   <v-alert type="error" v-if="loginFailed" dense>
                     Login failed!
                   </v-alert>
@@ -78,14 +83,18 @@ import {
 import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS,
+  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS, APPLICATION_SUBTITLE,
 } from '../../constants';
 import {
   doPost, emailRules, getLocalSettings, passwordRules,
 } from '../../utilities';
 
+function goToPage(context, pageObj) {
+  context.$router.push(pageObj);
+}
+
 function goToRoot(context) {
-  context.$router.push({ name: ROUTE_NAME_ENTRY_PAGE });
+  goToPage(context, { name: ROUTE_NAME_ENTRY_PAGE });
 }
 
 export default {
@@ -99,6 +108,7 @@ export default {
       isSubmittingForm: false,
       loginFailed: false,
       applicationName: APPLICATION_NAME,
+      applicationSubtitle: APPLICATION_SUBTITLE,
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
       rules: { passwordRules, emailRules },
@@ -120,6 +130,14 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
+    failedRoute: {
+      get() {
+        return this.$store.getters.getFailedRoute;
+      },
+      set(value) {
+        this.$store.dispatch('setFailedRoute', value);
+      },
+    },
     settings: {
       get() {
         return this.$store.getters.getSettings;
@@ -136,11 +154,17 @@ export default {
     validateLoginForm() {
       return this.$refs.loginForm.validate();
     },
+    leave() {
+      if (this.failedRoute) {
+        goToPage(this, this.failedRoute);
+        this.failedRoute = null;
+      } else goToRoot(this);
+    },
     sendLoginRequest() {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      doPost(ROUTE_USER_LOGIN, this.$router,
+      doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
         { user_pw: this.password.value, user_email: this.email.value })
         .then((data) => {
           if (data.success === undefined
@@ -164,7 +188,8 @@ export default {
             this.settings = defaultSettings;
           }
 
-          goToRoot(this);
+          // user is logged in -> leave login page
+          this.leave();
         })
         .catch((error) => {
           this.setErrorMessage(error);

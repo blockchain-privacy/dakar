@@ -1,34 +1,13 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  doPost, doGet, handleError, setLocalUser, setLocalSettings,
+  setLocalUser, setLocalSettings, getLocalUser, getLocalSettings,
 } from '../utilities';
-import * as Constants from '../constants';
-
-import Router from '../router';
+import {
+  RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
+} from '../constants';
 
 Vue.use(Vuex);
-
-function handleGet(context, route, mutation, parameter) {
-  return doGet(route, Router, parameter).then((data) => {
-    context.commit(mutation, data);
-    context.dispatch('resetMessages');
-  }).catch((e) => {
-    handleError(context, e);
-    return e;
-  });
-}
-
-function handlePost(context, route, mutation, body, parameter) {
-  return doPost(route, Router, body, parameter)
-    .then((data) => {
-      context.commit(mutation, data);
-      context.dispatch('resetMessages');
-    })
-    .catch((e) => {
-      handleError(context, e);
-    });
-}
 
 // getInitialState returns the initial state of the store
 function getInitialState() {
@@ -39,13 +18,11 @@ function getInitialState() {
     searchResultType: null,
     address: null,
     block: null,
-    meta: null,
-    heuristic: null,
-    heuristicDetails: new Map(),
-    userList: null,
     activeUser: null,
     settings: null,
-    heuristicList: null,
+    // failedRoute is filled with the route which the user wanted
+    // to access but did for some reason (e.g. invalid credentials) fail
+    failedRoute: null,
   };
 }
 
@@ -65,34 +42,19 @@ const mutations = {
   SET_BLOCK_DATA(state, payload) {
     state.block = payload;
   },
-  UPDATE_META_DATA(state, payload) {
-    state.meta = payload;
-  },
-  UPDATE_HEURISTIC_DATA(state, payload) {
-    state.heuristic = payload;
-  },
-  SET_HEURISTIC_DATA(state, payload) {
-    mutations.UPDATE_HEURISTIC_DATA(state, payload);
-  },
-  SET_HEURISTIC_DETAILS(state, payload) {
-    state.heuristicDetails = payload;
-  },
-  ADD_HEURISTIC_DETAILS(state, payload) {
-    state.heuristicDetails.set(payload.uid, payload);
-  },
   SET_SEARCH_RESULT_TYPE(state, payload) {
     state.searchResultType = payload;
   },
   UPDATE_SEARCH_RESULT(state, payload) {
     state.searchResultType = payload.type;
     switch (payload.type) {
-      case Constants.RESPONSE_TYPE_TRANSACTION:
+      case RESPONSE_TYPE_TRANSACTION:
         state.transaction = payload.payload;
         break;
-      case Constants.RESPONSE_TYPE_BLOCK:
+      case RESPONSE_TYPE_BLOCK:
         state.block = payload.payload;
         break;
-      case Constants.RESPONSE_TYPE_ADDRESS:
+      case RESPONSE_TYPE_ADDRESS:
         state.address = payload.payload;
         break;
       default:
@@ -112,17 +74,14 @@ const mutations = {
     state.searchResultType = payload.type;
     state.address = payload.payload;
   },
-  UPDATE_USER_LIST(state, payload) {
-    state.userList = payload;
-  },
   SET_ACTIVE_USER(state, payload) {
     state.activeUser = payload;
   },
   SET_SETTINGS(state, payload) {
     state.settings = payload;
   },
-  UPDATE_HEURISTIC_LIST(state, payload) {
-    state.heuristicList = payload;
+  SET_FAILED_ROUTE(state, payload) {
+    state.failedRoute = payload;
   },
 };
 
@@ -145,49 +104,19 @@ const actions = {
     context.commit('SET_BLOCK_DATA', payload);
   },
   updateBlockData(context, payload) {
-    return handleGet(context, Constants.ROUTE_BLOCK, 'UPDATE_BLOCK_DATA', payload);
+    context.commit('UPDATE_BLOCK_DATA', payload);
   },
   updateTransactionData(context, payload) {
-    return handleGet(context, Constants.ROUTE_TRANSACTION, 'UPDATE_TRANSACTION_DATA', payload);
+    context.commit('UPDATE_TRANSACTION_DATA', payload);
   },
   updateAddressData(context, payload) {
-    return handleGet(context, Constants.ROUTE_ADDRESS, 'UPDATE_ADDRESS_DATA', payload);
+    context.commit('UPDATE_ADDRESS_DATA', payload);
   },
   updateSearchResult(context, payload) {
-    return handleGet(context, Constants.ROUTE_SEARCH, 'UPDATE_SEARCH_RESULT', payload);
-  },
-  updateMetaData(context, payload) {
-    return handleGet(context, Constants.ROUTE_META, 'UPDATE_META_DATA', payload);
-  },
-  updateHeuristicData(context, payload) {
-    return handleGet(context, Constants.ROUTE_HEURISTICS, 'UPDATE_HEURISTIC_DATA', payload);
-  },
-  updateHeuristicDetails(context, payload) {
-    return handlePost(context, Constants.ROUTE_HEURISTIC_DETAILS, 'ADD_HEURISTIC_DETAILS', payload);
-  },
-  updateUserList(context) {
-    return handleGet(context, Constants.ROUTE_USER_LIST, 'UPDATE_USER_LIST');
-  },
-  updateHeuristicList(context) {
-    return handleGet(context, Constants.ROUTE_HEURISTIC_LIST, 'UPDATE_HEURISTIC_LIST');
-  },
-  resetHeuristicDetails(context) {
-    context.commit('SET_HEURISTIC_DETAILS', new Map());
-  },
-  setHeuristicDetails(context, payload) {
-    context.commit('SET_HEURISTIC_DETAILS', payload);
-  },
-  setHeuristicData(context, payload) {
-    context.commit('SET_HEURISTIC_DATA', payload);
+    context.commit('UPDATE_SEARCH_RESULT', payload);
   },
   setSearchResultType(context, payload) {
     context.commit('SET_SEARCH_RESULT_TYPE', payload);
-  },
-  setUserList(context, payload) {
-    context.commit('UPDATE_USER_LIST', payload);
-  },
-  setHeuristicList(context, payload) {
-    context.commit('UPDATE_HEURISTIC_LIST', payload);
   },
   setActiveUser(context, payload) {
     setLocalUser(payload);
@@ -197,6 +126,9 @@ const actions = {
     setLocalSettings(payload);
     context.commit('SET_SETTINGS', payload);
   },
+  setFailedRoute(context, payload) {
+    context.commit('SET_FAILED_ROUTE', payload);
+  },
 };
 
 const getters = {
@@ -204,17 +136,39 @@ const getters = {
   getTransactionData: (state) => state.transaction,
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
-  getMetaData: (state) => state.meta,
-  getHeuristicData: (state) => state.heuristic,
-  getHeuristicDetails: (state) => state.heuristicDetails,
   getSearchResultType: (state) => state.searchResultType,
-  getUserList: (state) => state.userList,
-  getHeuristicList: (state) => state.heuristicList,
   getActiveUser: (state) => state.activeUser,
   getSettings: (state) => state.settings,
+  getFailedRoute: (state) => state.failedRoute,
 };
 
-const state = getInitialState();
+// insertLocalUserData inserts user data, which is
+// stored in LocalStorage, into the store. This is not done
+// in App.vue on purpose so user data is available in the
+// route guards even on page load.
+function insertLocalUserData(state) {
+  const localStorageUserData = getLocalUser();
+  if (localStorageUserData !== null) {
+    state.activeUser = localStorageUserData;
+  }
+  return state;
+}
+// insertLocalSettingsData inserts settings data, which is
+// stored in LocalStorage, into the store. This is not done
+// in App.vue on purpose so settings data is available in the
+// route guards even on page load.
+function insertLocalSettingsData(state) {
+  const localStorageSettingsData = getLocalSettings();
+  if (localStorageSettingsData !== null) {
+    state.settings = localStorageSettingsData;
+  }
+
+  return state;
+}
+
+let state = getInitialState();
+state = insertLocalUserData(state);
+state = insertLocalSettingsData(state);
 
 export default new Vuex.Store({
   state,

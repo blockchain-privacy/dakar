@@ -150,8 +150,11 @@ import {
 } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_DELETE_HEURISTIC,
+  ROUTE_HEURISTIC_LIST,
 } from '../../constants';
-import { doPost, shortenHash } from '../../utilities';
+import {
+  doGet, doPost, handleError, shortenHash,
+} from '../../utilities';
 
 export default {
   name: 'Heuristics',
@@ -160,6 +163,7 @@ export default {
       icon: {
         mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
       },
+      heuristicList: null,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       showDeleteAllDialog: false,
       showDeleteTransactionHeuristicDialog: false,
@@ -182,16 +186,6 @@ export default {
       ],
     };
   },
-  computed: {
-    heuristicList: {
-      get() {
-        return this.$store.getters.getHeuristicList;
-      },
-      set(value) {
-        this.$store.dispatch('setHeuristicList', value);
-      },
-    },
-  },
   methods: {
     shortenHash,
     setErrorMessage(msg) {
@@ -200,9 +194,18 @@ export default {
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
+    loadHeuristicList() {
+      return doGet(ROUTE_HEURISTIC_LIST, this.$router, this.$store).then((data) => {
+        this.heuristicList = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshHeuristicList() {
       this.isLoading = true;
-      await this.$store.dispatch('updateHeuristicList');
+      await this.loadHeuristicList();
       this.isLoading = false;
       this.search = '';
 
@@ -215,7 +218,7 @@ export default {
       });
     },
     deleteHeuristics(body) {
-      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, body)
+      return doPost(ROUTE_DELETE_HEURISTIC, this.$router, this.$store, body)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting heuristics');
           if (data.success === false) {

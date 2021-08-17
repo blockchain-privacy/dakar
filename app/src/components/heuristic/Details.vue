@@ -1,14 +1,14 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
-    <v-card style="max-height: 500px">
+    <v-card style="max-height: 600px">
+      <v-card-title>
+        <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>
+        Heuristic Properties
+      </v-card-title>
+      <v-divider/>
       <v-card-text style="height: 80%">
         <div class="d-flex flex-wrap" style="align-items: flex-start;">
-          <v-card outlined
-                  class="mx-auto my-12"
-                  max-width="500">
-            <v-card-title>
-              Heuristic Properties
-            </v-card-title>
+          <v-card outlined class="mr-auto my-4" max-width="500">
             <v-card-subtitle>
               <v-row>
                 <v-col>
@@ -44,7 +44,10 @@
                 <v-col>
                   <IconItem title="Number of addresses"
                             :icon="icon.mdiPoundBoxOutline">
-                    {{ clusterToTransactions === undefined ? 0 : clusterToTransactions.length }}
+                    {{
+                      heuristicData.transactions === undefined ? 0
+                          : heuristicData.transactions.length
+                    }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -61,7 +64,7 @@
               </v-row>
             </v-card-subtitle>
           </v-card>
-          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0" max-width="800px">
+          <v-card outlined class="mx-auto my-4" v-if="dataItems.length > 0" max-width="800px">
             <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
             <v-card-title class="text-h5" v-if="!enoughDataForGraph">
               Not enough data to display diagram
@@ -76,7 +79,7 @@
               All origins occur in the same point of time.
             </v-card-subtitle>
           </v-card>
-          <v-card outlined class="mx-auto my-12" v-if="dataItems.length > 0">
+          <v-card outlined class="ml-auto my-4" v-if="dataItems.length > 0">
             <v-data-table :headers="dataHeaders"
                           :items="dataItems"
                           :items-per-page="5"
@@ -92,7 +95,7 @@
 
 <script>
 import {
-  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
 } from '@mdi/js';
 import * as d3 from 'd3';
 import IconItem from '../common/IconItem.vue';
@@ -112,13 +115,12 @@ export default {
     value: { type: Boolean, required: true },
     heuristicData: { type: Object, required: true },
     // array[origins]
-    clusterToTransactions: { type: Array, required: false },
     newHeuristicPrefix: { type: String, required: true },
   },
   data() {
     return {
       icon: {
-        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline,
+        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
       },
       chart: null,
       sortBy: 'count',
@@ -129,12 +131,12 @@ export default {
   },
   computed: {
     dataItems() {
-      if (this.clusterToTransactions) {
-        this.clusterToTransactions.forEach((v) => {
+      if (this.heuristicData.transactions) {
+        this.heuristicData.transactions.forEach((v) => {
           v.txCount = v.txs.length;
         });
 
-        return this.clusterToTransactions;
+        return this.heuristicData.transactions;
       }
 
       return [];
@@ -150,18 +152,6 @@ export default {
         this.$emit('input', val);
       },
     },
-    details: {
-      get() {
-        return this.$store.getters.getHeuristicDetails;
-      },
-      set(value) {
-        if (value === null) {
-          this.$store.dispatch('resetHeuristicDetails');
-          return;
-        }
-        this.$store.dispatch('setHeuristicDetails', value);
-      },
-    },
     dataHeaders() {
       const addressHeader = {
         text: 'Address', align: 'start', sortable: false, value: 'cluster',
@@ -172,7 +162,7 @@ export default {
       const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
 
       // check if destination counts from forward lookup are set
-      if (this.details.get(this.heuristicData.heuristicUid).results[0].count) {
+      if (this.heuristicData.transactions.some((d) => d.count)) {
         return [addressHeader, transactionCountHeader, destinationHeader];
       }
       return [addressHeader, transactionCountHeader];
@@ -327,7 +317,7 @@ export default {
   },
   updated() {
     // do nothing if sheet is not open
-    if (!this.value || this.details.size === 0) return;
+    if (!this.value || !this.heuristicData.transactions) return;
     const svgCanvasId = 'heuristic_details_canvas';
 
     // check if svg exists yet
@@ -335,9 +325,8 @@ export default {
     if (documentSvg === null) return;
     // reset svg
     documentSvg.innerHTML = '';
-    if (!this.details.has(this.heuristicData.heuristicUid)) return;
 
-    this.updateData(this.details.get(this.heuristicData.heuristicUid).results);
+    this.updateData(this.heuristicData.transactions);
   },
 };
 </script>

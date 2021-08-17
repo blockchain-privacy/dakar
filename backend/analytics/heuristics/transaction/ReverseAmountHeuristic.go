@@ -10,59 +10,60 @@ import (
 	"fmt"
 )
 
-// AmountHeuristic - see exec for description
-type AmountHeuristic struct {
+// ReverseAmountHeuristic - see exec for description
+type ReverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 }
 
-// NewAmountHeuristic constructs an AmountHeuristic
-func NewAmountHeuristic() AmountHeuristic {
-	return AmountHeuristic{
-		heuristicType: "global_amount",
+// NewReverseAmountHeuristic constructs an ReverseAmountHeuristic
+func NewReverseAmountHeuristic() ReverseAmountHeuristic {
+	return ReverseAmountHeuristic{
+		heuristicType: "reverse_amount",
 	}
 }
 
-func (h AmountHeuristic) getType() string {
+func (h ReverseAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h AmountHeuristic) getParameterString() string {
+func (h ReverseAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h AmountHeuristic) hasParameter() bool {
+func (h ReverseAmountHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h AmountHeuristic) setParameter(_ string) error {
+func (h ReverseAmountHeuristic) setParameter(_ string) error {
 	return nil
 }
 
-func (h AmountHeuristic) String() string {
+func (h ReverseAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h AmountHeuristic) GetDescriptor() Descriptor {
+func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Global Amount",
-		Type:  h.heuristicType,
+		Title:    "Reverse Amount",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
 		Description: "Returns all origins of sources, which " +
 			"have equal or more denominations to fund the " +
 			"destination transaction.",
 	}
 }
 
-func (h AmountHeuristic) clone() Heuristic {
+func (h ReverseAmountHeuristic) clone() Heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// AmountHeuristic applies the following Heuristic:
+// ReverseAmountHeuristic applies the following Heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent Heuristic
+	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -71,7 +72,7 @@ func (h AmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

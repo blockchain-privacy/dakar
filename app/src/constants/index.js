@@ -51,6 +51,7 @@ export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
+export const APPLICATION_SUBTITLE = 'Blockchain analytics';
 export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const DEFAULT_SETTINGS = { dark: false };

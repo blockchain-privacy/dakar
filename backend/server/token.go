@@ -117,7 +117,7 @@ func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), jsonErr)
 		return
 	}
-	expirationTime = time.Now().Add(tokenExpirationTime)
+	expirationTime = time.Now().Add(tokenExpirationTime).UTC()
 	jsonToken := paseto.JSONToken{
 		Expiration: expirationTime,
 	}

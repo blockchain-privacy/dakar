@@ -30,14 +30,14 @@
         </v-text-field>
         <div class="d-flex justify-center ">
           <p class="text-h6" style="position:relative; z-index: 5">
-            Blockchain transaction analytics
+            {{ appSubtitle }}
           </p>
         </div>
       </v-col>
     </v-row>
     <div class="hidden-sm-and-down">
       <svg class="bg-svg" v-for="i in 10" :key="i +'a'"
-           width="25.946mm" height="25.946mm" version="1.1" viewBox="0 0 25.946 25.946"
+           width="25.946mm" height="25.946mm" viewBox="0 0 25.946 25.946"
            xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(-79.261 -114.16)">
           <g transform="rotate(45 134.89 -96.187)">
@@ -48,7 +48,7 @@
         </g>
       </svg>
       <svg class="bg-svg" v-for="i in 10" :key="i +'b'"
-           width="30.295mm" height="28.285mm" version="1.1" viewBox="0 0 30.295 28.285"
+           width="30.295mm" height="28.285mm" viewBox="0 0 30.295 28.285"
            xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(-54.613 -103.28)">
           <g transform="translate(-192.88 29.538)">
@@ -63,7 +63,7 @@
         </g>
       </svg>
       <svg class="bg-svg" v-for="i in 10" :key="i +'c'"
-           width="58.463mm" height="47.275mm" version="1.1" viewBox="0 0 58.463 47.275"
+           width="58.463mm" height="47.275mm" viewBox="0 0 58.463 47.275"
            xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(-45.709 -108.98)">
           <g transform="translate(-147.34 34.424)">
@@ -86,7 +86,7 @@
         </g>
       </svg>
       <svg class="bg-svg" v-for="i in 10" :key="i +'d'"
-           width="33.961mm" height="6.5963mm" version="1.1" viewBox="0 0 33.961 6.5963"
+           width="33.961mm" height="6.5963mm" viewBox="0 0 33.961 6.5963"
            xmlns="http://www.w3.org/2000/svg">
         <g transform="translate(-92.84 -68.534)">
           <g transform="translate(-152.82 -20.051)">
@@ -108,10 +108,13 @@ import * as d3 from 'd3';
 import {
   ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
   RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
-  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME,
+  RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_SEARCH,
+  APPLICATION_SUBTITLE,
 } from '../constants';
 import '../style.scss';
-import { isValidQuery, isValidQueryInput } from '../utilities';
+import {
+  doGet, handleError, isValidQuery, isValidQueryInput,
+} from '../utilities';
 
 export default {
   name: 'EntryView',
@@ -126,6 +129,7 @@ export default {
       },
       isMenuVisible: false,
       appName: APPLICATION_NAME,
+      appSubtitle: APPLICATION_SUBTITLE,
     };
   },
   computed: {
@@ -142,8 +146,17 @@ export default {
         .selectAll('path')
         .attr('stroke', () => (isDark ? 'white' : 'black'));
     },
+    execQuery(route, action, parameter) {
+      return doGet(route, this.$router, this.$store, parameter).then((data) => {
+        this.$store.dispatch(action, data);
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async executeQuery(query) {
-      await this.$store.dispatch('updateSearchResult', query);
+      await this.execQuery(ROUTE_SEARCH, 'updateSearchResult', query);
       return true;
     },
     async handleQuery(q) {

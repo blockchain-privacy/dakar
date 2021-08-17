@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import { isAdminUser, isPrivilegedUser } from '../utilities';
 import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
 import Misc from '../components/user/Misc.vue';
@@ -18,8 +19,46 @@ import Tools from '../components/tools/Tools.vue';
 import ShortestPath from '../components/tools/ShortestPath.vue';
 import Heuristics from '../components/tools/Heuristics.vue';
 import * as Constants from '../constants';
+import Store from '../state';
 
 Vue.use(Router);
+
+function getUserData() {
+  return Store.getters.getActiveUser;
+}
+
+function isPrivileged() {
+  const userData = getUserData();
+  if (!userData || !userData.roles || userData.roles.length === 0) {
+    return false;
+  }
+
+  return isPrivilegedUser(userData) || isAdminUser(userData);
+}
+
+function isAdmin() {
+  const userData = getUserData();
+  if (!userData || !userData.roles || userData.roles.length === 0) {
+    return false;
+  }
+
+  return isAdminUser(userData);
+}
+
+function checkUserData(to, next, fn) {
+  if (!getUserData()) {
+    Store.dispatch('setFailedRoute', to);
+    next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
+    return;
+  }
+
+  if ((fn) ? !fn() : false) {
+    next({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
+    return;
+  }
+
+  next();
+}
 
 export default new Router({
   mode: 'history',
@@ -35,6 +74,9 @@ export default new Router({
       name: Constants.ROUTE_NAME_STATUS_PAGE,
       component: StatusView,
       meta: { title: 'Status' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, isPrivileged);
+      },
     },
     {
       path: '/block/:id',
@@ -59,6 +101,9 @@ export default new Router({
       name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
       component: Editor,
       meta: { title: 'Heuristic' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, isPrivileged);
+      },
     },
     {
       path: '/login',
@@ -70,6 +115,9 @@ export default new Router({
       path: '/settings',
       component: Settings,
       meta: { title: 'Profile' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, null);
+      },
       children: [
         {
           path: 'profile',
@@ -87,6 +135,9 @@ export default new Router({
       path: '/tools',
       component: Tools,
       meta: { title: 'Tools' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, isPrivileged);
+      },
       children: [
         {
           path: 'shortestPath',
@@ -110,6 +161,9 @@ export default new Router({
       name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
       component: Administration,
       meta: { title: 'User Administration' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, isAdmin);
+      },
     },
     {
       path: '/noresults',

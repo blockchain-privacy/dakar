@@ -149,7 +149,7 @@ export default {
     },
     doLookup() {
       this.isLoading = true;
-      doPost(ROUTE_SHORTEST_TRANSACTION_PATH, this.$router, {
+      doPost(ROUTE_SHORTEST_TRANSACTION_PATH, this.$router, this.$store, {
         to: this.fromTransaction.trim(),
         from: this.toTransaction.trim(),
         includePrivacyTransactions: this.includePrivacyTransactions,

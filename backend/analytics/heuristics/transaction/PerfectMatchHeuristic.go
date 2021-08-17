@@ -41,9 +41,10 @@ func (h PerfectMatchHeuristic) setParameter(_ string) error {
 
 func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
-		Title: "Perfect Match",
-		Type:  h.heuristicType,
-		Description: "The perfect match Heuristic filters all " +
+		Title:    "Perfect Match",
+		Type:     h.heuristicType,
+		Category: heuristicCategoryReverse,
+		Description: "The perfect match heuristic filters all " +
 			"origins of sources, which have denominations " +
 			"without a perfect match for the denominations of " +
 			"the destination transaction.",
@@ -64,7 +65,7 @@ func (h PerfectMatchHeuristic) clone() Heuristic {
 //		denominations of the destination transaction
 func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
-	// origins holds all origins found bei either the parent Heuristic
+	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
@@ -75,7 +76,7 @@ func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
-			// get origins from parent Heuristic
+			// get origins from parent heuristic
 			var err error
 			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {

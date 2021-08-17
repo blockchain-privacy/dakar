@@ -141,7 +141,7 @@ export default {
       if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
     logout() {
-      doGet(ROUTE_USER_LOGOUT, this.$router)
+      doGet(ROUTE_USER_LOGOUT, this.$router, this.$store)
         .then((data) => {
           if (data.success === undefined) throw Error('error logging out');
           if (data.success === false) {

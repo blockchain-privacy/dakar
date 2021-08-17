@@ -152,7 +152,7 @@ import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
 } from '@mdi/js';
 import {
-  PAGE_TITLE,
+  PAGE_TITLE, ROUTE_USER_LIST,
   ROUTE_USER_CREATE,
   ROUTE_USER_DELETE,
   ROUTE_USER_MODIFY,
@@ -210,18 +210,11 @@ export default {
       user_email: '',
       user_roles: [],
     },
+    users: null,
   }),
   computed: {
     formTitle() {
       return this.editedIndex === -1 ? 'Create User' : 'Edit User';
-    },
-    users: {
-      get() {
-        return this.$store.getters.getUserList;
-      },
-      set(value) {
-        this.$store.dispatch('setUserList', value);
-      },
     },
   },
   watch: {
@@ -233,9 +226,18 @@ export default {
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
+    loadUserList() {
+      return doGet(ROUTE_USER_LIST, this.$router, this.$store).then((data) => {
+        this.users = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshUsers() {
       this.isLoading = true;
-      await this.$store.dispatch('updateUserList');
+      await this.loadUserList();
       this.isLoading = false;
       this.search = '';
       if (!this.users) return;
@@ -267,7 +269,7 @@ export default {
     deleteItem(user) {
       this.isLoading = true;
 
-      doGet(ROUTE_USER_DELETE, this.$router, user.uid)
+      doGet(ROUTE_USER_DELETE, this.$router, this.$store, user.uid)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting user');
           if (data.success === false) {
@@ -302,7 +304,7 @@ export default {
 
       if (this.editedIndex > -1) {
         this.isLoading = true;
-        doPost(ROUTE_USER_MODIFY, this.$router, {
+        doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
           uid: this.editedItem.uid,
           email: this.editedItem.user_email,
           roles: this.editedItem.user_roles.map((d) => ({ role_name: d })),
@@ -323,7 +325,7 @@ export default {
       } else {
         this.isLoading = true;
 
-        doPost(ROUTE_USER_CREATE, this.$router, this.editedItem)
+        doPost(ROUTE_USER_CREATE, this.$router, this.$store, this.editedItem)
           .then((data) => {
             if (data.success === undefined) throw Error('error creating user');
             if (data.success === false) {

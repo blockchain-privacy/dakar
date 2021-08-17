@@ -15,9 +15,6 @@
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-  getLocalUser, getLocalSettings,
-} from './utilities';
-import {
   DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
 } from './constants';
 import AppBar from './components/AppBar.vue';
@@ -60,18 +57,8 @@ export default {
       set.dark = isDark;
       this.settings = set;
     },
-    loadStorageData() {
-      // load user data from localStorage
-      const localStorageUserData = getLocalUser();
-      if (localStorageUserData !== null) {
-        this.userData = localStorageUserData;
-      }
-
-      // load settings from localStorage
-      const localStorageSettingsData = getLocalSettings();
-      if (localStorageSettingsData !== null) {
-        this.settings = localStorageSettingsData;
-        // dark mode according to settings
+    setDarkTheme() {
+      if (this.settings !== null) {
         this.$vuetify.theme.dark = this.settings.dark;
       } else {
         const defaultSettings = DEFAULT_SETTINGS;
@@ -87,8 +74,7 @@ export default {
   beforeMount() {
     // eslint-disable-next-line no-console
     console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
-
-    this.loadStorageData();
+    this.setDarkTheme();
   },
 };
 </script>

@@ -14,7 +14,9 @@ import {
   mdiMagnify,
 } from '@mdi/js';
 import * as Constants from '../constants';
-import { isValidQuery, isValidQueryInput, resetData } from '../utilities';
+import {
+  doGet, handleError, isValidQuery, isValidQueryInput, resetData,
+} from '../utilities';
 
 function newRouting(context) {
   const { id, pushFromUserInput } = context.$route.params;
@@ -73,10 +75,12 @@ export default {
           return;
         }
 
+        // get data for route
         if (!await this.handleQuery(query)) {
           return;
         }
 
+        // route to corresponding page
         switch (this.searchResultType) {
           case Constants.RESPONSE_EMPTY:
             await this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
@@ -109,6 +113,15 @@ export default {
         // do nothing -> route is already up to date
       }
     },
+    execQuery(route, action, parameter) {
+      return doGet(route, this.$router, this.$store, parameter).then((data) => {
+        this.$store.dispatch(action, data);
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async handleQuery(q, type) {
       this.query = '';
       // template string in case it is a number
@@ -127,16 +140,16 @@ export default {
 
       switch (type) {
         case Constants.RESPONSE_TYPE_TRANSACTION:
-          await this.$store.dispatch('updateTransactionData', query);
+          await this.execQuery(Constants.ROUTE_TRANSACTION, 'updateTransactionData', query);
           break;
         case Constants.RESPONSE_TYPE_BLOCK:
-          await this.$store.dispatch('updateBlockData', query);
+          await this.execQuery(Constants.ROUTE_BLOCK, 'updateBlockData', query);
           break;
         case Constants.RESPONSE_TYPE_ADDRESS:
-          await this.$store.dispatch('updateAddressData', query);
+          await this.execQuery(Constants.ROUTE_ADDRESS, 'updateAddressData', query);
           break;
         default:
-          await this.$store.dispatch('updateSearchResult', query);
+          await this.execQuery(Constants.ROUTE_SEARCH, 'updateSearchResult', query);
       }
 
       return true;

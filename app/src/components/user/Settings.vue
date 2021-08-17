@@ -55,7 +55,7 @@
 import {
   mdiAccountDetails, mdiTune, mdiCog,
 } from '@mdi/js';
-import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../../constants';
+import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE } from '../../constants';
 
 export default {
   name: 'Settings',
@@ -69,27 +69,9 @@ export default {
     };
   },
   computed: {
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
+    userData() {
+      return this.$store.getters.getActiveUser;
     },
-  },
-  methods: {
-    checkRoute() {
-      if (!this.userData) {
-        this.$router.push({ name: ROUTE_NAME_LOGIN_PAGE });
-        return false;
-      }
-
-      return true;
-    },
-  },
-  mounted() {
-    this.checkRoute();
   },
 };
 </script>

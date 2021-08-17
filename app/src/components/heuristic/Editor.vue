@@ -83,55 +83,16 @@
           </v-list-item>
         </v-list>
       </v-menu>
-      <v-bottom-sheet scrollable v-model="isAddHeuristicSheetOpen">
-        <v-card>
-          <div>
-            <v-subheader class="float-left">Add heuristic</v-subheader>
-            <v-switch
-                class="float-right mr-2"
-                v-model="isHeuristicSheetFixed"
-                label="Fixed"
-            ></v-switch>
-          </div>
-          <v-card-text style="height: 80%">
-            <div class="d-flex flex-wrap" style="align-items: flex-start;">
-              <v-card
-                  outlined
-                  class="mx-auto mb-6"
-                  v-for="(item, index) in heuristicDescriptors"
-                  :key="index"
-                  max-width="300">
-                <v-card-title>
-                  {{ item.title }}
-                </v-card-title>
-                <v-card-subtitle>
-                  {{ item.description }}
-                </v-card-subtitle>
-                <v-card-subtitle>
-                  <v-form v-model="item.parameter.valid" v-if="item.parameter !== undefined">
-                    <v-text-field
-                        v-model="item.parameter.value"
-                        :rules="parameterRules.get(item.parameter.type)"
-                        :label="item.parameter.description"
-                        required>
-                    </v-text-field>
-                  </v-form>
-                </v-card-subtitle>
-                <v-card-actions class="pt-0">
-                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">
-                    Add Heuristic
-                  </v-btn>
-                </v-card-actions>
-              </v-card>
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-bottom-sheet>
+      <TypeSelection
+          v-model="isAddHeuristicSheetOpen"
+          :tab-items="heuristicTabItems"
+          :descriptors="heuristicDescriptors"
+          v-on:add-heuristic="addNewHeuristic"
+      />
       <Details
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
-          :new-heuristic-prefix="this.newUidPrefix"
-          :cluster-to-transactions="heuristicDetailsMap.get(heuristicSheet.heuristicUid)"/>
+          :new-heuristic-prefix="this.newUidPrefix"/>
     </v-toolbar>
     <v-overlay
         opacity="0.75"
@@ -169,17 +130,18 @@ import {
   mdiSourceBranchCheck, mdiDelete, mdiChartBar, mdiShapeSquarePlus, mdiDotsVertical,
   mdiAlertOctagon,
 } from '@mdi/js';
+import TypeSelection from './TypeSelection.vue';
 import Details from './Details.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
-  ROUTE_HEURISTIC_DESCRIPTORS,
+  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS, ROUTE_HEURISTIC_DETAILS,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import * as ht from '../../heuristicTree';
 import {
-  getCurrentDate, doPost, doGet,
+  getCurrentDate, doPost, doGet, handleError,
 } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
@@ -245,7 +207,7 @@ function areDataElementsEqual(a, b) {
 
 export default {
   name: 'Editor',
-  components: { Details, NestedMenu },
+  components: { TypeSelection, Details, NestedMenu },
   data() {
     return {
       icon: {
@@ -300,7 +262,6 @@ export default {
       changeSet: [],
       // deletedData holds all uids of the heuristic which are deleted
       deletedData: [],
-      isHeuristicSheetFixed: false,
       isAddHeuristicSheetOpen: false,
       // heuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
       heuristicDetailsMap: new Map(),
@@ -310,16 +271,10 @@ export default {
         heuristicType: '',
         heuristicParameter: '',
         resultCount: null,
+        transactions: null,
       },
       heuristicDescriptors: [],
-      parameterRules: new Map([
-        ['int', [(v) => {
-          if (!/^\d+$/.test(v)) return false;
-          const num = parseInt(v, 10);
-          return Number.isInteger(num) && num > 0;
-        }]],
-        // string rule is not implemented yet
-        ['string', null]]),
+      heuristicTabItems: [],
       contextMenu: {
         display: false,
         x: 0,
@@ -362,42 +317,12 @@ export default {
       },
     };
   },
-  computed: {
-    data: {
-      get() {
-        return this.$store.getters.getHeuristicData;
-      },
-      set(value) {
-        this.$store.dispatch('setHeuristicData', value);
-      },
-    },
-    heuristicDetails: {
-      get() {
-        return this.$store.getters.getHeuristicDetails;
-      },
-      set(value) {
-        if (value === null) {
-          this.$store.dispatch('resetHeuristicDetails');
-          return;
-        }
-        this.$store.dispatch('setHeuristicDetails', value);
-      },
-    },
-  },
   methods: {
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     setInfoMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
-    },
-    addNewHeuristicAction(item) {
-      if (item.parameter !== undefined && !item.parameter.valid) {
-        return;
-      }
-      if (!this.isHeuristicSheetFixed) this.isAddHeuristicSheetOpen = false;
-
-      this.addNewHeuristic(item);
     },
     addNewHeuristic(heuristic) {
       const newHeuristic = { type: heuristic.type, uid: `${this.newUidPrefix}${this.uidCounter}` };
@@ -408,6 +333,16 @@ export default {
 
       this.data.heuristics.push(newHeuristic);
       this.updateGraph();
+    },
+    loadHeuristicDetails(body) {
+      return doPost(ROUTE_HEURISTIC_DETAILS, this.$router, this.$store, body)
+        .then((data) => {
+          this.heuristicDetailsMap.set(data.uid, data);
+          this.$store.dispatch('resetMessages');
+        }).catch((e) => {
+          handleError(this.$store, e);
+          return e;
+        });
     },
     openPropertySheet(heuristic) {
       const sheet = this.heuristicSheet;
@@ -426,26 +361,26 @@ export default {
       sheet.heuristicType = displayType;
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
+      sheet.transactions = null;
 
       // check if data has to be loaded from backend
       if (heuristic.num_results === undefined || heuristic.num_results === 0
-          || this.heuristicDetails.has(heuristic.uid)
           || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;
       }
 
+      if (this.heuristicDetailsMap.has(heuristic.uid)) {
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
+        sheet.isOpen = true;
+        return;
+      }
+
       // request data from backend
-      this.$store.dispatch('updateHeuristicDetails', { uid: heuristic.uid }).then(() => {
-        if (this.heuristicDetails === null || this.heuristicDetails.length === 0
-            || !this.heuristicDetails.has(heuristic.uid)) return;
-
-        const { results } = this.heuristicDetails.get(heuristic.uid);
-
-        if (results.length === 0) return;
-
-        this.heuristicDetailsMap.set(heuristic.uid, results);
-
+      this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
+        if (this.heuristicDetailsMap.size === 0
+            || !this.heuristicDetailsMap.has(heuristic.uid)) return;
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
         sheet.isOpen = true;
       });
     },
@@ -473,7 +408,7 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router,
+      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
         this.transactionHash)
         .then((data) => {
@@ -603,8 +538,6 @@ export default {
 
       this.data = { heuristics: updatedData, status: 0 };
 
-      // this.$store.dispatch('setHeuristicData', );
-
       const newStateMap = new Map(this.data.heuristics.map((d) => [d.uid, d]));
       this.deletedData = getDeletedData(this.dbState, newStateMap);
 
@@ -630,8 +563,21 @@ export default {
       // because otherwise it gets a not up to date descendant state
       this.updateChangeSet();
     },
+    loadHeuristicData(transactionHash) {
+      return doGet(ROUTE_HEURISTICS, this.$router, this.$store, transactionHash).then((data) => {
+        this.data = data;
+        this.$store.dispatch('resetMessages');
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      });
+    },
     async refreshData() {
-      await this.$store.dispatch('updateHeuristicData', this.transactionHash);
+      await this.loadHeuristicData(this.transactionHash);
+
+      if (!this.data) {
+        return false;
+      }
 
       this.setExecutionStatus(this.data.status);
 
@@ -652,9 +598,11 @@ export default {
       this.dbState = new Map(JSON.parse(JSON.stringify(this.data.heuristics))
         .map((d) => [d.uid, d]));
       this.updateGraph();
+
+      return true;
     },
     async getDescriptors() {
-      await doGet(this.routeHeuristicDescriptors, this.$router)
+      await doGet(this.routeHeuristicDescriptors, this.$router, this.$store)
         .then((data) => {
           if (data.success === undefined) throw Error('error getting heuristic descriptors');
           if (data.success === false) {
@@ -678,6 +626,23 @@ export default {
           this.setErrorMessage(error);
         });
     },
+    createTabs() {
+      const tabSet = new Set();
+      let isCategoryEmpty = false;
+      this.heuristicDescriptors.forEach((e) => {
+        if (e.category) {
+          tabSet.add(e.category);
+        } else {
+          // if no category is set
+          isCategoryEmpty = true;
+        }
+      });
+      this.heuristicTabItems = Array.from(tabSet).sort();
+
+      if (isCategoryEmpty) {
+        this.heuristicTabItems.push('Other');
+      }
+    },
     async onMounted() {
       const svgCanvasId = 'svg_canvas';
       // remove previous svg children
@@ -691,14 +656,28 @@ export default {
 
       if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
         this.setErrorMessage('error setting heuristic click handler');
+        return false;
       }
       if (!ht.setContextMenuCallback(this.showContextMenu)) {
         this.setErrorMessage('error setting context menu handler');
+        return false;
       }
+
+      // gets all heuristic type configurations
       await this.getDescriptors();
+      if (this.heuristicDescriptors.length === 0) {
+        return false;
+      }
+
+      // creates the tab descriptions based on the heuristic categories
+      this.createTabs();
+
       ht.setupSvg(this, svgCanvasId, this.heuristicDescriptors);
-      await this.refreshData();
+      if (!await this.refreshData()) {
+        return false;
+      }
       await ht.centerGraph();
+      return true;
     },
     onMenuItemClick(item) {
       if (item.action) {
@@ -707,7 +686,7 @@ export default {
       this.contextMenu.display = false;
     },
     async updateExecutionStatus() {
-      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.transactionHash)
+      await doGet(ROUTE_HEURISTIC_STATUS, this.$router, this.$store, this.transactionHash)
         .then((data) => {
           if (data.status === undefined) throw Error('execution status is not defined');
           const oldExecutionStatus = this.executionStatus.value.executing;
@@ -746,11 +725,12 @@ export default {
   },
   beforeDestroy() {
     // reset memory
-    this.heuristicDetails = null;
     this.resetExecutionStatus();
   },
-  mounted() {
-    this.onMounted();
+  async mounted() {
+    if (!await this.onMounted()) {
+      return;
+    }
     this.startDormantTimer();
   },
   watch: {
