@@ -45,11 +45,13 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 
 			// if a maximum look back time is set check the timestamp
 			if maxLookBackTime > 0 {
+				// isReversed is true if it is a forward lookup: default case is a reverse
+				// lookup so if the graph is reversed a forward lookup is happening
 				if isReversed {
 					if toNode.ts.Sub(nodeTs) > maxLookBackTime {
 						// The forward lookup starts at an origin transaction and looks forward
 						// for a certain user-defined duration. Funds from mixing transaction are usually
-						// not spent directly after the mixing process finished. Because of this, the next
+						// not spent directly after the mixing process is finished. Because of this, the next
 						// connected non-mixing transaction must be included to the returned set.
 						if !toNode.privacyType.IsMixing() {
 							foundEndpoints[toNode.String()] = true
