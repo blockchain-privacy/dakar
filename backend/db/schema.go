@@ -45,9 +45,11 @@ func SetupSchema(c external.Database) error {
 
 			iscrawling: bool .
 			isclassifying: bool .
+			isclustering: bool .
 			lastblockid: int .
 			lowestblockid: int .
 			lastclassifiedid: int .
+			lastclusteredid: int .
 
 			type: string @index(hash) .
 			parameter: string .
@@ -112,6 +114,11 @@ func SetupSchema(c external.Database) error {
 			type ClassifierStatus {
 				isclassifying
 				lastclassifiedid
+			}
+
+			type CMultiInputStatus {
+				isclustering
+				lastclusteredid
 			}
 
 			type TransactionHeuristic {
@@ -262,6 +269,21 @@ func AlterSchemaAddHeuristicResult(c external.Database) error {
 			type TransactionHeuristicResult {
 				origin
 				destinations
+			}
+		`,
+	})
+}
+
+// AlterSchemaAddMultiInputClusteringStatus adds the new multi-input clustering status field
+func AlterSchemaAddMultiInputClusteringStatus(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			isclustering: bool .
+			lastclusteredid: int .
+
+			type CMultiInputStatus {
+				isclustering
+				lastclusteredid
 			}
 		`,
 	})

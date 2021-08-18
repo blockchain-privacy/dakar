@@ -143,4 +143,10 @@ func main() {
 		info(err)
 	}
 	info("deletion of all heuristics done")
+
+	info("type adding CMultiInputStatus starting ...")
+	if err := db.AlterSchemaAddMultiInputClusteringStatus(dgraph); err != nil {
+		info(err)
+	}
+	info("type adding CMultiInputStatus starting done")
 }
