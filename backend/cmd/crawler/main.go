@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend/analytics"
+	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/blockiterator"
@@ -63,7 +64,7 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.IsPrintStatus, cli.RPCHost,
 		cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard, cli.DisableHTTPServer, cli.DisableHeuristics,
-		cli.DisableCrawler, cli.DisableClassifier, cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC,
+		cli.DisableCrawler, cli.DisableClassifier, cli.DisableClustering, cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC,
 		cli.Dash, cli.Doge)
 
 	if err != nil {
@@ -135,7 +136,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 
 // waitForDatabase waits until the database is ready to receive requests
 func waitForDatabase(db external.Database) bool {
-	const maxRetries = 5
+	const maxRetries = 20
 	const retrySleepDuration = time.Second * 5
 
 	var printedErrMessage bool
@@ -235,7 +236,12 @@ func main() {
 		cliArgs.DisableClassifier = true
 	}
 
-	info(processorConfig.BlockchainName, "mode active")
+	// disable clustering if it is disabled per configuration
+	if !analyserConfig.IsClusteringEnabled {
+		cliArgs.DisableClustering = true
+	}
+
+	info(processorConfig.BlockchainName, "mode")
 
 	// create dgraph client
 	graphDB, c, err := db.CreateClient(cliArgs.DBEndpoint)
@@ -323,7 +329,9 @@ func main() {
 		info("Successfully set up new schema.")
 	}
 
-	if cliArgs.DisableClassifier && cliArgs.DisableCrawler && cliArgs.DisableHTTPServer {
+	if cliArgs.DisableClassifier && cliArgs.DisableCrawler &&
+		cliArgs.DisableClustering && cliArgs.DisableHTTPServer {
+		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
 
@@ -373,7 +381,7 @@ func main() {
 		}
 	}
 
-	// Setup the RPC connection, only if needed
+	// Set up the RPC connection, only if needed
 	var client *rpcclient.Client
 	if !cliArgs.DisableHTTPServer || !cliArgs.DisableCrawler {
 		client, err = rpcclient.New(&rpcclient.ConnConfig{
@@ -403,6 +411,7 @@ func main() {
 	// channels which are set to true as soon as the associated goroutine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
+	chClusteringStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
 	var wg sync.WaitGroup
@@ -482,6 +491,22 @@ func main() {
 		}()
 	}
 
+	// activate clustering
+	if !cliArgs.DisableClustering {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chClusteringStopped <- true
+			}()
+
+			if clusteringErr := blockiterator.StartIteration(clustering.NewMultiInput(
+				appContext, graphDB)); clusteringErr != nil {
+				info(clusteringErr)
+			}
+		}()
+	}
+
 	// activate server
 	var srv *http.Server
 	if !cliArgs.DisableHTTPServer {
@@ -491,9 +516,10 @@ func main() {
 
 	var crawlerStopped bool
 	var classifierStopped bool
+	var clusteringStopped bool
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && classifierStopped)) {
+	for !(interrupted || (crawlerStopped && classifierStopped && clusteringStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
@@ -505,11 +531,14 @@ func main() {
 		case <-chClassifyingStopped:
 			terminateApp()
 			classifierStopped = true
+		case <-chClusteringStopped:
+			terminateApp()
+			clusteringStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped {
-		// if the crawler and classifier stopped working on their own accord,
+	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped && clusteringStopped {
+		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point
 
 		<-chSignal
