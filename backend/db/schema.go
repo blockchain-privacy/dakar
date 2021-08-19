@@ -147,6 +147,18 @@ func SetupSchema(c external.Database) error {
 				user_modified
 				user_heuristics
 			}
+
+			cluster_type: string @index(hash) . # the cluster type
+			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			cluster_children: [uid] @reverse . # all direct child clusters
+
+			type Cluster {
+				cluster_type
+				cluster_transaction
+				cluster_addresses
+				cluster_children
+			}
 		`,
 	})
 }
@@ -284,6 +296,25 @@ func AlterSchemaAddMultiInputClusteringStatus(c external.Database) error {
 			type CMultiInputStatus {
 				isclustering
 				lastclusteredid
+			}
+		`,
+	})
+}
+
+// AlterSchemaAddMultiInputClusterType adds the new multi-input cluster type
+func AlterSchemaAddMultiInputClusterType(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			cluster_type: string @index(hash) . # the cluster type
+			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			cluster_children: [uid] @reverse . # all direct child clusters
+
+			type Cluster {
+				cluster_type
+				cluster_transaction
+				cluster_addresses
+				cluster_children
 			}
 		`,
 	})
