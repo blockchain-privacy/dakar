@@ -225,8 +225,8 @@ func (c *Classifier) CurrentBlock() uint64 {
 	return c.state.ID
 }
 
-// Iterate does the classification for all transactions of the current block. Transactions are
-// classified based on their own properties (number of outputs/inputs, amounts, fee, etc...)
+// Iterate classifies all transactions of the current block based
+// on their own properties (number of outputs/inputs, amounts, fee, etc...)
 // and how they are connected to other transactions.
 func (c *Classifier) Iterate() (bool, error) {
 	if c.Empty() {
