@@ -514,9 +514,9 @@ func main() {
 		srv = server.StartServer(&wg, cliArgs.HTTPServerPort, graphDB, client, worker)
 	}
 
-	var crawlerStopped bool
-	var classifierStopped bool
-	var clusteringStopped bool
+	var crawlerStopped = cliArgs.DisableCrawler
+	var classifierStopped = cliArgs.DisableClassifier
+	var clusteringStopped = cliArgs.DisableClustering
 	var interrupted bool
 
 	for !(interrupted || (crawlerStopped && classifierStopped && clusteringStopped)) {
