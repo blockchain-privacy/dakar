@@ -152,12 +152,14 @@ func SetupSchema(c external.Database) error {
 			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
 			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
 			cluster_children: [uid] @reverse . # all direct child clusters
+			cluster_address_count: int . # number of connected addresses connected to this cluster (including child clusters)
 
 			type Cluster {
 				cluster_type
 				cluster_transaction
 				cluster_addresses
 				cluster_children
+				cluster_address_count
 			}
 		`,
 	})
@@ -309,12 +311,14 @@ func AlterSchemaAddMultiInputClusterType(c external.Database) error {
 			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
 			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
 			cluster_children: [uid] @reverse . # all direct child clusters
+			cluster_address_count: int . # number of connected addresses connected to this cluster (including child clusters)
 
 			type Cluster {
 				cluster_type
 				cluster_transaction
 				cluster_addresses
 				cluster_children
+				cluster_address_count
 			}
 		`,
 	})
