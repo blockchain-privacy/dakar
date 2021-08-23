@@ -3,12 +3,15 @@ package clustering
 import (
 	"backend/blockiterator"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -16,12 +19,24 @@ import (
 
 // MultiInput implements BlockIterator which creates cluster via the multi-input heuristic
 type MultiInput struct {
-	db           external.Database
-	ctx          context.Context
-	state        blockiterator.State
-	blocks       prometheus.Counter
-	transactions prometheus.Counter
-	blockHeight  prometheus.Gauge
+	db    external.Database
+	ctx   context.Context
+	state blockiterator.State
+
+	clusterIndex int
+	// maps localCluster uids to db cluster UIDs
+	localToDB map[string]string
+	// addressToClusterRoot maps an address UID to newly created cluster_id ("_:<cluster-id>") or a root cluster.
+	// This is needed to create cluster relations between new clusters in the same block.
+	addressToClusterRoot map[string]string
+
+	childClusterToClusterRoot map[string]string
+
+	blocks         prometheus.Counter
+	transactions   prometheus.Counter
+	mergedClusters prometheus.Counter
+	newAddresses   prometheus.Counter
+	blockHeight    prometheus.Gauge
 }
 
 // NewMultiInput creates a new Classifier object
@@ -29,6 +44,11 @@ func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
 	return &MultiInput{
 		db:  dgraph,
 		ctx: ctx,
+
+		localToDB:                 make(map[string]string),
+		addressToClusterRoot:      make(map[string]string),
+		childClusterToClusterRoot: make(map[string]string),
+
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_clustering_multi_input_blocks_processed_total",
 			Help: "The total number of blocks processed by the multi-input clustering process",
@@ -37,6 +57,14 @@ func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
 			Name: "dakar_clustering_multi_input_transactions_processed_total",
 			Help: "The total number of transactions processed by the multi-input clustering process",
 		}),
+		mergedClusters: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_clustering_multi_input_clusters_merged_total",
+			Help: "The total number of clusters merged by the multi-input clustering process",
+		}),
+		newAddresses: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_clustering_multi_input_new_addresses_total",
+			Help: "The total number of new addresses added to clusters by the multi-input clustering process",
+		}),
 		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "dakar_clustering_multi_input_last_block",
 			Help: "The last processed block by the multi-input clustering process",
@@ -44,6 +72,7 @@ func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
 	}
 }
 
+// CalculateInitialState calculates the state on which the iterator starts processing
 func (m *MultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringMultiInput(m.db, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -87,8 +116,187 @@ func (m *MultiInput) CalculateInitialState() error {
 	return nil
 }
 
+// Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *MultiInput) Iterate() (bool, error) {
-	panic("implement me")
+	if m.Empty() {
+		return false, errors.New("got empty state")
+	}
+
+	// get the transaction of the current block height
+	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeMultiInput)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	countRootClusterLookup := 0
+	var durationRootClusterLookup time.Duration
+
+	var countMergedClusters int
+	var countNewAddresses int
+
+	if len(transactions) > 0 {
+		var newClusters []clustering.Cluster
+		clusterMap := make(map[string]clustering.Cluster)
+		for _, tx := range transactions {
+			addressesWithoutCluster := make(map[string]bool)
+			existingClusters := make(map[string]bool)
+
+			// at least two addresses are needed to cluster
+			if len(tx.Addresses) < 2 {
+				continue
+			}
+
+			for _, addr := range tx.Addresses {
+				if len(addr.Clusters) > 0 {
+					if len(addr.Clusters) != 1 {
+						return false, fmt.Errorf("found more than one multi-input cluster attached to address %v", addr)
+					}
+
+					transactionCluster := addr.Clusters[0]
+
+					clusterMap[transactionCluster.Uid] = clustering.Cluster{
+						Uid:          transactionCluster.Uid,
+						AddressCount: &transactionCluster.AddressCount,
+					}
+
+					if transactionCluster.Parents == nil {
+						if localRoot := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, transactionCluster.Uid); localRoot != "" {
+							// this happens if db-root cluster was found for which a new (local) cluster exists
+							m.childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							existingClusters[localRoot] = true
+						} else {
+							existingClusters[transactionCluster.Uid] = true
+						}
+					} else if r := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, transactionCluster.Uid); r != "" {
+						// this is the case if for the cluster a known root cluster exists
+						existingClusters[r] = true
+					} else {
+						countRootClusterLookup++
+						now := time.Now()
+						root, dbErr := clustering.GetMultiInputClusterRoot(m.db, transactionCluster.Uid)
+						if dbErr != nil {
+							return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
+						}
+						durationRootClusterLookup += time.Since(now)
+
+						clusterMap[root.Uid] = clustering.Cluster{
+							Uid:          root.Uid,
+							AddressCount: &root.AddressCount,
+						}
+
+						if localRoot := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, root.Uid); localRoot != "" {
+							// this happens if db-root cluster was found for which a new (local) cluster exists
+							m.childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							existingClusters[localRoot] = true
+						} else {
+							m.childClusterToClusterRoot[transactionCluster.Uid] = root.Uid
+							existingClusters[root.Uid] = true
+						}
+					}
+				} else if r := getClusterRootByCluster(m.addressToClusterRoot, m.localToDB, addr.Uid); r != "" {
+					// this is the case if the address has no cluster attached (db-state) but a local (not upserted) cluster was created
+					existingClusters[r] = true
+				} else {
+					addressesWithoutCluster[addr.Uid] = true
+				}
+			}
+
+			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
+				// this should never happen
+				return false, errors.New("Transaction " + tx.Uid +
+					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
+			}
+
+			if (len(existingClusters) == 0 && len(addressesWithoutCluster) < 2) ||
+				(len(existingClusters) == 1 && len(addressesWithoutCluster) == 0) {
+				// if transaction has zero clusters and less than two 2 addresses -> continue
+				// if transaction has only one cluster and no new addresses -> continue
+				continue
+			}
+
+			// create new cluster
+			m.clusterIndex++
+			cluster := clustering.NewMultiInputCluster(m.clusterIndex, tx.Uid)
+
+			var addressCount int
+
+			// calculate metrics
+			countNewAddresses += len(addressesWithoutCluster)
+			countMergedClusters += len(existingClusters)
+
+			// add addresses
+			addressCount += len(addressesWithoutCluster)
+			for address := range addressesWithoutCluster {
+				cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{Uid: address})
+			}
+
+			// set the new cluster root for all addresses in the transaction
+			for _, addr := range tx.Addresses {
+				m.addressToClusterRoot[addr.Uid] = cluster.Uid
+			}
+
+			// add child clusters
+			for c := range existingClusters {
+				cluster.Children = append(cluster.Children, clustering.SubCluster{Uid: c})
+				// accumulate address counts from existing clusters
+				if existingCluster, ok := clusterMap[c]; ok {
+					addressCount += *existingCluster.AddressCount
+				}
+
+				m.childClusterToClusterRoot[c] = cluster.Uid
+				// the local cluster to cluster mapping has to be added to the address map so cluster connections can be followed
+				m.addressToClusterRoot[c] = cluster.Uid
+			}
+
+			for _, addr := range tx.Addresses {
+				if addr.Clusters != nil {
+					m.childClusterToClusterRoot[addr.Clusters[0].Uid] = cluster.Uid
+				}
+			}
+
+			cluster.AddressCount = &addressCount
+
+			newClusters = append(newClusters, cluster)
+			clusterMap[cluster.Uid] = cluster
+		}
+
+		// insert new clusters
+		if len(newClusters) > 0 {
+			if validationErr := validateClusters(newClusters); validationErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), validationErr)
+			}
+			newUIDs, clusterErr := clustering.AddClusters(m.db, newClusters)
+			if clusterErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
+			}
+
+			for k, v := range newUIDs {
+				m.localToDB[k] = v
+			}
+		}
+
+		// update metrics
+		m.mergedClusters.Add(float64(countMergedClusters))
+		m.newAddresses.Add(float64(countNewAddresses))
+		m.transactions.Add(float64(len(transactions)))
+
+		if countRootClusterLookup > 0 {
+			log.Println("number of root lookups:", countRootClusterLookup)
+			log.Println("number of root lookups per transaction:", countRootClusterLookup/len(transactions))
+			log.Println("acc. duration of root lookups:", durationRootClusterLookup)
+			log.Println("avg. duration of root lookup:", durationRootClusterLookup/time.Duration(countRootClusterLookup))
+		}
+	}
+
+	// set the last classified block
+	if statusErr := dbstat.SetLastClusteredBlockID(m.db, m.state.ID); statusErr != nil {
+		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
+	}
+
+	m.blocks.Inc()
+	m.blockHeight.Set(float64(m.state.ID))
+
+	return true, nil
 }
 
 // NextBlock tries to increase the internal state to the next block
@@ -161,4 +369,61 @@ func setInitialClusteringID(dgraph external.Database) (err error) {
 		}
 	}
 	return
+}
+
+// getClusterRootByCluster returns the rootUID of UID. This is done by following the
+// relations given in clusterMapping. If an empty string is returned no rootUID exists.
+func getClusterRootByCluster(clusterMapping map[string]string, localToDb map[string]string, UID string) string {
+	if len(clusterMapping) == 0 {
+		return ""
+	}
+
+	var rootUID string
+	tmpUID := UID
+	hops := 0
+
+	for tmpUID != "" {
+		var ok bool
+		if tmpUID, ok = clusterMapping[tmpUID]; ok {
+			rootUID = tmpUID
+			hops++
+		}
+	}
+
+	if len(rootUID) > 3 && rootUID[:3] == "_:c" {
+		var ok bool
+		if tmpUID, ok = localToDb[rootUID]; ok {
+			rootUID = tmpUID
+		}
+	}
+
+	// add relation if multi hop was performed to get better performance in subsequent queries
+	if hops > 1 {
+		clusterMapping[UID] = rootUID
+	}
+
+	return rootUID
+}
+
+// validateClusters checks if the given clusters share clusters or addresses
+func validateClusters(clusters []clustering.Cluster) error {
+	clusterUIDs := make(map[string]bool)
+	addressUIDs := make(map[string]bool)
+	for _, cluster := range clusters {
+		for _, child := range cluster.Children {
+			if clusterUIDs[child.Uid] {
+				return fmt.Errorf("cluster %s has multiple parents", child.Uid)
+			}
+			clusterUIDs[child.Uid] = true
+		}
+
+		for _, addr := range cluster.Addresses {
+			if addressUIDs[addr.Uid] {
+				return fmt.Errorf("address %s has multiple parents", addr.Uid)
+			}
+			addressUIDs[addr.Uid] = true
+		}
+	}
+
+	return nil
 }
