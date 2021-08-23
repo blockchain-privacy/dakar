@@ -11,7 +11,7 @@
     <v-list-item-content>
       <v-list-item-title>
         {{ title }}
-        <v-hover v-slot:default="{ hover }" open-delay="0" v-if="tooltip">
+        <v-hover v-slot:default="{ hover }" open-delay="0" v-if="tooltip" style="margin-top: -2px">
           <v-icon small :id="uuid">
             {{ hover ? icons.mdiHelpCircle : icons.mdiHelpCircleOutline }}
           </v-icon>
