@@ -9,12 +9,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"strconv"
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"log"
+	"strconv"
 )
 
 // MultiInput implements BlockIterator which creates cluster via the multi-input heuristic
@@ -128,9 +126,6 @@ func (m *MultiInput) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	countRootClusterLookup := 0
-	var durationRootClusterLookup time.Duration
-
 	var countMergedClusters int
 	var countNewAddresses int
 
@@ -171,13 +166,10 @@ func (m *MultiInput) Iterate() (bool, error) {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						countRootClusterLookup++
-						now := time.Now()
 						root, dbErr := clustering.GetMultiInputClusterRoot(m.db, transactionCluster.Uid)
 						if dbErr != nil {
 							return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 						}
-						durationRootClusterLookup += time.Since(now)
 
 						clusterMap[root.Uid] = clustering.Cluster{
 							Uid:          root.Uid,
@@ -279,13 +271,6 @@ func (m *MultiInput) Iterate() (bool, error) {
 		m.mergedClusters.Add(float64(countMergedClusters))
 		m.newAddresses.Add(float64(countNewAddresses))
 		m.transactions.Add(float64(len(transactions)))
-
-		if countRootClusterLookup > 0 {
-			log.Println("number of root lookups:", countRootClusterLookup)
-			log.Println("number of root lookups per transaction:", countRootClusterLookup/len(transactions))
-			log.Println("acc. duration of root lookups:", durationRootClusterLookup)
-			log.Println("avg. duration of root lookup:", durationRootClusterLookup/time.Duration(countRootClusterLookup))
-		}
 	}
 
 	// set the last classified block
