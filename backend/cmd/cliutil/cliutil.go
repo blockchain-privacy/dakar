@@ -32,6 +32,7 @@ const (
 	DisableCrawler
 	DisableHeuristics
 	DisableClassifier
+	DisableClustering
 	ChartDir
 	Logfile
 	TxInfo
@@ -57,6 +58,7 @@ type Arguments struct {
 	DisableCrawler    bool
 	DisableHeuristics bool
 	DisableClassifier bool
+	DisableClustering bool
 	ChartDir          string
 	BTC               bool
 	Dash              bool
@@ -175,6 +177,8 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			addDisableHeuristics(&args.DisableHeuristics)
 		case DisableClassifier:
 			addDisableClassifier(&args.DisableClassifier)
+		case DisableClustering:
+			addDisableClustering(&args.DisableClustering)
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
 		case BTC:
@@ -269,6 +273,10 @@ func addDisableHeuristics(v *bool) {
 
 func addDisableClassifier(v *bool) {
 	flag.BoolVar(v, "disableclassifier", false, "Disable the classifier (default: false)")
+}
+
+func addDisableClustering(v *bool) {
+	flag.BoolVar(v, "disableclustering", false, "Disable clustering (default: false)")
 }
 
 func addBTC(v *bool) {

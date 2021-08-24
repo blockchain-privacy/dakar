@@ -39,6 +39,16 @@ func PrintStatus(dgraph external.Database) {
 		fmt.Println("LastClassifiedBlockID:", *classifierStatus.LastClassifiedBlockID)
 	}
 
+	clusteringStatus, _ := GetClusteringMultiInputStatus(dgraph)
+
+	if clusteringStatus.IsClustering != nil {
+		fmt.Println("Currently multi-input clustering:", *clusteringStatus.IsClustering)
+	}
+
+	if clusteringStatus.LastClusteredBlockID != nil {
+		fmt.Println("LastClusteredBlockID (multi-input):", *clusteringStatus.LastClusteredBlockID)
+	}
+
 	blockCount, _ := dbblk.GetCount(dgraph)
 	txCount, _ := dbtx.GetCount(dgraph)
 	opCount, _ := dbop.GetCount(dgraph)
@@ -58,7 +68,7 @@ func PrintStatus(dgraph external.Database) {
 // GetCrawlerStatus gets the crawler status from the database
 func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 	query := `{
-				 q(func: type(CrawlerStatus)){
+				 q(func: type(` + CrawlerStatusDType + `)){
 					uid
 					iscrawling
 					lastblockid
@@ -85,7 +95,7 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 // GetClassifierStatus gets the classifier status from the database
 func GetClassifierStatus(c external.Database) (status ClassifierStatus, err error) {
 	query := `{
-				 q(func: type(ClassifierStatus)){
+				 q(func: type(` + ClassifierStatusDType + `)){
 					uid
 					isclassifying
 					lastclassifiedid
@@ -99,6 +109,32 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 	}
 
 	var r classifierStatusQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
+// GetClusteringMultiInputStatus gets the multi-input clustering status from the database
+func GetClusteringMultiInputStatus(c external.Database) (status ClusteringMultiInputStatus, err error) {
+	query := `{
+				 q(func: type(` + ClusteringMultiInputDType + `)){
+					uid
+					isclustering
+					lastclusteredid
+				  }
+				}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r clusteringMultiInputStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -153,14 +189,18 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 // GetFrontendStatus gets verbose status information from the database
 func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	query := `{
-				crawler(func: type(CrawlerStatus)){
+				crawler(func: type(` + CrawlerStatusDType + `)){
 					iscrawling
 					lastblockid
 					lowestblockid
 				}
-				classifier(func: type(ClassifierStatus)){
+				classifier(func: type(` + ClassifierStatusDType + `)){
 					isclassifying
 					lastclassifiedid
+				}
+				multi_input(func: type(` + ClusteringMultiInputDType + `)){
+					isclustering
+					lastclusteredid
 				}
 			}`
 
@@ -173,8 +213,9 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	}
 
 	var r struct {
-		Crawler    []CrawlerStatus    `json:"crawler,omitempty"`
-		Classifier []ClassifierStatus `json:"classifier,omitempty"`
+		Crawler              []CrawlerStatus              `json:"crawler,omitempty"`
+		Classifier           []ClassifierStatus           `json:"classifier,omitempty"`
+		ClusteringMultiInput []ClusteringMultiInputStatus `json:"multi_input,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -210,6 +251,18 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 		}
 	}
 
+	if len(r.ClusteringMultiInput) == 1 {
+		if r.ClusteringMultiInput[0].IsClustering == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClusteringMultiInputNotFound)
+			return
+		}
+
+		if r.ClusteringMultiInput[0].LastClusteredBlockID == nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClusteringMultiInputBlockIDNotFound)
+			return
+		}
+	}
+
 	status = FrontendStatus{
 		IsCrawling:    *r.Crawler[0].IsCrawling,
 		LastBlockID:   *r.Crawler[0].LastBlockID,
@@ -219,6 +272,11 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	if len(r.Classifier) == 1 {
 		status.IsClassifying = *r.Classifier[0].IsClassifying
 		status.LastClassifiedBlockID = *r.Classifier[0].LastClassifiedBlockID
+	}
+
+	if len(r.ClusteringMultiInput) == 1 {
+		status.IsClusteringMultiInput = *r.ClusteringMultiInput[0].IsClustering
+		status.LastClusteredMultiInputBlockID = *r.ClusteringMultiInput[0].LastClusteredBlockID
 	}
 
 	return
@@ -235,7 +293,7 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 	}
 
 	req := &api.Request{
-		Query:     "{q(func: type(CrawlerStatus)){v as uid}}",
+		Query:     "{q(func: type(" + CrawlerStatusDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
@@ -254,7 +312,26 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 	}
 
 	req := &api.Request{
-		Query:     "{q(func:type(ClassifierStatus)){v as uid}}",
+		Query:     "{q(func:type(" + ClassifierStatusDType + ")){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
+		CommitNow: true,
+	}
+
+	return db.TxWithRetry(c, time.Minute*10, req)
+}
+
+// SetClusteringMultiInputStatus sets the new multi-input clustering status
+func SetClusteringMultiInputStatus(c external.Database, status ClusteringMultiInputStatus) error {
+	status.UID = "uid(v)"
+	status.SetDType()
+
+	pb, err := json.Marshal(status)
+	if err != nil {
+		return err
+	}
+
+	req := &api.Request{
+		Query:     "{q(func:type(" + ClusteringMultiInputDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
 	}
@@ -276,6 +353,13 @@ func SetClassifying(c external.Database, classifying bool) error {
 	})
 }
 
+// SetClusteringMultiInput sets the multi-input clustering status
+func SetClusteringMultiInput(c external.Database, clustering bool) error {
+	return SetClusteringMultiInputStatus(c, ClusteringMultiInputStatus{
+		IsClustering: &clustering,
+	})
+}
+
 // SetLastBlockID sets the last block id
 func SetLastBlockID(c external.Database, id uint64) error {
 	return SetCrawlerStatus(c, CrawlerStatus{
@@ -287,6 +371,13 @@ func SetLastBlockID(c external.Database, id uint64) error {
 func SetLastClassifiedBlockID(c external.Database, id uint64) error {
 	return SetClassifierStatus(c, ClassifierStatus{
 		LastClassifiedBlockID: &id,
+	})
+}
+
+// SetLastClusteredBlockID sets the last clustered multi-input block id
+func SetLastClusteredBlockID(c external.Database, id uint64) error {
+	return SetClusteringMultiInputStatus(c, ClusteringMultiInputStatus{
+		LastClusteredBlockID: &id,
 	})
 }
 

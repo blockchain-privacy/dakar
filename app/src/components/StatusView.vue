@@ -39,7 +39,7 @@
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.status.lastclassifiedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Database classification"
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Transaction Classification"
                             :tooltip="tooltips.databaseClassification" is-color
                             :is-red="!data.status.isclassifying">
                     <v-progress-linear
@@ -49,6 +49,20 @@
                         :value="classifierSyncProgress"
                         rounded>
                       {{ Math.round(classifierSyncProgress) }}%
+                    </v-progress-linear>
+                  </IconItem>
+                </v-col>
+                <v-col v-if="data.status.lastclusteredmultiinputid > 0">
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Multi-Input Clustering"
+                            :tooltip="tooltips.databaseClusteringMultiInput" is-color
+                            :is-red="!data.status.isclusteringmultiinput">
+                    <v-progress-linear
+                        :color="clusteringMultiInputSyncProgress > 98?'green'
+                        :clusteringMultiInputSyncProgress > 90?'light-green':'light-blue'"
+                        height="17"
+                        :value="clusteringMultiInputSyncProgress"
+                        rounded>
+                      {{ Math.round(clusteringMultiInputSyncProgress) }}%
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
@@ -155,6 +169,8 @@ export default {
         lowestBlockId: 'Lowest block ID in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
         databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
+        databaseClusteringMultiInput: 'Percentage of multi-input clustered blocks in the database. '
+            + 'Clustering is ongoing if the icon is green.',
         rpcBlockHeight: 'Current block height of the RPC client',
         rpcDifficulty: 'Current mining difficulty',
         rpcPruned: 'Whether the RPC client prunes blocks',
@@ -185,6 +201,16 @@ export default {
         return 0.0;
       }
       const percentage = ((1 + (this.data.status.lastclassifiedid - this.data.status.lowestblockid))
+          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+
+      return percentage > 100 ? 100 : percentage;
+    },
+    clusteringMultiInputSyncProgress() {
+      if (!this.data) {
+        return 0.0;
+      }
+      const percentage = ((1 + (this.data.status.lastclusteredmultiinputid
+              - this.data.status.lowestblockid))
           / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
 
       return percentage > 100 ? 100 : percentage;

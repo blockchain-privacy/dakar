@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/analytics/clustering"
 	"backend/analytics/graph"
 	"io"
 	"log"
@@ -15,4 +16,5 @@ var analyticsLogger = log.New(log.Writer(), analyticsLoggerPrefix, log.Flags())
 func InitLogger(out io.Writer, flag int) {
 	analyticsLogger = log.New(out, analyticsLoggerPrefix, flag)
 	graph.InitLogger(out, flag)
+	clustering.InitLogger(out, flag)
 }

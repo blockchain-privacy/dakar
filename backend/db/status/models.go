@@ -13,6 +13,9 @@ const CrawlerStatusDType = "CrawlerStatus"
 // ClassifierStatusDType is the dgraph database type for the ClassifierStatus type
 const ClassifierStatusDType = "ClassifierStatus"
 
+// ClusteringMultiInputDType is the dgraph database type for the ClusteringMultiInput type
+const ClusteringMultiInputDType = "CMultiInputStatus"
+
 // CrawlerStatus is the database representation of the crawler status
 type CrawlerStatus struct {
 	UID string `json:"uid,omitempty"`
@@ -83,30 +86,66 @@ func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }
 
+// ClusteringMultiInputStatus is the database representation of the multi-input clustering status
+type ClusteringMultiInputStatus struct {
+	UID string `json:"uid,omitempty"`
+
+	// IsClustering is true if a multi-input clustering process is currently active
+	IsClustering *bool `json:"isclustering,omitempty"`
+
+	// LastClusteredBlockID is the id of the last completely multi-input clustered block
+	LastClusteredBlockID *uint64  `json:"lastclusteredid,omitempty"`
+	DType                []string `json:"dgraph.type,omitempty"`
+}
+
+func (c *ClusteringMultiInputStatus) String() string {
+	output := fmt.Sprintf("UID: %s", c.UID)
+
+	if c.IsClustering != nil {
+		output += fmt.Sprintf(", IsClustering: %t", *c.IsClustering)
+	}
+
+	if c.LastClusteredBlockID != nil {
+		output += fmt.Sprintf(", LastClusteredBlockID: %d", *c.LastClusteredBlockID)
+	}
+
+	return output
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (c *ClusteringMultiInputStatus) SetDType() {
+	c.DType = []string{ClusteringMultiInputDType}
+}
+
 // FrontendStatus is the frontend representation of the crawler status
 type FrontendStatus struct {
-	IsCrawling            bool   `json:"iscrawling"`
-	IsClassifying         bool   `json:"isclassifying"`
-	LastBlockID           uint64 `json:"lastblockid"`
-	LowestBlockID         uint64 `json:"lowestblockid"`
-	LastClassifiedBlockID uint64 `json:"lastclassifiedid"`
+	IsCrawling                     bool   `json:"iscrawling"`
+	IsClassifying                  bool   `json:"isclassifying"`
+	IsClusteringMultiInput         bool   `json:"isclusteringmultiinput"`
+	LastBlockID                    uint64 `json:"lastblockid"`
+	LowestBlockID                  uint64 `json:"lowestblockid"`
+	LastClassifiedBlockID          uint64 `json:"lastclassifiedid"`
+	LastClusteredMultiInputBlockID uint64 `json:"lastclusteredmultiinputid"`
 }
 
 func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, LastBlockID: %d, "+
-		"LastClassifiedBlockID: %d",
-		v.IsCrawling, v.IsClassifying, v.LastBlockID, v.LastClassifiedBlockID)
+	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, IsClusteringMultiInput: %t, LastBlockID: %d, "+
+		"LastClassifiedBlockID: %d, LastClusteredMultiInputBlockID: %d",
+		v.IsCrawling, v.IsClassifying, v.IsClusteringMultiInput, v.LastBlockID, v.LastClassifiedBlockID,
+		v.LastClusteredMultiInputBlockID)
 }
 
 var (
 	// ErrorStatusNotFound is returned if the status has not been set yet
-	ErrorStatusNotFound                = errors.New("no status found")
-	errorInvalidNumber                 = errors.New("wrong number of status objects returned")
-	errorLastBlockIDNotFound           = errors.New("last block id not found")
-	errorIsCrawlingNotFound            = errors.New("crawler status not found")
-	errorIsClassifyingNotFound         = errors.New("classifier status not found")
-	errorLastClassifiedBlockIDNotFound = errors.New("block id of last classified block not found")
-	errorTopBlockNotFound              = errors.New("top block not found")
+	ErrorStatusNotFound                          = errors.New("no status found")
+	errorInvalidNumber                           = errors.New("wrong number of status objects returned")
+	errorLastBlockIDNotFound                     = errors.New("last block id not found")
+	errorIsCrawlingNotFound                      = errors.New("crawler status not found")
+	errorIsClassifyingNotFound                   = errors.New("classifier status not found")
+	errorIsClusteringMultiInputNotFound          = errors.New("multi-input clustering status not found")
+	errorLastClassifiedBlockIDNotFound           = errors.New("block id of last classified block not found")
+	errorLastClusteringMultiInputBlockIDNotFound = errors.New("block id of last clustered multi-input block not found")
+	errorTopBlockNotFound                        = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {
@@ -135,6 +174,27 @@ type classifierStatusQuery struct {
 }
 
 func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
+	lenQ := len(a.Q)
+
+	if lenQ == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		return
+	}
+
+	status = a.Q[0]
+	return
+}
+
+type clusteringMultiInputStatusQuery struct {
+	Q []ClusteringMultiInputStatus `json:"q"`
+}
+
+func (a clusteringMultiInputStatusQuery) payload() (status ClusteringMultiInputStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {

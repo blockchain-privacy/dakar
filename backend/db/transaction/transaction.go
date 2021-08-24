@@ -66,7 +66,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	const query = `query Q($block:string) {
 				var(func: eq(id, $block)){
 					txs as transactions
-		}
+				}
 
 				q(func: uid(txs)){
 					uid
