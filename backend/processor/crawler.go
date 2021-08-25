@@ -137,17 +137,16 @@ func (c *Crawler) NextBlock() (bool, error) {
 		return false, nil
 	}
 
-	// set to next state
-	if incErr := c.state.increment(currentBlock.NextHash); incErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
-	}
-
 	numBlocks, err := getRPCNumberOfBlocks(c.rpc)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
+	if c.state.id+1 <= numBlocks-c.config.ForkRangeLimit {
+		// set to next state
+		if incErr := c.state.increment(currentBlock.NextHash); incErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+		}
 		c.currentBlock = currentBlock
 		c.state.top = numBlocks
 		return true, nil
