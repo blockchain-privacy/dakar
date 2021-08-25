@@ -166,7 +166,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						root, dbErr := clustering.GetMultiInputClusterRoot(m.db, transactionCluster.Uid)
+						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.Uid)
 						if dbErr != nil {
 							return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
 						}

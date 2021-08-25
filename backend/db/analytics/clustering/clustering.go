@@ -130,10 +130,10 @@ func AddClusters(c external.Database, clusters []Cluster) (map[string]string, er
 	return resp.GetUids(), err
 }
 
-func GetMultiInputClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
+func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
 	const query = `query Q($uid:string) {
 				var(func: uid($uid))@recurse{
-					c as ~cluster_children@filter(eq(cluster_type,` + string(TypeMultiInput) + `))
+					c as ~cluster_children
 				}
 				
 				q(func: uid(c))@filter(eq(count(~cluster_children),0)){
