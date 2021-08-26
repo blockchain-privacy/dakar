@@ -75,7 +75,6 @@ func (c *Crawler) IncrementState() error {
 	if err := c.state.increment(c.currentBlock.NextHash); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-
 	return nil
 }
 
@@ -108,6 +107,7 @@ func (c *Crawler) CalculateInitialState() error {
 	}
 
 	c.blockHeight.Set(float64(state.id))
+	c.state.incremented = true
 
 	return nil
 }
@@ -128,13 +128,20 @@ func (c *Crawler) CurrentBlock() uint64 {
 
 // NextBlock tries to increase the internal state to the next block
 func (c *Crawler) NextBlock() (bool, error) {
-	currentBlock, err := c.rpc.GetBlockVerbose(c.state.chainHash)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
+	if !c.state.incremented {
+		// state is on next block
+		block, err := c.rpc.GetBlockVerbose(c.state.chainHash)
+		if err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
 
-	if currentBlock.NextHash == "" {
-		return false, nil
+		if block.NextHash == "" {
+			return false, nil
+		}
+
+		if incErr := c.state.increment(block.NextHash); incErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+		}
 	}
 
 	numBlocks, err := getRPCNumberOfBlocks(c.rpc)
@@ -142,10 +149,10 @@ func (c *Crawler) NextBlock() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if c.state.id+1 <= numBlocks-c.config.ForkRangeLimit {
-		// set to next state
-		if incErr := c.state.increment(currentBlock.NextHash); incErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
+		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.chainHash)
+		if getErr != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 		}
 		c.currentBlock = currentBlock
 		c.state.top = numBlocks

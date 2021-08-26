@@ -59,6 +59,8 @@ type crawlerState struct {
 	hash string
 	// current block hash as a chainhash.Hash
 	chainHash *chainhash.Hash
+
+	incremented bool
 }
 
 func (p crawlerState) String() string {
@@ -67,6 +69,8 @@ func (p crawlerState) String() string {
 
 // increments the state for the next processing loop
 func (p *crawlerState) increment(nextHash string) (err error) {
+	p.incremented = false
+
 	if nextHash == "" {
 		return
 	}
@@ -79,6 +83,7 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 
 	p.hash = nextHash
 	p.id++
+	p.incremented = true
 
 	return
 }
