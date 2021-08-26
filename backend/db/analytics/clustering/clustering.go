@@ -94,26 +94,26 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 }
 
 // AddClusters adds the given clusters to the database
-func AddClusters(c external.Database, clusters []Cluster) (map[string]string, error) {
+func AddClusters(c external.Database, clusters []Cluster) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
-			return nil, errors.New("cluster type is not set")
+			return errors.New("cluster type is not set")
 		}
 
 		if cluster.Transaction.Uid == "" {
-			return nil, errors.New("cluster transaction is not set")
+			return errors.New("cluster transaction is not set")
 		}
 
 		if len(cluster.Addresses) == 0 && len(cluster.Children) == 0 {
-			return nil, errors.New("cluster has no child clusters and no addresses set")
+			return errors.New("cluster has no child clusters and no addresses set")
 		}
 	}
 
 	pb, err := json.Marshal(clusters)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return nil, err
+		return err
 	}
 
 	req := &api.Request{
@@ -122,12 +122,12 @@ func AddClusters(c external.Database, clusters []Cluster) (map[string]string, er
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return resp.GetUids(), err
+	return err
 }
 
 func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
