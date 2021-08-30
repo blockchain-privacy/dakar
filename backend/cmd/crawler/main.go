@@ -523,11 +523,10 @@ func main() {
 				chFMIClusteringStopped <- true
 			}()
 
-			// todo
-			//if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
-			//	appContext, graphDB)); clusteringErr != nil {
-			//	info(clusteringErr)
-			//}
+			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
+				appContext, graphDB)); clusteringErr != nil {
+				info(clusteringErr)
+			}
 		}()
 	}
 
