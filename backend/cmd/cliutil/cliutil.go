@@ -32,7 +32,8 @@ const (
 	DisableCrawler
 	DisableHeuristics
 	DisableClassifier
-	DisableClustering
+	DisableHMIClustering
+	DisableFMIClustering
 	ChartDir
 	Logfile
 	TxInfo
@@ -43,26 +44,27 @@ const (
 
 // Arguments holds the state of the CLI arguments
 type Arguments struct {
-	IgnoreSafeguard   bool
-	ResetDB           bool
-	RPCUser           string
-	RPCPassword       string
-	IsPrintStatus     bool
-	RPCEndpoint       string
-	DBEndpoint        string
-	Logfile           string
-	TxSearch          string
-	TxInfo            string
-	HTTPServerPort    uint
-	DisableHTTPServer bool
-	DisableCrawler    bool
-	DisableHeuristics bool
-	DisableClassifier bool
-	DisableClustering bool
-	ChartDir          string
-	BTC               bool
-	Dash              bool
-	Doge              bool
+	IgnoreSafeguard      bool
+	ResetDB              bool
+	RPCUser              string
+	RPCPassword          string
+	IsPrintStatus        bool
+	RPCEndpoint          string
+	DBEndpoint           string
+	Logfile              string
+	TxSearch             string
+	TxInfo               string
+	HTTPServerPort       uint
+	DisableHTTPServer    bool
+	DisableCrawler       bool
+	DisableHeuristics    bool
+	DisableClassifier    bool
+	DisableHMIClustering bool
+	DisableFMIClustering bool
+	ChartDir             string
+	BTC                  bool
+	Dash                 bool
+	Doge                 bool
 }
 
 // ShowCallInfo returns the current call stack
@@ -177,8 +179,10 @@ func BuildArgs(flags ...Flag) (args Arguments, err error) {
 			addDisableHeuristics(&args.DisableHeuristics)
 		case DisableClassifier:
 			addDisableClassifier(&args.DisableClassifier)
-		case DisableClustering:
-			addDisableClustering(&args.DisableClustering)
+		case DisableHMIClustering:
+			addDisableHMIClustering(&args.DisableHMIClustering)
+		case DisableFMIClustering:
+			addDisableFMIClustering(&args.DisableFMIClustering)
 		case TxInfo:
 			addTxInfo(&args.TxInfo)
 		case BTC:
@@ -275,8 +279,12 @@ func addDisableClassifier(v *bool) {
 	flag.BoolVar(v, "disableclassifier", false, "Disable the classifier (default: false)")
 }
 
-func addDisableClustering(v *bool) {
-	flag.BoolVar(v, "disableclustering", false, "Disable clustering (default: false)")
+func addDisableHMIClustering(v *bool) {
+	flag.BoolVar(v, "disablehmiclustering", false, "Disable hierarchical multi-input clustering (default: false)")
+}
+
+func addDisableFMIClustering(v *bool) {
+	flag.BoolVar(v, "disablefmiclustering", false, "Disable flat multi-input clustering (default: false)")
 }
 
 func addBTC(v *bool) {
