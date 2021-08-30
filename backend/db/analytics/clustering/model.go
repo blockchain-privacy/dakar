@@ -4,7 +4,8 @@ import "strconv"
 
 type ClusterType string
 
-const TypeMultiInput ClusterType = "multi-input"
+const TypeHMI ClusterType = "hmi"
+const TypeFMI ClusterType = "fmi"
 const DType = "Cluster"
 
 type HollowTransaction struct {
@@ -34,12 +35,20 @@ func (c *Cluster) SetDType() {
 	c.DType = []string{DType}
 }
 
-func NewMultiInputCluster(index int, txUID string) Cluster {
+func NewHMICluster(index int, txUID string) Cluster {
 	return Cluster{
 		Uid:         "_:c" + strconv.Itoa(index),
-		Type:        TypeMultiInput,
+		Type:        TypeHMI,
 		Transaction: HollowTransaction{Uid: txUID},
 		DType:       []string{DType},
+	}
+}
+
+func NewFMICluster(index int) Cluster {
+	return Cluster{
+		Uid:   "_:c" + strconv.Itoa(index),
+		Type:  TypeFMI,
+		DType: []string{DType},
 	}
 }
 

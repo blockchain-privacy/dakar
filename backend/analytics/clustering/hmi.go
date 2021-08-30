@@ -15,8 +15,8 @@ import (
 	"strconv"
 )
 
-// MultiInput implements BlockIterator which creates cluster via the multi-input heuristic
-type MultiInput struct {
+// HierarchicalMultiInput implements BlockIterator which creates cluster via the multi-input heuristic
+type HierarchicalMultiInput struct {
 	db    external.Database
 	ctx   context.Context
 	state blockiterator.State
@@ -28,41 +28,41 @@ type MultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
-// NewMultiInput creates a new Classifier object
-func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
-	return &MultiInput{
+// NewHierarchicalMultiInput creates a new Classifier object
+func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *HierarchicalMultiInput {
+	return &HierarchicalMultiInput{
 		db:  dgraph,
 		ctx: ctx,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_blocks_processed_total",
-			Help: "The total number of blocks processed by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_blocks_processed_total",
+			Help: "The total number of blocks processed by the HMI clustering process",
 		}),
 		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_transactions_processed_total",
-			Help: "The total number of transactions processed by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_transactions_processed_total",
+			Help: "The total number of transactions processed by the HMI clustering process",
 		}),
 		mergedClusters: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_clusters_merged_total",
-			Help: "The total number of clusters merged by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_clusters_merged_total",
+			Help: "The total number of clusters merged by the HMI clustering process",
 		}),
 		newAddresses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_new_addresses_total",
-			Help: "The total number of new addresses added to clusters by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_new_addresses_total",
+			Help: "The total number of new addresses added to clusters by the HMI clustering process",
 		}),
 		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_clustering_multi_input_last_block",
-			Help: "The last processed block by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_last_block",
+			Help: "The last processed block by the HMI clustering process",
 		}),
 	}
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (m *MultiInput) CalculateInitialState() error {
+func (m *HierarchicalMultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := setInitialClusteringID(m.db); err != nil {
+	if err := setInitialHMIClusteringID(m.db); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -101,13 +101,13 @@ func (m *MultiInput) CalculateInitialState() error {
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
-func (m *MultiInput) Iterate() (bool, error) {
+func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
 		return false, errors.New("got empty state")
 	}
 
 	// get the transaction of the current block height
-	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeMultiInput)
+	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -201,7 +201,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 
 			// create new cluster
 			clusterIndex++
-			cluster := clustering.NewMultiInputCluster(clusterIndex, tx.Uid)
+			cluster := clustering.NewHMICluster(clusterIndex, tx.Uid)
 
 			var addressCount int
 
@@ -264,7 +264,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClusteredBlockID(m.db, m.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredHMIBlockID(m.db, m.state.ID); statusErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
 
@@ -275,7 +275,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 }
 
 // NextBlock tries to increase the internal state to the next block
-func (m *MultiInput) NextBlock() (bool, error) {
+func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -291,7 +291,7 @@ func (m *MultiInput) NextBlock() (bool, error) {
 	return false, nil
 }
 
-func (m *MultiInput) PostExecution() error {
+func (m *HierarchicalMultiInput) PostExecution() error {
 	if err := dbstat.SetClusteringHMI(m.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -299,38 +299,38 @@ func (m *MultiInput) PostExecution() error {
 	return nil
 }
 
-func (m *MultiInput) IncrementState() error {
+func (m *HierarchicalMultiInput) IncrementState() error {
 	m.state.ID++
 	return nil
 }
 
 // Empty checks if there are more blocks above the current one
-func (m *MultiInput) Empty() bool {
+func (m *HierarchicalMultiInput) Empty() bool {
 	return m.state.ID > m.state.Top
 }
 
 // CurrentBlock returns the height of the block which is getting clustered
-func (m *MultiInput) CurrentBlock() uint64 {
+func (m *HierarchicalMultiInput) CurrentBlock() uint64 {
 	return m.state.ID
 }
 
 // Logger returns the Logger
-func (m *MultiInput) Logger() *log.Logger {
+func (m *HierarchicalMultiInput) Logger() *log.Logger {
 	return clusteringLogger
 }
 
 // Context returns the context
-func (m *MultiInput) Context() context.Context {
+func (m *HierarchicalMultiInput) Context() context.Context {
 	return m.ctx
 }
 
 // Name returns the name
-func (m *MultiInput) Name() string {
-	return "Multi-Input Clustering"
+func (m *HierarchicalMultiInput) Name() string {
+	return "Hierarchical Multi-Input Clustering"
 }
 
-// setInitialClusteringID sets the starting clustering block id to 0 if no value has been set yet
-func setInitialClusteringID(dgraph external.Database) (err error) {
+// setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet
+func setInitialHMIClusteringID(dgraph external.Database) (err error) {
 	status, err := dbstat.GetClusteringHMIStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -338,7 +338,7 @@ func setInitialClusteringID(dgraph external.Database) (err error) {
 	}
 
 	if status.LastClusteredBlockID == nil {
-		if err = dbstat.SetLastClusteredBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClusteredHMIBlockID(dgraph, 0); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}

@@ -507,7 +507,7 @@ func main() {
 				chHMIClusteringStopped <- true
 			}()
 
-			if clusteringErr := blockiterator.StartIteration(clustering.NewMultiInput(
+			if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
 				appContext, graphDB)); clusteringErr != nil {
 				info(clusteringErr)
 			}
@@ -524,7 +524,7 @@ func main() {
 			}()
 
 			// todo
-			//if clusteringErr := blockiterator.StartIteration(clustering.NewMultiInput(
+			//if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
 			//	appContext, graphDB)); clusteringErr != nil {
 			//	info(clusteringErr)
 			//}

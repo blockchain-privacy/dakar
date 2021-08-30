@@ -458,9 +458,16 @@ func SetLastClassifiedBlockID(c external.Database, id uint64) error {
 	})
 }
 
-// SetLastClusteredBlockID sets the last clustered multi-input block id
-func SetLastClusteredBlockID(c external.Database, id uint64) error {
+// SetLastClusteredHMIBlockID sets the last clustered multi-input block id
+func SetLastClusteredHMIBlockID(c external.Database, id uint64) error {
 	return SetClusteringHMIStatus(c, ClusteringHierarchicalMultiInputStatus{
+		LastClusteredBlockID: &id,
+	})
+}
+
+// SetLastClusteredFMIBlockID sets the last clustered multi-input block id
+func SetLastClusteredFMIBlockID(c external.Database, id uint64) error {
+	return SetClusteringFMIStatus(c, ClusteringFlatMultiInputStatus{
 		LastClusteredBlockID: &id,
 	})
 }
