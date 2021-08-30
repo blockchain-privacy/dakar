@@ -27,7 +27,7 @@ type FlatMultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
-// NewFlatMultiInput creates a new Classifier object
+// NewFlatMultiInput creates a new flat multi-input clustering object
 func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMultiInput {
 	return &FlatMultiInput{
 		db:  dgraph,

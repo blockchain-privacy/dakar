@@ -28,7 +28,7 @@ type HierarchicalMultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
-// NewHierarchicalMultiInput creates a new Classifier object
+// NewHierarchicalMultiInput creates a new hierarchical multi-input clustering object
 func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *HierarchicalMultiInput {
 	return &HierarchicalMultiInput{
 		db:  dgraph,
