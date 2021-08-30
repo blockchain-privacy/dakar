@@ -52,6 +52,8 @@
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
+              </v-row>
+              <v-row>
                 <v-col v-if="data.status.lastclusteredhmiid > 0">
                   <IconItem :icon="icon.mdiDatabaseSearch"
                             title="Hierarchical Multi-Input Clustering"
