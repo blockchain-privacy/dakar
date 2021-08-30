@@ -15,7 +15,7 @@ import (
 	"strconv"
 )
 
-// HierarchicalMultiInput implements BlockIterator which creates cluster via the multi-input heuristic
+// HierarchicalMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
 type HierarchicalMultiInput struct {
 	db    external.Database
 	ctx   context.Context
@@ -77,7 +77,7 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return errors.New("error last multi-input clustered block is not set")
+		return errors.New("error last HMI clustered block is not set")
 	}
 
 	var state blockiterator.State
