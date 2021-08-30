@@ -3,7 +3,6 @@ package main
 import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/analytics/heuristics/transaction"
 	"flag"
 	"fmt"
 	"log"
@@ -130,29 +129,41 @@ func main() {
 	//}
 	//info("type AnalyzerStatus deletion done")
 
+	//info("type adding HeuristicResult starting ...")
+	//if err := db.AlterSchemaAddHeuristicResult(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("type adding HeuristicResult starting done")
+	//
+	//info("deletion of all heuristics starting ...")
+	//if err := transaction.DeleteAllHeuristics(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("deletion of all heuristics done")
+
+	//info("type adding Cluster starting ...")
+	//if err := db.AlterSchemaAddMultiInputClusterType(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("type adding Cluster starting done")
+
 	// Enable for BTC db upgrade -- END
 
-	info("type adding HeuristicResult starting ...")
-	if err := db.AlterSchemaAddHeuristicResult(dgraph); err != nil {
+	info("removing old cluster type starting ...")
+	if err := db.DropTypeOldClusterStatusStatus(dgraph); err != nil {
 		info(err)
 	}
-	info("type adding HeuristicResult starting done")
+	info("removing old cluster type done")
 
-	info("deletion of all heuristics starting ...")
-	if err := transaction.DeleteAllHeuristics(dgraph); err != nil {
+	info("type adding CHMIStatus starting ...")
+	if err := db.AlterSchemaAddHierarchicalMultiInputClusteringStatus(dgraph); err != nil {
 		info(err)
 	}
-	info("deletion of all heuristics done")
+	info("type adding CHMIStatus starting done")
 
-	info("type adding CMultiInputStatus starting ...")
-	if err := db.AlterSchemaAddMultiInputClusteringStatus(dgraph); err != nil {
+	info("type adding CFMIStatus starting ...")
+	if err := db.AlterSchemaAddFlatMultiInputClusteringStatus(dgraph); err != nil {
 		info(err)
 	}
-	info("type adding CMultiInputStatus starting done")
-
-	info("type adding Cluster starting ...")
-	if err := db.AlterSchemaAddMultiInputClusterType(dgraph); err != nil {
-		info(err)
-	}
-	info("type adding Cluster starting done")
+	info("type adding CFMIStatus starting done")
 }
