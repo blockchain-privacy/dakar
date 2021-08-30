@@ -58,7 +58,7 @@ func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
 
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (m *MultiInput) CalculateInitialState() error {
-	if err := dbstat.SetClusteringMultiInput(m.db, true); err != nil {
+	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -71,7 +71,7 @@ func (m *MultiInput) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	clusteringStatus, err := dbstat.GetClusteringMultiInputStatus(m.db)
+	clusteringStatus, err := dbstat.GetClusteringHMIStatus(m.db)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -292,7 +292,7 @@ func (m *MultiInput) NextBlock() (bool, error) {
 }
 
 func (m *MultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringMultiInput(m.db, false); err != nil {
+	if err := dbstat.SetClusteringHMI(m.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -331,7 +331,7 @@ func (m *MultiInput) Name() string {
 
 // setInitialClusteringID sets the starting clustering block id to 0 if no value has been set yet
 func setInitialClusteringID(dgraph external.Database) (err error) {
-	status, err := dbstat.GetClusteringMultiInputStatus(dgraph)
+	status, err := dbstat.GetClusteringHMIStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
