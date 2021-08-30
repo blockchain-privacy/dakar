@@ -52,17 +52,32 @@
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
-                <v-col v-if="data.status.lastclusteredmultiinputid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Multi-Input Clustering"
-                            :tooltip="tooltips.databaseClusteringMultiInput" is-color
-                            :is-red="!data.status.isclusteringmultiinput">
+                <v-col v-if="data.status.lastclusteredhmiid > 0">
+                  <IconItem :icon="icon.mdiDatabaseSearch"
+                            title="Hierarchical Multi-Input Clustering"
+                            :tooltip="tooltips.databaseClusteringHMI" is-color
+                            :is-red="!data.status.isclusteringhmi">
                     <v-progress-linear
-                        :color="clusteringMultiInputSyncProgress > 98?'green'
-                        :clusteringMultiInputSyncProgress > 90?'light-green':'light-blue'"
+                        :color="clusteringHMISyncProgress > 98?'green'
+                        :clusteringHMISyncProgress > 90?'light-green':'light-blue'"
                         height="17"
-                        :value="clusteringMultiInputSyncProgress"
+                        :value="clusteringHMISyncProgress"
                         rounded>
-                      {{ Math.round(clusteringMultiInputSyncProgress) }}%
+                      {{ Math.round(clusteringHMISyncProgress) }}%
+                    </v-progress-linear>
+                  </IconItem>
+                </v-col>
+                <v-col v-if="data.status.lastclusteredfmiid > 0">
+                  <IconItem :icon="icon.mdiDatabaseSearch" title="Flat Multi-Input Clustering"
+                            :tooltip="tooltips.databaseClusteringFMI" is-color
+                            :is-red="!data.status.isclusteringfmi">
+                    <v-progress-linear
+                        :color="clusteringFMISyncProgress > 98?'green'
+                        :clusteringFMISyncProgress > 90?'light-green':'light-blue'"
+                        height="17"
+                        :value="clusteringFMISyncProgress"
+                        rounded>
+                      {{ Math.round(clusteringFMISyncProgress) }}%
                     </v-progress-linear>
                   </IconItem>
                 </v-col>
@@ -169,7 +184,9 @@ export default {
         lowestBlockId: 'Lowest block ID in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
         databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
-        databaseClusteringMultiInput: 'Percentage of multi-input clustered blocks in the database. '
+        databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
+            + 'Clustering is ongoing if the icon is green.',
+        databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
             + 'Clustering is ongoing if the icon is green.',
         rpcBlockHeight: 'Current block height of the RPC client',
         rpcDifficulty: 'Current mining difficulty',
@@ -205,11 +222,21 @@ export default {
 
       return percentage > 100 ? 100 : percentage;
     },
-    clusteringMultiInputSyncProgress() {
+    clusteringHMISyncProgress() {
       if (!this.data) {
         return 0.0;
       }
-      const percentage = ((1 + (this.data.status.lastclusteredmultiinputid
+      const percentage = ((1 + (this.data.status.lastclusteredhmiid
+              - this.data.status.lowestblockid))
+          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+
+      return percentage > 100 ? 100 : percentage;
+    },
+    clusteringFMISyncProgress() {
+      if (!this.data) {
+        return 0.0;
+      }
+      const percentage = ((1 + (this.data.status.lastclusteredfmiid
               - this.data.status.lowestblockid))
           / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
 
