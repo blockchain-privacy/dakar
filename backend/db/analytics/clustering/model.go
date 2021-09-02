@@ -9,22 +9,22 @@ const TypeFMI ClusterType = "fmi"
 const DType = "Cluster"
 
 type HollowTransaction struct {
-	Uid string `json:"uid"`
+	Uid string `json:"uid,omitempty"`
 }
 
 type HollowAddress struct {
-	Uid string `json:"uid"`
+	Uid string `json:"uid,omitempty"`
 }
 
 type SubCluster struct {
-	Uid string `json:"uid"`
+	Uid string `json:"uid,omitempty"`
 }
 
 type Cluster struct {
-	Uid          string            `json:"uid"`
-	Type         ClusterType       `json:"cluster_type"`
-	AddressCount *int              `json:"cluster_address_count"`
-	Transaction  HollowTransaction `json:"cluster_transaction"`
+	Uid          string            `json:"uid,omitempty"`
+	Type         ClusterType       `json:"cluster_type,omitempty"`
+	AddressCount *int              `json:"cluster_address_count,omitempty"`
+	Transaction  HollowTransaction `json:"cluster_transaction,omitempty"`
 	Children     []SubCluster      `json:"cluster_children,omitempty"`
 	Addresses    []HollowAddress   `json:"cluster_addresses,omitempty"`
 	DType        []string          `json:"dgraph.type,omitempty"`
@@ -47,6 +47,14 @@ func NewHMICluster(index int, txUID string) Cluster {
 func NewFMICluster(index int) Cluster {
 	return Cluster{
 		Uid:   "_:c" + strconv.Itoa(index),
+		Type:  TypeFMI,
+		DType: []string{DType},
+	}
+}
+
+func NewFMIClusterByUID(UID string) Cluster {
+	return Cluster{
+		Uid:   UID,
 		Type:  TypeFMI,
 		DType: []string{DType},
 	}
