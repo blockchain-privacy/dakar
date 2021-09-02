@@ -226,6 +226,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 	return err
 }
 
+// GetHierarchicalClusterRoot returns the root of the cluster tree clusterUID is part of
 func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
 	const query = `query Q($uid:string) {
 				var(func: uid($uid))@recurse{
@@ -258,5 +259,44 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 	}
 
 	rootCluster = r.Root[0]
+	return
+}
+
+// GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
+func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
+	const query = `query Q($addressHash:string) {
+				var(func:eq(addresshash,$addressHash)){
+					c as ~cluster_addresses@filter(not eq(cluster_type,"hmi"))
+				}
+				
+				q(func: uid(c))@normalize{
+					cluster_type:cluster_type
+					cluster_address_count:cluster_address_count
+					cluster_transaction{
+						txhash:txhash
+						~transactions{
+							block_id:id
+							ts:ts
+						}
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []FrontendCluster `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	clusters = r.Clusters
+
 	return
 }

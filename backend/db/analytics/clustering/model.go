@@ -1,6 +1,9 @@
 package clustering
 
-import "strconv"
+import (
+	"strconv"
+	"time"
+)
 
 type ClusterType string
 
@@ -81,4 +84,12 @@ type ClusterTransaction struct {
 type TransactionWithAddresses struct {
 	Uid       string          `json:"uid"`
 	Addresses []HollowAddress `json:"addr,omitempty"`
+}
+
+type FrontendCluster struct {
+	Type            ClusterType `json:"cluster_type,omitempty"`
+	AddressCount    int         `json:"cluster_address_count,omitempty"`
+	TransactionHash string      `json:"txhash,omitempty"`
+	BlockID         int         `json:"block_id,omitempty"`
+	Timestamp       time.Time   `json:"ts,omitempty"`
 }
