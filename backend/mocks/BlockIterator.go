@@ -3,11 +3,7 @@
 package mocks
 
 import (
-	blockiterator "backend/blockiterator"
 	context "context"
-
-	external "backend/external"
-
 	log "log"
 
 	mock "github.com/stretchr/testify/mock"
@@ -48,17 +44,15 @@ func (_m *BlockIterator) Context() context.Context {
 	return r0
 }
 
-// Db provides a mock function with given fields:
-func (_m *BlockIterator) Db() external.Database {
+// CurrentBlock provides a mock function with given fields:
+func (_m *BlockIterator) CurrentBlock() uint64 {
 	ret := _m.Called()
 
-	var r0 external.Database
-	if rf, ok := ret.Get(0).(func() external.Database); ok {
+	var r0 uint64
+	if rf, ok := ret.Get(0).(func() uint64); ok {
 		r0 = rf()
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(external.Database)
-		}
+		r0 = ret.Get(0).(uint64)
 	}
 
 	return r0
@@ -78,30 +72,18 @@ func (_m *BlockIterator) Empty() bool {
 	return r0
 }
 
-// GetHighestAvailableBlock provides a mock function with given fields:
-func (_m *BlockIterator) GetHighestAvailableBlock() (uint64, error) {
+// IncrementState provides a mock function with given fields:
+func (_m *BlockIterator) IncrementState() error {
 	ret := _m.Called()
 
-	var r0 uint64
-	if rf, ok := ret.Get(0).(func() uint64); ok {
+	var r0 error
+	if rf, ok := ret.Get(0).(func() error); ok {
 		r0 = rf()
 	} else {
-		r0 = ret.Get(0).(uint64)
+		r0 = ret.Error(0)
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// IncrementState provides a mock function with given fields:
-func (_m *BlockIterator) IncrementState() {
-	_m.Called()
+	return r0
 }
 
 // Iterate provides a mock function with given fields:
@@ -155,6 +137,27 @@ func (_m *BlockIterator) Name() string {
 	return r0
 }
 
+// NextBlock provides a mock function with given fields:
+func (_m *BlockIterator) NextBlock() (bool, error) {
+	ret := _m.Called()
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func() bool); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // PostExecution provides a mock function with given fields:
 func (_m *BlockIterator) PostExecution() error {
 	ret := _m.Called()
@@ -164,25 +167,6 @@ func (_m *BlockIterator) PostExecution() error {
 		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// SetState provides a mock function with given fields: _a0
-func (_m *BlockIterator) SetState(_a0 blockiterator.State) {
-	_m.Called(_a0)
-}
-
-// State provides a mock function with given fields:
-func (_m *BlockIterator) State() blockiterator.State {
-	ret := _m.Called()
-
-	var r0 blockiterator.State
-	if rf, ok := ret.Get(0).(func() blockiterator.State); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(blockiterator.State)
 	}
 
 	return r0

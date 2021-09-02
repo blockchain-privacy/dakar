@@ -7,6 +7,8 @@ import (
 
 	api "github.com/dgraph-io/dgo/v210/protos/api"
 
+	dgo "github.com/dgraph-io/dgo/v210"
+
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -50,6 +52,22 @@ func (_m *Database) Mutate(ctx context.Context, req *api.Request) (*api.Response
 	}
 
 	return r0, r1
+}
+
+// NewTxn provides a mock function with given fields:
+func (_m *Database) NewTxn() *dgo.Txn {
+	ret := _m.Called()
+
+	var r0 *dgo.Txn
+	if rf, ok := ret.Get(0).(func() *dgo.Txn); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*dgo.Txn)
+		}
+	}
+
+	return r0
 }
 
 // Query provides a mock function with given fields: ctx, q, vars

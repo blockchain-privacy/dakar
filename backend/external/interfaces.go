@@ -5,6 +5,7 @@ import (
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
@@ -38,7 +39,7 @@ type RPCClient interface {
 // Database defines the methods which Dgraph of Dgo implements.
 // Descriptions are copied from there.
 type Database interface {
-	// Mutate executes a query followed by one or more than one mutations.
+	// Mutate executes a query followed by one or more than one mutation.
 	Mutate(ctx context.Context, req *api.Request) (*api.Response, error)
 	// Query but allows a variable map to be used.
 	// This can provide safety against injection attacks.
@@ -48,4 +49,6 @@ type Database interface {
 	//   2. Drop a predicate.
 	//   3. Drop the database.
 	Alter(ctx context.Context, op *api.Operation) error
+	// NewTxn creates a new transaction.
+	NewTxn() *dgo.Txn
 }

@@ -29,3 +29,8 @@ func (g *GraphDB) Query(ctx context.Context, q string, vars map[string]string) (
 func (g *GraphDB) Alter(ctx context.Context, op *api.Operation) error {
 	return g.Dgraph.Alter(ctx, op)
 }
+
+// NewTxn creates a new transaction.
+func (g *GraphDB) NewTxn() *dgo.Txn {
+	return g.Dgraph.NewTxn()
+}
