@@ -6,12 +6,15 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
+
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"strconv"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"log"
 )
 
 // FlatMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
@@ -99,6 +102,11 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 	return nil
 }
 
+type newCluster struct {
+	mergeList []clustering.Cluster
+	addresses map[string]bool
+}
+
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
@@ -111,25 +119,91 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	//var countMergedClusters int
-	//var countNewAddresses int
-	//
-	//var clusterIndex int
-
 	if len(transactions) > 0 {
-		//	var newClusters []clustering.Cluster
-		//	clusterMap := make(map[string]clustering.Cluster)
-		//	for _, tx := range transactions {
-		//		// at least two addresses are needed to cluster
-		//		if len(tx.Addresses) < 2 {
-		//			continue
-		//		}
-		//
-		//	}
-		//	// update metrics
-		//	m.mergedClusters.Add(float64(countMergedClusters))
-		//	m.newAddresses.Add(float64(countNewAddresses))
-		//	m.transactions.Add(float64(len(transactions)))
+		clusterStore := make(map[string]clustering.Cluster)
+
+		// maps a cluster uid to its merge list
+		clusterMergeMap := make(map[string]*newCluster)
+		// maps an address uid to its merge list
+		addressMergeMap := make(map[string]*newCluster)
+
+		for _, tx := range transactions {
+			// at least two addresses are needed to cluster
+			if len(tx.Addresses) < 2 {
+				continue
+			}
+
+			addressesWithoutCluster := make(map[string]bool)
+			existingClusters := make(map[string]bool)
+
+			for _, addr := range tx.Addresses {
+				if len(addr.Clusters) > 0 {
+					if len(addr.Clusters) != 1 {
+						return false, fmt.Errorf("%s: found more than one multi-input "+
+							"cluster attached to address %v", cliutil.ShowCallInfo(), addr)
+					}
+					transactionCluster := addr.Clusters[0]
+
+					existingClusters[transactionCluster.Uid] = true
+
+					clusterStore[transactionCluster.Uid] = clustering.Cluster{
+						Uid:          transactionCluster.Uid,
+						AddressCount: &transactionCluster.AddressCount,
+					}
+				} else {
+					addressesWithoutCluster[addr.Uid] = true
+				}
+			}
+
+			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
+				// this should never happen
+				return false, errors.New("Transaction " + tx.Uid +
+					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
+			}
+
+			if (len(existingClusters) == 0 && len(addressesWithoutCluster) < 2) ||
+				(len(existingClusters) == 1 && len(addressesWithoutCluster) == 0) {
+				// if transaction has zero clusters and less than two 2 addresses -> continue
+				// if transaction has only one cluster and no new addresses -> continue
+				continue
+			}
+
+			addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, existingClusters, addressesWithoutCluster)
+		}
+
+		processedClusters := make(map[*newCluster]bool)
+		var operations []clustering.DBOperation
+		var clusterIndex int
+
+		operations, err = buildDbOperation(processedClusters, addressMergeMap, clusterIndex)
+		if err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+		// increase index
+		clusterIndex += len(operations)
+
+		if clusters, clusterErr := buildDbOperation(processedClusters, clusterMergeMap, clusterIndex); err != nil {
+			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
+		} else {
+			operations = append(operations, clusters...)
+		}
+		// increase index
+		clusterIndex += len(operations)
+
+		// insert new clusters
+		if len(operations) > 0 {
+			opErr := clustering.ProcessClusterOperations(m.db, operations)
+			if opErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), opErr)
+			}
+
+			countMergedClusters, countNewAddresses := calculateMetrics(operations)
+
+			// update metrics
+			m.mergedClusters.Add(float64(countMergedClusters))
+			m.newAddresses.Add(float64(countNewAddresses))
+			m.transactions.Add(float64(len(transactions)))
+		}
 	}
 
 	// set the last classified block
@@ -212,5 +286,188 @@ func setInitialFMIClusteringID(dgraph external.Database) (err error) {
 			return
 		}
 	}
+	return
+}
+
+func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMergeMap map[string]*newCluster,
+	clusterStore map[string]clustering.Cluster, newClusters map[string]bool, newAddresses map[string]bool) {
+	if len(newClusters) == 0 && len(newAddresses) == 0 {
+		return
+	}
+
+	// find cluster merge lists which have elements of newClusters
+	foundListMap := make(map[*newCluster]bool)
+
+	if len(clusterMergeMap) > 0 {
+		for k := range newClusters {
+			if v, ok := clusterMergeMap[k]; ok {
+				foundListMap[v] = true
+			}
+		}
+	}
+
+	if len(addressMergeMap) > 0 {
+		for k := range newAddresses {
+			if v, ok := addressMergeMap[k]; ok {
+				foundListMap[v] = true
+			}
+		}
+	}
+
+	// if all clusters do not exist yet in the map -> add all of them as a new merge list
+	if len(foundListMap) == 0 {
+		var mergeList []clustering.Cluster
+
+		for k := range newClusters {
+			mergeList = append(mergeList, clusterStore[k])
+		}
+
+		nc := newCluster{
+			mergeList: mergeList,
+			addresses: newAddresses,
+		}
+
+		for k := range newClusters {
+			clusterMergeMap[k] = &nc
+		}
+
+		for k := range newAddresses {
+			addressMergeMap[k] = &nc
+		}
+
+		return
+	}
+
+	var mergeListPtr *newCluster
+	var createdNewList bool
+	// either create new merge list or find existing one
+	if len(foundListMap) > 1 {
+		var mergeList []clustering.Cluster
+		addressList := make(map[string]bool)
+		for list := range foundListMap {
+			mergeList = append(mergeList, list.mergeList...)
+			for a := range list.addresses {
+				addressList[a] = true
+			}
+		}
+
+		createdNewList = true
+		mergeListPtr = &newCluster{
+			mergeList: mergeList,
+			addresses: addressList,
+		}
+	} else {
+		for foundPointer := range foundListMap {
+			mergeListPtr = foundPointer
+			// map is only one element big
+			break
+		}
+	}
+
+	// new addresses to newCluster
+	for a := range newAddresses {
+		mergeListPtr.addresses[a] = true
+		//clusterMergeMap[a] = mergeListPtr
+	}
+
+	// find new clusters by querying the clusterMergeMap and append them to the mergeList
+	for k := range newClusters {
+		if _, ok := clusterMergeMap[k]; !ok {
+			mergeListPtr.mergeList = append(mergeListPtr.mergeList, clusterStore[k])
+		}
+	}
+
+	// if a new merge list was created, set the references to it for all items,
+	// otherwise only for the new items
+	if createdNewList {
+		for _, cluster := range mergeListPtr.mergeList {
+			clusterMergeMap[cluster.Uid] = mergeListPtr
+		}
+
+		for a := range mergeListPtr.addresses {
+			addressMergeMap[a] = mergeListPtr
+		}
+	} else {
+		for cluster := range newClusters {
+			clusterMergeMap[cluster] = mergeListPtr
+		}
+
+		for address := range newAddresses {
+			addressMergeMap[address] = mergeListPtr
+		}
+	}
+}
+
+func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
+	clusterIndex int) ([]clustering.DBOperation, error) {
+	var operations []clustering.DBOperation
+
+	for _, i := range items {
+		if processedClusters[i] {
+			continue
+		}
+
+		processedClusters[i] = true
+
+		if len(i.mergeList) == 0 && len(i.addresses) == 0 {
+			return nil, errors.New("no clusters and addresses")
+		}
+
+		clusterIndex++
+		var cluster clustering.Cluster
+		var addressCount int
+		var oldClusters []string
+
+		if len(i.mergeList) > 0 {
+
+			// find the largest cluster, so we have to move the least amount of addresses
+			var largestClusterUID string
+			var largestAddressesCount int
+			for _, c := range i.mergeList {
+				if c.AddressCount == nil {
+					return nil, fmt.Errorf("address count is not set for cluster %s", c.Uid)
+				}
+				addressCount += *c.AddressCount
+				if *c.AddressCount > largestAddressesCount {
+					largestClusterUID = c.Uid
+					largestAddressesCount = *c.AddressCount
+				}
+			}
+
+			for _, c := range i.mergeList {
+				if c.Uid != largestClusterUID {
+					oldClusters = append(oldClusters, c.Uid)
+				}
+			}
+
+			cluster = clustering.NewFMIClusterByUID(largestClusterUID)
+		} else {
+			cluster = clustering.NewFMICluster(clusterIndex)
+		}
+
+		// add addresses
+		addressCount += len(i.addresses)
+		cluster.AddressCount = &addressCount
+		for address := range i.addresses {
+			cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{Uid: address})
+		}
+		operations = append(operations, clustering.DBOperation{
+			NewCluster:  cluster,
+			OldClusters: oldClusters,
+		})
+	}
+
+	return operations, nil
+}
+
+func calculateMetrics(operations []clustering.DBOperation) (newClusterCount int, newAddressCount int) {
+	for _, op := range operations {
+		newAddressCount += len(op.NewCluster.Addresses)
+
+		if op.OldClusters != nil {
+			newClusterCount += len(op.OldClusters)
+		}
+	}
+
 	return
 }
