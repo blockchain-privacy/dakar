@@ -103,8 +103,9 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 }
 
 type newCluster struct {
-	mergeList []clustering.Cluster
-	addresses map[string]bool
+	changeTransaction string
+	mergeList         []clustering.Cluster
+	addresses         map[string]bool
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
@@ -168,7 +169,8 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 				continue
 			}
 
-			addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, existingClusters, addressesWithoutCluster)
+			addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
+				tx.Uid, existingClusters, addressesWithoutCluster)
 		}
 
 		processedClusters := make(map[*newCluster]bool)
@@ -289,8 +291,10 @@ func setInitialFMIClusteringID(dgraph external.Database) (err error) {
 	return
 }
 
+// addClustersToMergeList adds newClusters and newAddresses to clusterMergeMap and
+// addressMergeMap with information from clusterStore
 func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMergeMap map[string]*newCluster,
-	clusterStore map[string]clustering.Cluster, newClusters map[string]bool, newAddresses map[string]bool) {
+	clusterStore map[string]clustering.Cluster, tx string, newClusters map[string]bool, newAddresses map[string]bool) {
 	if len(newClusters) == 0 && len(newAddresses) == 0 {
 		return
 	}
@@ -323,8 +327,9 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 		}
 
 		nc := newCluster{
-			mergeList: mergeList,
-			addresses: newAddresses,
+			changeTransaction: tx,
+			mergeList:         mergeList,
+			addresses:         newAddresses,
 		}
 
 		for k := range newClusters {
@@ -363,6 +368,8 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 			break
 		}
 	}
+
+	mergeListPtr.changeTransaction = tx
 
 	// new addresses to newCluster
 	for a := range newAddresses {
@@ -444,6 +451,8 @@ func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*
 		} else {
 			cluster = clustering.NewFMICluster(clusterIndex)
 		}
+
+		cluster.Transaction.Uid = i.changeTransaction
 
 		// add addresses
 		addressCount += len(i.addresses)
