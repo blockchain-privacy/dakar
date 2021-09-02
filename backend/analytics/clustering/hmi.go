@@ -115,7 +115,6 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	var countMergedClusters int
 	var countNewAddresses int
 
-	var clusterIndex int
 	// addressToClusterRoot maps an address UID to newly created cluster_id ("_:<cluster-id>") or a root cluster.
 	// This is needed to create cluster relations between new clusters in the same block.
 	addressToClusterRoot := make(map[string]string)
@@ -123,6 +122,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	childClusterToClusterRoot := make(map[string]string)
 
 	if len(transactions) > 0 {
+		var clusterIndex int
 		var newClusters []clustering.Cluster
 		clusterMap := make(map[string]clustering.Cluster)
 		for _, tx := range transactions {
@@ -251,7 +251,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 				return false, fmt.Errorf("%s block id: %d: %w", cliutil.ShowCallInfo(), m.state.ID, validationErr)
 			}
 
-			clusterErr := clustering.AddClusters(m.db, newClusters)
+			clusterErr := clustering.AddClusters(m.db, newClusters, true)
 			if clusterErr != nil {
 				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
 			}

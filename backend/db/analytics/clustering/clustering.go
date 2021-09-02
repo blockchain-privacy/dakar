@@ -5,13 +5,17 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-	"errors"
-	"github.com/dgraph-io/dgo/v210/protos/api"
 
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
@@ -94,14 +98,14 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 }
 
 // AddClusters adds the given clusters to the database
-func AddClusters(c external.Database, clusters []Cluster) error {
+func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
 			return errors.New("cluster type is not set")
 		}
 
-		if cluster.Transaction.Uid == "" {
+		if checkTx && cluster.Transaction.Uid == "" {
 			return errors.New("cluster transaction is not set")
 		}
 
@@ -123,6 +127,98 @@ func AddClusters(c external.Database, clusters []Cluster) error {
 		CommitNow: true,
 	}
 	err = db.TxWithRetry(c, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
+type DBOperation struct {
+	NewCluster  Cluster
+	OldClusters []string
+}
+
+// ProcessClusterOperations performs the given operations
+func ProcessClusterOperations(c external.Database, operations []DBOperation) error {
+	txn := c.NewTxn()
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*5)
+	defer func(txn *dgo.Txn, ctx context.Context) {
+		err := txn.Discard(ctx)
+		if err != nil {
+			log.Println("error while discarding transaction:", err)
+		}
+	}(txn, ctx)
+	defer cancelFunc()
+
+	// step 1: set new clusters and add new addresses to existing clusters
+	var clusters []Cluster
+	for _, o := range operations {
+		clusters = append(clusters, o.NewCluster)
+	}
+
+	pb, err := json.Marshal(clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	// step 2: get all addresses of clusters which will be deleted and add them to the clusters from step 1
+
+	// build query and create nquads
+	var setNquads string
+	var delNquads string
+	query := "{\n"
+	for i, o := range operations {
+		if len(o.OldClusters) == 0 {
+			continue
+		}
+		index := strconv.Itoa(i)
+		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as cluster_addresses}\n"
+		setNquads += "<" + o.NewCluster.Uid + "> <cluster_addresses> uid(a" + index + ") .\n"
+
+		for _, oc := range o.OldClusters {
+			delNquads += "<" + oc + "> * * .\n"
+		}
+	}
+	query += "}"
+
+	existClusterMerges := setNquads != ""
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: !existClusterMerges,
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if !existClusterMerges {
+		return nil
+	}
+
+	req = &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			SetNquads: []byte(setNquads),
+		}},
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// step 3: delete all merged clusters
+	req = &api.Request{
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(delNquads),
+		}},
+		CommitNow: true,
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
