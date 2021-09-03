@@ -118,7 +118,7 @@
           </v-toolbar>
           <v-card-text>
             <p>Privacy type: {{ getPrivacyTypeLabel(tx.privacytype) }}</p>
-            <p class="shorten">Blockhash:
+            <p class="shorten">Block Hash:
               <router-link :to="{ name: blockRoute, params: { id: tx.bhash }}">
                 {{ tx.bhash }}
               </router-link>

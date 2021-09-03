@@ -23,6 +23,12 @@
               :icon="icons.mdiTextBoxSearch"
               :to="{ name: routes.connectionLookupPage }"/>
         </v-col>
+        <v-col>
+          <LinkCard
+              title="Cluster Lookup"
+              :icon="icons.mdiMerge"
+              :to="{ name: routes.clusterLookupPage }"/>
+        </v-col>
       </v-row>
       <v-divider class="my-2"/>
       <v-row no-gutters >
@@ -46,10 +52,11 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
+  mdiMerge,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE,
+  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -69,6 +76,7 @@ export default {
         mdiTextBoxSearch,
         mdiAccountSupervisor,
         mdiServer,
+        mdiMerge,
       },
       routes: {
         userAdminPage: ROUTE_NAME_USER_ADMIN_PAGE,
@@ -76,6 +84,7 @@ export default {
         heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
         connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
+        clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
       },
     };
   },

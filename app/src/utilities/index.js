@@ -224,6 +224,18 @@ export function getMixingLabel(privacyType) {
   return -1;
 }
 
+// getClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
+export function getClusterTypeLabel(clusterType) {
+  switch (clusterType) {
+    case 'fmi':
+      return 'Flat Multi-Input Cluster';
+    case 'hmi':
+      return 'Hierarchical Multi-Input Cluster';
+    default:
+      return clusterType;
+  }
+}
+
 // isMixing returns true if the provided privacyType is in the range of mixing transactions
 export function isMixing(privacyType) {
   const t = parseInt(privacyType, 10);
