@@ -86,10 +86,20 @@ type TransactionWithAddresses struct {
 	Addresses []HollowAddress `json:"addr,omitempty"`
 }
 
+// ClusterLookupRequest holds all configuration data for a cluster lookup request
+type ClusterLookupRequest struct {
+	// AddressHash1 is either the address hash for which to find clusters or
+	// the first address of two of the common cluster lookup
+	AddressHash1 string `json:"a1,omitempty"`
+	// AddressHash2 is the second address of two of the common cluster lookup
+	AddressHash2 string `json:"a2,omitempty"`
+}
+
 type FrontendCluster struct {
 	Type            ClusterType `json:"cluster_type,omitempty"`
 	AddressCount    int         `json:"cluster_address_count,omitempty"`
 	TransactionHash string      `json:"txhash,omitempty"`
-	BlockID         int         `json:"block_id,omitempty"`
+	BlockID         int         `json:"bid,omitempty"`
+	BlockHash       string      `json:"bhash,omitempty"`
 	Timestamp       time.Time   `json:"ts,omitempty"`
 }

@@ -264,9 +264,9 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
 func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
-	const query = `query Q($addressHash:string) {
+	const query = string(`query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,"hmi"))
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
 				}
 				
 				q(func: uid(c))@normalize{
@@ -275,14 +275,62 @@ func GetClusters(c external.Database, addressHash string) (clusters []FrontendCl
 					cluster_transaction{
 						txhash:txhash
 						~transactions{
-							block_id:id
+							bhash:blockhash
+							bid:id
 							ts:ts
 						}
 					}
 				}
-			  }`
+			  }`)
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []FrontendCluster `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	clusters = r.Clusters
+
+	return
+}
+
+// GetCommonClusters returns cluster information for all clusters (except hmi clusters)
+// shared by addressHash1 and addressHash2
+func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string) (clusters []FrontendCluster,
+	err error) {
+	const query = string(`query Q($a1:string,$a2:string) {
+				var(func:eq(addresshash,$a1)){
+					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+				}
+
+				var(func:eq(addresshash,$a2)){
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `) and uid(c1))
+				}
+				
+				q(func: uid(c))@normalize{
+					cluster_type:cluster_type
+					cluster_address_count:cluster_address_count
+					cluster_transaction{
+						txhash:txhash
+						~transactions{
+							bhash:blockhash
+							bid:id
+							ts:ts
+						}
+					}
+				}
+			  }`)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$a1": addressHash1, "$a2": addressHash2})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
