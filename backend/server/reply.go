@@ -635,6 +635,8 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clus
 	if req.AddressHash2 == "" {
 		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1)
 		if err != nil {
+			reply.Msg = "error while searching for clusters"
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 		reply.Clusters = clusters
@@ -651,6 +653,8 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clus
 
 		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2)
 		if err != nil {
+			reply.Msg = "error while searching for clusters"
+			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 		reply.Clusters = clusters
