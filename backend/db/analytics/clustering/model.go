@@ -95,11 +95,28 @@ type ClusterLookupRequest struct {
 	AddressHash2 string `json:"a2,omitempty"`
 }
 
+type FrontendAddress struct {
+	AddressHash string `json:"addresshash,omitempty"`
+}
+
 type FrontendCluster struct {
-	Type            ClusterType `json:"cluster_type,omitempty"`
-	AddressCount    int         `json:"cluster_address_count,omitempty"`
-	TransactionHash string      `json:"txhash,omitempty"`
-	BlockID         int         `json:"bid,omitempty"`
-	BlockHash       string      `json:"bhash,omitempty"`
-	Timestamp       time.Time   `json:"ts,omitempty"`
+	Type            ClusterType       `json:"cluster_type,omitempty"`
+	AddressCount    int               `json:"cluster_address_count,omitempty"`
+	TransactionHash string            `json:"txhash,omitempty"`
+	BlockID         int               `json:"bid,omitempty"`
+	BlockHash       string            `json:"bhash,omitempty"`
+	Timestamp       time.Time         `json:"ts,omitempty"`
+	Addresses       []FrontendAddress `json:"cluster_addresses,omitempty"`
+}
+
+type FrontendClusterRequest struct {
+	Type         ClusterType `json:"cluster_type,omitempty"`
+	AddressCount int         `json:"cluster_address_count,omitempty"`
+	Transaction  []struct {
+		TransactionHash string    `json:"txhash,omitempty"`
+		BlockID         int       `json:"bid,omitempty"`
+		BlockHash       string    `json:"bhash,omitempty"`
+		Timestamp       time.Time `json:"ts,omitempty"`
+	} `json:"cluster_transaction,omitempty"`
+	Addresses []FrontendAddress `json:"cluster_addresses,omitempty"`
 }

@@ -262,26 +262,29 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 	return
 }
 
+const clusterQuery = `q(func: uid(c)){
+						cluster_type
+						cluster_address_count
+						cluster_transaction@normalize{
+							txhash:txhash
+							~transactions{
+								bhash:blockhash
+								bid:id
+								ts:ts
+							}
+						}
+						cluster_addresses(first:30){
+							addresshash
+						}
+					  }`
+
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
 func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
 	const query = string(`query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
 					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
 				}
-				
-				q(func: uid(c))@normalize{
-					cluster_type:cluster_type
-					cluster_address_count:cluster_address_count
-					cluster_transaction{
-						txhash:txhash
-						~transactions{
-							bhash:blockhash
-							bid:id
-							ts:ts
-						}
-					}
-				}
-			  }`)
+				` + clusterQuery + "}")
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
@@ -290,14 +293,29 @@ func GetClusters(c external.Database, addressHash string) (clusters []FrontendCl
 	}
 
 	var r struct {
-		Clusters []FrontendCluster `json:"q,omitempty"`
+		Clusters []FrontendClusterRequest `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	clusters = r.Clusters
+	for _, cluster := range r.Clusters {
+		if len(cluster.Transaction) != 1 {
+			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			return
+		}
+		clusters = append(clusters, FrontendCluster{
+			Type:            cluster.Type,
+			AddressCount:    cluster.AddressCount,
+			TransactionHash: cluster.Transaction[0].TransactionHash,
+			BlockID:         cluster.Transaction[0].BlockID,
+			BlockHash:       cluster.Transaction[0].BlockHash,
+			Timestamp:       cluster.Transaction[0].Timestamp,
+			Addresses:       cluster.Addresses,
+		})
+
+	}
 
 	return
 }
@@ -314,20 +332,7 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 				var(func:eq(addresshash,$a2)){
 					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `) and uid(c1))
 				}
-				
-				q(func: uid(c))@normalize{
-					cluster_type:cluster_type
-					cluster_address_count:cluster_address_count
-					cluster_transaction{
-						txhash:txhash
-						~transactions{
-							bhash:blockhash
-							bid:id
-							ts:ts
-						}
-					}
-				}
-			  }`)
+				` + clusterQuery + "}")
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$a1": addressHash1, "$a2": addressHash2})
@@ -337,14 +342,29 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 	}
 
 	var r struct {
-		Clusters []FrontendCluster `json:"q,omitempty"`
+		Clusters []FrontendClusterRequest `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	clusters = r.Clusters
+	for _, cluster := range r.Clusters {
+		if len(cluster.Transaction) != 1 {
+			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			return
+		}
+		clusters = append(clusters, FrontendCluster{
+			Type:            cluster.Type,
+			AddressCount:    cluster.AddressCount,
+			TransactionHash: cluster.Transaction[0].TransactionHash,
+			BlockID:         cluster.Transaction[0].BlockID,
+			BlockHash:       cluster.Transaction[0].BlockHash,
+			Timestamp:       cluster.Transaction[0].Timestamp,
+			Addresses:       cluster.Addresses,
+		})
+
+	}
 
 	return
 }
