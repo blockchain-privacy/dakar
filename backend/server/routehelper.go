@@ -230,5 +230,6 @@ type graphClusterLookupReply struct {
 
 type clusterLookupReply struct {
 	Success  bool                         `json:"success"`
+	Msg      string                       `json:"msg,omitempty"`
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }

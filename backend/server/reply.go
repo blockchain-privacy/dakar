@@ -614,15 +614,48 @@ func getGraphClusterLookupReply(dgraph external.Database, worker *heuristic.Work
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, urlPath string) (reply clusterLookupReply) {
-	addressHash := urlPath[len(constants.GetRouteClusterLookup()):]
-
-	clusters, err := clustering.GetClusters(dgraph, addressHash)
-	if err != nil {
+func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+	// parse request
+	var req clustering.ClusterLookupRequest
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
+		reply.Msg = "could not decode request data"
 		return
 	}
 
-	reply.Clusters = clusters
+	if req.AddressHash1 == "" {
+		reply.Msg = "provide at least the first address hash"
+		return
+	}
+
+	if !isValid(req.AddressHash1) {
+		reply.Msg = "first address hash was not valid"
+		return
+	}
+
+	if req.AddressHash2 == "" {
+		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1)
+		if err != nil {
+			return
+		}
+		reply.Clusters = clusters
+	} else {
+		if !isValid(req.AddressHash2) {
+			reply.Msg = "second address hash was not valid"
+			return
+		}
+
+		if req.AddressHash1 == req.AddressHash2 {
+			reply.Msg = "address hashes are identical"
+			return
+		}
+
+		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2)
+		if err != nil {
+			return
+		}
+		reply.Clusters = clusters
+	}
+
 	reply.Success = true
 
 	return

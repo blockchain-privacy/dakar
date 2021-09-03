@@ -733,7 +733,7 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getClusterLookupReply(dgraph, r.URL.Path)
+		reply := getClusterLookupReply(dgraph, r.Body)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -840,6 +840,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 		adapt(handlerGraphClusterLookup(dgraph, worker), constants.GetRouteGraphClusterLookup(),
 			authorizationMiddleware(privkey, pubkey)))
 
+	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
 			authorizationMiddleware(privkey, pubkey)))
