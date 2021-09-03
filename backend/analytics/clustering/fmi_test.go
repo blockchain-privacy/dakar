@@ -14,7 +14,7 @@ func TestAddClustersToMergeList(t *testing.T) {
 	newAddresses := make(map[string]bool)
 
 	// case: no data given
-	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, newClusters, newAddresses)
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx1", newClusters, newAddresses)
 	require.Len(t, clusterMergeMap, 0)
 	require.Len(t, addressMergeMap, 0)
 	require.Equal(t, 0, countPointer(clusterMergeMap))
@@ -27,7 +27,7 @@ func TestAddClustersToMergeList(t *testing.T) {
 	newAddresses["A5"] = true
 
 	// case: 5 new addresses
-	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, newClusters, newAddresses)
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx2", newClusters, newAddresses)
 	require.Len(t, clusterMergeMap, 0)
 	require.Len(t, addressMergeMap, 5)
 	require.Equal(t, 0, countPointer(clusterMergeMap))
@@ -60,7 +60,7 @@ func TestAddClustersToMergeList(t *testing.T) {
 	newClusters["C3"] = true
 	newAddresses2["A6"] = true
 	// case: 3 new clusters, 1 new address
-	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, newClusters, newAddresses2)
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx3", newClusters, newAddresses2)
 	require.Len(t, clusterMergeMap, 3)
 	require.Len(t, addressMergeMap, 6)
 	require.Equal(t, 1, countPointer(clusterMergeMap))
@@ -72,7 +72,7 @@ func TestAddClustersToMergeList(t *testing.T) {
 	newAddresses3["A6"] = true
 	newAddresses3["A7"] = true
 	// case: link the two clusters
-	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, newClusters, newAddresses3)
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx4", newClusters, newAddresses3)
 	require.Len(t, clusterMergeMap, 3)
 	require.Len(t, addressMergeMap, 7)
 	require.Equal(t, 1, countPointer(clusterMergeMap))
