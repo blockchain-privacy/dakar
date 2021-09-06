@@ -3,11 +3,6 @@ package status
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	dbaddr "backend/db/address"
-	dbblk "backend/db/block"
-	dbop "backend/db/output"
-	dbtx "backend/db/transaction"
-	dbus "backend/db/user"
 	"backend/external"
 
 	"encoding/json"
@@ -16,64 +11,6 @@ import (
 
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
-
-// PrintStatus outputs the stats for the given DB
-func PrintStatus(dgraph external.Database) {
-	crawlerStatus, _ := GetCrawlerStatus(dgraph)
-
-	if crawlerStatus.IsCrawling != nil {
-		fmt.Println("Currently crawling:", *crawlerStatus.IsCrawling)
-	}
-
-	if crawlerStatus.LastBlockID != nil {
-		fmt.Println("LastBlockID:", *crawlerStatus.LastBlockID)
-	}
-
-	classifierStatus, _ := GetClassifierStatus(dgraph)
-
-	if classifierStatus.IsClassifying != nil {
-		fmt.Println("Currently classifying:", *classifierStatus.IsClassifying)
-	}
-
-	if classifierStatus.LastClassifiedBlockID != nil {
-		fmt.Println("LastClassifiedBlockID:", *classifierStatus.LastClassifiedBlockID)
-	}
-
-	hmiStatus, _ := GetClusteringHMIStatus(dgraph)
-
-	if hmiStatus.IsClustering != nil {
-		fmt.Println("Currently hierarchical multi-input clustering:", *hmiStatus.IsClustering)
-	}
-
-	if hmiStatus.LastClusteredBlockID != nil {
-		fmt.Println("LastClusteredBlockID (hierarchical multi-input):", *hmiStatus.LastClusteredBlockID)
-	}
-
-	fmiStatus, _ := GetClusteringFMIStatus(dgraph)
-
-	if fmiStatus.IsClustering != nil {
-		fmt.Println("Currently flat multi-input clustering:", *fmiStatus.IsClustering)
-	}
-
-	if fmiStatus.LastClusteredBlockID != nil {
-		fmt.Println("LastClusteredBlockID (flat multi-input):", *fmiStatus.LastClusteredBlockID)
-	}
-
-	blockCount, _ := dbblk.GetCount(dgraph)
-	txCount, _ := dbtx.GetCount(dgraph)
-	opCount, _ := dbop.GetCount(dgraph)
-	addrCount, _ := dbaddr.GetCount(dgraph)
-	userCount, _ := dbus.GetUserCount(dgraph)
-	roleCount, _ := dbus.GetRoleCount(dgraph)
-
-	fmt.Print("Counts:")
-	fmt.Println("\tBlocks:", blockCount)
-	fmt.Println("\tTransactions:", txCount)
-	fmt.Println("\tOutputs:", opCount)
-	fmt.Println("\tAddresses:", addrCount)
-	fmt.Println("\tUsers:", userCount)
-	fmt.Println("\tRoles:", roleCount)
-}
 
 // GetCrawlerStatus gets the crawler status from the database
 func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {

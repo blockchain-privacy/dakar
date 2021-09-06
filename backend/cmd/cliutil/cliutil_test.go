@@ -25,7 +25,7 @@ func TestBuildEndpoint(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		endpoint, err := buildEndpoint(c.host, c.port)
+		endpoint, err := BuildEndpoint(c.host, c.port)
 		if len(strings.TrimSpace(c.host)) == 0 || c.port == 0 {
 			require.NotNil(t, err)
 			require.Empty(t, endpoint, "endpoint should be empty")
@@ -53,32 +53,4 @@ func TestGetLogfile(t *testing.T) {
 	logfile, err = GetLogfile(fName)
 	require.Nil(t, err)
 	require.NotNil(t, logfile)
-}
-
-func TestNumBlockchainSelected(t *testing.T) {
-	cases := []struct {
-		args     Arguments
-		expected int
-	}{
-		{
-			args:     Arguments{BTC: true},
-			expected: 1,
-		},
-		{
-			args:     Arguments{},
-			expected: 0,
-		},
-		{
-			args:     Arguments{BTC: true, Dash: true, Doge: true},
-			expected: 3,
-		},
-		{
-			args:     Arguments{Dash: true},
-			expected: 1,
-		},
-	}
-
-	for _, c := range cases {
-		require.EqualValues(t, c.expected, NumBlockchainSelected(c.args))
-	}
 }

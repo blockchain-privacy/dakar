@@ -3,7 +3,6 @@ package main
 import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
-	"flag"
 	"fmt"
 	"log"
 )
@@ -18,30 +17,29 @@ func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
 
-// setup cli
-func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.Logfile, cli.DBPort, cli.DBHost)
+type Config struct {
+	Logfile string `yaml:"logfile"`
+	Host    string `yaml:"host"`
+	Port    uint   `yaml:"port"`
+}
 
-	if err != nil {
-		flag.PrintDefaults()
-		return cliArgs, err
-	}
-
-	return cliArgs, err
+var defaultConfig = Config{
+	Logfile: "",
+	Host:    "0.0.0.0",
+	Port:    9080,
 }
 
 // Simple utility to browse/lookup the TXs from the database
 func main() {
-
-	cliArgs, err := getExplorerCLIArgs()
-	if err != nil {
-		fmt.Println(err)
+	var config Config
+	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
+		log.Println(err)
 		return
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
+	if len(config.Logfile) > 0 {
+		if f, err := cli.GetLogfile(config.Logfile); err == nil {
 			defer func() {
 				if err = f.Close(); err != nil {
 					fmt.Println(err)
@@ -52,8 +50,14 @@ func main() {
 
 	initLogger()
 
+	endpoint, err := cli.BuildEndpoint(config.Host, config.Port)
+	if err != nil {
+		info(err)
+		return
+	}
+
 	// create dgraph client
-	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
+	dgraph, c, err := db.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return

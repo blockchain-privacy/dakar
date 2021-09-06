@@ -7,7 +7,6 @@ import (
 	dban "backend/db/analytics"
 
 	"errors"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -27,23 +26,6 @@ func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
 
-// setup cli
-func getExplorerCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.Logfile, cli.DBPort, cli.DBHost, cli.ChartDir)
-
-	if err != nil {
-		flag.PrintDefaults()
-		return cliArgs, err
-	}
-
-	if len(cliArgs.ChartDir) == 0 {
-		flag.PrintDefaults()
-		return cliArgs, errors.New("specify output directory for charts")
-	}
-
-	return cliArgs, err
-}
-
 type dur struct {
 	label string
 	d     time.Duration
@@ -56,17 +38,30 @@ type privacyTypePair struct {
 	stop  string
 }
 
-func main() {
+type Config struct {
+	Logfile  string `yaml:"logfile"`
+	ChartDir string `yaml:"chartDir"`
+	DbHost   string `yaml:"host"`
+	DbPort   uint   `yaml:"port"`
+}
 
-	cliArgs, err := getExplorerCLIArgs()
-	if err != nil {
-		fmt.Println(err)
+var defaultConfig = Config{
+	Logfile:  "",
+	ChartDir: "",
+	DbHost:   "0.0.0.0",
+	DbPort:   9080,
+}
+
+func main() {
+	var config Config
+	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
+		log.Println(err)
 		return
 	}
 
 	// setup Logging
-	if len(cliArgs.Logfile) > 0 {
-		if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
+	if len(config.Logfile) > 0 {
+		if f, err := cli.GetLogfile(config.Logfile); err == nil {
 			defer func() {
 				if err = f.Close(); err != nil {
 					fmt.Println(err)
@@ -77,8 +72,14 @@ func main() {
 
 	initLogger()
 
+	endpoint, err := cli.BuildEndpoint(config.DbHost, config.DbPort)
+	if err != nil {
+		info(err)
+		return
+	}
+
 	// create dgraph client
-	dgraph, c, err := db.CreateClient(cliArgs.DBEndpoint)
+	dgraph, c, err := db.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return
@@ -88,7 +89,7 @@ func main() {
 			info(err)
 		}
 	}()
-	if len(cliArgs.ChartDir) > 0 {
+	if len(config.ChartDir) > 0 {
 
 		privacyTypes := []privacyTypePair{
 			{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
@@ -120,7 +121,7 @@ func main() {
 				return
 			}
 
-			createCharts(durations, ts, cliArgs.ChartDir, privacyType.label)
+			createCharts(durations, ts, config.ChartDir, privacyType.label)
 		}
 	}
 }

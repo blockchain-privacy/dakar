@@ -14,9 +14,9 @@ import (
 	"backend/processor"
 	"backend/server"
 	"backend/user"
-	"runtime"
 
 	"context"
+	"crypto/ed25519"
 	"encoding/hex"
 	"errors"
 	"flag"
@@ -25,14 +25,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/btcsuite/btcd/rpcclient"
-
-	"golang.org/x/crypto/ed25519"
 )
 
 // VersionString displays the version of the Crawler
@@ -59,32 +58,6 @@ func initAllLoggers() {
 	processor.InitLogger(writer, flags)
 	server.InitLogger(writer, flags)
 	heuristic.InitLogger(writer, flags)
-}
-
-func getCLIArgs() (cliArgs cli.Arguments, err error) {
-	cliArgs, err = cli.BuildArgs(cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.IsPrintStatus, cli.RPCHost,
-		cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard, cli.DisableHTTPServer, cli.DisableHeuristics,
-		cli.DisableCrawler, cli.DisableClassifier, cli.DisableHMIClustering, cli.DisableFMIClustering,
-		cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
-
-	if err != nil {
-		flag.PrintDefaults()
-		return cliArgs, err
-	}
-
-	if numSelected := cli.NumBlockchainSelected(cliArgs); numSelected != 1 {
-		flag.PrintDefaults()
-		if numSelected == 0 {
-			err = errors.New(fmt.Sprintln("Select a blockchain (-dash, -btc or -doge)."))
-		} else {
-			err = errors.New(fmt.Sprintln("Number of blockchains selected:", numSelected,
-				"Only one selected blockchain is allowed"))
-		}
-
-		return
-	}
-
-	return
 }
 
 // checks if a crawling process is already running
@@ -119,6 +92,11 @@ func waitForRPCClient(client external.RPCClient) bool {
 				info("Successfully established connection to RPC client.")
 			}
 			return true
+		}
+
+		if strings.Contains(err.Error(), "status code: 401") {
+			info("Authentication error:", err)
+			return false
 		}
 
 		if !printedErrMessage {
@@ -182,6 +160,77 @@ func shutdownServer(srv *http.Server) {
 	}
 }
 
+type RPCConfig struct {
+	Host     string `yaml:"host"`
+	Port     uint   `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+}
+
+type DatabaseConfig struct {
+	Host string `yaml:"host"`
+	Port uint   `yaml:"port"`
+}
+
+type ModulesConfig struct {
+	HTTP       bool `yaml:"http"`
+	Crawler    bool `yaml:"crawler"`
+	Classifier bool `yaml:"classifier"`
+	Heuristics bool `yaml:"heuristics"`
+	Clustering struct {
+		HMI bool `yaml:"hmi"`
+		FMI bool `yaml:"fmi"`
+	} `yaml:"clustering"`
+}
+
+type Config struct {
+	BlockchainMode string         `yaml:"blockchainMode"`
+	Logfile        string         `yaml:"logfile"`
+	HTTPPort       uint           `yaml:"httpPort"`
+	RPC            RPCConfig      `yaml:"rpc"`
+	Database       DatabaseConfig `yaml:"database"`
+	Modules        ModulesConfig  `yaml:"modules"`
+}
+
+var defaultConfig = Config{
+	BlockchainMode: "Dash",
+	Logfile:        "",
+	HTTPPort:       8081,
+	RPC: RPCConfig{
+		Host:     "0.0.0.0",
+		Port:     9998,
+		User:     "rpc1user",
+		Password: "123pass",
+	},
+	Database: DatabaseConfig{
+		Host: "0.0.0.0",
+		Port: 9080,
+	},
+	Modules: ModulesConfig{
+		HTTP:       true,
+		Crawler:    true,
+		Classifier: false,
+		Heuristics: false,
+		Clustering: struct {
+			HMI bool `yaml:"hmi"`
+			FMI bool `yaml:"fmi"`
+		}{
+			HMI: false,
+			FMI: false,
+		},
+	},
+}
+
+type Commands struct {
+	ResetDB         bool
+	IgnoreSafeGuard bool
+}
+
+func setCommandFlags(c *Commands) {
+	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
+	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
+}
+
 // The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //
@@ -189,21 +238,26 @@ func shutdownServer(srv *http.Server) {
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
 	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
-	cliArgs, err := getCLIArgs()
-	if err != nil {
-		fmt.Println(err)
+
+	var config Config
+	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
+		log.Println(err)
 		return
 	}
 
+	var commands Commands
+	setCommandFlags(&commands)
+	flag.Parse()
+
 	// setup Logging
-	if f, err := cli.GetLogfile(cliArgs.Logfile); err == nil {
+	if f, err := cli.GetLogfile(config.Logfile); err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
 			}
 		}()
-	} else if len(cliArgs.Logfile) > 0 {
-		fmt.Println("Could not create logfile", cliArgs.Logfile)
+	} else if len(config.Logfile) > 0 {
+		fmt.Println("Could not create logfile", config.Logfile)
 		return
 	}
 
@@ -212,13 +266,13 @@ func main() {
 	// select blockchain config
 	var processorConfig processor.Config
 	var analyserConfig analytics.Config
-	if cliArgs.Dash {
+	if config.BlockchainMode == "Dash" {
 		processorConfig = processor.NewDashConfig()
 		analyserConfig = analytics.NewDashConfig()
-	} else if cliArgs.BTC {
+	} else if config.BlockchainMode == "BTC" {
 		processorConfig = processor.NewBitcoinConfig()
 		analyserConfig = analytics.NewBitcoinConfig()
-	} else if cliArgs.Doge {
+	} else if config.BlockchainMode == "Doge" {
 		processorConfig = processor.NewDogecoinConfig()
 		analyserConfig = analytics.NewDogecoinConfig()
 	} else {
@@ -228,28 +282,34 @@ func main() {
 
 	// disable the heuristic worker if it is disabled per configuration
 	if !analyserConfig.IsHeuristicWorkerEnabled {
-		cliArgs.DisableHeuristics = true
+		config.Modules.Heuristics = false
 	}
 
 	// disable classifying if it is disabled per configuration
 	if !analyserConfig.IsClassifyingEnabled {
-		cliArgs.DisableClassifier = true
+		config.Modules.Classifier = false
 	}
 
 	// disable HMI clustering if it is disabled per configuration
 	if !analyserConfig.IsHMIClusteringEnabled {
-		cliArgs.DisableHMIClustering = true
+		config.Modules.Clustering.HMI = false
 	}
 
 	// disable FMI clustering if it is disabled per configuration
 	if !analyserConfig.IsFMIClusteringEnabled {
-		cliArgs.DisableFMIClustering = true
+		config.Modules.Clustering.FMI = false
 	}
 
 	info(processorConfig.BlockchainName, "mode")
 
+	endpoint, err := cli.BuildEndpoint(config.Database.Host, config.Database.Port)
+	if err != nil {
+		info(err)
+		return
+	}
+
 	// create dgraph client
-	graphDB, c, err := db.CreateClient(cliArgs.DBEndpoint)
+	graphDB, c, err := db.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return
@@ -265,13 +325,8 @@ func main() {
 		return
 	}
 
-	if cliArgs.IsPrintStatus {
-		status.PrintStatus(graphDB)
-		return
-	}
-
 	// check if signing keys and basic auth are set
-	if !cliArgs.DisableHTTPServer {
+	if config.Modules.HTTP {
 		_, _, keyErr := server.GetSigningKeysFromEnv()
 		if keyErr != nil {
 			info("error getting signing keys. Set the following environment variables:",
@@ -306,7 +361,7 @@ func main() {
 		}
 	}
 
-	if cliArgs.ResetDB {
+	if commands.ResetDB {
 		// get confirmation for database deletion
 		var userAnswer string
 		info("All data in the database will we deleted! Do you want to continue (yes/no)?")
@@ -334,9 +389,9 @@ func main() {
 		info("Successfully set up new schema.")
 	}
 
-	if cliArgs.DisableClassifier && cliArgs.DisableCrawler &&
-		cliArgs.DisableHMIClustering && cliArgs.DisableFMIClustering &&
-		cliArgs.DisableHTTPServer {
+	if !config.Modules.Classifier && !config.Modules.Crawler &&
+		!config.Modules.Clustering.HMI && !config.Modules.Clustering.FMI &&
+		!config.Modules.HTTP {
 		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
@@ -350,7 +405,7 @@ func main() {
 		return
 	}
 
-	if !cliArgs.IgnoreSafeguard {
+	if !commands.IgnoreSafeGuard {
 		if ok, err := isCrawling(graphDB); err != nil {
 			info(err)
 			return
@@ -361,7 +416,7 @@ func main() {
 	}
 
 	// create admin account if none is set
-	if !cliArgs.DisableHTTPServer {
+	if config.Modules.HTTP {
 		// check if users already exist
 		_, userErr := dbus.GetUsers(graphDB)
 		if userErr != nil {
@@ -375,7 +430,7 @@ func main() {
 				}
 				// do not log
 				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-				if len(cliArgs.Logfile) > 0 {
+				if len(config.Logfile) > 0 {
 					fmt.Println("Write the credentials down, they will not be written to the log file.")
 				} else {
 					fmt.Println("Write the credentials down.")
@@ -389,11 +444,16 @@ func main() {
 
 	// Set up the RPC connection, only if needed
 	var client *rpcclient.Client
-	if !cliArgs.DisableHTTPServer || !cliArgs.DisableCrawler {
+	if config.Modules.HTTP || config.Modules.Crawler {
+		rpcEndpoint, err := cli.BuildEndpoint(config.RPC.Host, config.RPC.Port)
+		if err != nil {
+			info(err)
+			return
+		}
 		client, err = rpcclient.New(&rpcclient.ConnConfig{
-			Host:         cliArgs.RPCEndpoint,
-			User:         cliArgs.RPCUser,
-			Pass:         cliArgs.RPCPassword,
+			Host:         rpcEndpoint,
+			User:         config.RPC.User,
+			Pass:         config.RPC.Password,
 			DisableTLS:   true,
 			HTTPPostMode: true,
 		}, nil)
@@ -424,7 +484,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// activate crawler
-	if !cliArgs.DisableCrawler {
+	if config.Modules.Crawler {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -442,7 +502,8 @@ func main() {
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
 	worker := heuristic.NewWorker(graphWrapper)
 	var classifierStarted bool
-	if !cliArgs.DisableHTTPServer && !cliArgs.DisableHeuristics {
+
+	if config.Modules.HTTP && config.Modules.Heuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
@@ -452,7 +513,7 @@ func main() {
 				return
 			}
 
-			if !cliArgs.DisableClassifier {
+			if config.Modules.Classifier {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
@@ -482,7 +543,7 @@ func main() {
 	}
 
 	// activate classifier
-	if !cliArgs.DisableClassifier && !classifierStarted {
+	if config.Modules.Classifier && !classifierStarted {
 		// in-memory graphs are not loaded -> start classifier
 		wg.Add(1)
 		go func() {
@@ -499,7 +560,7 @@ func main() {
 	}
 
 	// activate HMI clustering
-	if !cliArgs.DisableHMIClustering {
+	if config.Modules.Clustering.HMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -515,7 +576,7 @@ func main() {
 	}
 
 	// activate FMI clustering
-	if !cliArgs.DisableFMIClustering {
+	if config.Modules.Clustering.FMI {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -532,18 +593,18 @@ func main() {
 
 	// activate server
 	var srv *http.Server
-	if !cliArgs.DisableHTTPServer {
+	if config.Modules.HTTP {
 		wg.Add(1)
-		srv = server.StartServer(&wg, cliArgs.HTTPServerPort, graphDB, client, worker)
+		srv = server.StartServer(&wg, config.HTTPPort, graphDB, client, worker)
 	}
 
-	var crawlerStopped = cliArgs.DisableCrawler
-	var classifierStopped = cliArgs.DisableClassifier
-	var clusteringHMIStopped = cliArgs.DisableHMIClustering
-	var clusteringFMIStopped = cliArgs.DisableFMIClustering
+	var crawlerStopped = !config.Modules.Crawler
+	var classifierStopped = !config.Modules.Classifier
+	var clusteringHMIStopped = !config.Modules.Clustering.HMI
+	var clusteringFMIStopped = !config.Modules.Clustering.FMI
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped)) {
+	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
@@ -564,7 +625,7 @@ func main() {
 		}
 	}
 
-	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped {
+	if config.Modules.HTTP && crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped {
 		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point
 
