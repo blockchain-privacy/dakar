@@ -42,7 +42,7 @@
                   </IconItem>
                 </v-col>
                 <v-col>
-                  <IconItem title="Number of addresses"
+                  <IconItem title="Number of clusters"
                             :icon="icon.mdiPoundBoxOutline">
                     {{
                       heuristicData.transactions === undefined ? 0
@@ -85,7 +85,22 @@
                           :items-per-page="5"
                           :sort-by.sync="sortBy"
                           :sort-desc.sync="sortDesc"
-            ></v-data-table>
+                          item-key="cluster"
+                          show-expand
+            >
+              <template v-slot:expanded-item="{ headers, item }">
+                <td :colspan="headers.length">
+                  <v-list dense>
+                    <v-list-item v-for="a in item.addresses" :key="a"
+                                 :to="{ name: addressRoute, params: { id: a }}">
+                      <v-list-item-content>
+                        <v-list-item-title>{{ a }}</v-list-item-title>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list>
+                </td>
+              </template>
+            </v-data-table>
           </v-card>
         </div>
       </v-card-text>
@@ -99,6 +114,7 @@ import {
 } from '@mdi/js';
 import * as d3 from 'd3';
 import IconItem from '../common/IconItem.vue';
+import { ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 
 // addPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -122,6 +138,7 @@ export default {
       icon: {
         mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
       },
+      addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       chart: null,
       sortBy: 'count',
       sortDesc: false,
@@ -131,15 +148,23 @@ export default {
   },
   computed: {
     dataItems() {
-      if (this.heuristicData.transactions) {
-        this.heuristicData.transactions.forEach((v) => {
-          v.txCount = v.txs.length;
-        });
-
-        return this.heuristicData.transactions;
+      if (!this.heuristicData.transactions) {
+        return [];
       }
 
-      return [];
+      let i = 1;
+      this.heuristicData.transactions.forEach((v) => {
+        v.id = i;
+        i += 1;
+        v.txCount = v.txs.length;
+        // get unique addresses
+        const addressSet = new Set();
+        v.txs.forEach((d) => addressSet.add(d.addresshash));
+        v.addresses = [...addressSet];
+        v.address_count = v.addresses.length;
+      });
+
+      return this.heuristicData.transactions;
     },
     isHollow() {
       return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
@@ -153,19 +178,21 @@ export default {
       },
     },
     dataHeaders() {
-      const addressHeader = {
-        text: 'Address', align: 'start', sortable: false, value: 'cluster',
+      const idHeader = {
+        text: 'ID', align: 'start', sortable: false, value: 'id',
       };
-      const transactionCountHeader = {
-        text: 'Origin Tx Count', value: 'txCount',
-      };
+      const addressCountHeader = { text: 'Cluster Address Count', value: 'address_count' };
+
+      const transactionCountHeader = { text: 'Origin Tx Count', value: 'txCount' };
       const destinationHeader = { text: 'Destination Tx Count', value: 'count' };
+      const expansionHeader = { value: 'data-table-expand' };
 
       // check if destination counts from forward lookup are set
       if (this.heuristicData.transactions.some((d) => d.count)) {
-        return [addressHeader, transactionCountHeader, destinationHeader];
+        return [idHeader, addressCountHeader, transactionCountHeader,
+          destinationHeader, expansionHeader];
       }
-      return [addressHeader, transactionCountHeader];
+      return [idHeader, addressCountHeader, transactionCountHeader, expansionHeader];
     },
   },
   methods: {
@@ -188,8 +215,8 @@ export default {
 
       const duration = highestDate - lowestDate;
 
-      // check if there is enough data to draw the diagram
-      if (duration < 1000 * 60 * 60 * 3) {
+      // check if there is enough data to draw the diagram; 1000 * 60 * 60 * 3 = 10800000
+      if (duration < 10800000) {
         this.enoughDataForGraph = false;
         this.durationInMinutes = Math.floor(duration / 1000 / 60);
         return;

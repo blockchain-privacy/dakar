@@ -161,6 +161,7 @@ type FrontendHeuristicResponse struct {
 }
 
 type FrontendTransactionResult struct {
+	Address   string `json:"addresshash,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
 	Hash      string `json:"txhash,omitempty"`
 }

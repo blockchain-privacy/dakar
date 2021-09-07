@@ -573,41 +573,34 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 // GetFrontendHeuristicByUID the heuristic for the given heuristicUid
 func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string) (
 	frontendHeuristic FrontendHeuristicShort, err error) {
-	query := `query Q($uid:string,$uuid:string){
+	const query = `query Q($uid:string,$uuid:string){
 				var(func:uid($uid))@cascade{
 					~user_heuristics@filter(uid($uuid))
-					results {
-						origin {
-							tx_inputs{ 
-								~addr_outputs{
-									a as addresshash
-								}
-								aa as min(val(a))
-							}
-							aaa as min(val(aa))
-							t as txhash
-							~transactions {
-								time as ts
-							}
-							ttime as min(val(time))
-						}
-						tx as min(val(t))
-						tttime as min(val(ttime))
-						source as min(val(aaa))
-					}
+					r as results
 				}
 
-				q(func: uid(source)){
-					c:val(source)
-					tx:val(tx)
-					ts:val(tttime)
+				q(func: uid(r)){
+					origin@normalize{
+						txhash:txhash
+						~transactions{
+							ts:ts
+						}
+						tx_inputs(first:1)@normalize{
+							~addr_outputs{
+								a:addresshash
+								~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+									cuid:uid
+								}
+							}
+						}
+					}
 					d:destinations{uid}
 				}
 			   }`
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$uuid": userUID})
+	resp, err := c.Query(ctx, string(query), map[string]string{"$uid": heuristicUID, "$uuid": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -616,9 +609,12 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	// json struct
 	var r struct {
 		Results []struct {
-			Cluster      string `json:"c,omitempty"`
-			Transaction  string `json:"tx,omitempty"`
-			Timestamp    string `json:"ts,omitempty"`
+			Origin []struct {
+				Address     string `json:"a,omitempty"`
+				Cluster     string `json:"cuid,omitempty"`
+				Transaction string `json:"txhash,omitempty"`
+				Timestamp   string `json:"ts,omitempty"`
+			} `json:"origin,omitempty"`
 			Destinations []struct {
 				UID string `json:"uid,omitempty"`
 			} `json:"d,omitempty"`
@@ -639,24 +635,43 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		destinations map[string]bool
 		transactions []FrontendTransactionResult
 	})
-	for _, r := range r.Results {
-		// get tx map
-		txMap := clusterDestinations[r.Cluster]
 
+	for _, result := range r.Results {
+		if len(result.Origin) != 1 {
+			err = fmt.Errorf("invalid number of origins fro heuristic %s", heuristicUID)
+			return
+		}
+
+		if result.Origin[0].Cluster == "" && result.Origin[0].Address == "" {
+			err = fmt.Errorf("invalid response from database for tx %s", result.Origin[0].Transaction)
+			return
+		}
+
+		clusterID := result.Origin[0].Cluster
+		if clusterID == "" {
+			clusterID = result.Origin[0].Address
+		}
+
+		// get map item
+		txMap := clusterDestinations[clusterID]
 		txMap.transactions = append(txMap.transactions,
-			FrontendTransactionResult{Hash: r.Transaction, Timestamp: r.Timestamp})
+			FrontendTransactionResult{
+				Hash:      result.Origin[0].Transaction,
+				Address:   result.Origin[0].Address,
+				Timestamp: result.Origin[0].Timestamp,
+			})
 
 		if txMap.destinations == nil {
 			txMap.destinations = make(map[string]bool)
 		}
 
 		// add transaction uids
-		for _, d := range r.Destinations {
+		for _, d := range result.Destinations {
 			txMap.destinations[d.UID] = true
 		}
 
-		// set tx map
-		clusterDestinations[r.Cluster] = txMap
+		// set map item
+		clusterDestinations[clusterID] = txMap
 	}
 
 	var results []FrontendHeuristicShortItem
