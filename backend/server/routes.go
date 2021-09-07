@@ -713,21 +713,6 @@ func handlerConnectionLookup(dgraph external.Database, worker *heuristic.Worker)
 	})
 }
 
-// API pattern: "/api/v1/graphClusterLookup/<addressHash>"
-func handlerGraphClusterLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		reply := getGraphClusterLookupReply(dgraph, worker, r.URL.Path)
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), err)
-		}
-	})
-}
-
 // API pattern: "/api/v1/clusterLookup/<addressHash>"
 func handlerClusterLookup(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -831,13 +816,8 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	http.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(handlerShortestTransactionPath(dgraph), constants.GetRouteShortestTransactionPath(),
 			authorizationMiddleware(privkey, pubkey)))
-
 	http.Handle(constants.GetRouteConnectionLookup(),
 		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
-			authorizationMiddleware(privkey, pubkey)))
-
-	http.Handle(constants.GetRouteGraphClusterLookup(),
-		adapt(handlerGraphClusterLookup(dgraph, worker), constants.GetRouteGraphClusterLookup(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// Clusters

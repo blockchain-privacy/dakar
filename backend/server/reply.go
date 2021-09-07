@@ -4,7 +4,6 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
-	"backend/db/address"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -569,45 +568,6 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	endpointCount := len(endpoints)
 	reply.TransactionCount = &endpointCount
 	reply.Transactions = frontendTransactions
-	reply.Success = true
-
-	return
-}
-
-// getGraphClusterLookupReply returns the result of a graph cluster lookup
-func getGraphClusterLookupReply(dgraph external.Database, worker *heuristic.Worker, urlPath string) (reply graphClusterLookupReply) {
-	if !worker.IsReady() {
-		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
-		reply.Warning = true
-		return
-	}
-
-	addressHash := urlPath[len(constants.GetRouteClusterLookup()):]
-
-	uid, err := address.GetAddressUID(dgraph, addressHash)
-	if err != nil {
-		reply.Msg = "Address hash not found"
-		if !errors.Is(err, address.ErrorAddressNotFound) {
-			info(cliutil.ShowCallInfo(), err)
-		}
-		return
-	}
-
-	addressCluster, err := worker.GetCluster(uid)
-	if err != nil {
-		reply.Msg = "Lookup not successful"
-		info(cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	addressHashes, err := address.GetAddressesByUID(dgraph, addressCluster)
-	if err != nil {
-		reply.Msg = "Lookup not successful"
-		info(cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	reply.Addresses = addressHashes
 	reply.Success = true
 
 	return

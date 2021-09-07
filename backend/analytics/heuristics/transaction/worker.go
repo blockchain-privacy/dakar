@@ -174,7 +174,7 @@ func (w *Worker) IsInQueue(tx string, userUID string) bool {
 
 // IsReady returns true the worker is ready to work
 func (w *Worker) IsReady() bool {
-	return w.graphWrapper.IsAddressGraphLoaded() && w.graphWrapper.IsTransactionGraphLoaded()
+	return w.graphWrapper.IsTransactionGraphLoaded()
 }
 
 // GetStatus returns the current execution status of the given transaction hash and user id
@@ -278,9 +278,4 @@ func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[s
 func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
 	w.forwardLookups.Inc()
 	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime)
-}
-
-// GetCluster returns the cluster for the given uid
-func (w *Worker) GetCluster(addressUID string) ([]string, error) {
-	return w.graphWrapper.GetCluster(addressUID)
 }
