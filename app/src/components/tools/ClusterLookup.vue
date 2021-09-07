@@ -55,7 +55,7 @@
             {{ getClusterTypeLabel(c.cluster_type) }}
           </v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-chip outlined v-if="!$vuetify.breakpoint.xs">
+          <v-chip outlined v-if="!$vuetify.breakpoint.xs" color="primary">
             {{ c.cluster_address_count }}
             {{ (c.cluster_address_count === 1) ? 'Address' : 'Addresses' }}
           </v-chip>
