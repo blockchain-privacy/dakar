@@ -99,15 +99,15 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	}
 
 	// sources holds all sources found in all input transactions
-	sources := make(map[graph.ClusterID]bool)
+	sources := make(map[dbtxh.ClusterUID]bool)
 	// mRemovableSources holds all sources which can be removed,
 	// due to not being able to fund all connected input transactions
-	mRemovableSources := make(map[graph.ClusterID]bool)
+	mRemovableSources := make(map[dbtxh.ClusterUID]bool)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
 	// for each input transaction to the destination transaction,
 	// inputSources holds one map with all its occurring sources
-	var inputSources []map[graph.ClusterID]bool
+	var inputSources []map[dbtxh.ClusterUID]bool
 
 	var allTimeLimitedOrigins []dbtxh.HeuristicTransaction
 
@@ -128,10 +128,8 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
 	}
 
-	// maps address uids to cluster id
-	var clusters map[string]graph.ClusterID
 	// save origins in global address->origin map
-	sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, allTimeLimitedOrigins)
+	sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, allTimeLimitedOrigins)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -143,13 +141,13 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 		}
 
-		oSource, buildErr := buildSourcesWithAmount(t.origins, denominationIndex, clusters)
+		oSource, buildErr := buildSourcesWithAmount(t.origins, denominationIndex)
 		if buildErr != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
 		}
 
 		// add element inputSources and set index of current element
-		inputSources = append(inputSources, make(map[graph.ClusterID]bool))
+		inputSources = append(inputSources, make(map[dbtxh.ClusterUID]bool))
 		iSSIndex := len(inputSources) - 1
 
 		// Loop through all sources of the current input transaction and mark
@@ -171,7 +169,7 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	}
 
 	// save all addresses (sources) which are not part of all input transactions
-	var omniSources []graph.ClusterID
+	var omniSources []dbtxh.ClusterUID
 	for k := range sources {
 
 		found := true

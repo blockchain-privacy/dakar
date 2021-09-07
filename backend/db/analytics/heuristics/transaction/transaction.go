@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/clustering"
 	dbtx "backend/db/transaction"
 	"backend/external"
 	"context"
@@ -123,30 +124,6 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 	return
 }
 
-// DeleteAllHeuristics deletes all heuristics
-func DeleteAllHeuristics(c external.Database) (err error) {
-	// todo also including new heuristic results or remove function completely (was only used for db migration)
-	req := &api.Request{
-		Query: "query Q{h as var(func: type(TransactionHeuristic))\nu as var(func: type(User))}",
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) * * .\nuid(u) <user_heuristics> * ."),
-		}},
-		CommitNow: true,
-	}
-
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
-		return
-	}
-
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return ErrNoMutationHappened
-	}
-
-	return
-}
-
 // DeleteAllUserTxHeuristics deletes all heuristics of a user of a particular transaction
 func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) (err error) {
 	query := `query Q($uuid:string, $hash:string){
@@ -235,7 +212,7 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 
 // GetHeuristicResults returns the connected transactions of heuristic
 func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction, err error) {
-	query := `query Q($uid: string) {
+	const query = `query Q($uid: string) {
 				var (func: uid($uid)){
 					results { x as origin }
 				}
@@ -245,15 +222,18 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 					tx_outputs{
 						amount
 					}
-					tx_inputs@normalize{
+					tx_inputs(first:1)@normalize{
 						~addr_outputs{
-							uid:uid
+							addr_uid:uid
+							~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+								cluster_uid:uid
+							}
 						}
 					}
-				}
+			  	}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUID})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, string(query), map[string]string{"$uid": heuristicUID})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -271,29 +251,29 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 	}
 
 	for _, t := range r.Transaction {
+		if len(t.Inputs) != 1 {
+			err = fmt.Errorf("invalid cluster information for transaction %s", t.UID)
+			return
+		}
+
+		var cUID ClusterUID
+
+		// if the cluster is not set we use the address uid as the "cluster",
+		//this can happen if the address has not been assigned a cluster yet
+		if t.Inputs[0].Cluster == "" {
+			cUID = ClusterUID(t.Inputs[0].Address)
+		} else {
+			cUID = ClusterUID(t.Inputs[0].Cluster)
+		}
+
 		results = append(results, HeuristicTransaction{
-			UID:       t.UID,
-			Addresses: getInputAddresses(t.Inputs),
-			Outputs:   t.Outputs,
+			UID:     t.UID,
+			Cluster: cUID,
+			Outputs: t.Outputs,
 		})
 	}
 
 	return
-}
-
-// getInputAddresses returns all addresses without duplicates
-func getInputAddresses(inputs []HeuristicInput) []string {
-	addressMap := make(map[string]bool)
-	for _, i := range inputs {
-		addressMap[i.AddressUID] = true
-	}
-
-	var addresses []string
-	for k := range addressMap {
-		addresses = append(addresses, k)
-	}
-
-	return addresses
 }
 
 // GetInputTransactions returns the input mixing transactions of the given transaction.
@@ -358,21 +338,24 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 // GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
 // Each transaction contains its output amounts and the addresses of all inputs.
 func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids []string) (origins []HeuristicTransaction, err error) {
-	query := `query Q($uids:string){
+	const query = `query Q($uids:string){
 				q(func: uid($uids)){
 					uid
 					tx_outputs{
 						amount
 					}
-					tx_inputs@normalize{
+					tx_inputs(first:1)@normalize{
 						~addr_outputs{
-							uid:uid
+							addr_uid:uid
+							~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+								cluster_uid:uid
+							}
 						}
 					}
-				}
-			   }`
+			   	}
+			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUIDList(uids)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, string(query), map[string]string{"$uids": db.CreateUIDList(uids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -389,10 +372,25 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids 
 	}
 
 	for _, o := range r.Origins {
+		if len(o.Inputs) != 1 {
+			err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
+			return
+		}
+
+		var cUID ClusterUID
+
+		// if the cluster is not set we use the address uid as the "cluster",
+		//this can happen if the address has not been assigned a cluster yet
+		if o.Inputs[0].Cluster == "" {
+			cUID = ClusterUID(o.Inputs[0].Address)
+		} else {
+			cUID = ClusterUID(o.Inputs[0].Cluster)
+		}
+
 		origins = append(origins, HeuristicTransaction{
-			UID:       o.UID,
-			Addresses: getInputAddresses(o.Inputs),
-			Outputs:   o.Outputs,
+			UID:     o.UID,
+			Cluster: cUID,
+			Outputs: o.Outputs,
 		})
 	}
 

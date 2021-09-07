@@ -51,15 +51,17 @@ func (h *Heuristic) SetDType() {
 	h.DType = []string{DType}
 }
 
+type ClusterUID string
+
 // HeuristicTransaction holds all data a heuristic needs for a specific transaction
 type HeuristicTransaction struct {
 	// UID holds the uid of the transaction
 	UID string `json:"uid,omitempty"`
 	// Timestamp holds the timestamp of the corresponding block
 	Timestamp time.Time `json:"ts,omitempty"`
-	// Addresses holds the address associated with this transaction.
-	// Depending on the context this could be the address of an input or an output
-	Addresses []string
+	// Cluster holds the cluster associated with this transaction.
+	// Depending on the context this could be the cluster of an input or an output
+	Cluster ClusterUID
 	// Outputs holds a slice of amounts.
 	// Depending on the context this could be the input or the output amounts.
 	Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
@@ -72,12 +74,13 @@ type HeuristicOutput struct {
 }
 
 func (h HeuristicTransaction) String() string {
-	return fmt.Sprintf("UID: %s, timestamp: %s, associated address: %s, output count: %d", h.UID, h.Timestamp, h.Addresses, len(h.Outputs))
+	return fmt.Sprintf("UID: %s, timestamp: %s, associated cluster: %s, output count: %d", h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
 // HeuristicInput only holds the uid of the input address
 type HeuristicInput struct {
-	AddressUID string `json:"uid,omitempty"`
+	Address string `json:"addr_uid,omitempty"`
+	Cluster string `json:"cluster_uid,omitempty"`
 }
 
 type queryHeuristicTransaction struct {
