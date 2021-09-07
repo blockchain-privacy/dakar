@@ -744,8 +744,8 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10M).
-		MaxCost:     1 << 30, // maximum cost of cache (1GB).
+		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
+		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {

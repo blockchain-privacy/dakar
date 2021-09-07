@@ -86,8 +86,7 @@
                           :sort-by.sync="sortBy"
                           :sort-desc.sync="sortDesc"
                           item-key="cluster"
-                          show-expand
-            >
+                          show-expand>
               <template v-slot:expanded-item="{ headers, item }">
                 <td :colspan="headers.length" class="py-3">
                   <v-list dense>

@@ -41,36 +41,6 @@ import (
 // │Origin├────┤Mixing├────┤Mixing├─┘
 // └──────┘    └──────┘    └──────┘
 
-// GetInputAddresses returns all input addresses of the given transactions
-func GetInputAddresses(c external.Database, txUids []string) ([]AddressNode, error) {
-	const query = `query Q($uids:string){
-				q(func: uid($uids)){
-					uid
-					i:tx_inputs@normalize{
-						~addr_outputs{
-							uid:uid
-						}
-					}
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$uids": db.CreateUIDList(txUids)})
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	var r struct {
-		Q []AddressNode `json:"q"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return r.Q, nil
-}
-
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
 func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,

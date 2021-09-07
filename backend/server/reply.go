@@ -398,7 +398,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	youngTx := req.To
 
 	if !req.AnyDirection {
-		// switch transactions if necessary so we are searching in the right direction
+		// switch transactions if necessary, so we are searching in the right direction
 		if toBlockID > fromBlockID {
 			oldTx = req.To
 			youngTx = req.From

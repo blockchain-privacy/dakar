@@ -139,7 +139,7 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 				handleError(w, err)
 				return
 			}
-			// reset body so it can be read by the next handler
+			// reset body, so it can be read by the next handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 			query := r.URL.Path[len(route):]

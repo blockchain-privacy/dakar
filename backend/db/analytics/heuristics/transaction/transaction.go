@@ -851,7 +851,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 				}
 			  }`
 
-	// without retry, as this request can easily timeout
+	// without retry, as this request can easily time out
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})

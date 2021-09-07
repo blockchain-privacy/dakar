@@ -242,7 +242,7 @@ mainLoop:
 				// delete changed or removable heuristics
 				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
 					info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
-					// no return/break because we want keep working even if we are failing
+					// no return/break because we want to keep working even if we are failing
 					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
 				} else {
 					// if no error occurred -> execute the new heuristics

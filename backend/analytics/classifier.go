@@ -259,7 +259,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// step 2.2.1: set the privacy type of destination transactions by analyzing the connected transactions.
 	// Origins are only returned in this step and not set directly, if the number of potentialCollateralTransactions
 	// is bigger zero. This is so the classification is resilient against sudden shutdowns. If the origins were
-	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus the
+	// set directly, the iteration after a fault would not find any potentialCollateralTransactions. Thus, the
 	// origins are set in step 2.2.2
 	potentialCollateralTransactions, foundOrigins,
 		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID)
@@ -451,7 +451,7 @@ func isMixing(t dbtx.Transaction) int {
 	denominationOut := op.CountOutputDenominations(t.Outputs)
 	denominationIndex := -1
 	for i := range denominationIn {
-		// inputs and outputs should have same amount of each denomination type
+		// inputs and outputs should have the same amount of each denomination type
 		if denominationIn[i] != denominationOut[i] {
 			return -1
 		}

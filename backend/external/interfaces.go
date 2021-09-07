@@ -9,13 +9,13 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// This package defines interfaces for external dependencies
+// This package defines interfaces for external dependencies,
 // so they can be mocked in testing.
 
 // RPCClient defines the methods which rpcclient of btcsuite implements.
 // Descriptions are copied from there.
 type RPCClient interface {
-	// GetBlockCount returns the number of blocks in the longest block chain.
+	// GetBlockCount returns the number of blocks in the longest blockchain.
 	GetBlockCount() (int64, error)
 	// GetBlockVerbose returns a data structure from the server with information
 	// about a block given its hash.
@@ -24,7 +24,7 @@ type RPCClient interface {
 	// various chain-specific details such as the current difficulty from the tip
 	// of the main chain.
 	GetBlockChainInfo() (*btcjson.GetBlockChainInfoResult, error)
-	// GetBlockHash returns the hash of the block in the best block chain at the
+	// GetBlockHash returns the hash of the block in the best blockchain at the
 	// given height.
 	GetBlockHash(blockHeight int64) (*chainhash.Hash, error)
 	// GetRawTransactionVerbose returns information about a transaction given

@@ -145,7 +145,7 @@ func waitForNextDbBlockID(it BlockIterator) (isInterrupt bool, err error) {
 			isInterrupt = true
 			return
 		case <-ticker.C:
-			// if iterator state is not empty anymore crawler status
+			// if iterator state is not empty anymore
 			if !it.Empty() {
 				return
 			}

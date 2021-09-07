@@ -52,7 +52,7 @@ func isValid(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) bo
 			return false
 		}
 
-		// type must by in valid set; parameter must be set if the map has a parameter
+		// type must be in valid set; parameter must be set if the map has a parameter
 		if modelHeuristic, ok := hMap[h.Type]; !ok || (modelHeuristic.hasParameter() && len(h.Parameter) == 0) {
 			return false
 		}
@@ -161,7 +161,7 @@ func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUID str
 	for _, n := range treeNodes {
 		level := n.level
 		twoDimLength := len(levelToNode)
-		// add elements to first dimension of array if it not exist
+		// add elements to first dimension of array if it does not exist
 		if twoDimLength < level+1 {
 			for i := 0; i < level+1-twoDimLength; i++ {
 				levelToNode = append(levelToNode, []heuristicTreeElement{})
