@@ -68,16 +68,13 @@
           <v-list>
             <v-row>
               <v-col>
-                <v-list-item>
+                <v-list-item :to="{ name: txRoute,params: { id: c.txhash }}">
                   <v-list-item-content>
                     <v-list-item-title>
                       Transaction Hash
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      <router-link class="linkColor" :to="{ name: txRoute,
-                         params: { id: c.txhash }}">
-                        {{ c.txhash }}
-                      </router-link>
+                      {{ c.txhash }}
                     </v-list-item-subtitle>
                   </v-list-item-content>
                 </v-list-item>
@@ -97,29 +94,25 @@
             </v-row>
             <v-row>
               <v-col>
-                <v-list-item>
+                <v-list-item :to="{ name: blockRoute, params: { id: c.bhash }}">
                   <v-list-item-content>
                     <v-list-item-title>
                       Block Hash
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      <router-link :to="{ name: blockRoute, params: { id: c.bhash }}">
-                        {{ c.bhash }}
-                      </router-link>
+                      {{ c.bhash }}
                     </v-list-item-subtitle>
                   </v-list-item-content>
                 </v-list-item>
               </v-col>
               <v-col>
-                <v-list-item>
+                <v-list-item :to="{ name: blockRoute, params: { id: c.bid }}">
                   <v-list-item-content>
                     <v-list-item-title>
                       Block Id
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      <router-link :to="{ name: blockRoute, params: { id: c.bid }}">
-                        {{ c.bid }}
-                      </router-link>
+                      {{ c.bid }}
                     </v-list-item-subtitle>
                   </v-list-item-content>
                 </v-list-item>
@@ -135,16 +128,13 @@
               Address Sample ({{ c.cluster_addresses.length }})
             </v-expansion-panel-header>
             <v-expansion-panel-content>
-              <v-list>
+              <v-list dense>
                 <v-row>
                   <v-col v-for="(a) in c.cluster_addresses" :key="a">
-                    <v-list-item>
+                    <v-list-item :to="{ name: addressRoute, params: { id: a.addresshash }}">
                       <v-list-item-content>
                         <v-list-item-title>
-                          <router-link
-                              :to="{ name: addressRoute, params: { id: a.addresshash }}">
-                            {{ a.addresshash }}
-                          </router-link>
+                          {{ a.addresshash }}
                         </v-list-item-title>
                       </v-list-item-content>
                     </v-list-item>

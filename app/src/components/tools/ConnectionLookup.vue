@@ -121,17 +121,38 @@
           </v-toolbar-title>
         </v-toolbar>
         <v-card-text>
-          <p>Privacy type: {{ getPrivacyTypeLabel(tx.privacytype) }}</p>
-          <p class="shorten">Block Hash:
-            <router-link :to="{ name: blockRoute, params: { id: tx.bhash }}">
-              {{ tx.bhash }}
-            </router-link>
-          </p>
-          <p>Block Id:
-            <router-link :to="{ name: blockRoute, params: { id: tx.bid }}">
-              {{ tx.bid }}
-            </router-link>
-          </p>
+          <v-list>
+            <v-list-item>
+              <v-list-item-content>
+                <v-list-item-title>
+                  Privacy type
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ getPrivacyTypeLabel(tx.privacytype) }}
+                </v-list-item-subtitle>
+              </v-list-item-content>
+            </v-list-item>
+            <v-list-item :to="{ name: blockRoute, params: { id: tx.bhash }}">
+              <v-list-item-content>
+                <v-list-item-title>
+                  Block Hash
+                </v-list-item-title>
+                <v-list-item-subtitle class="shorten">
+                  {{ tx.bhash }}
+                </v-list-item-subtitle>
+              </v-list-item-content>
+            </v-list-item>
+            <v-list-item :to="{ name: blockRoute, params: { id: tx.bid }}">
+              <v-list-item-content>
+                <v-list-item-title>
+                  Block ID
+                </v-list-item-title>
+                <v-list-item-subtitle>
+                  {{ tx.bid }}
+                </v-list-item-subtitle>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list>
         </v-card-text>
       </v-card>
     </div>
