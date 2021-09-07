@@ -89,7 +89,7 @@
                           show-expand
             >
               <template v-slot:expanded-item="{ headers, item }">
-                <td :colspan="headers.length">
+                <td :colspan="headers.length" class="py-3">
                   <v-list dense>
                     <v-list-item v-for="a in item.addresses" :key="a"
                                  :to="{ name: addressRoute, params: { id: a }}">
