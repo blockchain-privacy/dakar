@@ -16,8 +16,10 @@
             Your search query did not return any results.
             Either navigate back or click below to get back to the entry page.
           </v-card-subtitle>
-          <v-card-actions v-on:click="toEntryPage">
-            <v-btn text>Entry page</v-btn>
+          <v-card-actions class="d-flex justify-end">
+            <v-btn color="primary" outlined :to="{ name: ROUTE_NAME_ENTRY_PAGE }">
+              Entry page
+            </v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
@@ -26,14 +28,14 @@
 </template>
 
 <script>
-import * as Constants from '../constants';
+import { ROUTE_NAME_ENTRY_PAGE } from '../constants';
 
 export default {
   name: 'NoResults',
-  methods: {
-    toEntryPage() {
-      this.$router.push({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
-    },
+  data() {
+    return {
+      ROUTE_NAME_ENTRY_PAGE,
+    };
   },
   mounted() {
     document.title = 'No results found';
