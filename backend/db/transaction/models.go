@@ -104,12 +104,17 @@ func (tq transactionQuery) payload() (tx Transaction, err error) {
 // FrontendOutput holds the output data which is exposed to the frontend
 type FrontendOutput struct {
 	Amount      *int64  `json:"amount"`
-	InputIndex  *uint32 `json:"inputindex"`
-	OutputIndex *uint32 `json:"outputindex"`
+	InputIndex  *uint32 `json:"inputindex,omitempty"`
+	OutputIndex *uint32 `json:"outputindex,omitempty"`
 	IsCoinbase  bool    `json:"iscoinbase"`
 	AddressHash string  `json:"addresshash"`
 	SigAsm      string  `json:"sigasm,omitempty"`
 	KeyAsm      string  `json:"keyasm,omitempty"`
+
+	// This is data from either the transaction where this output is generated or spent
+	PrivacyType    int64  `json:"privacytype,omitempty"`
+	Hash           string `json:"txhash,omitempty"`
+	BlockTimestamp string `json:"ts,omitempty"`
 }
 
 // FrontendTransaction holds the transaction data which is exposed to the frontend
@@ -119,7 +124,7 @@ type FrontendTransaction struct {
 	Fee            int64            `json:"fee"`
 	PrivacyType    int64            `json:"privacytype,omitempty"`
 	BlockID        uint64           `json:"bid"`
-	BlockTimestamp string           `json:"bts,omitempty"`
+	BlockTimestamp string           `json:"ts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
 	Inputs         []FrontendOutput `json:"inputs,omitempty"`
 }
