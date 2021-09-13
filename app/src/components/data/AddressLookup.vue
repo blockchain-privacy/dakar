@@ -335,9 +335,6 @@ export default {
         this.$store.dispatch('setAddressData', value);
       },
     },
-    isFilterEmpty() {
-      return this.filter.selected.length === 0;
-    },
   },
   mounted() {
     this.setAddressHash();
