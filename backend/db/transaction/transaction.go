@@ -197,26 +197,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 						id
 					}
 				}
-			  }
-				
-				fragment fOutputTransaction {
-					txhash:txhash
-					privacytype:privacytype
-					~transactions{
-						ts:ts
-					}
-				}
-				
-				fragment fOutput {
-					amount: amount
-					inputindex: inputindex
-					iscoinbase: iscoinbase
-					keyasm: keyasm
-					sigasm: sigasm
-					~addr_outputs{
-						addresshash: addresshash
-					}
-				}`
+			  }` + FrontendTransactionFragments
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()

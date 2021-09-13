@@ -134,3 +134,23 @@ func (f FrontendTransaction) String() string {
 		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
 		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp, len(f.Outputs), len(f.Inputs))
 }
+
+const FrontendTransactionFragments = `
+				fragment fOutputTransaction {
+					txhash:txhash
+					privacytype:privacytype
+					~transactions{
+						ts:ts
+					}
+				}
+				
+				fragment fOutput {
+					amount: amount
+					inputindex: inputindex
+					iscoinbase: iscoinbase
+					keyasm: keyasm
+					sigasm: sigasm
+					~addr_outputs{
+						addresshash: addresshash
+					}
+				}`
