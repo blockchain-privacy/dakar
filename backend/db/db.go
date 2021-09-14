@@ -60,6 +60,13 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	return db.Mutate(ctx, req)
 }
 
+// execExistingTx executes the given request
+func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
+	defer cancel()
+	return tx.Do(ctx, req)
+}
+
 // TxWithRetry executes the given request. In case the request fails repeat it
 func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api.Request) error {
 	_, err := TxWithRetryAndResponse(db, timeoutPerRequest, req)
@@ -71,6 +78,28 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execTx(db, timeoutPerRequest, req); err == nil {
+			return
+		}
+		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return
+}
+
+// ExistingTxWithRetry executes the given request. In case the request fails repeat it
+func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) error {
+	_, err := ExistingTxWithRetryAndResponse(tx, timeoutPerRequest, req)
+	return err
+}
+
+// ExistingTxWithRetryAndResponse executes the given request. In case the request fails repeat it
+func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
+	req *api.Request) (resp *api.Response, err error) {
+	for i := 0; i < maxRetries; i++ {
+		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -174,16 +203,21 @@ func GetCount(db external.Database, dbType string) (count uint64, err error) {
 	return
 }
 
+// CreateUIDEnum returns a formatted string which contains all given uids for usage with Dgraph
+// Example: 0x123,0x1a1d
+func CreateUIDEnum(uids []string) string {
+	var uidEnum string
+	for i, uid := range uids {
+		uidEnum += uid
+		if i+1 < len(uids) {
+			uidEnum += ","
+		}
+	}
+	return uidEnum
+}
+
 // CreateUIDList returns a formatted string which contains all given uids for usage with Dgraph
 // Example: [0x123,0x1a1d]
 func CreateUIDList(uids []string) string {
-	uidList := "["
-	for i, uid := range uids {
-		uidList += uid
-		if i+1 < len(uids) {
-			uidList += ","
-		}
-	}
-	uidList += "]"
-	return uidList
+	return "[" + CreateUIDEnum(uids) + "]"
 }

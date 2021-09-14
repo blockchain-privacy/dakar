@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
+	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
 	dbstat "backend/db/status"
@@ -220,9 +221,15 @@ type connectionLookupReply struct {
 	TransactionCount *int                       `json:"count,omitempty"`
 }
 
-type clusterLookupReply struct {
+type graphClusterLookupReply struct {
 	Success   bool     `json:"success"`
 	Warning   bool     `json:"warning,omitempty"`
 	Msg       string   `json:"msg,omitempty"`
 	Addresses []string `json:"addresses"`
+}
+
+type clusterLookupReply struct {
+	Success  bool                         `json:"success"`
+	Msg      string                       `json:"msg,omitempty"`
+	Clusters []clustering.FrontendCluster `json:"clusters"`
 }

@@ -25,6 +25,7 @@ const (
 	routeModifyUser           string = "modifyUser"
 	routeShortestTxPath       string = "shortestTransactionPath"
 	routeConnectionLookup     string = "connectionLookup"
+	routeGraphClusterLookup   string = "graphClusterLookup"
 	routeClusterLookup        string = "clusterLookup"
 	routeMetrics              string = "/metrics"
 )
@@ -146,6 +147,11 @@ func GetRouteConnectionLookup() string {
 // GetRouteClusterLookup returns a route
 func GetRouteClusterLookup() string {
 	return getRoute(routeClusterLookup)
+}
+
+// GetRouteGraphClusterLookup returns a route
+func GetRouteGraphClusterLookup() string {
+	return getRoute(routeGraphClusterLookup)
 }
 
 // GetRouteMetrics returns a route

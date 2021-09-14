@@ -64,8 +64,8 @@ func initAllLoggers() {
 func getCLIArgs() (cliArgs cli.Arguments, err error) {
 	cliArgs, err = cli.BuildArgs(cli.ResetDB, cli.RPCUser, cli.RPCPassword, cli.IsPrintStatus, cli.RPCHost,
 		cli.RPCPort, cli.Logfile, cli.IgnoreSafeguard, cli.DisableHTTPServer, cli.DisableHeuristics,
-		cli.DisableCrawler, cli.DisableClassifier, cli.DisableClustering, cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC,
-		cli.Dash, cli.Doge)
+		cli.DisableCrawler, cli.DisableClassifier, cli.DisableHMIClustering, cli.DisableFMIClustering,
+		cli.HTTPServerPort, cli.DBPort, cli.DBHost, cli.BTC, cli.Dash, cli.Doge)
 
 	if err != nil {
 		flag.PrintDefaults()
@@ -236,9 +236,14 @@ func main() {
 		cliArgs.DisableClassifier = true
 	}
 
-	// disable clustering if it is disabled per configuration
-	if !analyserConfig.IsClusteringEnabled {
-		cliArgs.DisableClustering = true
+	// disable HMI clustering if it is disabled per configuration
+	if !analyserConfig.IsHMIClusteringEnabled {
+		cliArgs.DisableHMIClustering = true
+	}
+
+	// disable FMI clustering if it is disabled per configuration
+	if !analyserConfig.IsFMIClusteringEnabled {
+		cliArgs.DisableFMIClustering = true
 	}
 
 	info(processorConfig.BlockchainName, "mode")
@@ -330,7 +335,8 @@ func main() {
 	}
 
 	if cliArgs.DisableClassifier && cliArgs.DisableCrawler &&
-		cliArgs.DisableClustering && cliArgs.DisableHTTPServer {
+		cliArgs.DisableHMIClustering && cliArgs.DisableFMIClustering &&
+		cliArgs.DisableHTTPServer {
 		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
@@ -411,7 +417,8 @@ func main() {
 	// channels which are set to true as soon as the associated goroutine stops
 	chCrawlingStopped := make(chan bool, 1)
 	chClassifyingStopped := make(chan bool, 1)
-	chClusteringStopped := make(chan bool, 1)
+	chHMIClusteringStopped := make(chan bool, 1)
+	chFMIClusteringStopped := make(chan bool, 1)
 
 	// the wait group which handles the modules of the crawler
 	var wg sync.WaitGroup
@@ -491,16 +498,32 @@ func main() {
 		}()
 	}
 
-	// activate clustering
-	if !cliArgs.DisableClustering {
+	// activate HMI clustering
+	if !cliArgs.DisableHMIClustering {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			defer func() {
-				chClusteringStopped <- true
+				chHMIClusteringStopped <- true
 			}()
 
-			if clusteringErr := blockiterator.StartIteration(clustering.NewMultiInput(
+			if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
+				appContext, graphDB)); clusteringErr != nil {
+				info(clusteringErr)
+			}
+		}()
+	}
+
+	// activate FMI clustering
+	if !cliArgs.DisableFMIClustering {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				chFMIClusteringStopped <- true
+			}()
+
+			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
 				appContext, graphDB)); clusteringErr != nil {
 				info(clusteringErr)
 			}
@@ -516,10 +539,11 @@ func main() {
 
 	var crawlerStopped = cliArgs.DisableCrawler
 	var classifierStopped = cliArgs.DisableClassifier
-	var clusteringStopped = cliArgs.DisableClustering
+	var clusteringHMIStopped = cliArgs.DisableHMIClustering
+	var clusteringFMIStopped = cliArgs.DisableFMIClustering
 	var interrupted bool
 
-	for !(interrupted || (crawlerStopped && classifierStopped && clusteringStopped)) {
+	for !(interrupted || (crawlerStopped && classifierStopped && clusteringHMIStopped)) {
 		select {
 		case <-chSignal:
 			interrupted = true
@@ -531,13 +555,16 @@ func main() {
 		case <-chClassifyingStopped:
 			terminateApp()
 			classifierStopped = true
-		case <-chClusteringStopped:
+		case <-chHMIClusteringStopped:
 			terminateApp()
-			clusteringStopped = true
+			clusteringHMIStopped = true
+		case <-chFMIClusteringStopped:
+			terminateApp()
+			clusteringFMIStopped = true
 		}
 	}
 
-	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped && clusteringStopped {
+	if !cliArgs.DisableHTTPServer && crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped {
 		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point
 

@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import ClusterLookup from '../components/tools/ClusterLookup.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
 import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
@@ -153,6 +154,11 @@ export default new Router({
           path: 'connectionLookup',
           name: Constants.ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
           component: ConnectionLookup,
+        },
+        {
+          path: 'clusterLookup',
+          name: Constants.ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+          component: ClusterLookup,
         },
       ],
     },

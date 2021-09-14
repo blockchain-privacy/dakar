@@ -5,13 +5,17 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-	"errors"
-	"github.com/dgraph-io/dgo/v210/protos/api"
 
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
+
+	"github.com/dgraph-io/dgo/v210"
+	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
 // GetInputAddressesByBlock gets all input addresses per transaction by block id.
@@ -94,26 +98,26 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 }
 
 // AddClusters adds the given clusters to the database
-func AddClusters(c external.Database, clusters []Cluster) (map[string]string, error) {
+func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
-			return nil, errors.New("cluster type is not set")
+			return errors.New("cluster type is not set")
 		}
 
-		if cluster.Transaction.Uid == "" {
-			return nil, errors.New("cluster transaction is not set")
+		if checkTx && cluster.Transaction.Uid == "" {
+			return errors.New("cluster transaction is not set")
 		}
 
 		if len(cluster.Addresses) == 0 && len(cluster.Children) == 0 {
-			return nil, errors.New("cluster has no child clusters and no addresses set")
+			return errors.New("cluster has no child clusters and no addresses set")
 		}
 	}
 
 	pb, err := json.Marshal(clusters)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return nil, err
+		return err
 	}
 
 	req := &api.Request{
@@ -122,18 +126,111 @@ func AddClusters(c external.Database, clusters []Cluster) (map[string]string, er
 		}},
 		CommitNow: true,
 	}
-	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return resp.GetUids(), err
+	return err
 }
 
-func GetMultiInputClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
+type DBOperation struct {
+	NewCluster  Cluster
+	OldClusters []string
+}
+
+// ProcessClusterOperations performs the given operations
+func ProcessClusterOperations(c external.Database, operations []DBOperation) error {
+	txn := c.NewTxn()
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*5)
+	defer func(txn *dgo.Txn, ctx context.Context) {
+		err := txn.Discard(ctx)
+		if err != nil {
+			log.Println("error while discarding transaction:", err)
+		}
+	}(txn, ctx)
+	defer cancelFunc()
+
+	// step 1: set new clusters and add new addresses to existing clusters
+	var clusters []Cluster
+	for _, o := range operations {
+		clusters = append(clusters, o.NewCluster)
+	}
+
+	pb, err := json.Marshal(clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	// step 2: get all addresses of clusters which will be deleted and add them to the clusters from step 1
+
+	// build query and create nquads
+	var setNquads string
+	var delNquads string
+	query := "{\n"
+	for i, o := range operations {
+		if len(o.OldClusters) == 0 {
+			continue
+		}
+		index := strconv.Itoa(i)
+		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as cluster_addresses}\n"
+		setNquads += "<" + o.NewCluster.Uid + "> <cluster_addresses> uid(a" + index + ") .\n"
+
+		for _, oc := range o.OldClusters {
+			delNquads += "<" + oc + "> * * .\n"
+		}
+	}
+	query += "}"
+
+	existClusterMerges := setNquads != ""
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: !existClusterMerges,
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	if !existClusterMerges {
+		return nil
+	}
+
+	req = &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			SetNquads: []byte(setNquads),
+		}},
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// step 3: delete all merged clusters
+	req = &api.Request{
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(delNquads),
+		}},
+		CommitNow: true,
+	}
+	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
+// GetHierarchicalClusterRoot returns the root of the cluster tree clusterUID is part of
+func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
 	const query = `query Q($uid:string) {
 				var(func: uid($uid))@recurse{
-					c as ~cluster_children@filter(eq(cluster_type,` + string(TypeMultiInput) + `))
+					c as ~cluster_children
 				}
 				
 				q(func: uid(c))@filter(eq(count(~cluster_children),0)){
@@ -162,5 +259,112 @@ func GetMultiInputClusterRoot(c external.Database, clusterUID string) (rootClust
 	}
 
 	rootCluster = r.Root[0]
+	return
+}
+
+const clusterQuery = `q(func: uid(c)){
+						cluster_type
+						cluster_address_count
+						cluster_transaction@normalize{
+							txhash:txhash
+							~transactions{
+								bhash:blockhash
+								bid:id
+								ts:ts
+							}
+						}
+						cluster_addresses(first:30){
+							addresshash
+						}
+					  }`
+
+// GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
+func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
+	const query = string(`query Q($addressHash:string) {
+				var(func:eq(addresshash,$addressHash)){
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+				}
+				` + clusterQuery + "}")
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []FrontendClusterRequest `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		if len(cluster.Transaction) != 1 {
+			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			return
+		}
+		clusters = append(clusters, FrontendCluster{
+			Type:            cluster.Type,
+			AddressCount:    cluster.AddressCount,
+			TransactionHash: cluster.Transaction[0].TransactionHash,
+			BlockID:         cluster.Transaction[0].BlockID,
+			BlockHash:       cluster.Transaction[0].BlockHash,
+			Timestamp:       cluster.Transaction[0].Timestamp,
+			Addresses:       cluster.Addresses,
+		})
+
+	}
+
+	return
+}
+
+// GetCommonClusters returns cluster information for all clusters (except hmi clusters)
+// shared by addressHash1 and addressHash2
+func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string) (clusters []FrontendCluster,
+	err error) {
+	const query = string(`query Q($a1:string,$a2:string) {
+				var(func:eq(addresshash,$a1)){
+					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+				}
+
+				var(func:eq(addresshash,$a2)){
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `) and uid(c1))
+				}
+				` + clusterQuery + "}")
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$a1": addressHash1, "$a2": addressHash2})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []FrontendClusterRequest `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		if len(cluster.Transaction) != 1 {
+			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			return
+		}
+		clusters = append(clusters, FrontendCluster{
+			Type:            cluster.Type,
+			AddressCount:    cluster.AddressCount,
+			TransactionHash: cluster.Transaction[0].TransactionHash,
+			BlockID:         cluster.Transaction[0].BlockID,
+			BlockHash:       cluster.Transaction[0].BlockHash,
+			Timestamp:       cluster.Transaction[0].Timestamp,
+			Addresses:       cluster.Addresses,
+		})
+
+	}
+
 	return
 }

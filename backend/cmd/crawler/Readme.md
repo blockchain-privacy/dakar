@@ -46,7 +46,8 @@ The crawler exposes prometheus metrics via `\metrics`.
 | logfile | < empty string > | Specify log file (default: none) |
 | disableserver | false | Disable the http server (default: false) |
 | disablecrawler | false | Disable the crawler (default: false) |
-| disableheuristics | false | Disable the heuristic worker (default: false) |
+| disablehmiclustering | false | Disable hierarchical multi-input clustering (default: false) |
+| disablefmiclustering | false | Disable flat multi-input clustering (default: false) |
 | disableclassifier | false | Disable the classifier (default: false) |
 | disableclustering | false | Disable clustering (default: false) |
 | serverport | 8081 | Http server port (default: 8081) |

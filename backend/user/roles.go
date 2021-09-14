@@ -55,6 +55,8 @@ var (
 		// analytics
 		constants.GetRouteShortestTransactionPath(): true,
 		constants.GetRouteConnectionLookup():        true,
+		// clusters
+		constants.GetRouteClusterLookup(): true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")

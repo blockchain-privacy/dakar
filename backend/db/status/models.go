@@ -13,8 +13,11 @@ const CrawlerStatusDType = "CrawlerStatus"
 // ClassifierStatusDType is the dgraph database type for the ClassifierStatus type
 const ClassifierStatusDType = "ClassifierStatus"
 
-// ClusteringMultiInputDType is the dgraph database type for the ClusteringMultiInput type
-const ClusteringMultiInputDType = "CMultiInputStatus"
+// ClusteringHierarchicalMultiInputDType is the dgraph database type for the CHMIStatus type
+const ClusteringHierarchicalMultiInputDType = "CHMIStatus"
+
+// ClusteringFlatMultiInputDType is the dgraph database type for the CFMIStatus type
+const ClusteringFlatMultiInputDType = "CFMIStatus"
 
 // CrawlerStatus is the database representation of the crawler status
 type CrawlerStatus struct {
@@ -86,8 +89,8 @@ func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }
 
-// ClusteringMultiInputStatus is the database representation of the multi-input clustering status
-type ClusteringMultiInputStatus struct {
+// ClusteringHierarchicalMultiInputStatus is the database representation of the hierarchical multi-input clustering status
+type ClusteringHierarchicalMultiInputStatus struct {
 	UID string `json:"uid,omitempty"`
 
 	// IsClustering is true if a multi-input clustering process is currently active
@@ -98,7 +101,7 @@ type ClusteringMultiInputStatus struct {
 	DType                []string `json:"dgraph.type,omitempty"`
 }
 
-func (c *ClusteringMultiInputStatus) String() string {
+func (c *ClusteringHierarchicalMultiInputStatus) String() string {
 	output := fmt.Sprintf("UID: %s", c.UID)
 
 	if c.IsClustering != nil {
@@ -113,26 +116,59 @@ func (c *ClusteringMultiInputStatus) String() string {
 }
 
 // SetDType sets the DType for dgraph type recognition
-func (c *ClusteringMultiInputStatus) SetDType() {
-	c.DType = []string{ClusteringMultiInputDType}
+func (c *ClusteringHierarchicalMultiInputStatus) SetDType() {
+	c.DType = []string{ClusteringHierarchicalMultiInputDType}
+}
+
+// ClusteringFlatMultiInputStatus is the database representation of the flat multi-input clustering status
+type ClusteringFlatMultiInputStatus struct {
+	UID string `json:"uid,omitempty"`
+
+	// IsClustering is true if a multi-input clustering process is currently active
+	IsClustering *bool `json:"isclustering,omitempty"`
+
+	// LastClusteredBlockID is the id of the last completely multi-input clustered block
+	LastClusteredBlockID *uint64  `json:"lastclusteredid,omitempty"`
+	DType                []string `json:"dgraph.type,omitempty"`
+}
+
+func (c *ClusteringFlatMultiInputStatus) String() string {
+	output := fmt.Sprintf("UID: %s", c.UID)
+
+	if c.IsClustering != nil {
+		output += fmt.Sprintf(", IsClustering: %t", *c.IsClustering)
+	}
+
+	if c.LastClusteredBlockID != nil {
+		output += fmt.Sprintf(", LastClusteredBlockID: %d", *c.LastClusteredBlockID)
+	}
+
+	return output
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (c *ClusteringFlatMultiInputStatus) SetDType() {
+	c.DType = []string{ClusteringFlatMultiInputDType}
 }
 
 // FrontendStatus is the frontend representation of the crawler status
 type FrontendStatus struct {
-	IsCrawling                     bool   `json:"iscrawling"`
-	IsClassifying                  bool   `json:"isclassifying"`
-	IsClusteringMultiInput         bool   `json:"isclusteringmultiinput"`
-	LastBlockID                    uint64 `json:"lastblockid"`
-	LowestBlockID                  uint64 `json:"lowestblockid"`
-	LastClassifiedBlockID          uint64 `json:"lastclassifiedid"`
-	LastClusteredMultiInputBlockID uint64 `json:"lastclusteredmultiinputid"`
+	IsCrawling              bool   `json:"iscrawling"`
+	IsClassifying           bool   `json:"isclassifying"`
+	IsClusteringHMI         bool   `json:"isclusteringhmi"`
+	IsClusteringFMI         bool   `json:"isclusteringfmi"`
+	LastBlockID             uint64 `json:"lastblockid"`
+	LowestBlockID           uint64 `json:"lowestblockid"`
+	LastClassifiedBlockID   uint64 `json:"lastclassifiedid"`
+	LastClusteredHMIBlockID uint64 `json:"lastclusteredhmiid"`
+	LastClusteredFMIBlockID uint64 `json:"lastclusteredfmiid"`
 }
 
 func (v FrontendStatus) String() string {
-	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, IsClusteringMultiInput: %t, LastBlockID: %d, "+
-		"LastClassifiedBlockID: %d, LastClusteredMultiInputBlockID: %d",
-		v.IsCrawling, v.IsClassifying, v.IsClusteringMultiInput, v.LastBlockID, v.LastClassifiedBlockID,
-		v.LastClusteredMultiInputBlockID)
+	return fmt.Sprintf("IsCrawling: %t, IsClassifying: %t, IsClusteringHMI: %t, IsClusteringFMI: %t, "+
+		"LastBlockID: %d, LastClassifiedBlockID: %d, LastClusteredHMIBlockID: %d, LastClusteredFMIBlockID: %d",
+		v.IsCrawling, v.IsClassifying, v.IsClusteringHMI, v.IsClusteringFMI, v.LastBlockID, v.LastClassifiedBlockID,
+		v.LastClusteredHMIBlockID, v.LastClusteredFMIBlockID)
 }
 
 var (
@@ -190,11 +226,32 @@ func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	return
 }
 
-type clusteringMultiInputStatusQuery struct {
-	Q []ClusteringMultiInputStatus `json:"q"`
+type clusteringHMIStatusQuery struct {
+	Q []ClusteringHierarchicalMultiInputStatus `json:"q"`
 }
 
-func (a clusteringMultiInputStatusQuery) payload() (status ClusteringMultiInputStatus, err error) {
+func (a clusteringHMIStatusQuery) payload() (status ClusteringHierarchicalMultiInputStatus, err error) {
+	lenQ := len(a.Q)
+
+	if lenQ == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		return
+	}
+
+	status = a.Q[0]
+	return
+}
+
+type clusteringFMIStatusQuery struct {
+	Q []ClusteringFlatMultiInputStatus `json:"q"`
+}
+
+func (a clusteringFMIStatusQuery) payload() (status ClusteringFlatMultiInputStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {

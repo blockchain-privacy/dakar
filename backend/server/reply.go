@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db/address"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
@@ -573,8 +574,8 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	return
 }
 
-// getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, worker *heuristic.Worker, urlPath string) (reply clusterLookupReply) {
+// getGraphClusterLookupReply returns the result of a graph cluster lookup
+func getGraphClusterLookupReply(dgraph external.Database, worker *heuristic.Worker, urlPath string) (reply graphClusterLookupReply) {
 	if !worker.IsReady() {
 		reply.Msg = "Worker is not ready to receive cluster lookups. Please try again later."
 		reply.Warning = true
@@ -607,6 +608,58 @@ func getClusterLookupReply(dgraph external.Database, worker *heuristic.Worker, u
 	}
 
 	reply.Addresses = addressHashes
+	reply.Success = true
+
+	return
+}
+
+// getClusterLookupReply returns the result of a cluster lookup
+func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+	// parse request
+	var req clustering.ClusterLookupRequest
+	if err := json.NewDecoder(body).Decode(&req); err != nil {
+		reply.Msg = "could not decode request data"
+		return
+	}
+
+	if req.AddressHash1 == "" {
+		reply.Msg = "provide at least the first address hash"
+		return
+	}
+
+	if !isValid(req.AddressHash1) {
+		reply.Msg = "first address hash was not valid"
+		return
+	}
+
+	if req.AddressHash2 == "" {
+		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1)
+		if err != nil {
+			reply.Msg = "error while searching for clusters"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+		reply.Clusters = clusters
+	} else {
+		if !isValid(req.AddressHash2) {
+			reply.Msg = "second address hash was not valid"
+			return
+		}
+
+		if req.AddressHash1 == req.AddressHash2 {
+			reply.Msg = "address hashes are identical"
+			return
+		}
+
+		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2)
+		if err != nil {
+			reply.Msg = "error while searching for clusters"
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+		reply.Clusters = clusters
+	}
+
 	reply.Success = true
 
 	return

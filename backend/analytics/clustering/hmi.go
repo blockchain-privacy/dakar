@@ -9,28 +9,17 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
-	"strconv"
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"log"
+	"strconv"
 )
 
-// MultiInput implements BlockIterator which creates cluster via the multi-input heuristic
-type MultiInput struct {
+// HierarchicalMultiInput implements BlockIterator which creates clusters via the multi-input heuristic
+type HierarchicalMultiInput struct {
 	db    external.Database
 	ctx   context.Context
 	state blockiterator.State
-
-	clusterIndex int
-	// maps localCluster uids to db cluster UIDs
-	localToDB map[string]string
-	// addressToClusterRoot maps an address UID to newly created cluster_id ("_:<cluster-id>") or a root cluster.
-	// This is needed to create cluster relations between new clusters in the same block.
-	addressToClusterRoot map[string]string
-
-	childClusterToClusterRoot map[string]string
 
 	blocks         prometheus.Counter
 	transactions   prometheus.Counter
@@ -39,46 +28,41 @@ type MultiInput struct {
 	blockHeight    prometheus.Gauge
 }
 
-// NewMultiInput creates a new Classifier object
-func NewMultiInput(ctx context.Context, dgraph external.Database) *MultiInput {
-	return &MultiInput{
+// NewHierarchicalMultiInput creates a new hierarchical multi-input clustering object
+func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *HierarchicalMultiInput {
+	return &HierarchicalMultiInput{
 		db:  dgraph,
 		ctx: ctx,
-
-		localToDB:                 make(map[string]string),
-		addressToClusterRoot:      make(map[string]string),
-		childClusterToClusterRoot: make(map[string]string),
-
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_blocks_processed_total",
-			Help: "The total number of blocks processed by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_blocks_processed_total",
+			Help: "The total number of blocks processed by the HMI clustering process",
 		}),
 		transactions: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_transactions_processed_total",
-			Help: "The total number of transactions processed by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_transactions_processed_total",
+			Help: "The total number of transactions processed by the HMI clustering process",
 		}),
 		mergedClusters: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_clusters_merged_total",
-			Help: "The total number of clusters merged by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_clusters_merged_total",
+			Help: "The total number of clusters merged by the HMI clustering process",
 		}),
 		newAddresses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_clustering_multi_input_new_addresses_total",
-			Help: "The total number of new addresses added to clusters by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_new_addresses_total",
+			Help: "The total number of new addresses added to clusters by the HMI clustering process",
 		}),
 		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
-			Name: "dakar_clustering_multi_input_last_block",
-			Help: "The last processed block by the multi-input clustering process",
+			Name: "dakar_clustering_hmi_last_block",
+			Help: "The last processed block by the HMI clustering process",
 		}),
 	}
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
-func (m *MultiInput) CalculateInitialState() error {
-	if err := dbstat.SetClusteringMultiInput(m.db, true); err != nil {
+func (m *HierarchicalMultiInput) CalculateInitialState() error {
+	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	if err := setInitialClusteringID(m.db); err != nil {
+	if err := setInitialHMIClusteringID(m.db); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -87,13 +71,13 @@ func (m *MultiInput) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	clusteringStatus, err := dbstat.GetClusteringMultiInputStatus(m.db)
+	clusteringStatus, err := dbstat.GetClusteringHMIStatus(m.db)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return errors.New("error last multi-input clustered block is not set")
+		return errors.New("error last HMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -117,34 +101,38 @@ func (m *MultiInput) CalculateInitialState() error {
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
-func (m *MultiInput) Iterate() (bool, error) {
+func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
 		return false, errors.New("got empty state")
 	}
 
 	// get the transaction of the current block height
-	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeMultiInput)
+	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	countRootClusterLookup := 0
-	var durationRootClusterLookup time.Duration
-
 	var countMergedClusters int
 	var countNewAddresses int
 
+	// addressToClusterRoot maps an address UID to newly created cluster_id ("_:<cluster-id>") or a root cluster.
+	// This is needed to create cluster relations between new clusters in the same block.
+	addressToClusterRoot := make(map[string]string)
+
+	childClusterToClusterRoot := make(map[string]string)
+
 	if len(transactions) > 0 {
+		var clusterIndex int
 		var newClusters []clustering.Cluster
 		clusterMap := make(map[string]clustering.Cluster)
 		for _, tx := range transactions {
-			addressesWithoutCluster := make(map[string]bool)
-			existingClusters := make(map[string]bool)
-
 			// at least two addresses are needed to cluster
 			if len(tx.Addresses) < 2 {
 				continue
 			}
+
+			addressesWithoutCluster := make(map[string]bool)
+			existingClusters := make(map[string]bool)
 
 			for _, addr := range tx.Addresses {
 				if len(addr.Clusters) > 0 {
@@ -160,40 +148,37 @@ func (m *MultiInput) Iterate() (bool, error) {
 					}
 
 					if transactionCluster.Parents == nil {
-						if localRoot := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, transactionCluster.Uid); localRoot != "" {
+						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.Uid); localRoot != "" {
 							// this happens if db-root cluster was found for which a new (local) cluster exists
-							m.childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							childClusterToClusterRoot[transactionCluster.Uid] = localRoot
 							existingClusters[localRoot] = true
 						} else {
 							existingClusters[transactionCluster.Uid] = true
 						}
-					} else if r := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, transactionCluster.Uid); r != "" {
+					} else if r := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.Uid); r != "" {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						countRootClusterLookup++
-						now := time.Now()
-						root, dbErr := clustering.GetMultiInputClusterRoot(m.db, transactionCluster.Uid)
+						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.Uid)
 						if dbErr != nil {
-							return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
+							return false, fmt.Errorf("%s - block %d cluster uid %s: %w", cliutil.ShowCallInfo(), m.state.ID, transactionCluster.Uid, dbErr)
 						}
-						durationRootClusterLookup += time.Since(now)
 
 						clusterMap[root.Uid] = clustering.Cluster{
 							Uid:          root.Uid,
 							AddressCount: &root.AddressCount,
 						}
 
-						if localRoot := getClusterRootByCluster(m.childClusterToClusterRoot, m.localToDB, root.Uid); localRoot != "" {
+						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, root.Uid); localRoot != "" {
 							// this happens if db-root cluster was found for which a new (local) cluster exists
-							m.childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							childClusterToClusterRoot[transactionCluster.Uid] = localRoot
 							existingClusters[localRoot] = true
 						} else {
-							m.childClusterToClusterRoot[transactionCluster.Uid] = root.Uid
+							childClusterToClusterRoot[transactionCluster.Uid] = root.Uid
 							existingClusters[root.Uid] = true
 						}
 					}
-				} else if r := getClusterRootByCluster(m.addressToClusterRoot, m.localToDB, addr.Uid); r != "" {
+				} else if r := getClusterRootByCluster(addressToClusterRoot, addr.Uid); r != "" {
 					// this is the case if the address has no cluster attached (db-state) but a local (not upserted) cluster was created
 					existingClusters[r] = true
 				} else {
@@ -215,8 +200,8 @@ func (m *MultiInput) Iterate() (bool, error) {
 			}
 
 			// create new cluster
-			m.clusterIndex++
-			cluster := clustering.NewMultiInputCluster(m.clusterIndex, tx.Uid)
+			clusterIndex++
+			cluster := clustering.NewHMICluster(clusterIndex, tx.Uid)
 
 			var addressCount int
 
@@ -232,7 +217,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 
 			// set the new cluster root for all addresses in the transaction
 			for _, addr := range tx.Addresses {
-				m.addressToClusterRoot[addr.Uid] = cluster.Uid
+				addressToClusterRoot[addr.Uid] = cluster.Uid
 			}
 
 			// add child clusters
@@ -243,14 +228,14 @@ func (m *MultiInput) Iterate() (bool, error) {
 					addressCount += *existingCluster.AddressCount
 				}
 
-				m.childClusterToClusterRoot[c] = cluster.Uid
+				childClusterToClusterRoot[c] = cluster.Uid
 				// the local cluster to cluster mapping has to be added to the address map so cluster connections can be followed
-				m.addressToClusterRoot[c] = cluster.Uid
+				addressToClusterRoot[c] = cluster.Uid
 			}
 
 			for _, addr := range tx.Addresses {
 				if addr.Clusters != nil {
-					m.childClusterToClusterRoot[addr.Clusters[0].Uid] = cluster.Uid
+					childClusterToClusterRoot[addr.Clusters[0].Uid] = cluster.Uid
 				}
 			}
 
@@ -263,15 +248,12 @@ func (m *MultiInput) Iterate() (bool, error) {
 		// insert new clusters
 		if len(newClusters) > 0 {
 			if validationErr := validateClusters(newClusters); validationErr != nil {
-				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), validationErr)
-			}
-			newUIDs, clusterErr := clustering.AddClusters(m.db, newClusters)
-			if clusterErr != nil {
-				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
+				return false, fmt.Errorf("%s block id: %d: %w", cliutil.ShowCallInfo(), m.state.ID, validationErr)
 			}
 
-			for k, v := range newUIDs {
-				m.localToDB[k] = v
+			clusterErr := clustering.AddClusters(m.db, newClusters, true)
+			if clusterErr != nil {
+				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
 			}
 		}
 
@@ -279,17 +261,10 @@ func (m *MultiInput) Iterate() (bool, error) {
 		m.mergedClusters.Add(float64(countMergedClusters))
 		m.newAddresses.Add(float64(countNewAddresses))
 		m.transactions.Add(float64(len(transactions)))
-
-		if countRootClusterLookup > 0 {
-			log.Println("number of root lookups:", countRootClusterLookup)
-			log.Println("number of root lookups per transaction:", countRootClusterLookup/len(transactions))
-			log.Println("acc. duration of root lookups:", durationRootClusterLookup)
-			log.Println("avg. duration of root lookup:", durationRootClusterLookup/time.Duration(countRootClusterLookup))
-		}
 	}
 
 	// set the last classified block
-	if statusErr := dbstat.SetLastClusteredBlockID(m.db, m.state.ID); statusErr != nil {
+	if statusErr := dbstat.SetLastClusteredHMIBlockID(m.db, m.state.ID); statusErr != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
 	}
 
@@ -300,7 +275,7 @@ func (m *MultiInput) Iterate() (bool, error) {
 }
 
 // NextBlock tries to increase the internal state to the next block
-func (m *MultiInput) NextBlock() (bool, error) {
+func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -316,54 +291,54 @@ func (m *MultiInput) NextBlock() (bool, error) {
 	return false, nil
 }
 
-func (m *MultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringMultiInput(m.db, false); err != nil {
+func (m *HierarchicalMultiInput) PostExecution() error {
+	if err := dbstat.SetClusteringHMI(m.db, false); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return nil
 }
 
-func (m *MultiInput) IncrementState() error {
+func (m *HierarchicalMultiInput) IncrementState() error {
 	m.state.ID++
 	return nil
 }
 
 // Empty checks if there are more blocks above the current one
-func (m *MultiInput) Empty() bool {
+func (m *HierarchicalMultiInput) Empty() bool {
 	return m.state.ID > m.state.Top
 }
 
 // CurrentBlock returns the height of the block which is getting clustered
-func (m *MultiInput) CurrentBlock() uint64 {
+func (m *HierarchicalMultiInput) CurrentBlock() uint64 {
 	return m.state.ID
 }
 
 // Logger returns the Logger
-func (m *MultiInput) Logger() *log.Logger {
+func (m *HierarchicalMultiInput) Logger() *log.Logger {
 	return clusteringLogger
 }
 
 // Context returns the context
-func (m *MultiInput) Context() context.Context {
+func (m *HierarchicalMultiInput) Context() context.Context {
 	return m.ctx
 }
 
 // Name returns the name
-func (m *MultiInput) Name() string {
-	return "Multi-Input Clustering"
+func (m *HierarchicalMultiInput) Name() string {
+	return "Hierarchical Multi-Input Clustering"
 }
 
-// setInitialClusteringID sets the starting clustering block id to 0 if no value has been set yet
-func setInitialClusteringID(dgraph external.Database) (err error) {
-	status, err := dbstat.GetClusteringMultiInputStatus(dgraph)
+// setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet
+func setInitialHMIClusteringID(dgraph external.Database) (err error) {
+	status, err := dbstat.GetClusteringHMIStatus(dgraph)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	if status.LastClusteredBlockID == nil {
-		if err = dbstat.SetLastClusteredBlockID(dgraph, 0); err != nil {
+		if err = dbstat.SetLastClusteredHMIBlockID(dgraph, 0); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -373,7 +348,7 @@ func setInitialClusteringID(dgraph external.Database) (err error) {
 
 // getClusterRootByCluster returns the rootUID of UID. This is done by following the
 // relations given in clusterMapping. If an empty string is returned no rootUID exists.
-func getClusterRootByCluster(clusterMapping map[string]string, localToDb map[string]string, UID string) string {
+func getClusterRootByCluster(clusterMapping map[string]string, UID string) string {
 	if len(clusterMapping) == 0 {
 		return ""
 	}
@@ -390,13 +365,6 @@ func getClusterRootByCluster(clusterMapping map[string]string, localToDb map[str
 		}
 	}
 
-	if len(rootUID) > 3 && rootUID[:3] == "_:c" {
-		var ok bool
-		if tmpUID, ok = localToDb[rootUID]; ok {
-			rootUID = tmpUID
-		}
-	}
-
 	// add relation if multi hop was performed to get better performance in subsequent queries
 	if hops > 1 {
 		clusterMapping[UID] = rootUID
@@ -410,6 +378,10 @@ func validateClusters(clusters []clustering.Cluster) error {
 	clusterUIDs := make(map[string]bool)
 	addressUIDs := make(map[string]bool)
 	for _, cluster := range clusters {
+		if len(cluster.Children) == 0 && len(cluster.Addresses) == 0 {
+			return fmt.Errorf("cluster %s has no addresses and no children", cluster.Uid)
+		}
+
 		for _, child := range cluster.Children {
 			if clusterUIDs[child.Uid] {
 				return fmt.Errorf("cluster %s has multiple parents", child.Uid)

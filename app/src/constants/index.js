@@ -24,6 +24,7 @@ export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
 export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
 export const ROUTE_CONNECTION_LOOKUP = `${routePrefix}connectionLookup/`;
+export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
@@ -47,6 +48,7 @@ export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
 export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
 export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
+export const ROUTE_NAME_CLUSTER_LOOKUP_PAGE = 'Cluster Lookup Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';

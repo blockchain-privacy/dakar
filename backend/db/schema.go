@@ -116,7 +116,14 @@ func SetupSchema(c external.Database) error {
 				lastclassifiedid
 			}
 
-			type CMultiInputStatus {
+			# Clustering Hierarchical Multi Input Status
+			type CHMIStatus {
+				isclustering
+				lastclusteredid
+			}
+
+			# Clustering Flat Multi Input Status
+			type CFMIStatus {
 				isclustering
 				lastclusteredid
 			}
@@ -256,6 +263,14 @@ func DropTypeAnalyzerStatus(c external.Database) error {
 	})
 }
 
+// DropTypeOldClusterStatusStatus removes the old cluster status type
+func DropTypeOldClusterStatusStatus(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropOp:    api.Operation_TYPE,
+		DropValue: "CMultiInputStatus",
+	})
+}
+
 // AlterSchemaSetTransactionType adds the privacytype predicate to the transaction type
 func AlterSchemaSetTransactionType(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
@@ -288,14 +303,31 @@ func AlterSchemaAddHeuristicResult(c external.Database) error {
 	})
 }
 
-// AlterSchemaAddMultiInputClusteringStatus adds the new multi-input clustering status field
-func AlterSchemaAddMultiInputClusteringStatus(c external.Database) error {
+// AlterSchemaAddHierarchicalMultiInputClusteringStatus adds the new multi-input clustering status field
+func AlterSchemaAddHierarchicalMultiInputClusteringStatus(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			isclustering: bool .
 			lastclusteredid: int .
 
-			type CMultiInputStatus {
+			# Clustering Hierarchical Multi Input Status
+			type CHMIStatus {
+				isclustering
+				lastclusteredid
+			}
+		`,
+	})
+}
+
+// AlterSchemaAddFlatMultiInputClusteringStatus adds the new multi-input clustering status field
+func AlterSchemaAddFlatMultiInputClusteringStatus(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			isclustering: bool .
+			lastclusteredid: int .
+			
+			# Clustering Flat Multi Input Status
+			type CFMIStatus {
 				isclustering
 				lastclusteredid
 			}
