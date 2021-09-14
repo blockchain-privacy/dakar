@@ -221,13 +221,6 @@ type connectionLookupReply struct {
 	TransactionCount *int                       `json:"count,omitempty"`
 }
 
-type graphClusterLookupReply struct {
-	Success   bool     `json:"success"`
-	Warning   bool     `json:"warning,omitempty"`
-	Msg       string   `json:"msg,omitempty"`
-	Addresses []string `json:"addresses"`
-}
-
 type clusterLookupReply struct {
 	Success  bool                         `json:"success"`
 	Msg      string                       `json:"msg,omitempty"`

@@ -88,13 +88,13 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 	return
 }
 
-// maps a address to one or more indexes of a transaction
+// maps an address to one or more indexes of a transaction
 type outputMapping struct {
 	hash    string
 	indexes []uint32
 }
 
-// TransactionMapping maps a address to one or more indexes of a transaction
+// TransactionMapping maps an address to one or more indexes of a transaction
 type TransactionMapping struct {
 	hash    string
 	outputs map[string]outputMapping
@@ -457,7 +457,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
 			return
 		}
-		// check if block is available and and if it is an actual new block
+		// check if block is available and if it is an actual new block
 		if currentBlock.NextHash != "" && numBlocks > rpcNumBlocks {
 			break
 		}

@@ -11,7 +11,7 @@ type GraphDB struct {
 	Dgraph *dgo.Dgraph
 }
 
-// Mutate executes a query followed by one or more than one mutations.
+// Mutate executes a query followed by one or more than one mutation.
 func (g *GraphDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
 	return g.Dgraph.NewTxn().Do(ctx, req)
 }

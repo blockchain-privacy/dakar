@@ -294,7 +294,7 @@ func GetRoleCount(c external.Database) (uint64, error) {
 	return db.GetCount(c, DTypeRole)
 }
 
-// CreateAdminUser creates an new admin account with a random password
+// CreateAdminUser creates a new admin account with a random password
 func CreateAdminUser(c external.Database, email string) (string, error) {
 	pw, pwHash, err := user.GetRandomPasswordAndHash()
 	if err != nil {

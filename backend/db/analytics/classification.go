@@ -21,8 +21,8 @@ import (
 // transactions in this block. Additionally, it returns all transactions connected to newly
 // classified origin transaction which have no privacy type set yet.
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
-// same time are not mixing transactions themself. Origin transactions are transactions which are connected to
-// inputs of mixing transactions and at the same time are not mixing transactions themself.
+// same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
+// inputs of mixing transactions and at the same time are not mixing transactions themselves.
 func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []dbtx.Transaction,
 	origins []dbtx.Transaction, err error) {
 	const query = `query Q($bid: string) {

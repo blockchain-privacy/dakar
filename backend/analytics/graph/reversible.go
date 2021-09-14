@@ -62,7 +62,7 @@ func (g *ReversibleGraph) AddNode(n graph.Node) {
 	g.nodeIDs.Use(n.ID())
 }
 
-// UpdateNode updates n. If the node does not already exists it gets added to the graph.
+// UpdateNode updates n. If the node does not already exist, it gets added to the graph.
 func (g *ReversibleGraph) UpdateNode(n graph.Node) {
 	if _, exists := g.nodes[n.ID()]; !exists {
 		g.nodeIDs.Use(n.ID())

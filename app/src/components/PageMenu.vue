@@ -9,24 +9,28 @@
           <LinkCard
               title="Shortest Path"
               :icon="icons.mdiChartTimelineVariant"
+              :color="iconColor.default"
               :to="{ name: routes.shortestPathPage }"/>
         </v-col>
         <v-col>
           <LinkCard
               title="Heuristics"
               :icon="icons.mdiGraph"
+              :color="iconColor.default"
               :to="{ name: routes.heuristicsPage }"/>
         </v-col>
         <v-col>
           <LinkCard
               title="Connection Lookup"
               :icon="icons.mdiTextBoxSearch"
+              :color="iconColor.default"
               :to="{ name: routes.connectionLookupPage }"/>
         </v-col>
         <v-col>
           <LinkCard
               title="Cluster Lookup"
               :icon="icons.mdiMerge"
+              :color="iconColor.default"
               :to="{ name: routes.clusterLookupPage }"/>
         </v-col>
       </v-row>
@@ -36,12 +40,14 @@
           <LinkCard
               title="Server Status"
               :icon="icons.mdiServer"
+              :color="iconColor.default"
               :to="{ name: routes.serverStatusPage }"/>
         </v-col>
         <v-col v-if="showUserAdmin">
           <LinkCard
               title="User Admin"
               :icon="icons.mdiAccountSupervisor"
+              :color="iconColor.admin"
               :to="{ name: routes.userAdminPage }"/>
         </v-col>
       </v-row>
@@ -77,6 +83,10 @@ export default {
         mdiAccountSupervisor,
         mdiServer,
         mdiMerge,
+      },
+      iconColor: {
+        default: 'primary',
+        admin: 'red darken-3',
       },
       routes: {
         userAdminPage: ROUTE_NAME_USER_ADMIN_PAGE,

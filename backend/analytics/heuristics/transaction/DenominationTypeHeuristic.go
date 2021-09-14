@@ -72,8 +72,8 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction)
-	var clusters map[string]graph.ClusterID
+	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
@@ -94,7 +94,7 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		}
 
 		var err error
-		sourceTransactionMap, clusters, err = addOriginsToMap(g, sourceTransactionMap, results)
+		sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, results)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -115,7 +115,7 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 
 	inputDenominationCounts := getDenominationCounts(transaction)
 
-	originAmounts := buildSourceAmounts(origins, clusters)
+	originAmounts := buildSourceAmounts(origins)
 
 	var filteredOrigins []dbtxh.HeuristicResult
 	for k, o := range originAmounts {

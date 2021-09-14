@@ -90,8 +90,8 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	//or the destination transaction specified by txHash
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps a cluster to its origin transactions
-	clusterOrigins := make(map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction)
-	var clusters map[string]graph.ClusterID
+	clusterOrigins := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	var clusters map[string]dbtxh.ClusterUID
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
@@ -110,7 +110,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		var err error
-		clusterOrigins, clusters, err = addOriginsToMap(g, clusterOrigins, results)
+		clusterOrigins, err = addOriginsToMap(clusterOrigins, results)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -126,7 +126,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	var clusterDestinations []struct {
-		cluster graph.ClusterID
+		cluster dbtxh.ClusterUID
 		txs     map[string]dbtxh.HeuristicTransaction
 	}
 
@@ -147,12 +147,12 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 
 		clusterDestinations = append(clusterDestinations, struct {
-			cluster graph.ClusterID
+			cluster dbtxh.ClusterUID
 			txs     map[string]dbtxh.HeuristicTransaction
 		}{cluster: c, txs: destinationMap})
 	}
 
-	originAmounts := buildSourceAmounts(origins, clusters)
+	originAmounts := buildSourceAmounts(origins)
 
 	var filteredDestinations []dbtxh.HeuristicResult
 	for _, destinations := range clusterDestinations {

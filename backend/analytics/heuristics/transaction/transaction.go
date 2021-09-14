@@ -52,7 +52,7 @@ type Heuristic interface {
 	String() string
 	// GetDescriptor returns description of the Heuristic and its expected parameter for the frontend
 	GetDescriptor() Descriptor
-	// clone clones an instance of this interface. This method is needed because
+	// clone copies an instance of this interface. This method is needed because
 	// instances of interfaces can not be easily copied-by-value.
 	// More information: https://stackoverflow.com/questions/37851500/how-to-copy-an-interface-value-in-go
 	clone() Heuristic
@@ -108,70 +108,53 @@ func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations
 type originSource struct {
 	denominationIndex int
 	// key: cluster id, value: number of denominations of type denominationIndex
-	sources map[graph.ClusterID]int
+	sources map[dbtxh.ClusterUID]int
 }
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
-func addOriginsToMap(g *graph.Wrapper, sourceTransactionMap map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction,
-	origins []dbtxh.HeuristicTransaction) (map[graph.ClusterID]map[string]dbtxh.HeuristicTransaction,
-	map[string]graph.ClusterID, error) {
-
-	var allAddresses []string
+func addOriginsToMap(sourceTransactionMap map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction,
+	origins []dbtxh.HeuristicTransaction) (map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction, error) {
 
 	for _, o := range origins {
-		// add to map
-		allAddresses = append(allAddresses, o.Addresses...)
-	}
-
-	clusters, err := g.GetClusters(allAddresses)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	for _, o := range origins {
-		clusterID := clusters[o.Addresses[0]]
 
 		// add transaction to sourceTransactionMap
-		transactions := sourceTransactionMap[clusterID]
+		transactions := sourceTransactionMap[o.Cluster]
 
 		if len(transactions) == 0 {
 			transactions = make(map[string]dbtxh.HeuristicTransaction)
 		}
 
 		transactions[o.UID] = o
-		sourceTransactionMap[clusterID] = transactions
+		sourceTransactionMap[o.Cluster] = transactions
 	}
 
-	return sourceTransactionMap, clusters, nil
+	return sourceTransactionMap, nil
 }
 
 // buildSourcesWithAmount creates an array of sources with the
 // number of denominations of the specified denomination type
-func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int,
-	clusters map[string]graph.ClusterID) (oSource originSource, err error) {
+func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource originSource, err error) {
 	oSource.denominationIndex = denominationIndex
-	oSource.sources = make(map[graph.ClusterID]int)
+	oSource.sources = make(map[dbtxh.ClusterUID]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
-		oSource.sources[clusters[o.Addresses[0]]] += nDenominations
+		oSource.sources[o.Cluster] += nDenominations
 	}
 
 	return
 }
 
-func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction,
-	clusters map[string]graph.ClusterID) map[graph.ClusterID][dbop.NumDenominations]int {
-	sourceAmounts := make(map[graph.ClusterID][dbop.NumDenominations]int)
+func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[dbtxh.ClusterUID][dbop.NumDenominations]int {
+	sourceAmounts := make(map[dbtxh.ClusterUID][dbop.NumDenominations]int)
 
 	for _, o := range origins {
-		clusterID := clusters[o.Addresses[0]]
 		denominationSlice := getDenominationCounts(o)
 		for i := range denominationSlice {
-			denominationSlice[i] += sourceAmounts[clusterID][i]
+			denominationSlice[i] += sourceAmounts[o.Cluster][i]
 		}
 
-		sourceAmounts[clusterID] = denominationSlice
+		sourceAmounts[o.Cluster] = denominationSlice
 	}
 	return sourceAmounts
 }

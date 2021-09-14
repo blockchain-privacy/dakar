@@ -40,7 +40,6 @@ type Wrapper struct {
 	state        blockiterator.State
 	blocks       prometheus.Counter
 	transactions prometheus.Counter
-	newUids      prometheus.Counter
 	blockHeight  prometheus.Gauge
 
 	// isLoading is true if the graph loading was started.
@@ -50,10 +49,6 @@ type Wrapper struct {
 	// transactionGraphMutex acts as a mutex for transactionGraph
 	transactionGraphMutex *sync.RWMutex
 	transactionGraph      *ReversibleGraph
-
-	// addressGraphMutex acts as a mutex for addressGraph
-	addressGraphMutex *sync.RWMutex
-	addressGraph      *UndirectedGraph
 }
 
 // NewWrapper constructs a new Wrapper
@@ -62,7 +57,6 @@ func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 		context:               ctx,
 		transactionGraphMutex: new(sync.RWMutex),
 		db:                    dgraph,
-		addressGraphMutex:     new(sync.RWMutex),
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_graph_blocks_processed_total",
 			Help: "The total number of blocks processed by the graph wrapper",
@@ -70,10 +64,6 @@ func NewWrapper(ctx context.Context, dgraph external.Database) *Wrapper {
 		transactions: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_graph_transactions_processed_total",
 			Help: "The total number of transactions processed by the graph wrapper",
-		}),
-		newUids: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "dakar_graph_newuids_processed_total",
-			Help: "The total number of new uids processed by the graph wrapper",
 		}),
 		blockHeight: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "dakar_graph_last_block",
@@ -87,13 +77,6 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 	w.transactionGraphMutex.RLock()
 	defer w.transactionGraphMutex.RUnlock()
 	return w.transactionGraph != nil
-}
-
-// IsAddressGraphLoaded returns true if the address graph is loaded
-func (w *Wrapper) IsAddressGraphLoaded() bool {
-	w.addressGraphMutex.RLock()
-	defer w.addressGraphMutex.RUnlock()
-	return w.addressGraph != nil
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
@@ -143,45 +126,13 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	return results, nil
 }
 
-// GetClusters returns a mapping between address uids and ClusterID's
-func (w *Wrapper) GetClusters(addressUids []string) (map[string]ClusterID, error) {
-	if !w.IsAddressGraphLoaded() {
-		return nil, errors.New("address graph is not loaded yet")
-	}
-	w.addressGraphMutex.Lock()
-	defer w.addressGraphMutex.Unlock()
-
-	results, err := GetClusters(w.addressGraph, addressUids)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return results, nil
-}
-
-// GetCluster returns the cluster of the given address
-func (w *Wrapper) GetCluster(addressUID string) ([]string, error) {
-	if !w.IsAddressGraphLoaded() {
-		return nil, errors.New("address graph is not loaded yet")
-	}
-	w.addressGraphMutex.Lock()
-	defer w.addressGraphMutex.Unlock()
-
-	results, err := GetCluster(w.addressGraph, addressUID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return results, nil
-}
-
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
 func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, errors.New("transaction graph is not loaded yet")
 	}
-	w.addressGraphMutex.Lock()
-	defer w.addressGraphMutex.Unlock()
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
 
 	results, err := GetInputTransactions(w.transactionGraph, uid)
 	if err != nil {
@@ -191,7 +142,7 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	return results, err
 }
 
-// LoadGraphs loads the transaction and address graph into the wrapper
+// LoadGraphs loads the transaction graph into the wrapper
 func (w *Wrapper) LoadGraphs() error {
 	if w.isLoading {
 		return errors.New("error can not load graph as it is already loaded or still loading")
@@ -224,18 +175,9 @@ func (w *Wrapper) LoadGraphs() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	addressGraph, err := LoadAddressGraph(w.db, txGraph)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
 	w.transactionGraphMutex.Lock()
 	w.transactionGraph = txGraph
 	w.transactionGraphMutex.Unlock()
-
-	w.addressGraphMutex.Lock()
-	w.addressGraph = addressGraph
-	w.addressGraphMutex.Unlock()
 
 	return nil
 }
@@ -316,9 +258,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 		return false, errors.New("error count of single or connected nodes is zero")
 	}
 
-	w.addressGraphMutex.Lock()
 	w.transactionGraphMutex.Lock()
-	defer w.addressGraphMutex.Unlock()
 	defer w.transactionGraphMutex.Unlock()
 
 	if graphErr := upsertSingleNodes(w.transactionGraph, singleNodes); graphErr != nil {
@@ -329,54 +269,9 @@ func (w *Wrapper) Iterate() (bool, error) {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), graphErr)
 	}
 
-	nodeUidsToLoad, err := filterOrigins(w.transactionGraph, w.addressGraph, singleNodes)
-	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	if len(nodeUidsToLoad) > 0 {
-		originNodes, dbErr := analytics.GetInputAddresses(w.db, nodeUidsToLoad)
-		if dbErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
-		}
-
-		if len(originNodes) != len(nodeUidsToLoad) {
-			return false, errors.New("error number of requested origin nodes does not match number of received nodes")
-		}
-
-		if addErr := addAddressEdges(w.addressGraph, originNodes); addErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addErr)
-		}
-	}
-
 	w.blocks.Inc()
 	w.transactions.Add(float64(len(connectedNodes) + len(singleNodes)))
-	w.newUids.Add(float64(len(nodeUidsToLoad)))
 	w.blockHeight.Set(float64(w.state.ID))
 
 	return true, nil
-}
-
-// filterOrigins returns the nodes which are not already in the address graph and
-// which are endpoints in the transaction graph
-func filterOrigins(txGraph *ReversibleGraph, addrGraph *UndirectedGraph, nodes []analytics.Node) ([]string, error) {
-	var originUids []string
-	for _, node := range nodes {
-		id, err := toInteger(node.UID)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-
-		// check if node is already in address graph
-		if addrGraph.Node(id) != nil {
-			continue
-		}
-
-		// check if node is an endpoint
-		if isEndpoint(txGraph, id) {
-			originUids = append(originUids, node.UID)
-		}
-	}
-
-	return originUids, nil
 }

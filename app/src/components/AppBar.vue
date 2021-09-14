@@ -52,7 +52,7 @@
         </v-list-item>
         <v-list-item @click="logout">
           <v-list-item-icon>
-            <v-icon>{{ icon.mdiLogout }}</v-icon>
+            <v-icon color="red">{{ icon.mdiLogout }}</v-icon>
           </v-list-item-icon>
           <v-list-item-title>Logout</v-list-item-title>
         </v-list-item>

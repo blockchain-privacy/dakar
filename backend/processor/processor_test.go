@@ -283,7 +283,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	}()
 
 	// normal operation but interrupted and higher block
-	// count as available so it must wait or in this case get interrupted
+	// count as available, so it must wait or in this case get interrupted
 	cfg.NewBlockIntervalTime = time.Second
 	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks+1), cfg)
 	require.Nil(t, err)

@@ -291,7 +291,7 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 				}
 			  }`
 
-	// without retry, as this request can easily timeout
+	// without retry, as this request can easily time out
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(txUids)})
