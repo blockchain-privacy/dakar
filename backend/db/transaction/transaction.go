@@ -173,30 +173,22 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 
 // GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
-	query := `query Q($hash: string){
-				q(func: eq(txhash, $hash)){
+	const query = `query Q($hash: string){
+				q(func: eq(txhash,$hash)){
 					txhash
 					privacytype
 					fee
 					inputs: tx_inputs @normalize{
-						amount: amount
-						inputindex: inputindex
-						iscoinbase: iscoinbase
-						keyasm: keyasm
-						sigasm: sigasm
-						~addr_outputs{
-							addresshash: addresshash
+						...fOutput
+						~tx_outputs {
+							...fOutputTransaction
 						}
 					}
 					outputs: tx_outputs @normalize{
-						amount: amount
 						outputindex: outputindex
-						inputindex: inputindex
-						iscoinbase: iscoinbase
-						keyasm: keyasm
-						sigasm: sigasm
-						~addr_outputs{
-							addresshash: addresshash
+						...fOutput
+						~tx_inputs{
+							...fOutputTransaction
 						}
 					}
 					block: ~transactions {
@@ -204,9 +196,8 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 						ts
 						id
 					}
-					origincount: count(origins)
-			  	}
-			   }`
+				}
+			  }` + FrontendTransactionFragments
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
@@ -277,7 +268,6 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
 func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
-
 	const query = `query Q($uids:string){
 				txs as var(func: uid($uids))
 				q(func: uid(txs))@normalize{

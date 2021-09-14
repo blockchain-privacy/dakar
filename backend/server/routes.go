@@ -209,6 +209,61 @@ func handlerAddressOutputRange(dgraph external.Database, route string) http.Hand
 	})
 }
 
+// API pattern: "/api/v1/blkRange/<address_hash>"
+func handlerBlockRange(dgraph external.Database, route string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		queryString := r.URL.Path[len(route):]
+
+		reply := searchResponse{
+			Type:    "response_empty",
+			Payload: nil,
+		}
+
+		if isValid(queryString) {
+			type request struct {
+				Offset int `json:"offset"`
+			}
+
+			var blockRequest request
+			blockRequest.Offset = -1
+
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				handleError(w, err)
+				return
+			}
+
+			if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
+				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr))
+				return
+			}
+
+			if blockRequest.Offset < 0 {
+				handleError(w, errors.New(errorInvalidOffset))
+				return
+			}
+
+			data, ok, blockErr := GetBlockWithOptions(dgraph, queryString, blockRequest.Offset)
+			if blockErr != nil {
+				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), blockErr))
+				return
+			}
+			if ok {
+				reply.Payload = data.result
+				reply.Type = data.resultType
+			}
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/meta/"
 func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -778,6 +833,10 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 
 	http.Handle(constants.GetRouteAddressOutputRange(),
 		adapt(handlerAddressOutputRange(dgraph, constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
+			cacheMiddleware(cache, time.Minute*10)))
+
+	http.Handle(constants.GetRouteBlockRange(),
+		adapt(handlerBlockRange(dgraph, constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
 			cacheMiddleware(cache, time.Minute*10)))
 
 	// Meta

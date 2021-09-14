@@ -5,6 +5,7 @@ const routePrefix = `/api/${apiVersion}/`;
 export const ROUTE_SEARCH = `${routePrefix}search/`;
 export const ROUTE_TRANSACTION = `${routePrefix}tx/`;
 export const ROUTE_BLOCK = `${routePrefix}blk/`;
+export const ROUTE_BLOCK_RANGE = `${routePrefix}blkRange/`;
 export const ROUTE_ADDRESS = `${routePrefix}address/`;
 export const ROUTE_ADDRESS_OUTPUT_RANGE = `${routePrefix}addressOutputRange/`;
 export const ROUTE_META = `${routePrefix}meta/`;

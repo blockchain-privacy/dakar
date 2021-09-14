@@ -59,12 +59,13 @@ func (b Block) IsComplete() bool {
 
 // FrontendBlock holds all block data which is exposed to the frontend
 type FrontendBlock struct {
-	Hash          string   `json:"blockhash,omitempty"`
-	ID            uint64   `json:"id,omitempty"`
-	Timestamp     string   `json:"ts,omitempty"`
-	PrevBlockHash string   `json:"prevblockhash,omitempty"`
-	NextBlockHash string   `json:"nextblockhash,omitempty"`
-	Transactions  []string `json:"txhashes,omitempty"`
+	Hash             string                   `json:"blockhash,omitempty"`
+	ID               uint64                   `json:"id,omitempty"`
+	Timestamp        string                   `json:"ts,omitempty"`
+	PrevBlockHash    string                   `json:"prevblockhash,omitempty"`
+	NextBlockHash    string                   `json:"nextblockhash,omitempty"`
+	TransactionCount int                      `json:"txcount,omitempty"`
+	Transactions     []tx.FrontendTransaction `json:"transactions,omitempty"`
 }
 
 func (v FrontendBlock) String() string {

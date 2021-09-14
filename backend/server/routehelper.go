@@ -145,9 +145,14 @@ func buildKey(route string, query string, body []byte) (key string) {
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
 func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error) {
-	block, err := dbblk.GetFrontendBlock(dgraph, query)
-	if err != nil {
+	return GetBlockWithOptions(dgraph, query, 0)
+}
 
+// GetBlockWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
+// It supports an offset. A maximum of 5 transactions is returned.
+func GetBlockWithOptions(dgraph external.Database, query string, offset int) (SearchResult, bool, error) {
+	block, err := dbblk.GetFrontendBlock(dgraph, query, offset)
+	if err != nil {
 		// only print error if it is not expected
 		if !errors.Is(err, dbblk.ErrorBlockNotFound) {
 			return SearchResult{}, false, err
@@ -175,7 +180,7 @@ func GetTransaction(dgraph external.Database, query string) (SearchResult, bool,
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
 func GetAddress(dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, []int{})
+	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, nil)
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
@@ -184,7 +189,6 @@ func GetAddress(dgraph external.Database, query string) (SearchResult, bool, err
 func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
 	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
-
 		// only print error if it is not expected
 		if !errors.Is(err, dbaddr.ErrorAddressNotFound) {
 			return SearchResult{}, false, err

@@ -17,6 +17,7 @@ const (
 	routeHeuristicDescriptors string = "heuristicDescriptors"
 	routeDeleteHeuristic      string = "deleteHeuristic"
 	routeAddressOutputRange   string = "addressOutputRange"
+	routeBlockRange           string = "blkRange"
 	routeCreateUser           string = "createUser"
 	routeGetUsers             string = "getUsers"
 	routeDeleteUser           string = "deleteUser"
@@ -101,6 +102,11 @@ func GetRouteSearch() string {
 // GetRouteAddressOutputRange returns a route
 func GetRouteAddressOutputRange() string {
 	return getRoute(routeAddressOutputRange)
+}
+
+// GetRouteBlockRange returns a route
+func GetRouteBlockRange() string {
+	return getRoute(routeBlockRange)
 }
 
 // GetRouteCreateUser returns a route
