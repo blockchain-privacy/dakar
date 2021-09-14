@@ -129,7 +129,8 @@ func LoadTransactionGraph(c external.Database) (*ReversibleGraph, error) {
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 
-	const numTxToLoad = 0
+	// todo set to zero
+	const numTxToLoad = 200000
 
 	// load all origin transactions from the database
 	info("Loading origin nodes")

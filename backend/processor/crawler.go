@@ -26,6 +26,8 @@ type Crawler struct {
 
 	isDatabaseEmpty bool
 	currentBlock    *btcjson.GetBlockVerboseResult
+
+	cache *utxoCache
 }
 
 // NewCrawler creates a new Crawler object
@@ -109,6 +111,13 @@ func (c *Crawler) CalculateInitialState() error {
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
 
+	info("Loading UTXOs of last", initialLoadSize, "blocks ...")
+	c.cache, err = newCache(c.db, int64(state.id))
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	info("Loaded", c.cache.getOutputCounts(), "UTXOs")
+
 	return nil
 }
 
@@ -177,8 +186,8 @@ func (c *Crawler) Iterate() (bool, error) {
 	}
 
 	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := ProcessRound(c.db, c.rpc, c.state, c.currentBlock,
-		c.isDatabaseEmpty, c.config); processErr == nil {
+	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.rpc, c.state, c.currentBlock,
+		c.isDatabaseEmpty, c.config, c.cache); processErr == nil {
 		c.isDatabaseEmpty = false
 
 		c.blocks.Add(float64(rBlockCounter))

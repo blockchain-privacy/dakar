@@ -154,3 +154,8 @@ const FrontendTransactionFragments = `
 						addresshash: addresshash
 					}
 				}`
+
+type OutputTransactionMapping struct {
+	Hash    string      `json:"txhash,omitempty"`
+	Outputs []op.Output `json:"tx_outputs,omitempty"`
+}
