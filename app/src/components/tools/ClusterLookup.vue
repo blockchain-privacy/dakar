@@ -10,10 +10,10 @@
         </v-toolbar-title>
       </v-toolbar>
       <v-card-text>
-        <div class="text-subtitle-1" v-if="!isCommonLookup">
+        <div class="text-subtitle-1" v-if="!isJointLookup">
           Find clusters connected to an address.
         </div>
-        <div class="text-subtitle-1" v-if="isCommonLookup">
+        <div class="text-subtitle-1" v-if="isJointLookup">
           Find clusters which are connected to both addresses.
         </div>
         <v-row>
@@ -24,7 +24,7 @@
                           @keydown.enter="handleSearch"
                           autofocus/>
           </v-col>
-          <v-col v-if="isCommonLookup">
+          <v-col v-if="isJointLookup">
             <v-text-field label="Second Address"
                           v-model="a2"
                           :disabled="isLoading"
@@ -33,7 +33,7 @@
         </v-row>
         <v-row>
           <v-col>
-            <v-switch v-model="isCommonLookup" label="Find Common Clusters" :disabled="isLoading"/>
+            <v-switch v-model="isJointLookup" label="Find joint clusters" :disabled="isLoading"/>
           </v-col>
           <v-col class="d-flex justify-end align-center">
             <v-btn
@@ -180,7 +180,7 @@ export default {
       // v-model
       a1: '',
       a2: '',
-      isCommonLookup: false,
+      isJointLookup: false,
       isLoading: false,
       clusters: [],
     };
@@ -193,7 +193,7 @@ export default {
         return false;
       }
 
-      if (this.isCommonLookup) {
+      if (this.isJointLookup) {
         return this.a2 && this.a2.trim().length > 0 && this.a2.trim() !== this.a1.trim();
       }
       return true;
@@ -220,7 +220,7 @@ export default {
     doLookup() {
       this.isLoading = true;
       const body = { a1: this.a1.trim() };
-      if (this.isCommonLookup) {
+      if (this.isJointLookup) {
         body.a2 = this.a2.trim();
       }
 
