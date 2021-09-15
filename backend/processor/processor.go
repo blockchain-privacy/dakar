@@ -634,15 +634,12 @@ func processRound(dgraph external.Database, client external.RPCClient, state cra
 	var txMapping []transactionMapping
 	var transactions []dbtx.Transaction
 
-	now := time.Now()
 	txHashMap, err := createTransactionHashmap(client, block.Tx)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
-	dur1 := float64(time.Since(now).Milliseconds())
 
-	now2 := time.Now()
 	externalOutputs, err := getExternalOutputs(dgraph, filterExternalOutputs(txHashMap, cache))
 	if err != nil {
 		return 0, 0, err
@@ -667,9 +664,7 @@ func processRound(dgraph external.Database, client external.RPCClient, state cra
 		err = fmt.Errorf("wrong number of transactions in block: %s", block.Hash)
 		return
 	}
-	dur2 := float64(time.Since(now2).Milliseconds())
 
-	now3 := time.Now()
 	// if the current block is not yet in the database or if only a shallow block exist in
 	// the database a new block is created. Shallow blocks get created when a crawling process gets
 	// started for the first time. Each block creation connects the current block with the previous block.
@@ -693,9 +688,6 @@ func processRound(dgraph external.Database, client external.RPCClient, state cra
 		// reset txCounter as the block is not processed
 		txCounter = 0
 	}
-	dur3 := float64(time.Since(now3).Milliseconds())
-
-	now4 := time.Now()
 
 	blockId := int64(state.id)
 	transactionOutputs, err := dbtx.GetOutputs(dgraph, blockId, blockId)
@@ -733,23 +725,11 @@ func processRound(dgraph external.Database, client external.RPCClient, state cra
 		}
 
 	}
-	dur4 := float64(time.Since(now4).Milliseconds())
 
-	now5 := time.Now()
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
-	dur5 := float64(time.Since(now5).Milliseconds())
-	globalDur := float64(time.Since(now).Milliseconds())
-	info("Elapsed time:", dur1/globalDur, dur2/globalDur, dur3/globalDur, dur4/globalDur, dur5/globalDur)
-
-	//_ = dur1
-	//_ = dur2
-	//_ = dur3
-	//_ = dur4
-	//_ = dur5
-	//_ = globalDur
 
 	// save processing state
 	if setLowestID {
