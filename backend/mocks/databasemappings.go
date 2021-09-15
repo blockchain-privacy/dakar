@@ -5,6 +5,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func MapUpsertAddresses(db *Database) {
+	// only once because the input filter is very generic
+	db.On("Mutate", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*api.Request")).
+		Return(nil, nil).Once()
+}
+
 func MapSetClassifying(db *Database) {
 	// only once because the input filter is very generic
 	db.On("Mutate", mock.AnythingOfType("*context.timerCtx"), mock.AnythingOfType("*api.Request")).

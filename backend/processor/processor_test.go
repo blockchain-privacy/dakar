@@ -3,11 +3,13 @@ package processor
 import (
 	dbaddr "backend/db/address"
 	dbop "backend/db/output"
+
 	"backend/mocks"
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"testing"
 	"time"
 )
@@ -176,10 +178,11 @@ func TestDecodeAddress(t *testing.T) {
 	}
 }
 
-func TestBuildAddressMapping(t *testing.T) {
+func TestProcessAddresses(t *testing.T) {
 	const (
 		fistAddress   = "XsAptUZUmtL8onHcuJSvGM8MyvR7QCpw9u"
 		secondAddress = "Xoi9jutn8qbtxvd2V3xqqSQnpdqPrCzP1K"
+		txHash        = "123456"
 	)
 
 	oMap := make(map[string]outputMapping)
@@ -192,10 +195,14 @@ func TestBuildAddressMapping(t *testing.T) {
 		indexes: []uint32{1},
 	}
 
+	txMap := transactionMapping{
+		hash:    txHash,
+		outputs: oMap,
+	}
+
 	zero := uint32(0)
 	one := uint32(1)
 	one64 := int64(1)
-	zero64 := int64(0)
 	fourNines := int64(9999)
 	wrong := false
 	output1 := dbop.Output{
@@ -221,32 +228,13 @@ func TestBuildAddressMapping(t *testing.T) {
 	outputArr := []dbop.Output{
 		output1, output2,
 	}
-	addresses := make(map[string]dbaddr.Address)
-	addresses[fistAddress] = dbaddr.Address{
-		UID:  "",
-		Hash: fistAddress,
-		Outputs: []dbop.Output{{
-			UID:         "0x59b81",
-			OutputIndex: nil,
-			InputIndex:  nil,
-			TxType:      "",
-			Amount:      &zero64,
-			IsCoinbase:  nil,
-			DType:       nil,
-		}},
-		DType: nil,
-	}
 
-	buildAddressMapping(oMap, outputArr, addresses)
+	cache := newOutputCache()
+	require.Nil(t, cache.setOutputs(txHash, outputArr))
 
-	if val, ok := addresses[fistAddress]; ok {
-		if len(val.Outputs) != 2 {
-			t.Error("Wrong number of outputs")
-		} else if val.Outputs[0].UID != "0x59b81" ||
-			val.Outputs[1].UID != "0x59b84" {
-			t.Error("Uids not set")
-		}
-	}
+	db := new(mocks.Database)
+	mocks.MapUpsertAddresses(db)
+	require.Nil(t, processAddresses(db, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
