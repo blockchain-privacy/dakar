@@ -16,6 +16,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
@@ -138,14 +139,14 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 	addresses[addr] = editAddress
 }
 
-func buildAddresses(cache *outputCache, txHash string, outputs map[string]outputMapping,
+func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
 	addrMap map[string]dbaddr.Address) (err error) {
 
 	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
 
-			output := cache.getAndEvictOutput(txHash, idx)
+			output := cache.getOutput(txHash, idx)
 
 			if output == nil {
 				return errors.New("requested output not found in cache")
@@ -153,7 +154,9 @@ func buildAddresses(cache *outputCache, txHash string, outputs map[string]output
 
 			uids = append(uids, output.UID)
 		}
+		mutex.Lock()
 		addOutputsToAddresses(addrMap, mapping.hash, uids)
+		mutex.Unlock()
 	}
 
 	return
@@ -166,12 +169,20 @@ func processAddresses(dgraph external.Database, cache *outputCache, transactionM
 	}
 
 	addrMap := make(map[string]dbaddr.Address)
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
 	for _, mapping := range transactionMappings {
-		if err = buildAddresses(cache, mapping.hash, mapping.outputs, addrMap); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
-		}
+		wg.Add(1)
+		go func(hash string, outputs map[string]outputMapping) {
+			defer wg.Done()
+			if err = buildAddresses(&mutex, cache, hash, outputs, addrMap); err != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
+			}
+		}(mapping.hash, mapping.outputs)
 	}
+
+	wg.Wait()
 
 	// map to slice
 	var addrSlice []dbaddr.Address
