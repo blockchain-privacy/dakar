@@ -9,7 +9,7 @@ import (
 	"fmt"
 )
 
-const initialLoadSize = 10
+const initialLoadSize = 25000
 
 type outputCache struct {
 	c map[string]map[uint32]dbop.Output
