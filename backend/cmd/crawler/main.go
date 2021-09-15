@@ -200,7 +200,7 @@ var defaultConfig = Config{
 		Host:     "0.0.0.0",
 		Port:     9998,
 		User:     "rpc1user",
-		Password: "123pass",
+		Password: "1234pass",
 	},
 	Database: DatabaseConfig{
 		Host: "0.0.0.0",
@@ -239,15 +239,14 @@ func setCommandFlags(c *Commands) {
 func main() {
 	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
 
+	var commands Commands
+	setCommandFlags(&commands)
+
 	var config Config
 	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
 		log.Println(err)
 		return
 	}
-
-	var commands Commands
-	setCommandFlags(&commands)
-	flag.Parse()
 
 	// setup Logging
 	if f, err := cli.GetLogfile(config.Logfile); err == nil {

@@ -56,6 +56,8 @@ func writeConfig(filePath string, config interface{}) error {
 }
 
 func setConfigFlags(defaultConfigName string, filePath *string, createConfigFile *bool) {
+	flag.NewFlagSet("test", flag.ExitOnError)
+
 	flag.StringVar(filePath, "config", defaultConfigName,
 		"config file path (default:"+defaultConfigName+")")
 	flag.BoolVar(createConfigFile, "createConfig", false,
@@ -66,7 +68,7 @@ func GetConfig(defaultConfigName string, config interface{}, defaultInterface in
 	var filePath string
 	var createConfigFile bool
 	setConfigFlags(defaultConfigName, &filePath, &createConfigFile)
-
+	flag.Parse()
 	// create a new config file
 	if createConfigFile {
 		err := writeConfig(defaultConfigName, defaultInterface)
