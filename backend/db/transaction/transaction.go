@@ -457,18 +457,19 @@ func GetTransactionUID(c external.Database, txHash string) (uid string, err erro
 	return
 }
 
-// GetUTXOs returns the unspent transaction outputs of the given block range
-func GetUTXOs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
+// GetOutputs returns the transaction outputs of the given block range
+func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
 	const query = `query Q($id1:int,$id2:int){
 					var(func: between(id,$id1, $id2)){
 						t as transactions
 					}
 					
-					q(func: uid(t))@cascade{
+					q(func: uid(t)){
 						txhash
-						tx_outputs@filter(not has(inputindex)){
+						tx_outputs{
 							uid
 							outputindex
+							inputindex
 							amount
 						}
 					}

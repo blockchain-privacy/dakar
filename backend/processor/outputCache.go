@@ -11,35 +11,53 @@ import (
 
 const initialLoadSize = 10
 
-type utxoCache struct {
+type outputCache struct {
 	c map[string]map[uint32]dbop.Output
 }
 
-// newCache loads the unspent transaction outputs from the last initialLoadSize blocks
-func newCache(dgraph external.Database, mostRecentBlockID int64) (*utxoCache, error) {
+// newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
+func newUTXOCache(dgraph external.Database, mostRecentBlockID int64) (*outputCache, error) {
 	fromBlock := mostRecentBlockID - initialLoadSize
 	if fromBlock <= 0 {
 		fromBlock = 1
 	}
 
-	transactions, err := dbtx.GetUTXOs(dgraph, fromBlock, mostRecentBlockID)
+	transactions, err := dbtx.GetOutputs(dgraph, fromBlock, mostRecentBlockID)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	cache := utxoCache{c: make(map[string]map[uint32]dbop.Output)}
+	cache := outputCache{c: make(map[string]map[uint32]dbop.Output)}
 
 	for _, t := range transactions {
-		if err := cache.setOutputs(t.Hash, t.Outputs); err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		if len(t.Outputs) == 0 {
+			continue
+		}
+		var utxos []dbop.Output
+
+		for _, o := range t.Outputs {
+			if o.InputIndex == nil {
+				utxos = append(utxos, o)
+			}
+		}
+
+		if len(utxos) > 0 {
+			if err := cache.setOutputs(t.Hash, utxos); err != nil {
+				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			}
 		}
 	}
 
 	return &cache, nil
 }
 
+// newOutputCache returns an empty output cache
+func newOutputCache() *outputCache {
+	return &outputCache{c: make(map[string]map[uint32]dbop.Output)}
+}
+
 // getOutputCounts returns the number of outputs in the cache
-func (u *utxoCache) getOutputCounts() int {
+func (u *outputCache) getOutputCounts() int {
 	var numOutputs int
 
 	for _, v := range u.c {
@@ -50,7 +68,7 @@ func (u *utxoCache) getOutputCounts() int {
 }
 
 // setOutputs sets the outputs for the specified transaction hash.
-func (u *utxoCache) setOutputs(txHash string, outputs []dbop.Output) error {
+func (u *outputCache) setOutputs(txHash string, outputs []dbop.Output) error {
 	if len(outputs) == 0 {
 		return fmt.Errorf("tried to set zero outputs for transaction %s", txHash)
 	}
@@ -60,7 +78,8 @@ func (u *utxoCache) setOutputs(txHash string, outputs []dbop.Output) error {
 	}
 
 	if _, ok := u.c[txHash]; ok {
-		return fmt.Errorf("transaction %s does already exist in cache", txHash)
+		return nil
+		//return fmt.Errorf("transaction %s does already exist in cache", txHash)
 	}
 	outputMap := make(map[uint32]dbop.Output)
 	for _, o := range outputs {
@@ -75,7 +94,7 @@ func (u *utxoCache) setOutputs(txHash string, outputs []dbop.Output) error {
 }
 
 // getOutput returns specified output
-func (u *utxoCache) getOutput(txHash string, outputIndex uint32) *dbop.Output {
+func (u *outputCache) getOutput(txHash string, outputIndex uint32) *dbop.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil
@@ -88,7 +107,7 @@ func (u *utxoCache) getOutput(txHash string, outputIndex uint32) *dbop.Output {
 }
 
 // deleteOutput deletes the specified output
-func (u *utxoCache) deleteOutput(txHash string, outputIndex uint32) {
+func (u *outputCache) deleteOutput(txHash string, outputIndex uint32) {
 	t, ok := u.c[txHash]
 	if !ok {
 		return
@@ -103,7 +122,7 @@ func (u *utxoCache) deleteOutput(txHash string, outputIndex uint32) {
 }
 
 // deleteOutput returns the output specified output and deletes it afterwards
-func (u *utxoCache) getAndEvictOutput(txHash string, outputIndex uint32) *dbop.Output {
+func (u *outputCache) getAndEvictOutput(txHash string, outputIndex uint32) *dbop.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil
@@ -121,20 +140,4 @@ func (u *utxoCache) getAndEvictOutput(txHash string, outputIndex uint32) *dbop.O
 	}
 
 	return &output
-}
-
-// addBlock loads the unspent transaction outputs from block mostRecentBlockID into the cache
-func (u *utxoCache) addBlock(dgraph external.Database, mostRecentBlockID int64) error {
-	transactions, err := dbtx.GetUTXOs(dgraph, mostRecentBlockID, mostRecentBlockID)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	for _, t := range transactions {
-		if err := u.setOutputs(t.Hash, t.Outputs); err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
-
-	return nil
 }

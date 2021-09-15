@@ -27,7 +27,7 @@ type Crawler struct {
 	isDatabaseEmpty bool
 	currentBlock    *btcjson.GetBlockVerboseResult
 
-	cache *utxoCache
+	cache *outputCache
 }
 
 // NewCrawler creates a new Crawler object
@@ -112,7 +112,7 @@ func (c *Crawler) CalculateInitialState() error {
 	c.state.incremented = true
 
 	info("Loading UTXOs of last", initialLoadSize, "blocks ...")
-	c.cache, err = newCache(c.db, int64(state.id))
+	c.cache, err = newUTXOCache(c.db, int64(state.id))
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
