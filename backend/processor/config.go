@@ -6,7 +6,7 @@ import "time"
 type Config struct {
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
-	// BlockTime is the average Dash block time
+	// BlockTime is the average block time
 	BlockTime time.Duration
 	// NewBlockIntervalTime is the time interval in which the processor checks if a new block is available
 	NewBlockIntervalTime time.Duration
