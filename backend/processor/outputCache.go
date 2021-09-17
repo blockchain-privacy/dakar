@@ -9,14 +9,12 @@ import (
 	"fmt"
 )
 
-const initialLoadSize = 25000
-
 type outputCache struct {
 	c map[string]map[uint32]dbop.Output
 }
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
-func newUTXOCache(dgraph external.Database, mostRecentBlockID int64) (*outputCache, error) {
+func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
 	fromBlock := mostRecentBlockID - initialLoadSize
 	if fromBlock <= 0 {
 		fromBlock = 1

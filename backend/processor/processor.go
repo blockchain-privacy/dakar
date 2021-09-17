@@ -8,6 +8,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"backend/external"
+	"github.com/btcsuite/btcd/rpcclient"
 
 	"encoding/hex"
 	"errors"
@@ -538,12 +539,10 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 }
 
 // createTransactionHashmap creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
-	txs := make(map[string]btcjson.TxRawResult)
-
+func createTransactionHashmap(client external.BatchRPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
 	type txLookup struct {
 		hash   string
-		result btcjson.TxRawResult
+		result rpcclient.FutureGetRawTransactionVerboseResult
 		err    error
 	}
 
@@ -559,26 +558,43 @@ func createTransactionHashmap(client external.RPCClient, transactions []string) 
 				c <- l
 				return
 			}
-			tx, err := client.GetRawTransactionVerbose(txHash)
+			futureResults := client.GetRawTransactionVerboseAsync(txHash)
 			if err != nil {
 				l.err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				c <- l
 				return
 			}
 
-			l.result = *tx
+			l.result = futureResults
 
 			c <- l
 		}(t, c)
 	}
 
+	// collect future results
+	var futures []txLookup
 	for i := 0; i < len(transactions); i++ {
 		lookup := <-c
 		if lookup.err != nil {
-			return txs, lookup.err
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookup.err)
+		}
+		futures = append(futures, lookup)
+	}
+
+	// send batch request
+	if err := client.Send(); err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// collect results
+	txs := make(map[string]btcjson.TxRawResult)
+	for _, f := range futures {
+		r, err := f.result.Receive()
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		txs[lookup.hash] = lookup.result
+		txs[f.hash] = *r
 	}
 
 	return txs, nil
@@ -628,13 +644,13 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(dgraph external.Database, client external.RPCClient, state crawlerState,
+func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, state crawlerState,
 	block *btcjson.GetBlockVerboseResult, setLowestID bool, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
 	var transactions []dbtx.Transaction
 
-	txHashMap, err := createTransactionHashmap(client, block.Tx)
+	txHashMap, err := createTransactionHashmap(batchRpc, block.Tx)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
