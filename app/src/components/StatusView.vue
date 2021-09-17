@@ -144,6 +144,16 @@
                   </IconItem>
                 </v-col>
               </v-row>
+              <v-row v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0">
+                <v-col>
+                  <IconItem
+                      :icon="icon.mdiHarddisk"
+                      title="Blockchain Size"
+                      :tooltip="tooltips.rpcBlockchainSize">
+                    {{  (data.rpcinfo.size_on_disk / 1073741824).toFixed(2) }} GiB
+                  </IconItem>
+                </v-col>
+              </v-row>
             </v-container>
           </v-card-text>
         </v-card>
@@ -157,7 +167,7 @@ import {
   mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
   mdiArrowDownCircleOutline, mdiTimelineClockOutline,
   mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
-  mdiWeight,
+  mdiWeight, mdiHarddisk,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_META } from '../constants';
 import IconItem from './common/IconItem.vue';
@@ -179,6 +189,7 @@ export default {
         mdiProgressWrench,
         mdiCubeOffOutline,
         mdiWeight,
+        mdiHarddisk,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
@@ -194,6 +205,7 @@ export default {
         rpcDifficulty: 'Current mining difficulty',
         rpcPruned: 'Whether the RPC client prunes blocks',
         rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
+        rpcBlockchainSize: 'The estimated size of the block and undo files on disk',
       },
       timer: null,
       timeoutData: {
