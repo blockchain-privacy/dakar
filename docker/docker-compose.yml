@@ -52,18 +52,18 @@ services:
     command: dashd
     restart: ${RESTART_POLICY}
 
-  bitcoind:
-    image: ruimarinho/bitcoin-core:0.21-alpine
-    container_name: bitcoind
-    volumes:
-      - ${BITCOIN_PATH}:/home/bitcoin/.bitcoin
-    ports:
-      - ${CONTAINER_IP}:8332:8332
-      - ${CONTAINER_IP}:8333:8333
-    expose:
-      - 8332
-      - 8333
-    restart: ${RESTART_POLICY}
+#  bitcoind:
+#    image: ruimarinho/bitcoin-core:0.21-alpine
+#    container_name: bitcoind
+#    volumes:
+#      - ${BITCOIN_PATH}:/home/bitcoin/.bitcoin
+#    ports:
+#      - ${CONTAINER_IP}:8332:8332
+#      - ${CONTAINER_IP}:8333:8333
+#    expose:
+#      - 8332
+#      - 8333
+#    restart: ${RESTART_POLICY}
 
 networks:
   dgraph_default:
