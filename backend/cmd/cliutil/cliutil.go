@@ -15,8 +15,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// readConfig reads the config file from the given file path
-func readConfig(configFilePath string, config interface{}) error {
+// ReadConfig reads the config file from the given file path
+func ReadConfig(configFilePath string, config interface{}) error {
 	// Open config file
 	file, err := os.Open(configFilePath)
 	if err != nil {
@@ -42,7 +42,7 @@ func readConfig(configFilePath string, config interface{}) error {
 	return nil
 }
 
-func writeConfig(filePath string, config interface{}) error {
+func WriteConfig(filePath string, config interface{}) error {
 	marshalledConfig, err := yaml.Marshal(&config)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
@@ -55,37 +55,11 @@ func writeConfig(filePath string, config interface{}) error {
 	return nil
 }
 
-func setConfigFlags(defaultConfigName string, filePath *string, createConfigFile *bool) {
-	flag.NewFlagSet("test", flag.ExitOnError)
-
+func SetConfigFlags(defaultConfigName string, filePath *string, createConfigFile *bool) {
 	flag.StringVar(filePath, "config", defaultConfigName,
 		"config file path (default:"+defaultConfigName+")")
 	flag.BoolVar(createConfigFile, "createConfig", false,
 		"creates a default config file '"+defaultConfigName+"' (default: false)")
-}
-
-func GetConfig(defaultConfigName string, config interface{}, defaultInterface interface{}) error {
-	var filePath string
-	var createConfigFile bool
-	setConfigFlags(defaultConfigName, &filePath, &createConfigFile)
-	flag.Parse()
-	// create a new config file
-	if createConfigFile {
-		err := writeConfig(defaultConfigName, defaultInterface)
-		if err != nil {
-			return fmt.Errorf("%s: %w", ShowCallInfo(), err)
-		}
-
-		fmt.Println("config file", defaultConfigName, "successfully created")
-
-		os.Exit(0)
-	}
-
-	if err := readConfig(filePath, config); err != nil {
-		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
-	}
-
-	return nil
 }
 
 // ShowCallInfo returns the current call stack
