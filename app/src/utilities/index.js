@@ -4,7 +4,7 @@ import {
   LOCALSTORAGE_FIELD_SETTINGS,
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
-  ROUTE_NAME_LOGIN_PAGE,
+  ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
 } from '../constants';
 
 export function resetData(context) {
@@ -89,6 +89,12 @@ function isInvalidTokenMsg(msg, router, store) {
     return true;
   }
   return false;
+}
+
+// isTokenTimedOut returns true if the user session has timed out
+export function isTokenTimedOut(userData) {
+  return !userData || !userData.lastAction
+      || new Date() - new Date(userData.lastAction) >= TOKEN_TIMEOUT;
 }
 
 export function doPost(route, router, store, body, parameter) {
