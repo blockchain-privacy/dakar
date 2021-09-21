@@ -6,7 +6,7 @@ PKG_LIST := $(shell go list ../../... | grep -v /vendor/)
 all: build
 
 lint: # Lint the files
-	@go get -u honnef.co/go/tools/cmd/staticcheck@latest
+	@go install honnef.co/go/tools/cmd/staticcheck@latest
 	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
 
 test: ## Run unittests
