@@ -42,6 +42,7 @@ func ReadConfig(configFilePath string, config interface{}) error {
 	return nil
 }
 
+// WriteConfig writes the config value to the given file path
 func WriteConfig(filePath string, config interface{}) error {
 	marshalledConfig, err := yaml.Marshal(&config)
 	if err != nil {
@@ -55,6 +56,7 @@ func WriteConfig(filePath string, config interface{}) error {
 	return nil
 }
 
+// SetConfigFlags sets the CLI flags for accessing and generating the configuration file
 func SetConfigFlags(defaultConfigName string, filePath *string, createConfigFile *bool) {
 	flag.StringVar(filePath, "config", defaultConfigName,
 		"config file path (default:"+defaultConfigName+")")
