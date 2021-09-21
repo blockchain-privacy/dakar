@@ -107,13 +107,8 @@ export default {
         this.$emit('input', val);
       },
     },
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
+    userData() {
+      return this.$store.getters.getActiveUser;
     },
     showUserAdmin() {
       return isAdminUser(this.userData);

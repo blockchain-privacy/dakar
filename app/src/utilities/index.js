@@ -14,6 +14,13 @@ export function resetData(context) {
   context.$store.dispatch('setAddressData', null);
 }
 
+// setActionDate sets the current time as the last action timestamp of the user data.
+// This method should be used each time the frontend interacts with the backend.
+export function setActionDate(userData) {
+  userData.lastAction = new Date();
+  return userData;
+}
+
 export function setLocalUser(userData) {
   localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(userData));
 }
@@ -77,6 +84,7 @@ function isInvalidTokenMsg(msg, router, store) {
   if (msg.invalidToken !== undefined && msg.invalidToken === true) {
     // set failed route so we can reroute to it later
     store.dispatch('setFailedRoute', router.history.current);
+    store.dispatch('setActiveUser', null);
     router.push({ name: ROUTE_NAME_LOGIN_PAGE });
     return true;
   }
@@ -101,6 +109,12 @@ export function doPost(route, router, store, body, parameter) {
   }).then((response) => response.json())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
+      // update last action time stamp
+      const userData = store.getters.getActiveUser;
+      if (userData) {
+        store.dispatch('setActiveUser', setActionDate(userData));
+      }
+
       return data;
     });
 }
@@ -118,6 +132,12 @@ export function doGet(route, router, store, parameter) {
     .then((response) => response.json())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
+      // update last action time stamp
+      const userData = store.getters.getActiveUser;
+      if (userData) {
+        store.dispatch('setActiveUser', setActionDate(userData));
+      }
+
       return data;
     });
 }

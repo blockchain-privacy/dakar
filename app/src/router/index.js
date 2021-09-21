@@ -24,6 +24,8 @@ import Store from '../state';
 
 Vue.use(Router);
 
+// time is 48 hours:  1000 * 60 * 60 * 48 = 172800000
+const tokenTimeout = 172800000;
 function getUserData() {
   return Store.getters.getActiveUser;
 }
@@ -47,8 +49,18 @@ function isAdmin() {
 }
 
 function checkUserData(to, next, fn) {
-  if (!getUserData()) {
+  const userData = getUserData();
+  if (!userData || userData.lastAction === undefined) {
     Store.dispatch('setFailedRoute', to);
+    next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
+    return;
+  }
+
+  // check if token timeout has been reached
+  if (new Date() - new Date(userData.lastAction) >= tokenTimeout) {
+    Store.dispatch('setFailedRoute', to);
+    Store.dispatch('setActiveUser', null);
+    Store.dispatch('addMessage', { type: 'info', text: 'Your session timed out', temporary: true });
     next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
     return;
   }

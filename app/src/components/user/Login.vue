@@ -86,7 +86,7 @@ import {
   PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS, APPLICATION_SUBTITLE,
 } from '../../constants';
 import {
-  doPost, emailRules, getLocalSettings, passwordRules,
+  doPost, emailRules, getLocalSettings, passwordRules, setActionDate,
 } from '../../utilities';
 
 function goToPage(context, pageObj) {
@@ -174,7 +174,7 @@ export default {
           }
 
           // set user data
-          this.userData = data.user;
+          this.userData = setActionDate(data.user);
 
           // load settings from localStorage
           const localStorageSettingsData = getLocalSettings();
