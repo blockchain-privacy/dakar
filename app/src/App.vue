@@ -18,6 +18,7 @@ import {
   DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
 } from './constants';
 import AppBar from './components/AppBar.vue';
+import { isTokenTimedOut } from './utilities';
 
 export default {
   name: 'App',
@@ -34,6 +35,14 @@ export default {
     };
   },
   computed: {
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
     settings: {
       get() {
         return this.$store.getters.getSettings;
@@ -62,6 +71,11 @@ export default {
         this.persistDarkTheme(e.matches);
       });
     },
+  },
+  mounted() {
+    if (isTokenTimedOut(this.userData)) {
+      this.userData = null;
+    }
   },
   beforeMount() {
     // eslint-disable-next-line no-console
