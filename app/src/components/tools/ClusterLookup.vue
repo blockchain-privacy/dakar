@@ -65,60 +65,13 @@
         </v-toolbar>
         <v-card-text>
           <p class="text-subtitle-1">Last updated by</p>
-          <v-list>
-            <v-row>
-              <v-col>
-                <v-list-item :to="{ name: txRoute,params: { id: c.txhash }}">
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Transaction Hash
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ c.txhash }}
-                    </v-list-item-subtitle>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-col>
-              <v-col>
-                <v-list-item>
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Timestamp
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ new Date(c.ts).toLocaleString() }}
-                    </v-list-item-subtitle>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-col>
-            </v-row>
-            <v-row>
-              <v-col>
-                <v-list-item :to="{ name: blockRoute, params: { id: c.bhash }}">
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Block Hash
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ c.bhash }}
-                    </v-list-item-subtitle>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-col>
-              <v-col>
-                <v-list-item :to="{ name: blockRoute, params: { id: c.bid }}">
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      Block Id
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ c.bid }}
-                    </v-list-item-subtitle>
-                  </v-list-item-content>
-                </v-list-item>
-              </v-col>
-            </v-row>
-          </v-list>
+          <ClusterDetails :tx-hash="c.txhash"  :block-hash="c.bhash"
+                          :block-id="c.bid" :timestamp="c.ts" />
+          <div v-if="isJointLookup && c.hmi">
+            <p class="text-subtitle-1">First included by</p>
+            <ClusterDetails :tx-hash="c.hmi.txhash"  :block-hash="c.hmi.bhash"
+                            :block-id="c.hmi.bid" :timestamp="c.hmi.ts" />
+          </div>
         </v-card-text>
         <v-divider v-if="c.cluster_addresses && c.cluster_addresses.length > 0"/>
         <v-expansion-panels focusable flat
@@ -130,7 +83,7 @@
             <v-expansion-panel-content>
               <v-list dense>
                 <v-row>
-                  <v-col v-for="(a) in c.cluster_addresses" :key="a">
+                  <v-col v-for="(a, i) in c.cluster_addresses" :key="i">
                     <v-list-item :to="{ name: addressRoute, params: { id: a.addresshash }}">
                       <v-list-item-content>
                         <v-list-item-title>
@@ -153,12 +106,14 @@
 import { mdiMerge } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
-  ROUTE_NAME_TRANSACTION_PAGE,
+  ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI,
 } from '../../constants';
 import { doPost, getClusterTypeLabel, handleError } from '../../utilities';
+import ClusterDetails from './ClusterDetails.vue';
 
 export default {
   name: 'ClusterLookup',
+  components: { ClusterDetails },
   data() {
     return {
       icon: {
@@ -225,7 +180,27 @@ export default {
           }
 
           if (data.clusters && data.clusters.length > 0) {
-            this.clusters = data.clusters;
+            const clusterMap = new Map();
+            const clusters = [];
+
+            // add all clusters to array if they are not hmi and fmi
+            data.clusters.forEach((d) => {
+              clusterMap.set(d.cluster_type, d);
+              if (d.cluster_type !== CLUSTER_TYPE_HMI
+                  && d.cluster_type !== CLUSTER_TYPE_FMI) clusters.push(d);
+            });
+
+            // insert hmi cluster into fmi cluster and add the composite cluster into the array
+            if (clusterMap.has(CLUSTER_TYPE_FMI)) {
+              const fmiCluster = clusterMap.get(CLUSTER_TYPE_FMI);
+              if (clusterMap.has(CLUSTER_TYPE_HMI)) {
+                fmiCluster.hmi = clusterMap.get(CLUSTER_TYPE_HMI);
+              }
+
+              clusters.push(fmiCluster);
+            }
+
+            this.clusters = clusters;
           }
         })
         .catch((e) => {

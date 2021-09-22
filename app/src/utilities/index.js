@@ -5,6 +5,7 @@ import {
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
   ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
+  CLUSTER_TYPE_FMI,
 } from '../constants';
 
 export function resetData(context) {
@@ -253,10 +254,8 @@ export function getMixingLabel(privacyType) {
 // getClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
 export function getClusterTypeLabel(clusterType) {
   switch (clusterType) {
-    case 'fmi':
-      return 'Flat Multi-Input Cluster';
-    case 'hmi':
-      return 'Hierarchical Multi-Input Cluster';
+    case CLUSTER_TYPE_FMI:
+      return 'Multi-Input Cluster';
     default:
       return clusterType;
   }
