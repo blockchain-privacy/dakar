@@ -282,7 +282,7 @@ const clusterQuery = `q(func: uid(c)){
 func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
 	const query = string(`query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+					c as ~cluster_addresses
 				}
 				` + clusterQuery + "}")
 
