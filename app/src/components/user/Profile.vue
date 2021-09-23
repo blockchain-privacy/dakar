@@ -104,7 +104,7 @@ import {
 import { PAGE_TITLE, ROUTE_USER_MODIFY } from '../../constants';
 import ProfileItem from './ProfileItem.vue';
 import {
-  doPost, emailRules, handleError, passwordRules,
+  doPost, emailRules, handleError, passwordRules, setActionDate,
 } from '../../utilities';
 
 export default {
@@ -217,7 +217,7 @@ export default {
           }
 
           if (data.user) {
-            this.userData = data.user;
+            this.userData = setActionDate(data.user);
             this.setSuccessMessage('Successfully changed E-mail');
           }
         })

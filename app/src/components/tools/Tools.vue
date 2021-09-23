@@ -98,13 +98,8 @@ export default {
     };
   },
   computed: {
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
+    userData() {
+      return this.$store.getters.getActiveUser;
     },
   },
 };

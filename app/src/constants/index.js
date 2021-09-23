@@ -69,3 +69,5 @@ export const COIN_UNIT = COIN_UNIT_DASH;
 // PASSWORD_MIN_CHARACTERS is the number of character a password must have at least
 export const PASSWORD_MIN_CHARACTERS = 10;
 export const PASSWORD_MAX_CHARACTERS = 250;
+// time is 48 hours:  1000 * 60 * 60 * 48 = 172800000
+export const TOKEN_TIMEOUT = 172800000;
