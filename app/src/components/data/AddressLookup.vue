@@ -8,6 +8,16 @@
               <v-icon>{{ icon.mdiCardBulletedOutline }}</v-icon>
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
+            <v-spacer></v-spacer>
+            <v-btn
+                id="btn_open_cluster_view"
+                style="margin-right: 0" outlined icon
+                :to="{ name: clusterViewRoute }">
+              <v-icon>{{ icon.mdiGraph }}</v-icon>
+            </v-btn>
+            <v-tooltip bottom activator="#btn_open_cluster_view">
+              <span>Open the cluster viewer for this address.</span>
+            </v-tooltip>
           </v-toolbar>
           <v-card-text>
             <v-container>
@@ -136,13 +146,13 @@
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound,
+  mdiBankTransferOut, mdiPound, mdiGraph,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
 import { convertAmount, doPost, handleError } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
-  ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT,
+  ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
 
@@ -157,6 +167,7 @@ export default {
         mdiBankTransferIn,
         mdiBankTransferOut,
         mdiPound,
+        mdiGraph,
       },
       coinUnit: COIN_UNIT,
       combobox: {
@@ -195,6 +206,7 @@ export default {
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+      clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
     };
   },
   methods: {
