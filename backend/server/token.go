@@ -4,12 +4,9 @@ import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
 
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/o1egl/paseto"
@@ -27,10 +24,6 @@ const (
 	reissueDuration = tokenExpirationTime / 4
 	// tokenFieldUser is the name of the user field in the token
 	tokenFieldUser = "user_id"
-	// SigningPubkeyEnvironmentField is the name of the os environment field for the public signing key
-	SigningPubkeyEnvironmentField = "TOKEN_PUB_KEY"
-	// SigningPrivkeyEnvironmentField is the name of the os environment field for the private signing key
-	SigningPrivkeyEnvironmentField = "TOKEN_PRIV_KEY"
 )
 
 type tokenUser struct {
@@ -44,33 +37,6 @@ func (t tokenUser) toUser() dbus.User {
 		UID:   t.ID,
 		Roles: t.Roles,
 	}
-}
-
-// GetSigningKeysFromEnv returns a public key pair, an error is returned if
-// SigningPubkeyEnvironmentField or SigningPrivkeyEnvironmentField are not set
-func GetSigningKeysFromEnv() (ed25519.PrivateKey, ed25519.PublicKey, error) {
-	pubKeyEncoded := os.Getenv(SigningPubkeyEnvironmentField)
-
-	if len(pubKeyEncoded) == 0 {
-		return nil, nil, errors.New("public key environment variable not set")
-	}
-
-	privkeyEncoded := os.Getenv(SigningPrivkeyEnvironmentField)
-	if len(privkeyEncoded) == 0 {
-		return nil, nil, errors.New("private key environment variable not set")
-	}
-
-	privkey, err := hex.DecodeString(privkeyEncoded)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	pubkey, err := hex.DecodeString(pubKeyEncoded)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return privkey, pubkey, nil
 }
 
 // setTokenAsCookie writes the given token with w as a cookie

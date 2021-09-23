@@ -10,6 +10,7 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -785,17 +786,17 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker) {
-	// get signing keys
-	privkey, pubkey, err := GetSigningKeysFromEnv()
+func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker,
+	basicAuthUser string, basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) {
+
+	privkey, err := hex.DecodeString(tokenPrivateKey)
 	if err != nil {
-		panic(fmt.Sprintln("error getting signing keys", err))
+		panic(err)
 	}
 
-	// get basic auth credentials
-	basicAuthUser, basicAuthPasswordHash, err := GetBasicAuthCredentialsFromEnv()
+	pubkey, err := hex.DecodeString(tokenPublicKey)
 	if err != nil {
-		panic(fmt.Sprintln("error getting basic auth credentials", err))
+		panic(err)
 	}
 
 	// init cache
@@ -812,7 +813,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 
 	// Metrics
 	http.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
-		basicAuthMiddleware(basicAuthUser, basicAuthPasswordHash)))
+		basicAuthMiddleware(basicAuthUser, basicAuthHash)))
 
 	// Search
 	http.Handle(constants.GetRouteSearch(),

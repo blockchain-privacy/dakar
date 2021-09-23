@@ -11,11 +11,8 @@ import (
 	dbus "backend/db/user"
 	"backend/processor"
 	"backend/server"
-	"backend/user"
 
 	"context"
-	"crypto/ed25519"
-	"encoding/hex"
 	"errors"
 	"flag"
 	"fmt"
@@ -70,14 +67,49 @@ func setCommandFlags(c *Commands) {
 func main() {
 	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
 
+	////// SET FLAGS //////
+
 	var commands Commands
 	setCommandFlags(&commands)
 
-	var config Config
-	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
-		log.Println(err)
+	defaultConfigName := "config.yml"
+	var filePath string
+	var createConfigFile bool
+	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
+	flag.Parse()
+
+	////// CONFIGURATION FILE HANDLING //////
+
+	if createConfigFile {
+		fmt.Println("Generating configuration file ...")
+		defConfig, configErr := getDefaultConfig()
+		if configErr != nil {
+			fmt.Println(configErr)
+			return
+		}
+
+		err := cli.WriteConfig(defaultConfigName, defConfig)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		fmt.Println("config file", defaultConfigName, "successfully created")
 		return
 	}
+
+	var config Config
+	if err := cli.ReadConfig(filePath, &config); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if moduleErr := checkHTTPModuleConfig(config.Modules.HTTP); moduleErr != nil {
+		fmt.Println(moduleErr)
+		return
+	}
+
+	////// SETUP //////
 
 	// setup Logging
 	if f, err := cli.GetLogfile(config.Logfile); err == nil {
@@ -132,6 +164,8 @@ func main() {
 
 	info(processorConfig.BlockchainName, "mode")
 
+	////// CONNECT TO DATABASE //////
+
 	endpoint, err := cli.BuildEndpoint(config.Database.Host, config.Database.Port)
 	if err != nil {
 		info(err)
@@ -153,42 +187,6 @@ func main() {
 	// test if database is active
 	if !waitForDatabase(graphDB) {
 		return
-	}
-
-	// check if signing keys and basic auth are set
-	if config.Modules.HTTP.Active {
-		_, _, keyErr := server.GetSigningKeysFromEnv()
-		if keyErr != nil {
-			info("error getting signing keys. Set the following environment variables:",
-				server.SigningPubkeyEnvironmentField, server.SigningPrivkeyEnvironmentField)
-
-			publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
-			if genErr != nil {
-				return
-			}
-
-			info("Generated new key pair:\npublic key:", hex.EncodeToString(publicKey), "\nprivate key:", hex.EncodeToString(privateKey))
-			return
-		}
-
-		_, _, authErr := server.GetBasicAuthCredentialsFromEnv()
-		if authErr != nil {
-			info("error getting basic auth credentials. Set the following environment variables:",
-				server.BasicAuthUserEnvironmentField, server.BasicAuthPasswordHashEnvironmentField)
-
-			password, pwErr := user.GenerateRandomPassword()
-			if pwErr != nil {
-				return
-			}
-
-			pwHash, pwErr := user.GeneratePasswordHash(user.DefaultPasswordConfig, password)
-			if pwErr != nil {
-				return
-			}
-
-			info("Generated new basic auth pair:\nuser: dakar", "\npassword:", password, "\npassword hash:", pwHash)
-			return
-		}
 	}
 
 	if commands.ResetDB {
@@ -245,6 +243,8 @@ func main() {
 		}
 	}
 
+	////// CREATE ADMIN USER //////
+
 	// create admin account if none is set
 	if config.Modules.HTTP.Active {
 		// check if users already exist
@@ -271,6 +271,8 @@ func main() {
 			}
 		}
 	}
+
+	////// CONNECT TO RPC //////
 
 	// Set up the RPC connection, only if needed
 	var client *rpcclient.Client
@@ -313,6 +315,8 @@ func main() {
 			return
 		}
 	}
+
+	////// START MODULES //////
 
 	// handle shutdown signals
 	chSignal := make(chan os.Signal, 1)
@@ -442,8 +446,12 @@ func main() {
 	var srv *http.Server
 	if config.Modules.HTTP.Active {
 		wg.Add(1)
-		srv = server.StartServer(&wg, config.Modules.HTTP.Port, graphDB, client, worker)
+		srv = server.StartServer(&wg, config.Modules.HTTP.Port, config.Modules.HTTP.BasicAuthUser,
+			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey,
+			graphDB, client, worker)
 	}
+
+	////// HANDLE SHUTDOWN //////
 
 	var crawlerStopped = !config.Modules.Crawler.Active
 	var classifierStopped = !config.Modules.Classifier

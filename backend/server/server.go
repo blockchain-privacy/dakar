@@ -31,10 +31,11 @@ func fatal(v ...interface{}) {
 }
 
 // StartServer creates a http server on the given port
-func StartServer(wg *sync.WaitGroup, port uint, dgraph external.Database, client external.RPCClient,
+func StartServer(wg *sync.WaitGroup, port uint, basicAuthUser string, basicAuthHash string, tokenPublicKey string,
+	tokenPrivateKey string, dgraph external.Database, client external.RPCClient,
 	worker *heuristic.Worker) *http.Server {
 	// setup REST API
-	setupHandlers(dgraph, client, worker)
+	setupHandlers(dgraph, client, worker, basicAuthUser, basicAuthHash, tokenPublicKey, tokenPrivateKey)
 
 	// create server
 	srv := &http.Server{

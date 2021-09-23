@@ -3,6 +3,10 @@ package main
 import (
 	"backend/db/status"
 	"backend/external"
+	"backend/user"
+	"crypto/ed25519"
+	"encoding/hex"
+	"fmt"
 
 	"context"
 	"errors"
@@ -35,8 +39,12 @@ type ClusterModule struct {
 }
 
 type HTTPModule struct {
-	Active bool `yaml:"active"`
-	Port   uint `yaml:"port"`
+	Active          bool   `yaml:"active"`
+	Port            uint   `yaml:"port"`
+	BasicAuthUser   string `yaml:"basicAuthUser"`
+	BasicAuthPWHash string `yaml:"basicAuthPWHash"`
+	TokenPrivateKey string `yaml:"tokenPrivateKey"`
+	TokenPublicKey  string `yaml:"tokenPublicKey"`
 }
 
 type ModulesConfig struct {
@@ -57,7 +65,7 @@ type Config struct {
 
 var defaultConfig = Config{
 	BlockchainMode: "Dash",
-	Logfile:        "",
+	Logfile:        "dakar.log",
 	RPC: RPCConfig{
 		Host:     "0.0.0.0",
 		Port:     9998,
@@ -69,12 +77,60 @@ var defaultConfig = Config{
 		Port: 9080,
 	},
 	Modules: ModulesConfig{
-		HTTP:       HTTPModule{Active: true, Port: 8081},
+		HTTP: HTTPModule{
+			Active:          true,
+			Port:            8081,
+			BasicAuthUser:   "dakar",
+			BasicAuthPWHash: "",
+			TokenPrivateKey: "",
+			TokenPublicKey:  "",
+		},
 		Classifier: false,
 		Heuristics: false,
 		Crawler:    CrawlerModule{Active: true, InitialCacheSize: 25000},
 		Clustering: ClusterModule{HMI: false, FMI: false},
 	},
+}
+
+func getDefaultConfig() (Config, error) {
+	publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
+	if genErr != nil {
+		return Config{}, genErr
+	}
+
+	defaultConfig.Modules.HTTP.TokenPublicKey = hex.EncodeToString(publicKey)
+	defaultConfig.Modules.HTTP.TokenPrivateKey = hex.EncodeToString(privateKey)
+
+	password, pwErr := user.GenerateRandomPassword()
+	if pwErr != nil {
+		return Config{}, pwErr
+	}
+
+	pwHash, pwErr := user.GeneratePasswordHash(user.DefaultPasswordConfig, password)
+	if pwErr != nil {
+		return Config{}, pwErr
+	}
+
+	defaultConfig.Modules.HTTP.BasicAuthPWHash = pwHash
+
+	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", password)
+	fmt.Println("Save the password, it will not be written in the config file.")
+
+	return defaultConfig, nil
+}
+
+// checkHTTPModuleConfig returns an error if the given http module has invalid values
+func checkHTTPModuleConfig(c HTTPModule) error {
+	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" || c.TokenPrivateKey == "" || c.TokenPublicKey == "" {
+		return errors.New("http module config invalid, not all fields are filled")
+	}
+
+	parts := strings.Split(c.BasicAuthPWHash, "$")
+	if len(parts) != 6 {
+		return errors.New("basic auth password hash is invalid")
+	}
+
+	return nil
 }
 
 type Commands struct {

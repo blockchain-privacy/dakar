@@ -21,7 +21,7 @@ echo yes | ./crawler -reset
 
 ## Metrics
 
-The crawler exposes prometheus metrics via `\metrics`.
+The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured via HTTP basic authentication.
 
 ## Commandline Arguments
 

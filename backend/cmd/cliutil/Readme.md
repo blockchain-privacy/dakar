@@ -28,13 +28,29 @@ var defaultConfig = Config{
 }
 
 func main() {
-	var config Config
-	if err := cli.GetConfig("config.yml", &config, defaultConfig); err != nil {
-		log.Println(err)
-		return
-	}
+    var filePath string
+    var createConfigFile bool
+    cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
     flag.Parse()
-    fmt.Println(config.Logfile)
+
+    if createConfigFile {
+        fmt.Println("Generating configuration file ...")
+
+        err := cli.WriteConfig(defaultConfigName, defaultConfig)
+        if err != nil {
+            fmt.Println(err)
+            return
+        }
+
+        fmt.Println("config file", defaultConfigName, "successfully created")
+        return
+    }
+
+    var config Config
+    if err := cli.ReadConfig(filePath, &config); err != nil {
+        fmt.Println(err)
+        return
+    }
 }
 ```
 
