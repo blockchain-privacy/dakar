@@ -624,3 +624,17 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clus
 
 	return
 }
+
+// getHMILookupReply returns all hmi clusters connected to the given address hash
+func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
+	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return reply
+	}
+	reply.Success = true
+	reply.Clusters = clusters
+	reply.AddressCluster = addressCluster
+
+	return reply
+}

@@ -120,3 +120,10 @@ type FrontendClusterRequest struct {
 	} `json:"cluster_transaction,omitempty"`
 	Addresses []FrontendAddress `json:"cluster_addresses,omitempty"`
 }
+
+type FrontendHMICluster struct {
+	Uid             string       `json:"uid,omitempty"`
+	AddressCount    int          `json:"cluster_address_count,omitempty"`
+	TransactionHash string       `json:"txhash,omitempty"`
+	Children        []SubCluster `json:"cluster_children,omitempty"`
+}

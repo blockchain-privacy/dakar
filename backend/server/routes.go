@@ -445,6 +445,28 @@ func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.
 	})
 }
 
+// API pattern: "/api/v1/hmiLookup/<hash>"
+func handlerHMILookup(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		addressHash := r.URL.Path[len(constants.GetRouteHMILookup()):]
+
+		if !isValid(addressHash) {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		reply := getHMILookupReply(dgraph, addressHash)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristicStatus/<hash>"
 func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -884,6 +906,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteHMILookup(),
+		adapt(handlerHMILookup(dgraph), constants.GetRouteHMILookup(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User
