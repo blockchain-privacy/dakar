@@ -30,30 +30,16 @@ const (
 
 var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
 
-// GetOutput gets output information from the database
-func GetOutput(c external.Database, txHash string, index uint32, isInput bool) (op Output, err error) {
-	// build query
-	relationship := "tx_outputs"
-	indextype := "outputindex"
-	if isInput {
-		relationship = "tx_inputs"
-		indextype = "inputindex"
-	}
-
-	query := fmt.Sprintf(`query Q($hash: string, $idx: string) {
+// GetOutputAmount gets output amount data from the database
+func GetOutputAmount(c external.Database, txHash string, index uint32) (op Output, err error) {
+	const query = `query Q($hash: string, $idx: string) {
 				getOutput(func: eq(txhash, $hash)) {
-					%s @filter(eq(%s, $idx)) {
+					tx_outputs@filter(eq(outputindex, $idx)) {
 						uid
-						outputindex
-						inputindex
 						amount
-						txtype
-						iscoinbase
-						dgraph.type
 					}
 				}
-			  }
-				`, relationship, indextype)
+			  }`
 
 	vars := make(map[string]string)
 	vars["$hash"] = txHash

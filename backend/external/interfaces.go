@@ -36,6 +36,22 @@ type RPCClient interface {
 	GetBlockChainInfoAsync() rpcclient.FutureGetBlockChainInfoResult
 }
 
+// BatchRPCClient defines the methods which rpcclient of btcsuite implements.
+// Descriptions are copied from there.
+type BatchRPCClient interface {
+	// GetRawTransactionVerboseAsync returns an instance of a type that can be used
+	// to get the result of the RPC at some future time by invoking the Receive
+	// function on the returned instance.
+	GetRawTransactionVerboseAsync(txHash *chainhash.Hash) rpcclient.FutureGetRawTransactionVerboseResult
+	// GetBlockCountAsync returns an instance of a type that can be used to get the
+	// result of the RPC at some future time by invoking the Receive function on the
+	// returned instance.
+	GetBlockCountAsync() rpcclient.FutureGetBlockCountResult
+	// Send marshall's bulk requests and sends to the server
+	// creates a response channel to receive the response
+	Send() error
+}
+
 // Database defines the methods which Dgraph of Dgo implements.
 // Descriptions are copied from there.
 type Database interface {

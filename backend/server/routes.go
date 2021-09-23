@@ -293,6 +293,7 @@ func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handl
 				Difficulty:           rpcInfo.Difficulty,
 				VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
 				Pruned:               rpcInfo.Pruned,
+				SizeOnDisk:           rpcInfo.SizeOnDisk,
 			},
 		}
 

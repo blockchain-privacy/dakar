@@ -18,6 +18,7 @@ type Crawler struct {
 	config       Config
 	db           external.Database
 	rpc          external.RPCClient
+	batchRpc     external.BatchRPCClient
 	ctx          context.Context
 	state        crawlerState
 	blocks       prometheus.Counter
@@ -26,15 +27,21 @@ type Crawler struct {
 
 	isDatabaseEmpty bool
 	currentBlock    *btcjson.GetBlockVerboseResult
+
+	initialBlockCacheSize int64
+	cache                 *outputCache
 }
 
 // NewCrawler creates a new Crawler object
-func NewCrawler(ctx context.Context, database external.Database, rpc external.RPCClient, cfg Config) *Crawler {
+func NewCrawler(ctx context.Context, database external.Database, rpc external.RPCClient,
+	batchRpc external.BatchRPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
 	return &Crawler{
-		config: cfg,
-		db:     database,
-		rpc:    rpc,
-		ctx:    ctx,
+		config:                cfg,
+		db:                    database,
+		rpc:                   rpc,
+		batchRpc:              batchRpc,
+		ctx:                   ctx,
+		initialBlockCacheSize: initialBlockCacheSize,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_crawler_blocks_processed_total",
 			Help: "The total number of blocks processed by the crawler",
@@ -109,6 +116,13 @@ func (c *Crawler) CalculateInitialState() error {
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
 
+	info("Loading UTXOs of last", c.initialBlockCacheSize, "blocks ...")
+	c.cache, err = newUTXOCache(c.db, int64(state.id), c.initialBlockCacheSize)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+	info("Loaded", c.cache.getOutputCounts(), "UTXOs")
+
 	return nil
 }
 
@@ -177,8 +191,8 @@ func (c *Crawler) Iterate() (bool, error) {
 	}
 
 	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := ProcessRound(c.db, c.rpc, c.state, c.currentBlock,
-		c.isDatabaseEmpty, c.config); processErr == nil {
+	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRpc, c.state, c.currentBlock,
+		c.isDatabaseEmpty, c.config, c.cache); processErr == nil {
 		c.isDatabaseEmpty = false
 
 		c.blocks.Add(float64(rBlockCounter))

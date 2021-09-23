@@ -61,6 +61,42 @@ func GetTransaction(c external.Database, txHash string, blockHash string) (trans
 	return r.payload()
 }
 
+// GetTransactionsOutputs returns all outputs of each given transaction
+func GetTransactionsOutputs(c external.Database, transactionHashes []string) (transaction []OutputTransactionMapping, err error) {
+	query := `{
+				q(func: eq(txhash,` + db.CreateUIDList(transactionHashes) + `)){
+					txhash
+					tx_outputs{
+						uid
+						amount
+						outputindex
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*5, query)
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Transactions []OutputTransactionMapping `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(transactionHashes) != len(r.Transactions) {
+		err = errors.New("number of returned transaction does not match number of requested transactions")
+		return
+	}
+
+	return r.Transactions, nil
+}
+
 // GetTransactionByBlock gets transaction information from the database by block id
 func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []Transaction, err error) {
 	const query = `query Q($block:string) {
@@ -417,6 +453,46 @@ func GetTransactionUID(c external.Database, txHash string) (uid string, err erro
 	}
 
 	uid = r.Q[0].UID
+
+	return
+}
+
+// GetOutputs returns the transaction outputs of the given block range
+func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transactions []Transaction, err error) {
+	const query = `query Q($id1:int,$id2:int){
+					var(func: between(id,$id1, $id2)){
+						t as transactions
+					}
+					
+					q(func: uid(t)){
+						txhash
+						tx_outputs{
+							uid
+							outputindex
+							inputindex
+							amount
+						}
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
+		"$id2": strconv.FormatInt(toBlockID, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []Transaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	transactions = r.Transactions
 
 	return
 }

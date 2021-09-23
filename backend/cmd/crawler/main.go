@@ -8,9 +8,7 @@ import (
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/status"
 	dbus "backend/db/user"
-	"backend/external"
 	"backend/processor"
 	"backend/server"
 	"backend/user"
@@ -29,7 +27,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/btcsuite/btcd/rpcclient"
 )
@@ -41,10 +38,6 @@ var thisLogger *log.Logger
 
 func initLogger() {
 	thisLogger = log.New(log.Writer(), "\033[0;31mcrawler\033[0m\t", log.Flags())
-}
-
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
 }
 
 func initAllLoggers() {
@@ -60,170 +53,8 @@ func initAllLoggers() {
 	heuristic.InitLogger(writer, flags)
 }
 
-// checks if a crawling process is already running
-func isCrawling(db external.Database) (bool, error) {
-	dbStatus, err := status.GetCrawlerStatus(db)
-	if err != nil {
-		// no status information found -> database is completely new
-		// and thus no crawling is happening right now
-		if errors.Is(err, status.ErrorStatusNotFound) {
-			return false, nil
-		}
-
-		return true, err
-	} else if dbStatus.IsCrawling == nil {
-		return true, errors.New("was not able to get crawling status successfully")
-	}
-
-	return *dbStatus.IsCrawling, nil
-}
-
-// waitForRPCClient waits until the RPC client is ready to receive requests
-func waitForRPCClient(client external.RPCClient) bool {
-	const maxRetries = 5
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		_, err := client.GetBlockCount()
-		if err == nil {
-			if printedErrMessage {
-				info("Successfully established connection to RPC client.")
-			}
-			return true
-		}
-
-		if strings.Contains(err.Error(), "status code: 401") {
-			info("Authentication error:", err)
-			return false
-		}
-
-		if !printedErrMessage {
-			info("Waiting for RPC client to start")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-	info("RPC client is not ready to receive requests.")
-	return false
-}
-
-// waitForDatabase waits until the database is ready to receive requests
-func waitForDatabase(db external.Database) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		if status.IsConnectionEstablished(db) {
-			if printedErrMessage {
-				info("Successfully established connection to database.")
-			}
-			return true
-		}
-
-		if !printedErrMessage {
-			info("Waiting for database")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	info("Database is not ready to receive requests.")
-
-	return false
-}
-
-// shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
-func shutdownServer(srv *http.Server) {
-	if srv == nil {
-		return
-	}
-	info("### Shutting down server###")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer func() {
-		// extra handling here
-		cancel()
-	}()
-
-	if err := srv.Shutdown(ctx); err != nil {
-		info("Server was shutdown and returned error:", err)
-	}
-}
-
-type RPCConfig struct {
-	Host     string `yaml:"host"`
-	Port     uint   `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-}
-
-type DatabaseConfig struct {
-	Host string `yaml:"host"`
-	Port uint   `yaml:"port"`
-}
-
-type ModulesConfig struct {
-	HTTP       bool `yaml:"http"`
-	Crawler    bool `yaml:"crawler"`
-	Classifier bool `yaml:"classifier"`
-	Heuristics bool `yaml:"heuristics"`
-	Clustering struct {
-		HMI bool `yaml:"hmi"`
-		FMI bool `yaml:"fmi"`
-	} `yaml:"clustering"`
-}
-
-type Config struct {
-	BlockchainMode string         `yaml:"blockchainMode"`
-	Logfile        string         `yaml:"logfile"`
-	HTTPPort       uint           `yaml:"httpPort"`
-	RPC            RPCConfig      `yaml:"rpc"`
-	Database       DatabaseConfig `yaml:"database"`
-	Modules        ModulesConfig  `yaml:"modules"`
-}
-
-var defaultConfig = Config{
-	BlockchainMode: "Dash",
-	Logfile:        "",
-	HTTPPort:       8081,
-	RPC: RPCConfig{
-		Host:     "0.0.0.0",
-		Port:     9998,
-		User:     "rpc1user",
-		Password: "1234pass",
-	},
-	Database: DatabaseConfig{
-		Host: "0.0.0.0",
-		Port: 9080,
-	},
-	Modules: ModulesConfig{
-		HTTP:       true,
-		Crawler:    true,
-		Classifier: false,
-		Heuristics: false,
-		Clustering: struct {
-			HMI bool `yaml:"hmi"`
-			FMI bool `yaml:"fmi"`
-		}{
-			HMI: false,
-			FMI: false,
-		},
-	},
-}
-
-type Commands struct {
-	ResetDB         bool
-	IgnoreSafeGuard bool
+func info(v ...interface{}) {
+	thisLogger.Println(v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -325,7 +156,7 @@ func main() {
 	}
 
 	// check if signing keys and basic auth are set
-	if config.Modules.HTTP {
+	if config.Modules.HTTP.Active {
 		_, _, keyErr := server.GetSigningKeysFromEnv()
 		if keyErr != nil {
 			info("error getting signing keys. Set the following environment variables:",
@@ -388,9 +219,9 @@ func main() {
 		info("Successfully set up new schema.")
 	}
 
-	if !config.Modules.Classifier && !config.Modules.Crawler &&
+	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
 		!config.Modules.Clustering.HMI && !config.Modules.Clustering.FMI &&
-		!config.Modules.HTTP {
+		!config.Modules.HTTP.Active {
 		log.Println("All modules are disabled. Exiting ...")
 		return
 	}
@@ -415,7 +246,7 @@ func main() {
 	}
 
 	// create admin account if none is set
-	if config.Modules.HTTP {
+	if config.Modules.HTTP.Active {
 		// check if users already exist
 		_, userErr := dbus.GetUsers(graphDB)
 		if userErr != nil {
@@ -443,19 +274,30 @@ func main() {
 
 	// Set up the RPC connection, only if needed
 	var client *rpcclient.Client
-	if config.Modules.HTTP || config.Modules.Crawler {
+	var batchClient *rpcclient.Client
+	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
 		rpcEndpoint, err := cli.BuildEndpoint(config.RPC.Host, config.RPC.Port)
 		if err != nil {
 			info(err)
 			return
 		}
-		client, err = rpcclient.New(&rpcclient.ConnConfig{
-			Host:         rpcEndpoint,
-			User:         config.RPC.User,
-			Pass:         config.RPC.Password,
-			DisableTLS:   true,
-			HTTPPostMode: true,
-		}, nil)
+
+		connection := rpcclient.ConnConfig{
+			Host:                rpcEndpoint,
+			User:                config.RPC.User,
+			Pass:                config.RPC.Password,
+			DisableConnectOnNew: true,
+			DisableTLS:          true,
+			HTTPPostMode:        true,
+		}
+
+		client, err = rpcclient.New(&connection, nil)
+		if err != nil {
+			info(err)
+			return
+		}
+
+		batchClient, err = rpcclient.NewBatch(&connection)
 		if err != nil {
 			info(err)
 			return
@@ -463,6 +305,11 @@ func main() {
 
 		// test if rpc client is active
 		if !waitForRPCClient(client) {
+			return
+		}
+
+		// test if batch rpc client is active
+		if !waitForBatchRPCClient(batchClient) {
 			return
 		}
 	}
@@ -483,7 +330,7 @@ func main() {
 	var wg sync.WaitGroup
 
 	// activate crawler
-	if config.Modules.Crawler {
+	if config.Modules.Crawler.Active {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -492,7 +339,8 @@ func main() {
 			}()
 
 			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
-				appContext, graphDB, client, processorConfig)); processorErr != nil {
+				appContext, graphDB, client, batchClient, config.Modules.Crawler.InitialCacheSize,
+				processorConfig)); processorErr != nil {
 				info(processorErr)
 			}
 		}()
@@ -502,7 +350,7 @@ func main() {
 	worker := heuristic.NewWorker(graphWrapper)
 	var classifierStarted bool
 
-	if config.Modules.HTTP && config.Modules.Heuristics {
+	if config.Modules.HTTP.Active && config.Modules.Heuristics {
 		// the classifier must be started after the in-memory graphs are loaded
 		classifierStarted = true
 		go func() {
@@ -592,12 +440,12 @@ func main() {
 
 	// activate server
 	var srv *http.Server
-	if config.Modules.HTTP {
+	if config.Modules.HTTP.Active {
 		wg.Add(1)
-		srv = server.StartServer(&wg, config.HTTPPort, graphDB, client, worker)
+		srv = server.StartServer(&wg, config.Modules.HTTP.Port, graphDB, client, worker)
 	}
 
-	var crawlerStopped = !config.Modules.Crawler
+	var crawlerStopped = !config.Modules.Crawler.Active
 	var classifierStopped = !config.Modules.Classifier
 	var clusteringHMIStopped = !config.Modules.Clustering.HMI
 	var clusteringFMIStopped = !config.Modules.Clustering.FMI
@@ -624,7 +472,8 @@ func main() {
 		}
 	}
 
-	if config.Modules.HTTP && crawlerStopped && classifierStopped && clusteringHMIStopped && clusteringFMIStopped {
+	if config.Modules.HTTP.Active && crawlerStopped && classifierStopped &&
+		clusteringHMIStopped && clusteringFMIStopped {
 		// if the crawler, the classifier and clustering stopped working on their own accord,
 		// the server is still active at this point
 

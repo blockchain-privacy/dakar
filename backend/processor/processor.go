@@ -8,6 +8,7 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"backend/external"
+	"github.com/btcsuite/btcd/rpcclient"
 
 	"encoding/hex"
 	"errors"
@@ -16,6 +17,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
@@ -94,8 +96,8 @@ type outputMapping struct {
 	indexes []uint32
 }
 
-// TransactionMapping maps an address to one or more indexes of a transaction
-type TransactionMapping struct {
+// transactionMapping maps an address to one or more indexes of a transaction
+type transactionMapping struct {
 	hash    string
 	outputs map[string]outputMapping
 }
@@ -118,7 +120,7 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 
 // addOutputsToAddresses adds the given uids of outputs to the address specified by addr in addresses
 // addr is inserted into addresses if it does not yet exist
-func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) map[string]dbaddr.Address {
+func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) {
 	var (
 		editAddress dbaddr.Address
 		ok          bool
@@ -136,49 +138,52 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 
 	// save in map
 	addresses[addr] = editAddress
-	return addresses
 }
 
-func buildAddressMapping(outMap map[string]outputMapping, outputs []dbop.Output, addrs *map[string]dbaddr.Address) {
-	for _, mapping := range outMap {
+func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
+	addrMap map[string]dbaddr.Address) (err error) {
+
+	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
-			for _, o := range outputs {
-				if *o.OutputIndex == idx {
-					uids = append(uids, o.UID)
-				}
+
+			output := cache.getOutput(txHash, idx)
+
+			if output == nil {
+				return errors.New("requested output not found in cache")
 			}
+
+			uids = append(uids, output.UID)
 		}
-		*addrs = addOutputsToAddresses(*addrs, mapping.hash, uids)
-	}
-}
-
-func buildAddresses(dgraph external.Database, txHash string, blockHash string, outputs map[string]outputMapping,
-	addrMap *map[string]dbaddr.Address) (err error) {
-	txFromDB, err := dbtx.GetTransaction(dgraph, txHash, blockHash)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+		mutex.Lock()
+		addOutputsToAddresses(addrMap, mapping.hash, uids)
+		mutex.Unlock()
 	}
 
-	// handle output mappings
-	buildAddressMapping(outputs, txFromDB.Outputs, addrMap)
 	return
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
-func processAddresses(dgraph external.Database, transactionMappings []TransactionMapping, blockHash string) (err error) {
+func processAddresses(dgraph external.Database, cache *outputCache, transactionMappings []transactionMapping) (err error) {
 	if len(transactionMappings) == 0 {
 		return
 	}
 
 	addrMap := make(map[string]dbaddr.Address)
+	var mutex sync.Mutex
+	var wg sync.WaitGroup
 	for _, mapping := range transactionMappings {
-		if err = buildAddresses(dgraph, mapping.hash, blockHash, mapping.outputs, &addrMap); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
-		}
+		wg.Add(1)
+		go func(hash string, outputs map[string]outputMapping) {
+			defer wg.Done()
+			if err = buildAddresses(&mutex, cache, hash, outputs, addrMap); err != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
+			}
+		}(mapping.hash, mapping.outputs)
 	}
+
+	wg.Wait()
 
 	// map to slice
 	var addrSlice []dbaddr.Address
@@ -233,12 +238,12 @@ func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
 	return
 }
 
-// BuildTransactionMapping processes the transaction specified by 'txHashString'
+// buildTransactionMapping processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
-func BuildTransactionMapping(dgraph external.Database, rawTransaction btcjson.TxRawResult,
-	txHashMap map[string]btcjson.TxRawResult, config Config) (
-	txDetails dbtx.Transaction, tMap TransactionMapping, err error) {
+func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
+	txHashMap map[string]btcjson.TxRawResult, externalOutputs map[string]map[uint32]dbop.Output,
+	config Config, cache *outputCache) (txDetails dbtx.Transaction, tMap transactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
 	var isCoinbaseTransaction bool
@@ -247,7 +252,7 @@ func BuildTransactionMapping(dgraph external.Database, rawTransaction btcjson.Tx
 	} else {
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
-			if processErr := processTxVin(dgraph, &txDetails, d, uint32(i), txHashMap); processErr != nil {
+			if processErr := processTxVin(&txDetails, externalOutputs, d, uint32(i), txHashMap, cache); processErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
 				return
 			}
@@ -330,13 +335,37 @@ func BuildTransactionMapping(dgraph external.Database, rawTransaction btcjson.Tx
 	}
 
 	// create transaction mapping for address processing later on
-	tMap = TransactionMapping{hash: txDetails.Hash, outputs: outputMappings}
+	tMap = transactionMapping{hash: txDetails.Hash, outputs: outputMappings}
 
 	return
 }
 
+// filterExternalOutputs returns all inputs for which the outputs need to be loaded from the database
+func filterExternalOutputs(txHashMap map[string]btcjson.TxRawResult, cache *outputCache) map[string][]uint32 {
+	externalOutputs := make(map[string][]uint32)
+
+	for _, t := range txHashMap {
+		for _, vin := range t.Vin {
+			if vin.IsCoinBase() {
+				// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
+				// we can recognize coinbase outputs by checking the number of connected transactions
+				continue
+			}
+
+			if _, ok := txHashMap[vin.Txid]; !ok && cache.getOutput(vin.Txid, vin.Vout) == nil {
+				ids := externalOutputs[vin.Txid]
+				ids = append(ids, vin.Vout)
+				externalOutputs[vin.Txid] = ids
+			}
+		}
+	}
+
+	return externalOutputs
+}
+
 // processTxVin maps the input information to the output if it exists already in the database
-func processTxVin(dgraph external.Database, details *dbtx.Transaction, vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult) error {
+func processTxVin(details *dbtx.Transaction, externalOutputs map[string]map[uint32]dbop.Output,
+	vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult, cache *outputCache) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
 		// we can recognize coinbase outputs by checking the number of connected transactions
@@ -357,29 +386,30 @@ func processTxVin(dgraph external.Database, details *dbtx.Transaction, vin btcjs
 			return err
 		}
 		refOutput.Amount = &intAmount
+	} else if o := cache.getAndEvictOutput(vin.Txid, vin.Vout); o != nil {
+		refOutput.Amount = o.Amount
+		refOutput.UID = o.UID
 	} else {
-		output, err := dbop.GetOutput(dgraph, vin.Txid, vin.Vout, false)
-		if err != nil {
-			// origin transaction of output does not exist in database, ignore input
-			// this can happen if we process a transaction which uses an output of a transaction which is not included in our block range
-			// e.g. our range is block 5 -- 15 and we process a transaction in block 10 which uses an output from a transaction in block 4
-			if errors.Is(err, dbop.ErrorNotFound) {
-				return nil
-			}
-
-			return err
+		t, ok := externalOutputs[vin.Txid]
+		if !ok {
+			return fmt.Errorf("tx %s does not exist in external cache", vin.Txid)
 		}
 
-		refOutput.Amount = output.Amount
-		refOutput.UID = output.UID
+		o, ok := t[vin.Vout]
+		if !ok {
+			return fmt.Errorf("tx %s - outputindex %d does not exist in external cache", vin.Txid, vin.Vout)
+		}
+
+		refOutput.Amount = o.Amount
+		refOutput.UID = o.UID
 	}
 
 	details.Inputs = append(details.Inputs, refOutput)
 	return nil
 }
 
-// ProcessBlock builds a block with the provided arguments and inserts it in the database
-func ProcessBlock(dgraph external.Database, transactions []dbtx.Transaction, currentHash string,
+// processBlock builds a block with the provided arguments and inserts it in the database
+func processBlock(dgraph external.Database, transactions []dbtx.Transaction, currentHash string,
 	blockID uint64, timestamp string, prevBlockHash string) (err error) {
 
 	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
@@ -509,41 +539,130 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 }
 
 // createTransactionHashmap creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client external.RPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
-	txs := make(map[string]btcjson.TxRawResult)
+func createTransactionHashmap(client external.BatchRPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
+	type txLookup struct {
+		hash   string
+		result rpcclient.FutureGetRawTransactionVerboseResult
+		err    error
+	}
+
+	c := make(chan txLookup, 5)
+
 	for _, t := range transactions {
-		txHash, err := chainhash.NewHashFromStr(t)
-		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return txs, err
+		go func(t string, c chan txLookup) {
+			l := txLookup{hash: t}
+
+			txHash, err := chainhash.NewHashFromStr(t)
+			if err != nil {
+				l.err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				c <- l
+				return
+			}
+			futureResults := client.GetRawTransactionVerboseAsync(txHash)
+			if err != nil {
+				l.err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				c <- l
+				return
+			}
+
+			l.result = futureResults
+
+			c <- l
+		}(t, c)
+	}
+
+	// collect future results
+	var futures []txLookup
+	for i := 0; i < len(transactions); i++ {
+		lookup := <-c
+		if lookup.err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookup.err)
 		}
-		tx, err := client.GetRawTransactionVerbose(txHash)
+		futures = append(futures, lookup)
+	}
+
+	// send batch request
+	if err := client.Send(); err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// collect results
+	txs := make(map[string]btcjson.TxRawResult)
+	for _, f := range futures {
+		r, err := f.result.Receive()
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return txs, err
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-		txs[t] = *tx
+
+		txs[f.hash] = *r
 	}
 
 	return txs, nil
 }
 
-// ProcessRound process the given block. Hat includes the insertion of the block,
+func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (map[string]map[uint32]dbop.Output, error) {
+	if len(outputs) == 0 {
+		return nil, nil
+	}
+
+	var transactionHashes []string
+	for k := range outputs {
+		transactionHashes = append(transactionHashes, k)
+	}
+
+	transactionsOutputs, err := dbtx.GetTransactionsOutputs(dgraph, transactionHashes)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	returnMap := make(map[string]map[uint32]dbop.Output)
+
+	for _, t := range transactionsOutputs {
+		indexes := outputs[t.Hash]
+
+		for _, i := range indexes {
+			for _, o := range t.Outputs {
+				if o.OutputIndex == nil {
+					return nil, fmt.Errorf("output index was not set for tx %s", t.Hash)
+				}
+				if *o.OutputIndex == i {
+					// add index mapping
+					indexMap := returnMap[t.Hash]
+					if indexMap == nil {
+						indexMap = make(map[uint32]dbop.Output)
+					}
+
+					indexMap[i] = o
+					returnMap[t.Hash] = indexMap
+				}
+			}
+		}
+	}
+
+	return returnMap, nil
+}
+
+// processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func ProcessRound(dgraph external.Database, client external.RPCClient, state crawlerState,
-	block *btcjson.GetBlockVerboseResult, setLowestID bool, config Config) (
+func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, state crawlerState,
+	block *btcjson.GetBlockVerboseResult, setLowestID bool, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
-	var txMapping []TransactionMapping
+	var txMapping []transactionMapping
 	var transactions []dbtx.Transaction
 
-	txHashMap, err := createTransactionHashmap(client, block.Tx)
+	txHashMap, err := createTransactionHashmap(batchRpc, block.Tx)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}
 
+	externalOutputs, err := getExternalOutputs(dgraph, filterExternalOutputs(txHashMap, cache))
+	if err != nil {
+		return 0, 0, err
+	}
+
 	for _, t := range txHashMap {
-		newTx, tMap, buildErr := BuildTransactionMapping(dgraph, t, txHashMap, config)
+		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), buildErr)
 			return
@@ -575,7 +694,7 @@ func ProcessRound(dgraph external.Database, client external.RPCClient, state cra
 	if b, err = dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
-		if err = ProcessBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
+		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 			return
 		}
@@ -586,7 +705,44 @@ func ProcessRound(dgraph external.Database, client external.RPCClient, state cra
 		txCounter = 0
 	}
 
-	if err = processAddresses(dgraph, txMapping, state.hash); err != nil {
+	blockId := int64(state.id)
+	transactionOutputs, err := dbtx.GetOutputs(dgraph, blockId, blockId)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	allOutputsCache := newOutputCache()
+	for _, t := range transactionOutputs {
+		if len(t.Outputs) == 0 {
+			continue
+		}
+
+		var utxos []dbop.Output
+
+		for _, o := range t.Outputs {
+			if o.InputIndex == nil {
+				utxos = append(utxos, o)
+			}
+		}
+
+		if len(utxos) > 0 {
+			// this cache only gets UTXOs
+			if setErr := cache.setOutputs(t.Hash, utxos); setErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), setErr)
+				return
+			}
+		}
+
+		// this cache gets all outputs
+		if setErr := allOutputsCache.setOutputs(t.Hash, t.Outputs); setErr != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), setErr)
+			return
+		}
+
+	}
+
+	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
 	}

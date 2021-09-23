@@ -56,6 +56,7 @@ type prunedRPCInfo struct {
 	Difficulty           float64 `json:"difficulty"`
 	VerificationProgress float64 `json:"verificationprogress,omitempty"`
 	Pruned               bool    `json:"pruned"`
+	SizeOnDisk           int64   `json:"size_on_disk,omitempty"`
 }
 
 type metaStatus struct {
