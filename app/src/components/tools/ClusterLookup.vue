@@ -67,7 +67,7 @@
           <p class="text-subtitle-1">Last updated by</p>
           <ClusterDetails :tx-hash="c.txhash"  :block-hash="c.bhash"
                           :block-id="c.bid" :timestamp="c.ts" />
-          <div v-if="isJointLookup && c.hmi">
+          <div v-if="!isJointLookup && c.hmi">
             <p class="text-subtitle-1">First included by</p>
             <ClusterDetails :tx-hash="c.hmi.txhash"  :block-hash="c.hmi.bhash"
                             :block-id="c.hmi.bid" :timestamp="c.hmi.ts" />
