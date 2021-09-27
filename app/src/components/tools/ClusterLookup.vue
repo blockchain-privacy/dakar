@@ -65,12 +65,12 @@
         </v-toolbar>
         <v-card-text>
           <p class="text-subtitle-1">Last updated by</p>
-          <ClusterDetails :tx-hash="c.txhash"  :block-hash="c.bhash"
-                          :block-id="c.bid" :timestamp="c.ts" />
+          <ClusterDetails :tx-hash="c.txhash" :block-hash="c.bhash"
+                          :block-id="c.bid" :timestamp="c.ts"/>
           <div v-if="!isJointLookup && c.hmi">
             <p class="text-subtitle-1">First included by</p>
-            <ClusterDetails :tx-hash="c.hmi.txhash"  :block-hash="c.hmi.bhash"
-                            :block-id="c.hmi.bid" :timestamp="c.hmi.ts" />
+            <ClusterDetails :tx-hash="c.hmi.txhash" :block-hash="c.hmi.bhash"
+                            :block-id="c.hmi.bid" :timestamp="c.hmi.ts"/>
           </div>
         </v-card-text>
         <v-divider v-if="c.cluster_addresses && c.cluster_addresses.length > 0"/>
@@ -81,19 +81,16 @@
               Address Sample ({{ c.cluster_addresses.length }})
             </v-expansion-panel-header>
             <v-expansion-panel-content>
-              <v-list dense>
-                <v-row>
-                  <v-col v-for="(a, i) in c.cluster_addresses" :key="i">
-                    <v-list-item :to="{ name: addressRoute, params: { id: a.addresshash }}">
-                      <v-list-item-content>
-                        <v-list-item-title>
-                          {{ a.addresshash }}
-                        </v-list-item-title>
-                      </v-list-item-content>
-                    </v-list-item>
-                  </v-col>
-                </v-row>
-              </v-list>
+              <v-data-table
+                  dense
+                  :headers="tableHeaders"
+                  :sort-by="['unspent_output_count']"
+                  :items="c.cluster_addresses"
+                  item-key="addresshash">
+                <template v-slot:item.unspent_output_count="{ item }">
+                  {{ item.output_count - item.spent_output_count }}
+                </template>
+              </v-data-table>
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>
@@ -128,6 +125,16 @@ export default {
       isJointLookup: false,
       isLoading: false,
       clusters: [],
+      tableHeaders: [
+        {
+          text: 'Addresshash',
+          align: 'start',
+          sortable: false,
+          value: 'addresshash',
+        },
+        { text: 'Output count', value: 'output_count' },
+        { text: 'Unspent output count', value: 'unspent_output_count' },
+      ],
     };
   },
   computed: {
@@ -187,7 +194,7 @@ export default {
             data.clusters.forEach((d) => {
               clusterMap.set(d.cluster_type, d);
               if (d.cluster_type !== CLUSTER_TYPE_HMI
-                  && d.cluster_type !== CLUSTER_TYPE_FMI) clusters.push(d);
+                    && d.cluster_type !== CLUSTER_TYPE_FMI) clusters.push(d);
             });
 
             // insert hmi cluster into fmi cluster and add the composite cluster into the array
