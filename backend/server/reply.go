@@ -10,6 +10,9 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+	"encoding/csv"
+	"fmt"
+	"net/http"
 
 	"encoding/json"
 	"errors"
@@ -639,4 +642,93 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 	reply.AddressCluster = addressCluster
 
 	return reply
+}
+
+func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database, tUser tokenUser, txHashString string) {
+	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if len(cHeuristic.Heuristics) == 0 {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+
+	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+	csvWriter := csv.NewWriter(w)
+	csvWriter.Comma = ';'
+
+	header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
+		"heuristic type", "heuristic parameter", "heuristic timestamp",
+		"origin uid", "origin transaction hash", "origin timestamp",
+		"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
+
+	if err = csvWriter.Write(header); err != nil {
+		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		info(cliutil.ShowCallInfo(), err)
+	}
+
+	for _, h := range cHeuristic.Heuristics {
+		for _, result := range h.Results {
+			var row []string
+			// per heuristic information
+			row = append(row, h.UID)
+			var parentHeuristic string
+			if len(h.ParentHeuristic) > 0 {
+				// only one parent heuristic is possible
+				parentHeuristic = h.ParentHeuristic[0].UID
+			}
+			row = append(row, parentHeuristic)
+
+			var childHeuristics string
+			for i, c := range h.ChildHeuristics {
+				childHeuristics += c.UID
+				if i+1 < len(h.ChildHeuristics) {
+					childHeuristics += ","
+				}
+			}
+
+			row = append(row, childHeuristics)
+			row = append(row, h.Type)
+			row = append(row, h.Parameter)
+			row = append(row, h.Timestamp)
+
+			// per origin information
+			row = append(row, result.Origin.UID)
+			row = append(row, result.Origin.TxHash)
+			row = append(row, result.Origin.Timestamp)
+			row = append(row, result.Origin.AddressHash)
+
+			// add destination data if there exists any
+			if len(result.Destinations) > 0 {
+				for _, d := range result.Destinations {
+					withDestinations := make([]string, len(row))
+					// copy because for each destination the row gets reused
+					copy(withDestinations, row)
+
+					withDestinations = append(withDestinations, d.UID)
+					withDestinations = append(withDestinations, d.TxHash)
+					withDestinations = append(withDestinations, d.Timestamp)
+
+					if err = csvWriter.Write(withDestinations); err != nil {
+						handleError(w, err)
+					}
+				}
+				csvWriter.Flush()
+			} else {
+				if err = csvWriter.Write(row); err != nil {
+					handleError(w, err)
+				}
+			}
+		}
+		csvWriter.Flush()
+	}
 }
