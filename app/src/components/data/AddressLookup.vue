@@ -9,10 +9,11 @@
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn
-                id="btn_open_cluster_view"
-                style="margin-right: 0" outlined icon
-                :to="{ name: clusterViewRoute }">
+            <!-- hmi cluster lookup disabled for now -->
+            <v-btn v-if="false"
+                   id="btn_open_cluster_view"
+                   style="margin-right: 0" outlined icon
+                   :to="{ name: clusterViewRoute }">
               <v-icon>{{ icon.mdiGraph }}</v-icon>
             </v-btn>
             <v-tooltip bottom activator="#btn_open_cluster_view">
