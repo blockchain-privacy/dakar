@@ -57,7 +57,7 @@ var (
 		constants.GetRouteConnectionLookup():        true,
 		// clusters
 		constants.GetRouteClusterLookup(): true,
-		constants.GetRouteHMILookup():     true,
+		//constants.GetRouteHMILookup():     true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
