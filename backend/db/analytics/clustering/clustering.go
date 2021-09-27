@@ -395,6 +395,9 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 								cluster_children{
 									uid
 								}
+								~cluster_children{
+									uid
+								}
 							}
 						  }`)
 
@@ -412,6 +415,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 				TxHash string `json:"txhash,omitempty"`
 			} `json:"cluster_transaction,omitempty"`
 			Children []SubCluster `json:"cluster_children,omitempty"`
+			Parent   []SubCluster `json:"~cluster_children,omitempty"`
 		} `json:"q,omitempty"`
 		AddressCluster []struct {
 			Uid string `json:"uid,omitempty"`
@@ -435,11 +439,27 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 	addressCluster = r.AddressCluster[0].Uid
 
 	for _, cluster := range r.Clusters {
+		if len(cluster.Parent) > 1 {
+			err = fmt.Errorf("cluster %s has multiple parents: %v", cluster.Uid, cluster.Parent)
+			return
+		}
+
+		var parentUID string
+		if len(cluster.Parent) == 1 {
+			parentUID = cluster.Parent[0].Uid
+		}
+
+		var childClusters []string
+		for _, child := range cluster.Children {
+			childClusters = append(childClusters, child.Uid)
+		}
+
 		clusters = append(clusters, FrontendHMICluster{
 			Uid:             cluster.Uid,
 			AddressCount:    cluster.AddressCount,
 			TransactionHash: cluster.Transaction.TxHash,
-			Children:        cluster.Children,
+			Parent:          parentUID,
+			Children:        childClusters,
 		})
 	}
 

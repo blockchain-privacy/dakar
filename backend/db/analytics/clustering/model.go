@@ -122,8 +122,9 @@ type FrontendClusterRequest struct {
 }
 
 type FrontendHMICluster struct {
-	Uid             string       `json:"uid,omitempty"`
-	AddressCount    int          `json:"cluster_address_count,omitempty"`
-	TransactionHash string       `json:"txhash,omitempty"`
-	Children        []SubCluster `json:"cluster_children,omitempty"`
+	Uid             string   `json:"uid,omitempty"`
+	AddressCount    int      `json:"cluster_address_count,omitempty"`
+	TransactionHash string   `json:"txhash,omitempty"`
+	Parent          string   `json:"cluster_parent,omitempty"`
+	Children        []string `json:"cluster_children,omitempty"`
 }
