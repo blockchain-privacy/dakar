@@ -576,55 +576,69 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	return
 }
 
-// getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
-	const maxAddresses = 30
-
+// getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
+func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int) (clusters []clustering.FrontendCluster, msg string, err error) {
 	// parse request
 	var req clustering.ClusterLookupRequest
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = "could not decode request data"
+	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
+		msg = "could not decode request data"
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 		return
 	}
 
 	if req.AddressHash1 == "" {
-		reply.Msg = "provide at least the first address hash"
+		msg = "provide at least the first address hash"
 		return
 	}
 
 	if !isValid(req.AddressHash1) {
-		reply.Msg = "first address hash was not valid"
+		msg = "first address hash was not valid"
 		return
 	}
 
 	if req.AddressHash2 == "" {
-		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
-		if err != nil {
-			reply.Msg = "error while searching for clusters"
-			info(cliutil.ShowCallInfo(), err)
+		clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
+		if getErr != nil {
+			msg = "error while searching for clusters"
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 			return
 		}
-		reply.Clusters = clusters
+		clusters = clusterResponse
 	} else {
 		if !isValid(req.AddressHash2) {
-			reply.Msg = "second address hash was not valid"
+			msg = "second address hash was not valid"
 			return
 		}
 
 		if req.AddressHash1 == req.AddressHash2 {
-			reply.Msg = "address hashes are identical"
+			msg = "address hashes are identical"
 			return
 		}
 
-		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
-		if err != nil {
-			reply.Msg = "error while searching for clusters"
-			info(cliutil.ShowCallInfo(), err)
+		clusterResponse, getErr := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
+		if getErr != nil {
+			msg = "error while searching for clusters"
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 			return
 		}
-		reply.Clusters = clusters
+		clusters = clusterResponse
 	}
 
+	return
+}
+
+// getClusterLookupReply returns the result of a cluster lookup
+func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+	const maxAddresses = 30
+
+	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses)
+	reply.Msg = msg
+	if err != nil {
+		info(err)
+		return
+	}
+
+	reply.Clusters = clusters
 	reply.Success = true
 
 	return
@@ -644,6 +658,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 	return reply
 }
 
+// writeHeuristicSummary writes heuristic data in CSV format
 func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database, tUser tokenUser, txHashString string) {
 	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 	if err != nil {
@@ -727,6 +742,54 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 				if err = csvWriter.Write(row); err != nil {
 					handleError(w, err)
 				}
+			}
+		}
+		csvWriter.Flush()
+	}
+}
+
+// writeClusterSummary writes heuristic data in CSV format
+func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0)
+	if err != nil {
+		handleError(w, err)
+		info(msg)
+		return
+	}
+
+	if len(clusters) == 0 {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cluster_lookup_%s.csv",
+		time.Now().Format("2006-01-02T15:04:05")))
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+
+	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+	csvWriter := csv.NewWriter(w)
+	csvWriter.Comma = ';'
+
+	header := []string{"address hash", "output count", "unspent output count"}
+
+	if err = csvWriter.Write(header); err != nil {
+		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		info(cliutil.ShowCallInfo(), err)
+	}
+
+	for _, c := range clusters {
+		for _, a := range c.Addresses {
+			var row []string
+			// per heuristic information
+			row = append(row, a.AddressHash)
+			row = append(row, strconv.Itoa(a.OutputCount))
+			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
+
+			if err = csvWriter.Write(row); err != nil {
+				handleError(w, err)
 			}
 		}
 		csvWriter.Flush()

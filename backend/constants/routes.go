@@ -27,6 +27,7 @@ const (
 	routeShortestTxPath       string = "shortestTransactionPath"
 	routeConnectionLookup     string = "connectionLookup"
 	routeClusterLookup        string = "clusterLookup"
+	routeClusterSummary       string = "clusterSummary"
 	routeHMILookup            string = "hmiLookup"
 	routeMetrics              string = "/metrics"
 )
@@ -158,6 +159,11 @@ func GetRouteClusterLookup() string {
 // GetRouteHMILookup returns a route
 func GetRouteHMILookup() string {
 	return getRoute(routeHMILookup)
+}
+
+// GetRouteClusterSummary returns a route
+func GetRouteClusterSummary() string {
+	return getRoute(routeClusterSummary)
 }
 
 // GetRouteMetrics returns a route
