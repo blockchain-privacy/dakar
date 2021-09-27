@@ -262,29 +262,39 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 	return
 }
 
-const clusterQuery = `q(func: uid(c)){
-						cluster_type
-						cluster_address_count
-						cluster_transaction@normalize{
-							txhash:txhash
-							~transactions{
-								bhash:blockhash
-								bid:id
-								ts:ts
-							}
-						}
-						cluster_addresses(first:30){
-							addresshash
-						}
-					  }`
+func getClusterQuery(maxAddresses int) string {
+	var limiter string
+
+	if maxAddresses > 0 {
+		limiter = "(first:" + strconv.Itoa(maxAddresses) + ")"
+	}
+
+	return `q(func: uid(c)){
+				cluster_type
+				cluster_address_count
+				cluster_transaction@normalize{
+					txhash:txhash
+					~transactions{
+						bhash:blockhash
+						bid:id
+						ts:ts
+					}
+				}
+				cluster_addresses` + limiter + `{
+					addresshash
+					output_count: count(addr_outputs)
+					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
+				}
+		}`
+}
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
-func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
-	const query = string(`query Q($addressHash:string) {
+func GetClusters(c external.Database, addressHash string, maxAddresses int) (clusters []FrontendCluster, err error) {
+	query := `query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
 					c as ~cluster_addresses
 				}
-				` + clusterQuery + "}")
+				` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
@@ -322,17 +332,17 @@ func GetClusters(c external.Database, addressHash string) (clusters []FrontendCl
 
 // GetCommonClusters returns cluster information for all clusters (except hmi clusters)
 // shared by addressHash1 and addressHash2
-func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string) (clusters []FrontendCluster,
+func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string, maxAddresses int) (clusters []FrontendCluster,
 	err error) {
-	const query = string(`query Q($a1:string,$a2:string) {
+	query := `query Q($a1:string,$a2:string) {
 				var(func:eq(addresshash,$a1)){
-					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `))
 				}
 
 				var(func:eq(addresshash,$a2)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `) and uid(c1))
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `) and uid(c1))
 				}
-				` + clusterQuery + "}")
+				` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$a1": addressHash1, "$a2": addressHash2})

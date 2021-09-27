@@ -575,6 +575,8 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 
 // getClusterLookupReply returns the result of a cluster lookup
 func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+	const maxAddresses = 30
+
 	// parse request
 	var req clustering.ClusterLookupRequest
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
@@ -593,7 +595,7 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clus
 	}
 
 	if req.AddressHash2 == "" {
-		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1)
+		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
 		if err != nil {
 			reply.Msg = "error while searching for clusters"
 			info(cliutil.ShowCallInfo(), err)
@@ -611,7 +613,7 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clus
 			return
 		}
 
-		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2)
+		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
 		if err != nil {
 			reply.Msg = "error while searching for clusters"
 			info(cliutil.ShowCallInfo(), err)

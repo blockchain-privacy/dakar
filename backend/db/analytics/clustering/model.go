@@ -96,7 +96,9 @@ type ClusterLookupRequest struct {
 }
 
 type FrontendAddress struct {
-	AddressHash string `json:"addresshash,omitempty"`
+	AddressHash      string `json:"addresshash,omitempty"`
+	OutputCount      int    `json:"output_count,omitempty"`
+	SpentOutputCount int    `json:"spent_output_count,omitempty"`
 }
 
 type FrontendCluster struct {
