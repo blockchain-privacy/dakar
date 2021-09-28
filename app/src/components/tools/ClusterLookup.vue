@@ -21,14 +21,14 @@
             <v-text-field label="Address"
                           v-model="a1"
                           :disabled="isLoading"
-                          @keydown.enter="handleSearch"
+                          @keydown.enter="handleSearch('user')"
                           autofocus/>
           </v-col>
           <v-col v-if="isJointLookup">
             <v-text-field label="Second Address"
                           v-model="a2"
                           :disabled="isLoading"
-                          @keydown.enter="handleSearch"/>
+                          @keydown.enter="handleSearch('user')"/>
           </v-col>
         </v-row>
         <v-row>
@@ -40,7 +40,7 @@
                 color="primary"
                 :disabled="!isSearchable"
                 :loading="isLoading"
-                @click="handleSearch">
+                @click="handleSearch('user')">
               Search
             </v-btn>
           </v-col>
@@ -119,11 +119,30 @@ import { mdiMerge, mdiFileDownloadOutline } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
   ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI, ROUTE_CLUSTER_SUMMARY,
+  ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
 } from '../../constants';
 import {
   doPost, doPostBlob, getClusterTypeLabel, getCurrentDate, handleError,
 } from '../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
+
+function newClusterRouting(context) {
+  const { pushFromUserInput } = context.$route.params;
+  const { a1, a2 } = context.$route.query;
+  if (pushFromUserInput !== undefined || a1 === undefined
+      || !(context.$route.name === ROUTE_NAME_CLUSTER_LOOKUP_PAGE)) {
+    return;
+  }
+
+  context.a1 = a1;
+
+  if (a2 !== undefined) {
+    context.isJointLookup = true;
+    context.a2 = a2;
+  }
+
+  context.doLookup();
+}
 
 export default {
   name: 'ClusterLookup',
@@ -176,15 +195,30 @@ export default {
     setWarningMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
-    handleSearch() {
+    handleSearch(origin) {
       if (this.isLoading || !this.isSearchable) {
         return;
       }
 
       this.$store.dispatch('resetMessages');
-
       this.clusters = [];
-      this.doLookup();
+
+      // update route only when input is from user and query is different
+      if (origin === 'user') {
+        const query = { a1: this.a1 };
+        if (this.isJointLookup) {
+          query.a2 = this.a2;
+        }
+
+        this.$router.push({
+          name: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+          params: { pushFromUserInput: true },
+          query,
+        });
+        this.doLookup();
+      } else if (origin === 'route') {
+        // do nothing -> route is already up to date
+      }
     },
     doLookup() {
       this.isLoading = true;
@@ -264,6 +298,15 @@ export default {
   },
   mounted() {
     document.title = `Cluster Lookup - ${PAGE_TITLE}`;
+  },
+  created() {
+    newClusterRouting(this);
+  },
+  watch: {
+    $route() {
+      this.lastQuery = '';
+      newClusterRouting(this);
+    },
   },
 };
 </script>

@@ -107,8 +107,6 @@ export default {
             await this.$router.push({ name: Constants.ROUTE_NAME_NO_RESULTS });
             break;
         }
-
-        // this.$router.push({ name: Constants.ROUTE_NAME_SEARCH_PAGE, params: { id: query } });
       } else if (origin === 'route') {
         // do nothing -> route is already up to date
       }
