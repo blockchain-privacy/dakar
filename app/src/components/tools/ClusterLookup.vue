@@ -45,6 +45,21 @@
             </v-btn>
           </v-col>
         </v-row>
+        <v-expand-transition>
+          <div v-if="this.clusters.length > 0">
+          <v-divider />
+          <v-row v-if="this.clusters.length > 0">
+
+            <v-col class="d-flex justify-end align-center">
+              <v-btn color="primary" outlined  @click="downloadClusterSummary"
+                     class="mx-auto mt-3">
+                <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+                Cluster Summary
+              </v-btn>
+            </v-col>
+          </v-row>
+          </div>
+        </v-expand-transition>
       </v-card-text>
     </v-card>
     <div v-if="this.clusters.length > 0">
@@ -55,7 +70,7 @@
             {{ getClusterTypeLabel(c.cluster_type) }}
           </v-toolbar-title>
           <v-spacer></v-spacer>
-          <v-chip outlined v-if="!$vuetify.breakpoint.xs" color="primary">
+          <v-chip outlined v-if="!$vuetify.breakpoint.xs">
             {{ c.cluster_address_count }}
             {{ (c.cluster_address_count === 1) ? 'Address' : 'Addresses' }}
           </v-chip>
@@ -100,12 +115,14 @@
 </template>
 
 <script>
-import { mdiMerge } from '@mdi/js';
+import { mdiMerge, mdiFileDownloadOutline } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
-  ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI,
+  ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI, ROUTE_CLUSTER_SUMMARY,
 } from '../../constants';
-import { doPost, getClusterTypeLabel, handleError } from '../../utilities';
+import {
+  doPost, doPostBlob, getClusterTypeLabel, getCurrentDate, handleError,
+} from '../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
 
 export default {
@@ -114,7 +131,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiMerge,
+        mdiMerge, mdiFileDownloadOutline,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
@@ -215,6 +232,33 @@ export default {
         })
         .finally(() => {
           this.isLoading = false;
+        });
+    },
+    downloadClusterSummary() {
+      const body = { a1: this.a1.trim() };
+      if (this.isJointLookup) {
+        body.a2 = this.a2.trim();
+      }
+
+      let fileName = this.a1;
+
+      if (this.isJointLookup) {
+        fileName += `_${this.a2}`;
+      }
+
+      doPostBlob(ROUTE_CLUSTER_SUMMARY, this.$router, this.$store, body)
+        .then((blob) => {
+          // looks hacky, but it is the only way with good UX
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+
+          a.setAttribute('download',
+            `cluster_summary_${getCurrentDate()}_${fileName}.csv`);
+          a.click();
+          a.remove();
+        })
+        .catch((error) => {
+          handleError(this.$store, error);
         });
     },
   },

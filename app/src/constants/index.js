@@ -26,6 +26,7 @@ export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
 export const ROUTE_CONNECTION_LOOKUP = `${routePrefix}connectionLookup/`;
 export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
+export const ROUTE_CLUSTER_SUMMARY = `${routePrefix}clusterSummary/`;
 export const ROUTE_CLUSTER_HMI_LOOKUP = `${routePrefix}hmiLookup/`;
 
 // search responses
