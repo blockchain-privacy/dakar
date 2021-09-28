@@ -166,6 +166,7 @@ export default {
       isJointLookup: false,
       isLoading: false,
       clusters: [],
+      lastQuery: null,
       tableHeaders: [
         {
           text: 'Addresshash',
@@ -200,20 +201,29 @@ export default {
     setWarningMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
+    isEqualQuery(q1, q2) {
+      if (q1 === null && q2 === null) {
+        return true;
+      }
+
+      if (q1 == null || q2 === null) {
+        return false;
+      }
+
+      return !(q1.a1 !== q2.a1 || q1.a2 !== q2.a2);
+    },
     handleSearch(origin) {
       if (this.isLoading || !this.isSearchable) {
         return;
       }
 
       this.$store.dispatch('resetMessages');
-      this.clusters = [];
+
+      const query = this.getQuery();
 
       // update route only when input is from user and query is different
-      if (origin === 'user') {
-        const query = { a1: this.a1 };
-        if (this.isJointLookup) {
-          query.a2 = this.a2;
-        }
+      if (origin === 'user' && !this.isEqualQuery(query, this.lastQuery)) {
+        this.clusters = [];
 
         this.$router.push({
           name: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
@@ -225,12 +235,18 @@ export default {
         // do nothing -> route is already up to date
       }
     },
+    getQuery() {
+      const query = { a1: this.a1.trim() };
+      if (this.isJointLookup) {
+        query.a2 = this.a2.trim();
+      }
+
+      return query;
+    },
     doLookup() {
       this.isLoading = true;
-      const body = { a1: this.a1.trim() };
-      if (this.isJointLookup) {
-        body.a2 = this.a2.trim();
-      }
+      const body = this.getQuery();
+      this.lastQuery = body;
 
       doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, body)
         .then((data) => {
@@ -309,7 +325,6 @@ export default {
   },
   watch: {
     $route() {
-      this.lastQuery = '';
       newClusterRouting(this);
     },
   },
