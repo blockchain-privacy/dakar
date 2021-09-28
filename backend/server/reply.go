@@ -773,7 +773,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"address hash", "output count", "unspent output count"}
+	header := []string{"cluster type", "last cluster update (transaction)", "last cluster update (timestamp)", "address hash", "output count", "unspent output count"}
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -784,6 +784,9 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		for _, a := range c.Addresses {
 			var row []string
 			// per heuristic information
+			row = append(row, string(c.Type))
+			row = append(row, c.TransactionHash)
+			row = append(row, c.Timestamp.Format(time.RFC3339))
 			row = append(row, a.AddressHash)
 			row = append(row, strconv.Itoa(a.OutputCount))
 			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
