@@ -92,7 +92,6 @@ export default {
       return true;
     },
     clusterClickHandler() {
-      console.log('node clicked');
     },
     async onMounted() {
       // remove previous svg children
