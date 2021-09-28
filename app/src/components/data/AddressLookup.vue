@@ -9,6 +9,16 @@
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
+            <v-btn
+                id="btn_open_cluster_lookup"
+                v-if="showClusterLookupEditor"
+                style="margin-right: 0" outlined icon
+                :to="{ name: clusterLookupPage, query: {a1: this.addressHash} }">
+              <v-icon>{{ icon.mdiMerge }}</v-icon>
+            </v-btn>
+            <v-tooltip bottom activator="#btn_open_cluster_lookup">
+              <span>Open the cluster lookup for this address</span>
+            </v-tooltip>
             <!-- hmi cluster lookup disabled for now -->
             <v-btn v-if="false"
                    id="btn_open_cluster_view"
@@ -147,12 +157,14 @@
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound, mdiGraph,
+  mdiBankTransferOut, mdiPound, mdiMerge,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
-import { convertAmount, doPost, handleError } from '../../utilities';
 import {
-  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
+  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser,
+} from '../../utilities';
+import {
+  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
@@ -168,7 +180,7 @@ export default {
         mdiBankTransferIn,
         mdiBankTransferOut,
         mdiPound,
-        mdiGraph,
+        mdiMerge,
       },
       coinUnit: COIN_UNIT,
       combobox: {
@@ -208,6 +220,7 @@ export default {
       emptyResponse: false,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
+      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
     };
   },
   methods: {
@@ -347,6 +360,12 @@ export default {
       set(value) {
         this.$store.dispatch('setAddressData', value);
       },
+    },
+    userData() {
+      return this.$store.getters.getActiveUser;
+    },
+    showClusterLookupEditor() {
+      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
   },
   mounted() {
