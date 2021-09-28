@@ -102,6 +102,11 @@
                   :sort-by="['unspent_output_count']"
                   :items="c.cluster_addresses"
                   item-key="addresshash">
+                <template v-slot:item.addresshash="{ item }">
+                  <router-link :to="{ name: addressRoute, params: { id: item.addresshash }}">
+                    {{ item.addresshash }}
+                  </router-link>
+                </template>
                 <template v-slot:item.unspent_output_count="{ item }">
                   {{ item.output_count - item.spent_output_count }}
                 </template>
