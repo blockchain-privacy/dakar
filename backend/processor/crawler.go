@@ -25,8 +25,7 @@ type Crawler struct {
 	transactions prometheus.Counter
 	blockHeight  prometheus.Gauge
 
-	isDatabaseEmpty bool
-	currentBlock    *btcjson.GetBlockVerboseResult
+	currentBlock *btcjson.GetBlockVerboseResult
 
 	initialBlockCacheSize int64
 	cache                 *outputCache
@@ -102,16 +101,7 @@ func (c *Crawler) CalculateInitialState() error {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	status, err := dbstat.GetCrawlerStatus(c.db)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
 	c.state = state
-
-	if status.LastBlockID == nil {
-		c.isDatabaseEmpty = true
-	}
 
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
@@ -192,8 +182,7 @@ func (c *Crawler) Iterate() (bool, error) {
 
 	// do the actual processing and aggregate the resulting metrics
 	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRpc, c.state, c.currentBlock,
-		c.isDatabaseEmpty, c.config, c.cache); processErr == nil {
-		c.isDatabaseEmpty = false
+		c.config, c.cache); processErr == nil {
 
 		c.blocks.Add(float64(rBlockCounter))
 		c.transactions.Add(float64(rTransactionCounter))

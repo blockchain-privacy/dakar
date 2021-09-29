@@ -33,8 +33,7 @@ type CrawlerStatus struct {
 	// LastBlockID is the ID of the last block where both steps have been successful.
 	// Thus, it is possible to have a block inside the database with a higher ID
 	//than LastBlockID, if the crawling was aborted between step 1 and 2.
-	LastBlockID   *uint64 `json:"lastblockid,omitempty"`
-	LowestBlockID *uint64 `json:"lowestblockid,omitempty"`
+	LastBlockID *uint64 `json:"lastblockid,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 }
@@ -158,7 +157,6 @@ type FrontendStatus struct {
 	IsClusteringHMI         bool   `json:"isclusteringhmi"`
 	IsClusteringFMI         bool   `json:"isclusteringfmi"`
 	LastBlockID             uint64 `json:"lastblockid"`
-	LowestBlockID           uint64 `json:"lowestblockid"`
 	LastClassifiedBlockID   uint64 `json:"lastclassifiedid"`
 	LastClusteredHMIBlockID uint64 `json:"lastclusteredhmiid"`
 	LastClusteredFMIBlockID uint64 `json:"lastclusteredfmiid"`
