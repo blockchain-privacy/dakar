@@ -5,8 +5,6 @@ import (
 	"backend/external"
 
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -164,43 +162,6 @@ func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) 
 	}
 
 	return &external.GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
-}
-
-// GetCount gets the number of instances of the given type in the database
-func GetCount(db external.Database, dbType string) (count uint64, err error) {
-	query := fmt.Sprintf(`{
-				 q(func: type(%s)){
-					count(uid)
-				  }
-				}
-				`, dbType)
-
-	ctx, cancel := GetBackendContext()
-	defer cancel()
-	resp, err := db.Query(ctx, query, nil)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r struct {
-		GetCount []struct {
-			Count uint64 `json:"count"`
-		} `json:"q"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return
-	}
-
-	if len(r.GetCount) != 1 {
-		err = errors.New("wrong number of objects returned")
-		return
-	}
-
-	count = r.GetCount[0].Count
-
-	return
 }
 
 // CreateUIDEnum returns a formatted string which contains all given uids for usage with Dgraph

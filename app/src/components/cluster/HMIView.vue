@@ -76,9 +76,9 @@ export default {
     },
     updateGraph() {
       // maps the node data to the tree layout
-      this.ct.processGraphData(this.hmiData.clusters);
+      // this.ct.processGraphData(this.hmiData.clusters);
 
-      // this.ct.drawForce(this.hmiData.clusters);
+      this.ct.drawForce(this.hmiData.clusters);
     },
     async refreshData() {
       await this.loadClusterData(this.addressHash);

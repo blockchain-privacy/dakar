@@ -237,8 +237,3 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 	}
 	return db.TxWithRetry(c, time.Minute*3, req)
 }
-
-// GetCount gets the number of addresses in the database
-func GetCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DType)
-}

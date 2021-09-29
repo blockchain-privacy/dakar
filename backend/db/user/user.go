@@ -284,16 +284,6 @@ func DeleteUser(c external.Database, uid string) (err error) {
 	return
 }
 
-// GetUserCount gets the number of users in the database
-func GetUserCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DTypeUser)
-}
-
-// GetRoleCount gets the number of roles in the database
-func GetRoleCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DTypeRole)
-}
-
 // CreateAdminUser creates a new admin account with a random password
 func CreateAdminUser(c external.Database, email string) (string, error) {
 	pw, pwHash, err := user.GetRandomPasswordAndHash()
