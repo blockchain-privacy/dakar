@@ -84,18 +84,42 @@
                   </IconItem>
                 </v-col>
               </v-row>
+              <named-divider title="Recently processed Blocks" v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
-                  <IconItem :icon="icon.mdiTimelineClockOutline" title="Last crawled block"
-                            :tooltip="tooltips.lastBlockId">
+                  <IconItem :icon="icon.mdiCounter" title="Last crawled block">
                     <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastblockid }}">
                       {{ data.status.lastblockid }}
                     </router-link>
                   </IconItem>
                 </v-col>
+                <v-col v-if="data.status.lastclassifiedid">
+                  <IconItem :icon="icon.mdiCounter" title="Last classified block">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclassifiedid }}">
+                      {{ data.status.lastclassifiedid }}
+                    </router-link>
+                  </IconItem>
+                </v-col>
+                <v-col v-if="data.status.lastclusteredhmiid">
+                  <IconItem :icon="icon.mdiCounter" title="Last HMI block">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclusteredhmiid }}">
+                      {{ data.status.lastclusteredhmiid }}
+                    </router-link>
+                  </IconItem>
+                </v-col>
+                <v-col v-if="data.status.lastclusteredfmiid">
+                  <IconItem :icon="icon.mdiCounter" title="Last FMI block">
+                    <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclusteredfmiid }}">
+                      {{ data.status.lastclusteredfmiid }}
+                    </router-link>
+                  </IconItem>
+                </v-col>
               </v-row>
-              <v-divider v-if="data.rpcinfo"/>
+              <named-divider title="RPC-Client" v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
                   <IconItem :icon="icon.mdiFormatListNumbered"
@@ -142,7 +166,7 @@
                       :icon="icon.mdiHarddisk"
                       title="Blockchain Size"
                       :tooltip="tooltips.rpcBlockchainSize">
-                    {{  (data.rpcinfo.size_on_disk / 1073741824).toFixed(2) }} GiB
+                    {{ (data.rpcinfo.size_on_disk / 1073741824).toFixed(2) }} GiB
                   </IconItem>
                 </v-col>
               </v-row>
@@ -157,17 +181,17 @@
 <script>
 import {
   mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
-  mdiArrowDownCircleOutline, mdiTimelineClockOutline,
-  mdiFormatListNumbered, mdiProgressWrench, mdiCubeOffOutline,
-  mdiWeight, mdiHarddisk,
+  mdiCounter, mdiFormatListNumbered, mdiProgressWrench,
+  mdiCubeOffOutline, mdiWeight, mdiHarddisk,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_META } from '../constants';
 import IconItem from './common/IconItem.vue';
 import { doGet, handleError } from '../utilities';
+import NamedDivider from './common/NamedDivider.vue';
 
 export default {
   name: 'StatusView',
-  components: { IconItem },
+  components: { NamedDivider, IconItem },
   data() {
     return {
       icon: {
@@ -175,8 +199,7 @@ export default {
         mdiDatabase,
         mdiDatabaseSync,
         mdiDatabaseSearch,
-        mdiArrowDownCircleOutline,
-        mdiTimelineClockOutline,
+        mdiCounter,
         mdiFormatListNumbered,
         mdiProgressWrench,
         mdiCubeOffOutline,
@@ -185,7 +208,6 @@ export default {
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
-        lastBlockId: 'Last block which was completely saved in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
         databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
         databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
