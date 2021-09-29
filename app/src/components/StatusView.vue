@@ -86,14 +86,6 @@
               </v-row>
               <v-row>
                 <v-col>
-                  <IconItem :icon="icon.mdiArrowDownCircleOutline" title="Lowest block ID"
-                            :tooltip="tooltips.lowestBlockId">
-                    <router-link :to="'block/' + data.status.lowestblockid">
-                      {{ data.status.lowestblockid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-                <v-col>
                   <IconItem :icon="icon.mdiTimelineClockOutline" title="Last crawled block"
                             :tooltip="tooltips.lastBlockId">
                     <router-link :to="{ name: blockRoute,
@@ -194,7 +186,6 @@ export default {
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       tooltips: {
         lastBlockId: 'Last block which was completely saved in the database',
-        lowestBlockId: 'Lowest block ID in the database',
         databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
         databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
         databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
@@ -224,15 +215,13 @@ export default {
         return 0.0;
       }
 
-      return (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))
-          / this.data.rpcinfo.blocks * 100;
+      return this.data.status.lastblockid / this.data.rpcinfo.blocks * 100;
     },
     classifierSyncProgress() {
       if (!this.data) {
         return 0.0;
       }
-      const percentage = ((1 + (this.data.status.lastclassifiedid - this.data.status.lowestblockid))
-          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+      const percentage = this.data.status.lastclassifiedid / this.data.status.lastblockid * 100;
 
       return percentage > 100 ? 100 : percentage;
     },
@@ -240,9 +229,7 @@ export default {
       if (!this.data) {
         return 0.0;
       }
-      const percentage = ((1 + (this.data.status.lastclusteredhmiid
-              - this.data.status.lowestblockid))
-          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+      const percentage = this.data.status.lastclusteredhmiid / this.data.status.lastblockid * 100;
 
       return percentage > 100 ? 100 : percentage;
     },
@@ -250,14 +237,11 @@ export default {
       if (!this.data) {
         return 0.0;
       }
-      const percentage = ((1 + (this.data.status.lastclusteredfmiid
-              - this.data.status.lowestblockid))
-          / (1 + (this.data.status.lastblockid - this.data.status.lowestblockid))) * 100;
+      const percentage = this.data.status.lastclusteredfmiid / this.data.status.lastblockid * 100;
 
       return percentage > 100 ? 100 : percentage;
     },
   },
-
   methods: {
     startTimer() {
       this.startProgressTimer();
