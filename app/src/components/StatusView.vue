@@ -24,124 +24,141 @@
             </v-container>
             <v-container v-if="data">
               <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiDatabaseSync" title="Chain Synchronisation"
-                            :tooltip="tooltips.databaseSync"
-                            is-color :is-red="!data.status.iscrawling">
-                    <v-progress-linear
-                        :color="crawlerSyncProgress > 98?'green'
+                <v-col lg="8" xl="8">
+                  <v-row>
+                    <v-col>
+                      <IconItem :icon="icon.mdiDatabaseSync" title="Chain Synchronisation"
+                                :tooltip="tooltips.databaseSync"
+                                is-color :is-red="!data.status.iscrawling">
+                        <v-progress-linear
+                            :color="crawlerSyncProgress > 98?'green'
                         :crawlerSyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="crawlerSyncProgress"
-                        rounded>
-                      {{ Math.round(crawlerSyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclassifiedid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Transaction Classification"
-                            :tooltip="tooltips.databaseClassification" is-color
-                            :is-red="!data.status.isclassifying">
-                    <v-progress-linear
-                        :color="classifierSyncProgress > 98?'green'
+                            height="17"
+                            :value="crawlerSyncProgress"
+                            rounded>
+                          {{ Math.round(crawlerSyncProgress) }}%
+                        </v-progress-linear>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col>
+                      <IconItem :icon="icon.mdiDatabaseSearch" title="Transaction Classification"
+                                :tooltip="tooltips.databaseClassification" is-color
+                                :is-red="!data.status.isclassifying">
+                        <v-progress-linear
+                            :color="classifierSyncProgress > 98?'green'
                         :classifierSyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="classifierSyncProgress"
-                        rounded>
-                      {{ Math.round(classifierSyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-row>
-                <v-col v-if="data.status.lastclusteredhmiid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch"
-                            title="Hierarchical Multi-Input Clustering"
-                            :tooltip="tooltips.databaseClusteringHMI" is-color
-                            :is-red="!data.status.isclusteringhmi">
-                    <v-progress-linear
-                        :color="clusteringHMISyncProgress > 98?'green'
+                            height="17"
+                            :value="classifierSyncProgress"
+                            rounded>
+                          {{ Math.round(classifierSyncProgress) }}%
+                        </v-progress-linear>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col v-if="data.status.lastclusteredhmiid > 0">
+                      <IconItem :icon="icon.mdiDatabaseSearch"
+                                title="Hierarchical Multi-Input Clustering"
+                                :tooltip="tooltips.databaseClusteringHMI" is-color
+                                :is-red="!data.status.isclusteringhmi">
+                        <v-progress-linear
+                            :color="clusteringHMISyncProgress > 98?'green'
                         :clusteringHMISyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="clusteringHMISyncProgress"
-                        rounded>
-                      {{ Math.round(clusteringHMISyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclusteredfmiid > 0">
-                  <IconItem :icon="icon.mdiDatabaseSearch" title="Flat Multi-Input Clustering"
-                            :tooltip="tooltips.databaseClusteringFMI" is-color
-                            :is-red="!data.status.isclusteringfmi">
-                    <v-progress-linear
-                        :color="clusteringFMISyncProgress > 98?'green'
+                            height="17"
+                            :value="clusteringHMISyncProgress"
+                            rounded>
+                          {{ Math.round(clusteringHMISyncProgress) }}%
+                        </v-progress-linear>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col v-if="data.status.lastclusteredfmiid > 0">
+                      <IconItem :icon="icon.mdiDatabaseSearch" title="Flat Multi-Input Clustering"
+                                :tooltip="tooltips.databaseClusteringFMI" is-color
+                                :is-red="!data.status.isclusteringfmi">
+                        <v-progress-linear
+                            :color="clusteringFMISyncProgress > 98?'green'
                         :clusteringFMISyncProgress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="clusteringFMISyncProgress"
-                        rounded>
-                      {{ Math.round(clusteringFMISyncProgress) }}%
-                    </v-progress-linear>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <named-divider title="Recently processed Blocks" v-if="data.rpcinfo"/>
-              <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiCounter" title="Last crawled block">
-                    <router-link :to="{ name: blockRoute,
-                    params: { id: data.status.lastblockid }}">
-                      {{ data.status.lastblockid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclassifiedid">
-                  <IconItem :icon="icon.mdiCounter" title="Last classified block">
-                    <router-link :to="{ name: blockRoute,
-                    params: { id: data.status.lastclassifiedid }}">
-                      {{ data.status.lastclassifiedid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclusteredhmiid">
-                  <IconItem :icon="icon.mdiCounter" title="Last HMI block">
-                    <router-link :to="{ name: blockRoute,
-                    params: { id: data.status.lastclusteredhmiid }}">
-                      {{ data.status.lastclusteredhmiid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-                <v-col v-if="data.status.lastclusteredfmiid">
-                  <IconItem :icon="icon.mdiCounter" title="Last FMI block">
-                    <router-link :to="{ name: blockRoute,
-                    params: { id: data.status.lastclusteredfmiid }}">
-                      {{ data.status.lastclusteredfmiid }}
-                    </router-link>
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <named-divider title="RPC-Client" v-if="data.rpcinfo"/>
-              <v-row>
-                <v-col>
-                  <IconItem :icon="icon.mdiFormatListNumbered"
-                            title="Block Height" :tooltip="tooltips.rpcBlockHeight">
-                    {{ data.rpcinfo.blocks }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem :icon="icon.mdiProgressWrench"
-                            title="Verification Progress"
-                            :tooltip="tooltips.rpcVerificationProgress">
-                    <v-progress-linear
-                        :color="data.rpcinfo.verificationprogress > 98?'green'
+                            height="17"
+                            :value="clusteringFMISyncProgress"
+                            rounded>
+                          {{ Math.round(clusteringFMISyncProgress) }}%
+                        </v-progress-linear>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col>
+                      <IconItem :icon="icon.mdiProgressWrench"
+                                title="RPC Verification Progress"
+                                :tooltip="tooltips.rpcVerificationProgress">
+                        <v-progress-linear
+                            :color="data.rpcinfo.verificationprogress > 98?'green'
                         :data.rpcinfo.verificationprogress > 90?'light-green':'light-blue'"
-                        height="17"
-                        :value="data.rpcinfo.verificationprogress"
-                        rounded>
-                      {{ Math.round(data.rpcinfo.verificationprogress) }}%
-                    </v-progress-linear>
-                  </IconItem>
+                            height="17"
+                            :value="data.rpcinfo.verificationprogress"
+                            rounded>
+                          {{ Math.round(data.rpcinfo.verificationprogress) }}%
+                        </v-progress-linear>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                </v-col>
+                <v-col lg="4" xl="4">
+                  <v-row>
+                    <v-col>
+                      <IconItem :icon="icon.mdiCounter" title="Last crawled Block">
+                        <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastblockid }}">
+                          {{ data.status.lastblockid }}
+                        </router-link>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col v-if="data.status.lastclassifiedid">
+                      <IconItem :icon="icon.mdiCounter" title="Last classified Block">
+                        <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclassifiedid }}">
+                          {{ data.status.lastclassifiedid }}
+                        </router-link>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col v-if="data.status.lastclusteredhmiid">
+                      <IconItem :icon="icon.mdiCounter" title="Last HMI Block">
+                        <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclusteredhmiid }}">
+                          {{ data.status.lastclusteredhmiid }}
+                        </router-link>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col v-if="data.status.lastclusteredfmiid">
+                      <IconItem :icon="icon.mdiCounter" title="Last FMI Block">
+                        <router-link :to="{ name: blockRoute,
+                    params: { id: data.status.lastclusteredfmiid }}">
+                          {{ data.status.lastclusteredfmiid }}
+                        </router-link>
+                      </IconItem>
+                    </v-col>
+                  </v-row>
+                  <v-row>
+                    <v-col>
+                      <IconItem :icon="icon.mdiCounter"
+                                title="RPC Client Block Height">
+                        {{ data.rpcinfo.blocks }}
+                      </IconItem>
+                    </v-col>
+                  </v-row>
                 </v-col>
               </v-row>
+              <named-divider title="Additional RPC-Client Data" v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
                   <IconItem
@@ -159,9 +176,7 @@
                     {{ data.rpcinfo.difficulty.toFixed() }}
                   </IconItem>
                 </v-col>
-              </v-row>
-              <v-row v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0">
-                <v-col>
+                <v-col v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0">
                   <IconItem
                       :icon="icon.mdiHarddisk"
                       title="Blockchain Size"
@@ -181,8 +196,8 @@
 <script>
 import {
   mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
-  mdiCounter, mdiFormatListNumbered, mdiProgressWrench,
-  mdiCubeOffOutline, mdiWeight, mdiHarddisk,
+  mdiCounter, mdiProgressWrench, mdiCubeOffOutline, mdiWeight,
+  mdiHarddisk,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE, ROUTE_META } from '../constants';
 import IconItem from './common/IconItem.vue';
@@ -200,7 +215,6 @@ export default {
         mdiDatabaseSync,
         mdiDatabaseSearch,
         mdiCounter,
-        mdiFormatListNumbered,
         mdiProgressWrench,
         mdiCubeOffOutline,
         mdiWeight,
@@ -214,7 +228,6 @@ export default {
             + 'Clustering is ongoing if the icon is green.',
         databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
             + 'Clustering is ongoing if the icon is green.',
-        rpcBlockHeight: 'Current block height of the RPC client',
         rpcDifficulty: 'Current mining difficulty',
         rpcPruned: 'Whether the RPC client prunes blocks',
         rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
