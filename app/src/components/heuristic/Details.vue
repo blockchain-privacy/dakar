@@ -190,7 +190,13 @@ export default {
   },
   methods: {
     updateData(graphData) {
-      this.svgHistogram.draw(graphData);
+      // flatten
+      const detailArray = [];
+      graphData.forEach((d) => {
+        detailArray.push(...d.txs);
+      });
+
+      this.svgHistogram.draw(detailArray);
       this.enoughDataForGraph = !this.svgHistogram.empty;
       this.durationInMinutes = this.svgHistogram.getDurationInMinutes;
     },

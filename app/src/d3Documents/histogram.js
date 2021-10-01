@@ -35,19 +35,16 @@ export default class Histogram {
   }
 
   draw(graphData) {
-    const detailArray = [];
     let lowestDate = null;
     let highestDate = null;
 
-    graphData.forEach((d) => {
-      d.txs.forEach((v) => {
-        v.dateTime = new Date(v.ts);
-        if (lowestDate === null || lowestDate > v.dateTime) lowestDate = v.dateTime;
-        if (highestDate === null || highestDate < v.dateTime) {
-          highestDate = v.dateTime;
-        }
-        detailArray.push(v);
-      });
+    const detailArray = graphData.map((d) => {
+      d.dateTime = new Date(d.ts);
+      if (lowestDate === null || lowestDate > d.dateTime) lowestDate = d.dateTime;
+      if (highestDate === null || highestDate < d.dateTime) {
+        highestDate = d.dateTime;
+      }
+      return d;
     });
 
     const duration = highestDate - lowestDate;
