@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
+	"backend/db/analytics"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -797,4 +798,29 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		}
 		csvWriter.Flush()
 	}
+}
+
+// getMixingActivity returns the result of a mixing activity lookup
+func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply) {
+	var req struct {
+		// AddressHash is the address hash for which the lookup will be done
+		AddressHash string `json:"addressHash,omitempty"`
+		// IsClusterLookup determines if all addresses of the cluster will be considered
+		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
+	}
+	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
+		info(cliutil.ShowCallInfo(), decodeErr)
+		return
+	}
+
+	activities, err := analytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Activities = activities
+	reply.Success = true
+
+	return
 }

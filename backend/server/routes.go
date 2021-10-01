@@ -727,6 +727,21 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/mixingActivity/"
+func handlerMixingActivity(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getMixingActivity(dgraph, r.Body)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // setupHandlers creates endpoint handlers
 func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker,
 	basicAuthUser string, basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) {
@@ -821,6 +836,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteConnectionLookup(),
 		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteMixingActivity(),
+		adapt(handlerMixingActivity(dgraph), constants.GetRouteMixingActivity(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// Clusters

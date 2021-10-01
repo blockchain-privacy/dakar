@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
+	"backend/db/analytics"
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
@@ -236,4 +237,9 @@ type hmiLookupReply struct {
 	Success        bool                            `json:"success"`
 	Clusters       []clustering.FrontendHMICluster `json:"clusters,omitempty"`
 	AddressCluster string                          `json:"address_cluster,omitempty"`
+}
+
+type mixingActivityReply struct {
+	Success    bool                       `json:"success"`
+	Activities []analytics.MixingActivity `json:"activities,omitempty"`
 }
