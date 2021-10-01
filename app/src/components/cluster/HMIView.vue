@@ -33,7 +33,7 @@ import {
   APPLICATION_NAME, ROUTE_CLUSTER_HMI_LOOKUP, ROUTE_NAME_ADDRESS_PAGE,
 } from '../../constants';
 import { doGet, handleError } from '../../utilities';
-import ClusterTree from '../../d3tree/clusterTree';
+import ClusterTree from '../../d3Documents/clusterTree';
 
 function newRouting(context) {
   const { id } = context.$route.params;

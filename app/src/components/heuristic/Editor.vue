@@ -140,7 +140,7 @@ import {
   ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
-import { HeuristicTree, rootIdentifier } from '../../d3tree/heuristicTree';
+import { HeuristicTree, rootIdentifier } from '../../d3Documents/heuristicTree';
 import {
   getCurrentDate, doPost, doGet, handleError,
 } from '../../utilities';
