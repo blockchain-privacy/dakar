@@ -28,6 +28,7 @@ export const ROUTE_CONNECTION_LOOKUP = `${routePrefix}connectionLookup/`;
 export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
 export const ROUTE_CLUSTER_SUMMARY = `${routePrefix}clusterSummary/`;
 export const ROUTE_CLUSTER_HMI_LOOKUP = `${routePrefix}hmiLookup/`;
+export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
