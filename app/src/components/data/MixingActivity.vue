@@ -11,21 +11,13 @@
             :items="privacyLabels"
             @change="updateSvgData(false)">
           <template v-slot:item="{ item }">
-        <span>
-           <v-chip label
-                   :outlined="item.color === undefined"
-                   :color="item.color?item.color:'black'" small/>
-          {{ item.text }}
-        </span>
+            <span>
+               <v-chip label :outlined="item.color === undefined"
+                       :color="item.color?item.color:'black'" small/>
+              {{ item.text }}
+            </span>
           </template>
         </v-select>
-      </v-col>
-      <v-col>
-        <v-switch
-            label="Include cluster addresses"
-            v-model="includeCusterAddresses"
-            @click="updateSvgData(true)"
-        />
       </v-col>
       <v-col>
         <v-menu
@@ -35,12 +27,11 @@
             transition="scale-transition"
             offset-y
             min-width="auto"
-            @input="handleMenuChange"
-        >
+            @input="handleMenuChange">
           <template v-slot:activator="{ on, attrs }">
             <v-text-field
                 :value="dateRangeString"
-                label="Date Range"
+                label="Filter by Date"
                 :prepend-icon="icons.mdiCalendarRange"
                 readonly
                 v-bind="attrs"
@@ -53,10 +44,23 @@
               v-model="dateRange"/>
         </v-menu>
       </v-col>
+      <v-col>
+        <v-switch
+            label="Include cluster addresses"
+            v-model="includeCusterAddresses"
+            @click="updateSvgData(true)"/>
+      </v-col>
     </v-row>
-    <p v-if="showNotEnoughDataMessage" class="text-h6">Not enough data :(</p>
+    <p v-if="showNotEnoughDataMessage && !isLoading" class="text-h6" style="text-align: center">
+      No enough data available to draw chart
+    </p>
+    <p v-if="showEmptyResponseMessage && !isLoading" class="text-h6" style="text-align: center">
+      No data available
+    </p>
     <v-progress-linear v-if="isLoading" indeterminate/>
-    <p v-if="showEmptyResponseMessage">Empty Response</p>
+    <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
+      {{ capitalize(this.selectedPrivacyLabel) }} Transactions
+    </div>
     <svg id="mixing_activity_canvas" :class="{'hide': !showHistogram}"/>
   </div>
 </template>
@@ -69,8 +73,7 @@ import { ROUTE_MIXING_ACTIVITY } from '../../constants';
 
 // capitalize returns the first letter of each word (separated by an space) in str capitalized
 function capitalize(str) {
-  const capitalizedWords = str.split(' ').map((d) => d[0].toUpperCase() + d.slice(1));
-  return capitalizedWords.join(' ');
+  return str.split(' ').map((d) => d[0].toUpperCase() + d.slice(1)).join(' ');
 }
 
 export default {
@@ -118,6 +121,7 @@ export default {
     },
   },
   methods: {
+    capitalize,
     handleMenuChange(open) {
       if (open) {
         this.oldDateRange = this.dateRange;
@@ -188,18 +192,16 @@ export default {
       });
 
       let categories = [];
-      let svgTitle = 'Privacy transactions';
 
       if (this.selectedPrivacyLabel !== 'all') {
         categories = [this.selectedPrivacyLabel];
-        svgTitle = `${capitalize(this.selectedPrivacyLabel)} transactions`;
       } else {
         // find categories
         categories = [...new Set(filtered.map((d) => d.privacytype))];
       }
 
       this.svgHistogram.reset();
-      this.svgHistogram.drawStacked(filtered, categories, this.colorMap, svgTitle);
+      this.svgHistogram.drawStacked(filtered, categories, this.colorMap);
 
       this.showHistogram = !this.svgHistogram.empty;
       this.showNotEnoughDataMessage = this.svgHistogram.empty;

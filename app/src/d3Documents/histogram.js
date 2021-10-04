@@ -8,11 +8,10 @@ function addPercentageToDate(date, duration, percentage) {
 }
 
 export default class Histogram {
-  constructor(svgId, width, height, title) {
+  constructor(svgId, width, height) {
     this.svgId = svgId;
     this.width = width;
     this.height = height;
-    this.title = title;
     this.isEmpty = false;
     this.durationInMinutes = 0;
   }
@@ -41,7 +40,7 @@ export default class Histogram {
     this.drawStacked(graphData, [], null);
   }
 
-  drawStacked(graphData, categories, colorMap, chartTitle) {
+  drawStacked(graphData, categories, colorMap) {
     let lowestDate = null;
     let highestDate = null;
 
@@ -69,34 +68,10 @@ export default class Histogram {
     const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
     const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
-    // 1000 / 60 -> minutes
-    // /40 -> get about 40 bars
-    let numTicks = Math.floor(duration / 1000 / 60 / 40);
-
-    if (numTicks === 0) numTicks = 1;
-
-    let timeScale = d3.timeMinute.every(numTicks);
-    let timeUnit = 'minute';
-    let timeFactor = 1 / 1000 / 60;
-
-    if (numTicks > 30 && numTicks < 60 * 24 * 5) {
-      // hour
-      numTicks = Math.floor(numTicks / 60);
-      timeScale = d3.timeHour.every(numTicks);
-      timeUnit = 'hour';
-      timeFactor /= 60;
-    } else if (numTicks >= 60 * 24 * 5) {
-      // day
-      numTicks = Math.floor(numTicks / 60 / 24);
-      timeScale = d3.timeDay.every(numTicks);
-      timeUnit = 'day';
-      timeFactor /= (60 * 24);
-    }
-
     const svg = d3.select(`#${this.svgId}`);
 
     const margin = {
-      top: 25, right: 30, bottom: 50, left: 50,
+      top: 10, right: 10, bottom: 50, left: 45,
     };
     const width = this.width - margin.left - margin.right;
     const height = this.height - margin.top - margin.bottom;
@@ -105,16 +80,11 @@ export default class Histogram {
     const x = d3.scaleTime().domain([lowestRange, highestRange]).rangeRound([0, width]);
     const y = d3.scaleLinear().range([height, 0]);
 
-    const xTicks = x.ticks(timeScale);
-    const binSize = Math.max(Math.floor((xTicks[1] - xTicks[0]) * timeFactor),
-      Math.floor((xTicks[2] - xTicks[1]) * timeFactor),
-      Math.floor((xTicks[3] - xTicks[2]) * timeFactor));
-
     // set the parameters for the histogram
     const histogram = d3.bin()
       .value((d) => d.dateTime)
       .domain(x.domain())
-      .thresholds(xTicks);
+      .thresholds(x.ticks(d3.timeTickInterval(lowestRange, highestRange, 40)));
 
     const svgGroup = svg
       .attr('viewBox', `0 0 ${this.width} ${this.height}`)
@@ -226,27 +196,5 @@ export default class Histogram {
       .attr('dy', '1em')
       .style('text-anchor', 'middle')
       .text('Occurrences');
-
-    let title = `${this.title} per `;
-
-    if (chartTitle !== undefined) {
-      title = `${chartTitle} per `;
-    }
-
-    if (binSize > 1) {
-      title += `${binSize} ${timeUnit}s`;
-    } else {
-      title += timeUnit;
-    }
-
-    // title
-    svgGroup.append('text')
-      .attr('fill', 'currentColor')
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', '1.2em')
-      .attr('transform',
-        `translate(${(width / 2)} ,-8)`)
-      .style('text-anchor', 'middle')
-      .text(title);
   }
 }

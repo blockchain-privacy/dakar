@@ -10,17 +10,21 @@
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn
+                class="mr-2"
                 :disabled="showMixingActivity"
                 id="btn_show_mixing_activity"
                 v-if="showClusterLookupEditor"
-                style="margin-right: 0" outlined icon
+                outlined icon
                 @click="showMixingActivity = !showMixingActivity">
-              <v-icon>{{ icon.mdiPound }}</v-icon>
+              <v-icon>{{ icon.mdiChartBar }}</v-icon>
             </v-btn>
+            <v-tooltip bottom activator="#btn_show_mixing_activity">
+              <span>Show mixing activity</span>
+            </v-tooltip>
             <v-btn
                 id="btn_open_cluster_lookup"
                 v-if="showClusterLookupEditor"
-                style="margin-right: 0" outlined icon
+                class="mr-0" outlined icon
                 :to="{ name: clusterLookupPage, query: {a1: this.addressHash} }">
               <v-icon>{{ icon.mdiMerge }}</v-icon>
             </v-btn>
@@ -78,10 +82,10 @@
                 </v-col>
               </v-row>
               <div v-if="showMixingActivity">
-                <v-divider></v-divider>
+                <named-divider title="Mixing Activity" :vertical-margin="2"/>
                 <MixingActivity :address-hash="addressHash" include-cluster/>
               </div>
-              <v-divider></v-divider>
+              <named-divider title="Outputs" :vertical-margin="2"/>
               <v-container>
                 <v-row v-if="this.data.output_count > 1">
                   <v-col>
@@ -169,7 +173,7 @@
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound, mdiMerge,
+  mdiBankTransferOut, mdiPound, mdiMerge, mdiChartBar,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
 import {
@@ -181,10 +185,13 @@ import {
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
 import MixingActivity from './MixingActivity.vue';
+import NamedDivider from '../common/NamedDivider.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { MixingActivity, IconItem, OutputComponent },
+  components: {
+    NamedDivider, MixingActivity, IconItem, OutputComponent,
+  },
   data() {
     return {
       icon: {
@@ -194,6 +201,7 @@ export default {
         mdiBankTransferOut,
         mdiPound,
         mdiMerge,
+        mdiChartBar,
       },
       coinUnit: COIN_UNIT,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
@@ -397,7 +405,7 @@ export default {
     $route() {
       // if route gets changed the component could still be loaded but now with different data.
       // Because of this the internal state has to be reset.
-      this.showHistogram = false;
+      this.showMixingActivity = false;
     },
   },
 };

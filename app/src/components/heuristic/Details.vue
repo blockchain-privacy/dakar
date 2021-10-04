@@ -68,6 +68,9 @@
           </v-col>
           <v-col>
             <v-card outlined class="mx-auto my-4" v-if="dataItems.length > 0" min-width="400px">
+              <div v-if="enoughDataForGraph" class="text-subtitle-1" style="text-align: center">
+                Origin Transactions
+              </div>
               <svg id="heuristic_details_canvas" :class="{'hide':!enoughDataForGraph}"/>
               <v-card-title class="text-h5" v-if="!enoughDataForGraph">
                 Not enough data to display diagram
@@ -216,7 +219,7 @@ export default {
     this.updateData(this.heuristicData.transactions);
   },
   mounted() {
-    this.svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, 'Number of origins');
+    this.svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, 'Origin Transactions');
   },
 };
 </script>
