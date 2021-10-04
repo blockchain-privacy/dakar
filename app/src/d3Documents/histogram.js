@@ -8,8 +8,11 @@ function addPercentageToDate(date, duration, percentage) {
 }
 
 export default class Histogram {
-  constructor(svgId) {
+  constructor(svgId, width, height, title) {
     this.svgId = svgId;
+    this.width = width;
+    this.height = height;
+    this.title = title;
     this.isEmpty = false;
     this.durationInMinutes = 0;
   }
@@ -35,6 +38,10 @@ export default class Histogram {
   }
 
   draw(graphData) {
+    this.drawStacked(graphData, [], null);
+  }
+
+  drawStacked(graphData, categories, colorMap, chartTitle) {
     let lowestDate = null;
     let highestDate = null;
 
@@ -50,7 +57,7 @@ export default class Histogram {
     const duration = highestDate - lowestDate;
 
     // check if there is enough data to draw the diagram; 1000 * 60 * 60 * 3 = 10800000
-    if (duration < 10800000) {
+    if (duration < 180000) {
       this.isEmpty = true;
       this.durationInMinutes = Math.floor(duration / 1000 / 60);
       return;
@@ -62,38 +69,55 @@ export default class Histogram {
     const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
     const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
-    // 1000*60*60*24*2.5 = 2.5 days
-    // 216000000 = 2.5 days
-    let numTicks = Math.floor(duration / 216000000);
+    // 1000 / 60 -> minutes
+    // /40 -> get about 40 bars
+    let numTicks = Math.floor(duration / 1000 / 60 / 40);
+
     if (numTicks === 0) numTicks = 1;
 
+    let timeScale = d3.timeMinute.every(numTicks);
+    let timeUnit = 'minute';
+    let timeFactor = 1 / 1000 / 60;
+
+    if (numTicks > 30 && numTicks < 60 * 24 * 5) {
+      // hour
+      numTicks = Math.floor(numTicks / 60);
+      timeScale = d3.timeHour.every(numTicks);
+      timeUnit = 'hour';
+      timeFactor /= 60;
+    } else if (numTicks >= 60 * 24 * 5) {
+      // day
+      numTicks = Math.floor(numTicks / 60 / 24);
+      timeScale = d3.timeDay.every(numTicks);
+      timeUnit = 'day';
+      timeFactor /= (60 * 24);
+    }
+
     const svg = d3.select(`#${this.svgId}`);
+
     const margin = {
-      top: 20, right: 30, bottom: 45, left: 40,
+      top: 25, right: 30, bottom: 50, left: 50,
     };
-    const width = 600 - margin.left - margin.right;
-    const height = 300 - margin.top - margin.bottom;
+    const width = this.width - margin.left - margin.right;
+    const height = this.height - margin.top - margin.bottom;
 
     // set the ranges
-    const x = d3.scaleTime()
-      .domain([lowestRange, highestRange])
-      .rangeRound([0, width]);
+    const x = d3.scaleTime().domain([lowestRange, highestRange]).rangeRound([0, width]);
+    const y = d3.scaleLinear().range([height, 0]);
 
-    const y = d3.scaleLinear()
-      .range([height, 0]);
+    const xTicks = x.ticks(timeScale);
+    const binSize = Math.max(Math.floor((xTicks[1] - xTicks[0]) * timeFactor),
+      Math.floor((xTicks[2] - xTicks[1]) * timeFactor),
+      Math.floor((xTicks[3] - xTicks[2]) * timeFactor));
 
     // set the parameters for the histogram
     const histogram = d3.bin()
       .value((d) => d.dateTime)
       .domain(x.domain())
-      .thresholds(x.ticks(d3.timeHour.every(numTicks)));
+      .thresholds(xTicks);
 
-    // append the svg object to the body of the page
-    // append a 'group' element to 'svg'
-    // moves the 'group' element to the top left margin
     const svgGroup = svg
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom)
+      .attr('viewBox', `0 0 ${this.width} ${this.height}`)
       .append('g')
       .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -103,52 +127,99 @@ export default class Histogram {
     // Scale the range of the data in the y domain
     y.domain([0, d3.max(bins, (d) => d.length)]);
 
-    // append the bar rectangles to the svg element
-    svgGroup.selectAll('rect')
-      .data(bins)
-      .enter().append('rect')
-      .attr('class', 'bar')
-      .attr('x', 1)
-      .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`)
-      .attr('width', (d) => x(d.x1) - x(d.x0) - 1)
-      .attr('height', (d) => height - y(d.length));
+    const t = d3.transition().duration(300).ease(d3.easeLinear);
+
+    if (categories.length === 0) {
+      // append bar rectangles to the svg element
+      const bars = svgGroup.selectAll('rect')
+        .data(bins)
+        .join('rect')
+        .attr('class', 'bar')
+        .attr('x', 1)
+        .attr('width', (d) => x(d.x1) - x(d.x0) - 1)
+        .attr('height', (d) => height - y(d.length))
+        .attr('transform', (d) => `translate(${0},${y(d.length)})`);
+
+      bars
+        .transition(t)
+        .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`);
+    } else {
+      // append stacked bar rectangles to the svg element
+      const bars = svgGroup.selectAll('.bar')
+        .data(bins)
+        .join('g')
+        .attr('class', 'bar')
+        .attr('transform', (d) => `translate(${0},${y(d.length)})`);
+      bars
+        .transition(t)
+        .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`);
+
+      bars.selectAll('.subBar')
+        .data((d) => {
+          const elements = [];
+          let parentSize = 0;
+
+          const privacyGroups = d3.group(d, (e) => e.privacytype);
+
+          if (privacyGroups.size === 0) {
+            return elements;
+          }
+
+          colorMap.forEach((v, k) => {
+            const g = privacyGroups.get(k);
+            if (g === undefined) {
+              return;
+            }
+
+            elements.push({
+              parentSize,
+              width: x(d.x1) - x(d.x0) - 1,
+              height: g.length,
+              color: colorMap.get(g[0].privacytype),
+            });
+            parentSize += g.length;
+          });
+
+          return elements;
+        })
+        .join('rect')
+        .attr('class', 'subBar')
+        .attr('x', 1)
+        .attr('fill', (d) => d.color)
+        .attr('width', (d) => d.width)
+        .attr('y', (d) => height - y(d.parentSize))
+        .attr('height', (d) => height - y(d.height));
+    }
 
     // add the x Axis
     svgGroup.append('g')
       .attr('transform', `translate(0,${height})`)
       .call(d3.axisBottom(x));
 
-    // add x title
-    svgGroup.append('text')
-      .attr('fill', 'currentColor')
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', 10)
-      .attr('transform',
-        `translate(${(width / 2)} ,${
-          height + margin.top + 10})`)
-      .style('text-anchor', 'middle')
-      .text('Time');
-
     // add x title description
     svgGroup.append('text')
       .attr('fill', 'currentColor')
       .attr('font-family', 'sans-serif')
-      .attr('font-size', 10)
+      .attr('font-size', '1em')
       .attr('transform',
         `translate(${(width / 2)} ,${
-          height + margin.top + 22})`)
+          height + margin.top + 20})`)
       .style('text-anchor', 'middle')
       .text(`${lowestDate.toLocaleString()} - ${highestDate.toLocaleString()}`);
 
+    // only allow integer on scale
+    const yAxisTicks = y.ticks().filter((tick) => Number.isInteger(tick));
+
     // add the y Axis
     svgGroup.append('g')
-      .call(d3.axisLeft(y));
+      .call(d3.axisLeft(y).tickValues(yAxisTicks)
+        .tickFormat(d3.format('d')));
 
     // add y title
     svgGroup.append('text')
       .attr('fill', 'currentColor')
       .attr('font-family', 'sans-serif')
-      .attr('font-size', 10)
+      .attr('font-size', '1em')
       .attr('transform', 'rotate(-90)')
       .attr('y', 0 - margin.left)
       .attr('x', 0 - (height / 2) - 20)
@@ -156,21 +227,26 @@ export default class Histogram {
       .style('text-anchor', 'middle')
       .text('Occurrences');
 
-    let title = 'Number of origins per ';
+    let title = `${this.title} per `;
 
-    if (numTicks > 1) {
-      title += `${numTicks} hours`;
+    if (chartTitle !== undefined) {
+      title = `${chartTitle} per `;
+    }
+
+    if (binSize > 1) {
+      title += `${binSize} ${timeUnit}s`;
     } else {
-      title += 'hour';
+      title += timeUnit;
     }
 
     // title
     svgGroup.append('text')
       .attr('fill', 'currentColor')
       .attr('font-family', 'sans-serif')
-      .attr('font-size', 12)
-      .attr('y', -5)
-      .attr('x', width / 2 - 50)
+      .attr('font-size', '1.2em')
+      .attr('transform',
+        `translate(${(width / 2)} ,-8)`)
+      .style('text-anchor', 'middle')
       .text(title);
   }
 }
