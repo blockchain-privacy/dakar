@@ -10,6 +10,14 @@
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn
+                :disabled="showMixingActivity"
+                id="btn_show_mixing_activity"
+                v-if="showClusterLookupEditor"
+                style="margin-right: 0" outlined icon
+                @click="showMixingActivity = !showMixingActivity">
+              <v-icon>{{ icon.mdiPound }}</v-icon>
+            </v-btn>
+            <v-btn
                 id="btn_open_cluster_lookup"
                 v-if="showClusterLookupEditor"
                 style="margin-right: 0" outlined icon
@@ -69,6 +77,10 @@
                   </IconItem>
                 </v-col>
               </v-row>
+              <div v-if="showMixingActivity">
+                <v-divider></v-divider>
+                <MixingActivity :address-hash="addressHash" include-cluster/>
+              </div>
               <v-divider></v-divider>
               <v-container>
                 <v-row v-if="this.data.output_count > 1">
@@ -168,10 +180,11 @@ import {
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
+import MixingActivity from './MixingActivity.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { IconItem, OutputComponent },
+  components: { MixingActivity, IconItem, OutputComponent },
   data() {
     return {
       icon: {
@@ -183,6 +196,9 @@ export default {
         mdiMerge,
       },
       coinUnit: COIN_UNIT,
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+      clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
+      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
       combobox: {
         selected: {
           id: 0,
@@ -218,9 +234,7 @@ export default {
       isSortingByInput: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
-      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-      clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
-      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+      showMixingActivity: false,
     };
   },
   methods: {
@@ -379,5 +393,16 @@ export default {
     this.updateSortState();
     this.updateFilterState();
   },
+  watch: {
+    $route() {
+      // if route gets changed the component could still be loaded but now with different data.
+      // Because of this the internal state has to be reset.
+      this.showHistogram = false;
+    },
+  },
 };
 </script>
+
+<style scoped>
+
+</style>
