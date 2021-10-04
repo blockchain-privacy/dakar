@@ -7,101 +7,107 @@
       </v-card-title>
       <v-divider/>
       <v-card-text style="height: 80%">
-        <div class="d-flex flex-wrap" style="align-items: flex-start;">
-          <v-card outlined class="mr-auto my-4" max-width="500">
-            <v-card-subtitle>
-              <v-row>
-                <v-col>
-                  <IconItem title="Type" :icon="icon.mdiIframeVariableOutline">
-                    {{ heuristicData.heuristicType }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem v-if="heuristicData.heuristicParameter"
-                            title="Parameter"
-                            :icon="icon.mdiTune">
-                    {{ heuristicData.heuristicParameter }}
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-row v-if="isHollow">
-                <v-col>
-                  <v-card-title class="text-h5">
-                    Not executed
-                  </v-card-title>
-                  <v-card-subtitle>
-                    This heuristic has not been executed, therefore no results are available.
-                  </v-card-subtitle>
-                </v-col>
-              </v-row>
-              <v-row v-else-if="dataItems.length > 0">
-                <v-col>
-                  <IconItem title="Number of origins"
-                            :icon="icon.mdiPoundBoxOutline">
-                    {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
-                  </IconItem>
-                </v-col>
-                <v-col>
-                  <IconItem title="Number of clusters"
-                            :icon="icon.mdiPoundBoxOutline">
-                    {{
-                      heuristicData.transactions === undefined ? 0
-                          : heuristicData.transactions.length
-                    }}
-                  </IconItem>
-                </v-col>
-              </v-row>
-              <v-row v-else>
-                <v-col>
-                  <v-card-title class="text-h5">
-                    No results
-                  </v-card-title>
-                  <v-card-subtitle>
-                    This heuristic returned no results. Try different parameters,
-                    other heuristics or a different combination of heuristics.
-                  </v-card-subtitle>
-                </v-col>
-              </v-row>
-            </v-card-subtitle>
-          </v-card>
-          <v-card outlined class="mx-auto my-4" v-if="dataItems.length > 0" max-width="800px">
-            <svg id="heuristic_details_canvas" :class="!enoughDataForGraph?'hide':''"/>
-            <v-card-title class="text-h5" v-if="!enoughDataForGraph">
-              Not enough data to display diagram
-            </v-card-title>
-            <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">
-              {{
-                `Only ${durationInMinutes} minute${durationInMinutes > 1 ? 's' : ''}
+        <v-row>
+          <v-col>
+            <v-card outlined class="mr-auto my-4" max-width="500">
+              <v-card-subtitle>
+                <v-row>
+                  <v-col>
+                    <IconItem title="Type" :icon="icon.mdiIframeVariableOutline">
+                      {{ heuristicData.heuristicType }}
+                    </IconItem>
+                  </v-col>
+                  <v-col>
+                    <IconItem v-if="heuristicData.heuristicParameter"
+                              title="Parameter"
+                              :icon="icon.mdiTune">
+                      {{ heuristicData.heuristicParameter }}
+                    </IconItem>
+                  </v-col>
+                </v-row>
+                <v-row v-if="isHollow">
+                  <v-col>
+                    <v-card-title class="text-h5">
+                      Not executed
+                    </v-card-title>
+                    <v-card-subtitle>
+                      This heuristic has not been executed, therefore no results are available.
+                    </v-card-subtitle>
+                  </v-col>
+                </v-row>
+                <v-row v-else-if="dataItems.length > 0">
+                  <v-col>
+                    <IconItem title="Number of origins"
+                              :icon="icon.mdiPoundBoxOutline">
+                      {{ heuristicData.resultCount ? heuristicData.resultCount : 0 }}
+                    </IconItem>
+                  </v-col>
+                  <v-col>
+                    <IconItem title="Number of clusters"
+                              :icon="icon.mdiPoundBoxOutline">
+                      {{
+                        heuristicData.transactions === undefined ? 0
+                            : heuristicData.transactions.length
+                      }}
+                    </IconItem>
+                  </v-col>
+                </v-row>
+                <v-row v-else>
+                  <v-col>
+                    <v-card-title class="text-h5">
+                      No results
+                    </v-card-title>
+                    <v-card-subtitle>
+                      This heuristic returned no results. Try different parameters,
+                      other heuristics or a different combination of heuristics.
+                    </v-card-subtitle>
+                  </v-col>
+                </v-row>
+              </v-card-subtitle>
+            </v-card>
+          </v-col>
+          <v-col>
+            <v-card outlined class="mx-auto my-4" v-if="dataItems.length > 0" min-width="400px">
+              <svg id="heuristic_details_canvas" :class="{'hide':!enoughDataForGraph}"/>
+              <v-card-title class="text-h5" v-if="!enoughDataForGraph">
+                Not enough data to display diagram
+              </v-card-title>
+              <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes > 0">
+                {{
+                  `Only ${durationInMinutes} minute${durationInMinutes > 1 ? 's' : ''}
                 between earliest and latest origin.`
-              }}
-            </v-card-subtitle>
-            <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes === 0">
-              All origins occur in the same point of time.
-            </v-card-subtitle>
-          </v-card>
-          <v-card outlined class="ml-auto my-4" v-if="dataItems.length > 0">
-            <v-data-table :headers="dataHeaders"
-                          :items="dataItems"
-                          :items-per-page="5"
-                          :sort-by.sync="sortBy"
-                          :sort-desc.sync="sortDesc"
-                          item-key="cluster"
-                          show-expand>
-              <template v-slot:expanded-item="{ headers, item }">
-                <td :colspan="headers.length" class="py-3">
-                  <v-list dense>
-                    <v-list-item v-for="a in item.addresses" :key="a"
-                                 :to="{ name: addressRoute, params: { id: a }}">
-                      <v-list-item-content>
-                        <v-list-item-title>{{ a }}</v-list-item-title>
-                      </v-list-item-content>
-                    </v-list-item>
-                  </v-list>
-                </td>
-              </template>
-            </v-data-table>
-          </v-card>
-        </div>
+                }}
+              </v-card-subtitle>
+              <v-card-subtitle v-if="!enoughDataForGraph && durationInMinutes === 0">
+                All origins occur in the same point of time.
+              </v-card-subtitle>
+            </v-card>
+          </v-col>
+          <v-col>
+            <v-card outlined class="ml-auto my-4" v-if="dataItems.length > 0">
+              <v-data-table :headers="dataHeaders"
+                            :items="dataItems"
+                            :items-per-page="5"
+                            :sort-by.sync="sortBy"
+                            :sort-desc.sync="sortDesc"
+                            item-key="cluster"
+                            show-expand>
+                <template v-slot:expanded-item="{ headers, item }">
+                  <td :colspan="headers.length" class="py-3">
+                    <v-list dense>
+                      <v-list-item v-for="a in item.addresses" :key="a"
+                                   :to="{ name: addressRoute, params: { id: a }}">
+                        <v-list-item-content>
+                          <v-list-item-title>{{ a }}</v-list-item-title>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-list>
+                  </td>
+                </template>
+              </v-data-table>
+            </v-card>
+          </v-col>
+        </v-row>
       </v-card-text>
     </v-card>
   </v-bottom-sheet>
@@ -210,7 +216,7 @@ export default {
     this.updateData(this.heuristicData.transactions);
   },
   mounted() {
-    this.svgHistogram = new Histogram('heuristic_details_canvas');
+    this.svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, 'Number of origins');
   },
 };
 </script>
@@ -223,6 +229,7 @@ export default {
 
 .hide {
   display: none;
+  height: 0;
 }
 
 </style>
