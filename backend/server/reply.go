@@ -660,7 +660,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database, tUser tokenUser, txHashString string) {
+func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, txHashString string) {
 	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 	if err != nil {
 		handleError(w, err)
@@ -674,7 +674,7 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 
 	// headers for streaming data to client
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	w.Header().Set("Content-Type", "text/csv")
 
 	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
 	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
@@ -766,7 +766,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	// headers for streaming data to client
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cluster_lookup_%s.csv",
 		time.Now().Format("2006-01-02T15:04:05")))
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	w.Header().Set("Content-Type", "text/csv")
 
 	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
 	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))

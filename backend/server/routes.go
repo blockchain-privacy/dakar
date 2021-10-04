@@ -323,7 +323,7 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 			return
 		}
 
-		writeHeuristicSummary(w, r, dgraph, tUser, txHashString)
+		writeHeuristicSummary(w, dgraph, tUser, txHashString)
 	})
 }
 
