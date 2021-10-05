@@ -123,6 +123,9 @@ export default {
   },
   methods: {
     capitalize,
+    clickHandler(data) {
+      console.log('clickHandler', data);
+    },
     handleMenuChange(open) {
       if (open) {
         this.oldDateRange = this.dateRange;
@@ -219,6 +222,7 @@ export default {
 
     this.svgHistogram = new Histogram('mixing_activity_canvas',
       1200, 300, 'Privacy transactions');
+    this.svgHistogram.setClickHandler(this.clickHandler);
   },
   mounted() {
     this.updateSvgData();
@@ -227,6 +231,12 @@ export default {
 </script>
 
 <style scoped>
+
+>>> .overlay {
+  fill: #008ee5;
+  cursor: pointer;
+}
+
 .hide {
   display: none;
 }

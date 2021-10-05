@@ -1,5 +1,11 @@
 import * as d3 from 'd3';
 
+// isFunction returns true if the provided argument is a function
+// credits: https://stackoverflow.com/questions/5999998/check-if-a-variable-is-of-function-type
+export function isFunction(functionToCheck) {
+  return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
 // addPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
   const newDate = new Date(date);
@@ -14,6 +20,8 @@ export default class Histogram {
     this.height = height;
     this.isEmpty = false;
     this.durationInMinutes = 0;
+
+    this.clickCallBack = null;
   }
 
   get empty() {
@@ -115,10 +123,10 @@ export default class Histogram {
         .attr('transform', (d) => `translate(${x(d.x0)},${y(d.length)})`);
     } else {
       // append stacked bar rectangles to the svg element
-      const bars = svgGroup.selectAll('.bar')
+      const bars = svgGroup.selectAll('.stackedBar')
         .data(bins)
         .join('g')
-        .attr('class', 'bar')
+        .attr('class', 'stackedBar')
         .attr('transform', (d) => `translate(${0},${y(d.length)})`);
       bars
         .transition(t)
@@ -126,26 +134,33 @@ export default class Histogram {
 
       bars.selectAll('.subBar')
         .data((d) => {
+          // d: data of one svg group which will later contain the stacked rects of one time slot
+
           const elements = [];
           let parentSize = 0;
 
+          // all data of d grouped by privacy type
           const privacyGroups = d3.group(d, (e) => e.privacytype);
 
           if (privacyGroups.size === 0) {
             return elements;
           }
 
-          colorMap.forEach((v, k) => {
-            const g = privacyGroups.get(k);
+          colorMap.forEach((v, privacyType) => {
+            const g = privacyGroups.get(privacyType);
             if (g === undefined) {
+              // this privacy type does not exists
               return;
             }
+
+            // const transactions = g.map((e) => e.txhash);
 
             elements.push({
               parentSize,
               width: x(d.x1) - x(d.x0) - 1,
               height: g.length,
-              color: colorMap.get(g[0].privacytype),
+              color: colorMap.get(privacyType),
+              // transactions,
             });
             parentSize += g.length;
           });
@@ -159,6 +174,22 @@ export default class Histogram {
         .attr('width', (d) => d.width)
         .attr('y', (d) => height - y(d.parentSize))
         .attr('height', (d) => height - y(d.height));
+
+      // const self = this;
+      // set overlay which animates the bars and has event handler attached
+      bars.append('rect')
+        .attr('class', 'overlay')
+        .attr('x', 1)
+        .attr('opacity', 0)
+        .attr('width', (d) => x(d.x1) - x(d.x0) - 1)
+        .attr('height', (d) => height - y(d.length))
+        .on('click', (e, d) => { this.clickCallBack(d); })
+        .on('mouseout', function mouseOut() {
+          d3.select(this).attr('opacity', 0);
+        })
+        .on('mouseover', function mouseOver() {
+          d3.select(this).attr('opacity', 1);
+        });
     }
 
     // add the x Axis
@@ -196,5 +227,14 @@ export default class Histogram {
       .attr('dy', '1em')
       .style('text-anchor', 'middle')
       .text('Occurrences');
+  }
+
+  setClickHandler(callback) {
+    if (!isFunction(callback)) {
+      return false;
+    }
+
+    this.clickCallBack = callback;
+    return true;
   }
 }
