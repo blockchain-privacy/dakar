@@ -112,8 +112,7 @@
                         item-text="text"
                         label="Filter"
                         v-on:change="handleSortAndFilter"
-                        multiple
-                    >
+                        multiple>
                       <template v-slot:selection="{ item }">
                         <v-chip small>
                           <span>{{ item.chip }}</span>
@@ -122,10 +121,8 @@
                     </v-select>
                   </v-col>
                   <v-col v-if="this.isSortingByInput">
-                    <v-alert
-                        type="info"
-                        text
-                    >Only spent outputs are shown.
+                    <v-alert type="info" text>
+                      Only spent outputs are shown.
                     </v-alert>
                   </v-col>
                 </v-row>

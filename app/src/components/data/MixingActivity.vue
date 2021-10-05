@@ -59,7 +59,8 @@
     </p>
     <v-progress-linear v-if="isLoading" indeterminate/>
     <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
-      {{ capitalize(this.selectedPrivacyLabel) }} Transactions
+      {{ selectedPrivacyLabel === 'all'?'All Privacy':capitalize(selectedPrivacyLabel) }}
+      Transactions
     </div>
     <svg id="mixing_activity_canvas" :class="{'hide': !showHistogram}"/>
   </div>
