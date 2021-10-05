@@ -59,10 +59,38 @@
     </p>
     <v-progress-linear v-if="isLoading" indeterminate/>
     <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
-      {{ selectedPrivacyLabel === 'all'?'All Privacy':capitalize(selectedPrivacyLabel) }}
+      {{ selectedPrivacyLabel === 'all' ? 'All Privacy' : capitalize(selectedPrivacyLabel) }}
       Transactions
     </div>
     <svg id="mixing_activity_canvas" :class="{'hide': !showHistogram}"/>
+
+    <v-data-table
+        v-if="barTable.transactions.length > 0"
+        :headers="barTable.headers"
+        :items="barTable.transactions">
+      <template v-slot:top>
+        <v-toolbar flat class="hidden-sm-and-up">
+          <v-toolbar-title>
+            Privacy Transactions from {{ barTable.transactions.startDate }}
+            to {{ barTable.transactions.endDate }}
+          </v-toolbar-title>
+        </v-toolbar>
+        <v-toolbar flat class="hidden-xs-only">
+          <v-toolbar-title>
+            Privacy Transactions from {{ barTable.transactions.startDate }}
+            to {{ barTable.transactions.endDate }}
+          </v-toolbar-title>
+        </v-toolbar>
+      </template>
+      <template v-slot:[`item.txhash`]="{ item }">
+        <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
+          {{ item.txhash }}
+        </router-link>
+      </template>
+      <template v-slot:[`item.dateTime`]="{ item }">
+        <span>{{ item.dateTime.toLocaleString() }}</span>
+      </template>
+    </v-data-table>
   </div>
 </template>
 
@@ -70,7 +98,7 @@
 import { mdiCalendarRange } from '@mdi/js';
 import Histogram from '../../d3Documents/histogram';
 import { doPost, getPrivacyTypeLabel, handleError } from '../../utilities';
-import { ROUTE_MIXING_ACTIVITY } from '../../constants';
+import { ROUTE_MIXING_ACTIVITY, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 
 // capitalize returns the first letter of each word (separated by an space) in str capitalized
 function capitalize(str) {
@@ -88,6 +116,7 @@ export default {
       icons: {
         mdiCalendarRange,
       },
+      txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       selectedPrivacyLabel: 'all',
       showHistogram: false,
       colorMap: new Map(),
@@ -101,6 +130,15 @@ export default {
       dateRange: null,
       menu: null,
       oldDateRange: null,
+      barTable: {
+        headers: [{
+          text: 'Transaction', align: 'start', value: 'txhash',
+        },
+        { text: 'Timestamp', value: 'dateTime' },
+        { text: 'Privacy Type', value: 'privacytype' },
+        ],
+        transactions: [],
+      },
     };
   },
   computed: {
@@ -124,7 +162,17 @@ export default {
   methods: {
     capitalize,
     clickHandler(data) {
-      console.log('clickHandler', data);
+      if (data.x0.getHours() === data.x1.getHours()) {
+        if (data.x0.getMinutes() === data.x1.getMinutes()) {
+          data.startDate = data.x0.toLocaleDateString();
+          data.endDate = data.x1.toLocaleDateString();
+        }
+      } else {
+        data.startDate = data.x0.toLocaleString();
+        data.endDate = data.x1.toLocaleString();
+      }
+
+      this.barTable.transactions = data;
     },
     handleMenuChange(open) {
       if (open) {
@@ -231,9 +279,10 @@ export default {
 </script>
 
 <style scoped>
-
 >>> .overlay {
-  fill: #008ee5;
+  stroke-width: 2px;
+  stroke: red;
+  fill: red;
   cursor: pointer;
 }
 
