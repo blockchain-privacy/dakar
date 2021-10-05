@@ -177,6 +177,29 @@ export function doGet(route, router, store, parameter) {
     });
 }
 
+export function doGetBlob(route, router, store, parameter) {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para, {
+    credentials: 'same-origin',
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+      return response;
+    })
+    .then((response) => response.blob())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
+      // update last action time stamp
+      const userData = store.getters.getActiveUser;
+      if (userData) {
+        store.dispatch('setActiveUser', setActionDate(userData));
+      }
+
+      return data;
+    });
+}
+
 export function handleError(context, error) {
   let errMsg;
   if (error.message === '500 Internal Server Error') {
