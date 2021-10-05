@@ -42,12 +42,11 @@ func MapGetCrawlerStatus(db *Database) {
 					uid
 					iscrawling
 					lastblockid
-					lowestblockid
 				  }
 				}`
 
 	resp := api.Response{
-		Json: []byte("{\"q\":[{\"uid\":\"0x3d5\",\"iscrawling\":false,\"lastblockid\":1423346,\"lowestblockid\":1}]}"),
+		Json: []byte("{\"q\":[{\"uid\":\"0x3d5\",\"iscrawling\":false,\"lastblockid\":1423346}]}"),
 	}
 
 	db.On("Query", mock.AnythingOfType("*context.timerCtx"), query, emptyMap).

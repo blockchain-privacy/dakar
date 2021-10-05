@@ -19,7 +19,6 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 					uid
 					iscrawling
 					lastblockid
-					lowestblockid
 				  }
 				}`
 
@@ -165,7 +164,6 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 				crawler(func: type(` + CrawlerStatusDType + `)){
 					iscrawling
 					lastblockid
-					lowestblockid
 				}
 				classifier(func: type(` + ClassifierStatusDType + `)){
 					isclassifying
@@ -254,9 +252,8 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	}
 
 	status = FrontendStatus{
-		IsCrawling:    *r.Crawler[0].IsCrawling,
-		LastBlockID:   *r.Crawler[0].LastBlockID,
-		LowestBlockID: *r.Crawler[0].LowestBlockID,
+		IsCrawling:  *r.Crawler[0].IsCrawling,
+		LastBlockID: *r.Crawler[0].LastBlockID,
 	}
 
 	if len(r.Classifier) == 1 {

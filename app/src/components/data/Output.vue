@@ -34,7 +34,25 @@
         <v-row v-if="expanded">
           <v-col>
             <v-text-field v-if="keyAsm" hide-details dense label="Key script" class="mb-3"
-                          outlined readonly :value="keyAsm"/>
+                          outlined readonly :value="keyAsm"
+                          :append-outer-icon="icons.mdiFormatColorText"
+                          @click:append-outer="showAscii = !showAscii">
+              <template v-slot:append-outer>
+                <v-btn
+                    id="btn_toggle_ascii"
+                    style="top:-7px"
+                    v-if="keyAsm" icon
+                    @click="showAscii = !showAscii">
+                  <v-icon>{{ icons.mdiFormatColorText }}</v-icon>
+                </v-btn>
+                <v-tooltip bottom activator="#btn_toggle_ascii">
+                  <span>Show script encoded in ASCII</span>
+                </v-tooltip>
+              </template>
+            </v-text-field>
+            <v-text-field v-if="keyAsm && showAscii &&  scriptToAscii(keyAsm)" hide-details
+                          dense label="Key script" class="mb-3"
+                          outlined readonly :value="scriptToAscii(keyAsm)"/>
             <v-text-field v-if="sigAsm" hide-details dense label="Signature script"
                           outlined readonly :value="sigAsm"/>
           </v-col>
@@ -48,9 +66,20 @@
 </template>
 
 <script>
-import { mdiChevronUp, mdiChevronDown } from '@mdi/js';
+import { mdiChevronUp, mdiChevronDown, mdiFormatColorText } from '@mdi/js';
 import { convertAmount, getPrivacyTypeLabel } from '../../utilities';
 import { COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+
+const isHex = (str) => /^[A-F0-9]+$/i.test(str);
+
+function hex2Ascii(hex) {
+  const hexString = hex.toString();// force conversion
+  let str = '';
+  for (let i = 0; i < hexString.length; i += 2) {
+    str += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
+  }
+  return str;
+}
 
 export default {
   name: 'Output',
@@ -69,17 +98,27 @@ export default {
   data() {
     return {
       icons: {
-        mdiChevronUp, mdiChevronDown,
+        mdiChevronUp, mdiChevronDown, mdiFormatColorText,
       },
       COIN_UNIT,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       expanded: false,
+      showAscii: false,
     };
   },
   methods: {
     convertAmount,
     getPrivacyTypeLabel,
+    scriptToAscii(script) {
+      const splits = script.split(' ');
+
+      const hex = splits.find((d) => isHex(d));
+
+      if (hex === undefined) return '';
+
+      return hex2Ascii(hex);
+    },
   },
 };
 </script>

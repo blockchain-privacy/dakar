@@ -47,7 +47,6 @@ func SetupSchema(c external.Database) error {
 			isclassifying: bool .
 			isclustering: bool .
 			lastblockid: int .
-			lowestblockid: int .
 			lastclassifiedid: int .
 			lastclusteredid: int .
 
@@ -108,7 +107,6 @@ func SetupSchema(c external.Database) error {
 			type CrawlerStatus {
 				iscrawling
 				lastblockid
-				lowestblockid
 			}
 
 			type ClassifierStatus {
@@ -353,5 +351,24 @@ func AlterSchemaAddMultiInputClusterType(c external.Database) error {
 				cluster_address_count
 			}
 		`,
+	})
+}
+
+// AlterSchemaRemoveLowestBlockIdFromCrawlerStatus removes the lowestblock id from the crawler status
+func AlterSchemaRemoveLowestBlockIdFromCrawlerStatus(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			type CrawlerStatus {
+				iscrawling
+				lastblockid
+			}
+		`,
+	})
+}
+
+// DropLowestBlockId removes all data from the predicate lowestblockid
+func DropLowestBlockId(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "lowestblockid",
 	})
 }

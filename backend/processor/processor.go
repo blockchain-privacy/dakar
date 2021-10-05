@@ -645,7 +645,7 @@ func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
 func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, state crawlerState,
-	block *btcjson.GetBlockVerboseResult, setLowestID bool, config Config, cache *outputCache) (
+	block *btcjson.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
 	var transactions []dbtx.Transaction
@@ -748,17 +748,9 @@ func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, st
 	}
 
 	// save processing state
-	if setLowestID {
-		if err = dbstat.SetCrawlerStatus(dgraph, dbstat.CrawlerStatus{LastBlockID: &state.id,
-			LowestBlockID: &state.id}); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
-			return
-		}
-	} else {
-		if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
-			return
-		}
+	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+		return
 	}
 
 	return
