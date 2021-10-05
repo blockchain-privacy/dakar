@@ -140,9 +140,9 @@ import {
   ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
-import { HeuristicTree, rootIdentifier } from '../../d3tree/heuristicTree';
+import { HeuristicTree, rootIdentifier } from '../../d3Documents/heuristicTree';
 import {
-  getCurrentDate, doPost, doGet, handleError,
+  getCurrentDate, doPost, doGet, handleError, doGetBlob,
 } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
@@ -463,8 +463,7 @@ export default {
     },
     downloadHeuristicSummary() {
       if (!this.doesDataExist()) return;
-      fetch(ROUTE_HEURISTICS_SUMMARY + this.transactionHash)
-        .then((res) => res.blob())
+      doGetBlob(ROUTE_HEURISTICS_SUMMARY, this.$router, this.$store, this.transactionHash)
         .then((blob) => {
           // looks hacky, but it is the only way with good UX
           const a = document.createElement('a');

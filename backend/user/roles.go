@@ -55,6 +55,7 @@ var (
 		// analytics
 		constants.GetRouteShortestTransactionPath(): true,
 		constants.GetRouteConnectionLookup():        true,
+		constants.GetRouteMixingActivity():          true,
 		// clusters
 		constants.GetRouteClusterLookup():  true,
 		constants.GetRouteClusterSummary(): true,

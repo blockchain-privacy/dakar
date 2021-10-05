@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
+	"backend/db/analytics"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -659,7 +660,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database, tUser tokenUser, txHashString string) {
+func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, txHashString string) {
 	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 	if err != nil {
 		handleError(w, err)
@@ -673,7 +674,7 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 
 	// headers for streaming data to client
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	w.Header().Set("Content-Type", "text/csv")
 
 	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
 	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
@@ -765,7 +766,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	// headers for streaming data to client
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cluster_lookup_%s.csv",
 		time.Now().Format("2006-01-02T15:04:05")))
-	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	w.Header().Set("Content-Type", "text/csv")
 
 	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
 	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
@@ -797,4 +798,29 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		}
 		csvWriter.Flush()
 	}
+}
+
+// getMixingActivity returns the result of a mixing activity lookup
+func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply) {
+	var req struct {
+		// AddressHash is the address hash for which the lookup will be done
+		AddressHash string `json:"addressHash,omitempty"`
+		// IsClusterLookup determines if all addresses of the cluster will be considered
+		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
+	}
+	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
+		info(cliutil.ShowCallInfo(), decodeErr)
+		return
+	}
+
+	activities, err := analytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Activities = activities
+	reply.Success = true
+
+	return
 }

@@ -47,17 +47,18 @@
         </v-row>
         <v-expand-transition>
           <div v-if="this.clusters.length > 0">
-          <v-divider />
-          <v-row v-if="this.clusters.length > 0">
+            <v-divider/>
+            <v-row v-if="this.clusters.length > 0">
 
-            <v-col class="d-flex justify-end align-center">
-              <v-btn color="primary" outlined  @click="downloadClusterSummary"
-                     class="mx-auto mt-3">
-                <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
-                Cluster Summary
-              </v-btn>
-            </v-col>
-          </v-row>
+              <v-col class="d-flex justify-end align-center">
+                <v-btn :loading="isClusterSummaryLoading"
+                       color="primary" outlined @click="downloadClusterSummary"
+                       class="mx-auto mt-3">
+                  <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+                  Cluster Summary
+                </v-btn>
+              </v-col>
+            </v-row>
           </div>
         </v-expand-transition>
       </v-card-text>
@@ -167,6 +168,7 @@ export default {
       isLoading: false,
       clusters: [],
       lastQuery: null,
+      isClusterSummaryLoading: false,
       tableHeaders: [
         {
           text: 'Addresshash',
@@ -290,6 +292,7 @@ export default {
         });
     },
     downloadClusterSummary() {
+      this.isClusterSummaryLoading = true;
       const body = { a1: this.a1.trim() };
       if (this.isJointLookup) {
         body.a2 = this.a2.trim();
@@ -314,6 +317,9 @@ export default {
         })
         .catch((error) => {
           handleError(this.$store, error);
+        })
+        .finally(() => {
+          this.isClusterSummaryLoading = false;
         });
     },
   },

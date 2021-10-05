@@ -10,9 +10,21 @@
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-btn
+                class="mr-2"
+                :disabled="showMixingActivity"
+                id="btn_show_mixing_activity"
+                v-if="showClusterLookupEditor"
+                outlined icon
+                @click="showMixingActivity = !showMixingActivity">
+              <v-icon>{{ icon.mdiChartBar }}</v-icon>
+            </v-btn>
+            <v-tooltip bottom activator="#btn_show_mixing_activity">
+              <span>Show mixing activity</span>
+            </v-tooltip>
+            <v-btn
                 id="btn_open_cluster_lookup"
                 v-if="showClusterLookupEditor"
-                style="margin-right: 0" outlined icon
+                class="mr-0" outlined icon
                 :to="{ name: clusterLookupPage, query: {a1: this.addressHash} }">
               <v-icon>{{ icon.mdiMerge }}</v-icon>
             </v-btn>
@@ -69,7 +81,11 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <v-divider></v-divider>
+              <div v-if="showMixingActivity">
+                <named-divider title="Mixing Activity" :vertical-margin="2"/>
+                <MixingActivity :address-hash="addressHash" include-cluster/>
+              </div>
+              <named-divider title="Outputs" :vertical-margin="2"/>
               <v-container>
                 <v-row v-if="this.data.output_count > 1">
                   <v-col>
@@ -96,8 +112,7 @@
                         item-text="text"
                         label="Filter"
                         v-on:change="handleSortAndFilter"
-                        multiple
-                    >
+                        multiple>
                       <template v-slot:selection="{ item }">
                         <v-chip small>
                           <span>{{ item.chip }}</span>
@@ -106,10 +121,8 @@
                     </v-select>
                   </v-col>
                   <v-col v-if="this.isSortingByInput">
-                    <v-alert
-                        type="info"
-                        text
-                    >Only spent outputs are shown.
+                    <v-alert type="info" text>
+                      Only spent outputs are shown.
                     </v-alert>
                   </v-col>
                 </v-row>
@@ -157,7 +170,7 @@
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound, mdiMerge,
+  mdiBankTransferOut, mdiPound, mdiMerge, mdiChartBar,
 } from '@mdi/js';
 import OutputComponent from './OutputComponent.vue';
 import {
@@ -168,10 +181,14 @@ import {
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
+import MixingActivity from './MixingActivity.vue';
+import NamedDivider from '../common/NamedDivider.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { IconItem, OutputComponent },
+  components: {
+    NamedDivider, MixingActivity, IconItem, OutputComponent,
+  },
   data() {
     return {
       icon: {
@@ -181,8 +198,12 @@ export default {
         mdiBankTransferOut,
         mdiPound,
         mdiMerge,
+        mdiChartBar,
       },
       coinUnit: COIN_UNIT,
+      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+      clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
+      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
       combobox: {
         selected: {
           id: 0,
@@ -218,9 +239,7 @@ export default {
       isSortingByInput: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
-      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-      clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
-      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+      showMixingActivity: false,
     };
   },
   methods: {
@@ -379,5 +398,16 @@ export default {
     this.updateSortState();
     this.updateFilterState();
   },
+  watch: {
+    $route() {
+      // if route gets changed the component could still be loaded but now with different data.
+      // Because of this the internal state has to be reset.
+      this.showMixingActivity = false;
+    },
+  },
 };
 </script>
+
+<style scoped>
+
+</style>
