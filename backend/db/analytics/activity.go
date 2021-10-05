@@ -59,6 +59,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 					
 					q(func: uid(all_not_mixing, mixing))@normalize{
 						privacytype:privacytype
+						txhash:txhash
 						~transactions{
 							ts:ts
 						}
