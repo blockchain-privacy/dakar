@@ -63,34 +63,36 @@
       Transactions
     </div>
     <svg id="mixing_activity_canvas" :class="{'hide': !showHistogram}"/>
+    <v-expand-transition>
+      <v-data-table
+          v-if="barTable.transactions.length > 0"
+          :headers="barTable.headers"
+          :items="barTable.transactions">
+        <template v-slot:top>
+          <v-toolbar flat class="hidden-sm-and-up">
+            <v-toolbar-title>
+              Privacy Transactions from {{ barTable.transactions.startDate }}
+              to {{ barTable.transactions.endDate }}
+            </v-toolbar-title>
+          </v-toolbar>
+          <v-toolbar flat class="hidden-xs-only">
+            <v-toolbar-title>
+              Privacy Transactions from {{ barTable.transactions.startDate }}
+              to {{ barTable.transactions.endDate }}
+            </v-toolbar-title>
+          </v-toolbar>
+        </template>
+        <template v-slot:[`item.txhash`]="{ item }">
+          <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
+            {{ item.txhash }}
+          </router-link>
+        </template>
+        <template v-slot:[`item.dateTime`]="{ item }">
+          <span>{{ item.dateTime.toLocaleString() }}</span>
+        </template>
+      </v-data-table>
+    </v-expand-transition>
 
-    <v-data-table
-        v-if="barTable.transactions.length > 0"
-        :headers="barTable.headers"
-        :items="barTable.transactions">
-      <template v-slot:top>
-        <v-toolbar flat class="hidden-sm-and-up">
-          <v-toolbar-title>
-            Privacy Transactions from {{ barTable.transactions.startDate }}
-            to {{ barTable.transactions.endDate }}
-          </v-toolbar-title>
-        </v-toolbar>
-        <v-toolbar flat class="hidden-xs-only">
-          <v-toolbar-title>
-            Privacy Transactions from {{ barTable.transactions.startDate }}
-            to {{ barTable.transactions.endDate }}
-          </v-toolbar-title>
-        </v-toolbar>
-      </template>
-      <template v-slot:[`item.txhash`]="{ item }">
-        <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
-          {{ item.txhash }}
-        </router-link>
-      </template>
-      <template v-slot:[`item.dateTime`]="{ item }">
-        <span>{{ item.dateTime.toLocaleString() }}</span>
-      </template>
-    </v-data-table>
   </div>
 </template>
 
@@ -161,12 +163,11 @@ export default {
   },
   methods: {
     capitalize,
-    clickHandler(data) {
-      if (data.x0.getHours() === data.x1.getHours()) {
-        if (data.x0.getMinutes() === data.x1.getMinutes()) {
-          data.startDate = data.x0.toLocaleDateString();
-          data.endDate = data.x1.toLocaleDateString();
-        }
+    onBarClick(data) {
+      if (data.x0.getHours() === data.x1.getHours()
+          && data.x0.getMinutes() === data.x1.getMinutes()) {
+        data.startDate = data.x0.toLocaleDateString();
+        data.endDate = data.x1.toLocaleDateString();
       } else {
         data.startDate = data.x0.toLocaleString();
         data.endDate = data.x1.toLocaleString();
@@ -270,7 +271,7 @@ export default {
 
     this.svgHistogram = new Histogram('mixing_activity_canvas',
       1200, 300, 'Privacy transactions');
-    this.svgHistogram.setClickHandler(this.clickHandler);
+    this.svgHistogram.setClickHandler(this.onBarClick);
   },
   mounted() {
     this.updateSvgData();
