@@ -1,15 +1,7 @@
 package output
 
 import (
-	"backend/cmd/cliutil"
-	"backend/db"
-	"backend/external"
-
-	"encoding/json"
-	"fmt"
 	"log"
-	"strconv"
-	"time"
 )
 
 // NumDenominations is the number of Dash PrivateSend denominations existing
@@ -29,42 +21,6 @@ const (
 )
 
 var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
-
-// GetOutputAmount gets output amount data from the database
-func GetOutputAmount(c external.Database, txHash string, index uint32) (op Output, err error) {
-	const query = `query Q($hash: string, $idx: string) {
-				getOutput(func: eq(txhash, $hash)) {
-					tx_outputs@filter(eq(outputindex, $idx)) {
-						uid
-						amount
-					}
-				}
-			  }`
-
-	vars := make(map[string]string)
-	vars["$hash"] = txHash
-	vars["$idx"] = strconv.FormatUint(uint64(index), 10)
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, vars)
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	var r outputQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
-// GetCount gets the number of outputs in the database
-func GetCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DType)
-}
 
 // CountOutputDenominations returns for each denomination how often it occurred in the given outputs
 func CountOutputDenominations(outputs []Output) [NumDenominations]int {

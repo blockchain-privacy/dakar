@@ -409,12 +409,6 @@ func SetLastClusteredFMIBlockID(c external.Database, id uint64) error {
 	})
 }
 
-// GetCount gets the number of status instances in the database
-// IMPORTANT: Should always be at most one
-func GetCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, CrawlerStatusDType)
-}
-
 // IsConnectionEstablished test the database connection
 func IsConnectionEstablished(c external.Database) bool {
 	ctx, cancel := db.GetBackendContext()

@@ -9,7 +9,7 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-	"encoding/csv"
+
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -319,100 +319,20 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 
 		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
-			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
+			handleError(w, err)
 			return
 		}
 
-		cHeuristic, err := dbtxh.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
-		if err != nil {
-			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
-			info(cliutil.ShowCallInfo(), err)
-			return
-		}
+		writeHeuristicSummary(w, r, dgraph, tUser, txHashString)
+	})
+}
 
-		if len(cHeuristic.Heuristics) == 0 {
-			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
-			return
-		}
+// API pattern: "/api/v1/clusterSummary"
+func handlerClusterSummary(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
 
-		// headers for streaming data to client
-		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
-		w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
-
-		// somehow both content-length and transfer-encoding headers are both set, so one must be removed
-		//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
-
-		csvWriter := csv.NewWriter(w)
-		csvWriter.Comma = ';'
-
-		header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
-			"heuristic type", "heuristic parameter", "heuristic timestamp",
-			"origin uid", "origin transaction hash", "origin timestamp",
-			"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
-
-		if err = csvWriter.Write(header); err != nil {
-			http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), err)
-		}
-
-		for _, h := range cHeuristic.Heuristics {
-			for _, result := range h.Results {
-				var row []string
-				// per heuristic information
-				row = append(row, h.UID)
-				var parentHeuristic string
-				if len(h.ParentHeuristic) > 0 {
-					// only one parent heuristic is possible
-					parentHeuristic = h.ParentHeuristic[0].UID
-				}
-				row = append(row, parentHeuristic)
-
-				var childHeuristics string
-				for i, c := range h.ChildHeuristics {
-					childHeuristics += c.UID
-					if i+1 < len(h.ChildHeuristics) {
-						childHeuristics += ","
-					}
-				}
-
-				row = append(row, childHeuristics)
-				row = append(row, h.Type)
-				row = append(row, h.Parameter)
-				row = append(row, h.Timestamp)
-
-				// per origin information
-				row = append(row, result.Origin.UID)
-				row = append(row, result.Origin.TxHash)
-				row = append(row, result.Origin.Timestamp)
-				row = append(row, result.Origin.AddressHash)
-
-				// add destination data if there exists any
-				if len(result.Destinations) > 0 {
-					for _, d := range result.Destinations {
-						withDestinations := make([]string, len(row))
-						// copy because for each destination the row gets reused
-						copy(withDestinations, row)
-
-						withDestinations = append(withDestinations, d.UID)
-						withDestinations = append(withDestinations, d.TxHash)
-						withDestinations = append(withDestinations, d.Timestamp)
-
-						if err = csvWriter.Write(withDestinations); err != nil {
-							http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-							info(cliutil.ShowCallInfo(), err)
-						}
-					}
-					csvWriter.Flush()
-				} else {
-					if err = csvWriter.Write(row); err != nil {
-						http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-						info(cliutil.ShowCallInfo(), err)
-					}
-				}
-			}
-			csvWriter.Flush()
-		}
+		writeClusterSummary(w, r, dgraph)
 	})
 }
 
@@ -436,6 +356,28 @@ func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.
 		} else {
 			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.ID)
 		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/hmiLookup/<hash>"
+func handlerHMILookup(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		addressHash := r.URL.Path[len(constants.GetRouteHMILookup()):]
+
+		if !isValid(addressHash) {
+			http.Error(w, errorHeuristics, http.StatusNotFound)
+			return
+		}
+
+		reply := getHMILookupReply(dgraph, addressHash)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -884,6 +826,12 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteHMILookup(),
+		adapt(handlerHMILookup(dgraph), constants.GetRouteHMILookup(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteClusterSummary(),
+		adapt(handlerClusterSummary(dgraph), constants.GetRouteClusterSummary(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User

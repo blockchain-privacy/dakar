@@ -96,7 +96,9 @@ type ClusterLookupRequest struct {
 }
 
 type FrontendAddress struct {
-	AddressHash string `json:"addresshash,omitempty"`
+	AddressHash      string `json:"addresshash,omitempty"`
+	OutputCount      int    `json:"output_count,omitempty"`
+	SpentOutputCount int    `json:"spent_output_count,omitempty"`
 }
 
 type FrontendCluster struct {
@@ -119,4 +121,12 @@ type FrontendClusterRequest struct {
 		Timestamp       time.Time `json:"ts,omitempty"`
 	} `json:"cluster_transaction,omitempty"`
 	Addresses []FrontendAddress `json:"cluster_addresses,omitempty"`
+}
+
+type FrontendHMICluster struct {
+	Uid             string   `json:"uid,omitempty"`
+	AddressCount    int      `json:"cluster_address_count,omitempty"`
+	TransactionHash string   `json:"txhash,omitempty"`
+	Parent          string   `json:"cluster_parent,omitempty"`
+	Children        []string `json:"cluster_children,omitempty"`
 }

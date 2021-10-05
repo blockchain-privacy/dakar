@@ -15,7 +15,7 @@ import (
 
 const (
 	// tokenExpirationTime is the time a token is valid
-	tokenExpirationTime = time.Hour * 48
+	tokenExpirationTime = time.Hour * 192
 	// cookieTokenName is the name of the cookie where the token is saved
 	cookieTokenName = "token"
 	// secureCookie controls whether the secure attribute in cookies is set
@@ -39,7 +39,7 @@ func (t tokenUser) toUser() dbus.User {
 	}
 }
 
-// setTokenAsCookie writes the given token with w as a cookie
+// setTokenAsCookie writes the given token into w as a cookie
 func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.Time) {
 	newCookie := &http.Cookie{
 		Name:     cookieTokenName,
@@ -55,7 +55,7 @@ func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.T
 	http.SetCookie(w, newCookie)
 }
 
-// writeNewToken writes the data from user into as a cookie to w
+// writeNewToken create a new token and writes it into w as a cookie
 func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserClientState, privkey ed25519.PrivateKey) error {
 	newToken, expirationTime, err := issueToken(user, privkey)
 	if err != nil {

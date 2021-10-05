@@ -10,6 +10,9 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+	"encoding/csv"
+	"fmt"
+	"net/http"
 
 	"encoding/json"
 	"errors"
@@ -573,54 +576,225 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 	return
 }
 
-// getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+// getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
+func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int) (clusters []clustering.FrontendCluster, msg string, err error) {
 	// parse request
 	var req clustering.ClusterLookupRequest
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = "could not decode request data"
+	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
+		msg = "could not decode request data"
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 		return
 	}
 
 	if req.AddressHash1 == "" {
-		reply.Msg = "provide at least the first address hash"
+		msg = "provide at least the first address hash"
 		return
 	}
 
 	if !isValid(req.AddressHash1) {
-		reply.Msg = "first address hash was not valid"
+		msg = "first address hash was not valid"
 		return
 	}
 
 	if req.AddressHash2 == "" {
-		clusters, err := clustering.GetClusters(dgraph, req.AddressHash1)
-		if err != nil {
-			reply.Msg = "error while searching for clusters"
-			info(cliutil.ShowCallInfo(), err)
+		clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
+		if getErr != nil {
+			msg = "error while searching for clusters"
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 			return
 		}
-		reply.Clusters = clusters
+		clusters = clusterResponse
 	} else {
 		if !isValid(req.AddressHash2) {
-			reply.Msg = "second address hash was not valid"
+			msg = "second address hash was not valid"
 			return
 		}
 
 		if req.AddressHash1 == req.AddressHash2 {
-			reply.Msg = "address hashes are identical"
+			msg = "address hashes are identical"
 			return
 		}
 
-		clusters, err := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2)
-		if err != nil {
-			reply.Msg = "error while searching for clusters"
-			info(cliutil.ShowCallInfo(), err)
+		clusterResponse, getErr := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
+		if getErr != nil {
+			msg = "error while searching for clusters"
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 			return
 		}
-		reply.Clusters = clusters
+		clusters = clusterResponse
 	}
 
+	return
+}
+
+// getClusterLookupReply returns the result of a cluster lookup
+func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+	const maxAddresses = 30
+
+	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses)
+	reply.Msg = msg
+	if err != nil {
+		info(err)
+		return
+	}
+
+	reply.Clusters = clusters
 	reply.Success = true
 
 	return
+}
+
+// getHMILookupReply returns all hmi clusters connected to the given address hash
+func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
+	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return reply
+	}
+	reply.Success = true
+	reply.Clusters = clusters
+	reply.AddressCluster = addressCluster
+
+	return reply
+}
+
+// writeHeuristicSummary writes heuristic data in CSV format
+func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database, tUser tokenUser, txHashString string) {
+	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	if len(cHeuristic.Heuristics) == 0 {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+
+	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+	csvWriter := csv.NewWriter(w)
+	csvWriter.Comma = ';'
+
+	header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
+		"heuristic type", "heuristic parameter", "heuristic timestamp",
+		"origin uid", "origin transaction hash", "origin timestamp",
+		"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
+
+	if err = csvWriter.Write(header); err != nil {
+		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		info(cliutil.ShowCallInfo(), err)
+	}
+
+	for _, h := range cHeuristic.Heuristics {
+		for _, result := range h.Results {
+			var row []string
+			// per heuristic information
+			row = append(row, h.UID)
+			var parentHeuristic string
+			if len(h.ParentHeuristic) > 0 {
+				// only one parent heuristic is possible
+				parentHeuristic = h.ParentHeuristic[0].UID
+			}
+			row = append(row, parentHeuristic)
+
+			var childHeuristics string
+			for i, c := range h.ChildHeuristics {
+				childHeuristics += c.UID
+				if i+1 < len(h.ChildHeuristics) {
+					childHeuristics += ","
+				}
+			}
+
+			row = append(row, childHeuristics)
+			row = append(row, h.Type)
+			row = append(row, h.Parameter)
+			row = append(row, h.Timestamp)
+
+			// per origin information
+			row = append(row, result.Origin.UID)
+			row = append(row, result.Origin.TxHash)
+			row = append(row, result.Origin.Timestamp)
+			row = append(row, result.Origin.AddressHash)
+
+			// add destination data if there exists any
+			if len(result.Destinations) > 0 {
+				for _, d := range result.Destinations {
+					withDestinations := make([]string, len(row))
+					// copy because for each destination the row gets reused
+					copy(withDestinations, row)
+
+					withDestinations = append(withDestinations, d.UID)
+					withDestinations = append(withDestinations, d.TxHash)
+					withDestinations = append(withDestinations, d.Timestamp)
+
+					if err = csvWriter.Write(withDestinations); err != nil {
+						handleError(w, err)
+					}
+				}
+				csvWriter.Flush()
+			} else {
+				if err = csvWriter.Write(row); err != nil {
+					handleError(w, err)
+				}
+			}
+		}
+		csvWriter.Flush()
+	}
+}
+
+// writeClusterSummary writes heuristic data in CSV format
+func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0)
+	if err != nil {
+		handleError(w, err)
+		info(msg)
+		return
+	}
+
+	if len(clusters) == 0 {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		return
+	}
+
+	// headers for streaming data to client
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=cluster_lookup_%s.csv",
+		time.Now().Format("2006-01-02T15:04:05")))
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+
+	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
+	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+
+	csvWriter := csv.NewWriter(w)
+	csvWriter.Comma = ';'
+
+	header := []string{"cluster type", "last cluster update (transaction)", "last cluster update (timestamp)", "address hash", "output count", "unspent output count"}
+
+	if err = csvWriter.Write(header); err != nil {
+		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
+		info(cliutil.ShowCallInfo(), err)
+	}
+
+	for _, c := range clusters {
+		for _, a := range c.Addresses {
+			var row []string
+			// per heuristic information
+			row = append(row, string(c.Type))
+			row = append(row, c.TransactionHash)
+			row = append(row, c.Timestamp.Format(time.RFC3339))
+			row = append(row, a.AddressHash)
+			row = append(row, strconv.Itoa(a.OutputCount))
+			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
+
+			if err = csvWriter.Write(row); err != nil {
+				handleError(w, err)
+			}
+		}
+		csvWriter.Flush()
+	}
 }

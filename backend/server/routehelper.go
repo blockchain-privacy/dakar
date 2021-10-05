@@ -231,3 +231,9 @@ type clusterLookupReply struct {
 	Msg      string                       `json:"msg,omitempty"`
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }
+
+type hmiLookupReply struct {
+	Success        bool                            `json:"success"`
+	Clusters       []clustering.FrontendHMICluster `json:"clusters,omitempty"`
+	AddressCluster string                          `json:"address_cluster,omitempty"`
+}

@@ -5,6 +5,7 @@ import {
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
   ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
+  CLUSTER_TYPE_FMI,
 } from '../constants';
 
 export function resetData(context) {
@@ -113,6 +114,34 @@ export function doPost(route, router, store, body, parameter) {
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response;
   }).then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
+      // update last action time stamp
+      const userData = store.getters.getActiveUser;
+      if (userData) {
+        store.dispatch('setActiveUser', setActionDate(userData));
+      }
+
+      return data;
+    });
+}
+
+export function doPostBlob(route, router, store, body, parameter) {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para, {
+    method: 'POST',
+    credentials: 'same-origin',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }).then((response) => {
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return response;
+  }).then((response) => response.blob())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
       // update last action time stamp
@@ -253,10 +282,8 @@ export function getMixingLabel(privacyType) {
 // getClusterTypeLabel translates the cluster shorthand of cluster types to a readable string
 export function getClusterTypeLabel(clusterType) {
   switch (clusterType) {
-    case 'fmi':
-      return 'Flat Multi-Input Cluster';
-    case 'hmi':
-      return 'Hierarchical Multi-Input Cluster';
+    case CLUSTER_TYPE_FMI:
+      return 'Multi-Input Cluster';
     default:
       return clusterType;
   }

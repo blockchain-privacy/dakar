@@ -14,53 +14,6 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// GetTransaction gets transaction information from the database.
-// Use this function if duplicate transaction hashes can not be tolerated.
-func GetTransaction(c external.Database, txHash string, blockHash string) (transaction Transaction, err error) {
-	query := `query Q($tx:string,$block:string) {
-				blk as var(func: eq(blockhash, $block))
-
-				q(func: eq(txhash, $tx))@filter(uid_in(~transactions,uid(blk))){
-					uid
-					txhash
-					privacytype
-					fee
-					tx_inputs{
-						uid
-						amount
-						inputindex
-						outputindex
-						iscoinbase
-						txtype
-					}
-					tx_outputs{
-						uid
-						amount
-						inputindex
-						outputindex
-						iscoinbase
-						txtype
-					}
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$tx": txHash, "$block": blockHash})
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-	var r transactionQuery
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return r.payload()
-}
-
 // GetTransactionsOutputs returns all outputs of each given transaction
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (transaction []OutputTransactionMapping, err error) {
 	query := `{
@@ -74,7 +27,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (tr
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*5, query)
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*10, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -386,11 +339,6 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 	return
 }
 
-// GetCount gets the number of transactions in the database
-func GetCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DType)
-}
-
 // UpdateTransactions sends the given transaction updates to the database.
 // The transaction uids must be set.
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
@@ -475,7 +423,7 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query, map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
 		"$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

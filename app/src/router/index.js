@@ -21,6 +21,7 @@ import ShortestPath from '../components/tools/ShortestPath.vue';
 import Heuristics from '../components/tools/Heuristics.vue';
 import * as Constants from '../constants';
 import Store from '../state';
+import HMIView from '../components/cluster/HMIView.vue';
 
 Vue.use(Router);
 
@@ -112,6 +113,15 @@ export default new Router({
       name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
       component: Editor,
       meta: { title: 'Heuristic' },
+      beforeEnter: (to, from, next) => {
+        checkUserData(to, next, isPrivileged);
+      },
+    },
+    {
+      path: '/hmiLookup/:id',
+      name: Constants.ROUTE_NAME_CLUSTER_VIEW_PAGE,
+      component: HMIView,
+      meta: { title: 'Cluster View' },
       beforeEnter: (to, from, next) => {
         checkUserData(to, next, isPrivileged);
       },

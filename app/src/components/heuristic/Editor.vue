@@ -69,13 +69,13 @@
           </v-btn>
         </template>
         <v-list>
-          <v-list-item @click="goToTransactionPage">
+          <v-list-item :to="{ name: routeTransaction, params: { id: transactionHash }}">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Transaction Page</v-list-item-title>
           </v-list-item>
-          <v-list-item @click="goToHeuristicOverviewPage">
+          <v-list-item :to="{ name: routeHeuristicOverview}">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
             </v-list-item-icon>
@@ -136,10 +136,11 @@ import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
-  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS, ROUTE_HEURISTIC_DETAILS,
+  ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
+  ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
-import * as ht from '../../heuristicTree';
+import { HeuristicTree, rootIdentifier } from '../../d3tree/heuristicTree';
 import {
   getCurrentDate, doPost, doGet, handleError,
 } from '../../utilities';
@@ -168,7 +169,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
   // filter properties which do not need to be sent over the wire: timestamp and result count
   changedItems.forEach((d) => {
     // filter out the dummy element
-    if (d.uid === ht.rootIdentifier) {
+    if (d.uid === rootIdentifier) {
       return;
     }
 
@@ -273,6 +274,7 @@ export default {
         resultCount: null,
         transactions: null,
       },
+      ht: new HeuristicTree(150, this),
       heuristicDescriptors: [],
       heuristicTabItems: [],
       contextMenu: {
@@ -286,7 +288,7 @@ export default {
             action: this.deleteSubTree,
             disabled: () => !this.banner.show,
           },
-          { title: 'Show Properties', icon: mdiChartBar, action: ht.simulateClick },
+          { title: 'Show Properties', icon: mdiChartBar, action: this.simulateClick },
           { isDivider: true },
           {
             title: 'Add Heuristic',
@@ -318,6 +320,9 @@ export default {
     };
   },
   methods: {
+    simulateClick() {
+      this.ht.simulateClick();
+    },
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
@@ -497,7 +502,7 @@ export default {
       // find descendants for each changed root element
       originChangeSet.forEach((d) => {
         // get subtree
-        const descendants = ht.getDescendants(d.uid);
+        const descendants = this.ht.getDescendants(d.uid);
         descendantSet.push(...descendants);
       });
 
@@ -509,18 +514,11 @@ export default {
       // save in global changeSet
       descendantMap.forEach((e) => this.changeSet.push(e.data.data.uid));
 
-      ht.setNodesChanged(descendantSet);
-    },
-    // called by context menu handler
-    goToTransactionPage() {
-      this.$router.push({ name: this.routeTransaction });
-    },
-    goToHeuristicOverviewPage() {
-      this.$router.push({ name: this.routeHeuristicOverview });
+      this.ht.setNodesChanged(descendantSet);
     },
     deleteSubTree() {
-      const toBeRemoved = ht.getRemovableNodes();
-      const rel = ht.getRemovableRelationship();
+      const toBeRemoved = this.ht.getRemovableNodes();
+      const rel = this.ht.getRemovableRelationship();
 
       const updatedData = [];
 
@@ -557,8 +555,7 @@ export default {
     },
     updateGraph() {
       // maps the node data to the tree layout
-      const nodeData = ht.processGraphData(this.data.heuristics);
-      ht.drawGraph(nodeData, this);
+      this.ht.processGraphData(this.data.heuristics);
       // updateChangeSet is called after a graph update,
       // because otherwise it gets a not up to date descendant state
       this.updateChangeSet();
@@ -652,13 +649,13 @@ export default {
       this.transactionHash = this.$route.params.id;
 
       // set page title
-      document.title = `Heuristic ${this.transactionHash}`;
+      document.title = `Heuristic ${this.transactionHash} - ${APPLICATION_NAME}`;
 
-      if (!ht.setHeuristicClickHandler(this.openPropertySheet)) {
+      if (!this.ht.setNodeClickHandler(this.openPropertySheet)) {
         this.setErrorMessage('error setting heuristic click handler');
         return false;
       }
-      if (!ht.setContextMenuCallback(this.showContextMenu)) {
+      if (!this.ht.setContextMenuCallback(this.showContextMenu)) {
         this.setErrorMessage('error setting context menu handler');
         return false;
       }
@@ -671,12 +668,12 @@ export default {
 
       // creates the tab descriptions based on the heuristic categories
       this.createTabs();
-
-      ht.setupSvg(this, svgCanvasId, this.heuristicDescriptors);
+      this.ht.populateHeuristicMap(this.heuristicDescriptors);
+      this.ht.setupSvg(this, svgCanvasId);
       if (!await this.refreshData()) {
         return false;
       }
-      await ht.centerGraph();
+      await this.ht.centerGraph();
       return true;
     },
     onMenuItemClick(item) {

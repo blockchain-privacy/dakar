@@ -205,8 +205,3 @@ func UpsertBlock(c external.Database, block Block) error {
 
 	return err
 }
-
-// GetCount gets the number of blocks in the database
-func GetCount(c external.Database) (uint64, error) {
-	return db.GetCount(c, DType)
-}

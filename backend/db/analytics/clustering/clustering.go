@@ -262,29 +262,39 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 	return
 }
 
-const clusterQuery = `q(func: uid(c)){
-						cluster_type
-						cluster_address_count
-						cluster_transaction@normalize{
-							txhash:txhash
-							~transactions{
-								bhash:blockhash
-								bid:id
-								ts:ts
-							}
-						}
-						cluster_addresses(first:30){
-							addresshash
-						}
-					  }`
+func getClusterQuery(maxAddresses int) string {
+	var limiter string
+
+	if maxAddresses > 0 {
+		limiter = "(first:" + strconv.Itoa(maxAddresses) + ")"
+	}
+
+	return `q(func: uid(c)){
+				cluster_type
+				cluster_address_count
+				cluster_transaction@normalize{
+					txhash:txhash
+					~transactions{
+						bhash:blockhash
+						bid:id
+						ts:ts
+					}
+				}
+				cluster_addresses` + limiter + `{
+					addresshash
+					output_count: count(addr_outputs)
+					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
+				}
+		}`
+}
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
-func GetClusters(c external.Database, addressHash string) (clusters []FrontendCluster, err error) {
-	const query = string(`query Q($addressHash:string) {
+func GetClusters(c external.Database, addressHash string, maxAddresses int) (clusters []FrontendCluster, err error) {
+	query := `query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+					c as ~cluster_addresses
 				}
-				` + clusterQuery + "}")
+				` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
@@ -302,7 +312,7 @@ func GetClusters(c external.Database, addressHash string) (clusters []FrontendCl
 
 	for _, cluster := range r.Clusters {
 		if len(cluster.Transaction) != 1 {
-			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
 			return
 		}
 		clusters = append(clusters, FrontendCluster{
@@ -322,17 +332,17 @@ func GetClusters(c external.Database, addressHash string) (clusters []FrontendCl
 
 // GetCommonClusters returns cluster information for all clusters (except hmi clusters)
 // shared by addressHash1 and addressHash2
-func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string) (clusters []FrontendCluster,
+func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string, maxAddresses int) (clusters []FrontendCluster,
 	err error) {
-	const query = string(`query Q($a1:string,$a2:string) {
+	query := `query Q($a1:string,$a2:string) {
 				var(func:eq(addresshash,$a1)){
-					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `))
+					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `))
 				}
 
 				var(func:eq(addresshash,$a2)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,` + TypeHMI + `) and uid(c1))
+					c as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `) and uid(c1))
 				}
-				` + clusterQuery + "}")
+				` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$a1": addressHash1, "$a2": addressHash2})
@@ -351,7 +361,7 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 
 	for _, cluster := range r.Clusters {
 		if len(cluster.Transaction) != 1 {
-			err = fmt.Errorf("invalid number transactions: %d", len(cluster.Transaction))
+			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
 			return
 		}
 		clusters = append(clusters, FrontendCluster{
@@ -364,6 +374,103 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 			Addresses:       cluster.Addresses,
 		})
 
+	}
+
+	return
+}
+
+// GetHMIClusters returns all connected hierarchical multi-input cluster to the
+// given address and the uid of the cluster directly connected to the address
+func GetHMIClusters(c external.Database, addressHash string) (addressCluster string, clusters []FrontendHMICluster, err error) {
+	const query = string(`query Q($addressHash:string) {
+							var(func: eq(addresshash,$addressHash)){
+								hmi as ~cluster_addresses@filter(eq(cluster_type,` + TypeHMI + `))
+							}
+							
+							var(func: uid(hmi))@recurse{
+								s as cluster_children
+								v as ~cluster_children
+							}
+
+							x(func: uid(hmi)){
+								uid
+							}
+							
+							q(func: uid(s,v)){
+								uid
+								cluster_address_count
+								cluster_transaction{
+									txhash
+								}
+								cluster_children{
+									uid
+								}
+								~cluster_children{
+									uid
+								}
+							}
+						  }`)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid          string `json:"uid,omitempty"`
+			AddressCount int    `json:"cluster_address_count,omitempty"`
+			Transaction  struct {
+				TxHash string `json:"txhash,omitempty"`
+			} `json:"cluster_transaction,omitempty"`
+			Children []SubCluster `json:"cluster_children,omitempty"`
+			Parent   []SubCluster `json:"~cluster_children,omitempty"`
+		} `json:"q,omitempty"`
+		AddressCluster []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"x,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.AddressCluster) == 0 {
+		// no clusters found
+		return
+	}
+
+	if len(r.AddressCluster) > 1 {
+		err = errors.New("too many clusters associated with address")
+		return
+	}
+
+	addressCluster = r.AddressCluster[0].Uid
+
+	for _, cluster := range r.Clusters {
+		if len(cluster.Parent) > 1 {
+			err = fmt.Errorf("cluster %s has multiple parents: %v", cluster.Uid, cluster.Parent)
+			return
+		}
+
+		var parentUID string
+		if len(cluster.Parent) == 1 {
+			parentUID = cluster.Parent[0].Uid
+		}
+
+		var childClusters []string
+		for _, child := range cluster.Children {
+			childClusters = append(childClusters, child.Uid)
+		}
+
+		clusters = append(clusters, FrontendHMICluster{
+			Uid:             cluster.Uid,
+			AddressCount:    cluster.AddressCount,
+			TransactionHash: cluster.Transaction.TxHash,
+			Parent:          parentUID,
+			Children:        childClusters,
+		})
 	}
 
 	return
