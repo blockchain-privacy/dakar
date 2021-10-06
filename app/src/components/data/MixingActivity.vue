@@ -3,6 +3,9 @@
     <v-row>
       <v-col>
         <v-select
+            multiple
+            chips
+            deletable-chips
             item-value="id"
             item-text="text"
             label="Filter by Privacy Type"
@@ -30,6 +33,7 @@
             @input="handleMenuChange">
           <template v-slot:activator="{ on, attrs }">
             <v-text-field
+                style="min-width: 100px"
                 :value="dateRangeString"
                 label="Filter by Date"
                 :prepend-icon="icons.mdiCalendarRange"
@@ -51,54 +55,106 @@
             @click="updateSvgData(true)"/>
       </v-col>
     </v-row>
-    <p v-if="showNotEnoughDataMessage && !isLoading" class="text-h6" style="text-align: center">
-      No enough data available to draw chart
-    </p>
-    <p v-if="showEmptyResponseMessage && !isLoading" class="text-h6" style="text-align: center">
-      No data available
-    </p>
     <v-progress-linear v-if="isLoading" indeterminate/>
-    <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
-      {{ selectedPrivacyLabel === 'all' ? 'All Privacy' : capitalize(selectedPrivacyLabel) }}
-      Transactions
-    </div>
-    <svg id="mixing_activity_canvas" :class="{'hide': !showHistogram}"/>
-    <v-expand-transition>
-      <v-data-table
-          v-if="barTable.transactions.length > 0"
-          :headers="barTable.headers"
-          :items="barTable.transactions">
-        <template v-slot:top>
-          <v-toolbar flat class="hidden-sm-and-up">
-            <v-toolbar-title>
-              Privacy Transactions from {{ barTable.transactions.startDate }}
-              to {{ barTable.transactions.endDate }}
-            </v-toolbar-title>
-          </v-toolbar>
-          <v-toolbar flat class="hidden-xs-only">
-            <v-toolbar-title>
-              Privacy Transactions from {{ barTable.transactions.startDate }}
-              to {{ barTable.transactions.endDate }}
-            </v-toolbar-title>
-          </v-toolbar>
-        </template>
-        <template v-slot:[`item.txhash`]="{ item }">
-          <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
-            {{ item.txhash }}
-          </router-link>
-        </template>
-        <template v-slot:[`item.dateTime`]="{ item }">
-          <span>{{ item.dateTime.toLocaleString() }}</span>
-        </template>
-      </v-data-table>
-    </v-expand-transition>
-
+    <v-tabs v-model="graphTabs" centered grow>
+      <v-tab key="histogram" @change="onTabChange('histogram')">Histogram</v-tab>
+      <v-tab key="graph" @change="onTabChange('graph')">Force Graph</v-tab>
+    </v-tabs>
+    <v-tabs-items v-model="graphTabs">
+      <v-tab-item eager key="histogram">
+        <v-card flat>
+          <v-card-text>
+            <p v-if="showNotEnoughDataMessage && !isLoading"
+               class="text-h6" style="text-align: center">
+              Not enough data available to draw chart
+            </p>
+            <p v-if="showEmptyResponseMessage && !isLoading"
+               class="text-h6" style="text-align: center">
+              No data available
+            </p>
+            <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
+              {{
+                selectedPrivacyLabel.length === 0 ? 'All Privacy'
+                    : selectedPrivacyLabel.map(capitalize).join(', ')
+              }}
+              Transactions
+            </div>
+            <svg id="mixing_activity_histogram" :class="{'hide': !showHistogram}"/>
+            <v-expand-transition>
+              <v-data-table
+                  v-if="barTable.transactions.length > 0"
+                  :headers="barTable.headers"
+                  :items="barTable.transactions">
+                <template v-slot:top>
+                  <v-toolbar flat class="hidden-sm-and-up">
+                    <v-toolbar-title>
+                      Privacy Transactions from {{ barTable.transactions.startDate }}
+                      to {{ barTable.transactions.endDate }}
+                    </v-toolbar-title>
+                  </v-toolbar>
+                  <v-toolbar flat class="hidden-xs-only">
+                    <v-toolbar-title>
+                      Privacy Transactions from {{ barTable.transactions.startDate }}
+                      to {{ barTable.transactions.endDate }}
+                    </v-toolbar-title>
+                  </v-toolbar>
+                </template>
+                <template v-slot:[`item.txhash`]="{ item }">
+                  <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
+                    {{ item.txhash }}
+                  </router-link>
+                </template>
+                <template v-slot:[`item.dateTime`]="{ item }">
+                  <span>{{ item.dateTime.toLocaleString() }}</span>
+                </template>
+              </v-data-table>
+            </v-expand-transition>
+          </v-card-text>
+        </v-card>
+      </v-tab-item>
+      <v-tab-item eager key="graph">
+        <v-card flat>
+          <v-card-text>
+            <svg id="mixing_activity_force_graph" :class="{'hide': !showGraph}"/>
+            <v-card outlined v-if="this.clickedNode">
+              <v-card-title>
+                Transaction
+                <router-link class="ml-1"
+                             :to="{ name: txRoute, params: { id: clickedNode.txhash }}">
+                  {{ clickedNode.txhash }}
+                </router-link>
+              </v-card-title>
+              <v-card-text>
+                <p class="text-subtitle-1">
+                  Privacy Type: {{ clickedNode.privacytype }}
+                </p>
+                <p class="text-subtitle-1">
+                  Timestamp: {{ clickedNode.dateTime.toLocaleString() }}
+                </p>
+                <p class="text-subtitle-1" v-if="clickedNode.input_txs">
+                  Input Transactions:
+                </p>
+                <v-list>
+                  <v-list-item v-for="(t) in clickedNode.input_txs" :key="t.txhash"
+                               :to="{ name: txRoute, params: { id: t.txhash }}">
+                    <v-list-item-content>
+                      <v-list-item-title>{{ t.txhash }}</v-list-item-title>
+                    </v-list-item-content>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-card-text>
+        </v-card>
+      </v-tab-item>
+    </v-tabs-items>
   </div>
 </template>
 
 <script>
 import { mdiCalendarRange } from '@mdi/js';
 import Histogram from '../../d3Documents/histogram';
+import ForceGraph from '../../d3Documents/forceGraph';
 import { doPost, getPrivacyTypeLabel, handleError } from '../../utilities';
 import { ROUTE_MIXING_ACTIVITY, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 
@@ -119,10 +175,12 @@ export default {
         mdiCalendarRange,
       },
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-      selectedPrivacyLabel: 'all',
+      selectedPrivacyLabel: [],
       showHistogram: false,
+      showGraph: false,
       colorMap: new Map(),
       svgHistogram: null,
+      svgGraph: null,
       isLoading: false,
       showEmptyResponseMessage: false,
       showNotEnoughDataMessage: false,
@@ -132,6 +190,7 @@ export default {
       dateRange: null,
       menu: null,
       oldDateRange: null,
+      graphTabs: null,
       barTable: {
         headers: [{
           text: 'Transaction', align: 'start', value: 'txhash',
@@ -141,11 +200,13 @@ export default {
         ],
         transactions: [],
       },
+      clickedNode: null,
+      graphMode: false,
     };
   },
   computed: {
     privacyLabels() {
-      const labels = [{ text: 'All', id: 'all' }];
+      const labels = [];
 
       this.colorMap.forEach((v, k) => {
         labels.push({ text: capitalize(k), color: v, id: k });
@@ -175,6 +236,9 @@ export default {
 
       this.barTable.transactions = data;
     },
+    onNodeClick(data) {
+      this.clickedNode = data;
+    },
     handleMenuChange(open) {
       if (open) {
         this.oldDateRange = this.dateRange;
@@ -191,29 +255,7 @@ export default {
           return [];
         });
     },
-    async updateSvgData(pullNewData) {
-      this.showHistogram = false;
-      this.isLoading = true;
-
-      if (pullNewData || !this.initialLoadDone) {
-        const mixingActivity = await this.getMixingActivity();
-        if (mixingActivity.activities === undefined) {
-          this.showEmptyResponseMessage = true;
-          this.isLoading = false;
-          return;
-        }
-
-        this.activities = mixingActivity.activities.map((d) => {
-          d.privacytype = getPrivacyTypeLabel(d.privacytype);
-          d.parsedDate = new Date(d.ts);
-          return d;
-        });
-
-        this.initialLoadDone = true;
-      }
-
-      this.showEmptyResponseMessage = false;
-
+    getFilteredData(withLinks) {
       let fromDate = null;
       let toDate = null;
       let considerDate = true;
@@ -236,28 +278,82 @@ export default {
         considerDate = false;
       }
 
-      const filtered = this.activities.filter((d) => {
-        if (this.selectedPrivacyLabel !== 'all' && d.privacytype !== this.selectedPrivacyLabel) return false;
+      const ret = { items: [], links: [] };
+
+      ret.items = this.activities.filter((d) => {
+        if (this.selectedPrivacyLabel.length > 0
+            && !this.selectedPrivacyLabel.includes(d.privacytype)) return false;
 
         if (!considerDate) return true;
 
-        return d.parsedDate <= toDate && d.parsedDate >= fromDate;
+        return d.dateTime <= toDate && d.dateTime >= fromDate;
       });
 
-      let categories = [];
+      if (withLinks) {
+        const filteredHashes = new Set(ret.items.map((d) => d.txhash));
 
-      if (this.selectedPrivacyLabel !== 'all') {
-        categories = [this.selectedPrivacyLabel];
-      } else {
-        // find categories
-        categories = [...new Set(filtered.map((d) => d.privacytype))];
+        ret.items.forEach((d) => {
+          if (d.input_txs === undefined || d.input_txs.length === 0) return;
+
+          d.input_txs.forEach((it) => {
+            if (!filteredHashes.has(it.txhash)) return;
+            ret.links.push({ source: it.txhash, target: d.txhash });
+          });
+        });
       }
 
-      this.svgHistogram.reset();
-      this.svgHistogram.drawStacked(filtered, categories, this.colorMap);
+      return ret;
+    },
+    getCategories(filtered) {
+      if (this.selectedPrivacyLabel.length > 0) {
+        return this.selectedPrivacyLabel;
+      }
 
-      this.showHistogram = !this.svgHistogram.empty;
-      this.showNotEnoughDataMessage = this.svgHistogram.empty;
+      return [...new Set(filtered.map((d) => d.privacytype))];
+    },
+    onTabChange(tab) {
+      this.graphMode = tab === 'graph';
+      this.updateSvgData();
+    },
+    async updateSvgData(pullNewData) {
+      this.showHistogram = false;
+      this.showGraph = false;
+      this.isLoading = true;
+
+      // check if new data has to be loaded
+      if (pullNewData || !this.initialLoadDone) {
+        const mixingActivity = await this.getMixingActivity();
+        if (mixingActivity.activities === undefined) {
+          this.showEmptyResponseMessage = true;
+          this.isLoading = false;
+          return;
+        }
+
+        this.activities = mixingActivity.activities.map((d) => {
+          d.privacytype = getPrivacyTypeLabel(d.privacytype);
+          d.dateTime = new Date(d.block[0].ts);
+          return d;
+        });
+
+        this.initialLoadDone = true;
+      }
+
+      this.showEmptyResponseMessage = false;
+
+      const filtered = this.getFilteredData(this.graphMode);
+
+      // draw
+      if (this.graphMode) {
+        this.svgGraph.draw(filtered.items, filtered.links, this.colorMap);
+        this.showGraph = true;
+      } else {
+        this.svgHistogram.reset();
+        this.svgHistogram.drawStacked(filtered.items,
+          this.getCategories(filtered.items), this.colorMap);
+        this.showHistogram = !this.svgHistogram.empty;
+        this.showNotEnoughDataMessage = this.svgHistogram.empty;
+      }
+
       this.isLoading = false;
     },
   },
@@ -269,11 +365,14 @@ export default {
     this.colorMap.set('origin', '#D55E00');
     this.colorMap.set('mixing', '#56B4E9');
 
-    this.svgHistogram = new Histogram('mixing_activity_canvas',
+    this.svgHistogram = new Histogram('mixing_activity_histogram',
       1200, 300, 'Privacy transactions');
     this.svgHistogram.setClickHandler(this.onBarClick);
   },
   mounted() {
+    // has to be called after the SVG is included in the DOM
+    this.svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph');
+    this.svgGraph.setClickHandler(this.onNodeClick);
     this.updateSvgData();
   },
 };
@@ -284,6 +383,10 @@ export default {
   stroke-width: 2px;
   stroke: red;
   fill: red;
+  cursor: pointer;
+}
+
+>>> .nodeMouseOver {
   cursor: pointer;
 }
 
