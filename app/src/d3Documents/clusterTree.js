@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { Tree } from './tree';
+import Tree from './tree';
 
 export default class ClusterTree extends Tree {
   constructor(width) {

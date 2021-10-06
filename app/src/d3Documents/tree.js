@@ -1,16 +1,7 @@
 import * as d3 from 'd3';
+import { sleep, isFunction } from './util';
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// isFunction returns true if the provided argument is a function
-// credits: https://stackoverflow.com/questions/5999998/check-if-a-variable-is-of-function-type
-export function isFunction(functionToCheck) {
-  return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
-}
-
-export class Tree {
+export default class Tree {
   constructor(width) {
     this.rectWidth = width;
 

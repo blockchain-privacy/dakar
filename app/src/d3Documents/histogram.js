@@ -1,10 +1,5 @@
 import * as d3 from 'd3';
-
-// isFunction returns true if the provided argument is a function
-// credits: https://stackoverflow.com/questions/5999998/check-if-a-variable-is-of-function-type
-export function isFunction(functionToCheck) {
-  return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
-}
+import { isFunction } from './util';
 
 // addPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -53,7 +48,10 @@ export default class Histogram {
     let highestDate = null;
 
     const detailArray = graphData.map((d) => {
-      d.dateTime = new Date(d.ts);
+      if (d.dateTime === undefined) {
+        d.dateTime = new Date(d.ts);
+      }
+
       if (lowestDate === null || lowestDate > d.dateTime) lowestDate = d.dateTime;
       if (highestDate === null || highestDate < d.dateTime) {
         highestDate = d.dateTime;
