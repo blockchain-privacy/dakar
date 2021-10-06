@@ -38,5 +38,10 @@ type AddressNode struct {
 type MixingActivity struct {
 	TransactionHash string `json:"txhash"`
 	PrivacyType     int64  `json:"privacytype,omitempty"`
-	BlockTimestamp  string `json:"ts,omitempty"`
+	Block           []struct {
+		BlockTimestamp string `json:"ts,omitempty"`
+	} `json:"block,omitempty"`
+	InputTransactions []struct {
+		TransactionHash string `json:"txhash"`
+	} `json:"input_txs,omitempty"`
 }

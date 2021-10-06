@@ -57,11 +57,18 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 						}
 					}
 					
-					q(func: uid(all_not_mixing, mixing))@normalize{
-						privacytype:privacytype
-						txhash:txhash
-						~transactions{
-							ts:ts
+					transactions as var(func: uid(all_not_mixing, mixing))
+					
+					q(func: uid(transactions)){
+						txhash
+						privacytype
+						block:~transactions{
+						ts
+						}
+						input_txs:tx_inputs @normalize{
+							~tx_outputs@filter(uid(transactions)){
+								txhash:txhash
+							}
 						}
 					}
 			  	}`, clusterQuery, clusterID)
@@ -79,5 +86,29 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return r.Q, nil
+	// filter duplicate transaction hashes (due to one hash per output)
+	var activities []MixingActivity
+	for _, ma := range r.Q {
+		newActivity := MixingActivity{
+			TransactionHash: ma.TransactionHash,
+			PrivacyType:     ma.PrivacyType,
+			Block:           ma.Block,
+		}
+
+		transactions := make(map[string]bool)
+
+		for _, t := range ma.InputTransactions {
+			transactions[t.TransactionHash] = true
+		}
+
+		for k := range transactions {
+			newActivity.InputTransactions = append(newActivity.InputTransactions, struct {
+				TransactionHash string `json:"txhash"`
+			}{TransactionHash: k})
+		}
+
+		activities = append(activities, newActivity)
+	}
+
+	return activities, nil
 }
