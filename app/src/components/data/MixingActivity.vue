@@ -375,8 +375,9 @@ export default {
         this.datePicker.events = events;
 
         // date picker needs iso strings
-        this.datePicker.min = minDate.toISOString();
-        this.datePicker.max = maxDate.toISOString();
+        // cut off time portion so it gets displayed prettier
+        this.datePicker.min = minDate.toISOString().substring(0, 10);
+        this.datePicker.max = maxDate.toISOString().substring(0, 10);
 
         this.datePicker.range = [this.datePicker.min, this.datePicker.max];
 
