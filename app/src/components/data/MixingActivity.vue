@@ -42,8 +42,12 @@
                 v-on="on"/>
           </template>
           <v-date-picker
+              scrollable
+              first-day-of-week="1"
               no-title
               range
+              :min="dateMin"
+              :max="dateMax"
               color="primary"
               v-model="dateRange"/>
         </v-menu>
@@ -134,14 +138,16 @@
                 <p class="text-subtitle-1" v-if="clickedNode.input_txs">
                   Input Transactions:
                 </p>
-                <v-list>
-                  <v-list-item v-for="(t) in clickedNode.input_txs" :key="t.txhash"
-                               :to="{ name: txRoute, params: { id: t.txhash }}">
-                    <v-list-item-content>
-                      <v-list-item-title>{{ t.txhash }}</v-list-item-title>
-                    </v-list-item-content>
-                  </v-list-item>
-                </v-list>
+                <v-expand-transition>
+                  <v-list v-if="clickedNode.input_txs">
+                    <v-list-item v-for="(t) in clickedNode.input_txs" :key="t.txhash"
+                                 :to="{ name: txRoute, params: { id: t.txhash }}">
+                      <v-list-item-content>
+                        <v-list-item-title>{{ t.txhash }}</v-list-item-title>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </v-list>
+                </v-expand-transition>
               </v-card-text>
             </v-card>
           </v-card-text>
@@ -188,6 +194,8 @@ export default {
       initialLoadDone: false,
       includeCusterAddresses: true,
       dateRange: null,
+      dateMin: '',
+      dateMax: '',
       menu: null,
       oldDateRange: null,
       graphTabs: null,
@@ -196,7 +204,7 @@ export default {
           text: 'Transaction', align: 'start', value: 'txhash',
         },
         { text: 'Timestamp', value: 'dateTime' },
-        { text: 'Privacy Type', value: 'privacytype' },
+        { text: 'Transaction Type', value: 'privacytype' },
         ],
         transactions: [],
       },
@@ -215,11 +223,19 @@ export default {
       return labels;
     },
     dateRangeString() {
+      let dateString = '';
+
       if (!this.dateRange) {
-        return [];
+        return dateString;
       }
 
-      return this.dateRange.map((d) => new Date(d).toLocaleDateString());
+      dateString = new Date(this.dateRange[0]).toLocaleDateString();
+
+      if (this.dateRange.length === 2) {
+        dateString += ` to ${new Date(this.dateRange[1]).toLocaleDateString()}`;
+      }
+
+      return dateString;
     },
   },
   methods: {
@@ -329,11 +345,28 @@ export default {
           return;
         }
 
+        // used to set boundaries for the date picker
+        let maxDate = null;
+        let minDate = null;
+
         this.activities = mixingActivity.activities.map((d) => {
           d.privacytype = getPrivacyTypeLabel(d.privacytype);
           d.dateTime = new Date(d.block[0].ts);
+
+          if (maxDate === null || d.dateTime > maxDate) maxDate = d.dateTime;
+          if (minDate === null || d.dateTime < minDate) minDate = d.dateTime;
           return d;
         });
+
+        // increase range to handle some edge cases
+        minDate.setDate(minDate.getDate() - 1);
+        maxDate.setDate(maxDate.getDate() + 1);
+
+        // date picker needs iso strings
+        this.dateMin = minDate.toISOString();
+        this.dateMax = maxDate.toISOString();
+
+        this.dateRange = [this.dateMin, this.dateMax];
 
         this.initialLoadDone = true;
       }
