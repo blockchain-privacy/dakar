@@ -359,22 +359,20 @@ export default {
         let minDate = null;
 
         // reset events
-        this.datePicker.events = [];
+        const events = [];
 
         this.activities = mixingActivity.activities.map((d) => {
           d.privacytype = getPrivacyTypeLabel(d.privacytype);
           d.dateTime = new Date(d.block[0].ts);
 
-          this.datePicker.events.push(d.dateTime.toISOString().substr(0, 10));
+          events.push(d.dateTime.toISOString().substring(0, 10));
 
-          if (maxDate === null || d.dateTime > maxDate) maxDate = d.dateTime;
-          if (minDate === null || d.dateTime < minDate) minDate = d.dateTime;
+          if (maxDate === null || d.dateTime > maxDate) maxDate = new Date(d.dateTime);
+          if (minDate === null || d.dateTime < minDate) minDate = new Date(d.dateTime);
           return d;
         });
 
-        // increase range to handle some edge cases
-        minDate.setDate(minDate.getDate() - 1);
-        maxDate.setDate(maxDate.getDate() + 1);
+        this.datePicker.events = events;
 
         // date picker needs iso strings
         this.datePicker.min = minDate.toISOString();
