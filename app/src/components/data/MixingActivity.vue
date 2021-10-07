@@ -46,10 +46,10 @@
               first-day-of-week="1"
               no-title
               range
-              :min="dateMin"
-              :max="dateMax"
+              :min="datePicker.min"
+              :max="datePicker.max"
               color="primary"
-              v-model="dateRange"/>
+              v-model="datePicker.range"/>
         </v-menu>
       </v-col>
       <v-col>
@@ -193,11 +193,14 @@ export default {
       activities: null,
       initialLoadDone: false,
       includeCusterAddresses: true,
-      dateRange: null,
-      dateMin: '',
-      dateMax: '',
+      datePicker: {
+        range: null,
+        oldRange: null,
+        min: '',
+        max: '',
+      },
       menu: null,
-      oldDateRange: null,
+
       graphTabs: null,
       barTable: {
         headers: [{
@@ -225,14 +228,14 @@ export default {
     dateRangeString() {
       let dateString = '';
 
-      if (!this.dateRange) {
+      if (!this.datePicker.range) {
         return dateString;
       }
 
-      dateString = new Date(this.dateRange[0]).toLocaleDateString();
+      dateString = new Date(this.datePicker.range[0]).toLocaleDateString();
 
-      if (this.dateRange.length === 2) {
-        dateString += ` to ${new Date(this.dateRange[1]).toLocaleDateString()}`;
+      if (this.datePicker.range.length === 2) {
+        dateString += ` to ${new Date(this.datePicker.range[1]).toLocaleDateString()}`;
       }
 
       return dateString;
@@ -257,8 +260,8 @@ export default {
     },
     handleMenuChange(open) {
       if (open) {
-        this.oldDateRange = this.dateRange;
-      } else if (this.oldDateRange !== this.dateRange) {
+        this.datePicker.oldRange = this.datePicker.range;
+      } else if (this.datePicker.oldRange !== this.datePicker.range) {
         this.updateSvgData(false);
       }
     },
@@ -276,12 +279,12 @@ export default {
       let toDate = null;
       let considerDate = true;
 
-      if (this.dateRange !== null) {
-        fromDate = new Date(this.dateRange[0]);
-        if (this.dateRange.length === 2) {
-          toDate = new Date(this.dateRange[1]);
+      if (this.datePicker.range !== null) {
+        fromDate = new Date(this.datePicker.range[0]);
+        if (this.datePicker.range.length === 2) {
+          toDate = new Date(this.datePicker.range[1]);
         } else {
-          toDate = new Date(this.dateRange[0]);
+          toDate = new Date(this.datePicker.range[0]);
         }
 
         // check if dates are in the right order
@@ -363,10 +366,10 @@ export default {
         maxDate.setDate(maxDate.getDate() + 1);
 
         // date picker needs iso strings
-        this.dateMin = minDate.toISOString();
-        this.dateMax = maxDate.toISOString();
+        this.datePicker.min = minDate.toISOString();
+        this.datePicker.max = maxDate.toISOString();
 
-        this.dateRange = [this.dateMin, this.dateMax];
+        this.datePicker.range = [this.datePicker.min, this.datePicker.max];
 
         this.initialLoadDone = true;
       }
@@ -414,8 +417,8 @@ export default {
 <style scoped>
 >>> .overlay {
   stroke-width: 2px;
-  stroke: red;
-  fill: red;
+  stroke: #1976D2;
+  fill: #1976D2;
   cursor: pointer;
 }
 
