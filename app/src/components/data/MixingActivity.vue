@@ -43,12 +43,13 @@
           </template>
           <v-date-picker
               scrollable
+              color="primary"
               first-day-of-week="1"
               no-title
               range
+              :events="datePicker.events"
               :min="datePicker.min"
               :max="datePicker.max"
-              color="primary"
               v-model="datePicker.range"/>
         </v-menu>
       </v-col>
@@ -198,6 +199,7 @@ export default {
         oldRange: null,
         min: '',
         max: '',
+        events: [],
       },
       menu: null,
 
@@ -293,6 +295,10 @@ export default {
           toDate = fromDate;
           fromDate = mem;
         }
+
+        // increase to toDate by one day, so the filter includes
+        // all events on that day and does cut off the day before
+        toDate.setDate(toDate.getDate() + 1);
       } else {
         considerDate = false;
       }
@@ -355,6 +361,8 @@ export default {
         this.activities = mixingActivity.activities.map((d) => {
           d.privacytype = getPrivacyTypeLabel(d.privacytype);
           d.dateTime = new Date(d.block[0].ts);
+
+          this.datePicker.events.push(d.dateTime.toISOString().substr(0, 10));
 
           if (maxDate === null || d.dateTime > maxDate) maxDate = d.dateTime;
           if (minDate === null || d.dateTime < minDate) minDate = d.dateTime;
