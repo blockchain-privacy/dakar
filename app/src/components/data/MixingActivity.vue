@@ -358,6 +358,9 @@ export default {
         let maxDate = null;
         let minDate = null;
 
+        // reset events
+        this.datePicker.events = [];
+
         this.activities = mixingActivity.activities.map((d) => {
           d.privacytype = getPrivacyTypeLabel(d.privacytype);
           d.dateTime = new Date(d.block[0].ts);
