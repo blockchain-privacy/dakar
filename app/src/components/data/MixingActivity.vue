@@ -1,5 +1,6 @@
 <template>
   <div>
+    <!-- Filters -->
     <v-row>
       <v-col>
         <v-select
@@ -60,11 +61,11 @@
             @click="updateSvgData(true)"/>
       </v-col>
     </v-row>
-    <v-progress-linear v-if="isLoading" indeterminate/>
     <v-tabs v-model="graphTabs" centered grow>
       <v-tab key="histogram" @change="onTabChange('histogram')">Histogram</v-tab>
       <v-tab key="graph" @change="onTabChange('graph')">Force Graph</v-tab>
     </v-tabs>
+    <v-progress-linear class="mt-10" v-if="isLoading" indeterminate/>
     <v-tabs-items v-model="graphTabs">
       <v-tab-item eager key="histogram">
         <v-card flat>
@@ -120,6 +121,10 @@
       <v-tab-item eager key="graph">
         <v-card flat>
           <v-card-text>
+            <p v-if="!showGraph && !isLoading"
+               class="text-h6" style="text-align: center">
+              No data available
+            </p>
             <svg id="mixing_activity_force_graph" :class="{'hide': !showGraph}"/>
             <v-card outlined v-if="this.clickedNode">
               <v-card-title>
@@ -387,6 +392,14 @@ export default {
       this.showEmptyResponseMessage = false;
 
       const filtered = this.getFilteredData(this.graphMode);
+
+      if (filtered.items.length === 0) {
+        this.isLoading = false;
+        this.showGraph = false;
+        this.showHistogram = false;
+        this.showNotEnoughDataMessage = true;
+        return;
+      }
 
       // draw
       if (this.graphMode) {
