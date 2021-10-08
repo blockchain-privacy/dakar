@@ -78,7 +78,10 @@ export default class ForceGraph {
 
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id((d) => d.txhash))
-      .force('charge', d3.forceManyBody())
+      .force('charge', d3.forceManyBody().strength(-80))
+      .force('x', d3.forceX(this.width / 2).strength(0.04))
+      .force('y', d3.forceY(this.height / 2).strength(0.04))
+      .force('radial', d3.forceRadial(240, this.width / 2, this.height / 2))
       .force('center', d3.forceCenter(this.width / 2, this.height / 2));
 
     const link = this.lineGroup
