@@ -300,7 +300,6 @@ export default {
         events: [],
       },
       menu: null,
-
       graphTabs: null,
       barTable: {
         headers: [{
@@ -472,6 +471,7 @@ export default {
         if (mixingActivity.activities === undefined) {
           this.showEmptyResponseMessage = true;
           this.isLoading = false;
+          this.activities = [];
           return;
         }
 
