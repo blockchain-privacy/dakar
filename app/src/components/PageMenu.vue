@@ -33,6 +33,13 @@
               :color="iconColor.default"
               :to="{ name: routes.clusterLookupPage }"/>
         </v-col>
+        <v-col>
+          <LinkCard
+              title="Mixing Activity"
+              :icon="icons.mdiChartBar"
+              :color="iconColor.default"
+              :to="{ name: routes.mixingActivityPage }"/>
+        </v-col>
       </v-row>
       <v-divider class="my-2"/>
       <v-row no-gutters >
@@ -58,11 +65,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge,
+  mdiMerge, mdiChartBar,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+  ROUTE_NAME_MIXING_ACTIVITY,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -83,6 +91,7 @@ export default {
         mdiAccountSupervisor,
         mdiServer,
         mdiMerge,
+        mdiChartBar,
       },
       iconColor: {
         default: 'primary',
@@ -95,6 +104,7 @@ export default {
         connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
         clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+        mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       },
     };
   },

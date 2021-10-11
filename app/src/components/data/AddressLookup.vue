@@ -11,11 +11,10 @@
             <v-spacer></v-spacer>
             <v-btn
                 class="mr-2"
-                :disabled="showMixingActivity"
                 id="btn_show_mixing_activity"
                 v-if="showClusterLookupEditor"
                 outlined icon
-                @click="showMixingActivity = !showMixingActivity">
+                :to="{ name: mixingActivityPage, query: {address: this.addressHash} }">
               <v-icon>{{ icon.mdiChartBar }}</v-icon>
             </v-btn>
             <v-tooltip bottom activator="#btn_show_mixing_activity">
@@ -81,10 +80,6 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <div v-if="showMixingActivity">
-                <named-divider title="Mixing Activity" :vertical-margin="2"/>
-                <MixingActivity :address-hash="addressHash" include-cluster/>
-              </div>
               <named-divider title="Outputs" :vertical-margin="2"/>
               <v-container>
                 <v-row v-if="this.data.output_count > 1">
@@ -179,15 +174,15 @@ import {
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
+  ROUTE_NAME_MIXING_ACTIVITY,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
-import MixingActivity from './MixingActivity.vue';
 import NamedDivider from '../common/NamedDivider.vue';
 
 export default {
   name: 'AddressLookup',
   components: {
-    NamedDivider, MixingActivity, IconItem, OutputComponent,
+    NamedDivider, IconItem, OutputComponent,
   },
   data() {
     return {
@@ -204,6 +199,7 @@ export default {
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
       clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+      mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       combobox: {
         selected: {
           id: 0,
@@ -239,7 +235,6 @@ export default {
       isSortingByInput: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
-      showMixingActivity: false,
     };
   },
   methods: {
@@ -397,13 +392,6 @@ export default {
     this.setAddressHash();
     this.updateSortState();
     this.updateFilterState();
-  },
-  watch: {
-    $route() {
-      // if route gets changed the component could still be loaded but now with different data.
-      // Because of this the internal state has to be reset.
-      this.showMixingActivity = false;
-    },
   },
 };
 </script>
