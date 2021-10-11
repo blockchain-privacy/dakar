@@ -86,34 +86,54 @@
               Transactions
             </div>
             <svg id="mixing_activity_histogram" :class="{'hide': !showHistogram}"/>
+            <v-card outlined v-if="showHistogram">
+              <v-card-text>
+                <v-row>
+                  <v-col>
+                    <div class="text-subtitle-1 font-weight-black">Legend</div>
+                  </v-col>
+                  <v-col v-for="item in privacyLabels" :key="item.text">
+                    <div class="legendBox">
+                      <v-chip label :outlined="item.color === undefined"
+                              :color="item.color?item.color:'black'" small
+                              class="mr-1"/>
+                      {{ item.text }}
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
             <v-expand-transition>
-              <v-data-table
-                  v-if="barTable.transactions.length > 0"
-                  :headers="barTable.headers"
-                  :items="barTable.transactions">
-                <template v-slot:top>
-                  <v-toolbar flat class="hidden-sm-and-up">
-                    <v-toolbar-title>
-                      Privacy Transactions from {{ barTable.transactions.startDate }}
-                      to {{ barTable.transactions.endDate }}
-                    </v-toolbar-title>
-                  </v-toolbar>
-                  <v-toolbar flat class="hidden-xs-only">
-                    <v-toolbar-title>
-                      Privacy Transactions from {{ barTable.transactions.startDate }}
-                      to {{ barTable.transactions.endDate }}
-                    </v-toolbar-title>
-                  </v-toolbar>
-                </template>
-                <template v-slot:[`item.txhash`]="{ item }">
-                  <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
-                    {{ item.txhash }}
-                  </router-link>
-                </template>
-                <template v-slot:[`item.dateTime`]="{ item }">
-                  <span>{{ item.dateTime.toLocaleString() }}</span>
-                </template>
-              </v-data-table>
+              <v-card outlined v-if="barTable.transactions.length > 0" class="mt-2">
+                <v-card-text>
+                  <v-data-table
+                      :headers="barTable.headers"
+                      :items="barTable.transactions">
+                    <template v-slot:top>
+                      <v-toolbar flat class="hidden-sm-and-up">
+                        <v-toolbar-title>
+                          Privacy Transactions from {{ barTable.transactions.startDate }}
+                          to {{ barTable.transactions.endDate }}
+                        </v-toolbar-title>
+                      </v-toolbar>
+                      <v-toolbar flat class="hidden-xs-only">
+                        <v-toolbar-title>
+                          Privacy Transactions from {{ barTable.transactions.startDate }}
+                          to {{ barTable.transactions.endDate }}
+                        </v-toolbar-title>
+                      </v-toolbar>
+                    </template>
+                    <template v-slot:[`item.txhash`]="{ item }">
+                      <router-link :to="{ name: txRoute, params: { id: item.txhash }}">
+                        {{ item.txhash }}
+                      </router-link>
+                    </template>
+                    <template v-slot:[`item.dateTime`]="{ item }">
+                      <span>{{ item.dateTime.toLocaleString() }}</span>
+                    </template>
+                  </v-data-table>
+                </v-card-text>
+              </v-card>
             </v-expand-transition>
           </v-card-text>
         </v-card>
@@ -126,7 +146,24 @@
               No data available
             </p>
             <svg id="mixing_activity_force_graph" :class="{'hide': !showGraph}"/>
-            <v-card outlined v-if="this.clickedNode">
+            <v-card outlined v-if="showGraph">
+              <v-card-text>
+                <v-row>
+                  <v-col>
+                    <div class="text-subtitle-1 font-weight-black">Legend</div>
+                  </v-col>
+                  <v-col v-for="item in privacyLabels" :key="item.text">
+                    <div class="legendBox">
+                      <v-chip label :outlined="item.color === undefined"
+                              :color="item.color?item.color:'black'" small
+                              class="mr-1"/>
+                      {{ item.text }}
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+            <v-card outlined v-if="this.clickedNode" class="mt-2">
               <v-card-title>
                 Transaction
                 <router-link class="ml-1"
@@ -403,7 +440,7 @@ export default {
 
       // draw
       if (this.graphMode) {
-        this.svgGraph.draw(filtered.items, filtered.links, this.colorMap);
+        this.svgGraph.draw(filtered.items, filtered.links);
         this.showGraph = true;
       } else {
         this.svgHistogram.reset();
@@ -430,7 +467,7 @@ export default {
   },
   mounted() {
     // has to be called after the SVG is included in the DOM
-    this.svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph');
+    this.svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph', this.colorMap);
     this.svgGraph.setClickHandler(this.onNodeClick);
     this.updateSvgData();
   },
@@ -451,5 +488,14 @@ export default {
 
 .hide {
   display: none;
+}
+
+.legendBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  word-wrap: unset;
+  word-break: unset;
+  white-space: nowrap
 }
 </style>

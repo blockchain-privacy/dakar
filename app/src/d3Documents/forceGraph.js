@@ -26,10 +26,11 @@ function drag(simulation) {
 }
 
 export default class ForceGraph {
-  constructor(width, height, svgId) {
+  constructor(width, height, svgId, colorMap) {
     this.svgId = svgId;
     this.width = width;
     this.height = height;
+    this.colorMap = colorMap;
 
     // add attributes to root svg
     this.rootSvg = d3.select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
@@ -71,7 +72,7 @@ export default class ForceGraph {
       .attr('fill', '#999');
   }
 
-  draw(nodes, links, colorMap) {
+  draw(nodes, links) {
     if (this.clickCallBack === null) {
       throw new Error('click call back is not set');
     }
@@ -97,7 +98,7 @@ export default class ForceGraph {
       .data(nodes, (d) => d.txhash)
       .join('circle')
       .attr('r', 7)
-      .attr('fill', (d) => colorMap.get(d.privacytype))
+      .attr('fill', (d) => this.colorMap.get(d.privacytype))
       .on('click', (e, d) => { this.clickCallBack(d); })
       .on('mouseover', function mouseOver() {
         d3.select(this).attr('r', 10).classed('nodeMouseOver', true);
