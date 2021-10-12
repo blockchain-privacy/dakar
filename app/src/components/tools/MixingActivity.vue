@@ -245,7 +245,7 @@ import { mdiCalendarRange, mdiChartBar } from '@mdi/js';
 import Histogram from '../../d3Documents/histogram';
 import ForceGraph from '../../d3Documents/forceGraph';
 import {
-  doPost, getPrivacyTypeLabel, handleError, isValidQuery,
+  doPost, getPrivacyTypeLabel, handleError, isValidQueryInput,
 } from '../../utilities';
 import {
   ROUTE_MIXING_ACTIVITY,
@@ -319,7 +319,7 @@ export default {
   },
   computed: {
     isSearchable() {
-      return isValidQuery(this.addressHash);
+      return isValidQueryInput(this.addressHash);
     },
     privacyLabels() {
       const labels = [];
@@ -349,7 +349,7 @@ export default {
   methods: {
     capitalize,
     handleSearch(origin) {
-      if (this.isLoading || !isValidQuery(this.addressHash)) {
+      if (this.isLoading || !isValidQueryInput(this.addressHash)) {
         return;
       }
 
