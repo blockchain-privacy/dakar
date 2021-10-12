@@ -32,7 +32,7 @@
           </v-col>
         </v-row>
         <!-- Filters -->
-        <v-row>
+        <v-row v-if="activities && activities.length > 0">
           <v-col>
             <v-select
                 multiple
@@ -94,7 +94,13 @@
         </v-row>
       </v-card-text>
     </v-card>
-    <v-card class="mx-auto elevation-4 mt-3" max-width="1200"
+    <v-card class="mx-auto elevation-4 my-3" max-width="1200"
+            v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
+      <v-card-text>
+        <p class="text-h6" style="text-align:center">No data available</p>
+      </v-card-text>
+    </v-card>
+    <v-card class="mx-auto elevation-4 my-3" max-width="1200"
             v-show="this.activities && this.activities.length > 0">
       <v-card-text>
         <v-tabs v-model="graphTabs" centered grow>
@@ -106,13 +112,9 @@
           <v-tab-item eager key="histogram">
             <v-card flat>
               <v-card-text>
-                <p v-if="showNotEnoughDataMessage && !isLoading"
-                   class="text-h6" style="text-align: center">
-                  Not enough data available to draw chart
-                </p>
                 <p v-if="showEmptyResponseMessage && !isLoading"
                    class="text-h6" style="text-align: center">
-                  No data available
+                  Not enough data available to draw chart
                 </p>
                 <div v-if="showHistogram" class="text-subtitle-1" style="text-align: center">
                   {{
@@ -312,6 +314,7 @@ export default {
       },
       clickedNode: null,
       graphMode: false,
+      hasLoaded: false,
     };
   },
   computed: {
@@ -468,6 +471,7 @@ export default {
       // check if new data has to be loaded
       if (pullNewData || !this.initialLoadDone) {
         const mixingActivity = await this.getMixingActivity();
+        this.hasLoaded = true;
         if (mixingActivity.activities === undefined) {
           this.showEmptyResponseMessage = true;
           this.isLoading = false;
@@ -548,7 +552,6 @@ export default {
     // has to be called after the SVG is included in the DOM
     this.svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph', this.colorMap);
     this.svgGraph.setClickHandler(this.onNodeClick);
-    this.updateSvgData();
   },
   created() {
     newMixingActivityRouting(this);
