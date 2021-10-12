@@ -124,7 +124,7 @@ type FrontendTransaction struct {
 	Fee            int64            `json:"fee"`
 	PrivacyType    int64            `json:"privacytype,omitempty"`
 	BlockID        uint64           `json:"bid"`
-	BlockTimestamp string           `json:"ts,omitempty"`
+	BlockTimestamp string           `json:"bts,omitempty"`
 	Outputs        []FrontendOutput `json:"outputs,omitempty"`
 	Inputs         []FrontendOutput `json:"inputs,omitempty"`
 }
