@@ -37,7 +37,7 @@
             </v-col>
             <v-col>
               <IconItem :icon="icons.mdiCalendar" title="Timestamp">
-                {{ new Date(tx.ts).toLocaleString() }}
+                {{ new Date(tx.bts).toLocaleString() }}
               </IconItem>
             </v-col>
           </v-row>
