@@ -34,7 +34,7 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$hash": blockHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$hash": blockHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -199,7 +199,7 @@ func UpsertBlock(c external.Database, block Block) error {
 		}},
 		CommitNow: true,
 	}
-	if err = db.TxWithRetry(c, time.Minute*2, req); err != nil {
+	if err = db.TxWithRetry(c, time.Minute*15, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 

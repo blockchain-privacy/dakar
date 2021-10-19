@@ -43,12 +43,19 @@
           </v-list-item-icon>
           <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
         </v-list-item>
-        <v-divider />
+        <v-divider/>
         <v-list-item :to="{name: route.userProfilePage}">
           <v-list-item-icon>
             <v-icon>{{ icon.mdiCog }}</v-icon>
           </v-list-item-icon>
           <v-list-item-title>Settings</v-list-item-title>
+        </v-list-item>
+        <v-list-item>
+          <v-list-item-icon>
+            <v-icon>{{ icon.mdiWeatherNight }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Dark Mode</v-list-item-title>
+          <DarkModeSwitch class="mt-0 ml-2"/>
         </v-list-item>
         <v-list-item @click="logout">
           <v-list-item-icon>
@@ -59,7 +66,8 @@
       </v-list>
     </v-menu>
     <v-btn depressed color="primary" :to="{ name: route.userLoginPage }" v-if="!this.userData">
-      <v-icon>{{ icon.mdiLogin }}</v-icon> Login
+      <v-icon>{{ icon.mdiLogin }}</v-icon>
+      Login
     </v-btn>
   </v-app-bar>
 </template>
@@ -67,10 +75,11 @@
 <script>
 import {
   mdiAccount, mdiAccountCircle, mdiCog, mdiLogin, mdiLogout,
-  mdiDotsGrid,
+  mdiDotsGrid, mdiWeatherNight,
 } from '@mdi/js';
 import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
+import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
   APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
   ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_USER_LOGOUT,
@@ -82,6 +91,7 @@ import {
 export default {
   name: 'AppBar',
   components: {
+    DarkModeSwitch,
     PageMenu,
     QueryInput,
   },
@@ -99,6 +109,7 @@ export default {
         mdiAccountCircle,
         mdiCog,
         mdiDotsGrid,
+        mdiWeatherNight,
       },
       route: {
         userProfilePage: ROUTE_NAME_USER_PROFILE_PAGE,

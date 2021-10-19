@@ -21,14 +21,6 @@
                 Profile
               </v-list-item-title>
             </v-list-item>
-            <v-list-item :to="{ name: miscRoute}">
-              <v-list-item-icon>
-                <v-icon>{{ icon.mdiTune }}</v-icon>
-              </v-list-item-icon>
-              <v-list-item-title>
-                Misc
-              </v-list-item-title>
-            </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
@@ -43,28 +35,23 @@
         <span>Profile</span>
         <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
       </v-btn>
-      <v-btn :to="{ name: miscRoute}">
-        <span>Misc</span>
-        <v-icon>{{ icon.mdiTune }}</v-icon>
-      </v-btn>
     </v-bottom-navigation>
   </div>
 </template>
 
 <script>
 import {
-  mdiAccountDetails, mdiTune, mdiCog,
+  mdiAccountDetails, mdiCog,
 } from '@mdi/js';
-import { ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_NAME_USER_MISC_PAGE } from '../../constants';
+import { ROUTE_NAME_USER_PROFILE_PAGE } from '../../constants';
 
 export default {
   name: 'Settings',
   data() {
     return {
       profileRoute: ROUTE_NAME_USER_PROFILE_PAGE,
-      miscRoute: ROUTE_NAME_USER_MISC_PAGE,
       icon: {
-        mdiAccountDetails, mdiTune, mdiCog,
+        mdiAccountDetails, mdiCog,
       },
     };
   },

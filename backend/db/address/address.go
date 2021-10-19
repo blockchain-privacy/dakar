@@ -235,5 +235,5 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 		}},
 		CommitNow: true,
 	}
-	return db.TxWithRetry(c, time.Minute*3, req)
+	return db.TxWithRetry(c, time.Minute*15, req)
 }
