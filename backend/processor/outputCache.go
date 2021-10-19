@@ -15,14 +15,28 @@ type outputCache struct {
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
 func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoadSize int64) (*outputCache, error) {
-	fromBlock := mostRecentBlockID - initialLoadSize
+	fromBlock := mostRecentBlockID - (initialLoadSize - 1)
 	if fromBlock <= 0 {
 		fromBlock = 1
 	}
 
-	transactions, err := dbtx.GetOutputs(dgraph, fromBlock, mostRecentBlockID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	// load blocks in batches from db
+	const steps = 100
+	var transactions []dbtx.Transaction
+	stop := false
+	for i := fromBlock; !stop; i += steps {
+		to := i + steps - 1
+		if to >= mostRecentBlockID {
+			to = mostRecentBlockID
+			stop = true
+		}
+
+		stepTransactions, err := dbtx.GetOutputs(dgraph, i, to)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		transactions = append(transactions, stepTransactions...)
 	}
 
 	cache := outputCache{c: make(map[string]map[uint32]dbop.Output)}
