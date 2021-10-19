@@ -212,6 +212,7 @@ export default {
     });
   },
   watch: {
+    // eslint-disable-next-line func-names
     '$vuetify.theme.dark': function (isDark) {
       this.handleThemeChange(isDark);
     },
