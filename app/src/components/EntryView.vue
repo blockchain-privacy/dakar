@@ -211,8 +211,10 @@ export default {
       this.handleThemeChange(e.matches);
     });
   },
-  beforeMount() {
-
+  watch: {
+    '$vuetify.theme.dark': function (isDark) {
+      this.handleThemeChange(isDark);
+    },
   },
 };
 </script>
