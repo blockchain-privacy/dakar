@@ -833,13 +833,16 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(handlerShortestTransactionPath(dgraph), constants.GetRouteShortestTransactionPath(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey),
+			cacheMiddleware(cache, time.Minute*10)))
 	http.Handle(constants.GetRouteConnectionLookup(),
 		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey),
+			cacheMiddleware(cache, time.Minute*10)))
 	http.Handle(constants.GetRouteMixingActivity(),
 		adapt(handlerMixingActivity(dgraph), constants.GetRouteMixingActivity(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey),
+			cacheMiddleware(cache, time.Minute*10)))
 
 	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),

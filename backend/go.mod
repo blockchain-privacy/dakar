@@ -29,4 +29,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
-replace github.com/btcsuite/btcd => github.com/qrest/btcd v0.22.0-beta-test
+replace github.com/btcsuite/btcd => github.com/decfi/btcd v0.22.0-beta

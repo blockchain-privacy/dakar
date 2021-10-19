@@ -1,6 +1,7 @@
 /* eslint-disable no-constant-condition */
 import * as d3 from 'd3';
-import { Tree, isFunction } from './tree';
+import Tree from './tree';
+import { isFunction } from './util';
 
 // phantom node id
 export const rootIdentifier = 'root';

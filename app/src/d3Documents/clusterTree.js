@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { Tree } from './tree';
+import Tree from './tree';
 
 export default class ClusterTree extends Tree {
   constructor(width) {
@@ -72,12 +72,6 @@ export default class ClusterTree extends Tree {
         d.data.data.parameter !== undefined
           ? -textAreaHeight / 2 + textHeight * 2 : textHeight / 2))
       .text((d) => `Size:${d.data.data.cluster_address_count}`);
-
-    // rootElement.append('text')
-    //   .attr('fill', 'currentColor')
-    //   .attr('x', () => -this.rectWidth / 2 + strokeWidth + 2)
-    //   .attr('y', textAreaHeight / 2 - textHeight)
-    //   .text('Parameter: 5');
   }
 
   drawNodes(group, nodeData) {
