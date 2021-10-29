@@ -20,7 +20,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -57,6 +56,7 @@ func info(v ...interface{}) {
 func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ResetDB, "reset", false, "Remove all data from the database (default: false)")
 	flag.BoolVar(&c.IgnoreSafeGuard, "ignoresafeguard", false, "Ignore the crawling safe guard (default: false)")
+	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information")
 }
 
 // The crawler for the system. It needs to be run prior to using any of the other
@@ -65,8 +65,6 @@ func setCommandFlags(c *Commands) {
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
 func main() {
-	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
-
 	////// SET FLAGS //////
 
 	var commands Commands
@@ -77,6 +75,13 @@ func main() {
 	var createConfigFile bool
 	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
 	flag.Parse()
+
+	////// PRINT VERSION //////
+
+	if commands.ShowVersion {
+		printVersion()
+		return
+	}
 
 	////// CONFIGURATION FILE HANDLING //////
 

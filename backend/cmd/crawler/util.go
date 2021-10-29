@@ -7,6 +7,8 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+	"runtime"
+	"runtime/debug"
 
 	"context"
 	"errors"
@@ -136,6 +138,7 @@ func checkHTTPModuleConfig(c HTTPModule) error {
 type Commands struct {
 	ResetDB         bool
 	IgnoreSafeGuard bool
+	ShowVersion     bool
 }
 
 // checks if a crawling process is already running
@@ -274,5 +277,22 @@ func shutdownServer(srv *http.Server) {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		info("Server was shutdown and returned error:", err)
+	}
+}
+
+// printVersion prints the version of the application and build information
+func printVersion() {
+	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
+	buildInfo, ok := debug.ReadBuildInfo()
+	if ok {
+		fmt.Println("Modules:")
+		for _, i := range buildInfo.Deps {
+			moduleName := i.Path + " " + i.Version
+
+			if i.Replace != nil {
+				moduleName += " replaced with " + i.Replace.Path + " " + i.Replace.Version
+			}
+			fmt.Println(moduleName)
+		}
 	}
 }
