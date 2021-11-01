@@ -63,6 +63,11 @@
         </v-expand-transition>
       </v-card-text>
     </v-card>
+    <v-card v-if="showEmptyText" flat class="mx-auto mt-3" max-width="1000">
+      <v-card-text class="text-subtitle-1" style="text-align: center">
+        No clusters found
+      </v-card-text>
+    </v-card>
     <div v-if="this.clusters.length > 0">
       <v-card outlined v-for="(c, i) in clusters" :key="i"
               class="mx-auto mt-3 elevation-4" max-width="1000">
@@ -169,6 +174,7 @@ export default {
       clusters: [],
       lastQuery: null,
       isClusterSummaryLoading: false,
+      showEmptyText: false,
       tableHeaders: [
         {
           text: 'Addresshash',
@@ -249,6 +255,7 @@ export default {
       this.isLoading = true;
       const body = this.getQuery();
       this.lastQuery = body;
+      this.showEmptyText = false;
 
       doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, body)
         .then((data) => {
@@ -282,6 +289,8 @@ export default {
             }
 
             this.clusters = clusters;
+          } else {
+            this.showEmptyText = true;
           }
         })
         .catch((e) => {
