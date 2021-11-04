@@ -189,8 +189,6 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		} else {
 			operations = append(operations, clusters...)
 		}
-		// increase index
-		clusterIndex += len(operations)
 
 		// insert new clusters
 		if len(operations) > 0 {
