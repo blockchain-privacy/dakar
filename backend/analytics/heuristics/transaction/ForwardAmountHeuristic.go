@@ -91,7 +91,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	origins := make(map[string]dbtxh.HeuristicTransaction)
 	// maps a cluster to its origin transactions
 	clusterOrigins := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
-	var clusters map[string]dbtxh.ClusterUID
+
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []dbtxh.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
@@ -121,7 +121,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		}
 	}
 
-	if len(origins) == 0 || len(clusters) == 0 || len(clusterOrigins) == 0 {
+	if len(origins) == 0 || len(clusterOrigins) == 0 {
 		return nil, ErrorNoOriginsAtStart
 	}
 
