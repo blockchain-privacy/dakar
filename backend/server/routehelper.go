@@ -53,11 +53,11 @@ func isLikelyAddress(query string) bool {
 }
 
 type prunedRPCInfo struct {
-	Blocks               int32   `json:"blocks"`
 	Difficulty           float64 `json:"difficulty"`
 	VerificationProgress float64 `json:"verificationprogress,omitempty"`
-	Pruned               bool    `json:"pruned"`
 	SizeOnDisk           int64   `json:"size_on_disk,omitempty"`
+	Pruned               bool    `json:"pruned"`
+	Blocks               int32   `json:"blocks"`
 }
 
 type metaStatus struct {

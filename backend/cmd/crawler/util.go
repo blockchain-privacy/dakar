@@ -51,10 +51,10 @@ type HTTPModule struct {
 
 type ModulesConfig struct {
 	HTTP       HTTPModule    `yaml:"http"`
-	Classifier bool          `yaml:"classifier"`
-	Heuristics bool          `yaml:"heuristics"`
 	Crawler    CrawlerModule `yaml:"crawler"`
 	Clustering ClusterModule `yaml:"clustering"`
+	Classifier bool          `yaml:"classifier"`
+	Heuristics bool          `yaml:"heuristics"`
 }
 
 type Config struct {
