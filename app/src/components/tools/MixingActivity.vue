@@ -94,10 +94,10 @@
         </v-row>
       </v-card-text>
     </v-card>
-    <v-card class="mx-auto elevation-4 my-3" max-width="1200"
+    <v-card class="mx-auto my-3" max-width="1200" flat
             v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
-      <v-card-text>
-        <p class="text-h6" style="text-align:center">No data available</p>
+      <v-card-text class="text-h6" style="text-align:center">
+        No data available
       </v-card-text>
     </v-card>
     <v-card class="mx-auto elevation-4 my-3" max-width="1200"
