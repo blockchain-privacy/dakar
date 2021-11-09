@@ -29,5 +29,6 @@ The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured 
 |----------|:-------------:|------:|
 | ignoresafeguard | false | Ignore the crawling safe guard (default: false) |
 | reset | false | Remove all data from the database (default: false) |
+| version | false | Show version information |
 | createConfig | false | creates a default config file (default: false) |
 | config | config.yml | config file path (default: config.yml) |
