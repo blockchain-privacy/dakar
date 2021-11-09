@@ -858,6 +858,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	if err != nil {
 		if !errors.Is(err, context.DeadlineExceeded) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
 		}
 		err = nil
 		return

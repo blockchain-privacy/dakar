@@ -86,21 +86,6 @@ type transactionQuery struct {
 	Q []Transaction `json:"q"`
 }
 
-func (tq transactionQuery) payload() (tx Transaction, err error) {
-	lenQ := len(tq.Q)
-
-	if lenQ == 0 {
-		err = errors.New("no transactions found")
-		return
-	} else if lenQ > 1 {
-		// found more than one transaction, which should not be possible
-		err = errors.New("found more than one transaction")
-		return
-	}
-	tx = tq.Q[0]
-	return
-}
-
 // FrontendOutput holds the output data which is exposed to the frontend
 type FrontendOutput struct {
 	Amount      *int64  `json:"amount"`

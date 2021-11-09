@@ -118,21 +118,6 @@ func (u *outputCache) getOutput(txHash string, outputIndex uint32) *dbop.Output 
 	return &output
 }
 
-// deleteOutput deletes the specified output
-func (u *outputCache) deleteOutput(txHash string, outputIndex uint32) {
-	t, ok := u.c[txHash]
-	if !ok {
-		return
-	}
-
-	delete(t, outputIndex)
-
-	// if transaction has no more unspent outputs, then remove the transaction reference
-	if len(t) == 0 {
-		delete(u.c, txHash)
-	}
-}
-
 // deleteOutput returns the output specified output and deletes it afterwards
 func (u *outputCache) getAndEvictOutput(txHash string, outputIndex uint32) *dbop.Output {
 	t, ok := u.c[txHash]

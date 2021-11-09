@@ -2,14 +2,14 @@ package analytics
 
 // Config defines configuration values for a specific blockchain type
 type Config struct {
+	// ClassifierStartAfterBlock is the block id after classifications starts.
+	ClassifierStartAfterBlock uint64
 	// BlockchainName is the name of the blockchain
 	BlockchainName string
 	// IsHeuristicWorkerEnabled controls if analysing is allowed
 	IsHeuristicWorkerEnabled bool
 	// IsClassifyingEnabled controls if classifying is allowed
 	IsClassifyingEnabled bool
-	// ClassifierStartAfterBlock is the block id after classifications starts.
-	ClassifierStartAfterBlock uint64
 	// IsHMIClusteringEnabled controls if clustering is allowed
 	IsHMIClusteringEnabled bool
 	// IsFMIClusteringEnabled controls if clustering is allowed
