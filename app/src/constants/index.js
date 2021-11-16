@@ -59,7 +59,7 @@ export const ROUTE_NAME_MIXING_ACTIVITY = 'Mixing Activity Page';
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
-export const APPLICATION_SUBTITLE = 'Blockchain analytics';
+export const APPLICATION_SUBTITLE = 'Dash Blockchain Analytics';
 export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const DEFAULT_SETTINGS = { dark: false };

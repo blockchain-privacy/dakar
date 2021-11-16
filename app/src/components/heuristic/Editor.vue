@@ -26,7 +26,7 @@
     <v-toolbar
         dense dark
         color="primary"
-        style="z-index: 10; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.2);">
+        style="z-index: 10;">
       <v-toolbar-title class="hidden-md-and-up">
         {{ this.transactionHash }}
       </v-toolbar-title>
@@ -718,12 +718,21 @@ export default {
       this.stopDormantTimer();
       this.stopActiveTimer();
     },
+    setSvgDarkMode(toggle) {
+      if (toggle) {
+        document.getElementById('svg_canvas').setAttribute('data-theme', 'darkMode');
+      } else {
+        document.getElementById('svg_canvas').setAttribute('data-theme', '');
+      }
+    },
   },
   beforeDestroy() {
     // reset memory
     this.resetExecutionStatus();
   },
   async mounted() {
+    this.setSvgDarkMode(this.$vuetify.theme.dark);
+
     if (!await this.onMounted()) {
       return;
     }
@@ -732,6 +741,10 @@ export default {
   watch: {
     $route() {
       newRouting(this);
+    },
+    // eslint-disable-next-line func-names
+    '$vuetify.theme.dark': function (isDark) {
+      this.setSvgDarkMode(isDark);
     },
   },
 };
@@ -749,10 +762,19 @@ export default {
   stroke-width: 2px;
 }
 
->>> .rect {
+svg {
+  --background-color: white;
+}
+
+>>> .rect{
   stroke: #008ee5;
-  fill-opacity: 0;
+  fill: var(--background-color);
+  fill-opacity: 1;
   cursor: pointer;
+}
+[data-theme="darkMode"]{
+  /* Variables for dark mode */
+  --background-color: black;
 }
 
 >>> .clicked {
@@ -775,6 +797,7 @@ export default {
 
 >>> #svg_canvas {
   height: 100%;
+  filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
 }
 
 >>> .v-toolbar__content, .v-toolbar__extension {

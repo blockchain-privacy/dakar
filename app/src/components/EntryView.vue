@@ -35,68 +35,6 @@
         </div>
       </v-col>
     </v-row>
-    <div class="hidden-sm-and-down">
-      <svg class="bg-svg" v-for="i in 10" :key="i +'a'"
-           width="25.946mm" height="25.946mm" viewBox="0 0 25.946 25.946"
-           xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(-79.261 -114.16)">
-          <g transform="rotate(45 134.89 -96.187)">
-            <path d="m252.01 91.883h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle cx="248.96" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-            <circle cx="276.32" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-          </g>
-        </g>
-      </svg>
-      <svg class="bg-svg" v-for="i in 10" :key="i +'b'"
-           width="30.295mm" height="28.285mm" viewBox="0 0 30.295 28.285"
-           xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(-54.613 -103.28)">
-          <g transform="translate(-192.88 29.538)">
-            <path d="m253.43 86.567 18.641 10.762" fill="none" stroke="#000" stroke-width=".25823"/>
-            <path d="m251.5 85.577 15.622-9.0193" fill="none" stroke="#000" stroke-width=".25823"/>
-            <g fill="#008ee5" stroke-width=".074983">
-              <circle transform="rotate(30)" cx="259.71" cy="-51.746" r="3.2982"/>
-              <circle transform="rotate(30)" cx="287.07" cy="-51.746" r="3.2982"/>
-              <circle transform="rotate(30)" cx="270.07" cy="-66.973" r="3.2982"/>
-            </g>
-          </g>
-        </g>
-      </svg>
-      <svg class="bg-svg" v-for="i in 10" :key="i +'c'"
-           width="58.463mm" height="47.275mm" viewBox="0 0 58.463 47.275"
-           xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(-45.709 -108.98)">
-          <g transform="translate(-147.34 34.424)">
-            <path d="m220.92 95.044 15.22 15.22" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle transform="rotate(45)" cx="247.74" cy="-89.01" r="3.2982"
-                    fill="#008ee5" stroke-width=".074983"/>
-            <path d="m220.92 95.044 5.571 20.791" fill="none"
-                  stroke="#000" stroke-width=".25829px"/>
-            <circle transform="rotate(75)" cx="173.3" cy="-188.8" r="3.2982"
-                    fill="#008ee5" stroke-width=".074983"/>
-            <path d="m220.92 95.044 15.22-15.22" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle transform="rotate(-45)" cx="113.32" cy="223.42" r="3.2982"
-                    fill="#008ee5" stroke-width=".074983"/>
-            <path d="m199.4 94.751h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle cx="196.35" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-            <path d="m223.9 94.751h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle cx="220.85" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-            <circle cx="248.22" cy="94.751" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-          </g>
-        </g>
-      </svg>
-      <svg class="bg-svg" v-for="i in 10" :key="i +'d'"
-           width="33.961mm" height="6.5963mm" viewBox="0 0 33.961 6.5963"
-           xmlns="http://www.w3.org/2000/svg">
-        <g transform="translate(-92.84 -68.534)">
-          <g transform="translate(-152.82 -20.051)">
-            <path d="m252.01 91.883h21.525" fill="none" stroke="#000" stroke-width=".25829px"/>
-            <circle cx="248.96" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-            <circle cx="276.32" cy="91.883" r="3.2982" fill="#008ee5" stroke-width=".074983"/>
-          </g>
-        </g>
-      </svg>
-    </div>
   </v-container>
 </template>
 
@@ -111,7 +49,6 @@ import {
   RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_SEARCH,
   APPLICATION_SUBTITLE,
 } from '../constants';
-import '../style.scss';
 import {
   doGet, handleError, isValidQuery, isValidQueryInput,
 } from '../utilities';
@@ -235,14 +172,6 @@ export default {
 
 >>> .v-input--is-focused {
   transform: none;
-}
-
-.light-background {
-  background-color: white;
-}
-
-.dark-background {
-  background-color: black;
 }
 
 .search-btn {
