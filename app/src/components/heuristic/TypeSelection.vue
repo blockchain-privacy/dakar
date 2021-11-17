@@ -1,5 +1,5 @@
 <template>
-  <v-bottom-sheet scrollable v-model="inputVal">
+  <v-bottom-sheet scrollable v-model="inputVal" width="100%">
     <v-card>
       <v-card-title>
         <v-icon class="mr-2">{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
