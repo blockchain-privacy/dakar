@@ -237,3 +237,35 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 	}
 	return db.TxWithRetry(c, time.Minute*15, req)
 }
+
+// CheckAddressExistence returns all addresses from the input which exist in the database
+func CheckAddressExistence(c external.Database, addressHashes []string) (addresses []string, err error) {
+	query := `{
+				q(func: eq(addresshash,` + db.CreateUIDList(addressHashes) + `)){
+					addresshash
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*10, query)
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Addresses []struct {
+			Hash string `json:"addresshash,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, a := range r.Addresses {
+		addresses = append(addresses, a.Hash)
+	}
+
+	return
+}

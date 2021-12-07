@@ -336,6 +336,21 @@ func handlerClusterSummary(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addCluster"
+func handlerAddCluster(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddClusterReply(dgraph, w, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristics/<hash>"
 func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -853,6 +868,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteClusterSummary(),
 		adapt(handlerClusterSummary(dgraph), constants.GetRouteClusterSummary(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteAddCluster(),
+		adapt(handlerAddCluster(dgraph), constants.GetRouteAddCluster(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User
