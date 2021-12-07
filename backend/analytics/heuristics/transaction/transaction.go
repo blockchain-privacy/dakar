@@ -105,10 +105,10 @@ func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations
 	return dbop.CountAmountDenominations(denominations)
 }
 
-type originSource struct {
+type clusterDenominations struct {
 	denominationIndex int
 	// key: cluster id, value: number of denominations of type denominationIndex
-	sources map[dbtxh.ClusterUID]int
+	clusters map[dbtxh.ClusterUID]int
 }
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
@@ -132,14 +132,14 @@ func addOriginsToMap(sourceTransactionMap map[dbtxh.ClusterUID]map[string]dbtxh.
 	return sourceTransactionMap, nil
 }
 
-// buildSourcesWithAmount creates an array of sources with the
+// countClusterDenominations creates a map of clusters with the
 // number of denominations of the specified denomination type
-func buildSourcesWithAmount(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource originSource, err error) {
+func countClusterDenominations(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource clusterDenominations, err error) {
 	oSource.denominationIndex = denominationIndex
-	oSource.sources = make(map[dbtxh.ClusterUID]int)
+	oSource.clusters = make(map[dbtxh.ClusterUID]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
-		oSource.sources[o.Cluster] += nDenominations
+		oSource.clusters[o.Cluster] += nDenominations
 	}
 
 	return
