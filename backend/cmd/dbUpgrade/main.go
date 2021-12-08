@@ -103,15 +103,21 @@ func main() {
 		return
 	}
 
-	info("removing lowest block id from type starting ...")
-	if err := db.AlterSchemaRemoveLowestBlockIdFromCrawlerStatus(dgraph); err != nil {
-		info(err)
-	}
-	info("removing lowest block id from type starting  done")
+	//info("removing lowest block id from type starting ...")
+	//if err := db.AlterSchemaRemoveLowestBlockIdFromCrawlerStatus(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("removing lowest block id from type starting  done")
+	//
+	//info("drop lowest block id predicate starting ...")
+	//if err := db.DropLowestBlockId(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("drop lowest block id predicate done")
 
-	info("drop lowest block id predicate starting ...")
-	if err := db.DropLowestBlockId(dgraph); err != nil {
+	info("add user predicate starting ...")
+	if err := db.AlterSchemaAddUserToCluster(dgraph); err != nil {
 		info(err)
 	}
-	info("drop lowest block id predicate done")
+	info("add user predicate done")
 }
