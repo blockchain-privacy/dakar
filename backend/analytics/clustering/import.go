@@ -129,6 +129,9 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 
 	hashToUid := map[string]string{}
 	for _, dbAddress := range dbAddresses {
+		if dbAddress.Hash == "" || dbAddress.UID == "" {
+			return fmt.Errorf("address invalid: %v", dbAddress), nil
+		}
 		hashToUid[dbAddress.Hash] = dbAddress.UID
 	}
 
