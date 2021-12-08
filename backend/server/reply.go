@@ -930,21 +930,18 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := analyticsClustering.ValidateAddresses(dgraph, addresses); err != nil {
+	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
 		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
 			reply.Msg = CsvShallowCluster
-		} else {
+		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
 			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
 		}
 
-		return
-	}
-
-	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
-		info(cliutil.ShowCallInfo(), err)
-		reply.Msg = CsvErrorImporting
 		return
 	}
 

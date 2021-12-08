@@ -238,10 +238,11 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 	return db.TxWithRetry(c, time.Minute*15, req)
 }
 
-// CheckAddressExistence returns all addresses from the input which exist in the database
-func CheckAddressExistence(c external.Database, addressHashes []string) (addresses []string, err error) {
+// GetAddressUIDs returns all requested address nodes
+func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	query := `{
 				q(func: eq(addresshash,` + db.CreateUIDList(addressHashes) + `)){
+					uid
 					addresshash
 				}
 			  }`
@@ -253,9 +254,7 @@ func CheckAddressExistence(c external.Database, addressHashes []string) (address
 		return
 	}
 	var r struct {
-		Addresses []struct {
-			Hash string `json:"addresshash,omitempty"`
-		} `json:"q,omitempty"`
+		Addresses []Address `json:"q,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -263,9 +262,7 @@ func CheckAddressExistence(c external.Database, addressHashes []string) (address
 		return
 	}
 
-	for _, a := range r.Addresses {
-		addresses = append(addresses, a.Hash)
-	}
+	addresses = r.Addresses
 
 	return
 }
