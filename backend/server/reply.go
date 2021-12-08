@@ -834,9 +834,18 @@ const (
 	CsvInvalidData       = "file_invalid_data"
 	CsvReadError         = "file_reading_error"
 	CsvTooManyAddresses  = "file_too_many_addresses"
+	CsvShallowCluster    = "file_shallow_cluster"
+	CsvErrorImporting    = "file_error_importing"
 )
 
 func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addClusterReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
 	const MaxUploadSize = 1024 * 1024
 
 	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
@@ -921,13 +930,21 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := analyticsClustering.ImportCluster(dgraph, addresses); err != nil {
+	if err := analyticsClustering.ValidateAddresses(dgraph, addresses); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
+			reply.Msg = CsvShallowCluster
 		} else {
 			reply.Msg = err.Error()
 		}
 
+		return
+	}
+
+	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		reply.Msg = CsvErrorImporting
 		return
 	}
 

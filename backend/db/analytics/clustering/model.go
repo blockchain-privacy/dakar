@@ -15,12 +15,30 @@ type HollowTransaction struct {
 	Uid string `json:"uid,omitempty"`
 }
 
+type HollowUser struct {
+	Uid string `json:"uid,omitempty"`
+}
+
 type HollowAddress struct {
 	Uid string `json:"uid,omitempty"`
 }
 
 type SubCluster struct {
 	Uid string `json:"uid,omitempty"`
+}
+
+type CustomCluster struct {
+	Uid          string          `json:"uid,omitempty"`
+	Type         ClusterType     `json:"cluster_type,omitempty"`
+	AddressCount *int            `json:"cluster_address_count,omitempty"`
+	Addresses    []HollowAddress `json:"cluster_addresses,omitempty"`
+	User         HollowUser      `json:"cluster_user,omitempty"`
+	DType        []string        `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (cc *CustomCluster) SetDType() {
+	cc.DType = []string{DType}
 }
 
 type Cluster struct {

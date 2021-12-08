@@ -97,6 +97,39 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	return
 }
 
+// AddCustomClusters adds the given clusters to the database
+func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
+	// validate data
+	for _, cluster := range clusters {
+		if cluster.Type == "" {
+			return errors.New("cluster type is not set")
+		}
+
+		if len(cluster.Addresses) == 0 {
+			return errors.New("cluster no addresses set")
+		}
+	}
+
+	pb, err := json.Marshal(clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	err = db.TxWithRetry(c, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
 // AddClusters adds the given clusters to the database
 func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
