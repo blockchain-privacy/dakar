@@ -948,3 +948,17 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 	reply.Success = true
 	return
 }
+
+func getClusterOverviewReply(dgraph external.Database, userUID string) (reply clusterOverviewReply) {
+	clusters, err := clustering.GetUserClusters(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no clusters found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Clusters = clusters
+
+	return
+}

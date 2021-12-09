@@ -508,3 +508,48 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 	return
 }
+
+// GetUserClusters returns all clusters of a user
+func GetUserClusters(c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
+	query := `query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user
+				}
+
+				q(func: uid(c)){
+					cluster_addresses {
+						addresshash
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			ClusterAddresses []struct {
+				Hash string `json:"addresshash,omitempty"`
+			} `json:"cluster_addresses,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		var addresses []string
+		for _, a := range cluster.ClusterAddresses {
+			addresses = append(addresses, a.Hash)
+		}
+		clusters = append(clusters, FrontendUserCluster{
+			Addresses: addresses,
+		})
+	}
+
+	return
+}

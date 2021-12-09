@@ -31,6 +31,7 @@ const (
 	routeHMILookup            string = "hmiLookup"
 	routeMixingActivity       string = "mixingActivity"
 	routeAddCluster           string = "addCluster"
+	routeClusterOverview      string = "clusterOverview"
 	routeMetrics              string = "/metrics"
 )
 
@@ -176,6 +177,11 @@ func GetRouteMixingActivity() string {
 // GetRouteAddCluster returns a route
 func GetRouteAddCluster() string {
 	return getRoute(routeAddCluster)
+}
+
+// GetRouteClusterOverview returns a route
+func GetRouteClusterOverview() string {
+	return getRoute(routeClusterOverview)
 }
 
 // GetRouteMetrics returns a route

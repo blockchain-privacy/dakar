@@ -248,3 +248,9 @@ type addClusterReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
 }
+
+type clusterOverviewReply struct {
+	Success  bool                             `json:"success"`
+	Msg      string                           `json:"msg,omitempty"`
+	Clusters []clustering.FrontendUserCluster `json:"clusters"`
+}

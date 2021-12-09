@@ -148,3 +148,7 @@ type FrontendHMICluster struct {
 	Parent          string   `json:"cluster_parent,omitempty"`
 	Children        []string `json:"cluster_children,omitempty"`
 }
+
+type FrontendUserCluster struct {
+	Addresses []string `json:"addresses,omitempty"`
+}
