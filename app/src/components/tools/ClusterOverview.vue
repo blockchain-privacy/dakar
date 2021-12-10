@@ -1,14 +1,10 @@
 <template>
   <v-card
       class="mx-auto elevation-4" max-width="1200">
-    <v-toolbar
-        dark
-        flat
-        color="primary"
-        class="mb-1">
+    <v-toolbar dark flat color="primary" class="mb-1">
       <v-toolbar-title>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
-        Custom Clusters
+        Cluster Overview
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-menu
@@ -92,7 +88,7 @@ import DeleteCluster from './DeleteCluster.vue';
 import DeleteAllClusters from './DeleteAllClusters.vue';
 
 export default {
-  name: 'CustomClusters',
+  name: 'ClusterOverview',
   components: { DeleteAllClusters, DeleteCluster, AddCluster },
   data() {
     return {

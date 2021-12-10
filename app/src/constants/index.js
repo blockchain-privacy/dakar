@@ -57,7 +57,7 @@ export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
 export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 export const ROUTE_NAME_CLUSTER_LOOKUP_PAGE = 'Cluster Lookup Page';
-export const ROUTE_NAME_CUSTOM_CLUSTERS = 'Custom Cluster Page';
+export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_MIXING_ACTIVITY = 'Mixing Activity Page';
 
