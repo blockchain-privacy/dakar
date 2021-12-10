@@ -344,20 +344,26 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int) (clu
 	}
 
 	for _, cluster := range r.Clusters {
-		if len(cluster.Transaction) != 1 {
+		if len(cluster.Transaction) > 1 {
 			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
 			return
 		}
-		clusters = append(clusters, FrontendCluster{
-			Type:            cluster.Type,
-			AddressCount:    cluster.AddressCount,
-			TransactionHash: cluster.Transaction[0].TransactionHash,
-			BlockID:         cluster.Transaction[0].BlockID,
-			BlockHash:       cluster.Transaction[0].BlockHash,
-			Timestamp:       cluster.Transaction[0].Timestamp,
-			Addresses:       cluster.Addresses,
-		})
 
+		frontendCluster := FrontendCluster{
+			Type:         cluster.Type,
+			AddressCount: cluster.AddressCount,
+			Addresses:    cluster.Addresses,
+		}
+
+		// Transaction can be not set if the cluster was created by a user
+		if cluster.Transaction != nil {
+			frontendCluster.TransactionHash = cluster.Transaction[0].TransactionHash
+			frontendCluster.BlockID = cluster.Transaction[0].BlockID
+			frontendCluster.BlockHash = cluster.Transaction[0].BlockHash
+			frontendCluster.Timestamp = cluster.Transaction[0].Timestamp
+		}
+
+		clusters = append(clusters, frontendCluster)
 	}
 
 	return
@@ -517,6 +523,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 				}
 
 				q(func: uid(c)){
+					uid
 					cluster_addresses {
 						addresshash
 					}
@@ -531,6 +538,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	var r struct {
 		Clusters []struct {
+			Uid              string `json:"uid,omitempty"`
 			ClusterAddresses []struct {
 				Hash string `json:"addresshash,omitempty"`
 			} `json:"cluster_addresses,omitempty"`
@@ -547,6 +555,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			addresses = append(addresses, a.Hash)
 		}
 		clusters = append(clusters, FrontendUserCluster{
+			Uid:       cluster.Uid,
 			Addresses: addresses,
 		})
 	}
