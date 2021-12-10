@@ -71,6 +71,32 @@ import { mdiFileDownloadOutline, mdiMerge } from '@mdi/js';
 import { ROUTE_ADD_CLUSTER } from '../../constants';
 import { doPostUpload } from '../../utilities';
 
+// codeToMsg returns a message for the given message code
+function codeToMsg(msgCode) {
+  switch (msgCode) {
+    case 'empty_header_flag':
+      return 'header flag is not set';
+    case 'unsupported_separator':
+      return 'invalid column separator';
+    case 'file_invalid_field_count':
+      return 'file must have two columns';
+    case 'file_no_data':
+      return 'file does not contain data';
+    case 'file_invalid_data':
+      return 'file contains invalid data';
+    case 'file_reading_error':
+      return 'could not read file';
+    case 'file_too_many_addresses':
+      return 'file has more than 1000 addresses';
+    case 'file_shallow_cluster':
+      return 'file contains clusters with only one address';
+    case 'file_error_importing':
+      return 'error importing file';
+    default:
+      return msgCode;
+  }
+}
+
 export default {
   name: 'AddCluster.vue',
   props: {
@@ -131,11 +157,14 @@ export default {
       doPostUpload(ROUTE_ADD_CLUSTER, this.$router, this.$store, newForm)
         .then((response) => {
           if (!response.success) {
+            let errorMsg;
             if (response.msg) {
-              this.setPersistentErrorMessage(response.msg);
+              errorMsg = codeToMsg(response.msg);
             } else {
-              this.setPersistentErrorMessage('error processing inputs');
+              errorMsg = 'error processing inputs';
             }
+
+            this.setPersistentErrorMessage(errorMsg);
           } else {
             this.setSuccessMessage('Clusters have been added');
           }
