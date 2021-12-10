@@ -87,6 +87,10 @@
         <span>Cluster Lookup</span>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
       </v-btn>
+      <v-btn :to="{ name: clusterOverviewPage}">
+        <span>Cluster Overview</span>
+        <v-icon>{{ icon.mdiMerge }}</v-icon>
+      </v-btn>
       <v-btn :to="{ name: mixingActivityPage}">
         <span>Mixing Activity</span>
         <v-icon>{{ icon.mdiChartBar }}</v-icon>
