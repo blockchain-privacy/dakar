@@ -593,7 +593,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) (err e
 // DeleteAllClusters deletes all clusters of a given user
 func DeleteAllClusters(c external.Database, userID string) (err error) {
 	req := &api.Request{
-		Query: `query Q($user:string,$cluster:string) {
+		Query: `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
 					c as ~cluster_user
 				}
