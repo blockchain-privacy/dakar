@@ -517,7 +517,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 // GetUserClusters returns all clusters of a user
 func GetUserClusters(c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
-	query := `query Q($user:string) {
+	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
 					c as ~cluster_user
 				}
@@ -558,6 +558,60 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			Uid:       cluster.Uid,
 			Addresses: addresses,
 		})
+	}
+
+	return
+}
+
+// DeleteCluster deletes the given cluster
+func DeleteCluster(c external.Database, userID string, clusterUID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string,$cluster:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user@filter(uid($cluster))
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID, "$cluster": clusterUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// DeleteAllClusters deletes all clusters of a given user
+func DeleteAllClusters(c external.Database, userID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string,$cluster:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
 	}
 
 	return

@@ -962,3 +962,32 @@ func getClusterOverviewReply(dgraph external.Database, userUID string) (reply cl
 
 	return
 }
+
+func getDeleteClusterReply(dgraph external.Database, userUID string, clusterUID string) (reply deleteClusterReply) {
+	if clusterUID == "" {
+		reply.Msg = "cluster uid was not set"
+		return
+	}
+
+	if err := clustering.DeleteCluster(dgraph, userUID, clusterUID); err != nil {
+		reply.Msg = "could not delete cluster"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply deleteClusterReply) {
+	if err := clustering.DeleteAllClusters(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete clusters"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}

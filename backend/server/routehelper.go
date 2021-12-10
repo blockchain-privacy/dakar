@@ -254,3 +254,8 @@ type clusterOverviewReply struct {
 	Msg      string                           `json:"msg,omitempty"`
 	Clusters []clustering.FrontendUserCluster `json:"clusters"`
 }
+
+type deleteClusterReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
