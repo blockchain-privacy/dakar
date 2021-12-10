@@ -141,6 +141,8 @@ export default {
     handleCSVUpload() {
       if (!this.$refs.csvForm.validate()) return;
 
+      this.isLoading = true;
+
       // create and fill form data object
       const newForm = new FormData();
       newForm.append('file', this.csv.file);
@@ -164,6 +166,7 @@ export default {
           }
         })
         .finally(() => {
+          this.isLoading = false;
           this.csv.file = null;
           this.show = false;
         });

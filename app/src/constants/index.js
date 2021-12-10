@@ -29,6 +29,8 @@ export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
 export const ROUTE_CLUSTER_SUMMARY = `${routePrefix}clusterSummary/`;
 export const ROUTE_CLUSTER_HMI_LOOKUP = `${routePrefix}hmiLookup/`;
 export const ROUTE_ADD_CLUSTER = `${routePrefix}addCluster/`;
+export const ROUTE_DELETE_CLUSTER = `${routePrefix}deleteCluster/`;
+export const ROUTE_DELETE_ALL_CLUSTERS = `${routePrefix}deleteAllClusters/`;
 export const ROUTE_CLUSTER_OVERVIEW = `${routePrefix}clusterOverview/`;
 export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
 

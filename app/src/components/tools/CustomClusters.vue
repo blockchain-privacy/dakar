@@ -11,13 +11,35 @@
         Custom Clusters
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-btn text outlined @click="addClusterDialog = true">
-        Add Cluster
-      </v-btn>
+      <v-menu
+          bottom
+          left>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn
+              dark
+              icon
+              v-bind="attrs"
+              v-on="on">
+            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item @click="addClusterDialog = true">
+            <v-list-item-title>Add Cluster</v-list-item-title>
+          </v-list-item>
+          <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
+            <v-list-item-title>Delete All Clusters</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-toolbar>
     <v-card-text>
       <v-row>
+        <v-col v-if="items.length === 0">
+          <p class="text-subtitle-1 text-center">No Clusters</p>
+        </v-col>
         <v-col
+            v-else
             v-for="(item, i) in items"
             :key="i"
             cols="12"
@@ -28,7 +50,7 @@
             <v-card-title class="subheading font-weight-bold">
               {{ item.addresses.length }} Addresses
               <v-spacer></v-spacer>
-              <v-btn icon outlined @click="deleteItem(item.uid)">
+              <v-btn icon outlined @click="deleteItem(item.uid, item.addresses.length)">
                 <v-icon>{{ icon.mdiDelete }}</v-icon>
               </v-btn>
             </v-card-title>
@@ -54,25 +76,35 @@
       </v-row>
     </v-card-text>
     <add-cluster v-model="addClusterDialog"/>
+    <delete-all-clusters v-model="deleteAllClustersDialog"/>
+    <delete-cluster v-model="deleteClusterDialog"
+                    :cluster-uid="deleteClusterUid"
+                    :num-addresses="deleteClusterSize"/>
   </v-card>
 </template>
 
 <script>
-import { mdiMerge, mdiDelete } from '@mdi/js';
+import { mdiMerge, mdiDelete, mdiDotsVertical } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_CLUSTER_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
 import AddCluster from './AddCluster.vue';
+import DeleteCluster from './DeleteCluster.vue';
+import DeleteAllClusters from './DeleteAllClusters.vue';
 
 export default {
   name: 'CustomClusters',
-  components: { AddCluster },
+  components: { DeleteAllClusters, DeleteCluster, AddCluster },
   data() {
     return {
-      icon: { mdiMerge, mdiDelete },
+      icon: { mdiMerge, mdiDelete, mdiDotsVertical },
       routes: {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       },
       addClusterDialog: false,
+      deleteClusterDialog: false,
+      deleteAllClustersDialog: false,
+      deleteClusterUid: '',
+      deleteClusterSize: -1,
       items: [],
     };
   },
@@ -82,14 +114,21 @@ export default {
         .then((d) => {
           if (!d.success || d.clusters === undefined) throw new Error('could not get cluster data');
 
+          if (d.clusters === null) {
+            this.items = [];
+            return;
+          }
+
           this.items = d.clusters;
         })
         .catch((e) => {
           handleError(this.$store, e);
         });
     },
-    deleteItem(uid) {
-      console.log(`deleting ${uid}`);
+    deleteItem(clusterUid, clusterSize) {
+      this.deleteClusterUid = clusterUid;
+      this.deleteClusterSize = clusterSize;
+      this.deleteClusterDialog = true;
     },
   },
   mounted() {
