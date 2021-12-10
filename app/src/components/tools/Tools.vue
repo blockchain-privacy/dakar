@@ -45,12 +45,12 @@
                 Cluster Lookup
               </v-list-item-title>
             </v-list-item>
-            <v-list-item :to="{ name: addClusterPage}">
+            <v-list-item :to="{ name: customClustersPage}">
               <v-list-item-icon>
                 <v-icon>{{ icon.mdiMerge }}</v-icon>
               </v-list-item-icon>
               <v-list-item-title>
-                Add Cluster
+                Custom Clusters
               </v-list-item-title>
             </v-list-item>
             <v-list-item :to="{ name: mixingActivityPage}">
@@ -106,7 +106,7 @@ import {
   ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
   ROUTE_NAME_MIXING_ACTIVITY,
-  ROUTE_NAME_ADD_CLUSTER_PAGE,
+  ROUTE_NAME_CUSTOM_CLUSTERS,
 } from '../../constants';
 
 export default {
@@ -117,7 +117,7 @@ export default {
       shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
       connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-      addClusterPage: ROUTE_NAME_ADD_CLUSTER_PAGE,
+      customClustersPage: ROUTE_NAME_CUSTOM_CLUSTERS,
       mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       icon: {
         mdiGraph,

@@ -1,6 +1,7 @@
 <template>
+  <v-dialog v-model="show" max-width="700px">
   <v-card
-      class="mx-auto elevation-4" max-width="1000">
+      class="mx-auto elevation-4">
     <v-toolbar color="primary" dark flat>
       <v-toolbar-title>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
@@ -62,15 +63,19 @@
       </v-form>
     </v-card-text>
   </v-card>
+  </v-dialog>
 </template>
 
 <script>
 import { mdiFileDownloadOutline, mdiMerge } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_ADD_CLUSTER } from '../../constants';
+import { ROUTE_ADD_CLUSTER } from '../../constants';
 import { doPostUpload } from '../../utilities';
 
 export default {
   name: 'AddCluster.vue',
+  props: {
+    value: { type: Boolean, required: true },
+  },
   data() {
     return {
       icon: {
@@ -96,7 +101,23 @@ export default {
       },
     };
   },
+  computed: {
+    show: {
+      get() {
+        return this.value;
+      },
+      set(value) {
+        this.$emit('input', value);
+      },
+    },
+  },
   methods: {
+    setSuccessMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
+    },
+    setPersistentErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
+    },
     handleCSVUpload() {
       if (!this.$refs.csvForm.validate()) return;
 
@@ -110,19 +131,20 @@ export default {
       doPostUpload(ROUTE_ADD_CLUSTER, this.$router, this.$store, newForm)
         .then((response) => {
           if (!response.success) {
-            console.log('error processing inputs');
-
             if (response.msg) {
-              console.log(response.msg);
+              this.setPersistentErrorMessage(response.msg);
+            } else {
+              this.setPersistentErrorMessage('error processing inputs');
             }
           } else {
-            console.log('success');
+            this.setSuccessMessage('Clusters have been added');
           }
+        })
+        .finally(() => {
+          this.csv.file = null;
+          this.show = false;
         });
     },
-  },
-  mounted() {
-    document.title = `Add Cluster - ${PAGE_TITLE}`;
   },
 };
 </script>

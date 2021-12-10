@@ -5,7 +5,7 @@ import {
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
   ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
-  CLUSTER_TYPE_FMI,
+  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM,
 } from '../constants';
 
 export function resetData(context) {
@@ -332,6 +332,8 @@ export function getClusterTypeLabel(clusterType) {
   switch (clusterType) {
     case CLUSTER_TYPE_FMI:
       return 'Multi-Input Cluster';
+    case CLUSTER_TYPE_CUSTOM:
+      return 'User-defined Cluster';
     default:
       return clusterType;
   }

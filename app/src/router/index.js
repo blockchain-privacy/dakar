@@ -23,7 +23,7 @@ import * as Constants from '../constants';
 import Store from '../state';
 import HMIView from '../components/cluster/HMIView.vue';
 import MixingActivity from '../components/tools/MixingActivity.vue';
-import AddCluster from '../components/tools/AddCluster.vue';
+import CustomClusters from '../components/tools/CustomClusters.vue';
 
 Vue.use(Router);
 
@@ -183,9 +183,9 @@ export default new Router({
           component: ClusterLookup,
         },
         {
-          path: 'addCluster',
-          name: Constants.ROUTE_NAME_ADD_CLUSTER_PAGE,
-          component: AddCluster,
+          path: 'customClusters',
+          name: Constants.ROUTE_NAME_CUSTOM_CLUSTERS,
+          component: CustomClusters,
         },
         {
           path: 'mixingActivity',
