@@ -150,6 +150,7 @@ type FrontendHMICluster struct {
 }
 
 type FrontendUserCluster struct {
-	Uid       string   `json:"uid,omitempty"`
-	Addresses []string `json:"addresses,omitempty"`
+	Uid          string   `json:"uid,omitempty"`
+	AddressCount int64    `json:"address_count,omitempty"`
+	Addresses    []string `json:"addresses,omitempty"`
 }

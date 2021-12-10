@@ -44,29 +44,23 @@
             lg="4">
           <v-card outlined>
             <v-card-title class="subheading font-weight-bold">
-              {{ item.addresses.length }} Addresses
+              {{ item.address_count }} Addresses
               <v-spacer></v-spacer>
-              <v-btn icon outlined @click="deleteItem(item.uid, item.addresses.length)">
+              <v-btn icon outlined @click="deleteItem(item.uid, item.address_count)">
                 <v-icon>{{ icon.mdiDelete }}</v-icon>
               </v-btn>
             </v-card-title>
             <v-divider></v-divider>
-            <v-virtual-scroll
-                bench="5"
-                :items="item.addresses"
-                max-width="600px"
-                max-height="300px"
-                item-height="64">
-              <template v-slot:default="{ item }">
-                <v-list-item :key="item" :to="{ name: routes.addressRoute, params: { id: item }}">
-                  <v-list-item-content>
-                    <v-list-item-title>
-                      {{ item }}
-                    </v-list-item-title>
-                  </v-list-item-content>
-                </v-list-item>
-              </template>
-            </v-virtual-scroll>
+            <v-list-item
+                v-for="address in item.addresses"
+                :key="address"
+                :to="{ name: routes.addressRoute, params: { id: address }}">
+              <v-list-item-content>
+                <v-list-item-title>
+                  {{ address }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
           </v-card>
         </v-col>
       </v-row>

@@ -524,7 +524,8 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 				q(func: uid(c)){
 					uid
-					cluster_addresses {
+					cluster_address_count
+					cluster_addresses(first:10){
 						addresshash
 					}
 				}
@@ -538,8 +539,9 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	var r struct {
 		Clusters []struct {
-			Uid              string `json:"uid,omitempty"`
-			ClusterAddresses []struct {
+			Uid                 string `json:"uid,omitempty"`
+			ClusterAddressCount int64  `json:"cluster_address_count,omitempty"`
+			ClusterAddresses    []struct {
 				Hash string `json:"addresshash,omitempty"`
 			} `json:"cluster_addresses,omitempty"`
 		} `json:"q,omitempty"`
@@ -555,8 +557,9 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			addresses = append(addresses, a.Hash)
 		}
 		clusters = append(clusters, FrontendUserCluster{
-			Uid:       cluster.Uid,
-			Addresses: addresses,
+			Uid:          cluster.Uid,
+			AddressCount: cluster.ClusterAddressCount,
+			Addresses:    addresses,
 		})
 	}
 
