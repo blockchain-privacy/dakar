@@ -30,6 +30,7 @@ type SubCluster struct {
 type CustomCluster struct {
 	Uid          string          `json:"uid,omitempty"`
 	Type         ClusterType     `json:"cluster_type,omitempty"`
+	Timestamp    string          `json:"cluster_ts,omitempty"`
 	AddressCount *int            `json:"cluster_address_count,omitempty"`
 	Addresses    []HollowAddress `json:"cluster_addresses,omitempty"`
 	User         HollowUser      `json:"cluster_user,omitempty"`
@@ -120,6 +121,7 @@ type FrontendAddress struct {
 }
 
 type FrontendCluster struct {
+	Uid             string            `json:"uid,omitempty"`
 	Type            ClusterType       `json:"cluster_type,omitempty"`
 	AddressCount    int               `json:"cluster_address_count,omitempty"`
 	TransactionHash string            `json:"txhash,omitempty"`
@@ -130,6 +132,7 @@ type FrontendCluster struct {
 }
 
 type FrontendClusterRequest struct {
+	Uid          string      `json:"uid,omitempty"`
 	Type         ClusterType `json:"cluster_type,omitempty"`
 	AddressCount int         `json:"cluster_address_count,omitempty"`
 	Transaction  []struct {
@@ -151,6 +154,7 @@ type FrontendHMICluster struct {
 
 type FrontendUserCluster struct {
 	Uid          string   `json:"uid,omitempty"`
+	Timestamp    string   `json:"ts,omitempty"`
 	AddressCount int64    `json:"address_count,omitempty"`
 	Addresses    []string `json:"addresses,omitempty"`
 }

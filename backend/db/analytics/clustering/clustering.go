@@ -303,6 +303,7 @@ func getClusterQuery(maxAddresses int) string {
 	}
 
 	return `q(func: uid(c)){
+				uid
 				cluster_type
 				cluster_address_count
 				cluster_transaction@normalize{
@@ -319,6 +320,39 @@ func getClusterQuery(maxAddresses int) string {
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
 		}`
+}
+
+// responseToFrontendClusters converts the results of frontend cluster request to frontend clusters
+func responseToFrontendClusters(clusters []FrontendClusterRequest) (frontendClusters []FrontendCluster, err error) {
+	for _, cluster := range clusters {
+		if len(cluster.Transaction) > 1 {
+			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
+			return
+		}
+
+		frontendCluster := FrontendCluster{
+			Type:         cluster.Type,
+			AddressCount: cluster.AddressCount,
+			Addresses:    cluster.Addresses,
+		}
+
+		// uid is only needed for deleting custom clusters
+		if cluster.Type == "custom" {
+			frontendCluster.Uid = cluster.Uid
+		}
+
+		// Transaction can be not set if the cluster was created by a user
+		if cluster.Transaction != nil {
+			frontendCluster.TransactionHash = cluster.Transaction[0].TransactionHash
+			frontendCluster.BlockID = cluster.Transaction[0].BlockID
+			frontendCluster.BlockHash = cluster.Transaction[0].BlockHash
+			frontendCluster.Timestamp = cluster.Transaction[0].Timestamp
+		}
+
+		frontendClusters = append(frontendClusters, frontendCluster)
+	}
+
+	return
 }
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
@@ -343,27 +377,10 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int) (clu
 		return
 	}
 
-	for _, cluster := range r.Clusters {
-		if len(cluster.Transaction) > 1 {
-			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
-			return
-		}
-
-		frontendCluster := FrontendCluster{
-			Type:         cluster.Type,
-			AddressCount: cluster.AddressCount,
-			Addresses:    cluster.Addresses,
-		}
-
-		// Transaction can be not set if the cluster was created by a user
-		if cluster.Transaction != nil {
-			frontendCluster.TransactionHash = cluster.Transaction[0].TransactionHash
-			frontendCluster.BlockID = cluster.Transaction[0].BlockID
-			frontendCluster.BlockHash = cluster.Transaction[0].BlockHash
-			frontendCluster.Timestamp = cluster.Transaction[0].Timestamp
-		}
-
-		clusters = append(clusters, frontendCluster)
+	clusters, err = responseToFrontendClusters(r.Clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return
@@ -398,21 +415,10 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 		return
 	}
 
-	for _, cluster := range r.Clusters {
-		if len(cluster.Transaction) != 1 {
-			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
-			return
-		}
-		clusters = append(clusters, FrontendCluster{
-			Type:            cluster.Type,
-			AddressCount:    cluster.AddressCount,
-			TransactionHash: cluster.Transaction[0].TransactionHash,
-			BlockID:         cluster.Transaction[0].BlockID,
-			BlockHash:       cluster.Transaction[0].BlockHash,
-			Timestamp:       cluster.Transaction[0].Timestamp,
-			Addresses:       cluster.Addresses,
-		})
-
+	clusters, err = responseToFrontendClusters(r.Clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return
@@ -524,6 +530,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 				q(func: uid(c)){
 					uid
+					cluster_ts
 					cluster_address_count
 					cluster_addresses(first:10){
 						addresshash
@@ -539,9 +546,10 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	var r struct {
 		Clusters []struct {
-			Uid                 string `json:"uid,omitempty"`
-			ClusterAddressCount int64  `json:"cluster_address_count,omitempty"`
-			ClusterAddresses    []struct {
+			Uid          string `json:"uid,omitempty"`
+			Timestamp    string `json:"cluster_ts,omitempty"`
+			AddressCount int64  `json:"cluster_address_count,omitempty"`
+			Addresses    []struct {
 				Hash string `json:"addresshash,omitempty"`
 			} `json:"cluster_addresses,omitempty"`
 		} `json:"q,omitempty"`
@@ -553,12 +561,13 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	for _, cluster := range r.Clusters {
 		var addresses []string
-		for _, a := range cluster.ClusterAddresses {
+		for _, a := range cluster.Addresses {
 			addresses = append(addresses, a.Hash)
 		}
 		clusters = append(clusters, FrontendUserCluster{
 			Uid:          cluster.Uid,
-			AddressCount: cluster.ClusterAddressCount,
+			Timestamp:    cluster.Timestamp,
+			AddressCount: cluster.AddressCount,
 			Addresses:    addresses,
 		})
 	}
