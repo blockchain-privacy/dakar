@@ -1,12 +1,12 @@
 <template>
-  <v-dialog v-model="show" max-width="700px">
+  <v-dialog v-model="show" max-width="400px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
         <span class="text-h5">Delete Cluster</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
-          Are you sure you want to delete the cluster?
+          Are you sure you want to delete this cluster?
           It is attached to <strong>{{ numAddresses }}</strong> addresses.
         </div>
         <v-row class="mt-4">
@@ -51,9 +51,6 @@ export default {
     },
   },
   methods: {
-    setSuccessMessage(msg) {
-      this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
-    },
     setPersistentErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
     },
@@ -65,12 +62,11 @@ export default {
       }
 
       this.isLoading = true;
-
       doGet(ROUTE_DELETE_CLUSTER, this.$router, this.$store, this.clusterUid)
         .then((d) => {
           if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting cluster');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
-          this.setSuccessMessage('cluster was deleted');
+          this.$emit('deleted', this.clusterUid);
         })
         .catch((e) => {
           this.setPersistentErrorMessage(e);

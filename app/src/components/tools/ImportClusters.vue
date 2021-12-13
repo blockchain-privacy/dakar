@@ -2,11 +2,11 @@
   <v-dialog v-model="show" max-width="700px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
-        <span class="text-h5">Add Cluster</span>
+        <span class="text-h5">Import Cluster</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
-          Add custom address clusters by uploading a CSV-file.
+          Import address clusters by uploading a CSV-file.
           The file must have two columns, where the first column contains an
           identifier for each cluster and the second column the addresses.
         </div>
@@ -94,7 +94,7 @@ function codeToMsg(msgCode) {
 }
 
 export default {
-  name: 'AddCluster.vue',
+  name: 'ImportCluster',
   props: {
     value: { type: Boolean, required: true },
   },
@@ -162,7 +162,8 @@ export default {
 
             this.setPersistentErrorMessage(errorMsg);
           } else {
-            this.setSuccessMessage('Clusters have been added');
+            this.setSuccessMessage('import was successful');
+            this.$emit('added');
           }
         })
         .finally(() => {

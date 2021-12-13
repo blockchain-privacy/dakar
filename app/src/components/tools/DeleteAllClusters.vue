@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="show" max-width="700px">
+  <v-dialog v-model="show" max-width="400px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
         <span class="text-h5">Delete All Clusters</span>
@@ -57,6 +57,7 @@ export default {
         .then((d) => {
           if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting cluster');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
+          this.$emit('deleted');
         })
         .catch((e) => {
           this.setPersistentErrorMessage(e);
