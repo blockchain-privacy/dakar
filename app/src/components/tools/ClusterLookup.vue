@@ -83,6 +83,10 @@
           <v-chip outlined v-if="$vuetify.breakpoint.xs">
             {{ c.cluster_address_count }}
           </v-chip>
+          <v-btn v-if="c.cluster_type === 'custom'" icon outlined
+                 @click="deleteCluster(c.uid, c.cluster_address_count)">
+            <v-icon>{{ icon.mdiDelete }}</v-icon>
+          </v-btn>
         </v-toolbar>
         <v-card-text v-if="c.txhash">
           <p class="text-subtitle-1">Last updated by</p>
@@ -122,11 +126,15 @@
         </v-expansion-panels>
       </v-card>
     </div>
+    <delete-cluster v-model="deleteClusterDialog.show"
+                    :cluster-uid="deleteClusterDialog.uid"
+                    :num-addresses="deleteClusterDialog.size"
+                    @deleted="doLookup" />
   </div>
 </template>
 
 <script>
-import { mdiMerge, mdiFileDownloadOutline } from '@mdi/js';
+import { mdiMerge, mdiFileDownloadOutline, mdiDelete } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
   ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI, ROUTE_CLUSTER_SUMMARY,
@@ -136,6 +144,7 @@ import {
   doPost, doPostBlob, getClusterTypeLabel, getCurrentDate, handleError,
 } from '../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
+import DeleteCluster from './DeleteCluster.vue';
 
 function newClusterRouting(context) {
   const { pushFromUserInput } = context.$route.params;
@@ -157,11 +166,11 @@ function newClusterRouting(context) {
 
 export default {
   name: 'ClusterLookup',
-  components: { ClusterDetails },
+  components: { ClusterDetails, DeleteCluster },
   data() {
     return {
       icon: {
-        mdiMerge, mdiFileDownloadOutline,
+        mdiMerge, mdiFileDownloadOutline, mdiDelete,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
@@ -185,6 +194,11 @@ export default {
         { text: 'Output count', value: 'output_count' },
         { text: 'Unspent output count', value: 'unspent_output_count' },
       ],
+      deleteClusterDialog: {
+        show: false,
+        uid: '',
+        size: -1,
+      },
     };
   },
   computed: {
@@ -330,6 +344,15 @@ export default {
         .finally(() => {
           this.isClusterSummaryLoading = false;
         });
+    },
+    deleteCluster(clusterUid, clusterSize) {
+      if (!clusterUid || clusterSize <= 0) {
+        return;
+      }
+
+      this.deleteClusterDialog.uid = clusterUid;
+      this.deleteClusterDialog.size = clusterSize;
+      this.deleteClusterDialog.show = true;
     },
   },
   mounted() {
