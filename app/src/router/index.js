@@ -11,7 +11,7 @@ import Administration from '../components/user/Administration.vue';
 import Login from '../components/user/Login.vue';
 import TxLookup from '../components/data/TxLookup.vue';
 import BlockLookup from '../components/data/BlockLookup.vue';
-import AddressLookup from '../components/data/AddressLookup.vue';
+import AddressLookup from '../components/data/address/AddressLookup.vue';
 import NoResults from '../components/NoResults.vue';
 import Editor from '../components/heuristic/Editor.vue';
 import StatusView from '../components/StatusView.vue';
