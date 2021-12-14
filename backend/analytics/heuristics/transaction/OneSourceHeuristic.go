@@ -103,16 +103,16 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	// mRemovableSources holds all sources which can be removed,
 	// due to not being able to fund all connected input transactions
 	mRemovableSources := make(map[dbtxh.ClusterUID]bool)
-	// maps an address to its origin transactions
+	// maps a cluster to its origin transactions
 	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
 	// for each input transaction to the destination transaction,
 	// inputSources holds one map with all its occurring sources
 	var inputSources []map[dbtxh.ClusterUID]bool
-
+	// contains all time limited origins
 	var allTimeLimitedOrigins []dbtxh.HeuristicTransaction
-
-	// holds all
+	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins
+
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
 		if err != nil {
@@ -128,7 +128,7 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		allTxAndOrigins = append(allTxAndOrigins, txAndOrigins{inputTransaction: it, origins: timeLimitedOrigins})
 	}
 
-	// save origins in global address->origin map
+	// save origins in global cluster->origin map
 	sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, allTimeLimitedOrigins)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -141,7 +141,7 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 		}
 
-		oSource, buildErr := buildSourcesWithAmount(t.origins, denominationIndex)
+		oSource, buildErr := countClusterDenominations(t.origins, denominationIndex)
 		if buildErr != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
 		}
@@ -150,10 +150,10 @@ func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		inputSources = append(inputSources, make(map[dbtxh.ClusterUID]bool))
 		iSSIndex := len(inputSources) - 1
 
-		// Loop through all sources of the current input transaction and mark
-		// the sources which do not have enough denominations to fund all outputs of
-		// the input transaction which are used as input in the destination transaction
-		for k, v := range oSource.sources {
+		// Loop through all clusters of the current input transaction and mark
+		// the clusters which do not have enough denominations to fund all outputs of
+		// the input transaction which are used as inputs in the destination transaction
+		for k, v := range oSource.clusters {
 			sources[k] = true
 			inputSources[iSSIndex][k] = true
 			if v < nDenominations {

@@ -237,3 +237,32 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 	}
 	return db.TxWithRetry(c, time.Minute*15, req)
 }
+
+// GetAddressUIDs returns all requested address nodes
+func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
+	query := `{
+				q(func: eq(addresshash,` + db.CreateUIDList(addressHashes) + `)){
+					uid
+					addresshash
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*10, query)
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	var r struct {
+		Addresses []Address `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	addresses = r.Addresses
+
+	return
+}

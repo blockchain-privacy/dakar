@@ -15,12 +15,31 @@ type HollowTransaction struct {
 	Uid string `json:"uid,omitempty"`
 }
 
+type HollowUser struct {
+	Uid string `json:"uid,omitempty"`
+}
+
 type HollowAddress struct {
 	Uid string `json:"uid,omitempty"`
 }
 
 type SubCluster struct {
 	Uid string `json:"uid,omitempty"`
+}
+
+type CustomCluster struct {
+	Uid          string          `json:"uid,omitempty"`
+	Type         ClusterType     `json:"cluster_type,omitempty"`
+	Timestamp    string          `json:"cluster_ts,omitempty"`
+	AddressCount *int            `json:"cluster_address_count,omitempty"`
+	Addresses    []HollowAddress `json:"cluster_addresses,omitempty"`
+	User         HollowUser      `json:"cluster_user,omitempty"`
+	DType        []string        `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (cc *CustomCluster) SetDType() {
+	cc.DType = []string{DType}
 }
 
 type Cluster struct {
@@ -102,6 +121,7 @@ type FrontendAddress struct {
 }
 
 type FrontendCluster struct {
+	Uid             string            `json:"uid,omitempty"`
 	Type            ClusterType       `json:"cluster_type,omitempty"`
 	AddressCount    int               `json:"cluster_address_count,omitempty"`
 	TransactionHash string            `json:"txhash,omitempty"`
@@ -112,6 +132,7 @@ type FrontendCluster struct {
 }
 
 type FrontendClusterRequest struct {
+	Uid          string      `json:"uid,omitempty"`
 	Type         ClusterType `json:"cluster_type,omitempty"`
 	AddressCount int         `json:"cluster_address_count,omitempty"`
 	Transaction  []struct {
@@ -129,4 +150,11 @@ type FrontendHMICluster struct {
 	TransactionHash string   `json:"txhash,omitempty"`
 	Parent          string   `json:"cluster_parent,omitempty"`
 	Children        []string `json:"cluster_children,omitempty"`
+}
+
+type FrontendUserCluster struct {
+	Uid          string   `json:"uid,omitempty"`
+	Timestamp    string   `json:"ts,omitempty"`
+	AddressCount int64    `json:"address_count,omitempty"`
+	Addresses    []string `json:"addresses,omitempty"`
 }

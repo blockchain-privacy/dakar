@@ -5,7 +5,7 @@ import {
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
   ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
-  CLUSTER_TYPE_FMI,
+  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM,
 } from '../constants';
 
 export function resetData(context) {
@@ -110,6 +110,31 @@ export function doPost(route, router, store, body, parameter) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
+  }).then((response) => {
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return response;
+  }).then((response) => response.json())
+    .then((data) => {
+      if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
+      // update last action time stamp
+      const userData = store.getters.getActiveUser;
+      if (userData) {
+        store.dispatch('setActiveUser', setActionDate(userData));
+      }
+
+      return data;
+    });
+}
+
+export function doPostUpload(route, router, store, body, parameter) {
+  let para = '';
+  if (parameter !== undefined) para = parameter;
+  return fetch(route + para, {
+    method: 'POST',
+    credentials: 'same-origin',
+    redirect: 'error',
+    referrerPolicy: 'no-referrer',
+    body,
   }).then((response) => {
     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
     return response;
@@ -307,6 +332,8 @@ export function getClusterTypeLabel(clusterType) {
   switch (clusterType) {
     case CLUSTER_TYPE_FMI:
       return 'Multi-Input Cluster';
+    case CLUSTER_TYPE_CUSTOM:
+      return 'User-defined Cluster';
     default:
       return clusterType;
   }

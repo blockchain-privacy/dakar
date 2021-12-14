@@ -49,11 +49,11 @@ func (h DenominationTypeHeuristic) GetDescriptor() Descriptor {
 		Type:     h.heuristicType,
 		Category: heuristicCategoryReverse,
 		Description: "The denomination type heuristic filters " +
-			"all origins of sources, which have denominations of " +
+			"all origins of clusters, which have denominations of " +
 			"types which do not occur in the denominations of the " +
 			"destination transaction. For example a destination " +
 			"transaction spends 5 × 10.0001 and 10 × 1.00001. Now " +
-			"all sources are excluded which do not have these exact " +
+			"all clusters are excluded which do not have these exact " +
 			"two types of denominations.",
 	}
 }

@@ -157,14 +157,18 @@ func SetupSchema(c external.Database) error {
 			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
 			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
 			cluster_children: [uid] @reverse . # all direct child clusters
+			cluster_user: uid @reverse . # the user which created the cluster
 			cluster_address_count: int . # number of connected addresses connected to this cluster (including child clusters)
-
+			cluster_ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
+			
 			type Cluster {
 				cluster_type
 				cluster_transaction
 				cluster_addresses
 				cluster_children
 				cluster_address_count
+				cluster_user
+				cluster_ts
 			}
 		`,
 	})
@@ -370,5 +374,25 @@ func AlterSchemaRemoveLowestBlockIdFromCrawlerStatus(c external.Database) error 
 func DropLowestBlockId(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		DropAttr: "lowestblockid",
+	})
+}
+
+// AlterSchemaAddUserToCluster adds the user predicate to the cluster type
+func AlterSchemaAddUserToCluster(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			cluster_user: uid @reverse . # the user which created the cluster
+			cluster_ts: dateTime @index(day).
+			
+			type Cluster {
+				cluster_type
+				cluster_transaction
+				cluster_addresses
+				cluster_children
+				cluster_address_count
+				cluster_user
+				cluster_ts
+			}
+		`,
 	})
 }

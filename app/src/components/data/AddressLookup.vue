@@ -80,83 +80,99 @@
                   </IconItem>
                 </v-col>
               </v-row>
-              <named-divider title="Outputs" :vertical-margin="2"/>
-              <v-container>
-                <v-row v-if="this.data.output_count > 1">
-                  <v-col>
-                    <v-select
-                        :disabled="this.isLoading"
-                        :loading="this.isLoading?'primary':false"
-                        style="max-width: 300px; min-width: 200px;"
-                        v-model="combobox.selected.id"
-                        :items="combobox.items"
-                        item-value="id"
-                        item-text="text"
-                        label="Sort by"
-                        v-on:change="handleSortAndFilter"
-                    ></v-select>
-                  </v-col>
-                  <v-col>
-                    <v-select
-                        :disabled="this.isLoading"
-                        :loading="this.isLoading?'primary':false"
-                        style="max-width: 300px; min-width: 200px;"
-                        v-model="filter.selected"
-                        :items="filter.items"
-                        item-value="id"
-                        item-text="text"
-                        label="Filter"
-                        v-on:change="handleSortAndFilter"
-                        multiple>
-                      <template v-slot:selection="{ item }">
-                        <v-chip small>
-                          <span>{{ item.chip }}</span>
-                        </v-chip>
-                      </template>
-                    </v-select>
-                  </v-col>
-                  <v-col v-if="this.isSortingByInput">
-                    <v-alert type="info" text>
-                      Only spent outputs are shown.
-                    </v-alert>
-                  </v-col>
-                </v-row>
-                <v-row v-if="this.isLoading">
-                  <v-col v-for="i in new Array(3)" :key="i">
-                    <v-skeleton-loader type="image"></v-skeleton-loader>
-                  </v-col>
-                </v-row>
-                <v-sheet
-                    v-if="!this.isLoading && !this.emptyResponse"
-                    min-height="50"
-                    class="fill-height"
-                    color="transparent">
-                  <v-row>
-                    <v-col
-                        v-for="(o,index) in this.data.addr_outputs"
-                        v-bind:key="o.input_transaction + o.output_transaction + o.amount">
-                      <OutputComponent :address="o" :index="index"/>
-                    </v-col>
-                  </v-row>
-                </v-sheet>
-                <v-row v-if="this.emptyResponse">
-                  <v-col class="d-flex justify-center">
-                    <p class="text-h6">No outputs found</p>
-                  </v-col>
-                </v-row>
-                <v-row v-if="this.isLoadingMore">
-                  <v-col>
-                    <v-progress-linear
-                        indeterminate
-                        rounded
-                        height="6"
-                    ></v-progress-linear>
-                  </v-col>
-                </v-row>
-              </v-container>
             </v-container>
           </v-card-text>
         </v-card>
+
+        <v-card class="mt-4">
+          <v-card-title>
+            Outputs
+          </v-card-title>
+          <v-card-text>
+            <v-container>
+              <v-row v-if="this.data.output_count > 1">
+                <v-col>
+                  <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
+                      style="max-width: 300px; min-width: 200px;"
+                      v-model="combobox.selected.id"
+                      :items="combobox.items"
+                      item-value="id"
+                      item-text="text"
+                      label="Sort by"
+                      v-on:change="handleSortAndFilter"
+                  ></v-select>
+                </v-col>
+                <v-col>
+                  <v-select
+                      :disabled="this.isLoading"
+                      :loading="this.isLoading?'primary':false"
+                      style="max-width: 300px; min-width: 200px;"
+                      v-model="filter.selected"
+                      :items="filter.items"
+                      item-value="id"
+                      item-text="text"
+                      label="Filter"
+                      v-on:change="handleSortAndFilter"
+                      multiple>
+                    <template v-slot:selection="{ item }">
+                      <v-chip small>
+                        <span>{{ item.chip }}</span>
+                      </v-chip>
+                    </template>
+                  </v-select>
+                </v-col>
+                <v-col v-if="this.isSortingByInput">
+                  <v-alert type="info" text>Only spent outputs are shown.</v-alert>
+                </v-col>
+              </v-row>
+              <v-sheet
+                  v-if="!this.isLoading && !this.emptyResponse"
+                  min-height="50"
+                  class="fill-height"
+                  color="transparent">
+                <v-data-table
+                    :headers="table.headers"
+                    :items="this.data.addr_outputs"
+                    :server-items-length="data.query_max_count"
+                    :options.sync="table.options"
+                    disable-sort
+                    :items-per-page="itemsPerPage"
+                    :footer-props="{itemsPerPageOptions:[itemsPerPage]}"
+                    :loading="isLoading">
+                  <template v-slot:[`item.input_transaction`]="{ item }">
+                    <router-link :to="{ name: transactionRoute,
+                    params: { id: item.input_transaction }}">
+                      {{ shortenHash(item.input_transaction) }}
+                    </router-link>
+                  </template>
+                  <template v-slot:[`item.output_transaction`]="{ item }">
+                    <router-link :to="{ name: transactionRoute,
+                    params: { id: item.output_transaction }}">
+                      {{ shortenHash(item.output_transaction) }}
+                    </router-link>
+                  </template>
+                  <template v-slot:[`item.input_ts`]="{ item }">
+                    {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
+                  </template>
+                  <template v-slot:[`item.output_ts`]="{ item }">
+                    {{ item.output_ts ? new Date(item.output_ts).toLocaleString() : '' }}
+                  </template>
+                  <template v-slot:[`item.amount`]="{ item }">
+                    {{ convertAmount(item.amount) }}
+                  </template>
+                </v-data-table>
+              </v-sheet>
+              <v-row v-if="this.emptyResponse">
+                <v-col class="d-flex justify-center">
+                  <p class="text-h6">No outputs found</p>
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-card-text>
+        </v-card>
+
       </v-col>
     </v-row>
   </v-container>
@@ -167,9 +183,8 @@ import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
   mdiBankTransferOut, mdiPound, mdiMerge, mdiChartBar,
 } from '@mdi/js';
-import OutputComponent from './OutputComponent.vue';
 import {
-  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser,
+  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash,
 } from '../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
@@ -177,12 +192,11 @@ import {
   ROUTE_NAME_MIXING_ACTIVITY,
 } from '../../constants';
 import IconItem from '../common/IconItem.vue';
-import NamedDivider from '../common/NamedDivider.vue';
 
 export default {
   name: 'AddressLookup',
   components: {
-    NamedDivider, IconItem, OutputComponent,
+    IconItem,
   },
   data() {
     return {
@@ -226,33 +240,44 @@ export default {
           },
         ],
       },
-      offset: 0,
       // default sort order: ascending by output timestamp
       sortOrder: 0,
+      itemsPerPage: 20,
       addressHash: '',
       isLoading: false,
       isLoadingMore: false,
       isSortingByInput: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
+      table: {
+        options: {},
+        headers: [
+          { text: 'Received', value: 'output_transaction', sortable: false },
+          { text: '', value: 'output_ts' },
+          { text: 'Sent', value: 'input_transaction', sortable: false },
+          { text: '', value: 'input_ts' },
+          { text: 'Amount', value: 'amount' },
+        ],
+      },
     };
   },
   methods: {
+    shortenHash,
     isResponseValid(data) {
       return !(!data.type || data.type !== 'addr' || !data.payload || !data.payload.addr_outputs
           || data.payload.addr_outputs.length === 0);
     },
-    addNewData() {
-      if (!this.data) return;
+    getTableData() {
+      if (!this.data || this.addressHash === '') return;
 
-      this.offset += 20;
-
-      // do nothing if all data is already loaded
-      if (this.offset >= this.data.query_max_count) return;
       this.isLoadingMore = true;
 
       doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router, this.$store,
-        { offset: this.offset, order: this.sortOrder, filter: this.filter.selected },
+        {
+          offset: this.offset,
+          order: this.sortOrder,
+          filter: this.filter.selected,
+        },
         this.addressHash)
         .then((data) => {
           if (!this.isResponseValid(data)) {
@@ -260,7 +285,7 @@ export default {
             return;
           }
 
-          this.data.addr_outputs = [...this.data.addr_outputs, ...data.payload.addr_outputs];
+          this.data.addr_outputs = data.payload.addr_outputs;
           this.$store.dispatch('resetMessages');
           this.emptyResponse = false;
         })
@@ -322,7 +347,7 @@ export default {
       this.updateFilterState();
       this.isLoading = true;
       this.sortOrder = this.combobox.selected.id;
-      this.offset = 0;
+      this.table.options.page = 1;
 
       this.isSortingByInput = this.sortOrder === 2 || this.sortOrder === 3;
 
@@ -347,14 +372,6 @@ export default {
         });
     },
     convertAmount,
-    handleScroll() {
-      // return if not bottom of page
-      if (this.isLoadingMore
-          || this.loading
-          || document.documentElement.scrollTop + window.innerHeight
-          !== document.documentElement.offsetHeight) return;
-      this.addNewData();
-    },
     setAddressHash() {
       let h = ' ';
       if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
@@ -381,17 +398,26 @@ export default {
     showClusterLookupEditor() {
       return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
     },
+    offset() {
+      return this.table.options.page * this.itemsPerPage - this.itemsPerPage;
+    },
   },
   mounted() {
     this.setAddressHash();
     this.updateSortState();
     this.updateFilterState();
-    window.onscroll = this.handleScroll;
   },
   updated() {
     this.setAddressHash();
     this.updateSortState();
     this.updateFilterState();
+  },
+  watch: {
+    'table.options.page': {
+      handler() {
+        this.getTableData();
+      },
+    },
   },
 };
 </script>

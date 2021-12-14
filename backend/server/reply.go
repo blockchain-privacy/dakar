@@ -1,6 +1,7 @@
 package server
 
 import (
+	analyticsClustering "backend/analytics/clustering"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
@@ -12,12 +13,12 @@ import (
 	"backend/external"
 	"backend/user"
 	"encoding/csv"
-	"fmt"
-	"net/http"
-
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
+	"mime/multipart"
+	"net/http"
 	"net/url"
 	"strconv"
 	"time"
@@ -820,6 +821,172 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 	}
 
 	reply.Activities = activities
+	reply.Success = true
+
+	return
+}
+
+const (
+	CsvEmptyHeader       = "empty_header_flag"
+	CsvInvalidSeparator  = "unsupported_separator"
+	CsvInvalidFieldCount = "file_invalid_field_count"
+	CsvNoData            = "file_no_data"
+	CsvInvalidData       = "file_invalid_data"
+	CsvReadError         = "file_reading_error"
+	CsvTooManyAddresses  = "file_too_many_addresses"
+	CsvShallowCluster    = "file_shallow_cluster"
+	CsvErrorImporting    = "file_error_importing"
+)
+
+func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addClusterReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	const MaxUploadSize = 1024 * 1024
+
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+		return
+	}
+
+	separator := r.FormValue("separator")
+	if separator == "" {
+		reply.Msg = CsvInvalidSeparator
+		return
+	}
+
+	var rSeparator rune
+	if separator != ";" && separator != "," {
+		reply.Msg = CsvInvalidSeparator
+		return
+	} else {
+		rSeparator = []rune(separator)[0]
+	}
+
+	headerFlag := r.FormValue("hasHeader")
+	if headerFlag == "" {
+		reply.Msg = CsvEmptyHeader
+		return
+	}
+
+	// Get handler for filename, size and headers
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		reply.Msg = CsvReadError
+		return
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			info("Error closing CSV-file")
+		}
+	}(file)
+
+	csvReader := csv.NewReader(file)
+	csvReader.ReuseRecord = true
+	csvReader.Comma = rSeparator
+	csvReader.FieldsPerRecord = 2
+	var line []string
+
+	var addresses []analyticsClustering.ExternalClusterItem
+	var index int
+	for ; ; index++ {
+		line, err = csvReader.Read()
+		if err != nil {
+			if errors.Is(err, csv.ErrFieldCount) {
+				reply.Msg = CsvInvalidFieldCount
+				return
+			} else if !errors.Is(err, io.EOF) {
+				reply.Msg = CsvInvalidData
+				return
+			}
+			break
+		}
+
+		if index == 0 && headerFlag == "1" {
+			continue
+		}
+
+		newAddress := analyticsClustering.ExternalClusterItem{
+			ClusterID:   line[0],
+			AddressHash: line[1],
+		}
+
+		if newAddress.ClusterID == "" || newAddress.AddressHash == "" {
+			reply.Msg = CsvInvalidData
+			return
+		}
+
+		addresses = append(addresses, newAddress)
+	}
+
+	if len(addresses) == 0 {
+		reply.Msg = CsvNoData
+		return
+	}
+
+	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
+		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
+			reply.Msg = CsvShallowCluster
+		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
+		}
+
+		return
+	}
+
+	reply.Success = true
+	return
+}
+
+func getClusterOverviewReply(dgraph external.Database, userUID string) (reply clusterOverviewReply) {
+	clusters, err := clustering.GetUserClusters(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no clusters found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Clusters = clusters
+
+	return
+}
+
+func getDeleteClusterReply(dgraph external.Database, userUID string, clusterUID string) (reply deleteClusterReply) {
+	if clusterUID == "" {
+		reply.Msg = "cluster uid was not set"
+		return
+	}
+
+	if err := clustering.DeleteCluster(dgraph, userUID, clusterUID); err != nil {
+		reply.Msg = "could not delete cluster"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply deleteClusterReply) {
+	if err := clustering.DeleteAllClusters(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete clusters"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
 	reply.Success = true
 
 	return

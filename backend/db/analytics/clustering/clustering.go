@@ -97,6 +97,39 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	return
 }
 
+// AddCustomClusters adds the given clusters to the database
+func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
+	// validate data
+	for _, cluster := range clusters {
+		if cluster.Type == "" {
+			return errors.New("cluster type is not set")
+		}
+
+		if len(cluster.Addresses) == 0 {
+			return errors.New("cluster no addresses set")
+		}
+	}
+
+	pb, err := json.Marshal(clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	req := &api.Request{
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	err = db.TxWithRetry(c, time.Minute*5, req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
 // AddClusters adds the given clusters to the database
 func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
@@ -270,6 +303,7 @@ func getClusterQuery(maxAddresses int) string {
 	}
 
 	return `q(func: uid(c)){
+				uid
 				cluster_type
 				cluster_address_count
 				cluster_transaction@normalize{
@@ -286,6 +320,39 @@ func getClusterQuery(maxAddresses int) string {
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
 		}`
+}
+
+// responseToFrontendClusters converts the results of frontend cluster request to frontend clusters
+func responseToFrontendClusters(clusters []FrontendClusterRequest) (frontendClusters []FrontendCluster, err error) {
+	for _, cluster := range clusters {
+		if len(cluster.Transaction) > 1 {
+			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
+			return
+		}
+
+		frontendCluster := FrontendCluster{
+			Type:         cluster.Type,
+			AddressCount: cluster.AddressCount,
+			Addresses:    cluster.Addresses,
+		}
+
+		// uid is only needed for deleting custom clusters
+		if cluster.Type == "custom" {
+			frontendCluster.Uid = cluster.Uid
+		}
+
+		// Transaction can be not set if the cluster was created by a user
+		if cluster.Transaction != nil {
+			frontendCluster.TransactionHash = cluster.Transaction[0].TransactionHash
+			frontendCluster.BlockID = cluster.Transaction[0].BlockID
+			frontendCluster.BlockHash = cluster.Transaction[0].BlockHash
+			frontendCluster.Timestamp = cluster.Transaction[0].Timestamp
+		}
+
+		frontendClusters = append(frontendClusters, frontendCluster)
+	}
+
+	return
 }
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
@@ -310,21 +377,10 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int) (clu
 		return
 	}
 
-	for _, cluster := range r.Clusters {
-		if len(cluster.Transaction) != 1 {
-			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
-			return
-		}
-		clusters = append(clusters, FrontendCluster{
-			Type:            cluster.Type,
-			AddressCount:    cluster.AddressCount,
-			TransactionHash: cluster.Transaction[0].TransactionHash,
-			BlockID:         cluster.Transaction[0].BlockID,
-			BlockHash:       cluster.Transaction[0].BlockHash,
-			Timestamp:       cluster.Transaction[0].Timestamp,
-			Addresses:       cluster.Addresses,
-		})
-
+	clusters, err = responseToFrontendClusters(r.Clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return
@@ -359,21 +415,10 @@ func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 st
 		return
 	}
 
-	for _, cluster := range r.Clusters {
-		if len(cluster.Transaction) != 1 {
-			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
-			return
-		}
-		clusters = append(clusters, FrontendCluster{
-			Type:            cluster.Type,
-			AddressCount:    cluster.AddressCount,
-			TransactionHash: cluster.Transaction[0].TransactionHash,
-			BlockID:         cluster.Transaction[0].BlockID,
-			BlockHash:       cluster.Transaction[0].BlockHash,
-			Timestamp:       cluster.Transaction[0].Timestamp,
-			Addresses:       cluster.Addresses,
-		})
-
+	clusters, err = responseToFrontendClusters(r.Clusters)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
 	}
 
 	return
@@ -471,6 +516,114 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 			Parent:          parentUID,
 			Children:        childClusters,
 		})
+	}
+
+	return
+}
+
+// GetUserClusters returns all clusters of a user
+func GetUserClusters(c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
+	const query = `query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user
+				}
+
+				q(func: uid(c)){
+					uid
+					cluster_ts
+					cluster_address_count
+					cluster_addresses(first:10){
+						addresshash
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid          string `json:"uid,omitempty"`
+			Timestamp    string `json:"cluster_ts,omitempty"`
+			AddressCount int64  `json:"cluster_address_count,omitempty"`
+			Addresses    []struct {
+				Hash string `json:"addresshash,omitempty"`
+			} `json:"cluster_addresses,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		var addresses []string
+		for _, a := range cluster.Addresses {
+			addresses = append(addresses, a.Hash)
+		}
+		clusters = append(clusters, FrontendUserCluster{
+			Uid:          cluster.Uid,
+			Timestamp:    cluster.Timestamp,
+			AddressCount: cluster.AddressCount,
+			Addresses:    addresses,
+		})
+	}
+
+	return
+}
+
+// DeleteCluster deletes the given cluster
+func DeleteCluster(c external.Database, userID string, clusterUID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string,$cluster:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user@filter(uid($cluster))
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID, "$cluster": clusterUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// DeleteAllClusters deletes all clusters of a given user
+func DeleteAllClusters(c external.Database, userID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~cluster_user
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(c) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
 	}
 
 	return

@@ -28,6 +28,10 @@ export const ROUTE_CONNECTION_LOOKUP = `${routePrefix}connectionLookup/`;
 export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
 export const ROUTE_CLUSTER_SUMMARY = `${routePrefix}clusterSummary/`;
 export const ROUTE_CLUSTER_HMI_LOOKUP = `${routePrefix}hmiLookup/`;
+export const ROUTE_ADD_CLUSTER = `${routePrefix}addCluster/`;
+export const ROUTE_DELETE_CLUSTER = `${routePrefix}deleteCluster/`;
+export const ROUTE_DELETE_ALL_CLUSTERS = `${routePrefix}deleteAllClusters/`;
+export const ROUTE_CLUSTER_OVERVIEW = `${routePrefix}clusterOverview/`;
 export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
 
 // search responses
@@ -53,6 +57,7 @@ export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
 export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 export const ROUTE_NAME_CLUSTER_LOOKUP_PAGE = 'Cluster Lookup Page';
+export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_MIXING_ACTIVITY = 'Mixing Activity Page';
 
@@ -80,3 +85,4 @@ export const TOKEN_TIMEOUT = 172800000;
 // cluster
 export const CLUSTER_TYPE_HMI = 'hmi';
 export const CLUSTER_TYPE_FMI = 'fmi';
+export const CLUSTER_TYPE_CUSTOM = 'custom';

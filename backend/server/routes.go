@@ -336,6 +336,89 @@ func handlerClusterSummary(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addCluster"
+func handlerAddCluster(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddClusterReply(dgraph, w, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteCluster/<cluster_uid>"
+func handlerDeleteCluster(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteClusterReply
+
+		clusterUid := r.URL.Path[len(constants.GetRouteDeleteCluster()):]
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteClusterReply(dgraph, tUser.ID, clusterUid)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAllClusters"
+func handlerDeleteAllClusters(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteClusterReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAllClustersReply(dgraph, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/clusterOverview"
+func handlerClusterOverview(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply clusterOverviewReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getClusterOverviewReply(dgraph, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristics/<hash>"
 func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -853,6 +936,18 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteClusterSummary(),
 		adapt(handlerClusterSummary(dgraph), constants.GetRouteClusterSummary(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteAddCluster(),
+		adapt(handlerAddCluster(dgraph), constants.GetRouteAddCluster(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteCluster(),
+		adapt(handlerDeleteCluster(dgraph), constants.GetRouteDeleteCluster(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteAllClusters(),
+		adapt(handlerDeleteAllClusters(dgraph), constants.GetRouteDeleteAllClusters(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteClusterOverview(),
+		adapt(handlerClusterOverview(dgraph), constants.GetRouteClusterOverview(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User

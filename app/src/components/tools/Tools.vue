@@ -45,6 +45,14 @@
                 Cluster Lookup
               </v-list-item-title>
             </v-list-item>
+            <v-list-item :to="{ name: clusterOverviewPage}">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiMerge }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>
+                Cluster Overview
+              </v-list-item-title>
+            </v-list-item>
             <v-list-item :to="{ name: mixingActivityPage}">
               <v-list-item-icon>
                 <v-icon>{{ icon.mdiChartBar }}</v-icon>
@@ -79,6 +87,10 @@
         <span>Cluster Lookup</span>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
       </v-btn>
+      <v-btn :to="{ name: clusterOverviewPage}">
+        <span>Cluster Overview</span>
+        <v-icon>{{ icon.mdiMerge }}</v-icon>
+      </v-btn>
       <v-btn :to="{ name: mixingActivityPage}">
         <span>Mixing Activity</span>
         <v-icon>{{ icon.mdiChartBar }}</v-icon>
@@ -93,8 +105,12 @@ import {
   mdiChartBar,
 } from '@mdi/js';
 import {
-  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_SHORTEST_PATH_PAGE,
-  ROUTE_NAME_CONNECTION_LOOKUP_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE, ROUTE_NAME_MIXING_ACTIVITY,
+  ROUTE_NAME_USER_HEURISTIC_PAGE,
+  ROUTE_NAME_SHORTEST_PATH_PAGE,
+  ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+  ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+  ROUTE_NAME_MIXING_ACTIVITY,
+  ROUTE_NAME_CLUSTER_OVERVIEW,
 } from '../../constants';
 
 export default {
@@ -105,6 +121,7 @@ export default {
       shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
       connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+      clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
       mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       icon: {
         mdiGraph,
