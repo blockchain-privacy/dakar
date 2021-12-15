@@ -28,24 +28,10 @@
         </v-col>
         <v-col>
           <LinkCard
-              title="Cluster Lookup"
-              :icon="icons.mdiMerge"
-              :color="iconColor.default"
-              :to="{ name: routes.clusterLookupPage }"/>
-        </v-col>
-        <v-col>
-          <LinkCard
               title="Cluster Overview"
               :icon="icons.mdiMerge"
               :color="iconColor.default"
               :to="{ name: routes.clusterOverviewPage }"/>
-        </v-col>
-        <v-col>
-          <LinkCard
-              title="Mixing Activity"
-              :icon="icons.mdiChartBar"
-              :color="iconColor.default"
-              :to="{ name: routes.mixingActivityPage }"/>
         </v-col>
       </v-row>
       <v-divider class="my-2"/>
@@ -72,12 +58,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge, mdiChartBar,
+  mdiMerge,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-  ROUTE_NAME_MIXING_ACTIVITY, ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE,
+  ROUTE_NAME_CLUSTER_OVERVIEW,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -98,7 +84,6 @@ export default {
         mdiAccountSupervisor,
         mdiServer,
         mdiMerge,
-        mdiChartBar,
       },
       iconColor: {
         default: 'primary',
@@ -110,9 +95,7 @@ export default {
         heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
         connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
-        clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
         clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
-        mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       },
     };
   },

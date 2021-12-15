@@ -1,6 +1,5 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import ClusterLookup from '../components/tools/ClusterLookup.vue';
 import { isAdminUser, isPrivilegedUser, isTokenTimedOut } from '../utilities';
 import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
@@ -22,7 +21,6 @@ import Heuristics from '../components/tools/Heuristics.vue';
 import * as Constants from '../constants';
 import Store from '../state';
 import HMIView from '../components/cluster/HMIView.vue';
-import MixingActivity from '../components/tools/MixingActivity.vue';
 import ClusterOverview from '../components/tools/ClusterOverview.vue';
 
 Vue.use(Router);
@@ -178,19 +176,9 @@ export default new Router({
           component: ConnectionLookup,
         },
         {
-          path: 'clusterLookup',
-          name: Constants.ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-          component: ClusterLookup,
-        },
-        {
           path: 'clusterOverview',
           name: Constants.ROUTE_NAME_CLUSTER_OVERVIEW,
           component: ClusterOverview,
-        },
-        {
-          path: 'mixingActivity',
-          name: Constants.ROUTE_NAME_MIXING_ACTIVITY,
-          component: MixingActivity,
         },
       ],
     },
