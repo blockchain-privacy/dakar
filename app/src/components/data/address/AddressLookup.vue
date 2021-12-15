@@ -9,24 +9,9 @@
               Address {{ this.data.addresshash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
-            <v-btn
-                class="mr-2"
-                id="btn_show_mixing_activity"
-                v-if="showClusterLookupEditor"
-                outlined icon
-                :to="{ name: mixingActivityPage, query: {address: this.addressHash} }">
-              <v-icon>{{ icon.mdiChartBar }}</v-icon>
-            </v-btn>
             <v-tooltip bottom activator="#btn_show_mixing_activity">
               <span>Show mixing activity</span>
             </v-tooltip>
-            <v-btn
-                id="btn_open_cluster_lookup"
-                v-if="showClusterLookupEditor"
-                class="mr-0" outlined icon
-                :to="{ name: clusterLookupPage, query: {a1: this.addressHash} }">
-              <v-icon>{{ icon.mdiMerge }}</v-icon>
-            </v-btn>
             <v-tooltip bottom activator="#btn_open_cluster_lookup">
               <span>Open the cluster lookup for this address</span>
             </v-tooltip>
@@ -84,66 +69,85 @@
           </v-card-text>
         </v-card>
         <v-card class="mt-4 elevation-4">
-          <v-card-title>
-            Outputs
-          </v-card-title>
-          <v-card-text>
-            <sort-and-filter
-                v-model="sortAndFilter"
-                v-if="this.data.output_count > 1"
-                :loading="isLoading"
-                :output-count="this.data.output_count"
-                :input-count="this.data.input_count"
-                :coinbase-count="this.data.coinbase_count"
-                :data-available="this.data !== undefined"
-                @change="handleFilterOrSortChange"
-            />
-            <v-sheet
-                v-if="!this.isLoading && !this.emptyResponse"
-                min-height="50"
-                class="fill-height"
-                color="transparent">
-              <v-data-table
-                  :headers="table.headers"
-                  :items="this.data.addr_outputs"
-                  :server-items-length="data.query_max_count"
-                  :options.sync="table.options"
-                  disable-sort
-                  :items-per-page="itemsPerPage"
-                  :footer-props="{itemsPerPageOptions:[itemsPerPage]}"
-                  :loading="isLoading">
-                <template v-slot:[`item.input_transaction`]="{ item }">
-                  <router-link v-if="item.input_transaction"
-                      :to="{ name: transactionRoute,
+          <v-tabs v-model="tab" grow>
+            <v-tab>
+              Outputs
+            </v-tab>
+            <v-tab :disabled="!showAdvanced">
+              Clusters
+            </v-tab>
+            <v-tab :disabled="!showAdvanced">
+              Mixing Activity
+            </v-tab>
+          </v-tabs>
+          <v-tabs-items v-model="tab">
+            <v-tab-item>
+              <v-card flat>
+                <v-card-text>
+                  <sort-and-filter
+                      v-model="sortAndFilter"
+                      v-if="this.data.output_count > 1"
+                      :loading="isLoading"
+                      :output-count="this.data.output_count"
+                      :input-count="this.data.input_count"
+                      :coinbase-count="this.data.coinbase_count"
+                      :data-available="this.data !== undefined"
+                      @change="handleFilterOrSortChange"
+                  />
+                  <v-sheet
+                      v-if="!this.isLoading && !this.emptyResponse"
+                      min-height="50"
+                      class="fill-height"
+                      color="transparent">
+                    <v-data-table
+                        :headers="table.headers"
+                        :items="this.data.addr_outputs"
+                        :server-items-length="data.query_max_count"
+                        :options.sync="table.options"
+                        disable-sort
+                        :items-per-page="itemsPerPage"
+                        :footer-props="{itemsPerPageOptions:[itemsPerPage]}"
+                        :loading="isLoading">
+                      <template v-slot:[`item.input_transaction`]="{ item }">
+                        <router-link v-if="item.input_transaction"
+                                     :to="{ name: transactionRoute,
                     params: { id: item.input_transaction }}">
-                    {{ shortenHash(item.input_transaction) }}
-                  </router-link>
-                </template>
-                <template v-slot:[`item.output_transaction`]="{ item }">
-                  <router-link v-if="item.output_transaction"
-                               :to="{ name: transactionRoute,
+                          {{ shortenHash(item.input_transaction) }}
+                        </router-link>
+                      </template>
+                      <template v-slot:[`item.output_transaction`]="{ item }">
+                        <router-link v-if="item.output_transaction"
+                                     :to="{ name: transactionRoute,
                     params: { id: item.output_transaction }}">
-                    {{ shortenHash(item.output_transaction) }}
-                  </router-link>
-                </template>
-                <template v-slot:[`item.input_ts`]="{ item }">
-                  {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
-                </template>
-                <template v-slot:[`item.output_ts`]="{ item }">
-                  {{ item.output_ts ? new Date(item.output_ts).toLocaleString() : '' }}
-                </template>
-                <template v-slot:[`item.amount`]="{ item }">
-                  {{ convertAmount(item.amount) }}
-                </template>
-              </v-data-table>
-            </v-sheet>
-            <v-row v-if="this.emptyResponse">
-              <v-col class="d-flex justify-center">
-                <p class="text-h6">No outputs found</p>
-              </v-col>
-            </v-row>
-
-          </v-card-text>
+                          {{ shortenHash(item.output_transaction) }}
+                        </router-link>
+                      </template>
+                      <template v-slot:[`item.input_ts`]="{ item }">
+                        {{ item.input_ts ? new Date(item.input_ts).toLocaleString() : '' }}
+                      </template>
+                      <template v-slot:[`item.output_ts`]="{ item }">
+                        {{ item.output_ts ? new Date(item.output_ts).toLocaleString() : '' }}
+                      </template>
+                      <template v-slot:[`item.amount`]="{ item }">
+                        {{ convertAmount(item.amount) }}
+                      </template>
+                    </v-data-table>
+                  </v-sheet>
+                  <v-row v-if="this.emptyResponse">
+                    <v-col class="d-flex justify-center">
+                      <p class="text-h6">No outputs found</p>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-tab-item>
+            <v-tab-item>
+              <cluster-lookup :a1="addressHash" />
+            </v-tab-item>
+            <v-tab-item>
+              <mixing-activity :address-hash="addressHash" />
+            </v-tab-item>
+          </v-tabs-items>
         </v-card>
       </v-col>
     </v-row>
@@ -153,22 +157,25 @@
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound, mdiMerge, mdiChartBar,
+  mdiBankTransferOut, mdiPound, mdiMerge,
 } from '@mdi/js';
 import {
   convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash,
 } from '../../../utilities';
 import {
-  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
+  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
-  ROUTE_NAME_MIXING_ACTIVITY,
 } from '../../../constants';
 import IconItem from '../../common/IconItem.vue';
 import SortAndFilter from './SortAndFilter.vue';
+import MixingActivity from './MixingActivity.vue';
+import ClusterLookup from './ClusterLookup.vue';
 
 export default {
   name: 'AddressLookup',
-  components: { SortAndFilter, IconItem },
+  components: {
+    ClusterLookup, MixingActivity, SortAndFilter, IconItem,
+  },
   data() {
     return {
       icon: {
@@ -178,15 +185,13 @@ export default {
         mdiBankTransferOut,
         mdiPound,
         mdiMerge,
-        mdiChartBar,
       },
       coinUnit: COIN_UNIT,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
-      clusterLookupPage: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-      mixingActivityPage: ROUTE_NAME_MIXING_ACTIVITY,
       itemsPerPage: 20,
       addressHash: '',
+      tab: null,
       isLoading: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
@@ -205,6 +210,25 @@ export default {
         ],
       },
     };
+  },
+  computed: {
+    data: {
+      get() {
+        return this.$store.getters.getAddressData;
+      },
+      set(value) {
+        this.$store.dispatch('setAddressData', value);
+      },
+    },
+    userData() {
+      return this.$store.getters.getActiveUser;
+    },
+    showAdvanced() {
+      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+    },
+    offset() {
+      return this.table.options.page * this.itemsPerPage - this.itemsPerPage;
+    },
   },
   methods: {
     shortenHash,
@@ -262,25 +286,6 @@ export default {
         filter: [],
         order: 0,
       };
-    },
-  },
-  computed: {
-    data: {
-      get() {
-        return this.$store.getters.getAddressData;
-      },
-      set(value) {
-        this.$store.dispatch('setAddressData', value);
-      },
-    },
-    userData() {
-      return this.$store.getters.getActiveUser;
-    },
-    showClusterLookupEditor() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
-    },
-    offset() {
-      return this.table.options.page * this.itemsPerPage - this.itemsPerPage;
     },
   },
   mounted() {
