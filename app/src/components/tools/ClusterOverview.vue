@@ -68,7 +68,7 @@
               </v-list-item-content>
             </v-list-item>
             <v-card-actions>
-              <v-btn outlined @click="deleteItem(item.uid, item.address_count)">
+              <v-btn text @click="deleteItem(item.uid, item.address_count)">
                 <v-icon>{{ icon.mdiDelete }}</v-icon>
                 Delete
               </v-btn>

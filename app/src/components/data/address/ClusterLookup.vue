@@ -63,7 +63,7 @@
           <v-chip outlined v-if="$vuetify.breakpoint.xs">
             {{ c.cluster_address_count }}
           </v-chip>
-          <v-btn v-if="c.cluster_type === 'custom'" icon outlined
+          <v-btn v-if="c.cluster_type === 'custom'" icon
                  @click="deleteCluster(c.uid, c.cluster_address_count)">
             <v-icon>{{ icon.mdiDelete }}</v-icon>
           </v-btn>
@@ -78,7 +78,6 @@
                             :block-id="c.hmi.bid" :timestamp="c.hmi.ts"/>
           </div>
         </v-card-text>
-        <v-divider v-if="c.cluster_addresses && c.cluster_addresses.length > 0"/>
         <v-expansion-panels focusable flat
                             v-if="c.cluster_addresses && c.cluster_addresses.length > 0">
           <v-expansion-panel>

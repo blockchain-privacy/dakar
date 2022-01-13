@@ -69,7 +69,7 @@
           </v-card-text>
         </v-card>
         <v-card class="mt-4 elevation-4">
-          <v-tabs v-model="tab" grow>
+          <v-tabs v-model="tab" fixed-tabs>
             <v-tab>
               Outputs
             </v-tab>

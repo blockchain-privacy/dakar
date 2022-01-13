@@ -16,11 +16,11 @@
                 :items="privacyLabels"
                 @change="updateSvgData(false)">
               <template v-slot:item="{ item }">
-            <span>
-               <v-chip label :outlined="item.color === undefined"
-                       :color="item.color?item.color:'black'" small/>
-              {{ item.text }}
-            </span>
+                <span>
+                   <v-chip label :outlined="item.color === undefined"
+                           :color="item.color?item.color:'black'" small/>
+                  {{ item.text }}
+                </span>
               </template>
             </v-select>
           </v-col>
@@ -79,7 +79,7 @@
           <v-tab-item eager key="histogram">
             <v-card flat>
               <v-card-text>
-                <p v-if="showEmptyResponseMessage && !isLoading"
+                <p v-if="showNotEnoughDataMessage && !isLoading"
                    class="text-h6" style="text-align: center">
                   Not enough data available to draw chart
                 </p>
@@ -487,6 +487,12 @@ export default {
   },
   created() {
     this.updateSvgData(true);
+  },
+  watch: {
+    addressHash() {
+      // prop was changed -> pull new data
+      this.updateSvgData(true);
+    },
   },
 };
 </script>
