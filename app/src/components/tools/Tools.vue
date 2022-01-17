@@ -45,6 +45,14 @@
                 Cluster Overview
               </v-list-item-title>
             </v-list-item>
+            <v-list-item :to="{ name: attributionOverviewPage}">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiMerge }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>
+                Attribution Overview
+              </v-list-item-title>
+            </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
@@ -71,6 +79,10 @@
         <span>Cluster Overview</span>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
       </v-btn>
+      <v-btn :to="{ name: attributionOverviewPage}">
+        <span>Attribution Overview</span>
+        <v-icon>{{ icon.mdiMerge }}</v-icon>
+      </v-btn>
     </v-bottom-navigation>
   </div>
 </template>
@@ -84,6 +96,7 @@ import {
   ROUTE_NAME_SHORTEST_PATH_PAGE,
   ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_ATTRIBUTION_OVERVIEW,
 } from '../../constants';
 
 export default {
@@ -94,6 +107,7 @@ export default {
       shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
       connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
+      attributionOverviewPage: ROUTE_NAME_ATTRIBUTION_OVERVIEW,
       icon: {
         mdiGraph,
         mdiChartTimelineVariant,

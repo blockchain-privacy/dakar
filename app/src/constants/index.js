@@ -33,6 +33,8 @@ export const ROUTE_DELETE_CLUSTER = `${routePrefix}deleteCluster/`;
 export const ROUTE_DELETE_ALL_CLUSTERS = `${routePrefix}deleteAllClusters/`;
 export const ROUTE_CLUSTER_OVERVIEW = `${routePrefix}clusterOverview/`;
 export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
+export const ROUTE_ADD_ATTRIBUTION = `${routePrefix}addAttribution/`;
+export const ROUTE_ATTRIBUTION_OVERVIEW = `${routePrefix}attributionOverview/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
@@ -58,6 +60,7 @@ export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
+export const ROUTE_NAME_ATTRIBUTION_OVERVIEW = 'Attribution Overview Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';
