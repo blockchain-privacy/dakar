@@ -82,10 +82,11 @@ func buildClusterSet(clusters []ExternalClusterItem) map[string]map[string]bool 
 	return set
 }
 
-// validateAddresses returns an error is the given cluster items are not valid.
+// validateAddresses returns an error, if the given cluster items are not valid.
 // Returns ErrTooManyAddresses if there are more than 1000 addresses.
 // Returns ErrShallowCluster if there are clusters with less than 2 addresses.
 // If an address does not exist on the db an error containing the address hash is returned.
+// Returns a mapping from address hash to db UID.
 func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem) (error, map[string]string) {
 	addresses := map[string]bool{}
 	for _, c := range clusters {
@@ -132,6 +133,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
 	}
 
+	// build mapping
 	hashToUid := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {

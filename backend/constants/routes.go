@@ -34,6 +34,7 @@ const (
 	routeDeleteCluster        string = "deleteCluster"
 	routeDeleteAllClusters    string = "deleteAllClusters"
 	routeClusterOverview      string = "clusterOverview"
+	routeAddAttribution       string = "addAttribution"
 	routeMetrics              string = "/metrics"
 )
 
@@ -194,6 +195,11 @@ func GetRouteDeleteAllClusters() string {
 // GetRouteClusterOverview returns a route
 func GetRouteClusterOverview() string {
 	return getRoute(routeClusterOverview)
+}
+
+// GetRouteAddAttribution returns a route
+func GetRouteAddAttribution() string {
+	return getRoute(routeAddAttribution)
 }
 
 // GetRouteMetrics returns a route

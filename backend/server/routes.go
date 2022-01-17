@@ -351,6 +351,21 @@ func handlerAddCluster(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addAttribution"
+func handlerAddAttribution(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddAttributionReply(dgraph, w, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/deleteCluster/<cluster_uid>"
 func handlerDeleteCluster(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -948,6 +963,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteClusterOverview(),
 		adapt(handlerClusterOverview(dgraph), constants.GetRouteClusterOverview(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteAddAttribution(),
+		adapt(handlerAddAttribution(dgraph), constants.GetRouteAddAttribution(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User

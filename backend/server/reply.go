@@ -1,6 +1,7 @@
 package server
 
 import (
+	analytics2 "backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
@@ -931,6 +932,117 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 	}
 
 	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
+		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
+			reply.Msg = CsvShallowCluster
+		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
+		}
+
+		return
+	}
+
+	reply.Success = true
+	return
+}
+
+func getAddAttributionReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addAttributionReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	const MaxUploadSize = 1024 * 1024
+
+	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
+	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+		return
+	}
+
+	separator := r.FormValue("separator")
+	if separator == "" {
+		reply.Msg = CsvInvalidSeparator
+		return
+	}
+
+	var rSeparator rune
+	if separator != ";" && separator != "," {
+		reply.Msg = CsvInvalidSeparator
+		return
+	} else {
+		rSeparator = []rune(separator)[0]
+	}
+
+	headerFlag := r.FormValue("hasHeader")
+	if headerFlag == "" {
+		reply.Msg = CsvEmptyHeader
+		return
+	}
+
+	// Get handler for filename, size and headers
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		reply.Msg = CsvReadError
+		return
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			info("Error closing CSV-file")
+		}
+	}(file)
+
+	csvReader := csv.NewReader(file)
+	csvReader.ReuseRecord = true
+	csvReader.Comma = rSeparator
+	csvReader.FieldsPerRecord = 2
+	var line []string
+
+	var addresses []analytics2.Attribution
+	var index int
+	for ; ; index++ {
+		line, err = csvReader.Read()
+		if err != nil {
+			if errors.Is(err, csv.ErrFieldCount) {
+				reply.Msg = CsvInvalidFieldCount
+				return
+			} else if !errors.Is(err, io.EOF) {
+				reply.Msg = CsvInvalidData
+				return
+			}
+			break
+		}
+
+		if index == 0 && headerFlag == "1" {
+			continue
+		}
+
+		newAddress := analytics2.Attribution{
+			AddressHash: line[0],
+			Tag:         line[1],
+		}
+
+		if newAddress.AddressHash == "" || newAddress.Tag == "" {
+			reply.Msg = CsvInvalidData
+			return
+		}
+
+		addresses = append(addresses, newAddress)
+	}
+
+	if len(addresses) == 0 {
+		reply.Msg = CsvNoData
+		return
+	}
+
+	if err := analytics2.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
 		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {

@@ -57,9 +57,15 @@ var (
 		constants.GetRouteConnectionLookup():        true,
 		constants.GetRouteMixingActivity():          true,
 		// clusters
-		constants.GetRouteClusterLookup():  true,
-		constants.GetRouteClusterSummary(): true,
+		constants.GetRouteClusterLookup():     true,
+		constants.GetRouteClusterSummary():    true,
+		constants.GetRouteAddCluster():        true,
+		constants.GetRouteDeleteCluster():     true,
+		constants.GetRouteDeleteAllClusters(): true,
+		constants.GetRouteClusterOverview():   true,
 		//constants.GetRouteHMILookup():     true,
+		// Attribution
+		constants.GetRouteAddAttribution(): true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")

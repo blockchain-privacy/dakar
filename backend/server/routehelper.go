@@ -259,3 +259,8 @@ type deleteClusterReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
 }
+
+type addAttributionReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
