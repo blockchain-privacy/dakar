@@ -63,7 +63,6 @@
 </template>
 
 <script>
-import { mdiFileDownloadOutline } from '@mdi/js';
 import { ROUTE_ADD_CLUSTER } from '../../constants';
 import { doPostUpload } from '../../utilities';
 
@@ -100,7 +99,6 @@ export default {
   },
   data() {
     return {
-      icon: { mdiFileDownloadOutline },
       isLoading: false,
       separatorItems: [
         { text: 'Colon (,)', value: ',' },

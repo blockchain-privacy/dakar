@@ -65,7 +65,6 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex</code></pre>
 </template>
 
 <script>
-import { mdiFileDownloadOutline } from '@mdi/js';
 import { ROUTE_ADD_ATTRIBUTION } from '../../constants';
 import { doPostUpload } from '../../utilities';
 
@@ -100,7 +99,6 @@ export default {
   },
   data() {
     return {
-      icon: { mdiFileDownloadOutline },
       isLoading: false,
       separatorItems: [
         { text: 'Colon (,)', value: ',' },
