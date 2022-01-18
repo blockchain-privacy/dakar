@@ -20,8 +20,8 @@ var (
 	ErrNonExistentAddress = errors.New("address does not exist")
 )
 
-// ImportCluster writes the given address relations into the database
-func ImportCluster(dgraph external.Database, attributions []Attribution, userID string) error {
+// ImportAttribution writes the given address relations into the database
+func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string) error {
 	if userID == "" {
 		return errors.New("user ID is not set")
 	}
@@ -40,7 +40,7 @@ func ImportCluster(dgraph external.Database, attributions []Attribution, userID 
 }
 
 func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string) []attribution.Attribution {
-	attributionTimestamp := time.Now().Format(time.RFC3339)
+	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
 
 	var dbAttributions []attribution.Attribution
 	for _, a := range attributions {
