@@ -158,7 +158,7 @@
                   </v-row>
                 </v-col>
               </v-row>
-              <named-divider title="Additional RPC-Client Data" v-if="data.rpcinfo"/>
+              <named-divider title="RPC-Client Data" v-if="data.rpcinfo"/>
               <v-row>
                 <v-col>
                   <IconItem

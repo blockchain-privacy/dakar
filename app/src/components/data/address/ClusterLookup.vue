@@ -1,46 +1,27 @@
 <template>
   <div>
-    <v-card
-        class="mx-auto elevation-4"
-        max-width="1000">
-      <v-toolbar color="primary" dark flat>
-        <v-toolbar-title>
-          <v-icon>{{ icon.mdiMerge }}</v-icon>
-          Cluster Lookup
-        </v-toolbar-title>
-      </v-toolbar>
+    <v-card flat v-if="!showEmptyText">
       <v-card-text>
-        <div class="text-subtitle-1" v-if="!isJointLookup">
-          Find clusters connected to an address.
-        </div>
         <div class="text-subtitle-1" v-if="isJointLookup">
           Find clusters which are connected to both addresses.
         </div>
+        <v-text-field
+            v-if="isJointLookup"
+            label="Address"
+            v-model="a2"
+            :disabled="isLoading"
+            @keydown.enter="doLookup"/>
         <v-row>
           <v-col>
-            <v-text-field label="Address"
-                          v-model="a1"
-                          :disabled="isLoading"
-                          @keydown.enter="handleSearch('user')"
-                          autofocus/>
+            <v-switch v-model="isJointLookup" label="Find joint clusters"
+                      :disabled="isLoading" @change="handleSwitchChange"/>
           </v-col>
-          <v-col v-if="isJointLookup">
-            <v-text-field label="Second Address"
-                          v-model="a2"
-                          :disabled="isLoading"
-                          @keydown.enter="handleSearch('user')"/>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col>
-            <v-switch v-model="isJointLookup" label="Find joint clusters" :disabled="isLoading"/>
-          </v-col>
-          <v-col class="d-flex justify-end align-center">
+          <v-col class="d-flex justify-end align-center" v-if="isJointLookup">
             <v-btn
                 color="primary"
                 :disabled="!isSearchable"
                 :loading="isLoading"
-                @click="handleSearch('user')">
+                @click="doLookup">
               Search
             </v-btn>
           </v-col>
@@ -49,7 +30,6 @@
           <div v-if="this.clusters.length > 0">
             <v-divider/>
             <v-row v-if="this.clusters.length > 0">
-
               <v-col class="d-flex justify-end align-center">
                 <v-btn :loading="isClusterSummaryLoading"
                        color="primary" outlined @click="downloadClusterSummary"
@@ -63,14 +43,14 @@
         </v-expand-transition>
       </v-card-text>
     </v-card>
-    <v-card v-if="showEmptyText" flat class="mx-auto mt-3" max-width="1000">
+    <v-progress-linear class="mt-10" v-if="isLoading" indeterminate/>
+    <v-card v-if="showEmptyText" flat class="my-3">
       <v-card-text class="text-subtitle-1" style="text-align: center">
         No clusters found
       </v-card-text>
     </v-card>
     <div v-if="this.clusters.length > 0">
-      <v-card outlined v-for="(c, i) in clusters" :key="i"
-              class="mx-auto mt-3 elevation-4" max-width="1000">
+      <v-card outlined v-for="(c, i) in clusters" :key="i" class="mx-3 my-3">
         <v-toolbar flat>
           <v-toolbar-title>
             {{ getClusterTypeLabel(c.cluster_type) }}
@@ -83,7 +63,7 @@
           <v-chip outlined v-if="$vuetify.breakpoint.xs">
             {{ c.cluster_address_count }}
           </v-chip>
-          <v-btn v-if="c.cluster_type === 'custom'" icon outlined
+          <v-btn v-if="c.cluster_type === 'custom'" icon
                  @click="deleteCluster(c.uid, c.cluster_address_count)">
             <v-icon>{{ icon.mdiDelete }}</v-icon>
           </v-btn>
@@ -98,7 +78,6 @@
                             :block-id="c.hmi.bid" :timestamp="c.hmi.ts"/>
           </div>
         </v-card-text>
-        <v-divider v-if="c.cluster_addresses && c.cluster_addresses.length > 0"/>
         <v-expansion-panels focusable flat
                             v-if="c.cluster_addresses && c.cluster_addresses.length > 0">
           <v-expansion-panel>
@@ -129,61 +108,44 @@
     <delete-cluster v-model="deleteClusterDialog.show"
                     :cluster-uid="deleteClusterDialog.uid"
                     :num-addresses="deleteClusterDialog.size"
-                    @deleted="doLookup" />
+                    @deleted="doLookup"/>
   </div>
 </template>
 
 <script>
-import { mdiMerge, mdiFileDownloadOutline, mdiDelete } from '@mdi/js';
+import { mdiFileDownloadOutline, mdiDelete } from '@mdi/js';
 import {
-  PAGE_TITLE, ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
+  ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
   ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI, ROUTE_CLUSTER_SUMMARY,
-  ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-} from '../../constants';
+} from '../../../constants';
 import {
   doPost, doPostBlob, getClusterTypeLabel, getCurrentDate, handleError,
-} from '../../utilities';
+} from '../../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
-import DeleteCluster from './DeleteCluster.vue';
-
-function newClusterRouting(context) {
-  const { pushFromUserInput } = context.$route.params;
-  const { a1, a2 } = context.$route.query;
-  if (pushFromUserInput !== undefined || a1 === undefined
-      || !(context.$route.name === ROUTE_NAME_CLUSTER_LOOKUP_PAGE)) {
-    return;
-  }
-
-  context.a1 = a1;
-
-  if (a2 !== undefined) {
-    context.isJointLookup = true;
-    context.a2 = a2;
-  }
-
-  context.doLookup();
-}
+import DeleteCluster from '../../dialogs/DeleteCluster.vue';
 
 export default {
   name: 'ClusterLookup',
   components: { ClusterDetails, DeleteCluster },
+  props: {
+    a1: { type: String, required: true },
+  },
   data() {
     return {
       icon: {
-        mdiMerge, mdiFileDownloadOutline, mdiDelete,
+        mdiFileDownloadOutline, mdiDelete,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       // v-model
-      a1: '',
       a2: '',
       isJointLookup: false,
       isLoading: false,
       clusters: [],
-      lastQuery: null,
       isClusterSummaryLoading: false,
       showEmptyText: false,
+      resultsAreFromJointLookup: false,
       tableHeaders: [
         {
           text: 'Addresshash',
@@ -223,40 +185,6 @@ export default {
     setWarningMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
-    isEqualQuery(q1, q2) {
-      if (q1 === null && q2 === null) {
-        return true;
-      }
-
-      if (q1 == null || q2 === null) {
-        return false;
-      }
-
-      return !(q1.a1 !== q2.a1 || q1.a2 !== q2.a2);
-    },
-    handleSearch(origin) {
-      if (this.isLoading || !this.isSearchable) {
-        return;
-      }
-
-      this.$store.dispatch('resetMessages');
-
-      const query = this.getQuery();
-
-      // update route only when input is from user and query is different
-      if (origin === 'user' && !this.isEqualQuery(query, this.lastQuery)) {
-        this.clusters = [];
-
-        this.$router.push({
-          name: ROUTE_NAME_CLUSTER_LOOKUP_PAGE,
-          params: { pushFromUserInput: true },
-          query,
-        });
-        this.doLookup();
-      } else if (origin === 'route') {
-        // do nothing -> route is already up to date
-      }
-    },
     getQuery() {
       const query = { a1: this.a1.trim() };
       if (this.isJointLookup) {
@@ -267,11 +195,11 @@ export default {
     },
     doLookup() {
       this.isLoading = true;
-      const body = this.getQuery();
-      this.lastQuery = body;
       this.showEmptyText = false;
 
-      doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, body)
+      this.resultsAreFromJointLookup = this.isJointLookup;
+
+      doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, this.getQuery())
         .then((data) => {
           if (data.success === undefined) throw Error('error searching for clusters');
           if (data.success === false) {
@@ -354,17 +282,13 @@ export default {
       this.deleteClusterDialog.size = clusterSize;
       this.deleteClusterDialog.show = true;
     },
-  },
-  mounted() {
-    document.title = `Cluster Lookup - ${PAGE_TITLE}`;
+    handleSwitchChange() {
+      // only do lookup if user switched back to non-joint lookup and results are from joint lookup
+      if (this.resultsAreFromJointLookup && !this.isJointLookup) this.doLookup();
+    },
   },
   created() {
-    newClusterRouting(this);
-  },
-  watch: {
-    $route() {
-      newClusterRouting(this);
-    },
+    this.doLookup();
   },
 };
 </script>

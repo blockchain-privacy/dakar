@@ -68,7 +68,7 @@
               </v-list-item-content>
             </v-list-item>
             <v-card-actions>
-              <v-btn outlined @click="deleteItem(item.uid, item.address_count)">
+              <v-btn text @click="deleteItem(item.uid, item.address_count)">
                 <v-icon>{{ icon.mdiDelete }}</v-icon>
                 Delete
               </v-btn>
@@ -92,9 +92,9 @@ import {
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_CLUSTER_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
-import ImportCluster from './ImportClusters.vue';
-import DeleteCluster from './DeleteCluster.vue';
-import DeleteAllClusters from './DeleteAllClusters.vue';
+import ImportCluster from '../dialogs/ImportClusters.vue';
+import DeleteCluster from '../dialogs/DeleteCluster.vue';
+import DeleteAllClusters from '../dialogs/DeleteAllClusters.vue';
 
 export default {
   name: 'ClusterOverview',
@@ -150,7 +150,7 @@ export default {
     },
   },
   mounted() {
-    document.title = `Custom Clusters - ${PAGE_TITLE}`;
+    document.title = `Cluster Overview - ${PAGE_TITLE}`;
 
     this.loadData();
   },

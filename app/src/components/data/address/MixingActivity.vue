@@ -1,37 +1,7 @@
 <template>
   <div>
-    <v-card class="mx-auto elevation-4" max-width="1200">
-      <v-toolbar color="primary" dark flat>
-        <v-toolbar-title>
-          <v-icon>{{ icons.mdiChartBar }}</v-icon>
-          Mixing Activity
-        </v-toolbar-title>
-      </v-toolbar>
+    <v-card flat>
       <v-card-text>
-        <div class="text-subtitle-1">
-          View the mixing activity of an address.
-        </div>
-        <v-row>
-          <v-col>
-            <v-text-field label="Address"
-                          v-model="addressHash"
-                          :disabled="isLoading"
-                          @keydown.enter="handleSearch('user')"
-                          autofocus/>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col class="d-flex justify-end align-center">
-            <v-btn
-                color="primary"
-                :disabled="!isSearchable"
-                :loading="isLoading"
-                @click="handleSearch('user')">
-              Search
-            </v-btn>
-          </v-col>
-        </v-row>
-        <!-- Filters -->
         <v-row v-if="activities && activities.length > 0">
           <v-col>
             <v-select
@@ -46,11 +16,11 @@
                 :items="privacyLabels"
                 @change="updateSvgData(false)">
               <template v-slot:item="{ item }">
-            <span>
-               <v-chip label :outlined="item.color === undefined"
-                       :color="item.color?item.color:'black'" small/>
-              {{ item.text }}
-            </span>
+                <span>
+                   <v-chip label :outlined="item.color === undefined"
+                           :color="item.color?item.color:'black'" small/>
+                  {{ item.text }}
+                </span>
               </template>
             </v-select>
           </v-col>
@@ -94,25 +64,22 @@
         </v-row>
       </v-card-text>
     </v-card>
-    <v-card class="mx-auto my-3" max-width="1200" flat
-            v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
+    <v-card class="my-3" flat v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
       <v-card-text class="text-h6" style="text-align:center">
-        No data available
+        No mixing activity available
       </v-card-text>
     </v-card>
-    <v-card class="mx-auto elevation-4 my-3" max-width="1200"
-            v-show="this.activities && this.activities.length > 0">
+    <v-card class="my-3" flat v-show="this.activities && this.activities.length > 0">
       <v-card-text>
-        <v-tabs v-model="graphTabs" centered grow>
+        <v-tabs v-model="graphTabs" grow>
           <v-tab key="histogram" @change="onTabChange('histogram')">Histogram</v-tab>
           <v-tab key="graph" @change="onTabChange('graph')">Force Graph</v-tab>
         </v-tabs>
-        <v-progress-linear class="mt-10" v-if="isLoading" indeterminate/>
         <v-tabs-items v-model="graphTabs">
           <v-tab-item eager key="histogram">
             <v-card flat>
               <v-card-text>
-                <p v-if="showEmptyResponseMessage && !isLoading"
+                <p v-if="showNotEnoughDataMessage && !isLoading"
                    class="text-h6" style="text-align: center">
                   Not enough data available to draw chart
                 </p>
@@ -237,49 +204,36 @@
         </v-tabs-items>
       </v-card-text>
     </v-card>
+    <v-progress-linear class="mt-10" v-if="isLoading" indeterminate/>
   </div>
 </template>
 
 <script>
-import { mdiCalendarRange, mdiChartBar } from '@mdi/js';
-import Histogram from '../../d3Documents/histogram';
-import ForceGraph from '../../d3Documents/forceGraph';
+import { mdiCalendarRange } from '@mdi/js';
+import Histogram from '../../../d3Documents/histogram';
+import ForceGraph from '../../../d3Documents/forceGraph';
 import {
-  doPost, getPrivacyTypeLabel, handleError, isValidQueryInput,
-} from '../../utilities';
+  doPost, getPrivacyTypeLabel, handleError,
+} from '../../../utilities';
 import {
   ROUTE_MIXING_ACTIVITY,
-  ROUTE_NAME_MIXING_ACTIVITY,
   ROUTE_NAME_TRANSACTION_PAGE,
-} from '../../constants';
+} from '../../../constants';
 
-// capitalize returns the first letter of each word (separated by an space) in str capitalized
+// capitalize returns the first letter of each word (separated by a space) in str capitalized
 function capitalize(str) {
   return str.split(' ').map((d) => d[0].toUpperCase() + d.slice(1)).join(' ');
 }
 
-function newMixingActivityRouting(context) {
-  const { pushFromUserInput } = context.$route.params;
-  const { address } = context.$route.query;
-  if (pushFromUserInput !== undefined || address === undefined
-      || !(context.$route.name === ROUTE_NAME_MIXING_ACTIVITY)) {
-    return;
-  }
-
-  context.addressHash = address;
-
-  context.updateSvgData(true);
-}
-
 export default {
   name: 'MixingActivity',
+  props: {
+    addressHash: { type: String, required: true },
+  },
   data() {
     return {
-      icons: {
-        mdiCalendarRange, mdiChartBar,
-      },
+      icons: { mdiCalendarRange },
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-      addressHash: '',
       lastQuery: '',
       includeCluster: true,
       selectedPrivacyLabel: [],
@@ -318,9 +272,6 @@ export default {
     };
   },
   computed: {
-    isSearchable() {
-      return isValidQueryInput(this.addressHash);
-    },
     privacyLabels() {
       const labels = [];
 
@@ -348,25 +299,6 @@ export default {
   },
   methods: {
     capitalize,
-    handleSearch(origin) {
-      if (this.isLoading || !isValidQueryInput(this.addressHash)) {
-        return;
-      }
-
-      this.$store.dispatch('resetMessages');
-
-      // update route only when input is from user and query is different
-      if (origin === 'user' && this.addressHash !== this.lastQuery) {
-        this.$router.push({
-          name: ROUTE_NAME_MIXING_ACTIVITY,
-          params: { pushFromUserInput: true },
-          query: { address: this.addressHash },
-        });
-        this.updateSvgData(true);
-      } else if (origin === 'route') {
-        // do nothing -> route is already up to date
-      }
-    },
     onBarClick(data) {
       if (data.x0.getHours() === data.x1.getHours()
           && data.x0.getMinutes() === data.x1.getMinutes()) {
@@ -554,11 +486,12 @@ export default {
     this.svgGraph.setClickHandler(this.onNodeClick);
   },
   created() {
-    newMixingActivityRouting(this);
+    this.updateSvgData(true);
   },
   watch: {
-    $route() {
-      newMixingActivityRouting(this);
+    addressHash() {
+      // prop was changed -> pull new data
+      this.updateSvgData(true);
     },
   },
 };

@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import { ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+import { ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../../constants';
 
 export default {
   name: 'ClusterDetails',

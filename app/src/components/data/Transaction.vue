@@ -16,7 +16,7 @@
       <v-btn
           id="btn_open_heuristic_editor"
           v-if="isDestination(tx.privacytype) && showHeuristicEditorLink"
-          style="margin-right: 0" outlined icon
+          style="margin-right: 0" icon
           :to="{ name: routes.ROUTE_NAME_HEURISTIC_PAGE }">
         <v-icon>{{ icons.mdiGraph }}</v-icon>
       </v-btn>
