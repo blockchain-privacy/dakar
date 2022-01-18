@@ -47,7 +47,7 @@
             </v-list-item>
             <v-list-item :to="{ name: attributionOverviewPage}">
               <v-list-item-icon>
-                <v-icon>{{ icon.mdiMerge }}</v-icon>
+                <v-icon>{{ icon.mdiTagText }}</v-icon>
               </v-list-item-icon>
               <v-list-item-title>
                 Attribution Overview
@@ -81,7 +81,7 @@
       </v-btn>
       <v-btn :to="{ name: attributionOverviewPage}">
         <span>Attribution Overview</span>
-        <v-icon>{{ icon.mdiMerge }}</v-icon>
+        <v-icon>{{ icon.mdiTagText }}</v-icon>
       </v-btn>
     </v-bottom-navigation>
   </div>
@@ -90,6 +90,7 @@
 <script>
 import {
   mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch, mdiMerge,
+  mdiTagText,
 } from '@mdi/js';
 import {
   ROUTE_NAME_USER_HEURISTIC_PAGE,
@@ -114,6 +115,7 @@ export default {
         mdiToolbox,
         mdiTextBoxSearch,
         mdiMerge,
+        mdiTagText,
       },
     };
   },

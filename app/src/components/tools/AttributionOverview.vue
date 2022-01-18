@@ -3,7 +3,7 @@
       class="mx-auto elevation-4" max-width="1200">
     <v-toolbar dark flat color="primary" class="mb-1">
       <v-toolbar-title>
-        <v-icon>{{ icon.mdiMerge }}</v-icon>
+        <v-icon>{{ icon.mdiTagText }}</v-icon>
         Attribution Overview
       </v-toolbar-title>
       <v-spacer></v-spacer>
@@ -22,13 +22,13 @@
         <v-list>
           <v-list-item @click="addAttributionDialog = true">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiFileImport}}</v-icon>
+              <v-icon>{{ icon.mdiTagPlus }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Import attributions</v-list-item-title>
           </v-list-item>
           <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiDelete}}</v-icon>
+              <v-icon>{{ icon.mdiDelete }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Delete all attributions</v-list-item-title>
           </v-list-item>
@@ -50,20 +50,24 @@
             lg="4">
           <v-card outlined>
             <v-list-item two-line>
-              <v-list-item-title>
-                {{ item.address_count }} Addresses
-              </v-list-item-title>
               <v-list-item-subtitle class="text-right">
                 {{ item.ts.toLocaleDateString() }}
               </v-list-item-subtitle>
             </v-list-item>
             <v-list-item
-                v-for="address in item.addresses"
-                :key="address"
-                :to="{ name: routes.addressRoute, params: { id: address }}">
+                :to="{ name: routes.addressRoute, params: { id: item.address }}">
               <v-list-item-content>
                 <v-list-item-title>
-                  {{ address }}
+                  {{ item.address }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+            <v-list-item>
+              <v-list-item-content>
+                <v-list-item-title>
+                  <v-chip label>
+                    {{ item.tag }}
+                  </v-chip>
                 </v-list-item-title>
               </v-list-item-content>
             </v-list-item>
@@ -78,29 +82,29 @@
       </v-row>
     </v-card-text>
     <import-attribution v-model="addAttributionDialog" @added="loadData"/>
-<!--    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData" />-->
-<!--    <delete-cluster v-model="deleteClusterDialog"-->
-<!--                    :cluster-uid="deleteClusterUid"-->
-<!--                    :num-addresses="deleteClusterSize"-->
-<!--                    @deleted="handleClusterDeletion"/>-->
+    <!--    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData" />-->
+    <!--    <delete-cluster v-model="deleteClusterDialog"-->
+    <!--                    :cluster-uid="deleteClusterUid"-->
+    <!--                    :num-addresses="deleteClusterSize"-->
+    <!--                    @deleted="handleClusterDeletion"/>-->
   </v-card>
 </template>
 
 <script>
 import {
-  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiTagText, mdiTagPlus,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_ATTRIBUTION_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
 import ImportAttribution from '../dialogs/ImportAttributions.vue';
 
 export default {
-  name: 'ClusterOverview',
+  name: 'AttributionOverview',
   components: { ImportAttribution },
   data() {
     return {
       icon: {
-        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiTagText, mdiTagPlus,
       },
       routes: {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,
@@ -118,21 +122,21 @@ export default {
       this.items = [];
       doGet(ROUTE_ATTRIBUTION_OVERVIEW, this.$router, this.$store)
         .then((data) => {
-          if (!data.success || data.clusters === undefined) throw new Error('could not get attribution data');
+          if (!data.success || data.attributions === undefined) throw new Error('could not get attribution data');
 
-          if (data.clusters === null) {
+          if (data.attributions === null) {
             this.items = [];
             return;
           }
 
           // parse date
-          data.clusters = data.clusters.map((d) => {
+          data.attributions = data.attributions.map((d) => {
             d.ts = new Date(d.ts);
             return d;
           });
 
-          // sort clusters by time stamp
-          this.items = data.clusters.sort((a, b) => b.ts - a.ts);
+          // sort attributions by time stamp
+          this.items = data.attributions.sort((a, b) => b.ts - a.ts);
         })
         .catch((e) => {
           handleError(this.$store, e);
