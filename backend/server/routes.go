@@ -351,21 +351,6 @@ func handlerAddCluster(dgraph external.Database) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/addAttribution"
-func handlerAddAttribution(dgraph external.Database) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		reply := getAddAttributionReply(dgraph, w, r)
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), err)
-		}
-	})
-}
-
 // API pattern: "/api/v1/deleteCluster/<cluster_uid>"
 func handlerDeleteCluster(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -425,6 +410,43 @@ func handlerClusterOverview(dgraph external.Database) http.Handler {
 		} else {
 			reply = getClusterOverviewReply(dgraph, tUser.ID)
 		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/attributionOverview"
+func handlerAttributionOverview(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply attributionOverviewReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getAttributionOverviewReply(dgraph, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/addAttribution"
+func handlerAddAttribution(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddAttributionReply(dgraph, w, r)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -942,7 +964,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey),
 			cacheMiddleware(cache, time.Minute*10)))
 
-	// Clusters
+	// Attributions
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
 			authorizationMiddleware(privkey, pubkey)))
@@ -966,6 +988,9 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteAddAttribution(),
 		adapt(handlerAddAttribution(dgraph), constants.GetRouteAddAttribution(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteAttributionOverview(),
+		adapt(handlerAttributionOverview(dgraph), constants.GetRouteAttributionOverview(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User

@@ -23,3 +23,11 @@ type Attribution struct {
 func (a *Attribution) SetDType() {
 	a.DType = []string{DType}
 }
+
+type FrontendAttribution struct {
+	Uid          string   `json:"uid,omitempty"`
+	Address      string   `json:"address,omitempty"`
+	Tag          string   `json:"tag,omitempty"`
+	Timestamp    string   `json:"ts,omitempty"`
+	Attributions []string `json:"attributions,omitempty"`
+}

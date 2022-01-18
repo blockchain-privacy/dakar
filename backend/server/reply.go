@@ -7,6 +7,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db/analytics"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -1042,7 +1043,7 @@ func getAddAttributionReply(dgraph external.Database, w http.ResponseWriter, r *
 		return
 	}
 
-	if err := analytics2.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
+	if err := analytics2.ImportAttribution(dgraph, addresses, tUser.ID); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
 		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
@@ -1100,6 +1101,20 @@ func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply 
 	}
 
 	reply.Success = true
+
+	return
+}
+
+func getAttributionOverviewReply(dgraph external.Database, userUID string) (reply attributionOverviewReply) {
+	attributions, err := attribution.GetUserAttributions(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no attributions found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Attributions = attributions
 
 	return
 }

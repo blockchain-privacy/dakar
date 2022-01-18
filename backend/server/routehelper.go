@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	"backend/db/analytics"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
@@ -263,4 +264,10 @@ type deleteClusterReply struct {
 type addAttributionReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
+}
+
+type attributionOverviewReply struct {
+	Success      bool                              `json:"success"`
+	Msg          string                            `json:"msg,omitempty"`
+	Attributions []attribution.FrontendAttribution `json:"attributions"`
 }

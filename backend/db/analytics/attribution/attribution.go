@@ -14,7 +14,7 @@ import (
 func AddAttributions(c external.Database, attributions []Attribution) error {
 	// validate data
 	for _, a := range attributions {
-		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" || a.Uid == "" {
+		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" {
 			return fmt.Errorf("attribution invalid: %v", a)
 		}
 	}
@@ -37,4 +37,54 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	}
 
 	return err
+}
+
+// GetUserAttributions returns all attributions of a user
+func GetUserAttributions(c external.Database, userID string) (attributions []FrontendAttribution, err error) {
+	const query = `query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					a as ~attribution_user
+				}
+
+				q(func: uid(a)){
+					uid
+					attribution_ts
+					attribution_tag
+					attribution_address{
+						addresshash
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Attributions []struct {
+			Uid       string `json:"uid,omitempty"`
+			Timestamp string `json:"attribution_ts,omitempty"`
+			Tag       string `json:"attribution_tag,omitempty"`
+			Address   struct {
+				Hash string `json:"addresshash,omitempty"`
+			} `json:"attribution_address,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, attribution := range r.Attributions {
+		attributions = append(attributions, FrontendAttribution{
+			Uid:       attribution.Uid,
+			Timestamp: attribution.Timestamp,
+			Address:   attribution.Address.Hash,
+			Tag:       attribution.Tag,
+		})
+	}
+
+	return
 }
