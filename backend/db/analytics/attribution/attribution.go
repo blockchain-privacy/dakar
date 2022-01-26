@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 	"time"
@@ -84,6 +85,60 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 			Address:   attribution.Address.Hash,
 			Tag:       attribution.Tag,
 		})
+	}
+
+	return
+}
+
+// DeleteAttribution deletes the given attribution
+func DeleteAttribution(c external.Database, userID string, attributionUID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string,$attribution:string) {
+				var(func:uid($user))@filter(type(User)){
+					a as ~attribution_user@filter(uid($attribution))
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID, "$attribution": attributionUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(a) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// DeleteAllAttributions deletes all attributions of a given user
+func DeleteAllAttributions(c external.Database, userID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					a as ~attribution_user
+				}
+			  }`,
+		Vars: map[string]string{"$user": userID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(a) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
 	}
 
 	return

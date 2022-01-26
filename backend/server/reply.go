@@ -590,43 +590,23 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 		return
 	}
 
-	if req.AddressHash1 == "" {
-		msg = "provide at least the first address hash"
+	if req.AddressHash == "" {
+		msg = "address hash was not provided"
 		return
 	}
 
-	if !isValid(req.AddressHash1) {
-		msg = "first address hash was not valid"
+	if !isValid(req.AddressHash) {
+		msg = "address hash was not valid"
 		return
 	}
 
-	if req.AddressHash2 == "" {
-		clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
-		if getErr != nil {
-			msg = "error while searching for clusters"
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
-			return
-		}
-		clusters = clusterResponse
-	} else {
-		if !isValid(req.AddressHash2) {
-			msg = "second address hash was not valid"
-			return
-		}
-
-		if req.AddressHash1 == req.AddressHash2 {
-			msg = "address hashes are identical"
-			return
-		}
-
-		clusterResponse, getErr := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
-		if getErr != nil {
-			msg = "error while searching for clusters"
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
-			return
-		}
-		clusters = clusterResponse
+	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses)
+	if getErr != nil {
+		msg = "error while searching for clusters"
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+		return
 	}
+	clusters = clusterResponse
 
 	return
 }
@@ -1115,6 +1095,35 @@ func getAttributionOverviewReply(dgraph external.Database, userUID string) (repl
 
 	reply.Success = true
 	reply.Attributions = attributions
+
+	return
+}
+
+func getDeleteAttributionReply(dgraph external.Database, userUID string, attributionUid string) (reply deleteAttributionReply) {
+	if attributionUid == "" {
+		reply.Msg = "attribution uid was not set"
+		return
+	}
+
+	if err := attribution.DeleteAttribution(dgraph, userUID, attributionUid); err != nil {
+		reply.Msg = "could not delete attribution"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (reply deleteAttributionReply) {
+	if err := attribution.DeleteAllAttributions(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete clusters"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
 
 	return
 }

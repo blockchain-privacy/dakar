@@ -456,6 +456,52 @@ func handlerAddAttribution(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/deleteAttribution/<cluster_uid>"
+func handlerDeleteAttribution(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAttributionReply
+
+		attributionUid := r.URL.Path[len(constants.GetRouteDeleteAttribution()):]
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAllAttributions"
+func handlerDeleteAllAttributions(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAttributionReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAllAttributionsReply(dgraph, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristics/<hash>"
 func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -964,7 +1010,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey),
 			cacheMiddleware(cache, time.Minute*10)))
 
-	// Attributions
+	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
 			authorizationMiddleware(privkey, pubkey)))
@@ -986,11 +1032,19 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	http.Handle(constants.GetRouteClusterOverview(),
 		adapt(handlerClusterOverview(dgraph), constants.GetRouteClusterOverview(),
 			authorizationMiddleware(privkey, pubkey)))
+
+	// Attributions
 	http.Handle(constants.GetRouteAddAttribution(),
 		adapt(handlerAddAttribution(dgraph), constants.GetRouteAddAttribution(),
 			authorizationMiddleware(privkey, pubkey)))
 	http.Handle(constants.GetRouteAttributionOverview(),
 		adapt(handlerAttributionOverview(dgraph), constants.GetRouteAttributionOverview(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteAttribution(),
+		adapt(handlerDeleteAttribution(dgraph), constants.GetRouteDeleteAttribution(),
+			authorizationMiddleware(privkey, pubkey)))
+	http.Handle(constants.GetRouteDeleteAllAttributions(),
+		adapt(handlerDeleteAllAttributions(dgraph), constants.GetRouteDeleteAllAttributions(),
 			authorizationMiddleware(privkey, pubkey)))
 
 	// User

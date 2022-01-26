@@ -271,3 +271,8 @@ type attributionOverviewReply struct {
 	Msg          string                            `json:"msg,omitempty"`
 	Attributions []attribution.FrontendAttribution `json:"attributions"`
 }
+
+type deleteAttributionReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}

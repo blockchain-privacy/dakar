@@ -3,40 +3,42 @@ package constants
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch               string = "search"
-	routeTransaction          string = "tx"
-	routeBlock                string = "blk"
-	routeAddress              string = "address"
-	routeMeta                 string = "meta"
-	routeHeuristics           string = "heuristics"
-	routeHeuristicsSummary    string = "heuristicsSummary"
-	routeHeuristicsExecution  string = "executeHeuristics"
-	routeHeuristicDetails     string = "heuristicDetails"
-	routeHeuristicStatus      string = "heuristicStatus"
-	routeHeuristicList        string = "heuristicList"
-	routeHeuristicDescriptors string = "heuristicDescriptors"
-	routeDeleteHeuristic      string = "deleteHeuristic"
-	routeAddressOutputRange   string = "addressOutputRange"
-	routeBlockRange           string = "blkRange"
-	routeCreateUser           string = "createUser"
-	routeGetUsers             string = "getUsers"
-	routeDeleteUser           string = "deleteUser"
-	routeLogin                string = "login"
-	routeLogout               string = "logout"
-	routeModifyUser           string = "modifyUser"
-	routeShortestTxPath       string = "shortestTransactionPath"
-	routeConnectionLookup     string = "connectionLookup"
-	routeClusterLookup        string = "clusterLookup"
-	routeClusterSummary       string = "clusterSummary"
-	routeHMILookup            string = "hmiLookup"
-	routeMixingActivity       string = "mixingActivity"
-	routeAddCluster           string = "addCluster"
-	routeDeleteCluster        string = "deleteCluster"
-	routeDeleteAllClusters    string = "deleteAllClusters"
-	routeClusterOverview      string = "clusterOverview"
-	routeAttributionOverview  string = "attributionOverview"
-	routeAddAttribution       string = "addAttribution"
-	routeMetrics              string = "/metrics"
+	routeSearch                string = "search"
+	routeTransaction           string = "tx"
+	routeBlock                 string = "blk"
+	routeAddress               string = "address"
+	routeMeta                  string = "meta"
+	routeHeuristics            string = "heuristics"
+	routeHeuristicsSummary     string = "heuristicsSummary"
+	routeHeuristicsExecution   string = "executeHeuristics"
+	routeHeuristicDetails      string = "heuristicDetails"
+	routeHeuristicStatus       string = "heuristicStatus"
+	routeHeuristicList         string = "heuristicList"
+	routeHeuristicDescriptors  string = "heuristicDescriptors"
+	routeDeleteHeuristic       string = "deleteHeuristic"
+	routeAddressOutputRange    string = "addressOutputRange"
+	routeBlockRange            string = "blkRange"
+	routeCreateUser            string = "createUser"
+	routeGetUsers              string = "getUsers"
+	routeDeleteUser            string = "deleteUser"
+	routeLogin                 string = "login"
+	routeLogout                string = "logout"
+	routeModifyUser            string = "modifyUser"
+	routeShortestTxPath        string = "shortestTransactionPath"
+	routeConnectionLookup      string = "connectionLookup"
+	routeClusterLookup         string = "clusterLookup"
+	routeClusterSummary        string = "clusterSummary"
+	routeHMILookup             string = "hmiLookup"
+	routeMixingActivity        string = "mixingActivity"
+	routeAddCluster            string = "addCluster"
+	routeDeleteCluster         string = "deleteCluster"
+	routeDeleteAllClusters     string = "deleteAllClusters"
+	routeClusterOverview       string = "clusterOverview"
+	routeAttributionOverview   string = "attributionOverview"
+	routeAddAttribution        string = "addAttribution"
+	routeDeleteAttribution     string = "deleteAttribution"
+	routeDeleteAllAttributions string = "deleteAllAttributions"
+	routeMetrics               string = "/metrics"
 )
 
 func getRoute(r string) string {
@@ -206,6 +208,16 @@ func GetRouteAddAttribution() string {
 // GetRouteAttributionOverview returns a route
 func GetRouteAttributionOverview() string {
 	return getRoute(routeAttributionOverview)
+}
+
+// GetRouteDeleteAttribution returns a route
+func GetRouteDeleteAttribution() string {
+	return getRoute(routeDeleteAttribution)
+}
+
+// GetRouteDeleteAllAttributions returns a route
+func GetRouteDeleteAllAttributions() string {
+	return getRoute(routeDeleteAllAttributions)
 }
 
 // GetRouteMetrics returns a route

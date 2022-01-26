@@ -319,11 +319,31 @@ func getClusterQuery(maxAddresses int) string {
 					output_count: count(addr_outputs)
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
-		}`
+			}
+			tags(func: uid(c))@filter(not eq(cluster_type,` + string(TypeHMI) + `)){
+				uid
+				tags:cluster_addresses@normalize {
+					~attribution_address {
+						tag:attribution_tag
+					}
+				}
+			}`
 }
 
-// responseToFrontendClusters converts the results of frontend cluster request to frontend clusters
-func responseToFrontendClusters(clusters []FrontendClusterRequest) (frontendClusters []FrontendCluster, err error) {
+// responseToFrontendClusters combines the results of a cluster request to frontend clusters
+func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags []ClusterTags) (
+	frontendClusters []FrontendCluster, err error) {
+	tagMap := make(map[string][]string)
+
+	for _, c := range clusterTags {
+		var tags []string
+		for _, t := range c.Tags {
+			tags = append(tags, t.Tag)
+		}
+
+		tagMap[c.Uid] = tags
+	}
+
 	for _, cluster := range clusters {
 		if len(cluster.Transaction) > 1 {
 			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
@@ -334,6 +354,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest) (frontendClus
 			Type:         cluster.Type,
 			AddressCount: cluster.AddressCount,
 			Addresses:    cluster.Addresses,
+			Tags:         tagMap[cluster.Uid],
 		}
 
 		// uid is only needed for deleting custom clusters
@@ -360,8 +381,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int) (clu
 	query := `query Q($addressHash:string) {
 				var(func:eq(addresshash,$addressHash)){
 					c as ~cluster_addresses
-				}
-				` + getClusterQuery(maxAddresses) + "}"
+				}` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
@@ -370,52 +390,15 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int) (clu
 	}
 
 	var r struct {
-		Clusters []FrontendClusterRequest `json:"q,omitempty"`
+		Clusters    []FrontendClusterRequest `json:"q,omitempty"`
+		ClusterTags []ClusterTags            `json:"tags,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	clusters, err = responseToFrontendClusters(r.Clusters)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	return
-}
-
-// GetCommonClusters returns cluster information for all clusters (except hmi clusters)
-// shared by addressHash1 and addressHash2
-func GetCommonClusters(c external.Database, addressHash1 string, addressHash2 string, maxAddresses int) (clusters []FrontendCluster,
-	err error) {
-	query := `query Q($a1:string,$a2:string) {
-				var(func:eq(addresshash,$a1)){
-					c1 as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `))
-				}
-
-				var(func:eq(addresshash,$a2)){
-					c as ~cluster_addresses@filter(not eq(cluster_type,` + string(TypeHMI) + `) and uid(c1))
-				}
-				` + getClusterQuery(maxAddresses) + "}"
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$a1": addressHash1, "$a2": addressHash2})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	var r struct {
-		Clusters []FrontendClusterRequest `json:"q,omitempty"`
-	}
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	clusters, err = responseToFrontendClusters(r.Clusters)
+	clusters, err = responseToFrontendClusters(r.Clusters, r.ClusterTags)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

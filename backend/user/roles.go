@@ -65,8 +65,10 @@ var (
 		constants.GetRouteClusterOverview():   true,
 		//constants.GetRouteHMILookup():     true,
 		// Attribution
-		constants.GetRouteAddAttribution():      true,
-		constants.GetRouteAttributionOverview(): true,
+		constants.GetRouteAddAttribution():        true,
+		constants.GetRouteAttributionOverview():   true,
+		constants.GetRouteDeleteAttribution():     true,
+		constants.GetRouteDeleteAllAttributions(): true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
