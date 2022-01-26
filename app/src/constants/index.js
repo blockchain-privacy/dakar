@@ -35,6 +35,8 @@ export const ROUTE_CLUSTER_OVERVIEW = `${routePrefix}clusterOverview/`;
 export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
 export const ROUTE_ADD_ATTRIBUTION = `${routePrefix}addAttribution/`;
 export const ROUTE_ATTRIBUTION_OVERVIEW = `${routePrefix}attributionOverview/`;
+export const ROUTE_DELETE_ATTRIBUTION = `${routePrefix}deleteAttribution/`;
+export const ROUTE_DELETE_ALL_ATTRIBUTIONS = `${routePrefix}deleteAllAttributions/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
