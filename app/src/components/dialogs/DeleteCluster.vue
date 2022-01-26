@@ -14,7 +14,7 @@
             <v-btn text :disabled="isLoading" class="mr-2" @click="show = false">
               Cancel
             </v-btn>
-            <v-btn text :loading="isLoading" @click="deleteCluster">
+            <v-btn text :loading="isLoading" color="red" @click="deleteCluster">
               Delete
             </v-btn>
           </v-col>
