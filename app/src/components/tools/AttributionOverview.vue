@@ -26,7 +26,7 @@
             </v-list-item-icon>
             <v-list-item-title>Import attributions</v-list-item-title>
           </v-list-item>
-          <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
+          <v-list-item :disabled="items.length === 0" @click="deleteAllAttributionsDialog = true">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiDelete }}</v-icon>
             </v-list-item-icon>
@@ -45,48 +45,58 @@
             v-for="(item, i) in items"
             :key="i"
             cols="12"
-            sm="6"
+            sm="7"
             md="4"
             lg="4">
           <v-card outlined>
-            <v-list-item two-line>
-              <v-list-item-subtitle class="text-right">
+            <v-toolbar flat>
+              <v-chip label class="overflow-x-auto">
+                {{ item.tag }}
+              </v-chip>
+              <v-spacer/>
+              <div>
                 {{ item.ts.toLocaleDateString() }}
-              </v-list-item-subtitle>
-            </v-list-item>
+              </div>
+              <v-menu
+                  bottom
+                  left>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                      icon
+                      v-bind="attrs"
+                      v-on="on">
+                    <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
+                  <v-list-item @click="deleteItem(item.uid, item.tag)">
+                    <v-list-item-icon>
+                      <v-icon>{{ icon.mdiDelete }}</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Delete</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </v-toolbar>
             <v-list-item
                 :to="{ name: routes.addressRoute, params: { id: item.address }}">
               <v-list-item-content>
-                <v-list-item-title>
-                  {{ item.address }}
-                </v-list-item-title>
+                {{ item.address }}
               </v-list-item-content>
             </v-list-item>
             <v-list-item>
               <v-list-item-content>
-                <v-list-item-title>
-                  <v-chip label>
-                    {{ item.tag }}
-                  </v-chip>
-                </v-list-item-title>
+                Source:
               </v-list-item-content>
             </v-list-item>
-            <v-card-actions>
-              <v-btn text @click="deleteItem(item.uid, item.address_count)">
-                <v-icon>{{ icon.mdiDelete }}</v-icon>
-                Delete
-              </v-btn>
-            </v-card-actions>
           </v-card>
         </v-col>
       </v-row>
     </v-card-text>
     <import-attribution v-model="addAttributionDialog" @added="loadData"/>
-    <!--    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData" />-->
-    <!--    <delete-cluster v-model="deleteClusterDialog"-->
-    <!--                    :cluster-uid="deleteClusterUid"-->
-    <!--                    :num-addresses="deleteClusterSize"-->
-    <!--                    @deleted="handleClusterDeletion"/>-->
+    <delete-all-attributions v-model="deleteAllAttributionsDialog" @deleted="loadData"/>
+    <delete-attribution v-model="deleteAttributionDialog" :attribution-uid="deleteAttributionUid"
+                        :tag="deleteAttributionTag" @deleted="handleAttributionDeletion"/>
   </v-card>
 </template>
 
@@ -97,10 +107,12 @@ import {
 import { PAGE_TITLE, ROUTE_ATTRIBUTION_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
 import ImportAttribution from '../dialogs/ImportAttributions.vue';
+import DeleteAttribution from '../dialogs/DeleteAttribution.vue';
+import DeleteAllAttributions from '../dialogs/DeleteAllAttributions.vue';
 
 export default {
   name: 'AttributionOverview',
-  components: { ImportAttribution },
+  components: { DeleteAllAttributions, DeleteAttribution, ImportAttribution },
   data() {
     return {
       icon: {
@@ -110,10 +122,10 @@ export default {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,
       },
       addAttributionDialog: false,
-      deleteClusterDialog: false,
-      deleteAllClustersDialog: false,
-      deleteClusterUid: '',
-      deleteClusterSize: -1,
+      deleteAttributionDialog: false,
+      deleteAttributionTag: '',
+      deleteAllAttributionsDialog: false,
+      deleteAttributionUid: '',
       items: [],
     };
   },
@@ -142,18 +154,17 @@ export default {
           handleError(this.$store, e);
         });
     },
-    deleteItem(clusterUid, clusterSize) {
-      this.deleteClusterUid = clusterUid;
-      this.deleteClusterSize = clusterSize;
-      this.deleteClusterDialog = true;
+    deleteItem(clusterUid, tag) {
+      this.deleteAttributionUid = clusterUid;
+      this.deleteAttributionTag = tag;
+      this.deleteAttributionDialog = true;
     },
-    handleClusterDeletion(clusterUid) {
-      this.items = this.items.filter((d) => d.uid !== clusterUid);
+    handleAttributionDeletion(attributionUid) {
+      this.items = this.items.filter((d) => d.uid !== attributionUid);
     },
   },
   mounted() {
     document.title = `Attribution Overview - ${PAGE_TITLE}`;
-
     this.loadData();
   },
 };
