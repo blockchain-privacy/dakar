@@ -142,7 +142,7 @@
               </v-card>
             </v-tab-item>
             <v-tab-item>
-              <cluster-lookup :a1="addressHash" />
+              <cluster-lookup :addressHash="addressHash" />
             </v-tab-item>
             <v-tab-item>
               <mixing-activity :address-hash="addressHash" />
