@@ -37,11 +37,20 @@
     </v-toolbar>
     <v-card-text>
       <v-row>
-        <v-col v-if="items.length === 0">
-          <p class="text-subtitle-1 text-center">No Attributions</p>
+        <v-col v-if="items.length > 0">
+          <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+          These attributions have been created by you.
         </v-col>
+        <v-col v-else>
+          <div class="d-flex justify-center">
+            <v-btn @click="addAttributionDialog = true" text>
+              <v-icon>{{ icon.mdiFileImport }}</v-icon> Import attributions
+            </v-btn>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row v-if="items.length > 0">
         <v-col
-            v-else
             v-for="(item, i) in items"
             :key="i"
             cols="12"

@@ -37,11 +37,20 @@
     </v-toolbar>
     <v-card-text>
       <v-row>
-        <v-col v-if="items.length === 0">
-          <p class="text-subtitle-1 text-center">No Clusters</p>
+        <v-col v-if="items.length > 0">
+          <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+          These clusters have been created by you.
         </v-col>
+        <v-col v-else>
+          <div class="d-flex justify-center">
+            <v-btn @click="addClusterDialog = true" text>
+              <v-icon>{{ icon.mdiFileImport }}</v-icon> Import clusters
+            </v-btn>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row v-if="items.length > 0">
         <v-col
-            v-else
             v-for="(item, i) in items"
             :key="i"
             cols="12"
@@ -100,7 +109,7 @@
 
 <script>
 import {
-  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiInformationOutline,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_CLUSTER_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
@@ -114,7 +123,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiInformationOutline,
       },
       routes: {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,
