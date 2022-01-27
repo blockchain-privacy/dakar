@@ -39,49 +39,7 @@
             sm="6"
             md="4"
             lg="4">
-          <attribution-details :attribution="item" @deleted="handleAttributionDeletion" />
-<!--<v-card outlined>-->
-<!--<v-toolbar flat>-->
-<!--<v-chip label class="overflow-x-auto">-->
-<!--{{ item.tag }}-->
-<!--</v-chip>-->
-<!--<v-spacer/>-->
-<!--<div>-->
-<!--{{ item.ts.toLocaleDateString() }}-->
-<!--</div>-->
-<!--<v-menu-->
-<!--bottom-->
-<!--left>-->
-<!--<template v-slot:activator="{ on, attrs }">-->
-<!--<v-btn-->
-<!--    icon-->
-<!--    v-bind="attrs"-->
-<!--    v-on="on">-->
-<!--  <v-icon>{{ icon.mdiDotsVertical }}</v-icon>-->
-<!--</v-btn>-->
-<!--</template>-->
-<!--<v-list>-->
-<!--<v-list-item @click="deleteItem(item.uid, item.tag)">-->
-<!--  <v-list-item-icon>-->
-<!--    <v-icon>{{ icon.mdiDelete }}</v-icon>-->
-<!--  </v-list-item-icon>-->
-<!--  <v-list-item-title>Delete</v-list-item-title>-->
-<!--</v-list-item>-->
-<!--</v-list>-->
-<!--</v-menu>-->
-<!--</v-toolbar>-->
-<!--<v-list-item-->
-<!--:to="{ name: routes.addressRoute, params: { id: item.address }}">-->
-<!--<v-list-item-content>-->
-<!--{{ item.address }}-->
-<!--</v-list-item-content>-->
-<!--</v-list-item>-->
-<!--<v-list-item>-->
-<!--<v-list-item-content>-->
-<!--Source:-->
-<!--</v-list-item-content>-->
-<!--</v-list-item>-->
-<!--</v-card>-->
+          <attribution-details :attribution="item" @deleted="handleAttributionDeletion"/>
         </v-col>
       </v-row>
     </v-card-text>
