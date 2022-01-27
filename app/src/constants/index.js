@@ -62,7 +62,7 @@ export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
-export const ROUTE_NAME_ATTRIBUTION_OVERVIEW = 'Attribution Overview Page';
+export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';

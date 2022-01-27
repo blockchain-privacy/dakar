@@ -1,41 +1,22 @@
 <template>
-  <v-card
-      class="mx-auto elevation-4" max-width="1200">
-    <v-toolbar dark flat color="primary" class="mb-1">
-      <v-toolbar-title>
-        <v-icon>{{ icon.mdiTagText }}</v-icon>
-        Attribution Overview
-      </v-toolbar-title>
-      <v-spacer></v-spacer>
-      <v-menu
-          bottom
-          left>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              dark
-              icon
-              v-bind="attrs"
-              v-on="on">
-            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+  <v-card>
+    <v-card-text>
+      <v-speed-dial v-model="fab" style="top:2px" right direction="left" absolute
+                    transition="slide-x-reverse-transition">
+        <template v-slot:activator>
+          <v-btn v-model="fab" color="primary" dark fab elevation="0">
+            <v-icon v-if="fab">{{ icon.mdiClose }}</v-icon>
+            <v-icon v-else> {{ icon.mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
-        <v-list>
-          <v-list-item @click="addAttributionDialog = true">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiTagPlus }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Import attributions</v-list-item-title>
-          </v-list-item>
-          <v-list-item :disabled="items.length === 0" @click="deleteAllAttributionsDialog = true">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiDelete }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Delete all attributions</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-    </v-toolbar>
-    <v-card-text>
+        <v-btn fab small @click="addAttributionDialog = true">
+          <v-icon>{{ icon.mdiTagPlus }}</v-icon>
+        </v-btn>
+        <v-btn fab dark small color="red" :disabled="items.length === 0"
+               @click="deleteAllAttributionsDialog = true">
+          <v-icon>{{ icon.mdiDelete }}</v-icon>
+        </v-btn>
+      </v-speed-dial>
       <v-row>
         <v-col v-if="items.length > 0">
           <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
@@ -44,7 +25,8 @@
         <v-col v-else>
           <div class="d-flex justify-center">
             <v-btn @click="addAttributionDialog = true" text>
-              <v-icon>{{ icon.mdiFileImport }}</v-icon> Import attributions
+              <v-icon>{{ icon.mdiFileImport }}</v-icon>
+              Import attributions
             </v-btn>
           </div>
         </v-col>
@@ -54,7 +36,7 @@
             v-for="(item, i) in items"
             :key="i"
             cols="12"
-            sm="7"
+            sm="6"
             md="4"
             lg="4">
           <v-card outlined>
@@ -112,12 +94,13 @@
 <script>
 import {
   mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiTagText, mdiTagPlus,
+  mdiInformationOutline, mdiClose,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_ATTRIBUTION_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
-import { doGet, handleError } from '../../utilities';
-import ImportAttribution from '../dialogs/ImportAttributions.vue';
-import DeleteAttribution from '../dialogs/DeleteAttribution.vue';
-import DeleteAllAttributions from '../dialogs/DeleteAllAttributions.vue';
+import { PAGE_TITLE, ROUTE_ATTRIBUTION_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../../constants';
+import { doGet, handleError } from '../../../utilities';
+import ImportAttribution from '../../dialogs/ImportAttributions.vue';
+import DeleteAttribution from '../../dialogs/DeleteAttribution.vue';
+import DeleteAllAttributions from '../../dialogs/DeleteAllAttributions.vue';
 
 export default {
   name: 'AttributionOverview',
@@ -125,7 +108,14 @@ export default {
   data() {
     return {
       icon: {
-        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiTagText, mdiTagPlus,
+        mdiMerge,
+        mdiDelete,
+        mdiDotsVertical,
+        mdiFileImport,
+        mdiTagText,
+        mdiTagPlus,
+        mdiInformationOutline,
+        mdiClose,
       },
       routes: {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,
@@ -136,6 +126,7 @@ export default {
       deleteAllAttributionsDialog: false,
       deleteAttributionUid: '',
       items: [],
+      fab: false,
     };
   },
   methods: {

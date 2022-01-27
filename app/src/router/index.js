@@ -22,7 +22,7 @@ import * as Constants from '../constants';
 import Store from '../state';
 import HMIView from '../components/cluster/HMIView.vue';
 import ClusterOverview from '../components/tools/ClusterOverview.vue';
-import AttributionOverview from '../components/tools/AttributionOverview.vue';
+import Attributions from '../components/tools/attributions/Attributions.vue';
 
 Vue.use(Router);
 
@@ -182,9 +182,9 @@ export default new Router({
           component: ClusterOverview,
         },
         {
-          path: 'attributionOverview',
-          name: Constants.ROUTE_NAME_ATTRIBUTION_OVERVIEW,
-          component: AttributionOverview,
+          path: 'attributions',
+          name: Constants.ROUTE_NAME_ATTRIBUTIONS,
+          component: Attributions,
         },
       ],
     },

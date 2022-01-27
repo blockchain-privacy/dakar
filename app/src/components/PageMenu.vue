@@ -38,10 +38,10 @@
           </v-col>
           <v-col>
             <LinkCard
-                title="Attribution Overview"
-                :icon="icons.mdiTagText"
+                title="Attributions"
+                :icon="icons.mdiTag"
                 :color="iconColor.default"
-                :to="{ name: routes.attributionOverviewPage }"/>
+                :to="{ name: routes.attributionsPage }"/>
           </v-col>
         </v-row>
       </div>
@@ -69,12 +69,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge, mdiTagText,
+  mdiMerge, mdiTag,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-  ROUTE_NAME_ATTRIBUTION_OVERVIEW,
+  ROUTE_NAME_ATTRIBUTIONS,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -95,7 +95,7 @@ export default {
         mdiAccountSupervisor,
         mdiServer,
         mdiMerge,
-        mdiTagText,
+        mdiTag,
       },
       iconColor: {
         default: 'primary',
@@ -108,7 +108,7 @@ export default {
         connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
         clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
-        attributionOverviewPage: ROUTE_NAME_ATTRIBUTION_OVERVIEW,
+        attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
       },
     };
   },
