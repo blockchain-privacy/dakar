@@ -1,47 +1,44 @@
 <template>
   <v-card>
     <v-card-text>
-      <v-speed-dial v-model="fab" style="top:2px" right direction="left" absolute
-                    transition="slide-x-reverse-transition">
-        <template v-slot:activator>
-          <v-btn v-model="fab" color="primary" dark fab elevation="0">
-            <v-icon v-if="fab">{{ icon.mdiClose }}</v-icon>
-            <v-icon v-else> {{ icon.mdiDotsVertical }}</v-icon>
-          </v-btn>
-        </template>
-        <v-btn fab small @click="addAttributionDialog = true">
-          <v-icon>{{ icon.mdiTagPlus }}</v-icon>
-        </v-btn>
-        <v-btn fab dark small color="red" :disabled="items.length === 0"
-               @click="deleteAllAttributionsDialog = true">
-          <v-icon>{{ icon.mdiDelete }}</v-icon>
-        </v-btn>
-      </v-speed-dial>
-      <v-row>
-        <v-col v-if="items.length > 0">
-          <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-          These attributions have been created by you.
-        </v-col>
-        <v-col v-else>
-          <div class="d-flex justify-center">
-            <v-btn @click="addAttributionDialog = true" text>
-              <v-icon>{{ icon.mdiFileImport }}</v-icon>
-              Import attributions
+      <v-progress-linear v-if="loading" indeterminate/>
+      <div v-else>
+        <v-speed-dial v-model="fab" style="top:2px" right direction="left" absolute
+                      transition="slide-x-reverse-transition">
+          <template v-slot:activator>
+            <v-btn v-model="fab" color="primary" dark fab elevation="0">
+              <v-icon v-if="fab">{{ icon.mdiClose }}</v-icon>
+              <v-icon v-else> {{ icon.mdiDotsVertical }}</v-icon>
             </v-btn>
-          </div>
-        </v-col>
-      </v-row>
-      <v-row v-if="items.length > 0">
-        <v-col
-            v-for="(item, i) in items"
-            :key="i"
-            cols="12"
-            sm="6"
-            md="4"
-            lg="4">
-          <attribution-details :attribution="item" @deleted="handleAttributionDeletion"/>
-        </v-col>
-      </v-row>
+          </template>
+          <v-btn fab small @click="addAttributionDialog = true">
+            <v-icon>{{ icon.mdiTagPlus }}</v-icon>
+          </v-btn>
+          <v-btn fab dark small color="red" :disabled="items.length === 0"
+                 @click="deleteAllAttributionsDialog = true">
+            <v-icon>{{ icon.mdiDelete }}</v-icon>
+          </v-btn>
+        </v-speed-dial>
+        <v-row>
+          <v-col v-if="items.length > 0">
+            <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+            These attributions have been created by you.
+          </v-col>
+          <v-col v-else>
+            <div class="d-flex justify-center">
+              <v-btn @click="addAttributionDialog = true" text>
+                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                Import attributions
+              </v-btn>
+            </div>
+          </v-col>
+        </v-row>
+        <v-row v-if="items.length > 0">
+          <v-col v-for="(item, i) in items" :key="i" cols="12" sm="6" md="4" lg="4">
+            <attribution-details :attribution="item" @deleted="handleAttributionDeletion"/>
+          </v-col>
+        </v-row>
+      </div>
     </v-card-text>
     <import-attribution v-model="addAttributionDialog" @added="loadData"/>
     <delete-all-attributions v-model="deleteAllAttributionsDialog" @deleted="loadData"/>
@@ -75,6 +72,7 @@ export default {
         mdiInformationOutline,
         mdiClose,
       },
+      loading: false,
       addAttributionDialog: false,
       deleteAllAttributionsDialog: false,
       items: [],
@@ -83,6 +81,7 @@ export default {
   },
   methods: {
     loadData() {
+      this.loading = true;
       this.items = [];
       doGet(ROUTE_ATTRIBUTION_OVERVIEW, this.$router, this.$store)
         .then((data) => {
@@ -104,6 +103,9 @@ export default {
         })
         .catch((e) => {
           handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.loading = false;
         });
     },
     handleAttributionDeletion(attributionUid) {
