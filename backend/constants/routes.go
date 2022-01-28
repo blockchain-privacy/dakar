@@ -38,6 +38,7 @@ const (
 	routeAddAttribution        string = "addAttribution"
 	routeDeleteAttribution     string = "deleteAttribution"
 	routeDeleteAllAttributions string = "deleteAllAttributions"
+	routeSearchAttributions    string = "searchAttributions"
 	routeMetrics               string = "/metrics"
 )
 
@@ -218,6 +219,11 @@ func GetRouteDeleteAttribution() string {
 // GetRouteDeleteAllAttributions returns a route
 func GetRouteDeleteAllAttributions() string {
 	return getRoute(routeDeleteAllAttributions)
+}
+
+// GetRouteSearchAttributions returns a route
+func GetRouteSearchAttributions() string {
+	return getRoute(routeSearchAttributions)
 }
 
 // GetRouteMetrics returns a route

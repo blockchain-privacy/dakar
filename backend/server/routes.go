@@ -502,6 +502,28 @@ func handlerDeleteAllAttributions(dgraph external.Database) http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/searchAttributions"
+func handlerSearchAttributions(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply attributionOverviewReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getAttributionSearchReply(dgraph, tUser.ID, r.Body)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristics/<hash>"
 func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -936,126 +958,129 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 
 	// Metrics
 	http.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
-		basicAuthMiddleware(basicAuthUser, basicAuthHash)))
+		basicAuthMiddleware(basicAuthUser, basicAuthHash), maxBodyMiddleware()))
 
 	// Search
 	http.Handle(constants.GetRouteSearch(),
 		adapt(handlerSearch(dgraph, constants.GetRouteSearch()), constants.GetRouteSearch(),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 
 	// Common data
 	http.Handle(constants.GetRouteTransaction(),
 		adapt(handlerDetails(dgraph, constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
-			cacheMiddleware(cache, time.Second*0)))
+			cacheMiddleware(cache, time.Second*0), maxBodyMiddleware()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
 	http.Handle(constants.GetRouteBlock(),
 		adapt(handlerDetails(dgraph, constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
-			cacheMiddleware(cache, time.Second*10)))
+			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteAddress(),
 		adapt(handlerDetails(dgraph, constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
-			cacheMiddleware(cache, time.Second*10)))
+			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
 
 	http.Handle(constants.GetRouteAddressOutputRange(),
 		adapt(handlerAddressOutputRange(dgraph, constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 
 	http.Handle(constants.GetRouteBlockRange(),
 		adapt(handlerBlockRange(dgraph, constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 
 	// Meta
 	http.Handle(constants.GetRouteMeta(),
 		adapt(handlerMeta(dgraph, client), constants.GetRouteMeta(),
 			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Second*10)))
+			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
 
 	// Heuristic
 	http.Handle(constants.GetRouteHeuristics(),
 		adapt(handlerHeuristics(dgraph, worker), constants.GetRouteHeuristics(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicStatus(),
 		adapt(handlerHeuristicStatus(worker), constants.GetRouteHeuristicStatus(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicDetails(),
 		adapt(handlerHeuristicsDetails(dgraph), constants.GetRouteHeuristicDetails(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicsExecution(),
 		adapt(handlerHeuristicsExecution(dgraph, worker), constants.GetRouteHeuristicsExecution(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicsSummary(),
 		adapt(handlerHeuristicsSummary(dgraph), constants.GetRouteHeuristicsSummary(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicList(),
 		adapt(handlerHeuristicList(dgraph), constants.GetRouteHeuristicList(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHeuristicDescriptors(),
 		adapt(handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
-			authorizationMiddleware(privkey, pubkey), cacheMiddleware(cache, 0)))
+			authorizationMiddleware(privkey, pubkey), cacheMiddleware(cache, 0), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteHeuristic(),
 		adapt(handlerDeleteHeuristic(dgraph), constants.GetRouteDeleteHeuristic(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 
 	// Analytics
 	http.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(handlerShortestTransactionPath(dgraph), constants.GetRouteShortestTransactionPath(),
 			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteConnectionLookup(),
 		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
 			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteMixingActivity(),
 		adapt(handlerMixingActivity(dgraph), constants.GetRouteMixingActivity(),
 			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10)))
+			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
 
 	// Clusters
 	http.Handle(constants.GetRouteClusterLookup(),
 		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteHMILookup(),
 		adapt(handlerHMILookup(dgraph), constants.GetRouteHMILookup(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteClusterSummary(),
 		adapt(handlerClusterSummary(dgraph), constants.GetRouteClusterSummary(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteAddCluster(),
 		adapt(handlerAddCluster(dgraph), constants.GetRouteAddCluster(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteCluster(),
 		adapt(handlerDeleteCluster(dgraph), constants.GetRouteDeleteCluster(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteAllClusters(),
 		adapt(handlerDeleteAllClusters(dgraph), constants.GetRouteDeleteAllClusters(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteClusterOverview(),
 		adapt(handlerClusterOverview(dgraph), constants.GetRouteClusterOverview(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 
 	// Attributions
 	http.Handle(constants.GetRouteAddAttribution(),
 		adapt(handlerAddAttribution(dgraph), constants.GetRouteAddAttribution(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteAttributionOverview(),
 		adapt(handlerAttributionOverview(dgraph), constants.GetRouteAttributionOverview(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteAttribution(),
 		adapt(handlerDeleteAttribution(dgraph), constants.GetRouteDeleteAttribution(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteAllAttributions(),
 		adapt(handlerDeleteAllAttributions(dgraph), constants.GetRouteDeleteAllAttributions(),
-			authorizationMiddleware(privkey, pubkey)))
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	http.Handle(constants.GetRouteSearchAttributions(),
+		adapt(handlerSearchAttributions(dgraph), constants.GetRouteSearchAttributions(),
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 
 	// User
 	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))
 	http.Handle(constants.GetRouteLogout(), handlerLogout())
 	http.Handle(constants.GetRouteCreateUser(),
-		adapt(handlerCreateUser(dgraph), constants.GetRouteCreateUser(), authorizationMiddleware(privkey, pubkey)))
+		adapt(handlerCreateUser(dgraph), constants.GetRouteCreateUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteDeleteUser(),
-		adapt(handlerDeleteUser(dgraph), constants.GetRouteDeleteUser(), authorizationMiddleware(privkey, pubkey)))
+		adapt(handlerDeleteUser(dgraph), constants.GetRouteDeleteUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteGetUsers(),
-		adapt(handlerGetUsers(dgraph), constants.GetRouteGetUsers(), authorizationMiddleware(privkey, pubkey)))
+		adapt(handlerGetUsers(dgraph), constants.GetRouteGetUsers(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteModifyUser(),
-		adapt(handlerModifyUser(dgraph), constants.GetRouteModifyUser(), authorizationMiddleware(privkey, pubkey)))
+		adapt(handlerModifyUser(dgraph), constants.GetRouteModifyUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 }

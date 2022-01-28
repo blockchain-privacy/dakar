@@ -1127,3 +1127,34 @@ func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (re
 
 	return
 }
+
+func getAttributionSearchReply(dgraph external.Database, userUID string, body io.ReadCloser) (reply attributionOverviewReply) {
+	var searchRequest struct {
+		Query string `json:"q,omitempty"`
+	}
+
+	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
+		reply.Success = false
+		reply.Msg = "error decoding request"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if searchRequest.Query == "" {
+		reply.Success = false
+		reply.Msg = "empty query string"
+		return
+	}
+
+	attributions, err := attribution.SearchAttributions(dgraph, userUID, searchRequest.Query)
+	if err != nil {
+		reply.Msg = "no attributions found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Attributions = attributions
+
+	return
+}

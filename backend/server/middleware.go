@@ -162,7 +162,15 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 				h.ServeHTTP(recorder, r)
 
 				// get recorded values
-				httpStatusCode = recorder.Result().StatusCode
+				resp := recorder.Result()
+				defer func(Body io.ReadCloser) {
+					err := Body.Close()
+					if err != nil {
+
+					}
+				}(resp.Body)
+
+				httpStatusCode = resp.StatusCode
 				buf = recorder.Body.Bytes()
 
 				// create new cache element
@@ -219,6 +227,16 @@ func basicAuthMiddleware(u, pwhash string) adapter {
 				return
 			}
 
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func maxBodyMiddleware() adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 1048576 = 1024*1024, 1 Mib
+			r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 			h.ServeHTTP(w, r)
 		})
 	}
