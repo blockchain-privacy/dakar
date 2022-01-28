@@ -175,15 +175,21 @@ func SetupSchema(c external.Database) error {
 			}
 
 			attribution_user: uid @reverse . # the user which created the attribution
-			attribution_tag: string @index(term, trigram) .
+			attribution_tag: string @index(term, trigram) . # tag of the attribution
 			attribution_address: uid @reverse . # the attribution's address
 			attribution_ts: dateTime @index(day). # creation time of the attribution
+			attribution_description: string @index(term, trigram) . # description of the attribution
+			attribution_source: string @index(term, trigram) . # source (link) of the attribution
+			attribution_category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
 
 			type Attribution {
 				attribution_user
 				attribution_tag
 				attribution_address
 				attribution_ts
+				attribution_description
+				attribution_source
+				attribution_category
 			}
 		`,
 	})

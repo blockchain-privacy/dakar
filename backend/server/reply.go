@@ -977,7 +977,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply ad
 	csvReader := csv.NewReader(file)
 	csvReader.ReuseRecord = true
 	csvReader.Comma = rSeparator
-	csvReader.FieldsPerRecord = 2
+	csvReader.FieldsPerRecord = 5
 	var line []string
 
 	var addresses []analytics2.Attribution
@@ -999,17 +999,20 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply ad
 			continue
 		}
 
-		newAddress := analytics2.Attribution{
+		newAttribution := analytics2.Attribution{
 			AddressHash: line[0],
 			Tag:         line[1],
+			Description: line[2],
+			Source:      line[3],
+			Category:    line[4],
 		}
 
-		if newAddress.AddressHash == "" || newAddress.Tag == "" {
+		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {
 			reply.Msg = CsvInvalidData
 			return
 		}
 
-		addresses = append(addresses, newAddress)
+		addresses = append(addresses, newAttribution)
 	}
 
 	if len(addresses) == 0 {

@@ -29,9 +29,19 @@
         {{ attribution.address }}
       </v-list-item-content>
     </v-list-item>
-    <v-list-item>
+    <v-list-item v-if="attribution.description">
       <v-list-item-content>
-        Source:
+        Description: {{ attribution.description }}
+      </v-list-item-content>
+    </v-list-item>
+    <v-list-item v-if="attribution.source">
+      <v-list-item-content>
+        Source: {{ attribution.source }}
+      </v-list-item-content>
+    </v-list-item>
+    <v-list-item v-if="attribution.category">
+      <v-list-item-content>
+        Category: {{ attribution.category }}
       </v-list-item-content>
     </v-list-item>
     <delete-attribution v-model="deleteAttributionDialog" :attribution-uid="deleteAttributionUid"

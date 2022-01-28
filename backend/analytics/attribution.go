@@ -13,11 +13,14 @@ import (
 type Attribution struct {
 	AddressHash string
 	Tag         string
+	Description string
+	Source      string
+	Category    string
 }
 
 var (
-	ErrTooManyAddresses   = errors.New("request contains more than 1000 addresses")
-	ErrNonExistentAddress = errors.New("address does not exist")
+	errTooManyAddresses   = errors.New("request contains more than 1000 addresses")
+	errNonExistentAddress = errors.New("address does not exist")
 )
 
 // ImportAttribution writes the given address relations into the database
@@ -45,10 +48,13 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 	var dbAttributions []attribution.Attribution
 	for _, a := range attributions {
 		attr := attribution.Attribution{
-			Address:   attribution.HollowAddress{Uid: hashToUID[a.AddressHash]},
-			Tag:       a.Tag,
-			Timestamp: attributionTimestamp,
-			User:      attribution.HollowUser{Uid: userID},
+			Address:     attribution.HollowAddress{Uid: hashToUID[a.AddressHash]},
+			Tag:         a.Tag,
+			Description: a.Description,
+			Source:      a.Source,
+			Category:    a.Category,
+			Timestamp:   attributionTimestamp,
+			User:        attribution.HollowUser{Uid: userID},
 		}
 
 		attr.SetDType()
@@ -60,13 +66,13 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 }
 
 // validateAddresses returns an error, if the given attribution items are not valid.
-// Returns ErrTooManyAddresses if there are more than 1000 items.
+// Returns errTooManyAddresses if there are more than 1000 items.
 // If an address does not exist on the db an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID.
 func validateAddresses(dgraph external.Database, attributions []Attribution) (error, map[string]string) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
-		return ErrTooManyAddresses, nil
+		return errTooManyAddresses, nil
 	}
 
 	addresses := map[string]bool{}
@@ -98,7 +104,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (er
 			break
 		}
 
-		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
+		return fmt.Errorf("%s: %w", nonAddress, errNonExistentAddress), nil
 	}
 
 	// build mapping

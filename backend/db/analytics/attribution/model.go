@@ -11,12 +11,15 @@ type HollowAddress struct {
 }
 
 type Attribution struct {
-	Uid       string        `json:"uid,omitempty"`
-	Timestamp string        `json:"attribution_ts,omitempty"`
-	Address   HollowAddress `json:"attribution_address,omitempty"`
-	Tag       string        `json:"attribution_tag,omitempty"`
-	User      HollowUser    `json:"attribution_user,omitempty"`
-	DType     []string      `json:"dgraph.type,omitempty"`
+	Uid         string        `json:"uid,omitempty"`
+	Timestamp   string        `json:"attribution_ts,omitempty"`
+	Address     HollowAddress `json:"attribution_address,omitempty"`
+	Tag         string        `json:"attribution_tag,omitempty"`
+	Description string        `json:"attribution_description,omitempty"`
+	Source      string        `json:"attribution_source,omitempty"`
+	Category    string        `json:"attribution_category,omitempty"`
+	User        HollowUser    `json:"attribution_user,omitempty"`
+	DType       []string      `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition

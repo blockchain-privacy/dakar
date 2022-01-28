@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="show" max-width="700px">
+  <v-dialog v-model="show" max-width="1000px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
         <span class="text-h5">Import Attributions</span>
@@ -7,8 +7,10 @@
       <v-card-text>
         <div class="text-subtitle-1">
           Import address attributions by uploading a CSV-file.
-          The file must have two columns, where the first column contains an
-          address hash and the second column the address tag.
+          The file must have five columns (<code>address</code>,
+          <code>tag</code>,<code>description</code>,<code>source</code> and
+          <code>category</code>). The fields <code>address</code>
+          and <code>tag</code> are mandatory, the rest are optional.
         </div>
         <v-expansion-panels flat>
           <v-expansion-panel>
@@ -17,13 +19,13 @@
             </v-expansion-panel-header>
             <v-expansion-panel-content>
               <p>The following file content would generate five attributions,
-                with one address having two tags.</p>
-              <pre><code>address;tag
-XgfSvDijDxPyWGXUw6CAxe91iYzZDMe3CV;darknet-address
-XooBLwqL5wbBjoHJ1D4iZyrHWSRKQeRms9;twitter-@josh
-XeNFLcypT3ayuqjVzK5HnzfRMBxwuBVKfB;facebook-some-user-name
-XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;case-123
-XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex</code></pre>
+                with one address having two tags. </p>
+              <pre><code>address;tag;description;source;category
+XgfSvDijDxPyWGXUw6CAxe91iYzZDMe3CV;darknet-address;;;
+XooBLwqL5wbBjoHJ1D4iZyrHWSRKQeRms9;twitter-@josh;Josh Noname;https://twitter.com/josh;social media
+XeNFLcypT3ayuqjVzK5HnzfRMBxwuBVKfB;facebook-some-user-name;;;social media
+XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;case-123;;;
+XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>
@@ -76,7 +78,7 @@ function codeToMsg(msgCode) {
     case 'unsupported_separator':
       return 'invalid column separator';
     case 'file_invalid_field_count':
-      return 'file must have two columns';
+      return 'file must have five columns';
     case 'file_no_data':
       return 'file does not contain data';
     case 'file_invalid_data':
