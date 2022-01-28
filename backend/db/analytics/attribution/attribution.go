@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v210/protos/api"
+	"regexp"
 	"time"
 )
 
@@ -139,6 +140,60 @@ func DeleteAllAttributions(c external.Database, userID string) (err error) {
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
 		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// SearchAttributions returns the attributions that match the query string
+func SearchAttributions(c external.Database, userID string, searchQuery string) (attributions []FrontendAttribution, err error) {
+	regex := "/" + regexp.QuoteMeta(searchQuery) + "/i"
+
+	const query = `query Q($user:string,$regex:string) {
+				var(func:uid($user))@filter(type(User)){
+					a as ~attribution_user
+				}
+
+				pa as var(func:type(` + DType + `))@filter(not has(attribution_user))
+
+				q(func: uid(a, pa), first: 30)@filter(regexp(attribution_tag,$regex)){
+					uid
+					attribution_ts
+					attribution_tag
+					attribution_address{
+						addresshash
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID, "$regex": regex})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Attributions []struct {
+			Uid       string `json:"uid,omitempty"`
+			Timestamp string `json:"attribution_ts,omitempty"`
+			Tag       string `json:"attribution_tag,omitempty"`
+			Address   struct {
+				Hash string `json:"addresshash,omitempty"`
+			} `json:"attribution_address,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, attribution := range r.Attributions {
+		attributions = append(attributions, FrontendAttribution{
+			Uid:       attribution.Uid,
+			Timestamp: attribution.Timestamp,
+			Address:   attribution.Address.Hash,
+			Tag:       attribution.Tag,
+		})
 	}
 
 	return
