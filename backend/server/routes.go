@@ -341,7 +341,7 @@ func handlerAddCluster(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddClusterReply(dgraph, w, r)
+		reply := getAddClusterReply(dgraph, r)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -446,7 +446,7 @@ func handlerAddAttribution(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddAttributionReply(dgraph, w, r)
+		reply := getAddAttributionReply(dgraph, r)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {

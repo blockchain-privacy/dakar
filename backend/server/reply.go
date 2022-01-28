@@ -820,7 +820,7 @@ const (
 	CsvErrorImporting    = "file_error_importing"
 )
 
-func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addClusterReply) {
+func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClusterReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = "User not found"
@@ -828,10 +828,7 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 		return
 	}
 
-	const MaxUploadSize = 1024 * 1024
-
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
 		return
 	}
 
@@ -931,7 +928,7 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 	return
 }
 
-func getAddAttributionReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addAttributionReply) {
+func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply addAttributionReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = "User not found"
@@ -939,10 +936,7 @@ func getAddAttributionReply(dgraph external.Database, w http.ResponseWriter, r *
 		return
 	}
 
-	const MaxUploadSize = 1024 * 1024
-
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
 		return
 	}
 

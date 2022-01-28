@@ -235,8 +235,7 @@ func basicAuthMiddleware(u, pwhash string) adapter {
 func maxBodyMiddleware() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 1048576 = 1024*1024, 1 Mib
-			r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 			h.ServeHTTP(w, r)
 		})
 	}
