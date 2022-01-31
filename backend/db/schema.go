@@ -181,6 +181,7 @@ func SetupSchema(c external.Database) error {
 			attribution_description: string @index(term, trigram) . # description of the attribution
 			attribution_source: string @index(term, trigram) . # source (link) of the attribution
 			attribution_category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
+			attribution_ispublic: bool @index(bool) . # set to true if the attribution is available to everyone
 
 			type Attribution {
 				attribution_user
@@ -190,6 +191,7 @@ func SetupSchema(c external.Database) error {
 				attribution_description
 				attribution_source
 				attribution_category
+				attribution_ispublic
 			}
 		`,
 	})
