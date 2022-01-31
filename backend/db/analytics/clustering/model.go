@@ -126,14 +126,17 @@ type FrontendCluster struct {
 	BlockHash       string            `json:"bhash,omitempty"`
 	Timestamp       time.Time         `json:"ts,omitempty"`
 	Addresses       []FrontendAddress `json:"cluster_addresses,omitempty"`
-	Tags            []string          `json:"tags,omitempty"`
+	Attributions    []Attribution     `json:"attributions,omitempty"`
+}
+
+type Attribution struct {
+	Tag      string `json:"tag,omitempty"`
+	IsPublic bool   `json:"ispublic,omitempty"`
 }
 
 type ClusterTags struct {
-	Uid  string `json:"uid,omitempty"`
-	Tags []struct {
-		Tag string `json:"tag,omitempty"`
-	}
+	Uid          string        `json:"uid,omitempty"`
+	Attributions []Attribution `json:"tags,omitempty"`
 }
 
 type FrontendClusterRequest struct {

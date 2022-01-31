@@ -323,8 +323,9 @@ func getClusterQuery(maxAddresses int) string {
 			tags(func: uid(c))@filter(not eq(cluster_type,` + string(TypeHMI) + `)){
 				uid
 				tags:cluster_addresses@normalize {
-					~attribution_address {
+					~attribution_address@filter(eq(attribution_ispublic,true) or uid_in(attribution_user,$user)) {
 						tag:attribution_tag
+						ispublic:attribution_ispublic
 					}
 				}
 			}`
@@ -333,15 +334,10 @@ func getClusterQuery(maxAddresses int) string {
 // responseToFrontendClusters combines the results of a cluster request to frontend clusters
 func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags []ClusterTags) (
 	frontendClusters []FrontendCluster, err error) {
-	tagMap := make(map[string][]string)
+	tagMap := make(map[string][]Attribution)
 
 	for _, c := range clusterTags {
-		var tags []string
-		for _, t := range c.Tags {
-			tags = append(tags, t.Tag)
-		}
-
-		tagMap[c.Uid] = tags
+		tagMap[c.Uid] = c.Attributions
 	}
 
 	for _, cluster := range clusters {
@@ -354,7 +350,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 			Type:         cluster.Type,
 			AddressCount: cluster.AddressCount,
 			Addresses:    cluster.Addresses,
-			Tags:         tagMap[cluster.Uid],
+			Attributions: tagMap[cluster.Uid],
 		}
 
 		// uid is only needed for deleting custom clusters
@@ -377,13 +373,15 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 }
 
 // GetClusters returns cluster information for all clusters (except hmi clusters) associated with addressHash
-func GetClusters(c external.Database, addressHash string, maxAddresses int) (clusters []FrontendCluster, err error) {
-	query := `query Q($addressHash:string) {
+func GetClusters(c external.Database, addressHash string, maxAddresses int,
+	userID string) (clusters []FrontendCluster, err error) {
+	query := `query Q($addressHash:string,$user:string) {
 				var(func:eq(addresshash,$addressHash)){
 					c as ~cluster_addresses
 				}` + getClusterQuery(maxAddresses) + "}"
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash,
+		"$user": userID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

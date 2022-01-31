@@ -18,8 +18,8 @@ var (
 	roleMap = map[string]Role{AdminRoleName: NewAdminRole(),
 		"user": NewDefaultUserRole(), "privileged": NewPrivilegedRole()}
 
-	// role maps; we need to look up roles very often; string slice lookup are slower than map lookups
-	// even for small slices: https://www.golangprograms.com/golang-slice-vs-map-benchmark-testing.html
+	// role maps; we need to look up roles very often; string slice lookups are slower than map lookups
+	// even for small slices: https://boltandnuts.wordpress.com/2017/11/20/go-slice-vs-maps/
 	adminRoleMap       = map[string]bool{allRoutes: true}
 	defaultUserRoleMap = map[string]bool{
 		// data
@@ -65,10 +65,11 @@ var (
 		constants.GetRouteClusterOverview():   true,
 		//constants.GetRouteHMILookup():     true,
 		// Attribution
-		constants.GetRouteAddAttribution():        true,
-		constants.GetRouteAttributionOverview():   true,
-		constants.GetRouteDeleteAttribution():     true,
-		constants.GetRouteDeleteAllAttributions(): true,
+		constants.GetRouteAddPrivateAttribution():        true,
+		constants.GetRouteAttributionOverview():          true,
+		constants.GetRouteDeletePrivateAttribution():     true,
+		constants.GetRouteDeleteAllPrivateAttributions(): true,
+		constants.GetRouteSearchAttributions():           true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")

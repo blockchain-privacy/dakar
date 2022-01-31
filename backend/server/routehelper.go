@@ -202,7 +202,8 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 	return SearchResult{resultType: typeAddr, result: addr}, true, nil
 }
 
-// extractTokenUser extracts the tokenUser from the context
+// extractTokenUser extracts the tokenUser from the context.
+// Returns an error if no user data could be extracted
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {

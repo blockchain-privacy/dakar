@@ -581,7 +581,8 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 }
 
 // getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
-func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int) (clusters []clustering.FrontendCluster, msg string, err error) {
+func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int,
+	userID string) (clusters []clustering.FrontendCluster, msg string, err error) {
 	// parse request
 	var req clustering.ClusterLookupRequest
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
@@ -591,7 +592,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 	}
 
 	if req.AddressHash == "" {
-		msg = "address hash was not provided"
+		msg = "address hash is empty"
 		return
 	}
 
@@ -600,7 +601,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 		return
 	}
 
-	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses)
+	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
 	if getErr != nil {
 		msg = "error while searching for clusters"
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
@@ -612,10 +613,10 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenUser) (reply clusterLookupReply) {
 	const maxAddresses = 30
 
-	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses)
+	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses, user.ID)
 	reply.Msg = msg
 	if err != nil {
 		info(err)
@@ -734,7 +735,13 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 // writeClusterSummary writes heuristic data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
-	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0)
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		return
+	}
+
+	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0, tUser.ID)
 	if err != nil {
 		handleError(w, err)
 		info(msg)
@@ -742,7 +749,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	}
 
 	if len(clusters) == 0 {
-		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
 		return
 	}
 
@@ -928,7 +935,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	return
 }
 
-func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply addAttributionReply) {
+func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply addAttributionReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = "User not found"
@@ -1020,7 +1027,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request) (reply ad
 		return
 	}
 
-	if err := analytics2.ImportAttribution(dgraph, addresses, tUser.ID); err != nil {
+	if err := analytics2.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
 		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
@@ -1096,13 +1103,21 @@ func getAttributionOverviewReply(dgraph external.Database, userUID string) (repl
 	return
 }
 
-func getDeleteAttributionReply(dgraph external.Database, userUID string, attributionUid string) (reply deleteAttributionReply) {
+func getDeleteAttributionReply(dgraph external.Database, userUID string,
+	attributionUid string, isPublicDeletion bool) (reply deleteAttributionReply) {
 	if attributionUid == "" {
 		reply.Msg = "attribution uid was not set"
 		return
 	}
 
-	if err := attribution.DeleteAttribution(dgraph, userUID, attributionUid); err != nil {
+	var err error
+	if isPublicDeletion {
+		err = attribution.DeletePublicAttribution(dgraph, attributionUid)
+	} else {
+		err = attribution.DeletePrivateAttribution(dgraph, userUID, attributionUid)
+	}
+
+	if err != nil {
 		reply.Msg = "could not delete attribution"
 		info(cliutil.ShowCallInfo(), err)
 		return

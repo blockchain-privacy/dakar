@@ -24,7 +24,7 @@ var (
 )
 
 // ImportAttribution writes the given address relations into the database
-func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string) error {
+func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string, isPublic bool) error {
 	if userID == "" {
 		return errors.New("user ID is not set")
 	}
@@ -34,7 +34,7 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 		return err
 	}
 
-	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID)
+	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID, isPublic)
 	if err := attribution.AddAttributions(dgraph, dbAttributions); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -42,19 +42,24 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 	return nil
 }
 
-func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string) []attribution.Attribution {
+func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string,
+	isPublic bool) []attribution.Attribution {
 	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
 
 	var dbAttributions []attribution.Attribution
 	for _, a := range attributions {
 		attr := attribution.Attribution{
-			Address:     attribution.HollowAddress{Uid: hashToUID[a.AddressHash]},
+			Address:     &attribution.HollowAddress{Uid: hashToUID[a.AddressHash]},
 			Tag:         a.Tag,
 			Description: a.Description,
 			Source:      a.Source,
 			Category:    a.Category,
 			Timestamp:   attributionTimestamp,
-			User:        attribution.HollowUser{Uid: userID},
+			IsPublic:    isPublic,
+		}
+
+		if !isPublic {
+			attr.User = &attribution.HollowUser{Uid: userID}
 		}
 
 		attr.SetDType()

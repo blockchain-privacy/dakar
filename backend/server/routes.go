@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	errorClusterSummary     = "error getting cluster summary"
 	errorHeuristicSummary   = "error getting heuristic summary"
 	errorHeuristics         = "error getting heuristics"
 	errorHeuristicExecution = "error executing heuristics"
@@ -441,12 +442,12 @@ func handlerAttributionOverview(dgraph external.Database) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/addAttribution"
-func handlerAddAttribution(dgraph external.Database) http.Handler {
+// API pattern: "/api/v1/addPrivateAttribution"
+func handlerAddPrivateAttribution(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddAttributionReply(dgraph, r)
+		reply := getAddAttributionReply(dgraph, r, false)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -456,20 +457,35 @@ func handlerAddAttribution(dgraph external.Database) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/deleteAttribution/<cluster_uid>"
-func handlerDeleteAttribution(dgraph external.Database) http.Handler {
+// API pattern: "/api/v1/addPublicAttribution"
+func handlerAddPublicAttribution(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddAttributionReply(dgraph, r, true)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deletePrivateAttribution/<cluster_uid>"
+func handlerDeletePrivateAttribution(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		var reply deleteAttributionReply
 
-		attributionUid := r.URL.Path[len(constants.GetRouteDeleteAttribution()):]
+		attributionUid := r.URL.Path[len(constants.GetRouteDeletePrivateAttribution()):]
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid)
+			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid, false)
 		}
 
 		// encoding
@@ -480,8 +496,32 @@ func handlerDeleteAttribution(dgraph external.Database) http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/deleteAllAttributions"
-func handlerDeleteAllAttributions(dgraph external.Database) http.Handler {
+// API pattern: "/api/v1/deletePublicAttribution/<cluster_uid>"
+func handlerDeletePublicAttribution(dgraph external.Database) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAttributionReply
+
+		attributionUid := r.URL.Path[len(constants.GetRouteDeletePublicAttribution()):]
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid, true)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAllPrivateAttributions"
+func handlerDeleteAllPrivateAttributions(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -905,7 +945,14 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getClusterLookupReply(dgraph, r.Body)
+		var reply clusterLookupReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error modifying user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getClusterLookupReply(dgraph, r.Body, tUser)
+		}
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -1056,17 +1103,23 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 
 	// Attributions
-	http.Handle(constants.GetRouteAddAttribution(),
-		adapt(handlerAddAttribution(dgraph), constants.GetRouteAddAttribution(),
+	http.Handle(constants.GetRouteAddPrivateAttribution(),
+		adapt(handlerAddPrivateAttribution(dgraph), constants.GetRouteAddPrivateAttribution(),
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	http.Handle(constants.GetRouteAddPublicAttribution(),
+		adapt(handlerAddPublicAttribution(dgraph), constants.GetRouteAddPublicAttribution(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteAttributionOverview(),
 		adapt(handlerAttributionOverview(dgraph), constants.GetRouteAttributionOverview(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteAttribution(),
-		adapt(handlerDeleteAttribution(dgraph), constants.GetRouteDeleteAttribution(),
+	http.Handle(constants.GetRouteDeletePrivateAttribution(),
+		adapt(handlerDeletePrivateAttribution(dgraph), constants.GetRouteDeletePrivateAttribution(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteAllAttributions(),
-		adapt(handlerDeleteAllAttributions(dgraph), constants.GetRouteDeleteAllAttributions(),
+	http.Handle(constants.GetRouteDeletePublicAttribution(),
+		adapt(handlerDeletePublicAttribution(dgraph), constants.GetRouteDeletePublicAttribution(),
+			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	http.Handle(constants.GetRouteDeleteAllPrivateAttributions(),
+		adapt(handlerDeleteAllPrivateAttributions(dgraph), constants.GetRouteDeleteAllPrivateAttributions(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
 	http.Handle(constants.GetRouteSearchAttributions(),
 		adapt(handlerSearchAttributions(dgraph), constants.GetRouteSearchAttributions(),

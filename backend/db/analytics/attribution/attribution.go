@@ -16,7 +16,8 @@ import (
 func AddAttributions(c external.Database, attributions []Attribution) error {
 	// validate data
 	for _, a := range attributions {
-		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" {
+		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" ||
+			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
 			return fmt.Errorf("attribution invalid: %v", a)
 		}
 	}
@@ -52,6 +53,10 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 					uid
 					attribution_ts
 					attribution_tag
+					attribution_description
+					attribution_source
+					attribution_category
+					attribution_ispublic
 					attribution_address{
 						addresshash
 					}
@@ -65,14 +70,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 	}
 
 	var r struct {
-		Attributions []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"attribution_ts,omitempty"`
-			Tag       string `json:"attribution_tag,omitempty"`
-			Address   struct {
-				Hash string `json:"addresshash,omitempty"`
-			} `json:"attribution_address,omitempty"`
-		} `json:"q,omitempty"`
+		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -80,19 +78,14 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 	}
 
 	for _, attribution := range r.Attributions {
-		attributions = append(attributions, FrontendAttribution{
-			Uid:       attribution.Uid,
-			Timestamp: attribution.Timestamp,
-			Address:   attribution.Address.Hash,
-			Tag:       attribution.Tag,
-		})
+		attributions = append(attributions, attribution.toFrontendAttribution())
 	}
 
 	return
 }
 
-// DeleteAttribution deletes the given attribution
-func DeleteAttribution(c external.Database, userID string, attributionUID string) (err error) {
+// DeletePrivateAttribution deletes the given attribution
+func DeletePrivateAttribution(c external.Database, userID string, attributionUID string) (err error) {
 	req := &api.Request{
 		Query: `query Q($user:string,$attribution:string) {
 				var(func:uid($user))@filter(type(User)){
@@ -111,6 +104,32 @@ func DeleteAttribution(c external.Database, userID string, attributionUID string
 		return
 	}
 
+	// check if there was actually something mutated
+	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
+		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// DeletePublicAttribution deletes the given public attribution
+func DeletePublicAttribution(c external.Database, attributionUID string) (err error) {
+	req := &api.Request{
+		Query: `query Q($attribution:string) {
+				a as var(func:uid($attribution))@filter(type(` + DType + ") and eq(attribution_ispublic,true))}",
+		Vars: map[string]string{"$attribution": attributionUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte("uid(a) * * ."),
+		}},
+		CommitNow: true,
+	}
+	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if txErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		return
+	}
+
+	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
 		return errors.New("nothing was deleted")
 	}
@@ -154,12 +173,16 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 					a as ~attribution_user
 				}
 
-				pa as var(func:type(` + DType + `))@filter(not has(attribution_user))
+				pa as var(func:type(` + DType + `))@filter(eq(attribution_ispublic,true))
 
 				q(func: uid(a, pa), first: 30)@filter(regexp(attribution_tag,$regex)){
 					uid
 					attribution_ts
 					attribution_tag
+					attribution_description
+					attribution_source
+					attribution_category
+					attribution_ispublic
 					attribution_address{
 						addresshash
 					}
@@ -173,27 +196,16 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	}
 
 	var r struct {
-		Attributions []struct {
-			Uid       string `json:"uid,omitempty"`
-			Timestamp string `json:"attribution_ts,omitempty"`
-			Tag       string `json:"attribution_tag,omitempty"`
-			Address   struct {
-				Hash string `json:"addresshash,omitempty"`
-			} `json:"attribution_address,omitempty"`
-		} `json:"q,omitempty"`
+		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
+
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	for _, attribution := range r.Attributions {
-		attributions = append(attributions, FrontendAttribution{
-			Uid:       attribution.Uid,
-			Timestamp: attribution.Timestamp,
-			Address:   attribution.Address.Hash,
-			Tag:       attribution.Tag,
-		})
+		attributions = append(attributions, attribution.toFrontendAttribution())
 	}
 
 	return
