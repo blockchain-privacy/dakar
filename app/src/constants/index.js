@@ -33,10 +33,12 @@ export const ROUTE_DELETE_CLUSTER = `${routePrefix}deleteCluster/`;
 export const ROUTE_DELETE_ALL_CLUSTERS = `${routePrefix}deleteAllClusters/`;
 export const ROUTE_CLUSTER_OVERVIEW = `${routePrefix}clusterOverview/`;
 export const ROUTE_MIXING_ACTIVITY = `${routePrefix}mixingActivity/`;
-export const ROUTE_ADD_ATTRIBUTION = `${routePrefix}addAttribution/`;
+export const ROUTE_ADD_PRIVATE_ATTRIBUTION = `${routePrefix}addPrivateAttribution/`;
+export const ROUTE_ADD_PUBLIC_ATTRIBUTION = `${routePrefix}addPublicAttribution/`;
 export const ROUTE_ATTRIBUTION_OVERVIEW = `${routePrefix}attributionOverview/`;
-export const ROUTE_DELETE_ATTRIBUTION = `${routePrefix}deleteAttribution/`;
-export const ROUTE_DELETE_ALL_ATTRIBUTIONS = `${routePrefix}deleteAllAttributions/`;
+export const ROUTE_DELETE_PRIVATE_ATTRIBUTION = `${routePrefix}deletePrivateAttribution/`;
+export const ROUTE_DELETE_PUBLIC_ATTRIBUTION = `${routePrefix}deletePublicAttribution/`;
+export const ROUTE_DELETE_ALL_PRIVATE_ATTRIBUTIONS = `${routePrefix}deleteAllPrivateAttributions/`;
 export const ROUTE_SEARCH_ATTRIBUTIONS = `${routePrefix}searchAttributions/`;
 
 // search responses

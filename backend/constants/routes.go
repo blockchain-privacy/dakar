@@ -3,43 +3,45 @@ package constants
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch                string = "search"
-	routeTransaction           string = "tx"
-	routeBlock                 string = "blk"
-	routeAddress               string = "address"
-	routeMeta                  string = "meta"
-	routeHeuristics            string = "heuristics"
-	routeHeuristicsSummary     string = "heuristicsSummary"
-	routeHeuristicsExecution   string = "executeHeuristics"
-	routeHeuristicDetails      string = "heuristicDetails"
-	routeHeuristicStatus       string = "heuristicStatus"
-	routeHeuristicList         string = "heuristicList"
-	routeHeuristicDescriptors  string = "heuristicDescriptors"
-	routeDeleteHeuristic       string = "deleteHeuristic"
-	routeAddressOutputRange    string = "addressOutputRange"
-	routeBlockRange            string = "blkRange"
-	routeCreateUser            string = "createUser"
-	routeGetUsers              string = "getUsers"
-	routeDeleteUser            string = "deleteUser"
-	routeLogin                 string = "login"
-	routeLogout                string = "logout"
-	routeModifyUser            string = "modifyUser"
-	routeShortestTxPath        string = "shortestTransactionPath"
-	routeConnectionLookup      string = "connectionLookup"
-	routeClusterLookup         string = "clusterLookup"
-	routeClusterSummary        string = "clusterSummary"
-	routeHMILookup             string = "hmiLookup"
-	routeMixingActivity        string = "mixingActivity"
-	routeAddCluster            string = "addCluster"
-	routeDeleteCluster         string = "deleteCluster"
-	routeDeleteAllClusters     string = "deleteAllClusters"
-	routeClusterOverview       string = "clusterOverview"
-	routeAttributionOverview   string = "attributionOverview"
-	routeAddAttribution        string = "addAttribution"
-	routeDeleteAttribution     string = "deleteAttribution"
-	routeDeleteAllAttributions string = "deleteAllAttributions"
-	routeSearchAttributions    string = "searchAttributions"
-	routeMetrics               string = "/metrics"
+	routeSearch                       string = "search"
+	routeTransaction                  string = "tx"
+	routeBlock                        string = "blk"
+	routeAddress                      string = "address"
+	routeMeta                         string = "meta"
+	routeHeuristics                   string = "heuristics"
+	routeHeuristicsSummary            string = "heuristicsSummary"
+	routeHeuristicsExecution          string = "executeHeuristics"
+	routeHeuristicDetails             string = "heuristicDetails"
+	routeHeuristicStatus              string = "heuristicStatus"
+	routeHeuristicList                string = "heuristicList"
+	routeHeuristicDescriptors         string = "heuristicDescriptors"
+	routeDeleteHeuristic              string = "deleteHeuristic"
+	routeAddressOutputRange           string = "addressOutputRange"
+	routeBlockRange                   string = "blkRange"
+	routeCreateUser                   string = "createUser"
+	routeGetUsers                     string = "getUsers"
+	routeDeleteUser                   string = "deleteUser"
+	routeLogin                        string = "login"
+	routeLogout                       string = "logout"
+	routeModifyUser                   string = "modifyUser"
+	routeShortestTxPath               string = "shortestTransactionPath"
+	routeConnectionLookup             string = "connectionLookup"
+	routeClusterLookup                string = "clusterLookup"
+	routeClusterSummary               string = "clusterSummary"
+	routeHMILookup                    string = "hmiLookup"
+	routeMixingActivity               string = "mixingActivity"
+	routeAddCluster                   string = "addCluster"
+	routeDeleteCluster                string = "deleteCluster"
+	routeDeleteAllClusters            string = "deleteAllClusters"
+	routeClusterOverview              string = "clusterOverview"
+	routeAttributionOverview          string = "attributionOverview"
+	routeAddPrivateAttribution        string = "addPrivateAttribution"
+	routeAddPublicAttribution         string = "addPublicAttribution"
+	routeDeletePrivateAttribution     string = "deletePrivateAttribution"
+	routeDeletePublicAttribution      string = "deletePublicAttribution"
+	routeDeleteAllPrivateAttributions string = "deleteAllPrivateAttributions"
+	routeSearchAttributions           string = "searchAttributions"
+	routeMetrics                      string = "/metrics"
 )
 
 func getRoute(r string) string {
@@ -201,9 +203,14 @@ func GetRouteClusterOverview() string {
 	return getRoute(routeClusterOverview)
 }
 
-// GetRouteAddAttribution returns a route
-func GetRouteAddAttribution() string {
-	return getRoute(routeAddAttribution)
+// GetRouteAddPrivateAttribution returns a route
+func GetRouteAddPrivateAttribution() string {
+	return getRoute(routeAddPrivateAttribution)
+}
+
+// GetRouteAddPublicAttribution returns a route
+func GetRouteAddPublicAttribution() string {
+	return getRoute(routeAddPublicAttribution)
 }
 
 // GetRouteAttributionOverview returns a route
@@ -211,14 +218,19 @@ func GetRouteAttributionOverview() string {
 	return getRoute(routeAttributionOverview)
 }
 
-// GetRouteDeleteAttribution returns a route
-func GetRouteDeleteAttribution() string {
-	return getRoute(routeDeleteAttribution)
+// GetRouteDeletePrivateAttribution returns a route
+func GetRouteDeletePrivateAttribution() string {
+	return getRoute(routeDeletePrivateAttribution)
 }
 
-// GetRouteDeleteAllAttributions returns a route
-func GetRouteDeleteAllAttributions() string {
-	return getRoute(routeDeleteAllAttributions)
+// GetRouteDeletePublicAttribution returns a route
+func GetRouteDeletePublicAttribution() string {
+	return getRoute(routeDeletePublicAttribution)
+}
+
+// GetRouteDeleteAllPrivateAttributions returns a route
+func GetRouteDeleteAllPrivateAttributions() string {
+	return getRoute(routeDeleteAllPrivateAttributions)
 }
 
 // GetRouteSearchAttributions returns a route
