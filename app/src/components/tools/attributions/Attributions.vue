@@ -1,34 +1,38 @@
 <template>
-  <v-card
-      class="mx-auto elevation-4" max-width="1200">
-    <v-toolbar dark flat color="primary" class="mb-1">
-      <v-toolbar-title>
-        <v-icon>{{ icon.mdiTag }}</v-icon>
-        Attributions
-      </v-toolbar-title>
-      <template v-slot:extension>
-        <!-- 'color="white"' should not be necessary, but due to a bug it is.
-        If it is not set, the text color of the tabs is always set to 'primary'.
-        Should be fixed in vuetify v3 -->
-        <v-tabs v-model="tab" align-with-title dark color="white">
-          <v-tab>
-            Overview
-          </v-tab>
-          <v-tab>
-            Search
-          </v-tab>
-        </v-tabs>
-      </template>
-    </v-toolbar>
-    <v-tabs-items v-model="tab">
+  <div>
+    <v-card class="mx-auto elevation-4 mb-0" max-width="1200">
+      <v-toolbar dark flat color="primary">
+        <v-toolbar-title>
+          <v-icon>{{ icon.mdiTag }}</v-icon>
+          Attributions
+        </v-toolbar-title>
+        <template v-slot:extension>
+          <!-- 'color="white"' should not be necessary, but due to a bug it is.
+          If it is not set, the text color of the tabs is always set to 'primary',
+          which causes problems in dark mode. Should be fixed in vuetify v3 -->
+          <v-tabs v-model="tab" align-with-title dark color="white">
+            <v-tab>
+              Private Attributions
+            </v-tab>
+            <v-tab>
+              Search
+            </v-tab>
+          </v-tabs>
+        </template>
+      </v-toolbar>
+    </v-card>
+    <v-tabs-items
+        v-model="tab" class="mx-auto"
+        style="max-width: 1200px; background-color: transparent">
       <v-tab-item>
         <attribution-overview/>
       </v-tab-item>
       <v-tab-item>
-        <attribution-search />
+        <attribution-search/>
       </v-tab-item>
     </v-tabs-items>
-  </v-card>
+  </div>
+
 </template>
 
 <script>

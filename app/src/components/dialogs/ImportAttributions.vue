@@ -42,6 +42,10 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
               <v-switch v-model="csv.firstRowContainsHeader"
                         label="First row of file contains headers" :disabled="isLoading"/>
             </v-col>
+            <v-col v-if="isAdminUser(userData)">
+              <v-switch v-model="areAttributionsPublic"
+                        label="Public attributions" :disabled="isLoading"/>
+            </v-col>
             <v-col>
               <v-select
                   v-model="csv.separator"
@@ -67,8 +71,8 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 </template>
 
 <script>
-import { ROUTE_ADD_ATTRIBUTION } from '../../constants';
-import { doPostUpload } from '../../utilities';
+import { ROUTE_ADD_PRIVATE_ATTRIBUTION, ROUTE_ADD_PUBLIC_ATTRIBUTION } from '../../constants';
+import { doPostUpload, isAdminUser } from '../../utilities';
 
 // codeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
@@ -106,6 +110,7 @@ export default {
         { text: 'Colon (,)', value: ',' },
         { text: 'Semicolon (;)', value: ';' },
       ],
+      areAttributionsPublic: false,
       csv: {
         valid: false,
         file: null,
@@ -130,8 +135,17 @@ export default {
         this.$emit('input', value);
       },
     },
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
   },
   methods: {
+    isAdminUser,
     setSuccessMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
     },
@@ -148,9 +162,10 @@ export default {
       newForm.append('file', this.csv.file);
       newForm.append('separator', this.csv.separator);
       newForm.append('hasHeader', this.csv.firstRowContainsHeader ? '1' : '0');
-
+      const route = this.areAttributionsPublic
+        ? ROUTE_ADD_PUBLIC_ATTRIBUTION : ROUTE_ADD_PRIVATE_ATTRIBUTION;
       // upload to server
-      doPostUpload(ROUTE_ADD_ATTRIBUTION, this.$router, this.$store, newForm)
+      doPostUpload(route, this.$router, this.$store, newForm)
         .then((response) => {
           if (!response.success) {
             let errorMsg;

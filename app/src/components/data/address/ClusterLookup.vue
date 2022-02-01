@@ -48,7 +48,7 @@
           </v-btn>
         </v-toolbar>
         <v-card-text>
-          <v-chip v-for="tag in c.tags" :key="tag" label class="mr-2">{{ tag }}</v-chip>
+          <attribution-tag v-for="(a, i) in c.attributions" :key="i" class="mr-2" :attribution="a"/>
         </v-card-text>
         <v-card-text v-if="c.txhash">
           <p class="text-subtitle-1">Last updated by</p>
@@ -111,10 +111,11 @@ import {
 } from '../../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteCluster from '../../dialogs/DeleteCluster.vue';
+import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 
 export default {
   name: 'ClusterLookup',
-  components: { ClusterDetails, DeleteCluster },
+  components: { AttributionTag, ClusterDetails, DeleteCluster },
   props: {
     addressHash: { type: String, required: true },
   },

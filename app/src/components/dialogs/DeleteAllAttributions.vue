@@ -25,7 +25,7 @@
 
 <script>
 import { doGet } from '../../utilities';
-import { ROUTE_DELETE_ALL_ATTRIBUTIONS } from '../../constants';
+import { ROUTE_DELETE_ALL_PRIVATE_ATTRIBUTIONS } from '../../constants';
 
 export default {
   name: 'DeleteAllAttributions',
@@ -53,7 +53,7 @@ export default {
     },
     deleteAllClusters() {
       this.isLoading = true;
-      doGet(ROUTE_DELETE_ALL_ATTRIBUTIONS, this.$router, this.$store, this.clusterUid)
+      doGet(ROUTE_DELETE_ALL_PRIVATE_ATTRIBUTIONS, this.$router, this.$store, this.clusterUid)
         .then((d) => {
           if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting attributions');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);

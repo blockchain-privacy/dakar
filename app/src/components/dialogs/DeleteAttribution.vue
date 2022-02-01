@@ -25,7 +25,7 @@
 
 <script>
 import { doGet } from '../../utilities';
-import { ROUTE_DELETE_ATTRIBUTION } from '../../constants';
+import { ROUTE_DELETE_PRIVATE_ATTRIBUTION, ROUTE_DELETE_PUBLIC_ATTRIBUTION } from '../../constants';
 
 export default {
   name: 'DeleteAttribution',
@@ -33,6 +33,7 @@ export default {
     value: { type: Boolean, required: true },
     attributionUid: { type: String, required: true },
     tag: { type: String, required: true },
+    public: { type: Boolean, required: true },
   },
   data() {
     return {
@@ -61,7 +62,12 @@ export default {
       }
 
       this.isLoading = true;
-      doGet(ROUTE_DELETE_ATTRIBUTION, this.$router, this.$store, this.attributionUid)
+      let route = ROUTE_DELETE_PRIVATE_ATTRIBUTION;
+      if (this.public) {
+        route = ROUTE_DELETE_PUBLIC_ATTRIBUTION;
+      }
+
+      doGet(route, this.$router, this.$store, this.attributionUid)
         .then((d) => {
           if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting attribution');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
