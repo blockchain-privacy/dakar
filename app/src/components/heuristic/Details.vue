@@ -1,6 +1,6 @@
 <template>
   <v-bottom-sheet scrollable v-model="inputVal">
-    <v-card style="max-height: 600px">
+    <v-card style="max-height: 800px">
       <v-card-title>
         <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>
         Heuristic Properties
@@ -14,7 +14,7 @@
                 <v-row>
                   <v-col>
                     <IconItem title="Type" :icon="icon.mdiIframeVariableOutline">
-                      {{ heuristicData.heuristicType }}
+                      {{ heuristicData.heuristicTypeTitle }}
                     </IconItem>
                   </v-col>
                   <v-col>
@@ -111,6 +111,11 @@
             </v-card>
           </v-col>
         </v-row>
+        <v-row>
+          <v-col>
+            <results :items="dataItems" />
+          </v-col>
+        </v-row>
       </v-card-text>
     </v-card>
   </v-bottom-sheet>
@@ -123,10 +128,11 @@ import {
 import IconItem from '../common/IconItem.vue';
 import { ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import Histogram from '../../d3Documents/histogram';
+import Results from './Results.vue';
 
 export default {
   name: 'Details',
-  components: { IconItem },
+  components: { Results, IconItem },
   props: {
     // v-model
     value: { type: Boolean, required: true },
@@ -226,6 +232,7 @@ export default {
 
 <style>
 
+/* css for d3 graph  */
 .bar {
   fill: #008ee5;
 }
