@@ -587,14 +587,34 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 						}
 						tx_inputs(first:1)@normalize{
 							~addr_outputs{
-								a:addresshash
-								~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+								addr as a:addresshash
+								clusters as ~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
 									cuid:uid
 								}
 							}
 						}
 					}
 					d:destinations{uid}
+				}
+				
+				# get labels per cluster
+				ca(func:uid(clusters))@cascade{
+					uid
+					cla:cluster_addresses{
+						attr:~attribution_address{
+							tag:attribution_tag
+							ispublic:attribution_ispublic
+						}
+					}
+				}
+
+				# get labels per address, because not all addresses have an associated cluster
+				aa(func:uid(addr))@cascade{
+					a:addresshash
+					attr:~attribution_address{
+						tag:attribution_tag
+						ispublic:attribution_ispublic
+					}
 				}
 			   }`
 
@@ -619,6 +639,16 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				UID string `json:"uid,omitempty"`
 			} `json:"d,omitempty"`
 		} `json:"q,omitempty"`
+		ClusterAttribution []struct {
+			UID       string `json:"uid,omitempty"`
+			Addresses []struct {
+				Attributions []Attribution `json:"attr,omitempty"`
+			} `json:"cla,omitempty"`
+		} `json:"ca,omitempty"`
+		AddressAttribution []struct {
+			Address      string        `json:"a,omitempty"`
+			Attributions []Attribution `json:"attr,omitempty"`
+		} `json:"aa,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -638,7 +668,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	for _, result := range r.Results {
 		if len(result.Origin) != 1 {
-			err = fmt.Errorf("invalid number of origins fro heuristic %s", heuristicUID)
+			err = fmt.Errorf("invalid number of origins for heuristic %s", heuristicUID)
 			return
 		}
 
@@ -683,10 +713,35 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		})
 	}
 
+	// gather address attributions
+	var addressAttributions []AddressAttribution
+	for _, aa := range r.AddressAttribution {
+		addressAttributions = append(addressAttributions, AddressAttribution{
+			Address:      aa.Address,
+			Attributions: aa.Attributions,
+		})
+	}
+
+	// gather cluster attributions
+	var clusterAttributions []ClusterAttribution
+	for _, ca := range r.ClusterAttribution {
+		var attributions []Attribution
+		for _, a := range ca.Addresses {
+			attributions = append(attributions, a.Attributions...)
+		}
+
+		clusterAttributions = append(clusterAttributions, ClusterAttribution{
+			UID:          ca.UID,
+			Attributions: attributions,
+		})
+	}
+
 	frontendHeuristic = FrontendHeuristicShort{
-		UID:         heuristicUID,
-		ResultCount: len(clusterDestinations),
-		Results:     results,
+		UID:                 heuristicUID,
+		ResultCount:         len(clusterDestinations),
+		Results:             results,
+		AddressAttributions: addressAttributions,
+		ClusterAttributions: clusterAttributions,
 	}
 
 	return
