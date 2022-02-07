@@ -10,40 +10,40 @@ import (
 	"fmt"
 )
 
-// ReverseAmountHeuristic - see exec for description
-type ReverseAmountHeuristic struct {
+// reverseAmountHeuristic - see exec for description
+type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 }
 
-// NewReverseAmountHeuristic constructs an ReverseAmountHeuristic
-func NewReverseAmountHeuristic() ReverseAmountHeuristic {
-	return ReverseAmountHeuristic{
+// newReverseAmountHeuristic constructs an reverseAmountHeuristic
+func newReverseAmountHeuristic() reverseAmountHeuristic {
+	return reverseAmountHeuristic{
 		heuristicType: "reverse_amount",
 	}
 }
 
-func (h ReverseAmountHeuristic) getType() string {
+func (h reverseAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ReverseAmountHeuristic) getParameterString() string {
+func (h reverseAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ReverseAmountHeuristic) hasParameter() bool {
+func (h reverseAmountHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h ReverseAmountHeuristic) setParameter(_ string) error {
+func (h reverseAmountHeuristic) setParameter(_ string) error {
 	return nil
 }
 
-func (h ReverseAmountHeuristic) String() string {
+func (h reverseAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
+func (h reverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Reverse Amount",
 		Type:     h.heuristicType,
@@ -54,14 +54,14 @@ func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h ReverseAmountHeuristic) clone() Heuristic {
+func (h reverseAmountHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// ReverseAmountHeuristic applies the following Heuristic:
+// reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash

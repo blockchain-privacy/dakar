@@ -23,11 +23,11 @@ type HeuristicQueueStatus int
 const (
 	// StatusHeuristicAdded is set if the heuristic has been successfully added
 	StatusHeuristicAdded = HeuristicQueueStatus(iota)
-	// StatusHeuristicDuplicate is set if the heuristic is already in the work queue
+	// StatusHeuristicDuplicate is set if the heuristic is already in the Work queue
 	StatusHeuristicDuplicate
-	// StatusHeuristicNotInQueue is set if the heuristic is not in the work queue
+	// StatusHeuristicNotInQueue is set if the heuristic is not in the Work queue
 	StatusHeuristicNotInQueue
-	// StatusHeuristicInQueue is set if the heuristic is in the work queue
+	// StatusHeuristicInQueue is set if the heuristic is in the Work queue
 	StatusHeuristicInQueue
 	// StatusHeuristicProcessing is set if the heuristic is currently being processed
 	StatusHeuristicProcessing
@@ -54,10 +54,10 @@ type workKey struct {
 	userUID string
 }
 
-// Work holds all work related data for the Worker
+// Work holds all Work related data for the Worker
 type Work struct {
-	// executors contains the HeuristicExecutor trees
-	executors []HeuristicExecutor
+	// executors contains the heuristicExecutor trees
+	executors []heuristicExecutor
 	// removableHeuristics contains the uids of all heuristics are ready for deletion
 	removableHeuristics []string
 }
@@ -138,7 +138,7 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-// AddWork adds a work item
+// AddWork adds a Work item
 func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool {
 	key := workKey{
 		txhash:  transactionHash,
@@ -159,7 +159,7 @@ func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool
 	return true
 }
 
-// IsInQueue returns true if the given transaction hash and user id is in the work queue
+// IsInQueue returns true if the given transaction hash and user id is in the Work queue
 func (w *Worker) IsInQueue(tx string, userUID string) bool {
 	key := workKey{
 		txhash:  tx,
@@ -172,7 +172,7 @@ func (w *Worker) IsInQueue(tx string, userUID string) bool {
 	return ok
 }
 
-// IsReady returns true the worker is ready to work
+// IsReady returns true the worker is ready to Work
 func (w *Worker) IsReady() bool {
 	return w.graphWrapper.IsTransactionGraphLoaded()
 }
@@ -204,10 +204,10 @@ func (w *Worker) GetStatus(tx string, userUID string) HeuristicQueueStatus {
 }
 
 func stoppingWork() {
-	info("stopping work ...")
+	info("stopping Work ...")
 }
 
-// work periodically checks for new Work to be executed
+// Work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context, dgraph external.Database) {
 
 	var work Work
@@ -226,7 +226,7 @@ mainLoop:
 				continue
 			}
 
-			// get work for this cycle
+			// get Work for this cycle
 			w.mapMutex.RLock()
 			for k, v := range w.executionMap {
 				work = v
@@ -237,7 +237,7 @@ mainLoop:
 
 			// do we have something to do?
 			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
-				info("processing work package")
+				info("processing Work package")
 
 				// delete changed or removable heuristics
 				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
@@ -247,14 +247,14 @@ mainLoop:
 				} else {
 					// if no error occurred -> execute the new heuristics
 					for _, e := range work.executors {
-						if err = e.Run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
+						if err = e.run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
 							w.currentWorkItem.userUID); err != nil {
 							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 						}
 					}
 				}
 				w.jobsCompleted.Inc()
-				info("processing work done")
+				info("processing Work done")
 			}
 
 			w.mapMutex.Lock()

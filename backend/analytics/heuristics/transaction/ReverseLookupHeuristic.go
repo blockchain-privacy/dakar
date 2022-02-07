@@ -11,36 +11,36 @@ import (
 	"time"
 )
 
-// ReverseLookupHeuristic - see exec for description
-type ReverseLookupHeuristic struct {
+// reverseLookupHeuristic - see exec for description
+type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookBackTime         time.Duration
 }
 
-// NewReverseLookupHeuristic constructs a ReverseLookupHeuristic. hoursToLookBack in hours.
-func NewReverseLookupHeuristic(hoursToLookBack uint32) *ReverseLookupHeuristic {
+// newReverseLookupHeuristic constructs a reverseLookupHeuristic. hoursToLookBack in hours.
+func newReverseLookupHeuristic(hoursToLookBack uint32) *reverseLookupHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return &ReverseLookupHeuristic{
+	return &reverseLookupHeuristic{
 		heuristicType:        "reverse_lookup",
 		lookBackTime:         lBackTime,
 		parameterDescription: lBackTime.String(),
 	}
 }
 
-func (h ReverseLookupHeuristic) getType() string {
+func (h reverseLookupHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ReverseLookupHeuristic) getParameterString() string {
+func (h reverseLookupHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ReverseLookupHeuristic) hasParameter() bool {
+func (h reverseLookupHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *ReverseLookupHeuristic) setParameter(p string) error {
+func (h *reverseLookupHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *ReverseLookupHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h ReverseLookupHeuristic) String() string {
+func (h reverseLookupHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h ReverseLookupHeuristic) GetDescriptor() Descriptor {
+func (h reverseLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Reverse Lookup",
 		Type:     h.heuristicType,
@@ -75,21 +75,21 @@ func (h ReverseLookupHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h ReverseLookupHeuristic) clone() Heuristic {
+func (h reverseLookupHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// ReverseLookupHeuristic applies the following heuristics:
+// reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h ReverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
-		// get origins from parent Heuristic
+		// get origins from parent heuristic
 		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

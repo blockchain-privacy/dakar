@@ -10,36 +10,36 @@ import (
 	"fmt"
 )
 
-// PerfectMatchHeuristic - see exec for description
-type PerfectMatchHeuristic struct {
+// perfectMatchHeuristic - see exec for description
+type perfectMatchHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 }
 
-// NewPerfectMatchHeuristic constructs a PerfectMatchHeuristic
-func NewPerfectMatchHeuristic() PerfectMatchHeuristic {
-	return PerfectMatchHeuristic{
+// newPerfectMatchHeuristic constructs a perfectMatchHeuristic
+func newPerfectMatchHeuristic() perfectMatchHeuristic {
+	return perfectMatchHeuristic{
 		heuristicType: "perfect_match",
 	}
 }
 
-func (h PerfectMatchHeuristic) getType() string {
+func (h perfectMatchHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h PerfectMatchHeuristic) getParameterString() string {
+func (h perfectMatchHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h PerfectMatchHeuristic) hasParameter() bool {
+func (h perfectMatchHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h PerfectMatchHeuristic) setParameter(_ string) error {
+func (h perfectMatchHeuristic) setParameter(_ string) error {
 	return nil
 }
 
-func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
+func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Perfect Match",
 		Type:     h.heuristicType,
@@ -51,19 +51,19 @@ func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h PerfectMatchHeuristic) String() string {
+func (h perfectMatchHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h PerfectMatchHeuristic) clone() Heuristic {
+func (h perfectMatchHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// PerfectMatchHeuristic applies the following Heuristic:
+// perfectMatchHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction
-func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash

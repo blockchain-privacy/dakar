@@ -1039,7 +1039,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey),
 			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
 
-	// Heuristic
+	// heuristic
 	http.Handle(constants.GetRouteHeuristics(),
 		adapt(handlerHeuristics(dgraph, worker), constants.GetRouteHeuristics(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))

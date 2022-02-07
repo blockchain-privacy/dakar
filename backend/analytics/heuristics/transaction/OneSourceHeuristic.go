@@ -11,36 +11,36 @@ import (
 	"time"
 )
 
-// OneSourceHeuristic - see exec for description
-type OneSourceHeuristic struct {
+// oneSourceHeuristic - see exec for description
+type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookBackTime         time.Duration
 }
 
-// NewOneSourceHeuristic constructs an OneSourceHeuristic. hoursToLookBack in hours
-func NewOneSourceHeuristic(hoursToLookBack uint32) *OneSourceHeuristic {
+// newOneSourceHeuristic constructs an oneSourceHeuristic. hoursToLookBack in hours
+func newOneSourceHeuristic(hoursToLookBack uint32) *oneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
-	return &OneSourceHeuristic{
+	return &oneSourceHeuristic{
 		heuristicType:        "one_source",
 		lookBackTime:         lBackTime,
 		parameterDescription: strconv.FormatUint(uint64(hoursToLookBack), 10),
 	}
 }
 
-func (h OneSourceHeuristic) getType() string {
+func (h oneSourceHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h OneSourceHeuristic) getParameterString() string {
+func (h oneSourceHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h OneSourceHeuristic) hasParameter() bool {
+func (h oneSourceHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *OneSourceHeuristic) setParameter(p string) error {
+func (h *oneSourceHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *OneSourceHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h OneSourceHeuristic) String() string {
+func (h oneSourceHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h OneSourceHeuristic) GetDescriptor() Descriptor {
+func (h oneSourceHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:       "One Source",
 		Type:        h.heuristicType,
@@ -73,7 +73,7 @@ func (h OneSourceHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h OneSourceHeuristic) clone() Heuristic {
+func (h oneSourceHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
@@ -83,13 +83,13 @@ type txAndOrigins struct {
 	origins          []dbtxh.HeuristicTransaction
 }
 
-// OneSourceHeuristic applies the following heuristics:
+// oneSourceHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 // - filter all origins of sources, which do not have enough denominations to fund all of their respective
 //		outputs of input transaction which are used as inputs in the destination transaction
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
-// This Heuristic does not use the results from its parent Heuristic
-func (h OneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
+// This heuristic does not use the results from its parent heuristic
+func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
 	[]dbtxh.HeuristicResult, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.

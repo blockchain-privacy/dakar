@@ -11,36 +11,36 @@ import (
 	"fmt"
 )
 
-// ForwardAmountHeuristic - see exec for description
-type ForwardAmountHeuristic struct {
+// forwardAmountHeuristic - see exec for description
+type forwardAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
 }
 
-// NewForwardAmountHeuristic constructs an ForwardAmountHeuristic. hoursToLookForward in hours.
-func NewForwardAmountHeuristic(hoursToLookForward uint32) *ForwardAmountHeuristic {
+// newForwardAmountHeuristic constructs an forwardAmountHeuristic. hoursToLookForward in hours.
+func newForwardAmountHeuristic(hoursToLookForward uint32) *forwardAmountHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
-	return &ForwardAmountHeuristic{
+	return &forwardAmountHeuristic{
 		heuristicType:        "forward_amount",
 		lookForwardTime:      lForwardTime,
 		parameterDescription: lForwardTime.String(),
 	}
 }
 
-func (h *ForwardAmountHeuristic) getType() string {
+func (h *forwardAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *ForwardAmountHeuristic) getParameterString() string {
+func (h *forwardAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *ForwardAmountHeuristic) hasParameter() bool {
+func (h *forwardAmountHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *ForwardAmountHeuristic) setParameter(p string) error {
+func (h *forwardAmountHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *ForwardAmountHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h *ForwardAmountHeuristic) String() string {
+func (h *forwardAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
+func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Forward Amount",
 		Type:     h.heuristicType,
@@ -77,14 +77,14 @@ func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h *ForwardAmountHeuristic) clone() Heuristic {
+func (h *forwardAmountHeuristic) clone() heuristic {
 	newHeuristic := *h
 	return &newHeuristic
 }
 
-// ForwardAmountHeuristic applies the following Heuristic:
+// forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
 	[]dbtxh.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
