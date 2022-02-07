@@ -226,3 +226,41 @@ func AlterSchemaAddAttribution(c external.Database) error {
 		`,
 	})
 }
+
+// DropAllHeuristicPredicates drops all data of the heuristic predicates
+func DropAllHeuristicPredicates(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "origin",
+	}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "destinations",
+	})
+}
+
+// DropTypeTransactionHeuristicResult removes the type TransactionHeuristicResult
+func DropTypeTransactionHeuristicResult(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropOp:    api.Operation_TYPE,
+		DropValue: "TransactionHeuristicResult",
+	})
+}
+
+// AlterSchemaAddNewHeuristicResult changes the heuristic result type
+func AlterSchemaAddNewHeuristicResult(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			HeuristicResult.origin: uid @reverse .
+			HeuristicResult.destinations: [uid] @reverse .
+			HeuristicResult.cluster: string .
+
+			type HeuristicResult {
+				HeuristicResult.origin
+				HeuristicResult.destinations
+				HeuristicResult.cluster
+			}
+		`,
+	})
+}

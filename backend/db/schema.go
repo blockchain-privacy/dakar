@@ -126,12 +126,14 @@ func SetupSchema(c external.Database) error {
 				parent_heuristic
 			}
 
-			origin: uid @reverse .
-			destinations: [uid] @reverse .
+			HeuristicResult.origin: uid @reverse .
+			HeuristicResult.destinations: [uid] @reverse .
+			HeuristicResult.cluster: string .
 
-			type TransactionHeuristicResult {
-				origin
-				destinations
+			type HeuristicResult {
+				HeuristicResult.origin
+				HeuristicResult.destinations
+				HeuristicResult.cluster
 			}
 
 			role_name: string @index(hash) .
