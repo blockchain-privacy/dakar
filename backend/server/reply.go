@@ -1,19 +1,20 @@
 package server
 
 import (
-	analytics2 "backend/analytics"
+	"backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
-	heuristic "backend/analytics/heuristics/transaction"
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/constants"
-	"backend/db/analytics"
+	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	"backend/db/analytics/heuristics/transaction"
+	dbHeuristic "backend/db/analytics/heuristics"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -110,10 +111,10 @@ func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userRep
 	return
 }
 
-func getHeuristicReply(dgraph external.Database, worker *heuristic.Worker,
+func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 	txHashString string, userUID string) (reply heuristicReply) {
 
-	heuristics, err := transaction.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
+	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
 		info(cliutil.ShowCallInfo(), err)
@@ -121,29 +122,29 @@ func getHeuristicReply(dgraph external.Database, worker *heuristic.Worker,
 	}
 
 	reply.Success = true
-	reply.Heuristics = heuristics
+	reply.Heuristics = results
 	reply.Status = worker.GetStatus(txHashString, userUID)
 
 	return
 }
 
-func getHeuristicExecutionReply(dgraph external.Database, worker *heuristic.Worker, body io.Reader,
+func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Worker, body io.Reader,
 	txHashString string, userUID string) (reply heuristicExecutionReply) {
 	if !worker.IsReady() {
 		reply.Success = true
-		reply.Status = heuristic.StatusHeuristicWorkerNotReady
+		reply.Status = heuristics.StatusHeuristicWorkerNotReady
 		return
 	}
 
 	if worker.IsInQueue(txHashString, userUID) {
 		reply.Success = true
-		reply.Status = heuristic.StatusHeuristicDuplicate
+		reply.Status = heuristics.StatusHeuristicDuplicate
 		info(cliutil.ShowCallInfo(), "heuristic already in queue")
 		return
 	}
 
 	type request struct {
-		Changed []transaction.FrontendHeuristic `json:"changed,omitempty"`
+		Changed []dbHeuristic.FrontendHeuristic `json:"changed,omitempty"`
 		Deleted []string                        `json:"deleted,omitempty"`
 	}
 
@@ -162,7 +163,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristic.Work
 		return
 	}
 
-	work, err := heuristic.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
+	work, err := heuristics.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
 		heuristicRequest.Deleted)
 	if err != nil {
 		reply.Msg = "invalid request"
@@ -173,9 +174,9 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristic.Work
 	addedWork := worker.AddWork(txHashString, userUID, work)
 
 	if addedWork {
-		reply.Status = heuristic.StatusHeuristicAdded
+		reply.Status = heuristics.StatusHeuristicAdded
 	} else {
-		reply.Status = heuristic.StatusHeuristicDuplicate
+		reply.Status = heuristics.StatusHeuristicDuplicate
 	}
 
 	reply.Success = true
@@ -356,7 +357,7 @@ func getDeleteUserReply(dgraph external.Database, delUID string, tUser tokenUser
 // getShortestTransactionPathReply searches for the shortest path between two transactions
 func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply) {
 	// parse request
-	var req transaction.ShortestTransactionPathRequest
+	var req dbHeuristic.ShortestTransactionPathRequest
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		reply.Msg = "could not decode request data"
 		return
@@ -413,7 +414,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	}
 
 	// do shortest transaction path lookup
-	txs, err := transaction.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
+	txs, err := dbHeuristic.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
 		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		reply.Msg = "error while searching for paths"
@@ -434,7 +435,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 
 // getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
 func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID string) (reply deleteHeuristicReply) {
-	var req transaction.DeleteHeuristicRequest
+	var req dbHeuristic.DeleteHeuristicRequest
 
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		reply.Msg = "could not decode request data"
@@ -448,8 +449,8 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 	}
 
 	if req.DeleteAll {
-		if err := transaction.DeleteAllUserHeuristics(dgraph, userUID); err != nil {
-			if errors.Is(err, transaction.ErrNoMutationHappened) {
+		if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, userUID); err != nil {
+			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 				reply.Msg = "No data was deleted. The user may not have any heuristics."
 			} else {
 				reply.Msg = "could not delete data"
@@ -462,8 +463,8 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 		return
 	}
 
-	if err := transaction.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUID); err != nil {
-		if errors.Is(err, transaction.ErrNoMutationHappened) {
+	if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUID); err != nil {
+		if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
 		} else {
 			reply.Msg = "could not delete data"
@@ -478,7 +479,7 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker, urlValues url.Values,
+func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker, urlValues url.Values,
 	urlPath string) (reply connectionLookupReply) {
 
 	if !worker.IsReady() {
@@ -645,7 +646,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 
 // writeHeuristicSummary writes heuristic data in CSV format
 func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, txHashString string) {
-	cHeuristic, err := transaction.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
+	cHeuristic, err := dbHeuristic.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
 	if err != nil {
 		handleError(w, err)
 		return
@@ -803,7 +804,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 		return
 	}
 
-	activities, err := analytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
+	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
@@ -987,7 +988,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	csvReader.FieldsPerRecord = 5
 	var line []string
 
-	var addresses []analytics2.Attribution
+	var addresses []analytics.Attribution
 	var index int
 	for ; ; index++ {
 		line, err = csvReader.Read()
@@ -1006,7 +1007,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 			continue
 		}
 
-		newAttribution := analytics2.Attribution{
+		newAttribution := analytics.Attribution{
 			AddressHash: line[0],
 			Tag:         line[1],
 			Description: line[2],
@@ -1027,7 +1028,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 		return
 	}
 
-	if err := analytics2.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
+	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
 		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
 		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {

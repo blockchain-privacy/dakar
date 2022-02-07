@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	dbtxh "backend/db/analytics/heuristics"
 	"backend/external"
 
 	"context"

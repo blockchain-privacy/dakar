@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/db/transaction"
 	"backend/external"
@@ -39,7 +39,7 @@ type Descriptor struct {
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]dbtxh.HeuristicResult, error)
+	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]heuristics.HeuristicResult, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -61,7 +61,7 @@ type heuristic interface {
 // getNumberOfDenominations returns the number of denominations. If destinationTransaction is set, it
 // only counts outputs with input transactions equal to destinationTransaction. An error is returned
 // if more than one type of denominations is found
-func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransaction string) (nDenominations int,
+func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTransaction string) (nDenominations int,
 	denomIndex int, err error) {
 	numDenominations := getDenominationCountsWithFilter(it, destinationTransaction)
 
@@ -83,7 +83,7 @@ func getNumberOfDenominations(it dbtxh.HeuristicTransaction, destinationTransact
 
 // getDenominationCountsWithFilter gets the counts of each denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
-func getDenominationCountsWithFilter(it dbtxh.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
+func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
 	var denominations []int64
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
@@ -96,7 +96,7 @@ func getDenominationCountsWithFilter(it dbtxh.HeuristicTransaction, filterTx str
 }
 
 // gets the counts of each denomination type
-func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations]int {
+func getDenominationCounts(it heuristics.HeuristicTransaction) [dbop.NumDenominations]int {
 	var denominations []int64
 	for _, output := range it.Outputs {
 		denominations = append(denominations, output.Amount)
@@ -108,13 +108,13 @@ func getDenominationCounts(it dbtxh.HeuristicTransaction) [dbop.NumDenominations
 type clusterDenominations struct {
 	denominationIndex int
 	// key: cluster id, value: number of denominations of type denominationIndex
-	clusters map[dbtxh.ClusterUID]int
+	clusters map[heuristics.ClusterUID]int
 }
 
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
-func addOriginsToMap(sourceTransactionMap map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction,
-	origins []dbtxh.HeuristicTransaction) (map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction, error) {
+func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
+	origins []heuristics.HeuristicTransaction) (map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction, error) {
 
 	for _, o := range origins {
 
@@ -122,7 +122,7 @@ func addOriginsToMap(sourceTransactionMap map[dbtxh.ClusterUID]map[string]dbtxh.
 		transactions := sourceTransactionMap[o.Cluster]
 
 		if len(transactions) == 0 {
-			transactions = make(map[string]dbtxh.HeuristicTransaction)
+			transactions = make(map[string]heuristics.HeuristicTransaction)
 		}
 
 		transactions[o.UID] = o
@@ -134,9 +134,9 @@ func addOriginsToMap(sourceTransactionMap map[dbtxh.ClusterUID]map[string]dbtxh.
 
 // countClusterDenominations creates a map of clusters with the
 // number of denominations of the specified denomination type
-func countClusterDenominations(origins []dbtxh.HeuristicTransaction, denominationIndex int) (oSource clusterDenominations, err error) {
+func countClusterDenominations(origins []heuristics.HeuristicTransaction, denominationIndex int) (oSource clusterDenominations, err error) {
 	oSource.denominationIndex = denominationIndex
-	oSource.clusters = make(map[dbtxh.ClusterUID]int)
+	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
 		nDenominations := getDenominationCounts(o)[denominationIndex]
 		oSource.clusters[o.Cluster] += nDenominations
@@ -145,8 +145,8 @@ func countClusterDenominations(origins []dbtxh.HeuristicTransaction, denominatio
 	return
 }
 
-func buildSourceAmounts(origins map[string]dbtxh.HeuristicTransaction) map[dbtxh.ClusterUID][dbop.NumDenominations]int {
-	sourceAmounts := make(map[dbtxh.ClusterUID][dbop.NumDenominations]int)
+func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dbop.NumDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][dbop.NumDenominations]int)
 
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)
@@ -171,8 +171,8 @@ func getKeySlice(m map[string]bool) (keys []string) {
 // getTimeLimitedOrigins returns all origins of the given transaction.
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
-func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx dbtxh.HeuristicTransaction,
-	lookBackTime time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
+	lookBackTime time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime)
 	if err != nil {
@@ -180,7 +180,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx dbtxh.
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(endpoints))
+	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(endpoints))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -191,7 +191,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx dbtxh.
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
 func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper,
-	txHash string) ([]dbtxh.HeuristicTransaction, error) {
+	txHash string) ([]heuristics.HeuristicTransaction, error) {
 	origins, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -202,7 +202,7 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper,
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
 func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper,
-	txHash string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	txHash string, dur time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUID(dgraph, txHash)
 	if err != nil {
@@ -228,7 +228,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
+	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -258,14 +258,14 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 // getOriginDestinationsWithOutputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its outputs.
 func getOriginDestinationsWithOutputs(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	originUIDs []string, dur time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
 	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
+	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -276,14 +276,14 @@ func getOriginDestinationsWithOutputs(dgraph external.Database, g *graph.Wrapper
 // getOriginDestinationsWithInputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its inputs.
 func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration) (origins []dbtxh.HeuristicTransaction, err error) {
+	originUIDs []string, dur time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
 	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// get tx details for each uid
-	origins, err = dbtxh.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
+	origins, err = heuristics.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -358,12 +358,12 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	}
 
 	// only set parent heuristic if uid is provided
-	var pHeuristic []dbtxh.Heuristic
+	var pHeuristic []heuristics.Heuristic
 	if parentHeuristicUID != "" {
-		pHeuristic = []dbtxh.Heuristic{{UID: parentHeuristicUID}}
+		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
 	}
 
-	thisUID, err = dbtxh.InsertHeuristic(dgraph, dbtxh.Heuristic{
+	thisUID, err = heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
 		HeuristicType:   h.getType(),
 		Results:         heuristicResults,
 		Parameter:       h.getParameterString(),

@@ -1,4 +1,4 @@
-package transaction
+package heuristics
 
 import (
 	"backend/cmd/cliutil"
@@ -167,10 +167,10 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 					type
 					parameter
 					results{
-						origin {
+						HeuristicResult.origin {
 							uid
 						}
-						destinations {
+						HeuristicResult.destinations {
 							uid
 						}
 					}
@@ -214,7 +214,7 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction, err error) {
 	const query = `query Q($uid: string) {
 				var (func: uid($uid)){
-					results { x as origin }
+					results { x as HeuristicResult.origin }
 				}
 				
 				q(func: uid(x)){
@@ -580,7 +580,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				}
 
 				q(func: uid(r)){
-					origin@normalize{
+					origin:HeuristicResult.origin@normalize{
 						txhash:txhash
 						~transactions{
 							ts:ts
@@ -594,7 +594,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 							}
 						}
 					}
-					d:destinations{uid}
+					d:HeuristicResult.destinations{uid}
 				}
 				
 				# get labels per cluster
@@ -773,7 +773,7 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 						uid
 					}
 					results{
-						origin@normalize{
+						HeuristicResult.origin@normalize{
 							uid:uid
 							txhash:txhash
 							~transactions{
@@ -785,7 +785,7 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 								}
 							}
 						}
-						destinations@normalize{
+						HeuristicResult.destinations@normalize{
 							uid:uid
 							txhash:txhash
 							~transactions{

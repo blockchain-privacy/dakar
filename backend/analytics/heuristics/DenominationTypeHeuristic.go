@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
 
@@ -67,21 +67,21 @@ func (h denominationTypeHeuristic) clone() heuristic {
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
 func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
-	origins := make(map[string]dbtxh.HeuristicTransaction)
+	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -108,7 +108,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		return nil, errorNoOriginsAtStart
 	}
 
-	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
+	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -117,11 +117,11 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredOrigins []dbtxh.HeuristicResult
+	var filteredOrigins []heuristics.HeuristicResult
 	for k, o := range originAmounts {
 		if hasSameDenominationTypes(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
+				filteredOrigins = append(filteredOrigins, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

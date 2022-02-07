@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"fmt"
@@ -83,14 +83,14 @@ func (h reverseLookupHeuristic) clone() heuristic {
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
 		// get origins from parent heuristic
-		parentHeuristic, err := dbtxh.GetHeuristic(dgraph, parentHeuristicUID)
+		parentHeuristic, err := heuristics.GetHeuristic(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -105,7 +105,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	// gather input information
-	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -128,10 +128,10 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
-	var ret []dbtxh.HeuristicResult
+	var ret []heuristics.HeuristicResult
 	for k := range allTimeLimitedOrigins {
-		ret = append(ret, dbtxh.HeuristicResult{
-			Origin: dbtxh.DummyNode{UID: k},
+		ret = append(ret, heuristics.HeuristicResult{
+			Origin: heuristics.DummyNode{UID: k},
 		})
 	}
 

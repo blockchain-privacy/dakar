@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"fmt"
@@ -79,8 +79,8 @@ func (h oneSourceHeuristic) clone() heuristic {
 }
 
 type txAndOrigins struct {
-	inputTransaction dbtxh.HeuristicTransaction
-	origins          []dbtxh.HeuristicTransaction
+	inputTransaction heuristics.HeuristicTransaction
+	origins          []heuristics.HeuristicTransaction
 }
 
 // oneSourceHeuristic applies the following heuristics:
@@ -90,26 +90,26 @@ type txAndOrigins struct {
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
 func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
-	[]dbtxh.HeuristicResult, error) {
+	[]heuristics.HeuristicResult, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
-	inputTransactions, err := dbtxh.GetInputTransactions(dgraph, txHash)
+	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// sources holds all sources found in all input transactions
-	sources := make(map[dbtxh.ClusterUID]bool)
+	sources := make(map[heuristics.ClusterUID]bool)
 	// mRemovableSources holds all sources which can be removed,
 	// due to not being able to fund all connected input transactions
-	mRemovableSources := make(map[dbtxh.ClusterUID]bool)
+	mRemovableSources := make(map[heuristics.ClusterUID]bool)
 	// maps a cluster to its origin transactions
-	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	// for each input transaction to the destination transaction,
 	// inputSources holds one map with all its occurring sources
-	var inputSources []map[dbtxh.ClusterUID]bool
+	var inputSources []map[heuristics.ClusterUID]bool
 	// contains all time limited origins
-	var allTimeLimitedOrigins []dbtxh.HeuristicTransaction
+	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins
 
@@ -147,7 +147,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		}
 
 		// add element inputSources and set index of current element
-		inputSources = append(inputSources, make(map[dbtxh.ClusterUID]bool))
+		inputSources = append(inputSources, make(map[heuristics.ClusterUID]bool))
 		iSSIndex := len(inputSources) - 1
 
 		// Loop through all clusters of the current input transaction and mark
@@ -169,7 +169,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	}
 
 	// save all addresses (sources) which are not part of all input transactions
-	var omniSources []dbtxh.ClusterUID
+	var omniSources []heuristics.ClusterUID
 	for k := range sources {
 
 		found := true
@@ -195,10 +195,10 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		}
 	}
 
-	var ret []dbtxh.HeuristicResult
+	var ret []heuristics.HeuristicResult
 	for k := range remainingOrigins {
-		ret = append(ret, dbtxh.HeuristicResult{
-			Origin: dbtxh.DummyNode{UID: k},
+		ret = append(ret, heuristics.HeuristicResult{
+			Origin: heuristics.DummyNode{UID: k},
 		})
 	}
 

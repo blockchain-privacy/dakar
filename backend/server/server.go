@@ -1,7 +1,7 @@
 package server
 
 import (
-	heuristic "backend/analytics/heuristics/transaction"
+	heuristic "backend/analytics/heuristics"
 	"backend/external"
 
 	"fmt"

@@ -1,13 +1,13 @@
 package server
 
 import (
-	heuristic "backend/analytics/heuristics/transaction"
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	dbh "backend/db/analytics/heuristics/transaction"
+	dbh "backend/db/analytics/heuristics"
 	dbblk "backend/db/block"
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
@@ -67,16 +67,16 @@ type metaStatus struct {
 }
 
 type heuristicReply struct {
-	Success    bool                           `json:"success"`
-	Msg        string                         `json:"msg,omitempty"`
-	Heuristics []dbh.FrontendHeuristic        `json:"heuristics,omitempty"`
-	Status     heuristic.HeuristicQueueStatus `json:"status"`
+	Success    bool                            `json:"success"`
+	Msg        string                          `json:"msg,omitempty"`
+	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
+	Status     heuristics.HeuristicQueueStatus `json:"status"`
 }
 
 type heuristicExecutionReply struct {
-	Success bool                           `json:"success"`
-	Msg     string                         `json:"msg,omitempty"`
-	Status  heuristic.HeuristicQueueStatus `json:"status"`
+	Success bool                            `json:"success"`
+	Msg     string                          `json:"msg,omitempty"`
+	Status  heuristics.HeuristicQueueStatus `json:"status"`
 }
 
 type userReply struct {
@@ -103,9 +103,9 @@ type heuristicListReply struct {
 }
 
 type heuristicDescriptorReply struct {
-	Success     bool                   `json:"success"`
-	Msg         string                 `json:"msg,omitempty"`
-	Descriptors []heuristic.Descriptor `json:"descriptors"`
+	Success     bool                    `json:"success"`
+	Msg         string                  `json:"msg,omitempty"`
+	Descriptors []heuristics.Descriptor `json:"descriptors"`
 }
 
 type deleteHeuristicReply struct {

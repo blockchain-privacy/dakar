@@ -1,8 +1,8 @@
-package transaction
+package heuristics
 
 import (
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"errors"
@@ -41,7 +41,7 @@ type heuristicTreeElement struct {
 }
 
 // isValid checks if the given heuristics are all valid
-func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bool {
+func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) bool {
 	if len(heuristics) == 0 {
 		return false
 	}
@@ -61,7 +61,7 @@ func isValid(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) bo
 	return true
 }
 
-func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []dbtxh.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
+func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
 	err error) {
 	// create map
 	builtHeuristics = make(map[string]heuristicTreeElement)
@@ -267,7 +267,7 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph external.Database, txhash string, heuristics []dbtxh.FrontendHeuristic) (
+func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristic) (
 	executors []heuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
@@ -276,12 +276,12 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 		}
 	}
 
-	if !isValid(typeMap, heuristics) {
+	if !isValid(typeMap, results) {
 		err = errHeuristicNotValid
 		return
 	}
 
-	newHeuristics, err := buildHeuristicTreeElements(typeMap, heuristics)
+	newHeuristics, err := buildHeuristicTreeElements(typeMap, results)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -307,7 +307,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
-		if exists, checkErr := dbtxh.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
+		if exists, checkErr := heuristics.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
 			return
 		} else if !exists {
@@ -326,7 +326,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 }
 
 // areSetsValid checks if the uids of removed are appearing in changed
-func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
+func areSetsValid(changed []heuristics.FrontendHeuristic, removed []string) bool {
 	// if both are empty there is an error
 	if len(changed) == 0 && len(removed) == 0 {
 		return false
@@ -355,7 +355,7 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 }
 
 // mergeRemoveList adds the uids of
-func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []string {
+func mergeRemoveList(changed []heuristics.FrontendHeuristic, removed []string) []string {
 	for _, c := range changed {
 		// only add heuristics which actually exist in the database
 		if !strings.HasPrefix(c.UID, newUIDPrefix) {
@@ -367,7 +367,7 @@ func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []stri
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph external.Database, transactionHash string, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristic, toRemove []string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return

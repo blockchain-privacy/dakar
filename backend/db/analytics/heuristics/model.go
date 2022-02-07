@@ -1,4 +1,4 @@
-package transaction
+package heuristics
 
 import (
 	"fmt"
@@ -7,7 +7,9 @@ import (
 
 // DType is the dgraph database type for the TransactionHeuristic type
 const DType = "TransactionHeuristic"
-const ResultDType = "TransactionHeuristicResult"
+
+// ResultDType is the dgraph database type for the Heuristic type
+const ResultDType = "HeuristicResult"
 
 // DummyNode holds the uid of a database node
 type DummyNode struct {
@@ -17,8 +19,9 @@ type DummyNode struct {
 // HeuristicResult holds one result (origin) of a heuristic and
 // optionally the results of a forward lookup (destinations)
 type HeuristicResult struct {
-	Origin       DummyNode   `json:"origin,omitempty"`
-	Destinations []DummyNode `json:"destinations,omitempty"`
+	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
+	Clusters     string      `json:"HeuristicResult.cluster,omitempty"`
+	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
 	DType        []string    `json:"dgraph.type,omitempty"`
 }
 
@@ -156,7 +159,7 @@ type FrontendHeuristicResponse struct {
 			UID       string `json:"uid,omitempty"`
 			Timestamp string `json:"ts,omitempty"`
 			TxHash    string `json:"txhash,omitempty"`
-		} `json:"destinations,omitempty"`
+		} `json:"HeuristicResult.destinations,omitempty"`
 	} `json:"results,omitempty"`
 }
 

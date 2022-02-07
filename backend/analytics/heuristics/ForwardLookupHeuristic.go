@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"fmt"
@@ -85,16 +85,16 @@ func (h forwardLookupHeuristic) clone() heuristic {
 // forwardLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
 
-	var hResult []dbtxh.HeuristicResult
+	var hResult []heuristics.HeuristicResult
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -111,7 +111,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		for _, r := range results {
-			hResult = append(hResult, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: r.UID}})
+			hResult = append(hResult, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: r.UID}})
 		}
 	}
 
@@ -122,7 +122,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		for _, v := range destinations {
-			hResult[i].Destinations = append(hResult[i].Destinations, dbtxh.DummyNode{UID: v.UID})
+			hResult[i].Destinations = append(hResult[i].Destinations, heuristics.DummyNode{UID: v.UID})
 		}
 	}
 
