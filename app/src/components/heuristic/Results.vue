@@ -40,9 +40,13 @@
             <v-card outlined>
               <v-card-title class="subheading font-weight-bold">
                 Cluster ID {{ item.id }}, txcount:  {{item.txCount}}
-                Address count {{ item.address_count}}
+                Address count {{ item.address_count}} Cluster: {{ item.cluster}}
               </v-card-title>
             </v-card>
+            Transactions
+            <p v-for="tx in item.txs" :key="tx.txhash"> {{ tx.txhash }} || {{ tx.addresshash }}</p>
+
+            {{ item }}
           </v-col>
         </v-row>
       </template>
@@ -71,10 +75,30 @@ export default {
   name: 'Results',
   props: {
     items: { type: Array, required: true },
+    addressAttributions: { type: Array, required: true },
+    clusterAttributions: { type: Array, required: true },
   },
   computed: {
     numberOfPages() {
       return Math.ceil(this.items.length / this.itemsPerPage);
+    },
+    addressAttributionMap() {
+      const addressMap = new Map();
+
+      this.addressAttributions.forEach((d) => {
+        addressMap.set(d.addresshash, d.attributions);
+      });
+
+      return addressMap;
+    },
+    clusterAttributionMap() {
+      const clusterMap = new Map();
+
+      this.addressAttributions.forEach((d) => {
+        clusterMap.set(d.uid, d.attributions);
+      });
+
+      return clusterMap;
     },
   },
   data() {
@@ -106,9 +130,10 @@ export default {
     formerPage() {
       if (this.page - 1 >= 1) this.page -= 1;
     },
-    updateItemsPerPage(number) {
-      this.itemsPerPage = number;
-    },
+  },
+  mounted() {
+    // todo somehow handle custom clusters in response (custom clusters )
+    // console.log(this.items);
   },
 };
 </script>

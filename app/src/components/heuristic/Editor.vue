@@ -385,7 +385,7 @@ export default {
       this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
         if (this.heuristicDetailsMap.size === 0
             || !this.heuristicDetailsMap.has(heuristic.uid)) return;
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
         sheet.isOpen = true;
       });
     },

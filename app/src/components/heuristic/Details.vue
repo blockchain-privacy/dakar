@@ -46,8 +46,8 @@
                     <IconItem title="Number of clusters"
                               :icon="icon.mdiPoundBoxOutline">
                       {{
-                        heuristicData.transactions === undefined ? 0
-                            : heuristicData.transactions.length
+                        heuristicData.transactions.results === undefined ? 0
+                            : heuristicData.transactions.results.length
                       }}
                     </IconItem>
                   </v-col>
@@ -113,7 +113,9 @@
         </v-row>
         <v-row>
           <v-col>
-            <results :items="dataItems" />
+            <results :items="dataItems"
+                     :address-attributions="dataAddressAttributions"
+                     :cluster-attributions="dataClusterAttributions"/>
           </v-col>
         </v-row>
       </v-card-text>
@@ -156,12 +158,12 @@ export default {
   },
   computed: {
     dataItems() {
-      if (!this.heuristicData.transactions) {
+      if (!this.heuristicData.transactions || !this.heuristicData.transactions.results) {
         return [];
       }
 
       let i = 1;
-      this.heuristicData.transactions.forEach((v) => {
+      this.heuristicData.transactions.results.forEach((v) => {
         v.id = i;
         i += 1;
         v.txCount = v.txs.length;
@@ -172,7 +174,21 @@ export default {
         v.address_count = v.addresses.length;
       });
 
-      return this.heuristicData.transactions;
+      return this.heuristicData.transactions.results;
+    },
+    dataAddressAttributions() {
+      if (!this.heuristicData.transactions
+          || !this.heuristicData.transactions.address_attributions) {
+        return [];
+      }
+      return this.heuristicData.transactions.address_attributions;
+    },
+    dataClusterAttributions() {
+      if (!this.heuristicData.transactions
+          || !this.heuristicData.transactions.cluster_attributions) {
+        return [];
+      }
+      return this.heuristicData.transactions.cluster_attributions;
     },
     isHollow() {
       return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
@@ -196,7 +212,7 @@ export default {
       const expansionHeader = { value: 'data-table-expand' };
 
       // check if destination counts from forward lookup are set
-      if (this.heuristicData.transactions.some((d) => d.count)) {
+      if (this.heuristicData.transactions.results.some((d) => d.count)) {
         return [idHeader, addressCountHeader, transactionCountHeader,
           destinationHeader, expansionHeader];
       }
@@ -218,11 +234,11 @@ export default {
   },
   updated() {
     // do nothing if sheet is not open
-    if (!this.value || !this.heuristicData.transactions) return;
+    if (!this.value || !this.heuristicData.transactions.results) return;
 
     this.svgHistogram.reset();
 
-    this.updateData(this.heuristicData.transactions);
+    this.updateData(this.heuristicData.transactions.results);
   },
   mounted() {
     this.svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, 'Origin Transactions');
