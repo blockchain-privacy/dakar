@@ -32,7 +32,6 @@ func SetupSchema(c external.Database) error {
 
 			txhash: string @index(hash) @upsert .
 			privacytype: int @index(int) .
-			isrlookupdone: bool @index(bool) .
 			fee: int .
 			tx_inputs: [uid] @reverse .
 			tx_outputs: [uid] @reverse .
@@ -40,9 +39,7 @@ func SetupSchema(c external.Database) error {
 			type Transaction {
 				txhash
 				privacytype
-				isrlookupdone
 				fee
-				<~transactions>
 				tx_outputs
 				tx_inputs
 			}

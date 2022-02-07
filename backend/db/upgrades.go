@@ -265,8 +265,6 @@ func AlterSchemaAddNewHeuristicResult(c external.Database) error {
 	})
 }
 
-/////////
-
 // DropAllHeuristicPredicates2 drops all data of the heuristic predicates
 func DropAllHeuristicPredicates2(c external.Database) error {
 	if err := c.Alter(context.Background(), &api.Operation{
@@ -324,6 +322,34 @@ func AlterSchemaAddHeuristic(c external.Database) error {
 				Heuristic.results
 				Heuristic.ts
 				Heuristic.parent
+			}
+		`,
+	})
+}
+
+// DropAllIsRLookupDone drops the predicate isrlookupdone
+func DropAllIsRLookupDone(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "isrlookupdone",
+	})
+}
+
+// AlterSchemaUpdateTransaction updates the transaction type
+func AlterSchemaUpdateTransaction(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			txhash: string @index(hash) @upsert .
+			privacytype: int @index(int) .
+			fee: int .
+			tx_inputs: [uid] @reverse .
+			tx_outputs: [uid] @reverse .
+
+			type Transaction {
+				txhash
+				privacytype
+				fee
+				tx_outputs
+				tx_inputs
 			}
 		`,
 	})
