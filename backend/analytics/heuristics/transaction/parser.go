@@ -168,7 +168,7 @@ func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUID str
 			}
 		}
 
-		// don't worry, the slice is not nil. It is always initialised in the above if clause
+		// don't worry, the slice is not nil. It is always initialised in the if-clause above
 		levelToNode[level] = append(levelToNode[level], nodes[n.uid])
 	}
 
