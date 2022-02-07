@@ -105,7 +105,7 @@ func (h DenominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	}
 
 	if len(origins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)

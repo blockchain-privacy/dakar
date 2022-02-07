@@ -182,7 +182,7 @@ func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecuto
 	// backward traversal of list, because the deepest level has the highest index
 	for i := len(levelToNode) - 1; i >= 0; i-- {
 		for _, n := range levelToNode[i] {
-			thisExec := BuildExecutor(n.heuristic)
+			thisExec := buildExecutor(n.heuristic)
 			thisExec.RootUID = n.parentHeuristicUID
 			for _, childUID := range n.childHeuristicUID {
 				if child, ok := executorStack[childUID]; ok {

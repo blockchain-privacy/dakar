@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-// ErrorNoOriginsAtStart defines an error which should be used when no origins are available
-var ErrorNoOriginsAtStart = errors.New("no origins can be fetched")
+// errorNoOriginsAtStart defines an error which should be used when no origins are available
+var errorNoOriginsAtStart = errors.New("no origins can be fetched")
 
 const (
 	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
@@ -302,8 +302,8 @@ type HeuristicExecutor struct {
 	NextHeuristics []HeuristicExecutor
 }
 
-// BuildExecutor is a convenience function for building Heuristic executors
-func BuildExecutor(thisHeuristic Heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
+// buildExecutor is a convenience function for building Heuristic executors
+func buildExecutor(thisHeuristic Heuristic, nextHeuristics ...HeuristicExecutor) HeuristicExecutor {
 	return HeuristicExecutor{
 		ThisHeuristic:  thisHeuristic,
 		NextHeuristics: nextHeuristics,
@@ -320,7 +320,7 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 		thisRootUID = parentHeuristicUID
 	}
 
-	newUID, err := Exec(dgraph, g, txHash, thisRootUID, hx.ThisHeuristic, userUID)
+	newUID, err := exec(dgraph, g, txHash, thisRootUID, hx.ThisHeuristic, userUID)
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
@@ -343,11 +343,11 @@ func (hx HeuristicExecutor) Run(dgraph external.Database, g *graph.Wrapper, txHa
 	return returnError
 }
 
-// Exec executes the Heuristic on the transaction specified by txHash for the given userUID
-func Exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h Heuristic,
+// exec executes the Heuristic on the transaction specified by txHash for the given userUID
+func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h Heuristic,
 	userUID string) (thisUID string, err error) {
 	heuristicResults, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
-	if err != nil && !errors.Is(err, ErrorNoOriginsAtStart) {
+	if err != nil && !errors.Is(err, errorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

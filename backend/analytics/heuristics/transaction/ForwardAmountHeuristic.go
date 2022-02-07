@@ -122,7 +122,7 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
 	var clusterDestinations []struct {

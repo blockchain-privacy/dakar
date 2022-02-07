@@ -96,7 +96,7 @@ func (h ReverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if len(parentHeuristic.Results) == 0 {
-			return nil, ErrorNoOriginsAtStart
+			return nil, errorNoOriginsAtStart
 		}
 
 		for _, r := range parentHeuristic.Results {

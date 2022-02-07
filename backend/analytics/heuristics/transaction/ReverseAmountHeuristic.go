@@ -98,7 +98,7 @@ func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	if len(origins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
 	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)

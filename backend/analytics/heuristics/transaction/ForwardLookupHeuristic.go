@@ -107,7 +107,7 @@ func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if len(results) == 0 {
-			return nil, ErrorNoOriginsAtStart
+			return nil, errorNoOriginsAtStart
 		}
 
 		for _, r := range results {
