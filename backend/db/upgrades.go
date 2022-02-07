@@ -264,3 +264,67 @@ func AlterSchemaAddNewHeuristicResult(c external.Database) error {
 		`,
 	})
 }
+
+/////////
+
+// DropAllHeuristicPredicates2 drops all data of the heuristic predicates
+func DropAllHeuristicPredicates2(c external.Database) error {
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "type",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "parameter",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "h_transaction",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "results",
+	}); err != nil {
+		return err
+	}
+
+	return c.Alter(context.Background(), &api.Operation{
+		DropAttr: "parent_heuristic",
+	})
+}
+
+// DropTypeTransactionHeuristic removes the type TransactionHeuristic
+func DropTypeTransactionHeuristic(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		DropOp:    api.Operation_TYPE,
+		DropValue: "TransactionHeuristic",
+	})
+}
+
+// AlterSchemaAddHeuristic changes adds the new heuristic type
+func AlterSchemaAddHeuristic(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.results: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
+
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.results
+				Heuristic.ts
+				Heuristic.parent
+			}
+		`,
+	})
+}

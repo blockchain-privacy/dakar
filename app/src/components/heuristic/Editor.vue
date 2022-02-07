@@ -178,7 +178,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       type: d.type,
       parameter: d.parameter,
       children: d.children,
-      parent_heuristic: d.parent_heuristic,
+      parent: d.parent,
     });
   });
 
@@ -199,11 +199,11 @@ function areDataElementsEqual(a, b) {
     return false;
   }
 
-  if (a.parent_heuristic !== undefined && b.parent_heuristic !== undefined) {
-    return a.parent_heuristic[0].uid === b.parent_heuristic[0].uid;
+  if (a.parent !== undefined && b.parent !== undefined) {
+    return a.parent[0].uid === b.parent[0].uid;
   }
-  return !((a.parent_heuristic !== undefined && b.parent_heuristic === undefined)
-      || (b.parent_heuristic !== undefined && a.parent_heuristic === undefined));
+  return !((a.parent !== undefined && b.parent === undefined)
+      || (b.parent !== undefined && a.parent === undefined));
 }
 
 export default {
@@ -376,7 +376,7 @@ export default {
       }
 
       if (this.heuristicDetailsMap.has(heuristic.uid)) {
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
         sheet.isOpen = true;
         return;
       }

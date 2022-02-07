@@ -111,19 +111,20 @@ func SetupSchema(c external.Database) error {
 				lastclusteredid
 			}
 
-			type: string @index(hash) .
-			parameter: string .
-			h_transaction: uid @reverse .
-			results: [uid] @count @reverse .
-			parent_heuristic: [uid] @reverse .
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.results: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
 
-			type TransactionHeuristic {
-				type
-				parameter
-				h_transaction
-				results
-				ts
-				parent_heuristic
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.results
+				Heuristic.ts
+				Heuristic.parent
 			}
 
 			HeuristicResult.origin: uid @reverse .

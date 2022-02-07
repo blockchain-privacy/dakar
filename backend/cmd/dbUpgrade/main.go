@@ -127,22 +127,44 @@ func main() {
 	//}
 	//info("add attribution type done")
 
-	info("drop heuristic predicates starting ...")
-	if err := db.DropAllHeuristicPredicates(dgraph); err != nil {
-		info(err)
-	}
-	info("drop heuristic predicates done")
+	///
 
-	info("drop type TransactionHeuristicResult starting ...")
-	if err := db.DropTypeTransactionHeuristicResult(dgraph); err != nil {
-		info(err)
-	}
-	info("drop type TransactionHeuristicResult done")
+	//info("drop heuristic predicates starting ...")
+	//if err := db.DropAllHeuristicPredicates(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("drop heuristic predicates done")
+	//
+	//info("drop type TransactionHeuristicResult starting ...")
+	//if err := db.DropTypeTransactionHeuristicResult(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("drop type TransactionHeuristicResult done")
+	//
+	//info("add type HeuristicResult starting ...")
+	//if err := db.AlterSchemaAddNewHeuristicResult(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("drop type HeuristicResult done")
 
-	info("add type HeuristicResult starting ...")
-	if err := db.AlterSchemaAddNewHeuristicResult(dgraph); err != nil {
+	/////
+
+	info("drop heuristic predicates 2 starting ...")
+	if err := db.DropAllHeuristicPredicates2(dgraph); err != nil {
 		info(err)
 	}
-	info("drop type HeuristicResult done")
+	info("drop heuristic predicates 2 done")
+
+	info("drop type TransactionHeuristic starting ...")
+	if err := db.DropTypeTransactionHeuristic(dgraph); err != nil {
+		info(err)
+	}
+	info("drop type TransactionHeuristic done")
+
+	info("add type Heuristic starting ...")
+	if err := db.AlterSchemaAddHeuristic(dgraph); err != nil {
+		info(err)
+	}
+	info("drop type Heuristic done")
 
 }
