@@ -154,7 +154,7 @@ type FrontendHeuristicResponse struct {
 			Timestamp   string `json:"ts,omitempty"`
 			AddressHash string `json:"addresshash,omitempty"`
 			TxHash      string `json:"txhash,omitempty"`
-		} `json:"origin,omitempty"`
+		} `json:"HeuristicResult.origin,omitempty"`
 		Destinations []struct {
 			UID       string `json:"uid,omitempty"`
 			Timestamp string `json:"ts,omitempty"`
