@@ -45,6 +45,14 @@
                 Cluster Overview
               </v-list-item-title>
             </v-list-item>
+            <v-list-item :to="{ name: attributionsPage}">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiTag }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>
+                Attributions
+              </v-list-item-title>
+            </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
@@ -71,6 +79,10 @@
         <span>Cluster Overview</span>
         <v-icon>{{ icon.mdiMerge }}</v-icon>
       </v-btn>
+      <v-btn :to="{ name: attributionsPage}">
+        <span>Attributions</span>
+        <v-icon>{{ icon.mdiTag }}</v-icon>
+      </v-btn>
     </v-bottom-navigation>
   </div>
 </template>
@@ -78,12 +90,14 @@
 <script>
 import {
   mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch, mdiMerge,
+  mdiTag,
 } from '@mdi/js';
 import {
   ROUTE_NAME_USER_HEURISTIC_PAGE,
   ROUTE_NAME_SHORTEST_PATH_PAGE,
   ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_ATTRIBUTIONS,
 } from '../../constants';
 
 export default {
@@ -94,12 +108,14 @@ export default {
       shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
       connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
+      attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
       icon: {
         mdiGraph,
         mdiChartTimelineVariant,
         mdiToolbox,
         mdiTextBoxSearch,
         mdiMerge,
+        mdiTag,
       },
     };
   },

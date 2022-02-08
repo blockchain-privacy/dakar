@@ -15,6 +15,9 @@ import (
 // loggerPrefix is the prefix which is printed for each log message
 const loggerPrefix = "\033[0;34mserver\u001B[0m\t"
 
+// maxBodySize is the maximum number of bytes a body can contain without an error being thrown while being read
+const maxBodySize = 1048576 // 1048576 = 1024 * 1024 -> 1 MiB
+
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
 // InitLogger creates new loggers with the given parameters.

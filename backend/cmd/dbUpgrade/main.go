@@ -115,9 +115,16 @@ func main() {
 	//}
 	//info("drop lowest block id predicate done")
 
-	info("add user predicate starting ...")
-	if err := db.AlterSchemaAddUserToCluster(dgraph); err != nil {
+	//info("add user predicate starting ...")
+	//if err := db.AlterSchemaAddUserToCluster(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("add user predicate done")
+
+	info("add attribution type starting ...")
+	if err := db.AlterSchemaAddAttribution(dgraph); err != nil {
 		info(err)
 	}
-	info("add user predicate done")
+	info("add attribution type done")
+
 }

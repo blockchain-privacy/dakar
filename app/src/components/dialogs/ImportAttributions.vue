@@ -1,14 +1,16 @@
 <template>
-  <v-dialog v-model="show" max-width="700px">
+  <v-dialog v-model="show" max-width="1000px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
-        <span class="text-h5">Import Clusters</span>
+        <span class="text-h5">Import Attributions</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
-          Import address clusters by uploading a CSV-file.
-          The file must have two columns, where the first column contains an
-          identifier for each cluster and the second column the addresses.
+          Import address attributions by uploading a CSV-file.
+          The file must have five columns (<code>address</code>,
+          <code>tag</code>,<code>description</code>,<code>source</code> and
+          <code>category</code>). The fields <code>address</code>
+          and <code>tag</code> are mandatory, the rest are optional.
         </div>
         <v-expansion-panels flat>
           <v-expansion-panel>
@@ -16,12 +18,14 @@
               Example CSV-file
             </v-expansion-panel-header>
             <v-expansion-panel-content>
-              <p>The following file content would generate two clusters with two addresses each.</p>
-              <pre><code>cluster-id,address
-1,XgG6Nosmei5woQ2VTDzwmLX7SzdNYKHdiz
-1,Xf36MqBkoK8G5wBbjUSwDRy6XTjdNq8hgB
-2,XatWuw7BhTxHvjPLbnvPArWgW9r6hjpt8o
-2,XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
+              <p>The following file content would generate five attributions,
+                with one address having two tags. </p>
+              <pre><code>address;tag;description;source;category
+XgfSvDijDxPyWGXUw6CAxe91iYzZDMe3CV;darknet-address;;;
+XooBLwqL5wbBjoHJ1D4iZyrHWSRKQeRms9;twitter-@josh;Josh Noname;https://twitter.com/josh;social media
+XeNFLcypT3ayuqjVzK5HnzfRMBxwuBVKfB;facebook-some-user-name;;;social media
+XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;case-123;;;
+XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
             </v-expansion-panel-content>
           </v-expansion-panel>
         </v-expansion-panels>
@@ -37,6 +41,10 @@
             <v-col>
               <v-switch v-model="csv.firstRowContainsHeader"
                         label="First row of file contains headers" :disabled="isLoading"/>
+            </v-col>
+            <v-col v-if="isAdminUser(userData)">
+              <v-switch v-model="areAttributionsPublic"
+                        label="Public attributions" :disabled="isLoading"/>
             </v-col>
             <v-col>
               <v-select
@@ -63,8 +71,8 @@
 </template>
 
 <script>
-import { ROUTE_ADD_CLUSTER } from '../../constants';
-import { doPostUpload } from '../../utilities';
+import { ROUTE_ADD_PRIVATE_ATTRIBUTION, ROUTE_ADD_PUBLIC_ATTRIBUTION } from '../../constants';
+import { doPostUpload, isAdminUser } from '../../utilities';
 
 // codeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
@@ -74,7 +82,7 @@ function codeToMsg(msgCode) {
     case 'unsupported_separator':
       return 'invalid column separator';
     case 'file_invalid_field_count':
-      return 'file must have two columns';
+      return 'file must have five columns';
     case 'file_no_data':
       return 'file does not contain data';
     case 'file_invalid_data':
@@ -83,8 +91,6 @@ function codeToMsg(msgCode) {
       return 'could not read file';
     case 'file_too_many_addresses':
       return 'file has more than 1000 addresses';
-    case 'file_shallow_cluster':
-      return 'file contains clusters with only one address';
     case 'file_error_importing':
       return 'error importing file';
     default:
@@ -93,7 +99,7 @@ function codeToMsg(msgCode) {
 }
 
 export default {
-  name: 'ImportCluster',
+  name: 'ImportAttribution',
   props: {
     value: { type: Boolean, required: true },
   },
@@ -104,6 +110,7 @@ export default {
         { text: 'Colon (,)', value: ',' },
         { text: 'Semicolon (;)', value: ';' },
       ],
+      areAttributionsPublic: false,
       csv: {
         valid: false,
         file: null,
@@ -128,8 +135,17 @@ export default {
         this.$emit('input', value);
       },
     },
+    userData: {
+      get() {
+        return this.$store.getters.getActiveUser;
+      },
+      set(value) {
+        this.$store.dispatch('setActiveUser', value);
+      },
+    },
   },
   methods: {
+    isAdminUser,
     setSuccessMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
     },
@@ -146,9 +162,10 @@ export default {
       newForm.append('file', this.csv.file);
       newForm.append('separator', this.csv.separator);
       newForm.append('hasHeader', this.csv.firstRowContainsHeader ? '1' : '0');
-
+      const route = this.areAttributionsPublic
+        ? ROUTE_ADD_PUBLIC_ATTRIBUTION : ROUTE_ADD_PRIVATE_ATTRIBUTION;
       // upload to server
-      doPostUpload(ROUTE_ADD_CLUSTER, this.$router, this.$store, newForm)
+      doPostUpload(route, this.$router, this.$store, newForm)
         .then((response) => {
           if (!response.success) {
             let errorMsg;

@@ -4,38 +4,49 @@
       <slot v-bind="attrs" v-on="on"></slot>
     </template>
     <v-card class="pa-3" min-width="250px" max-width="350px">
-      <v-row no-gutters v-if="showTools">
-        <v-col>
-          <LinkCard
-              title="Shortest Path"
-              :icon="icons.mdiChartTimelineVariant"
-              :color="iconColor.default"
-              :to="{ name: routes.shortestPathPage }"/>
-        </v-col>
-        <v-col>
-          <LinkCard
-              title="Heuristics"
-              :icon="icons.mdiGraph"
-              :color="iconColor.default"
-              :to="{ name: routes.heuristicsPage }"/>
-        </v-col>
-        <v-col>
-          <LinkCard
-              title="Connection Lookup"
-              :icon="icons.mdiTextBoxSearch"
-              :color="iconColor.default"
-              :to="{ name: routes.connectionLookupPage }"/>
-        </v-col>
-        <v-col>
-          <LinkCard
-              title="Cluster Overview"
-              :icon="icons.mdiMerge"
-              :color="iconColor.default"
-              :to="{ name: routes.clusterOverviewPage }"/>
-        </v-col>
-      </v-row>
+      <div v-if="showTools">
+        <v-row no-gutters>
+          <v-col>
+            <LinkCard
+                title="Shortest Path"
+                :icon="icons.mdiChartTimelineVariant"
+                :color="iconColor.default"
+                :to="{ name: routes.shortestPathPage }"/>
+          </v-col>
+          <v-col>
+            <LinkCard
+                title="Heuristics"
+                :icon="icons.mdiGraph"
+                :color="iconColor.default"
+                :to="{ name: routes.heuristicsPage }"/>
+          </v-col>
+          <v-col>
+            <LinkCard
+                title="Connection Lookup"
+                :icon="icons.mdiTextBoxSearch"
+                :color="iconColor.default"
+                :to="{ name: routes.connectionLookupPage }"/>
+          </v-col>
+        </v-row>
+        <v-row no-gutters>
+          <v-col>
+            <LinkCard
+                title="Cluster Overview"
+                :icon="icons.mdiMerge"
+                :color="iconColor.default"
+                :to="{ name: routes.clusterOverviewPage }"/>
+          </v-col>
+          <v-col>
+            <LinkCard
+                title="Attributions"
+                :icon="icons.mdiTag"
+                :color="iconColor.default"
+                :to="{ name: routes.attributionsPage }"/>
+          </v-col>
+        </v-row>
+      </div>
       <v-divider class="my-2"/>
-      <v-row no-gutters >
+      <v-row no-gutters>
         <v-col>
           <LinkCard
               title="Server Status"
@@ -58,12 +69,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge,
+  mdiMerge, mdiTag,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE,
-  ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_ATTRIBUTIONS,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -84,6 +95,7 @@ export default {
         mdiAccountSupervisor,
         mdiServer,
         mdiMerge,
+        mdiTag,
       },
       iconColor: {
         default: 'primary',
@@ -96,6 +108,7 @@ export default {
         connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
         clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
+        attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
       },
     };
   },

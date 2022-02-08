@@ -107,11 +107,8 @@ type TransactionWithAddresses struct {
 
 // ClusterLookupRequest holds all configuration data for a cluster lookup request
 type ClusterLookupRequest struct {
-	// AddressHash1 is either the address hash for which to find clusters or
-	// the first address of two of the common cluster lookup
-	AddressHash1 string `json:"a1,omitempty"`
-	// AddressHash2 is the second address of two of the common cluster lookup
-	AddressHash2 string `json:"a2,omitempty"`
+	// AddressHash is either the address hash for which to find clusters
+	AddressHash string `json:"addressHash,omitempty"`
 }
 
 type FrontendAddress struct {
@@ -129,6 +126,17 @@ type FrontendCluster struct {
 	BlockHash       string            `json:"bhash,omitempty"`
 	Timestamp       time.Time         `json:"ts,omitempty"`
 	Addresses       []FrontendAddress `json:"cluster_addresses,omitempty"`
+	Attributions    []Attribution     `json:"attributions,omitempty"`
+}
+
+type Attribution struct {
+	Tag      string `json:"tag,omitempty"`
+	IsPublic bool   `json:"ispublic,omitempty"`
+}
+
+type ClusterTags struct {
+	Uid          string        `json:"uid,omitempty"`
+	Attributions []Attribution `json:"tags,omitempty"`
 }
 
 type FrontendClusterRequest struct {

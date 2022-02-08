@@ -269,7 +269,7 @@ export default {
       heuristicSheet: {
         isOpen: false,
         heuristicUid: '',
-        heuristicType: '',
+        heuristicTypeTitle: '',
         heuristicParameter: '',
         resultCount: null,
         transactions: null,
@@ -363,7 +363,7 @@ export default {
       });
 
       sheet.heuristicParameter = heuristic.parameter;
-      sheet.heuristicType = displayType;
+      sheet.heuristicTypeTitle = displayType;
       sheet.resultCount = heuristic.num_results;
       sheet.heuristicUid = heuristic.uid;
       sheet.transactions = null;
@@ -385,7 +385,7 @@ export default {
       this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
         if (this.heuristicDetailsMap.size === 0
             || !this.heuristicDetailsMap.has(heuristic.uid)) return;
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid).results;
+        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
         sheet.isOpen = true;
       });
     },

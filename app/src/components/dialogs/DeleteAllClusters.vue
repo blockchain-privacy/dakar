@@ -13,7 +13,7 @@
             <v-btn text :disabled="isLoading" class="mr-2" @click="show = false">
               Cancel
             </v-btn>
-            <v-btn text :loading="isLoading" @click="deleteAllClusters">
+            <v-btn text color="red" :loading="isLoading" @click="deleteAllClusters">
               Delete
             </v-btn>
           </v-col>
@@ -55,7 +55,7 @@ export default {
       this.isLoading = true;
       doGet(ROUTE_DELETE_ALL_CLUSTERS, this.$router, this.$store, this.clusterUid)
         .then((d) => {
-          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting cluster');
+          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting clusters');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
           this.$emit('deleted');
         })

@@ -22,13 +22,13 @@
         <v-list>
           <v-list-item @click="addClusterDialog = true">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiFileImport}}</v-icon>
+              <v-icon>{{ icon.mdiFileImport }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Import clusters</v-list-item-title>
           </v-list-item>
           <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
             <v-list-item-icon>
-              <v-icon>{{icon.mdiDelete}}</v-icon>
+              <v-icon>{{ icon.mdiDelete }}</v-icon>
             </v-list-item-icon>
             <v-list-item-title>Delete all clusters</v-list-item-title>
           </v-list-item>
@@ -37,11 +37,20 @@
     </v-toolbar>
     <v-card-text>
       <v-row>
-        <v-col v-if="items.length === 0">
-          <p class="text-subtitle-1 text-center">No Clusters</p>
+        <v-col v-if="items.length > 0">
+          <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+          These clusters have been created by you.
         </v-col>
+        <v-col v-else>
+          <div class="d-flex justify-center">
+            <v-btn @click="addClusterDialog = true" text>
+              <v-icon>{{ icon.mdiFileImport }}</v-icon> Import clusters
+            </v-btn>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row v-if="items.length > 0">
         <v-col
-            v-else
             v-for="(item, i) in items"
             :key="i"
             cols="12"
@@ -56,29 +65,41 @@
               <v-list-item-subtitle class="text-right">
                 {{ item.ts.toLocaleDateString() }}
               </v-list-item-subtitle>
+              <v-menu
+                  bottom
+                  left>
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn
+                      icon
+                      v-bind="attrs"
+                      v-on="on">
+                    <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                  </v-btn>
+                </template>
+                <v-list>
+                  <v-list-item @click="deleteItem(item.uid, item.address_count)">
+                    <v-list-item-icon>
+                      <v-icon>{{ icon.mdiDelete }}</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title>Delete</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
             </v-list-item>
             <v-list-item
                 v-for="address in item.addresses"
                 :key="address"
                 :to="{ name: routes.addressRoute, params: { id: address }}">
               <v-list-item-content>
-                <v-list-item-title>
-                  {{ address }}
-                </v-list-item-title>
+                {{ address }}
               </v-list-item-content>
             </v-list-item>
-            <v-card-actions>
-              <v-btn text @click="deleteItem(item.uid, item.address_count)">
-                <v-icon>{{ icon.mdiDelete }}</v-icon>
-                Delete
-              </v-btn>
-            </v-card-actions>
           </v-card>
         </v-col>
       </v-row>
     </v-card-text>
     <import-cluster v-model="addClusterDialog" @added="loadData"/>
-    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData" />
+    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData"/>
     <delete-cluster v-model="deleteClusterDialog"
                     :cluster-uid="deleteClusterUid"
                     :num-addresses="deleteClusterSize"
@@ -88,7 +109,7 @@
 
 <script>
 import {
-  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiInformationOutline,
 } from '@mdi/js';
 import { PAGE_TITLE, ROUTE_CLUSTER_OVERVIEW, ROUTE_NAME_ADDRESS_PAGE } from '../../constants';
 import { doGet, handleError } from '../../utilities';
@@ -102,7 +123,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
+        mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiInformationOutline,
       },
       routes: {
         addressRoute: ROUTE_NAME_ADDRESS_PAGE,

@@ -1,11 +1,13 @@
 package server
 
 import (
+	analytics2 "backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
 	heuristic "backend/analytics/heuristics/transaction"
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db/analytics"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics/transaction"
 	dbtx "backend/db/transaction"
@@ -579,7 +581,8 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristic.Worker
 }
 
 // getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
-func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int) (clusters []clustering.FrontendCluster, msg string, err error) {
+func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int,
+	userID string) (clusters []clustering.FrontendCluster, msg string, err error) {
 	// parse request
 	var req clustering.ClusterLookupRequest
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
@@ -588,52 +591,32 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 		return
 	}
 
-	if req.AddressHash1 == "" {
-		msg = "provide at least the first address hash"
+	if req.AddressHash == "" {
+		msg = "address hash is empty"
 		return
 	}
 
-	if !isValid(req.AddressHash1) {
-		msg = "first address hash was not valid"
+	if !isValid(req.AddressHash) {
+		msg = "address hash was not valid"
 		return
 	}
 
-	if req.AddressHash2 == "" {
-		clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash1, maxAddresses)
-		if getErr != nil {
-			msg = "error while searching for clusters"
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
-			return
-		}
-		clusters = clusterResponse
-	} else {
-		if !isValid(req.AddressHash2) {
-			msg = "second address hash was not valid"
-			return
-		}
-
-		if req.AddressHash1 == req.AddressHash2 {
-			msg = "address hashes are identical"
-			return
-		}
-
-		clusterResponse, getErr := clustering.GetCommonClusters(dgraph, req.AddressHash1, req.AddressHash2, maxAddresses)
-		if getErr != nil {
-			msg = "error while searching for clusters"
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
-			return
-		}
-		clusters = clusterResponse
+	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
+	if getErr != nil {
+		msg = "error while searching for clusters"
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+		return
 	}
+	clusters = clusterResponse
 
 	return
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenUser) (reply clusterLookupReply) {
 	const maxAddresses = 30
 
-	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses)
+	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses, user.ID)
 	reply.Msg = msg
 	if err != nil {
 		info(err)
@@ -752,7 +735,13 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 // writeClusterSummary writes heuristic data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
-	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0)
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		return
+	}
+
+	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0, tUser.ID)
 	if err != nil {
 		handleError(w, err)
 		info(msg)
@@ -760,7 +749,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	}
 
 	if len(clusters) == 0 {
-		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
 		return
 	}
 
@@ -838,7 +827,7 @@ const (
 	CsvErrorImporting    = "file_error_importing"
 )
 
-func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http.Request) (reply addClusterReply) {
+func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClusterReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = "User not found"
@@ -846,10 +835,7 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 		return
 	}
 
-	const MaxUploadSize = 1024 * 1024
-
-	r.Body = http.MaxBytesReader(w, r.Body, MaxUploadSize)
-	if err := r.ParseMultipartForm(MaxUploadSize); err != nil {
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
 		return
 	}
 
@@ -949,6 +935,117 @@ func getAddClusterReply(dgraph external.Database, w http.ResponseWriter, r *http
 	return
 }
 
+func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply addAttributionReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
+		return
+	}
+
+	separator := r.FormValue("separator")
+	if separator == "" {
+		reply.Msg = CsvInvalidSeparator
+		return
+	}
+
+	var rSeparator rune
+	if separator != ";" && separator != "," {
+		reply.Msg = CsvInvalidSeparator
+		return
+	} else {
+		rSeparator = []rune(separator)[0]
+	}
+
+	headerFlag := r.FormValue("hasHeader")
+	if headerFlag == "" {
+		reply.Msg = CsvEmptyHeader
+		return
+	}
+
+	// Get handler for filename, size and headers
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		reply.Msg = CsvReadError
+		return
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			info("Error closing CSV-file")
+		}
+	}(file)
+
+	csvReader := csv.NewReader(file)
+	csvReader.ReuseRecord = true
+	csvReader.Comma = rSeparator
+	csvReader.FieldsPerRecord = 5
+	var line []string
+
+	var addresses []analytics2.Attribution
+	var index int
+	for ; ; index++ {
+		line, err = csvReader.Read()
+		if err != nil {
+			if errors.Is(err, csv.ErrFieldCount) {
+				reply.Msg = CsvInvalidFieldCount
+				return
+			} else if !errors.Is(err, io.EOF) {
+				reply.Msg = CsvInvalidData
+				return
+			}
+			break
+		}
+
+		if index == 0 && headerFlag == "1" {
+			continue
+		}
+
+		newAttribution := analytics2.Attribution{
+			AddressHash: line[0],
+			Tag:         line[1],
+			Description: line[2],
+			Source:      line[3],
+			Category:    line[4],
+		}
+
+		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {
+			reply.Msg = CsvInvalidData
+			return
+		}
+
+		addresses = append(addresses, newAttribution)
+	}
+
+	if len(addresses) == 0 {
+		reply.Msg = CsvNoData
+		return
+	}
+
+	if err := analytics2.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
+		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
+			reply.Msg = CsvShallowCluster
+		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
+		}
+
+		return
+	}
+
+	reply.Success = true
+	return
+}
+
 func getClusterOverviewReply(dgraph external.Database, userUID string) (reply clusterOverviewReply) {
 	clusters, err := clustering.GetUserClusters(dgraph, userUID)
 	if err != nil {
@@ -988,6 +1085,88 @@ func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply 
 	}
 
 	reply.Success = true
+
+	return
+}
+
+func getAttributionOverviewReply(dgraph external.Database, userUID string) (reply attributionOverviewReply) {
+	attributions, err := attribution.GetUserAttributions(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no attributions found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Attributions = attributions
+
+	return
+}
+
+func getDeleteAttributionReply(dgraph external.Database, userUID string,
+	attributionUid string, isPublicDeletion bool) (reply deleteAttributionReply) {
+	if attributionUid == "" {
+		reply.Msg = "attribution uid was not set"
+		return
+	}
+
+	var err error
+	if isPublicDeletion {
+		err = attribution.DeletePublicAttribution(dgraph, attributionUid)
+	} else {
+		err = attribution.DeletePrivateAttribution(dgraph, userUID, attributionUid)
+	}
+
+	if err != nil {
+		reply.Msg = "could not delete attribution"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (reply deleteAttributionReply) {
+	if err := attribution.DeleteAllAttributions(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete clusters"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getAttributionSearchReply(dgraph external.Database, userUID string, body io.ReadCloser) (reply attributionOverviewReply) {
+	var searchRequest struct {
+		Query string `json:"q,omitempty"`
+	}
+
+	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
+		reply.Success = false
+		reply.Msg = "error decoding request"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if searchRequest.Query == "" {
+		reply.Success = false
+		reply.Msg = "empty query string"
+		return
+	}
+
+	attributions, err := attribution.SearchAttributions(dgraph, userUID, searchRequest.Query)
+	if err != nil {
+		reply.Msg = "no attributions found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.Attributions = attributions
 
 	return
 }

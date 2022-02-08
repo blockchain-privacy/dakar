@@ -173,11 +173,28 @@ type FrontendHeuristicShortItem struct {
 	CountForwardLookup int                         `json:"count,omitempty"`
 }
 
+type Attribution struct {
+	Tag      string `json:"tag,omitempty"`
+	IsPublic bool   `json:"ispublic"`
+}
+
+type AddressAttribution struct {
+	Address      string        `json:"addresshash,omitempty"`
+	Attributions []Attribution `json:"attributions,omitempty"`
+}
+
+type ClusterAttribution struct {
+	UID          string        `json:"uid,omitempty"`
+	Attributions []Attribution `json:"attributions,omitempty"`
+}
+
 // FrontendHeuristicShort holds all result counts of a heuristic
 type FrontendHeuristicShort struct {
-	UID         string                       `json:"uid,omitempty"`
-	ResultCount int                          `json:"num_results,omitempty"`
-	Results     []FrontendHeuristicShortItem `json:"results,omitempty"`
+	UID                 string                       `json:"uid,omitempty"`
+	ResultCount         int                          `json:"num_results,omitempty"`
+	Results             []FrontendHeuristicShortItem `json:"results,omitempty"`
+	AddressAttributions []AddressAttribution         `json:"address_attributions,omitempty"`
+	ClusterAttributions []ClusterAttribution         `json:"cluster_attributions,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request

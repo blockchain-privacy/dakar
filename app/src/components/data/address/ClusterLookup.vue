@@ -2,45 +2,24 @@
   <div>
     <v-card flat v-if="!showEmptyText">
       <v-card-text>
-        <div class="text-subtitle-1" v-if="isJointLookup">
-          Find clusters which are connected to both addresses.
-        </div>
-        <v-text-field
-            v-if="isJointLookup"
-            label="Address"
-            v-model="a2"
-            :disabled="isLoading"
-            @keydown.enter="doLookup"/>
-        <v-row>
-          <v-col>
-            <v-switch v-model="isJointLookup" label="Find joint clusters"
-                      :disabled="isLoading" @change="handleSwitchChange"/>
-          </v-col>
-          <v-col class="d-flex justify-end align-center" v-if="isJointLookup">
-            <v-btn
-                color="primary"
-                :disabled="!isSearchable"
-                :loading="isLoading"
-                @click="doLookup">
-              Search
-            </v-btn>
-          </v-col>
-        </v-row>
-        <v-expand-transition>
-          <div v-if="this.clusters.length > 0">
-            <v-divider/>
-            <v-row v-if="this.clusters.length > 0">
-              <v-col class="d-flex justify-end align-center">
-                <v-btn :loading="isClusterSummaryLoading"
-                       color="primary" outlined @click="downloadClusterSummary"
-                       class="mx-auto mt-3">
-                  <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
-                  Cluster Summary
-                </v-btn>
-              </v-col>
-            </v-row>
-          </div>
-        </v-expand-transition>
+        <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+        The following clusters are attached to this address.
+        New clusters can be created at the
+        <router-link :to="{ name: clusterOverview}">cluster overview</router-link>
+        page.
+        <v-fade-transition>
+          <v-row v-if="this.clusters.length > 0">
+            <v-col class="d-flex justify-end align-center">
+              <v-btn
+                  elevation="0"
+                  fab
+                  color="primary"
+                  @click="downloadClusterSummary">
+                <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-fade-transition>
       </v-card-text>
     </v-card>
     <v-progress-linear class="mt-10" v-if="isLoading" indeterminate/>
@@ -68,11 +47,14 @@
             <v-icon>{{ icon.mdiDelete }}</v-icon>
           </v-btn>
         </v-toolbar>
+        <v-card-text>
+          <attribution-tag v-for="(a, i) in c.attributions" :key="i" class="mr-2" :attribution="a"/>
+        </v-card-text>
         <v-card-text v-if="c.txhash">
           <p class="text-subtitle-1">Last updated by</p>
           <ClusterDetails :tx-hash="c.txhash" :block-hash="c.bhash"
                           :block-id="c.bid" :timestamp="c.ts"/>
-          <div v-if="!isJointLookup && c.hmi">
+          <div v-if="c.hmi">
             <p class="text-subtitle-1">First included by</p>
             <ClusterDetails :tx-hash="c.hmi.txhash" :block-hash="c.hmi.bhash"
                             :block-id="c.hmi.bid" :timestamp="c.hmi.ts"/>
@@ -113,39 +95,44 @@
 </template>
 
 <script>
-import { mdiFileDownloadOutline, mdiDelete } from '@mdi/js';
+import { mdiDelete, mdiFileDownloadOutline, mdiInformationOutline } from '@mdi/js';
 import {
-  ROUTE_CLUSTER_LOOKUP, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE,
-  ROUTE_NAME_TRANSACTION_PAGE, CLUSTER_TYPE_HMI, CLUSTER_TYPE_FMI, ROUTE_CLUSTER_SUMMARY,
+  CLUSTER_TYPE_FMI,
+  CLUSTER_TYPE_HMI,
+  ROUTE_CLUSTER_LOOKUP,
+  ROUTE_CLUSTER_SUMMARY,
+  ROUTE_NAME_ADDRESS_PAGE,
+  ROUTE_NAME_BLOCK_PAGE,
+  ROUTE_NAME_CLUSTER_OVERVIEW,
+  ROUTE_NAME_TRANSACTION_PAGE,
 } from '../../../constants';
 import {
   doPost, doPostBlob, getClusterTypeLabel, getCurrentDate, handleError,
 } from '../../../utilities';
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteCluster from '../../dialogs/DeleteCluster.vue';
+import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 
 export default {
   name: 'ClusterLookup',
-  components: { ClusterDetails, DeleteCluster },
+  components: { AttributionTag, ClusterDetails, DeleteCluster },
   props: {
-    a1: { type: String, required: true },
+    addressHash: { type: String, required: true },
   },
   data() {
     return {
       icon: {
-        mdiFileDownloadOutline, mdiDelete,
+        mdiFileDownloadOutline, mdiDelete, mdiInformationOutline,
       },
       blockRoute: ROUTE_NAME_BLOCK_PAGE,
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       addressRoute: ROUTE_NAME_ADDRESS_PAGE,
+      clusterOverview: ROUTE_NAME_CLUSTER_OVERVIEW,
       // v-model
-      a2: '',
-      isJointLookup: false,
       isLoading: false,
       clusters: [],
       isClusterSummaryLoading: false,
       showEmptyText: false,
-      resultsAreFromJointLookup: false,
       tableHeaders: [
         {
           text: 'Addresshash',
@@ -165,16 +152,7 @@ export default {
   },
   computed: {
     isSearchable() {
-      const isA1Set = this.a1 && this.a1.trim().length > 0;
-
-      if (!isA1Set) {
-        return false;
-      }
-
-      if (this.isJointLookup) {
-        return this.a2 && this.a2.trim().length > 0 && this.a2.trim() !== this.a1.trim();
-      }
-      return true;
+      return this.addressHash && this.addressHash.trim().length > 0;
     },
   },
   methods: {
@@ -186,18 +164,11 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'warning', temporary: true });
     },
     getQuery() {
-      const query = { a1: this.a1.trim() };
-      if (this.isJointLookup) {
-        query.a2 = this.a2.trim();
-      }
-
-      return query;
+      return { addressHash: this.addressHash.trim() };
     },
     doLookup() {
       this.isLoading = true;
       this.showEmptyText = false;
-
-      this.resultsAreFromJointLookup = this.isJointLookup;
 
       doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, this.getQuery())
         .then((data) => {
@@ -244,16 +215,8 @@ export default {
     },
     downloadClusterSummary() {
       this.isClusterSummaryLoading = true;
-      const body = { a1: this.a1.trim() };
-      if (this.isJointLookup) {
-        body.a2 = this.a2.trim();
-      }
-
-      let fileName = this.a1;
-
-      if (this.isJointLookup) {
-        fileName += `_${this.a2}`;
-      }
+      const body = { addressHash: this.addressHash.trim() };
+      const fileName = this.addressHash;
 
       doPostBlob(ROUTE_CLUSTER_SUMMARY, this.$router, this.$store, body)
         .then((blob) => {
@@ -281,10 +244,6 @@ export default {
       this.deleteClusterDialog.uid = clusterUid;
       this.deleteClusterDialog.size = clusterSize;
       this.deleteClusterDialog.show = true;
-    },
-    handleSwitchChange() {
-      // only do lookup if user switched back to non-joint lookup and results are from joint lookup
-      if (this.resultsAreFromJointLookup && !this.isJointLookup) this.doLookup();
     },
   },
   created() {

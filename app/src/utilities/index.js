@@ -381,3 +381,16 @@ export function isCollateralPayment(privacyType) {
   if (Number.isNaN(t) || t < 0) return false;
   return t >= 400 && t <= 499;
 }
+
+// uuidv4 generates a pseudo random unique id
+// credits:
+// - https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
+// - https://gist.github.com/jed/982883
+// replace with https://developer.mozilla.org/en-US/docs/Web/API/Crypto/randomUUID#browser_compatibility
+// when more browser provide compatibility
+export function uuidv4() {
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) => (
+  // eslint-disable-next-line no-bitwise
+    c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4)
+    .toString(16));
+}

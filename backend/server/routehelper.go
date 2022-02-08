@@ -5,6 +5,7 @@ import (
 	"backend/cmd/cliutil"
 	dbaddr "backend/db/address"
 	"backend/db/analytics"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics/transaction"
 	dbblk "backend/db/block"
@@ -201,7 +202,8 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 	return SearchResult{resultType: typeAddr, result: addr}, true, nil
 }
 
-// extractTokenUser extracts the tokenUser from the context
+// extractTokenUser extracts the tokenUser from the context.
+// Returns an error if no user data could be extracted
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
@@ -256,6 +258,22 @@ type clusterOverviewReply struct {
 }
 
 type deleteClusterReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type addAttributionReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type attributionOverviewReply struct {
+	Success      bool                              `json:"success"`
+	Msg          string                            `json:"msg,omitempty"`
+	Attributions []attribution.FrontendAttribution `json:"attributions"`
+}
+
+type deleteAttributionReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
 }
