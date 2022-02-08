@@ -46,18 +46,18 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 func GetUserAttributions(c external.Database, userID string) (attributions []FrontendAttribution, err error) {
 	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
-					a as ~attribution_user
+					a as ~Attribution.user
 				}
 
 				q(func: uid(a)){
 					uid
-					attribution_ts
-					attribution_tag
-					attribution_description
-					attribution_source
-					attribution_category
-					attribution_ispublic
-					attribution_address{
+					Attribution.ts
+					Attribution.tag
+					Attribution.description
+					Attribution.source
+					Attribution.category
+					Attribution.isPublic
+					Attribution.address{
 						addresshash
 					}
 				}
@@ -89,7 +89,7 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 	req := &api.Request{
 		Query: `query Q($user:string,$attribution:string) {
 				var(func:uid($user))@filter(type(User)){
-					a as ~attribution_user@filter(uid($attribution))
+					a as ~Attribution.user@filter(uid($attribution))
 				}
 			  }`,
 		Vars: map[string]string{"$user": userID, "$attribution": attributionUID},
@@ -116,7 +116,7 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 func DeletePublicAttribution(c external.Database, attributionUID string) (err error) {
 	req := &api.Request{
 		Query: `query Q($attribution:string) {
-				a as var(func:uid($attribution))@filter(type(` + DType + ") and eq(attribution_ispublic,true))}",
+				a as var(func:uid($attribution))@filter(type(` + DType + ") and eq(Attribution.isPublic,true))}",
 		Vars: map[string]string{"$attribution": attributionUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("uid(a) * * ."),
@@ -142,7 +142,7 @@ func DeleteAllAttributions(c external.Database, userID string) (err error) {
 	req := &api.Request{
 		Query: `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
-					a as ~attribution_user
+					a as ~Attribution.user
 				}
 			  }`,
 		Vars: map[string]string{"$user": userID},
@@ -170,20 +170,20 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 
 	const query = `query Q($user:string,$regex:string) {
 				var(func:uid($user))@filter(type(User)){
-					a as ~attribution_user
+					a as ~Attribution.user
 				}
 
-				pa as var(func:type(` + DType + `))@filter(eq(attribution_ispublic,true))
+				pa as var(func:type(` + DType + `))@filter(eq(Attribution.isPublic,true))
 
-				q(func: uid(a, pa), first: 30)@filter(regexp(attribution_tag,$regex)){
+				q(func: uid(a, pa), first: 30)@filter(regexp(Attribution.tag,$regex)){
 					uid
-					attribution_ts
-					attribution_tag
-					attribution_description
-					attribution_source
-					attribution_category
-					attribution_ispublic
-					attribution_address{
+					Attribution.ts
+					Attribution.tag
+					Attribution.description
+					Attribution.source
+					Attribution.category
+					Attribution.isPublic
+					Attribution.address{
 						addresshash
 					}
 				}

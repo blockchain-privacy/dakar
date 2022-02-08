@@ -323,9 +323,9 @@ func getClusterQuery(maxAddresses int) string {
 			tags(func: uid(c))@filter(not eq(cluster_type,` + string(TypeHMI) + `)){
 				uid
 				tags:cluster_addresses@normalize {
-					~attribution_address@filter(eq(attribution_ispublic,true) or uid_in(attribution_user,$user)) {
-						tag:attribution_tag
-						ispublic:attribution_ispublic
+					~Attribution.address@filter(eq(Attribution.isPublic,true) or uid_in(Attribution.user,$user)) {
+						tag:Attribution.tag
+						isPublic:Attribution.isPublic
 					}
 				}
 			}`

@@ -601,9 +601,9 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				ca(func:uid(clusters))@cascade{
 					uid
 					cla:cluster_addresses{
-						attr:~attribution_address{
-							tag:attribution_tag
-							ispublic:attribution_ispublic
+						attr:~Attribution.address{
+							tag:Attribution.tag
+							isPublic:Attribution.isPublic
 						}
 					}
 				}
@@ -611,9 +611,9 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				# get labels per address, because not all addresses have an associated cluster
 				aa(func:uid(addr))@cascade{
 					a:addresshash
-					attr:~attribution_address{
-						tag:attribution_tag
-						ispublic:attribution_ispublic
+					attr:~Attribution.address{
+						tag:Attribution.tag
+						isPublic:Attribution.isPublic
 					}
 				}
 			   }`

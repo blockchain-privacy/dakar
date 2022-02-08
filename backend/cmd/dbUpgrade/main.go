@@ -121,11 +121,11 @@ func main() {
 	//}
 	//info("add user predicate done")
 
-	//info("add attribution type starting ...")
-	//if err := db.AlterSchemaAddAttribution(dgraph); err != nil {
-	//	info(err)
-	//}
-	//info("add attribution type done")
+	info("add attribution type starting ...")
+	if err := db.AlterSchemaAddAttribution(dgraph); err != nil {
+		info(err)
+	}
+	info("add attribution type done")
 
 	///
 
@@ -167,15 +167,15 @@ func main() {
 	//}
 	//info("drop type Heuristic done")
 
-	info("remove predicate isrlookupdone starting ...")
-	if err := db.DropAllIsRLookupDone(dgraph); err != nil {
-		info(err)
-	}
-	info("remove predicate isrlookupdone done")
-
-	info("update type Transaction starting ...")
-	if err := db.AlterSchemaUpdateTransaction(dgraph); err != nil {
-		info(err)
-	}
-	info("update type Transaction done")
+	//info("remove predicate isrlookupdone starting ...")
+	//if err := db.DropAllIsRLookupDone(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("remove predicate isrlookupdone done")
+	//
+	//info("update type Transaction starting ...")
+	//if err := db.AlterSchemaUpdateTransaction(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("update type Transaction done")
 }

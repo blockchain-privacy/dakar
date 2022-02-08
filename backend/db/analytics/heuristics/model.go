@@ -178,7 +178,7 @@ type FrontendHeuristicShortItem struct {
 
 type Attribution struct {
 	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"ispublic"`
+	IsPublic bool   `json:"isPublic"`
 }
 
 type AddressAttribution struct {

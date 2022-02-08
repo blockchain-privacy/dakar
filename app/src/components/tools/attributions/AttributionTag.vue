@@ -1,11 +1,11 @@
 <template>
   <span>
     <v-hover open-delay="0">
-      <v-chip :id="uuid" label class="overflow-x-auto" :color="attribution.ispublic?'primary':null">
+      <v-chip :id="uuid" label class="overflow-x-auto" :color="attribution.isPublic?'primary':null">
         {{ attribution.tag }}
       </v-chip>
     </v-hover>
-    <v-tooltip bottom :activator="`#${uuid}`" v-if="attribution.ispublic">
+    <v-tooltip bottom :activator="`#${uuid}`" v-if="attribution.isPublic">
       <span>This is a public attribution</span>
     </v-tooltip>
   </span>
@@ -24,7 +24,7 @@ export default {
   },
   beforeMount() {
     // calculate uuid if tooltip is set
-    if (this.attribution.ispublic) this.uuid = `tag_${uuidv4()}`;
+    if (this.attribution.isPublic) this.uuid = `tag_${uuidv4()}`;
   },
 };
 </script>

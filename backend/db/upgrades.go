@@ -204,24 +204,24 @@ func AlterSchemaAddUserToCluster(c external.Database) error {
 func AlterSchemaAddAttribution(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			attribution_user: uid @reverse . # the user which created the attribution
-			attribution_tag: string @index(term, trigram) . # tag of the attribution
-			attribution_address: uid @reverse . # the attribution's address
-			attribution_ts: dateTime @index(day). # creation time of the attribution
-			attribution_description: string @index(term, trigram) . # description of the attribution
-			attribution_source: string @index(term, trigram) . # source (link) of the attribution
-			attribution_category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
-			attribution_ispublic: bool @index(bool) . # set to true if the attribution is available to everyone
+			Attribution.user: uid @reverse . # the user which created the attribution
+			Attribution.tag: string @index(term, trigram) . # tag of the attribution
+			Attribution.address: uid @reverse . # the attribution's address
+			Attribution.ts: dateTime @index(day). # creation time of the attribution
+			Attribution.description: string @index(term, trigram) . # description of the attribution
+			Attribution.source: string @index(term, trigram) . # source (link) of the attribution
+			Attribution.category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
+			Attribution.isPublic: bool @index(bool) . # set to true if the attribution is available to everyone
 
 			type Attribution {
-				attribution_user
-				attribution_tag
-				attribution_address
-				attribution_ts
-				attribution_description
-				attribution_source
-				attribution_category
-				attribution_ispublic
+				Attribution.user
+				Attribution.tag
+				Attribution.address
+				Attribution.ts
+				Attribution.description
+				Attribution.source
+				Attribution.category
+				Attribution.isPublic
 			}
 		`,
 	})

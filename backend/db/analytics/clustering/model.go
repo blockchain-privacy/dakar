@@ -131,7 +131,7 @@ type FrontendCluster struct {
 
 type Attribution struct {
 	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"ispublic,omitempty"`
+	IsPublic bool   `json:"isPublic,omitempty"`
 }
 
 type ClusterTags struct {
