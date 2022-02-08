@@ -32,7 +32,6 @@ func SetupSchema(c external.Database) error {
 
 			txhash: string @index(hash) @upsert .
 			privacytype: int @index(int) .
-			isrlookupdone: bool @index(bool) .
 			fee: int .
 			tx_inputs: [uid] @reverse .
 			tx_outputs: [uid] @reverse .
@@ -40,9 +39,7 @@ func SetupSchema(c external.Database) error {
 			type Transaction {
 				txhash
 				privacytype
-				isrlookupdone
 				fee
-				<~transactions>
 				tx_outputs
 				tx_inputs
 			}
@@ -111,27 +108,30 @@ func SetupSchema(c external.Database) error {
 				lastclusteredid
 			}
 
-			type: string @index(hash) .
-			parameter: string .
-			h_transaction: uid @reverse .
-			results: [uid] @count @reverse .
-			parent_heuristic: [uid] @reverse .
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.results: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
 
-			type TransactionHeuristic {
-				type
-				parameter
-				h_transaction
-				results
-				ts
-				parent_heuristic
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.results
+				Heuristic.ts
+				Heuristic.parent
 			}
 
-			origin: uid @reverse .
-			destinations: [uid] @reverse .
+			HeuristicResult.origin: uid @reverse .
+			HeuristicResult.destinations: [uid] @reverse .
+			HeuristicResult.cluster: string .
 
-			type TransactionHeuristicResult {
-				origin
-				destinations
+			type HeuristicResult {
+				HeuristicResult.origin
+				HeuristicResult.destinations
+				HeuristicResult.cluster
 			}
 
 			role_name: string @index(hash) .

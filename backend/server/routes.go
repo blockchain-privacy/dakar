@@ -1,11 +1,11 @@
 package server
 
 import (
-	heuristic "backend/analytics/heuristics/transaction"
+	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/constants"
 	dbaddr "backend/db/address"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	dbtxh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
@@ -565,7 +565,7 @@ func handlerSearchAttributions(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph external.Database, worker *heuristic.Worker) http.Handler {
+func handlerHeuristics(dgraph external.Database, worker *heuristics.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -616,7 +616,7 @@ func handlerHMILookup(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicStatus/<hash>"
-func handlerHeuristicStatus(worker *heuristic.Worker) http.Handler {
+func handlerHeuristicStatus(worker *heuristics.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -688,7 +688,7 @@ func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph external.Database, worker *heuristic.Worker) http.Handler {
+func handlerHeuristicsExecution(dgraph external.Database, worker *heuristics.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -751,7 +751,7 @@ func handlerHeuristicDescriptors() http.Handler {
 
 		var reply heuristicDescriptorReply
 
-		for _, t := range heuristic.ValidHeuristicTypes {
+		for _, t := range heuristics.ValidHeuristicTypes {
 			reply.Descriptors = append(reply.Descriptors, t.GetDescriptor())
 		}
 
@@ -926,7 +926,7 @@ func handlerShortestTransactionPath(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
-func handlerConnectionLookup(dgraph external.Database, worker *heuristic.Worker) http.Handler {
+func handlerConnectionLookup(dgraph external.Database, worker *heuristics.Worker) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -978,7 +978,7 @@ func handlerMixingActivity(dgraph external.Database) http.Handler {
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristic.Worker,
+func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristics.Worker,
 	basicAuthUser string, basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) {
 
 	privkey, err := hex.DecodeString(tokenPrivateKey)
@@ -1039,7 +1039,7 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 			authorizationMiddleware(privkey, pubkey),
 			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
 
-	// Heuristic
+	// heuristic
 	http.Handle(constants.GetRouteHeuristics(),
 		adapt(handlerHeuristics(dgraph, worker), constants.GetRouteHeuristics(),
 			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))

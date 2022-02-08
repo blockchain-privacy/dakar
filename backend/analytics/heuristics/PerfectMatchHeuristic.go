@@ -1,45 +1,45 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
 
 	"fmt"
 )
 
-// PerfectMatchHeuristic - see exec for description
-type PerfectMatchHeuristic struct {
+// perfectMatchHeuristic - see exec for description
+type perfectMatchHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 }
 
-// NewPerfectMatchHeuristic constructs a PerfectMatchHeuristic
-func NewPerfectMatchHeuristic() PerfectMatchHeuristic {
-	return PerfectMatchHeuristic{
+// newPerfectMatchHeuristic constructs a perfectMatchHeuristic
+func newPerfectMatchHeuristic() perfectMatchHeuristic {
+	return perfectMatchHeuristic{
 		heuristicType: "perfect_match",
 	}
 }
 
-func (h PerfectMatchHeuristic) getType() string {
+func (h perfectMatchHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h PerfectMatchHeuristic) getParameterString() string {
+func (h perfectMatchHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h PerfectMatchHeuristic) hasParameter() bool {
+func (h perfectMatchHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h PerfectMatchHeuristic) setParameter(_ string) error {
+func (h perfectMatchHeuristic) setParameter(_ string) error {
 	return nil
 }
 
-func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
+func (h perfectMatchHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Perfect Match",
 		Type:     h.heuristicType,
@@ -51,33 +51,33 @@ func (h PerfectMatchHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h PerfectMatchHeuristic) String() string {
+func (h perfectMatchHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h PerfectMatchHeuristic) clone() Heuristic {
+func (h perfectMatchHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// PerfectMatchHeuristic applies the following Heuristic:
+// perfectMatchHeuristic applies the following heuristic:
 // - filter all origins of sources, which have denominations without a perfect match for the
 //		denominations of the destination transaction
-func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
-	origins := make(map[string]dbtxh.HeuristicTransaction)
+	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -100,10 +100,10 @@ func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 	}
 
 	if len(origins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
-	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
+	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -112,11 +112,11 @@ func (h PerfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredOrigins []dbtxh.HeuristicResult
+	var filteredOrigins []heuristics.HeuristicResult
 	for k, o := range originAmounts {
 		if isEqualDenomination(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
+				filteredOrigins = append(filteredOrigins, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

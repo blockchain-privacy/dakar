@@ -1,7 +1,7 @@
 package user
 
 import (
-	"backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/user"
 	"fmt"
 	"regexp"
@@ -33,14 +33,14 @@ func (r *Role) SetDType() {
 
 // User is the database representation of a user
 type User struct {
-	UID          string                  `json:"uid,omitempty"`
-	Email        string                  `json:"user_email,omitempty"`
-	PasswordHash string                  `json:"user_pwhash,omitempty"`
-	Roles        []Role                  `json:"user_roles,omitempty"`
-	Created      *time.Time              `json:"user_created,omitempty"`
-	Modified     *time.Time              `json:"user_modified,omitempty"`
-	Heuristics   []transaction.Heuristic `json:"user_heuristics,omitempty"`
-	DType        []string                `json:"dgraph.type,omitempty"`
+	UID          string                 `json:"uid,omitempty"`
+	Email        string                 `json:"user_email,omitempty"`
+	PasswordHash string                 `json:"user_pwhash,omitempty"`
+	Roles        []Role                 `json:"user_roles,omitempty"`
+	Created      *time.Time             `json:"user_created,omitempty"`
+	Modified     *time.Time             `json:"user_modified,omitempty"`
+	Heuristics   []heuristics.Heuristic `json:"user_heuristics,omitempty"`
+	DType        []string               `json:"dgraph.type,omitempty"`
 }
 
 func (u User) String() string {

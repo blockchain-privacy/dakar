@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"fmt"
@@ -11,36 +11,36 @@ import (
 	"time"
 )
 
-// ForwardLookupHeuristic - see exec for description
-type ForwardLookupHeuristic struct {
+// forwardLookupHeuristic - see exec for description
+type forwardLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
 }
 
-// NewForwardLookupHeuristic constructs a ForwardLookupHeuristic. hoursToLookForward in hours.
-func NewForwardLookupHeuristic(hoursToLookForward uint32) *ForwardLookupHeuristic {
+// newForwardLookupHeuristic constructs a forwardLookupHeuristic. hoursToLookForward in hours.
+func newForwardLookupHeuristic(hoursToLookForward uint32) *forwardLookupHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
-	return &ForwardLookupHeuristic{
+	return &forwardLookupHeuristic{
 		heuristicType:        "forward_lookup",
 		lookForwardTime:      lForwardTime,
 		parameterDescription: lForwardTime.String(),
 	}
 }
 
-func (h ForwardLookupHeuristic) getType() string {
+func (h forwardLookupHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ForwardLookupHeuristic) getParameterString() string {
+func (h forwardLookupHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ForwardLookupHeuristic) hasParameter() bool {
+func (h forwardLookupHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *ForwardLookupHeuristic) setParameter(p string) error {
+func (h *forwardLookupHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *ForwardLookupHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h ForwardLookupHeuristic) String() string {
+func (h forwardLookupHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
 
-func (h ForwardLookupHeuristic) GetDescriptor() Descriptor {
+func (h forwardLookupHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Forward Lookup",
 		Type:     h.heuristicType,
@@ -77,24 +77,24 @@ func (h ForwardLookupHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h ForwardLookupHeuristic) clone() Heuristic {
+func (h forwardLookupHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// ForwardLookupHeuristic applies the following heuristics:
+// forwardLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
-func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]dbtxh.HeuristicResult, error) {
+func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
 
-	var hResult []dbtxh.HeuristicResult
+	var hResult []heuristics.HeuristicResult
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -107,11 +107,11 @@ func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if len(results) == 0 {
-			return nil, ErrorNoOriginsAtStart
+			return nil, errorNoOriginsAtStart
 		}
 
 		for _, r := range results {
-			hResult = append(hResult, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: r.UID}})
+			hResult = append(hResult, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: r.UID}})
 		}
 	}
 
@@ -122,7 +122,7 @@ func (h ForwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		for _, v := range destinations {
-			hResult[i].Destinations = append(hResult[i].Destinations, dbtxh.DummyNode{UID: v.UID})
+			hResult[i].Destinations = append(hResult[i].Destinations, heuristics.DummyNode{UID: v.UID})
 		}
 	}
 

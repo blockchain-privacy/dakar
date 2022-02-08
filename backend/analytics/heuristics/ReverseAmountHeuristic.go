@@ -1,49 +1,49 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
 
 	"fmt"
 )
 
-// ReverseAmountHeuristic - see exec for description
-type ReverseAmountHeuristic struct {
+// reverseAmountHeuristic - see exec for description
+type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 }
 
-// NewReverseAmountHeuristic constructs an ReverseAmountHeuristic
-func NewReverseAmountHeuristic() ReverseAmountHeuristic {
-	return ReverseAmountHeuristic{
+// newReverseAmountHeuristic constructs an reverseAmountHeuristic
+func newReverseAmountHeuristic() reverseAmountHeuristic {
+	return reverseAmountHeuristic{
 		heuristicType: "reverse_amount",
 	}
 }
 
-func (h ReverseAmountHeuristic) getType() string {
+func (h reverseAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h ReverseAmountHeuristic) getParameterString() string {
+func (h reverseAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h ReverseAmountHeuristic) hasParameter() bool {
+func (h reverseAmountHeuristic) hasParameter() bool {
 	return false
 }
 
-func (h ReverseAmountHeuristic) setParameter(_ string) error {
+func (h reverseAmountHeuristic) setParameter(_ string) error {
 	return nil
 }
 
-func (h ReverseAmountHeuristic) String() string {
+func (h reverseAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
+func (h reverseAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Reverse Amount",
 		Type:     h.heuristicType,
@@ -54,26 +54,26 @@ func (h ReverseAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h ReverseAmountHeuristic) clone() Heuristic {
+func (h reverseAmountHeuristic) clone() heuristic {
 	newHeuristic := h
 	return &newHeuristic
 }
 
-// ReverseAmountHeuristic applies the following Heuristic:
+// reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
-	[]dbtxh.HeuristicResult, error) {
+func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+	[]heuristics.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
-	origins := make(map[string]dbtxh.HeuristicTransaction)
+	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
-	sourceTransactionMap := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -98,10 +98,10 @@ func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	if len(origins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
-	transaction, err := dbtxh.GetInputAmounts(dgraph, txHash)
+	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -110,13 +110,13 @@ func (h ReverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredOrigins []dbtxh.HeuristicResult
+	var filteredOrigins []heuristics.HeuristicResult
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
 			// save all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
 
-				filteredOrigins = append(filteredOrigins, dbtxh.HeuristicResult{Origin: dbtxh.DummyNode{UID: tx.UID}})
+				filteredOrigins = append(filteredOrigins, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: tx.UID}})
 			}
 		}
 	}

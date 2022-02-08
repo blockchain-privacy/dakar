@@ -1,9 +1,9 @@
-package transaction
+package heuristics
 
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 	"strconv"
 	"time"
@@ -11,36 +11,36 @@ import (
 	"fmt"
 )
 
-// ForwardAmountHeuristic - see exec for description
-type ForwardAmountHeuristic struct {
+// forwardAmountHeuristic - see exec for description
+type forwardAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
 }
 
-// NewForwardAmountHeuristic constructs an ForwardAmountHeuristic. hoursToLookForward in hours.
-func NewForwardAmountHeuristic(hoursToLookForward uint32) *ForwardAmountHeuristic {
+// newForwardAmountHeuristic constructs an forwardAmountHeuristic. hoursToLookForward in hours.
+func newForwardAmountHeuristic(hoursToLookForward uint32) *forwardAmountHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
-	return &ForwardAmountHeuristic{
+	return &forwardAmountHeuristic{
 		heuristicType:        "forward_amount",
 		lookForwardTime:      lForwardTime,
 		parameterDescription: lForwardTime.String(),
 	}
 }
 
-func (h *ForwardAmountHeuristic) getType() string {
+func (h *forwardAmountHeuristic) getType() string {
 	return h.heuristicType
 }
 
-func (h *ForwardAmountHeuristic) getParameterString() string {
+func (h *forwardAmountHeuristic) getParameterString() string {
 	return h.parameterDescription
 }
 
-func (h *ForwardAmountHeuristic) hasParameter() bool {
+func (h *forwardAmountHeuristic) hasParameter() bool {
 	return true
 }
 
-func (h *ForwardAmountHeuristic) setParameter(p string) error {
+func (h *forwardAmountHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
 		return err
@@ -51,11 +51,11 @@ func (h *ForwardAmountHeuristic) setParameter(p string) error {
 	return nil
 }
 
-func (h *ForwardAmountHeuristic) String() string {
+func (h *forwardAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
 
-func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
+func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {
 	return Descriptor{
 		Title:    "Forward Amount",
 		Type:     h.heuristicType,
@@ -77,27 +77,27 @@ func (h *ForwardAmountHeuristic) GetDescriptor() Descriptor {
 	}
 }
 
-func (h *ForwardAmountHeuristic) clone() Heuristic {
+func (h *forwardAmountHeuristic) clone() heuristic {
 	newHeuristic := *h
 	return &newHeuristic
 }
 
-// ForwardAmountHeuristic applies the following Heuristic:
+// forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
-	[]dbtxh.HeuristicResult, error) {
+func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+	[]heuristics.HeuristicResult, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
-	origins := make(map[string]dbtxh.HeuristicTransaction)
+	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps a cluster to its origin transactions
-	clusterOrigins := make(map[dbtxh.ClusterUID]map[string]dbtxh.HeuristicTransaction)
+	clusterOrigins := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []dbtxh.HeuristicTransaction
+		var results []heuristics.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = dbtxh.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -122,12 +122,12 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
-		return nil, ErrorNoOriginsAtStart
+		return nil, errorNoOriginsAtStart
 	}
 
 	var clusterDestinations []struct {
-		cluster dbtxh.ClusterUID
-		txs     map[string]dbtxh.HeuristicTransaction
+		cluster heuristics.ClusterUID
+		txs     map[string]heuristics.HeuristicTransaction
 	}
 
 	for c, txMap := range clusterOrigins {
@@ -141,29 +141,29 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		destinationMap := make(map[string]dbtxh.HeuristicTransaction)
+		destinationMap := make(map[string]heuristics.HeuristicTransaction)
 		for _, d := range destinations {
 			destinationMap[d.UID] = d
 		}
 
 		clusterDestinations = append(clusterDestinations, struct {
-			cluster dbtxh.ClusterUID
-			txs     map[string]dbtxh.HeuristicTransaction
+			cluster heuristics.ClusterUID
+			txs     map[string]heuristics.HeuristicTransaction
 		}{cluster: c, txs: destinationMap})
 	}
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredDestinations []dbtxh.HeuristicResult
+	var filteredDestinations []heuristics.HeuristicResult
 	for _, destinations := range clusterDestinations {
-		var clusterFilteredDestinations []dbtxh.DummyNode
+		var clusterFilteredDestinations []heuristics.DummyNode
 
 		for _, tx := range destinations.txs {
 			inputDenominationCounts := getDenominationCounts(tx)
 
 			// check if the denominations of the destination transactions can be funded by the denomination of its cluster
 			if containsDenomination(inputDenominationCounts, originAmounts[destinations.cluster]) {
-				clusterFilteredDestinations = append(clusterFilteredDestinations, dbtxh.DummyNode{UID: tx.UID})
+				clusterFilteredDestinations = append(clusterFilteredDestinations, heuristics.DummyNode{UID: tx.UID})
 			}
 		}
 
@@ -173,8 +173,8 @@ func (h *ForwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			originUID = v.UID
 		}
 
-		filteredDestinations = append(filteredDestinations, dbtxh.HeuristicResult{
-			Origin:       dbtxh.DummyNode{UID: originUID},
+		filteredDestinations = append(filteredDestinations, heuristics.HeuristicResult{
+			Origin:       heuristics.DummyNode{UID: originUID},
 			Destinations: clusterFilteredDestinations,
 		})
 	}

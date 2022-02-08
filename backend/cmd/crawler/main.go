@@ -4,7 +4,7 @@ import (
 	"backend/analytics"
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
-	heuristic "backend/analytics/heuristics/transaction"
+	heuristic "backend/analytics/heuristics"
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"

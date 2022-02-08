@@ -1,8 +1,8 @@
-package transaction
+package heuristics
 
 import (
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics/transaction"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 
 	"errors"
@@ -12,12 +12,12 @@ import (
 
 // ValidHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
-var ValidHeuristicTypes = []Heuristic{NewOneSourceHeuristic(0), NewReverseAmountHeuristic(),
-	NewPerfectMatchHeuristic(), NewDenominationTypeHeuristic(), NewReverseLookupHeuristic(0),
-	NewForwardLookupHeuristic(0), NewForwardAmountHeuristic(0)}
+var ValidHeuristicTypes = []heuristic{newOneSourceHeuristic(0), newReverseAmountHeuristic(),
+	newPerfectMatchHeuristic(), newDenominationTypeHeuristic(), newReverseLookupHeuristic(0),
+	newForwardLookupHeuristic(0), newForwardAmountHeuristic(0)}
 
-// typeMap K: Heuristic types, v: heuristics
-var typeMap = make(map[string]Heuristic)
+// typeMap K: heuristic types, v: heuristics
+var typeMap = make(map[string]heuristic)
 
 // newUIDPrefix is the prefix of the uid of all newly created heuristics on the frontend
 const newUIDPrefix = "newUid_"
@@ -36,12 +36,12 @@ var (
 type heuristicTreeElement struct {
 	uid                string
 	parentHeuristicUID string
-	heuristic          Heuristic
+	heuristic          heuristic
 	childHeuristicUID  []string
 }
 
 // isValid checks if the given heuristics are all valid
-func isValid(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) bool {
+func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) bool {
 	if len(heuristics) == 0 {
 		return false
 	}
@@ -61,7 +61,7 @@ func isValid(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) bo
 	return true
 }
 
-func buildHeuristicTreeElements(hMap map[string]Heuristic, heuristics []dbtxh.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
+func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
 	err error) {
 	// create map
 	builtHeuristics = make(map[string]heuristicTreeElement)
@@ -168,26 +168,26 @@ func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUID str
 			}
 		}
 
-		// don't worry, the slice is not nil. It is always initialised in the above if clause
+		// don't worry, the slice is not nil. It is always initialised in the if-clause above
 		levelToNode[level] = append(levelToNode[level], nodes[n.uid])
 	}
 
 	return
 }
 
-// buildExecutorsFromLevels builds a HeuristicExecutor beginning at the deepest level of the tree
-func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecutor HeuristicExecutor, err error) {
-	executorStack := make(map[string]HeuristicExecutor)
+// buildExecutorsFromLevels builds a heuristicExecutor beginning at the deepest level of the tree
+func buildExecutorsFromLevels(levelToNode [][]heuristicTreeElement) (rootExecutor heuristicExecutor, err error) {
+	executorStack := make(map[string]heuristicExecutor)
 
 	// backward traversal of list, because the deepest level has the highest index
 	for i := len(levelToNode) - 1; i >= 0; i-- {
 		for _, n := range levelToNode[i] {
-			thisExec := BuildExecutor(n.heuristic)
-			thisExec.RootUID = n.parentHeuristicUID
+			thisExec := buildExecutor(n.heuristic)
+			thisExec.rootUID = n.parentHeuristicUID
 			for _, childUID := range n.childHeuristicUID {
 				if child, ok := executorStack[childUID]; ok {
 					// add child to this executor tree and delete it from the map
-					thisExec.NextHeuristics = append(thisExec.NextHeuristics, child)
+					thisExec.nextHeuristics = append(thisExec.nextHeuristics, child)
 					delete(executorStack, childUID)
 				} else {
 					err = errHeuristicUIDNotFound
@@ -228,10 +228,10 @@ func isRootHeuristic(h heuristicTreeElement, heuristics map[string]heuristicTree
 	return false
 }
 
-// buildExecutors builds HeuristicExecutor trees from heuristics starting at the given rootHeuristicUids.
-// Each element of the returned slice is one HeuristicExecutor tree.
+// buildExecutors builds heuristicExecutor trees from heuristics starting at the given rootHeuristicUids.
+// Each element of the returned slice is one heuristicExecutor tree.
 func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicTreeElement) (
-	executors []HeuristicExecutor, err error) {
+	executors []heuristicExecutor, err error) {
 	for _, uid := range rootHeuristicUids {
 		v, ok := heuristics[uid]
 		if !ok {
@@ -240,11 +240,11 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 		}
 
 		if len(v.childHeuristicUID) == 0 {
-			executors = append(executors, HeuristicExecutor{
-				ThisHeuristic: v.heuristic,
-				RootUID:       v.parentHeuristicUID,
+			executors = append(executors, heuristicExecutor{
+				thisHeuristic: v.heuristic,
+				rootUID:       v.parentHeuristicUID,
 			})
-			// no children -> no work
+			// no children -> no Work
 			continue
 		}
 
@@ -267,8 +267,8 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph external.Database, txhash string, heuristics []dbtxh.FrontendHeuristic) (
-	executors []HeuristicExecutor, err error) {
+func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristic) (
+	executors []heuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
 		for _, h := range ValidHeuristicTypes {
@@ -276,12 +276,12 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 		}
 	}
 
-	if !isValid(typeMap, heuristics) {
+	if !isValid(typeMap, results) {
 		err = errHeuristicNotValid
 		return
 	}
 
-	newHeuristics, err := buildHeuristicTreeElements(typeMap, heuristics)
+	newHeuristics, err := buildHeuristicTreeElements(typeMap, results)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -307,7 +307,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
-		if exists, checkErr := dbtxh.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
+		if exists, checkErr := heuristics.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), checkErr)
 			return
 		} else if !exists {
@@ -326,7 +326,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, heuristics []db
 }
 
 // areSetsValid checks if the uids of removed are appearing in changed
-func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
+func areSetsValid(changed []heuristics.FrontendHeuristic, removed []string) bool {
 	// if both are empty there is an error
 	if len(changed) == 0 && len(removed) == 0 {
 		return false
@@ -355,7 +355,7 @@ func areSetsValid(changed []dbtxh.FrontendHeuristic, removed []string) bool {
 }
 
 // mergeRemoveList adds the uids of
-func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []string {
+func mergeRemoveList(changed []heuristics.FrontendHeuristic, removed []string) []string {
 	for _, c := range changed {
 		// only add heuristics which actually exist in the database
 		if !strings.HasPrefix(c.UID, newUIDPrefix) {
@@ -367,14 +367,14 @@ func mergeRemoveList(changed []dbtxh.FrontendHeuristic, removed []string) []stri
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph external.Database, transactionHash string, changed []dbtxh.FrontendHeuristic, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristic, toRemove []string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return
 	}
 
 	if len(changed) > 0 {
-		// create HeuristicExecutor trees
+		// create heuristicExecutor trees
 		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

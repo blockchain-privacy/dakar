@@ -1,4 +1,4 @@
-package transaction
+package heuristics
 
 import (
 	"fmt"
@@ -6,8 +6,10 @@ import (
 )
 
 // DType is the dgraph database type for the TransactionHeuristic type
-const DType = "TransactionHeuristic"
-const ResultDType = "TransactionHeuristicResult"
+const DType = "Heuristic"
+
+// ResultDType is the dgraph database type for the Heuristic type
+const ResultDType = "HeuristicResult"
 
 // DummyNode holds the uid of a database node
 type DummyNode struct {
@@ -17,8 +19,9 @@ type DummyNode struct {
 // HeuristicResult holds one result (origin) of a heuristic and
 // optionally the results of a forward lookup (destinations)
 type HeuristicResult struct {
-	Origin       DummyNode   `json:"origin,omitempty"`
-	Destinations []DummyNode `json:"destinations,omitempty"`
+	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
+	Clusters     string      `json:"HeuristicResult.cluster,omitempty"`
+	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
 	DType        []string    `json:"dgraph.type,omitempty"`
 }
 
@@ -30,16 +33,16 @@ func (r *HeuristicResult) SetDType() {
 // Heuristic is the database type representation of a heuristic
 type Heuristic struct {
 	UID           string `json:"uid,omitempty"`
-	HeuristicType string `json:"type,omitempty"`
-	Parameter     string `json:"parameter,omitempty"`
+	HeuristicType string `json:"Heuristic.type,omitempty"`
+	Parameter     string `json:"Heuristic.parameter,omitempty"`
 	UserUID       string `json:"~user_heuristics,omitempty"`
 	Transaction   struct {
 		UID string `json:"uid,omitempty"`
-	} `json:"h_transaction,omitempty"`
-	Timestamp       string            `json:"ts,omitempty"`
-	ParentHeuristic []Heuristic       `json:"parent_heuristic,omitempty"`
-	ChildHeuristics []Heuristic       `json:"~parent_heuristic,omitempty"`
-	Results         []HeuristicResult `json:"results,omitempty"`
+	} `json:"Heuristic.transaction,omitempty"`
+	Timestamp       string            `json:"Heuristic.ts,omitempty"`
+	ParentHeuristic []Heuristic       `json:"Heuristic.parent,omitempty"`
+	ChildHeuristics []Heuristic       `json:"~Heuristic.parent,omitempty"`
+	Results         []HeuristicResult `json:"Heuristic.results,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
@@ -101,7 +104,7 @@ type queryHeuristicTransactionInputs struct {
 type FrontendHeuristicComplete struct {
 	UID        string              `json:"uid,omitempty"`
 	Timestamp  string              `json:"ts,omitempty"`
-	Heuristics []FrontendHeuristic `json:"~h_transaction,omitempty"`
+	Heuristics []FrontendHeuristic `json:"~Heuristic.transaction,omitempty"`
 }
 
 // String returns the string representation of a FrontendHeuristicComplete object
@@ -130,7 +133,7 @@ type FrontendHeuristic struct {
 	Timestamp       string                    `json:"ts,omitempty"`
 	Type            string                    `json:"type,omitempty"`
 	Parameter       string                    `json:"parameter,omitempty"`
-	ParentHeuristic []Heuristic               `json:"parent_heuristic,omitempty"`
+	ParentHeuristic []Heuristic               `json:"parent,omitempty"`
 	ChildHeuristics []Heuristic               `json:"children,omitempty"`
 	ResultCount     int                       `json:"num_results,omitempty"`
 	Results         []FrontendHeuristicResult `json:"results,omitempty"`
@@ -142,7 +145,7 @@ type FrontendHeuristicResponse struct {
 	Timestamp       string      `json:"ts,omitempty"`
 	Type            string      `json:"type,omitempty"`
 	Parameter       string      `json:"parameter,omitempty"`
-	ParentHeuristic []Heuristic `json:"parent_heuristic,omitempty"`
+	ParentHeuristic []Heuristic `json:"parent,omitempty"`
 	ChildHeuristics []Heuristic `json:"children,omitempty"`
 	ResultCount     int         `json:"num_results,omitempty"`
 	Results         []struct {

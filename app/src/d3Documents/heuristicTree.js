@@ -45,10 +45,10 @@ export class HeuristicTree extends Tree {
         if (d.uid === rootIdentifier) {
           return null;
         }
-        if (d.parent_heuristic == null) {
+        if (d.parent == null) {
           return rootIdentifier;
         }
-        return d.parent_heuristic[0].uid;
+        return d.parent[0].uid;
       });
 
     this.drawTree = (data) => {
@@ -115,8 +115,8 @@ export class HeuristicTree extends Tree {
     const childData = child.data()[0].data.data;
     let formerParentUid = null;
 
-    if (childData.parent_heuristic !== undefined) {
-      formerParentUid = childData.parent_heuristic[0].uid;
+    if (childData.parent !== undefined) {
+      formerParentUid = childData.parent[0].uid;
     }
 
     const newData = context.data.heuristics;
@@ -137,11 +137,11 @@ export class HeuristicTree extends Tree {
           dataElement.children.push({ uid: childData.uid });
         }
       } else if (dataElement.uid === childData.uid) {
-        if (dataElement.parent_heuristic === undefined) {
-          dataElement.parent_heuristic = [];
+        if (dataElement.parent === undefined) {
+          dataElement.parent = [];
         }
-        dataElement.parent_heuristic = [];
-        dataElement.parent_heuristic.push({ uid: parentData.uid });
+        dataElement.parent = [];
+        dataElement.parent.push({ uid: parentData.uid });
       } else if (dataElement.uid === formerParentUid) {
         dataElement.children = dataElement.children.filter((c) => c.uid !== childData.uid);
       }
@@ -208,7 +208,7 @@ export class HeuristicTree extends Tree {
 
     const thisUid = nodeData[0].data.data.uid;
 
-    if (nodeData[0].data.data.parent_heuristic === undefined) {
+    if (nodeData[0].data.data.parent === undefined) {
       // check if newParentNode is not a selection
       if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
         return thisUid !== newParentNode.data.data.uid;
@@ -217,7 +217,7 @@ export class HeuristicTree extends Tree {
       return thisUid !== newParentNode.data()[0].data.data.uid;
     }
 
-    const thisParentUid = nodeData[0].data.data.parent_heuristic[0].uid;
+    const thisParentUid = nodeData[0].data.data.parent[0].uid;
 
     // check if newParentNode is not a selection
     if (newParentNode.data !== undefined && typeof newParentNode.data !== 'function') {
@@ -405,8 +405,8 @@ export class HeuristicTree extends Tree {
   getRemovableRelationship() {
     const ret = {};
     ret.childUid = this.activeContextMenuNode.data.data.uid;
-    if (this.activeContextMenuNode.data.data.parent_heuristic) {
-      ret.parentUid = this.activeContextMenuNode.data.data.parent_heuristic[0].uid;
+    if (this.activeContextMenuNode.data.data.parent) {
+      ret.parentUid = this.activeContextMenuNode.data.data.parent[0].uid;
     } else ret.parentUid = '';
 
     return ret;

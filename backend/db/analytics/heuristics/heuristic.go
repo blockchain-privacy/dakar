@@ -1,4 +1,4 @@
-package transaction
+package heuristics
 
 import (
 	"backend/cmd/cliutil"
@@ -80,7 +80,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 
 	const query = `query Q($uuid:string, $uids:string, $type:string){
 				h as var(func: uid($uids))@filter(uid_in(~user_heuristics,$uuid) AND eq(dgraph.type,$type)){
-					hr as results
+					hr as Heuristic.results
 				}
 			  }`
 
@@ -103,7 +103,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 // DeleteAllUserHeuristics deletes all heuristics of a user
 func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 	req := &api.Request{
-		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics{hr as results}}}",
+		Query: "query Q($uuid:string){var(func: uid($uuid)){h as user_heuristics{hr as Heuristic.results}}}",
 		Vars:  map[string]string{"$uuid": userUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("uid(hr) * * .\nuid(h) * * .\n<" + userUID + "> <user_heuristics> uid(h) ."),
@@ -131,8 +131,8 @@ func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID strin
 				tx as var(func: eq(txhash, $hash))
 				# get all heuristic of that user and transaction
 				var(func: uid($uuid)){
-					h as user_heuristics@filter(uid_in(h_transaction, uid(tx))){
-						hr as results
+					h as user_heuristics@filter(uid_in(Heuristic.transaction, uid(tx))){
+						hr as Heuristic.results
 					}
 				}
 			  }`
@@ -164,24 +164,24 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 	query := `query Q($uid: string) {
 				q(func: uid($uid)){
 					uid
-					type
-					parameter
-					results{
-						origin {
+					Heuristic.type
+					Heuristic.parameter
+					Heuristic.results{
+						HeuristicResult.origin {
 							uid
 						}
-						destinations {
+						HeuristicResult.destinations {
 							uid
 						}
 					}
-					ts
-					h_transaction{
+					Heuristic.ts
+					Heuristic.transaction{
 						uid
 					}
-					parent_heuristic{
+					Heuristic.parent{
 						uid
 					}
-					~parent_heuristic{
+					~Heuristic.parent{
 						uid
 					}
 				}
@@ -214,7 +214,7 @@ func GetHeuristic(c external.Database, heuristicUID string) (h Heuristic, err er
 func GetHeuristicResults(c external.Database, heuristicUID string) (results []HeuristicTransaction, err error) {
 	const query = `query Q($uid: string) {
 				var (func: uid($uid)){
-					results { x as origin }
+					Heuristic.results { x as HeuristicResult.origin }
 				}
 				
 				q(func: uid(x)){
@@ -486,7 +486,7 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
 				# filter and count
-				q(func: uid($uids))@filter(uid_in(h_transaction, uid(tx)) AND eq(dgraph.type,$type)){
+				q(func: uid($uids))@filter(uid_in(Heuristic.transaction, uid(tx)) AND eq(dgraph.type,$type)){
 					count(uid)
 				}
 			  }`
@@ -527,21 +527,21 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
 				var(func: uid($uuid)){
-					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
+					h as user_heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
 				}
 				
 				q(func: uid(h)){
 					uid
-					ts
-					type
-					parameter
-					parent_heuristic{
+					ts:Heuristic.ts
+					type:Heuristic.type
+					parameter:Heuristic.parameter
+					parent:Heuristic.parent{
 						uid
 					}
-					children: ~parent_heuristic{
+					children: ~Heuristic.parent{
 						uid
 					}
-					num_results: count(results)
+					num_results: count(Heuristic.results)
 				}
 			  }`
 
@@ -576,11 +576,11 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	const query = `query Q($uid:string,$uuid:string){
 				var(func:uid($uid))@cascade{
 					~user_heuristics@filter(uid($uuid))
-					r as results
+					r as Heuristic.results
 				}
 
 				q(func: uid(r)){
-					origin@normalize{
+					origin:HeuristicResult.origin@normalize{
 						txhash:txhash
 						~transactions{
 							ts:ts
@@ -594,7 +594,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 							}
 						}
 					}
-					d:destinations{uid}
+					d:HeuristicResult.destinations{uid}
 				}
 				
 				# get labels per cluster
@@ -753,7 +753,7 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
 				var(func: uid($uuid)){
-					h as user_heuristics@filter(uid_in(h_transaction, uid(tx)))
+					h as user_heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
 				}
 				t(func: uid(tx))@normalize{
 					uid:uid
@@ -763,17 +763,17 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 				}
 				q(func: uid(h)){
 					uid
-					ts
-					type
-					parameter
-					parent_heuristic{
+					ts:Heuristic.ts
+					type:Heuristic.type
+					parameter:Heuristic.parameter
+					parent:Heuristic.parent{
 						uid
 					}
-					children: ~parent_heuristic{
+					children: ~Heuristic.parent{
 						uid
 					}
-					results{
-						origin@normalize{
+					results:Heuristic.results{
+						origin:HeuristicResult.origin@normalize{
 							uid:uid
 							txhash:txhash
 							~transactions{
@@ -785,7 +785,7 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 								}
 							}
 						}
-						destinations@normalize{
+						destinations:HeuristicResult.destinations@normalize{
 							uid:uid
 							txhash:txhash
 							~transactions{
@@ -940,17 +940,17 @@ func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuris
 				# get transaction
 				var(func: uid($uuid)){
 					user_heuristics{
-						tx as h_transaction
+						tx as Heuristic.transaction
 					}
 				}
 				# get count
 				var(func: uid(tx)){
-					c as count(~h_transaction)@filter(uid_in(~user_heuristics,$uuid))
+					c as count(~Heuristic.transaction)@filter(uid_in(~user_heuristics,$uuid))
 				}
 				# get time
 				var(func: uid(tx)){
-					~h_transaction@filter(uid_in(~user_heuristics,$uuid)){
-						t as ts
+					~Heuristic.transaction@filter(uid_in(~user_heuristics,$uuid)){
+						t as Heuristic.ts
 					}
 					max_time as  max(val(t))
 				}
