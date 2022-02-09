@@ -52,7 +52,7 @@ func CreateUser(c external.Database, user User) error {
 		queryVars[roleVarID] = user.Roles[i].Name
 
 		queryStart += roleVarID + ":string"
-		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(Role.name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","
@@ -90,7 +90,7 @@ func CreateUser(c external.Database, user User) error {
 }
 
 // GetUsers gets all users currently in the database
-func GetUsers(c external.Database) (users []User, err error) {
+func GetUsers(c external.Database) (users []FrontendUserBackendState, err error) {
 	query := `query {
 				q(func: type(User)){
 					uid
@@ -98,7 +98,7 @@ func GetUsers(c external.Database) (users []User, err error) {
 					user_modified
 					user_created
 					user_roles {
-						role_name
+						Role.name
 					}
 				}
 			  }`
@@ -124,7 +124,9 @@ func GetUsers(c external.Database) (users []User, err error) {
 		return
 	}
 
-	users = r.Users
+	for _, u := range r.Users {
+		users = append(users, u.ToFrontendUserBackendState())
+	}
 
 	return
 }
@@ -139,7 +141,7 @@ func GetUserByEmail(c external.Database, email string) (user User, err error) {
 					user_modified
 					user_created
 					user_roles{
-						role_name
+						Role.name
 					}
 				}
 			  }`
@@ -186,7 +188,7 @@ func GetUser(c external.Database, uid string) (user User, err error) {
 					user_modified
 					user_created
 					user_roles{
-						role_name
+						Role.name
 					}
 				}
 			  }`
@@ -330,7 +332,7 @@ func ModifyUser(c external.Database, user User) (err error) {
 		queryVars[roleVarID] = user.Roles[i].Name
 
 		queryStart += roleVarID + ":string"
-		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(Role.name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","

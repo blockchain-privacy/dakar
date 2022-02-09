@@ -121,11 +121,11 @@ func main() {
 	//}
 	//info("add user predicate done")
 
-	info("add attribution type starting ...")
-	if err := db.AlterSchemaAddAttribution(dgraph); err != nil {
-		info(err)
-	}
-	info("add attribution type done")
+	//info("add attribution type starting ...")
+	//if err := db.AlterSchemaAddAttribution(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("add attribution type done")
 
 	///
 
@@ -178,4 +178,10 @@ func main() {
 	//	info(err)
 	//}
 	//info("update type Transaction done")
+
+	//info("migrate role starting ...")
+	//if err := db.MigrateRole(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate role done")
 }

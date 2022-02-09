@@ -73,9 +73,17 @@ func invalidateToken(w http.ResponseWriter) {
 
 // issueToken creates a token from user
 func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
+	var roles []dbus.Role
+
+	for _, r := range user.Roles {
+		convertedRole := dbus.Role{UID: r.UID, Name: r.Name}
+		convertedRole.SetDType()
+		roles = append(roles, convertedRole)
+	}
+
 	newTokenUser := tokenUser{
 		ID:    user.UID,
-		Roles: user.Roles,
+		Roles: roles,
 	}
 
 	jsonUser, jsonErr := json.Marshal(&newTokenUser)

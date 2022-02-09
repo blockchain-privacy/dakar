@@ -134,10 +134,10 @@ func SetupSchema(c external.Database) error {
 				HeuristicResult.cluster
 			}
 
-			role_name: string @index(hash) .
+			Role.name: string @index(hash) .
 
 			type Role {
-				role_name
+				Role.name
 			}
 
 			user_email: string @index(term, fulltext) .

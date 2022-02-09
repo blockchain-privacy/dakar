@@ -8,7 +8,7 @@
             :search="search"
             :loading="this.isLoading || !this.users"
             item-key="uid"
-            sort-by="user_modified"
+            sort-by="modified"
             sort-desc
             class="elevation-4">
           <template v-slot:top>
@@ -76,11 +76,11 @@
               {{ icon.mdiDelete }}
             </v-icon>
           </template>
-          <template v-slot:[`item.user_created`]="{ item }">
-            <span>{{ new Date(item.user_created).toLocaleString() }}</span>
+          <template v-slot:[`item.created`]="{ item }">
+            <span>{{ new Date(item.created).toLocaleString() }}</span>
           </template>
-          <template v-slot:[`item.user_modified`]="{ item }">
-            <span>{{ new Date(item.user_modified).toLocaleString() }}</span>
+          <template v-slot:[`item.modified`]="{ item }">
+            <span>{{ new Date(item.modified).toLocaleString() }}</span>
           </template>
         </v-data-table>
         <v-dialog v-model="showCreateUserDialog" max-width="500px">
@@ -93,7 +93,7 @@
                 <v-row>
                   <v-form ref="modifyUserForm">
                     <v-text-field
-                        v-model="editedItem.user_email"
+                        v-model="editedItem.email"
                         label="E-mail"
                         type="email"
                         :rules="rules.emailRules">
@@ -103,7 +103,7 @@
                         :items="roles"
                         label="Roles"
                         multiple
-                        v-model="editedItem.user_roles"/>
+                        v-model="editedItem.roles"/>
                   </v-form>
                 </v-row>
               </v-container>
@@ -129,7 +129,7 @@
               <p class="font-weight-black text-body-1 my-0">
                 Uid: {{ this.userToDelete.uid }} </p>
               <p class="font-weight-black text-body-1">
-                E-mail: {{ this.userToDelete.user_email }} </p>
+                E-mail: {{ this.userToDelete.email }} </p>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -177,16 +177,16 @@ export default {
         text: 'ID', value: 'uid', align: 'start', sortable: false,
       },
       {
-        text: 'E-Mail', value: 'user_email',
+        text: 'E-Mail', value: 'email',
       },
       {
-        text: 'Roles', value: 'user_roles',
+        text: 'Roles', value: 'roles',
       },
       {
-        text: 'Created', value: 'user_created',
+        text: 'Created', value: 'created',
       },
       {
-        text: 'Modified', value: 'user_modified',
+        text: 'Modified', value: 'modified',
       },
       {
         text: 'Actions', value: 'actions', sortable: false, align: 'end',
@@ -202,13 +202,13 @@ export default {
     editedIndex: -1,
     editedItem: {
       uid: '',
-      user_email: '',
-      user_roles: [],
+      email: '',
+      roles: [],
     },
     defaultItem: {
       uid: '',
-      user_email: '',
-      user_roles: [],
+      email: '',
+      roles: [],
     },
     users: null,
   }),
@@ -244,10 +244,10 @@ export default {
 
       this.users = this.users.map((d) => {
         // convert dates to unix time so they can be sorted in data table
-        d.user_modified = new Date(d.user_modified).getTime();
-        d.user_created = new Date(d.user_created).getTime();
+        d.modified = new Date(d.modified).getTime();
+        d.created = new Date(d.created).getTime();
 
-        d.user_roles = d.user_roles.map((f) => f.role_name);
+        d.roles = d.roles.map((f) => f.name);
         return d;
       });
     },
@@ -306,8 +306,8 @@ export default {
         this.isLoading = true;
         doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
           uid: this.editedItem.uid,
-          email: this.editedItem.user_email,
-          roles: this.editedItem.user_roles.map((d) => ({ role_name: d })),
+          email: this.editedItem.email,
+          roles: this.editedItem.roles.map((d) => ({ name: d })),
         })
           .then((data) => {
             if (data.success === undefined) throw Error('error modifying password');

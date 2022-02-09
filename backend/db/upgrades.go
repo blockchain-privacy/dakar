@@ -2,9 +2,7 @@ package db
 
 import (
 	"backend/external"
-
 	"context"
-
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
@@ -350,6 +348,69 @@ func AlterSchemaUpdateTransaction(c external.Database) error {
 				fee
 				tx_outputs
 				tx_inputs
+			}
+		`,
+	})
+}
+
+func copyRoles(c external.Database) error {
+	const query = `{
+				v as var(func: type(Role)){
+					roleValue as role_name
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			Cond:      "@if(gt(len(v), 0))",
+			SetNquads: []byte("uid(v) <Role.name> val(roleValue) ."),
+		}},
+		CommitNow: true,
+	}
+	if _, err := c.Mutate(context.Background(), req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MigrateRole migrates the role predicates to the new dot notation
+func MigrateRole(c external.Database) error {
+	// add new empty predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			role_name: string @index(hash) .
+			Role.name: string @index(hash) .
+
+			type Role {
+				Role.name
+				role_name
+			}
+		`,
+	}); err != nil {
+		return err
+	}
+
+	// copy data to new predicate
+	if err := copyRoles(c); err != nil {
+		return err
+	}
+
+	// drop old predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "role_name",
+	}); err != nil {
+		return err
+	}
+
+	// update type definition
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Role.name: string @index(hash) .
+
+			type Role {
+				Role.name
 			}
 		`,
 	})
