@@ -184,4 +184,10 @@ func main() {
 	//	info(err)
 	//}
 	//info("migrate role done")
+
+	//info("migrate role starting ...")
+	//if err := db.MigrateUser(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate role done")
 }

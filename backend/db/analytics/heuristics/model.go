@@ -35,7 +35,7 @@ type Heuristic struct {
 	UID           string `json:"uid,omitempty"`
 	HeuristicType string `json:"Heuristic.type,omitempty"`
 	Parameter     string `json:"Heuristic.parameter,omitempty"`
-	UserUID       string `json:"~user_heuristics,omitempty"`
+	UserUID       string `json:"~User.heuristics,omitempty"`
 	Transaction   struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"Heuristic.transaction,omitempty"`

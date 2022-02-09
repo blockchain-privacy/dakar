@@ -40,12 +40,12 @@ type FrontendRole struct {
 // User is the database representation of a user
 type User struct {
 	UID          string                 `json:"uid,omitempty"`
-	Email        string                 `json:"user_email,omitempty"`
-	PasswordHash string                 `json:"user_pwhash,omitempty"`
-	Roles        []Role                 `json:"user_roles,omitempty"`
-	Created      *time.Time             `json:"user_created,omitempty"`
-	Modified     *time.Time             `json:"user_modified,omitempty"`
-	Heuristics   []heuristics.Heuristic `json:"user_heuristics,omitempty"`
+	Email        string                 `json:"User.email,omitempty"`
+	PasswordHash string                 `json:"User.pwhash,omitempty"`
+	Roles        []Role                 `json:"User.roles,omitempty"`
+	Created      *time.Time             `json:"User.created,omitempty"`
+	Modified     *time.Time             `json:"User.modified,omitempty"`
+	Heuristics   []heuristics.Heuristic `json:"User.heuristics,omitempty"`
 	DType        []string               `json:"dgraph.type,omitempty"`
 }
 
@@ -214,8 +214,8 @@ func (f FrontendUserRoles) IsValid() bool {
 
 // FrontendUserLogin holds data of a user login
 type FrontendUserLogin struct {
-	Email    string `json:"user_email"`
-	Password string `json:"user_pw"`
+	Email    string `json:"email"`
+	Password string `json:"pw"`
 }
 
 func (f FrontendUserLogin) String() string {

@@ -1,9 +1,14 @@
 package db
 
 import (
+	"backend/cmd/cliutil"
 	"backend/external"
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/dgraph-io/dgo/v210/protos/api"
+	"time"
 )
 
 // AlterSchemaAddClassifier adds the new classifier status field
@@ -411,6 +416,211 @@ func MigrateRole(c external.Database) error {
 
 			type Role {
 				Role.name
+			}
+		`,
+	})
+}
+
+func copyUserValuePredicates(c external.Database) error {
+	const query = `{
+				v as var(func: type(User)){
+					emailVal as user_email
+					pwVal as user_pwhash
+					createdVal as user_created
+					modifiedVal as user_modified
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Mutations: []*api.Mutation{{
+			Cond: "@if(gt(len(v), 0))",
+			SetNquads: []byte("uid(v) <User.email> val(emailVal) .\n" +
+				"uid(v) <User.pwhash> val(pwVal) .\n" +
+				"uid(v) <User.created> val(createdVal) .\n" +
+				"uid(v) <User.modified> val(modifiedVal) ."),
+		}},
+		CommitNow: true,
+	}
+	if _, err := c.Mutate(context.Background(), req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyUserUidPredicates(c external.Database) error {
+	query := `{
+				q(func: type(User)){
+					uid
+				}
+			  }`
+
+	resp, err := ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// json struct
+
+	var r struct {
+		Users []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return err
+	}
+
+	if len(r.Users) == 0 {
+		return errors.New("no users")
+	}
+
+	for _, u := range r.Users {
+		err := copyOneUserUidPredicates(c, u.Uid)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func copyOneUserUidPredicates(c external.Database, userUid string) error {
+	const query = `query Q($uid:string){
+				v as var(func: uid($uid)){
+					roleVal as user_roles
+					heuristicsVal as user_heuristics
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": userUid},
+		Mutations: []*api.Mutation{
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(roleVal), 0))",
+				SetNquads: []byte("uid(v) <User.roles> uid(roleVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(heuristicsVal), 0))",
+				SetNquads: []byte("uid(v) <User.heuristics> uid(heuristicsVal) ."),
+			},
+		},
+		CommitNow: true,
+	}
+	if _, err := c.Mutate(context.Background(), req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// MigrateUser migrates the User predicates to the new dot notation
+func MigrateUser(c external.Database) error {
+	// add new empty predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			user_email: string @index(term, fulltext) .
+			user_pwhash: string .
+			user_roles: [uid] @reverse .
+			user_created: dateTime @index(day) .
+			user_modified: dateTime @index(day) .
+			user_heuristics: [uid] @reverse .
+
+			User.email: string @index(term, fulltext) .
+			User.pwhash: string .
+			User.roles: [uid] @reverse .
+			User.created: dateTime @index(day) .
+			User.modified: dateTime @index(day) .
+			User.heuristics: [uid] @reverse .
+
+			type User {
+				user_email
+				user_pwhash
+				user_roles
+				user_created
+				user_modified
+				user_heuristics
+
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
+			}
+
+		`,
+	}); err != nil {
+		return err
+	}
+
+	// copy value data to new predicate
+	if err := copyUserValuePredicates(c); err != nil {
+		return err
+	}
+
+	// copy uid data to new predicate
+	if err := copyUserUidPredicates(c); err != nil {
+		return err
+	}
+
+	// drop old predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_email",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_pwhash",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_roles",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_created",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_modified",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "user_heuristics",
+	}); err != nil {
+		return err
+	}
+
+	// update type definition
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			User.email: string @index(term, fulltext) .
+			User.pwhash: string .
+			User.roles: [uid] @reverse .
+			User.created: dateTime @index(day) .
+			User.modified: dateTime @index(day) .
+			User.heuristics: [uid] @reverse .
+	
+			type User {
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
 			}
 		`,
 	})

@@ -140,20 +140,20 @@ func SetupSchema(c external.Database) error {
 				Role.name
 			}
 
-			user_email: string @index(term, fulltext) .
-			user_pwhash: string .
-			user_roles: [uid] @reverse .
-			user_created: dateTime @index(day) .
-			user_modified: dateTime @index(day) .
-			user_heuristics: [uid] @reverse .
-
+			User.email: string @index(term, fulltext) .
+			User.pwhash: string .
+			User.roles: [uid] @reverse .
+			User.created: dateTime @index(day) .
+			User.modified: dateTime @index(day) .
+			User.heuristics: [uid] @reverse .
+	
 			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-				user_heuristics
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
 			}
 
 			cluster_type: string @index(hash) . # the cluster type
