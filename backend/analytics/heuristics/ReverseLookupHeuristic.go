@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 
@@ -16,15 +17,17 @@ type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookBackTime         time.Duration
+	clusterTypes         []clustering.ClusterType
 }
 
 // newReverseLookupHeuristic constructs a reverseLookupHeuristic. hoursToLookBack in hours.
-func newReverseLookupHeuristic(hoursToLookBack uint32) *reverseLookupHeuristic {
+func newReverseLookupHeuristic(hoursToLookBack uint32, clusteringMethod []clustering.ClusterType) *reverseLookupHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &reverseLookupHeuristic{
 		heuristicType:        "reverse_lookup",
 		lookBackTime:         lBackTime,
 		parameterDescription: lBackTime.String(),
+		clusterTypes:         clusteringMethod,
 	}
 }
 
@@ -48,6 +51,18 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
 	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
+	return nil
+}
+
+// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+// If cluster types are set to nil, the result will not be clustered.
+// If multiple cluster types are set, then the consolidation of these clusters will be used.
+func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
 	return nil
 }
 
@@ -130,6 +145,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	var ret []heuristics.HeuristicResult
 	for k := range allTimeLimitedOrigins {
+		// todo set cluster id of origin
 		ret = append(ret, heuristics.HeuristicResult{
 			Origin: heuristics.DummyNode{UID: k},
 		})

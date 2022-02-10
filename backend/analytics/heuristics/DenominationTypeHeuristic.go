@@ -3,10 +3,10 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
-
 	"fmt"
 )
 
@@ -14,12 +14,14 @@ import (
 type denominationTypeHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	clusterTypes         []clustering.ClusterType
 }
 
 // newDenominationTypeHeuristic constructs a denominationTypeHeuristic
-func newDenominationTypeHeuristic() denominationTypeHeuristic {
-	return denominationTypeHeuristic{
+func newDenominationTypeHeuristic(clusterTypes []clustering.ClusterType) *denominationTypeHeuristic {
+	return &denominationTypeHeuristic{
 		heuristicType: "denomination_type",
+		clusterTypes:  clusterTypes,
 	}
 }
 
@@ -36,6 +38,18 @@ func (h denominationTypeHeuristic) hasParameter() bool {
 }
 
 func (h denominationTypeHeuristic) setParameter(_ string) error {
+	return nil
+}
+
+// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+// If cluster types are set to nil, the result will not be clustered.
+// If multiple cluster types are set, then the consolidation of these clusters will be used.
+func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
 	return nil
 }
 

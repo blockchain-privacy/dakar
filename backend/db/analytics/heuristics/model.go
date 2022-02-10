@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/db/analytics/clustering"
 	"fmt"
 	"time"
 )
@@ -19,7 +20,12 @@ type DummyNode struct {
 // HeuristicResult holds one result (origin) of a heuristic and
 // optionally the results of a forward lookup (destinations)
 type HeuristicResult struct {
-	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
+	Origin DummyNode `json:"HeuristicResult.origin,omitempty"`
+	// Clusters contains an ID which identifies a set of clusters,
+	// which are responsible for the creation of the origin transaction of this HeuristicResult.
+	// As clusters are in general in flux (both custom clusters and multi-input clusters),
+	// we can not directly link to them, because they might not exist later on.
+	// Thus, a string identifier is used to preserve a cluster ID at a point in time.
 	Clusters     string      `json:"HeuristicResult.cluster,omitempty"`
 	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
 	DType        []string    `json:"dgraph.type,omitempty"`
@@ -125,6 +131,16 @@ type FrontendHeuristicResult struct {
 		Timestamp string `json:"ts,omitempty"`
 		TxHash    string `json:"txhash,omitempty"`
 	} `json:"destinations,omitempty"`
+}
+
+// FrontendHeuristicRequest holds all heuristic data which is set by the user
+type FrontendHeuristicRequest struct {
+	UID             string                   `json:"uid,omitempty"`
+	Type            string                   `json:"type,omitempty"`
+	Parameter       string                   `json:"parameter,omitempty"`
+	ParentHeuristic []Heuristic              `json:"parent,omitempty"`
+	ChildHeuristics []Heuristic              `json:"children,omitempty"`
+	ClusterTypes    []clustering.ClusterType `json:"clusterTypes,omitempty"`
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend

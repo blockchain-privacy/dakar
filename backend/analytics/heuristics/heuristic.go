@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/db/transaction"
@@ -15,6 +16,9 @@ import (
 
 // errorNoOriginsAtStart defines an error which should be used when no origins are available
 var errorNoOriginsAtStart = errors.New("no origins can be fetched")
+
+//
+var errorInvalidClusterTypes = errors.New("cluster types are not valid")
 
 const (
 	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
@@ -48,6 +52,10 @@ type heuristic interface {
 	hasParameter() bool
 	// setParameter sets the parameter
 	setParameter(string) error
+	// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+	// If cluster types are set to nil, the result will not be clustered.
+	// If multiple cluster types are set, then the consolidation of these clusters will be used.
+	setClusterTypes([]clustering.ClusterType) error
 	// String returns the heuristic in string format
 	String() string
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
@@ -335,7 +343,6 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
 					executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr))
 		}
-
 	}
 
 	var returnError error

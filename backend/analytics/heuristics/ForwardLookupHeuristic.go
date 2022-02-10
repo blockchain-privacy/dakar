@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 
@@ -16,15 +17,17 @@ type forwardLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookForwardTime      time.Duration
+	clusterTypes         []clustering.ClusterType
 }
 
 // newForwardLookupHeuristic constructs a forwardLookupHeuristic. hoursToLookForward in hours.
-func newForwardLookupHeuristic(hoursToLookForward uint32) *forwardLookupHeuristic {
+func newForwardLookupHeuristic(hoursToLookForward uint32, clusterTypes []clustering.ClusterType) *forwardLookupHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
 	return &forwardLookupHeuristic{
 		heuristicType:        "forward_lookup",
 		lookForwardTime:      lForwardTime,
 		parameterDescription: lForwardTime.String(),
+		clusterTypes:         clusterTypes,
 	}
 }
 
@@ -48,6 +51,18 @@ func (h *forwardLookupHeuristic) setParameter(p string) error {
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
 	h.parameterDescription = strconv.FormatUint(hoursToLookForward, 10)
+	return nil
+}
+
+// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+// If cluster types are set to nil, the result will not be clustered.
+// If multiple cluster types are set, then the consolidation of these clusters will be used.
+func (h *forwardLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
 	return nil
 }
 

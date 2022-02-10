@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
@@ -14,12 +15,14 @@ import (
 type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	clusterTypes         []clustering.ClusterType
 }
 
 // newReverseAmountHeuristic constructs an reverseAmountHeuristic
-func newReverseAmountHeuristic() reverseAmountHeuristic {
-	return reverseAmountHeuristic{
+func newReverseAmountHeuristic(clusterTypes []clustering.ClusterType) *reverseAmountHeuristic {
+	return &reverseAmountHeuristic{
 		heuristicType: "reverse_amount",
+		clusterTypes:  clusterTypes,
 	}
 }
 
@@ -36,6 +39,18 @@ func (h reverseAmountHeuristic) hasParameter() bool {
 }
 
 func (h reverseAmountHeuristic) setParameter(_ string) error {
+	return nil
+}
+
+// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+// If cluster types are set to nil, the result will not be clustered.
+// If multiple cluster types are set, then the consolidation of these clusters will be used.
+func (h *reverseAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
 	return nil
 }
 

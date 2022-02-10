@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 
@@ -16,15 +17,17 @@ type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	lookBackTime         time.Duration
+	clusterTypes         []clustering.ClusterType
 }
 
 // newOneSourceHeuristic constructs an oneSourceHeuristic. hoursToLookBack in hours
-func newOneSourceHeuristic(hoursToLookBack uint32) *oneSourceHeuristic {
+func newOneSourceHeuristic(hoursToLookBack uint32, clusterTypes []clustering.ClusterType) *oneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &oneSourceHeuristic{
 		heuristicType:        "one_source",
 		lookBackTime:         lBackTime,
 		parameterDescription: strconv.FormatUint(uint64(hoursToLookBack), 10),
+		clusterTypes:         clusterTypes,
 	}
 }
 
@@ -48,6 +51,18 @@ func (h *oneSourceHeuristic) setParameter(p string) error {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
 	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
+	return nil
+}
+
+// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+// If cluster types are set to nil, the result will not be clustered.
+// If multiple cluster types are set, then the consolidation of these clusters will be used.
+func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
 	return nil
 }
 

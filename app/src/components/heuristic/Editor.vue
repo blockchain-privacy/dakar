@@ -137,7 +137,7 @@ import {
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
   ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
-  ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME,
+  ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME, CLUSTER_TYPE_FMI,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import { HeuristicTree, rootIdentifier } from '../../d3Documents/heuristicTree';
@@ -179,6 +179,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parameter: d.parameter,
       children: d.children,
       parent: d.parent,
+      clusterTypes: [CLUSTER_TYPE_FMI],
     });
   });
 
@@ -766,13 +767,14 @@ svg {
   --background-color: white;
 }
 
->>> .rect{
+>>> .rect {
   stroke: #008ee5;
   fill: var(--background-color);
   fill-opacity: 1;
   cursor: pointer;
 }
-[data-theme="darkMode"]{
+
+[data-theme="darkMode"] {
   /* Variables for dark mode */
   --background-color: black;
 }

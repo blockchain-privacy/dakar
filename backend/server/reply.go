@@ -144,8 +144,8 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 	}
 
 	type request struct {
-		Changed []dbHeuristic.FrontendHeuristic `json:"changed,omitempty"`
-		Deleted []string                        `json:"deleted,omitempty"`
+		Changed []dbHeuristic.FrontendHeuristicRequest `json:"changed,omitempty"`
+		Deleted []string                               `json:"deleted,omitempty"`
 	}
 
 	var heuristicRequest request
