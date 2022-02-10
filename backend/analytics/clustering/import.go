@@ -49,7 +49,7 @@ func buildDatabaseClusters(clusters []ExternalClusterItem, userID string, hashTo
 	for _, c := range set {
 		numAddresses := len(c)
 		dbCluster := clustering.CustomCluster{
-			Type:         "custom",
+			Type:         clustering.TypeCustom,
 			Timestamp:    clusterTimestamp,
 			AddressCount: &numAddresses,
 			User:         clustering.HollowUser{Uid: userID},

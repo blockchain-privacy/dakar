@@ -7,9 +7,12 @@ import (
 
 type ClusterType string
 
-const TypeHMI ClusterType = "hmi"
-const TypeFMI ClusterType = "fmi"
-const DType = "Cluster"
+const (
+	TypeHMI    ClusterType = "hmi"
+	TypeFMI    ClusterType = "fmi"
+	TypeCustom ClusterType = "custom"
+	DType                  = "Cluster"
+)
 
 type HollowTransaction struct {
 	Uid string `json:"uid,omitempty"`
