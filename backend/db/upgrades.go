@@ -625,3 +625,212 @@ func MigrateUser(c external.Database) error {
 		`,
 	})
 }
+
+func copyOneCluster(c external.Database, clusterUid string) error {
+	const query = `query Q($uid:string){
+				v as var(func: uid($uid)){
+					typeVal as cluster_type
+					txVal as cluster_transaction
+					addrVal as cluster_addresses
+					childVal as cluster_children
+					countVal as cluster_address_count
+					userVal as cluster_user
+					tsVal as cluster_ts
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$uid": clusterUid},
+		Mutations: []*api.Mutation{
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(typeVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.type> val(typeVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(txVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.transaction> uid(txVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(addrVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.addresses> uid(addrVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(childVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.children> uid(childVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(countVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.addressCount> val(countVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(userVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.user> uid(userVal) ."),
+			},
+			{
+				Cond:      "@if(gt(len(v), 0) and gt(len(tsVal), 0))",
+				SetNquads: []byte("uid(v) <Cluster.ts> val(tsVal) ."),
+			},
+		},
+		CommitNow: true,
+	}
+	if _, err := c.Mutate(context.Background(), req); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func copyCluster(c external.Database) error {
+	query := `{
+				q(func: type(Cluster))@filter(not has(Cluster.type)){
+					uid
+				}
+			  }`
+
+	resp, err := ReadOnlyTxWithRetry(c, time.Minute*2, query)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	// json struct
+	var r struct {
+		Clusters []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return err
+	}
+
+	if len(r.Clusters) == 0 {
+		return errors.New("no clusterse")
+	}
+
+	info("migrating", len(r.Clusters), "clusters")
+
+	for _, cluster := range r.Clusters {
+		if err := copyOneCluster(c, cluster.Uid); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// MigrateCluster migrates the Cluster predicates to the new dot notation
+func MigrateCluster(c external.Database) error {
+	// add new empty predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Cluster.type: string @index(hash) . # the cluster type
+			Cluster.transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			Cluster.addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			Cluster.children: [uid] @reverse . # all direct child clusters
+			Cluster.user: uid @reverse . # the user which created the cluster
+			Cluster.addressCount: int . # number of connected addresses connected to this cluster (including child clusters)
+			Cluster.ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
+	
+			cluster_type: string @index(hash) . # the cluster type
+			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			cluster_children: [uid] @reverse . # all direct child clusters
+			cluster_user: uid @reverse . # the user which created the cluster
+			cluster_address_count: int . # number of connected addresses connected to this cluster (including child clusters)
+			cluster_ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
+	
+			type Cluster {
+				Cluster.type
+				Cluster.transaction
+				Cluster.addresses
+				Cluster.children
+				Cluster.addressCount
+				Cluster.user
+				Cluster.ts
+	
+				cluster_type
+				cluster_transaction
+				cluster_addresses
+				cluster_children
+				cluster_address_count
+				cluster_user
+				cluster_ts
+			}
+		`,
+	}); err != nil {
+		return err
+	}
+
+	// copy value data to new predicate
+	if err := copyCluster(c); err != nil {
+		return err
+	}
+
+	// drop old predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_type",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_transaction",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_addresses",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_children",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_address_count",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_user",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "cluster_ts",
+	}); err != nil {
+		return err
+	}
+
+	// update type definition
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Cluster.type: string @index(hash) . # the cluster type
+			Cluster.transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			Cluster.addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			Cluster.children: [uid] @reverse . # all direct child clusters
+			Cluster.user: uid @reverse . # the user which created the cluster
+			Cluster.addressCount: int . # number of connected addresses connected to this cluster (including child clusters)
+			Cluster.ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
+	
+			type Cluster {
+				Cluster.type
+				Cluster.transaction
+				Cluster.addresses
+				Cluster.children
+				Cluster.addressCount
+				Cluster.user
+				Cluster.ts
+			}
+		`,
+	})
+
+}

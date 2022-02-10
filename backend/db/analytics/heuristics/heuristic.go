@@ -225,7 +225,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 					tx_inputs(first:1)@normalize{
 						~addr_outputs{
 							addr_uid:uid
-							~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+							~Cluster.addresses@filter(eq(Cluster.type,` + clustering.TypeFMI + `)){
 								cluster_uid:uid
 							}
 						}
@@ -347,7 +347,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids 
 					tx_inputs(first:1)@normalize{
 						~addr_outputs{
 							addr_uid:uid
-							~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+							~Cluster.addresses@filter(eq(Cluster.type,` + clustering.TypeFMI + `)){
 								cluster_uid:uid
 							}
 						}
@@ -588,7 +588,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 						tx_inputs(first:1)@normalize{
 							~addr_outputs{
 								addr as a:addresshash
-								clusters as ~cluster_addresses@filter(eq(cluster_type,` + clustering.TypeFMI + `)){
+								clusters as ~Cluster.addresses@filter(eq(Cluster.type,` + clustering.TypeFMI + `)){
 									cuid:uid
 								}
 							}
@@ -600,7 +600,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				# get labels per cluster
 				ca(func:uid(clusters))@cascade{
 					uid
-					cla:cluster_addresses{
+					cla:Cluster.addresses{
 						attr:~Attribution.address{
 							tag:Attribution.tag
 							isPublic:Attribution.isPublic

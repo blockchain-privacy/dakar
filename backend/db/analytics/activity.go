@@ -23,7 +23,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 	if isClusterLookup {
 		clusterID = ",ca"
 		clusterQuery = `var(func: uid(addr)){
-							~cluster_addresses@filter(eq(cluster_type, "fmi")){ca as cluster_addresses}
+							~Cluster.addresses@filter(eq(Cluster.type, "fmi")){ca as Cluster.addresses}
 						}`
 	}
 
