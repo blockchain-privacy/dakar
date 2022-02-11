@@ -54,9 +54,10 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 	return nil
 }
 
-// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
-// If cluster types are set to nil, the result will not be clustered.
-// If multiple cluster types are set, then the consolidation of these clusters will be used.
+// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
+// Multi-input clusters are always used to execute the heuristic,
+// any cluster type set here will be used additionally. If at least one cluster type is set,
+// then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
 		return errorInvalidClusterTypes
@@ -143,11 +144,13 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
+	txToClustersID := make(map[string]string)
+	// todo set fill map, use createClusterID
 	var ret []heuristics.HeuristicResult
 	for k := range allTimeLimitedOrigins {
-		// todo set cluster id of origin
 		ret = append(ret, heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: k},
+			Origin:   heuristics.DummyNode{UID: k},
+			Clusters: txToClustersID[k],
 		})
 	}
 

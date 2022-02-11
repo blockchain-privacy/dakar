@@ -5,6 +5,7 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"sort"
 
 	"errors"
 	"fmt"
@@ -338,14 +339,8 @@ func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
 		return true
 	}
 
-	// check if types are set to select types
-	for _, t := range clusterTypes {
-		if t != clustering.TypeFMI && t != clustering.TypeCustom {
-			return false
-		}
-	}
-
-	return true
+	// for now only one additional cluster type exists
+	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
 }
 
 // areSetsValid checks if the uids of removed are appearing in changed
@@ -411,4 +406,23 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
 	return
+}
+
+func createClusterID(clusterUids []string) string {
+	var hash string
+
+	// sort uids so the same elements generate the same clusterID regardless of passed order
+	sort.Slice(clusterUids, func(i, j int) bool {
+		if len(clusterUids[i]) != len(clusterUids[j]) {
+			return len(clusterUids[i]) < len(clusterUids[j])
+		}
+
+		return clusterUids[i] < clusterUids[j]
+	})
+
+	for _, uid := range clusterUids {
+		hash += uid
+	}
+
+	return hash
 }
