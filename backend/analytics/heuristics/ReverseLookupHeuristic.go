@@ -128,8 +128,11 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	allTimeLimitedOrigins := make(map[string]bool)
 
+	// todo remove
+	h.clusterTypes = []clustering.ClusterType{clustering.TypeCustom}
+
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

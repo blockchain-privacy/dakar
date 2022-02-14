@@ -207,7 +207,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 			continue
 		}
 		index := strconv.Itoa(i)
-		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
+		query += "var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
 		setNquads += "<" + o.NewCluster.Uid + "> <Cluster.addresses> uid(a" + index + ") .\n"
 
 		for _, oc := range o.OldClusters {
@@ -551,6 +551,54 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			AddressCount: cluster.AddressCount,
 			Addresses:    addresses,
 		})
+	}
+
+	return
+}
+
+// GetUserClustersUIDs returns all UIDs of clusters of a user
+func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+	var filter string
+	if clusterTypeFilter != nil {
+		for i, ct := range clusterTypeFilter {
+			filter += string(ct)
+
+			if i+1 < len(clusterTypeFilter) {
+				filter += ","
+			}
+		}
+
+		filter = "@filter(eq(Cluster.type," + filter + "))"
+	}
+
+	query := fmt.Sprintf(`query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~Cluster.user%s
+				}
+
+				q(func: uid(c)){
+					uid
+				}
+			  }`, filter)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		clusters = append(clusters, cluster.Uid)
 	}
 
 	return

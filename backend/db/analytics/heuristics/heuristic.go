@@ -76,7 +76,7 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
 func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
-	uidList := db.CreateUIDList(uids)
+	uidList := db.CreateCommaArray(uids)
 
 	const query = `query Q($uuid:string, $uids:string, $type:string){
 				h as var(func: uid($uids))@filter(uid_in(~User.heuristics,$uuid) AND eq(dgraph.type,$type)){
@@ -355,7 +355,7 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids 
 			   	}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, string(query), map[string]string{"$uids": db.CreateUIDList(uids)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, string(query), map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -380,11 +380,155 @@ func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids 
 		var cUID ClusterUID
 
 		// if the cluster is not set we use the address uid as the "cluster",
-		//this can happen if the address has not been assigned a cluster yet
+		// this can happen if the address has not been assigned to a cluster yet
 		if o.Inputs[0].Cluster == "" {
 			cUID = ClusterUID(o.Inputs[0].Address)
 		} else {
 			cUID = ClusterUID(o.Inputs[0].Cluster)
+		}
+
+		origins = append(origins, HeuristicTransaction{
+			UID:     o.UID,
+			Cluster: cUID,
+			Outputs: o.Outputs,
+		})
+	}
+
+	return
+}
+
+/**
+query for getting all connected clusters of a particular user cluster
+{
+  var(func: uid(0xf52411e))@recurse{
+    Cluster.addresses
+    c as ~Cluster.addresses@filter(eq(Cluster.type, fmi) or (eq(Cluster.type, custom) and uid_in(Cluster.user, 0xf4dad2d)))
+  }
+
+  q(func: uid(c)) {
+    uid
+    Cluster.type
+    Cluster.addressCount
+  }
+}
+
+*/
+
+// GetTransactionsWithOutputAmountAndInputAddressesV2 returns a slice of transactions.
+// Each transaction contains its output amounts and the addresses of all inputs.
+func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uids []string,
+	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction, err error) {
+	isSimpleClustering := requestedClusterTypes == nil // true -> only multi-input clusters will be used
+	// todo set user id
+	const userUID = "0xf4dad2d"
+
+	var userClusterUIDs []string
+	if !isSimpleClustering {
+		userClusterUIDs, err = clustering.GetUserClustersUIDs(c, userUID, requestedClusterTypes)
+		if err != nil {
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		// if the user does not have defined any custom clusters,
+		// then the request can be treated like multi-input only
+		if userClusterUIDs == nil {
+			isSimpleClustering = true
+		}
+	}
+
+	var inputLimit string
+	var usedClusterTypes string
+	if isSimpleClustering {
+		// if no additional cluster types are requested,
+		// then it is enough to only look at one input address for the cluster,
+		// because a multi-input cluster is always set for all addresses of a multi-input transaction
+		inputLimit = "(first:1)"
+	} else {
+		for i, ct := range requestedClusterTypes {
+			usedClusterTypes += string(ct)
+
+			if i+1 < len(requestedClusterTypes) {
+				usedClusterTypes += ","
+			}
+		}
+		usedClusterTypes = " or (eq(Cluster.type, " + usedClusterTypes + ")  and uid_in(Cluster.user," + userUID + "))"
+	}
+
+	query := fmt.Sprintf(`query Q($uids:string){
+				q(func: uid($uids)){
+					uid
+					tx_outputs{
+						amount
+					}
+					tx_inputs%s{
+						~addr_outputs{
+							uid
+							~Cluster.addresses@filter(eq(Cluster.type,%s)%s){
+								uid
+							}
+						}
+					}
+			   	}
+			  }`, inputLimit, string(clustering.TypeFMI), usedClusterTypes)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Origins []struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+			Inputs  []struct {
+				Address []struct {
+					UID     string `json:"uid,omitempty"`
+					Cluster []struct {
+						UID string `json:"uid,omitempty"`
+					} `json:"~Cluster.addresses,omitempty"`
+				} `json:"~addr_outputs,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if !isSimpleClustering {
+		// todo find clusters
+
+		// get
+
+	}
+
+	for _, o := range r.Origins {
+		if len(o.Inputs) == 0 {
+			err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
+			return
+		}
+
+		var cUID ClusterUID
+
+		if isSimpleClustering {
+			if len(o.Inputs[0].Address) == 0 {
+				err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
+				return
+			}
+
+			// if the cluster is not set we use the address uid as the "cluster",
+			// this can happen if the address has not been assigned to a cluster yet
+			if len(o.Inputs[0].Address[0].Cluster) == 0 {
+				cUID = ClusterUID(o.Inputs[0].Address[0].UID)
+			} else {
+				cUID = ClusterUID(o.Inputs[0].Address[0].Cluster[0].UID)
+			}
+		} else {
+			// todo ...
 		}
 
 		origins = append(origins, HeuristicTransaction{
@@ -408,7 +552,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateUIDList(uids)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -480,7 +624,7 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 
 // DoesHeuristicUIDExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
 func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (allExist bool, err error) {
-	uidList := db.CreateUIDList(uids)
+	uidList := db.CreateCommaArray(uids)
 
 	query := `query Q($hash:string, $uids:string, $type:string){
 				# get tx uid

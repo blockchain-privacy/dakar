@@ -180,7 +180,7 @@ func getKeySlice(m map[string]bool) (keys []string) {
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
+	lookBackTime time.Duration, clusterTypes []clustering.ClusterType) (origins []heuristics.HeuristicTransaction, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime)
 	if err != nil {
@@ -188,7 +188,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	}
 
 	// get tx details for each uid
-	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(endpoints))
+	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddressesV2(dgraph, getKeySlice(endpoints), clusterTypes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

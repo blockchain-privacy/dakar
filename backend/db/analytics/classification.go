@@ -132,7 +132,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 // either of the type origin, mixing or collateral creation. Returns the number of newly
 // classified transactions.
 func SetCollateralCreation(c external.Database, txUids []string) (insertCount uint64, err error) {
-	uidList := db.CreateUIDList(txUids)
+	uidList := db.CreateCommaArray(txUids)
 
 	const query = `query Q($uids: string) {
 				cc as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
@@ -188,7 +188,7 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 // either of the type origin, collateral creation or collateral payment. Returns the number
 // of newly classified transactions.
 func SetCollateralPayment(c external.Database, txUids []string) (insertCount uint64, err error) {
-	uidList := db.CreateUIDList(txUids)
+	uidList := db.CreateCommaArray(txUids)
 
 	// collateral payments + collateral creations + origins
 	const filter = "@filter(between(privacytype," + constants.StrPrivacyOriginFirst +
@@ -244,7 +244,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // GetCollateralInputTransactions returns the input transactions of the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
-	uidList := db.CreateUIDList(txUids)
+	uidList := db.CreateCommaArray(txUids)
 
 	query := `query Q($uids: string, $bid: string){
 				var(func: eq(id,$bid)){t as ts}
