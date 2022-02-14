@@ -196,4 +196,10 @@ func main() {
 	//	info(err)
 	//}
 	//info("migrate cluster done")
+
+	//info("migrate heuristics starting ...")
+	//if err := db.MigrateHeuristics(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate heuristics done")
 }

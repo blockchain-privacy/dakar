@@ -836,11 +836,6 @@ func MigrateCluster(c external.Database) error {
 
 // MigrateHeuristics migrates the heuristics predicates to the new structure (including attributions and clusters)
 func MigrateHeuristics(c external.Database) error {
-	// copy value data to new predicate
-	if err := copyCluster(c); err != nil {
-		return err
-	}
-
 	// drop old predicate
 	if err := c.Alter(context.Background(), &api.Operation{
 		DropAttr: "Heuristic.results",
