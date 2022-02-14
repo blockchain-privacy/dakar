@@ -111,7 +111,7 @@ func SetupSchema(c external.Database) error {
 			Heuristic.type: string @index(hash) .
 			Heuristic.parameter: string .
 			Heuristic.transaction: uid @reverse .
-			Heuristic.results: [uid] @count @reverse .
+			Heuristic.clusters: [uid] @count @reverse .
 			Heuristic.parent: [uid] @reverse .
 			Heuristic.ts: dateTime @index(day) .
 
@@ -119,19 +119,25 @@ func SetupSchema(c external.Database) error {
 				Heuristic.type
 				Heuristic.parameter
 				Heuristic.transaction
-				Heuristic.results
+				Heuristic.clusters
 				Heuristic.ts
 				Heuristic.parent
 			}
 
 			HeuristicResult.origin: uid @reverse .
 			HeuristicResult.destinations: [uid] @reverse .
-			HeuristicResult.cluster: string .
 
 			type HeuristicResult {
 				HeuristicResult.origin
 				HeuristicResult.destinations
-				HeuristicResult.cluster
+			}
+
+			HeuristicCluster.results: [uid] @reverse .
+			HeuristicCluster.attributions: [uid] @reverse .
+
+			type HeuristicCluster {
+				HeuristicCluster.results
+				HeuristicCluster.attributions
 			}
 
 			Role.name: string @index(hash) .

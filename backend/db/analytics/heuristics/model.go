@@ -20,13 +20,7 @@ type DummyNode struct {
 // HeuristicResult holds one result (origin) of a heuristic and
 // optionally the results of a forward lookup (destinations)
 type HeuristicResult struct {
-	Origin DummyNode `json:"HeuristicResult.origin,omitempty"`
-	// Clusters contains an ID which identifies a set of clusters,
-	// which are responsible for the creation of the origin transaction of this HeuristicResult.
-	// As clusters are in general in flux (both custom clusters and multi-input clusters),
-	// we can not directly link to them, because they might not exist later on.
-	// Thus, a string identifier is used to preserve a cluster ID at a point in time.
-	Clusters     string      `json:"HeuristicResult.cluster,omitempty"`
+	Origin       DummyNode   `json:"HeuristicResult.origin,omitempty"`
 	Destinations []DummyNode `json:"HeuristicResult.destinations,omitempty"`
 	DType        []string    `json:"dgraph.type,omitempty"`
 }
