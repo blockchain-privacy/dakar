@@ -6,11 +6,14 @@ import (
 	"time"
 )
 
-// DType is the dgraph database type for the TransactionHeuristic type
+// DType is the dgraph database type for the Heuristic type
 const DType = "Heuristic"
 
-// ResultDType is the dgraph database type for the Heuristic type
+// ResultDType is the dgraph database type for the HeuristicResult type
 const ResultDType = "HeuristicResult"
+
+// ClusterDType is the dgraph database type for the HeuristicCluster type
+const ClusterDType = "HeuristicCluster"
 
 // DummyNode holds the uid of a database node
 type DummyNode struct {
@@ -30,6 +33,19 @@ func (r *HeuristicResult) SetDType() {
 	r.DType = []string{ResultDType}
 }
 
+// HeuristicCluster holds a set of results (origins) of a heuristic
+// which belong to the same cluster (or merged cluster) and its attributions
+type HeuristicCluster struct {
+	Results      []HeuristicResult `json:"HeuristicCluster.results,omitempty"`
+	Attributions []DummyNode       `json:"HeuristicCluster.attributions,omitempty"`
+	DType        []string          `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (c *HeuristicCluster) SetDType() {
+	c.DType = []string{ClusterDType}
+}
+
 // Heuristic is the database type representation of a heuristic
 type Heuristic struct {
 	UID           string `json:"uid,omitempty"`
@@ -39,10 +55,10 @@ type Heuristic struct {
 	Transaction   struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"Heuristic.transaction,omitempty"`
-	Timestamp       string            `json:"Heuristic.ts,omitempty"`
-	ParentHeuristic []Heuristic       `json:"Heuristic.parent,omitempty"`
-	ChildHeuristics []Heuristic       `json:"~Heuristic.parent,omitempty"`
-	Results         []HeuristicResult `json:"Heuristic.results,omitempty"`
+	Timestamp       string             `json:"Heuristic.ts,omitempty"`
+	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
+	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
+	Clusters        []HeuristicCluster `json:"Heuristic.cluster,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
