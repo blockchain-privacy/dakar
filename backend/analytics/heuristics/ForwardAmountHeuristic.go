@@ -16,6 +16,7 @@ import (
 type forwardAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
 	lookForwardTime      time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -67,6 +68,11 @@ func (h *forwardAmountHeuristic) setClusterTypes(clusterTypes []clustering.Clust
 	return nil
 }
 
+// setUserUID sets the UID of the user who created this heuristic
+func (h *forwardAmountHeuristic) setUserUID(uid string) {
+	h.userUID = uid
+}
+
 func (h *forwardAmountHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
@@ -101,7 +107,7 @@ func (h *forwardAmountHeuristic) clone() heuristic {
 // forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
 func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
-	[]heuristics.HeuristicResult, error) {
+	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)
@@ -119,7 +125,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime)
+			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -170,7 +176,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredDestinations []heuristics.HeuristicResult
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for _, destinations := range clusterDestinations {
 		var clusterFilteredDestinations []heuristics.DummyNode
 
@@ -183,17 +189,20 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		}
 
-		// get a random origin of this cluster
+		// get properties of a random origin of this cluster
 		var originUID string
+		var clusterID heuristics.ClusterUID
 		for _, v := range clusterOrigins[destinations.cluster] {
 			originUID = v.UID
+			clusterID = v.Cluster
+			break
 		}
 
-		filteredDestinations = append(filteredDestinations, heuristics.HeuristicResult{
+		resultClusters[clusterID] = append(resultClusters[clusterID], heuristics.HeuristicResult{
 			Origin:       heuristics.DummyNode{UID: originUID},
 			Destinations: clusterFilteredDestinations,
 		})
 	}
 
-	return filteredDestinations, nil
+	return createHeuristicClusters(resultClusters), nil
 }

@@ -16,6 +16,7 @@ import (
 type forwardLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
 	lookForwardTime      time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -66,6 +67,12 @@ func (h *forwardLookupHeuristic) setClusterTypes(clusterTypes []clustering.Clust
 	h.clusterTypes = clusterTypes
 	return nil
 }
+
+// setUserUID sets the UID of the user who created this heuristic
+func (h *forwardLookupHeuristic) setUserUID(uid string) {
+	h.userUID = uid
+}
+
 func (h forwardLookupHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
@@ -100,11 +107,9 @@ func (h forwardLookupHeuristic) clone() heuristic {
 // forwardLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
-
-	var hResult []heuristics.HeuristicResult
+	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
+	var results []heuristics.HeuristicTransaction
 	{ // separate enclosure so the results slice can be garbage collected
-		var results []heuristics.HeuristicTransaction
 
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
@@ -115,7 +120,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime)
+			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -124,22 +129,25 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		if len(results) == 0 {
 			return nil, errorNoOriginsAtStart
 		}
-
-		for _, r := range results {
-			hResult = append(hResult, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: r.UID}})
-		}
 	}
 
-	for i, o := range hResult {
-		destinations, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.Origin.UID}, h.lookForwardTime)
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	for _, o := range results {
+		destinations, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.UID}, h.lookForwardTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		for _, v := range destinations {
-			hResult[i].Destinations = append(hResult[i].Destinations, heuristics.DummyNode{UID: v.UID})
+		result := heuristics.HeuristicResult{
+			Origin: heuristics.DummyNode{UID: o.UID},
 		}
+
+		for _, v := range destinations {
+			result.Destinations = append(result.Destinations, heuristics.DummyNode{UID: v.UID})
+		}
+
+		resultClusters[o.Cluster] = append(resultClusters[o.Cluster], result)
 	}
 
-	return hResult, nil
+	return createHeuristicClusters(resultClusters), nil
 }

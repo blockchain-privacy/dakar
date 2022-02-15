@@ -16,6 +16,7 @@ import (
 type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
 	lookBackTime         time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -67,6 +68,11 @@ func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.Clust
 	return nil
 }
 
+// setUserUID sets the UID of the user who created this heuristic
+func (h *reverseLookupHeuristic) setUserUID(uid string) {
+	h.userUID = uid
+}
+
 func (h reverseLookupHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
@@ -99,7 +105,7 @@ func (h reverseLookupHeuristic) clone() heuristic {
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
 
@@ -111,12 +117,14 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(parentHeuristic.Results) == 0 {
+		if len(parentHeuristic.Clusters) == 0 {
 			return nil, errorNoOriginsAtStart
 		}
 
-		for _, r := range parentHeuristic.Results {
-			originLimit[r.Origin.UID] = true
+		for _, heuristicCluster := range parentHeuristic.Clusters {
+			for _, r := range heuristicCluster.Results {
+				originLimit[r.Origin.UID] = true
+			}
 		}
 	}
 
@@ -126,13 +134,10 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	allTimeLimitedOrigins := make(map[string]bool)
-
-	// todo remove
-	h.clusterTypes = []clustering.ClusterType{clustering.TypeCustom}
+	allTimeLimitedOrigins := make(map[string]heuristics.HeuristicTransaction)
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.clusterTypes)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -143,19 +148,16 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			if parentHeuristicSet && !originLimit[t.UID] {
 				continue
 			}
-			allTimeLimitedOrigins[t.UID] = true
+			allTimeLimitedOrigins[t.UID] = t
 		}
 	}
 
-	txToClustersID := make(map[string]string)
-	// todo set fill map, use createClusterID
-	var ret []heuristics.HeuristicResult
-	for k := range allTimeLimitedOrigins {
-		ret = append(ret, heuristics.HeuristicResult{
-			Origin:   heuristics.DummyNode{UID: k},
-			Clusters: txToClustersID[k],
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	for k, v := range allTimeLimitedOrigins {
+		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
+			Origin: heuristics.DummyNode{UID: k},
 		})
 	}
 
-	return ret, nil
+	return createHeuristicClusters(resultClusters), nil
 }

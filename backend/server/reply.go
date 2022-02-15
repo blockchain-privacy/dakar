@@ -164,7 +164,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 	}
 
 	work, err := heuristics.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
-		heuristicRequest.Deleted)
+		heuristicRequest.Deleted, userUID)
 	if err != nil {
 		reply.Msg = "invalid request"
 		info(cliutil.ShowCallInfo(), err)

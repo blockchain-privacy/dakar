@@ -5,8 +5,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-	"sort"
-
 	"errors"
 	"fmt"
 	"strings"
@@ -63,7 +61,8 @@ func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristi
 	return true
 }
 
-func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristicRequest) (builtHeuristics map[string]heuristicTreeElement,
+func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristicRequest,
+	userUID string) (builtHeuristics map[string]heuristicTreeElement,
 	err error) {
 	// create map
 	builtHeuristics = make(map[string]heuristicTreeElement)
@@ -95,6 +94,8 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
+
+			newHeuristic.setUserUID(userUID)
 
 			var childHeuristicUids []string
 
@@ -275,7 +276,8 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristicRequest) (
+func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristicRequest,
+	userUID string) (
 	executors []heuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
@@ -289,7 +291,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, results []heuri
 		return
 	}
 
-	newHeuristics, err := buildHeuristicTreeElements(typeMap, results)
+	newHeuristics, err := buildHeuristicTreeElements(typeMap, results, userUID)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -385,7 +387,8 @@ func mergeRemoveList(changed []heuristics.FrontendHeuristicRequest, removed []st
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristicRequest, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristicRequest,
+	toRemove []string, userUID string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return
@@ -393,7 +396,7 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 
 	if len(changed) > 0 {
 		// create heuristicExecutor trees
-		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed)
+		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed, userUID)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
@@ -406,23 +409,4 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 	w.removableHeuristics = mergeRemoveList(changed, toRemove)
 
 	return
-}
-
-func createClusterID(clusterUids []string) string {
-	var hash string
-
-	// sort uids so the same elements generate the same clusterID regardless of passed order
-	sort.Slice(clusterUids, func(i, j int) bool {
-		if len(clusterUids[i]) != len(clusterUids[j]) {
-			return len(clusterUids[i]) < len(clusterUids[j])
-		}
-
-		return clusterUids[i] < clusterUids[j]
-	})
-
-	for _, uid := range clusterUids {
-		hash += uid
-	}
-
-	return hash
 }

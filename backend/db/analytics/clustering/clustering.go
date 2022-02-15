@@ -657,3 +657,54 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 
 	return
 }
+
+// GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster
+func GetRelatedClusters(c external.Database, clusterUID string, userUID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+	if clusterTypeFilter == nil {
+		err = errors.New("no cluster types passed to function")
+		return
+	}
+
+	var filter string
+	for i, ct := range clusterTypeFilter {
+		filter += string(ct)
+
+		if i+1 < len(clusterTypeFilter) {
+			filter += ","
+		}
+	}
+
+	query := fmt.Sprintf(`query Q($user:string,$cluster:string) {
+					var(func: uid($cluster))@recurse{
+    					Cluster.addresses
+    					c as ~Cluster.addresses@filter(eq(Cluster.type, `+string(TypeFMI)+`) or (eq(Cluster.type,%s) and uid_in(Cluster.user,$user)))
+  					}
+
+  					q(func: uid(c)) {
+    					uid
+					}
+				  }`, filter)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$user": userUID, "$cluster": clusterUID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		clusters = append(clusters, cluster.Uid)
+	}
+
+	return
+}

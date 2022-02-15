@@ -14,6 +14,7 @@ import (
 type denominationTypeHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
 	clusterTypes         []clustering.ClusterType
 }
 
@@ -54,6 +55,11 @@ func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.Cl
 	return nil
 }
 
+// setUserUID sets the UID of the user who created this heuristic
+func (h *denominationTypeHeuristic) setUserUID(uid string) {
+	h.userUID = uid
+}
+
 func (h denominationTypeHeuristic) String() string {
 	return fmt.Sprintf("Type: %s", h.heuristicType)
 }
@@ -82,7 +88,7 @@ func (h denominationTypeHeuristic) clone() heuristic {
 // - filter all origins of sources, which have denominations of types which do not occur in the
 //		denominations of the destination transaction
 func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)
@@ -102,7 +108,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOrigins(dgraph, g, txHash)
+			results, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -132,16 +138,18 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredOrigins []heuristics.HeuristicResult
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for k, o := range originAmounts {
 		if hasSameDenominationTypes(inputDenominationCounts, o) {
 			for _, tx := range sourceTransactionMap[k] {
-				filteredOrigins = append(filteredOrigins, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: tx.UID}})
+				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], heuristics.HeuristicResult{
+					Origin: heuristics.DummyNode{UID: tx.UID},
+				})
 			}
 		}
 	}
 
-	return filteredOrigins, nil
+	return createHeuristicClusters(resultClusters), nil
 }
 
 // returns true if both destinationDenominations and originDenominations have the exact same types

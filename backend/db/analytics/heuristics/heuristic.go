@@ -8,6 +8,8 @@ import (
 	dbtx "backend/db/transaction"
 	"backend/external"
 	"context"
+	"crypto/sha1"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -335,93 +337,13 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 	return
 }
 
-// GetTransactionsWithOutputAmountAndInputAddresses returns a slice of transactions.
-// Each transaction contains its output amounts and the addresses of all inputs.
-func GetTransactionsWithOutputAmountAndInputAddresses(c external.Database, uids []string) (origins []HeuristicTransaction, err error) {
-	const query = `query Q($uids:string){
-				q(func: uid($uids)){
-					uid
-					tx_outputs{
-						amount
-					}
-					tx_inputs(first:1)@normalize{
-						~addr_outputs{
-							addr_uid:uid
-							~Cluster.addresses@filter(eq(Cluster.type,` + clustering.TypeFMI + `)){
-								cluster_uid:uid
-							}
-						}
-					}
-			   	}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, string(query), map[string]string{"$uids": db.CreateCommaArray(uids)})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Origins []queryHeuristicTransaction `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	for _, o := range r.Origins {
-		if len(o.Inputs) != 1 {
-			err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
-			return
-		}
-
-		var cUID ClusterUID
-
-		// if the cluster is not set we use the address uid as the "cluster",
-		// this can happen if the address has not been assigned to a cluster yet
-		if o.Inputs[0].Cluster == "" {
-			cUID = ClusterUID(o.Inputs[0].Address)
-		} else {
-			cUID = ClusterUID(o.Inputs[0].Cluster)
-		}
-
-		origins = append(origins, HeuristicTransaction{
-			UID:     o.UID,
-			Cluster: cUID,
-			Outputs: o.Outputs,
-		})
-	}
-
-	return
-}
-
-/**
-query for getting all connected clusters of a particular user cluster
-{
-  var(func: uid(0xf52411e))@recurse{
-    Cluster.addresses
-    c as ~Cluster.addresses@filter(eq(Cluster.type, fmi) or (eq(Cluster.type, custom) and uid_in(Cluster.user, 0xf4dad2d)))
-  }
-
-  q(func: uid(c)) {
-    uid
-    Cluster.type
-    Cluster.addressCount
-  }
-}
-
-*/
-
-// GetTransactionsWithOutputAmountAndInputAddressesV2 returns a slice of transactions.
-// Each transaction contains its output amounts and the addresses of all inputs.
-func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uids []string,
+// GetTransactionsWithOutputAmountAndCluster returns a slice of transactions.
+// Each transaction contains its output amounts and the cluster of all inputs.
+func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []string, userUID string,
 	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction, err error) {
 	isSimpleClustering := requestedClusterTypes == nil // true -> only multi-input clusters will be used
-	// todo set user id
-	const userUID = "0xf4dad2d"
 
+	// get user clusters if necessary
 	var userClusterUIDs []string
 	if !isSimpleClustering {
 		userClusterUIDs, err = clustering.GetUserClustersUIDs(c, userUID, requestedClusterTypes)
@@ -437,14 +359,10 @@ func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uid
 		}
 	}
 
-	var inputLimit string
+	/// build query
+
 	var usedClusterTypes string
-	if isSimpleClustering {
-		// if no additional cluster types are requested,
-		// then it is enough to only look at one input address for the cluster,
-		// because a multi-input cluster is always set for all addresses of a multi-input transaction
-		inputLimit = "(first:1)"
-	} else {
+	if !isSimpleClustering {
 		for i, ct := range requestedClusterTypes {
 			usedClusterTypes += string(ct)
 
@@ -461,7 +379,7 @@ func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uid
 					tx_outputs{
 						amount
 					}
-					tx_inputs%s{
+					tx_inputs(first:1){
 						~addr_outputs{
 							uid
 							~Cluster.addresses@filter(eq(Cluster.type,%s)%s){
@@ -470,7 +388,7 @@ func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uid
 						}
 					}
 			   	}
-			  }`, inputLimit, string(clustering.TypeFMI), usedClusterTypes)
+			  }`, string(clustering.TypeFMI), usedClusterTypes)
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
@@ -499,36 +417,78 @@ func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uid
 		return
 	}
 
+	type mergedClusterItem struct {
+		clusterHash string
+		clusterUIDs map[string]bool
+	}
+
+	var mergedClusters []mergedClusterItem
+	allClusters := make(map[string]bool)
+
 	if !isSimpleClustering {
-		// todo find clusters
+		// get all merged clusters
+		for _, userCluster := range userClusterUIDs {
+			// check if userCluster has already been found in a previous iteration
+			if allClusters[userCluster] {
+				continue
+			}
 
-		// get
+			mergedClusterUIDS, err := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
+			if err != nil {
+				return nil, err
+			}
 
+			mergedCluster := make(map[string]bool)
+			for _, mcu := range mergedClusterUIDS {
+				mergedCluster[mcu] = true
+				allClusters[mcu] = true
+			}
+
+			mergedClusters = append(mergedClusters, mergedClusterItem{clusterUIDs: mergedCluster})
+		}
 	}
 
 	for _, o := range r.Origins {
-		if len(o.Inputs) == 0 {
+		if o.Inputs == nil || o.Inputs[0].Address == nil {
 			err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
 		var cUID ClusterUID
 
-		if isSimpleClustering {
-			if len(o.Inputs[0].Address) == 0 {
-				err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
-				return
-			}
-
-			// if the cluster is not set we use the address uid as the "cluster",
-			// this can happen if the address has not been assigned to a cluster yet
-			if len(o.Inputs[0].Address[0].Cluster) == 0 {
-				cUID = ClusterUID(o.Inputs[0].Address[0].UID)
-			} else {
-				cUID = ClusterUID(o.Inputs[0].Address[0].Cluster[0].UID)
-			}
+		// if the cluster is not set we use the address uid as the "cluster",
+		// this can happen if the address has not been assigned to a cluster yet
+		if o.Inputs[0].Address[0].Cluster == nil {
+			cUID = ClusterUID(o.Inputs[0].Address[0].UID)
+		} else if isSimpleClustering {
+			// must have a multi-input cluster UID
+			cUID = ClusterUID(o.Inputs[0].Address[0].Cluster[0].UID)
 		} else {
-			// todo ...
+			// if this clusters uid does not appear in the merged user clusters,
+			// then use the multi-input cluster UID
+			firstClusterUId := o.Inputs[0].Address[0].Cluster[0].UID
+			if !allClusters[firstClusterUId] {
+				cUID = ClusterUID(firstClusterUId)
+			} else {
+				var found bool
+				for i, mc := range mergedClusters {
+					if _, ok := mc.clusterUIDs[firstClusterUId]; ok {
+
+						// lazy creation of map hashes
+						if mc.clusterHash == "" {
+							mc.clusterHash = createKeyHash(mc.clusterUIDs)
+							mergedClusters[i] = mc
+						}
+
+						cUID = ClusterUID(mc.clusterHash)
+						found = true
+						break
+					}
+				}
+				if !found {
+					return nil, errors.New("did not find cluster uid in merged cluster list")
+				}
+			}
 		}
 
 		origins = append(origins, HeuristicTransaction{
@@ -539,6 +499,17 @@ func GetTransactionsWithOutputAmountAndInputAddressesV2(c external.Database, uid
 	}
 
 	return
+}
+
+func createKeyHash(someMap map[string]bool) string {
+	var allKeys string
+	for k := range someMap {
+		allKeys += k
+	}
+
+	sha1Hash := sha1.New()
+	sha1Hash.Write([]byte(allKeys))
+	return base64.URLEncoding.EncodeToString(sha1Hash.Sum(nil))
 }
 
 // GetTransactionsWithInputAmount returns a slice of transactions. Each transaction contains its input amounts.

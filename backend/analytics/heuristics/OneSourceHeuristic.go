@@ -6,6 +6,7 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"errors"
 
 	"fmt"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
 	lookBackTime         time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -67,6 +69,11 @@ func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterTy
 	return nil
 }
 
+// setUserUID sets the UID of the user who created this heuristic
+func (h *oneSourceHeuristic) setUserUID(uid string) {
+	h.userUID = uid
+}
+
 func (h oneSourceHeuristic) String() string {
 	return fmt.Sprintf("Type: %s, Paramter: %s", h.heuristicType, h.parameterDescription)
 }
@@ -106,7 +113,7 @@ type txAndOrigins struct {
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
 func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
-	[]heuristics.HeuristicResult, error) {
+	[]heuristics.HeuristicCluster, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
@@ -130,7 +137,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	var allTxAndOrigins []txAndOrigins
 
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.clusterTypes)
+		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -211,12 +218,21 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		}
 	}
 
-	var ret []heuristics.HeuristicResult
-	for k := range remainingOrigins {
-		ret = append(ret, heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: k},
-		})
+	allOriginMap := make(map[string]heuristics.HeuristicTransaction)
+	for _, tx := range allTimeLimitedOrigins {
+		allOriginMap[tx.UID] = tx
 	}
 
-	return ret, nil
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	for k := range remainingOrigins {
+		if v, ok := allOriginMap[k]; !ok {
+			return nil, errors.New("could not find origin in all origin map")
+		} else {
+			resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
+				Origin: heuristics.DummyNode{UID: k},
+			})
+		}
+	}
+
+	return createHeuristicClusters(resultClusters), nil
 }
