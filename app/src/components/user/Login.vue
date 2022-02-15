@@ -165,7 +165,7 @@ export default {
       this.loginFailed = false;
 
       doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
-        { user_pw: this.password.value, user_email: this.email.value })
+        { pw: this.password.value, email: this.email.value })
         .then((data) => {
           if (data.success === undefined
                 || data.user === undefined) throw Error('error logging in.');

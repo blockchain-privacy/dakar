@@ -167,15 +167,33 @@ func main() {
 	//}
 	//info("drop type Heuristic done")
 
-	info("remove predicate isrlookupdone starting ...")
-	if err := db.DropAllIsRLookupDone(dgraph); err != nil {
-		info(err)
-	}
-	info("remove predicate isrlookupdone done")
+	//info("remove predicate isrlookupdone starting ...")
+	//if err := db.DropAllIsRLookupDone(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("remove predicate isrlookupdone done")
+	//
+	//info("update type Transaction starting ...")
+	//if err := db.AlterSchemaUpdateTransaction(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("update type Transaction done")
 
-	info("update type Transaction starting ...")
-	if err := db.AlterSchemaUpdateTransaction(dgraph); err != nil {
-		info(err)
-	}
-	info("update type Transaction done")
+	//info("migrate role starting ...")
+	//if err := db.MigrateRole(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate role done")
+
+	//info("migrate user starting ...")
+	//if err := db.MigrateUser(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate user done")
+
+	//info("migrate cluster starting ...")
+	//if err := db.MigrateCluster(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("migrate cluster done")
 }

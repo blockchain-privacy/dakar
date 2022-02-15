@@ -32,18 +32,18 @@
       <v-card outlined v-for="(c, i) in clusters" :key="i" class="mx-3 my-3">
         <v-toolbar flat>
           <v-toolbar-title>
-            {{ getClusterTypeLabel(c.cluster_type) }}
+            {{ getClusterTypeLabel(c.type) }}
           </v-toolbar-title>
           <v-spacer></v-spacer>
           <v-chip outlined v-if="!$vuetify.breakpoint.xs">
-            {{ c.cluster_address_count }}
-            {{ (c.cluster_address_count === 1) ? 'Address' : 'Addresses' }}
+            {{ c.addressCount }}
+            {{ (c.addressCount === 1) ? 'Address' : 'Addresses' }}
           </v-chip>
           <v-chip outlined v-if="$vuetify.breakpoint.xs">
-            {{ c.cluster_address_count }}
+            {{ c.addressCount }}
           </v-chip>
-          <v-btn v-if="c.cluster_type === 'custom'" icon
-                 @click="deleteCluster(c.uid, c.cluster_address_count)">
+          <v-btn v-if="c.type === 'custom'" icon
+                 @click="deleteCluster(c.uid, c.addressCount)">
             <v-icon>{{ icon.mdiDelete }}</v-icon>
           </v-btn>
         </v-toolbar>
@@ -61,17 +61,17 @@
           </div>
         </v-card-text>
         <v-expansion-panels focusable flat
-                            v-if="c.cluster_addresses && c.cluster_addresses.length > 0">
+                            v-if="c.addresses && c.addresses.length > 0">
           <v-expansion-panel>
             <v-expansion-panel-header>
-              Address Sample ({{ c.cluster_addresses.length }})
+              Address Sample ({{ c.addresses.length }})
             </v-expansion-panel-header>
             <v-expansion-panel-content>
               <v-data-table
                   dense
                   :headers="tableHeaders"
                   :sort-by="['unspent_output_count']"
-                  :items="c.cluster_addresses"
+                  :items="c.addresses"
                   item-key="addresshash">
                 <template v-slot:item.addresshash="{ item }">
                   <router-link :to="{ name: addressRoute, params: { id: item.addresshash }}">
@@ -169,7 +169,7 @@ export default {
     doLookup() {
       this.isLoading = true;
       this.showEmptyText = false;
-
+      this.clusters = [];
       doPost(ROUTE_CLUSTER_LOOKUP, this.$router, this.$store, this.getQuery())
         .then((data) => {
           if (data.success === undefined) throw Error('error searching for clusters');
@@ -186,9 +186,9 @@ export default {
 
             // add all clusters to array if they are not hmi and fmi
             data.clusters.forEach((d) => {
-              clusterMap.set(d.cluster_type, d);
-              if (d.cluster_type !== CLUSTER_TYPE_HMI
-                    && d.cluster_type !== CLUSTER_TYPE_FMI) clusters.push(d);
+              clusterMap.set(d.type, d);
+              if (d.type !== CLUSTER_TYPE_HMI
+                    && d.type !== CLUSTER_TYPE_FMI) clusters.push(d);
             });
 
             // insert hmi cluster into fmi cluster and add the composite cluster into the array

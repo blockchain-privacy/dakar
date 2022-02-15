@@ -29,11 +29,11 @@ type SubCluster struct {
 
 type CustomCluster struct {
 	Uid          string          `json:"uid,omitempty"`
-	Type         ClusterType     `json:"cluster_type,omitempty"`
-	Timestamp    string          `json:"cluster_ts,omitempty"`
-	AddressCount *int            `json:"cluster_address_count,omitempty"`
-	Addresses    []HollowAddress `json:"cluster_addresses,omitempty"`
-	User         HollowUser      `json:"cluster_user,omitempty"`
+	Type         ClusterType     `json:"Cluster.type,omitempty"`
+	Timestamp    string          `json:"Cluster.ts,omitempty"`
+	AddressCount *int            `json:"Cluster.addressCount,omitempty"`
+	Addresses    []HollowAddress `json:"Cluster.addresses,omitempty"`
+	User         HollowUser      `json:"Cluster.user,omitempty"`
 	DType        []string        `json:"dgraph.type,omitempty"`
 }
 
@@ -44,11 +44,11 @@ func (cc *CustomCluster) SetDType() {
 
 type Cluster struct {
 	Uid          string            `json:"uid,omitempty"`
-	Type         ClusterType       `json:"cluster_type,omitempty"`
-	AddressCount *int              `json:"cluster_address_count,omitempty"`
-	Transaction  HollowTransaction `json:"cluster_transaction,omitempty"`
-	Children     []SubCluster      `json:"cluster_children,omitempty"`
-	Addresses    []HollowAddress   `json:"cluster_addresses,omitempty"`
+	Type         ClusterType       `json:"Cluster.type,omitempty"`
+	AddressCount *int              `json:"Cluster.addressCount,omitempty"`
+	Transaction  HollowTransaction `json:"Cluster.transaction,omitempty"`
+	Children     []SubCluster      `json:"Cluster.childre,omitempty"`
+	Addresses    []HollowAddress   `json:"Cluster.addresses,omitempty"`
 	DType        []string          `json:"dgraph.type,omitempty"`
 }
 
@@ -84,7 +84,7 @@ func NewFMIClusterByUID(UID string) Cluster {
 
 type ClusterWithParent struct {
 	Uid          string `json:"uid"`
-	AddressCount int    `json:"cluster_address_count,omitempty"`
+	AddressCount int    `json:"Cluster.addressCount,omitempty"`
 	Parents      []struct {
 		Uid string `json:"uid"`
 	} `json:"parents,omitempty"`
@@ -119,19 +119,19 @@ type FrontendAddress struct {
 
 type FrontendCluster struct {
 	Uid             string            `json:"uid,omitempty"`
-	Type            ClusterType       `json:"cluster_type,omitempty"`
-	AddressCount    int               `json:"cluster_address_count,omitempty"`
+	Type            ClusterType       `json:"type,omitempty"`
+	AddressCount    int               `json:"addressCount,omitempty"`
 	TransactionHash string            `json:"txhash,omitempty"`
 	BlockID         int               `json:"bid,omitempty"`
 	BlockHash       string            `json:"bhash,omitempty"`
 	Timestamp       time.Time         `json:"ts,omitempty"`
-	Addresses       []FrontendAddress `json:"cluster_addresses,omitempty"`
+	Addresses       []FrontendAddress `json:"addresses,omitempty"`
 	Attributions    []Attribution     `json:"attributions,omitempty"`
 }
 
 type Attribution struct {
 	Tag      string `json:"tag,omitempty"`
-	IsPublic bool   `json:"ispublic,omitempty"`
+	IsPublic bool   `json:"isPublic,omitempty"`
 }
 
 type ClusterTags struct {
@@ -141,23 +141,23 @@ type ClusterTags struct {
 
 type FrontendClusterRequest struct {
 	Uid          string      `json:"uid,omitempty"`
-	Type         ClusterType `json:"cluster_type,omitempty"`
-	AddressCount int         `json:"cluster_address_count,omitempty"`
+	Type         ClusterType `json:"Cluster.type,omitempty"`
+	AddressCount int         `json:"Cluster.addressCount,omitempty"`
 	Transaction  []struct {
 		TransactionHash string    `json:"txhash,omitempty"`
 		BlockID         int       `json:"bid,omitempty"`
 		BlockHash       string    `json:"bhash,omitempty"`
 		Timestamp       time.Time `json:"ts,omitempty"`
-	} `json:"cluster_transaction,omitempty"`
-	Addresses []FrontendAddress `json:"cluster_addresses,omitempty"`
+	} `json:"Cluster.transaction,omitempty"`
+	Addresses []FrontendAddress `json:"Cluster.addresses,omitempty"`
 }
 
 type FrontendHMICluster struct {
 	Uid             string   `json:"uid,omitempty"`
-	AddressCount    int      `json:"cluster_address_count,omitempty"`
+	AddressCount    int      `json:"addressCount,omitempty"`
 	TransactionHash string   `json:"txhash,omitempty"`
-	Parent          string   `json:"cluster_parent,omitempty"`
-	Children        []string `json:"cluster_children,omitempty"`
+	Parent          string   `json:"parent,omitempty"`
+	Children        []string `json:"children,omitempty"`
 }
 
 type FrontendUserCluster struct {

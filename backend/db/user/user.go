@@ -41,7 +41,7 @@ func CreateUser(c external.Database, user User) error {
 	queryVars := map[string]string{"$email": user.Email}
 	queryStart := "query Q($email: string,"
 	var queryRoles string
-	queryEnd := "user as var(func: eq(user_email, $email))}"
+	queryEnd := "user as var(func: eq(User.email, $email))}"
 	for i := range user.Roles {
 		roleUIDPlaceholder := fmt.Sprintf("r%d", i)
 
@@ -52,7 +52,7 @@ func CreateUser(c external.Database, user User) error {
 		queryVars[roleVarID] = user.Roles[i].Name
 
 		queryStart += roleVarID + ":string"
-		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(Role.name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","
@@ -90,15 +90,15 @@ func CreateUser(c external.Database, user User) error {
 }
 
 // GetUsers gets all users currently in the database
-func GetUsers(c external.Database) (users []User, err error) {
-	query := `query {
+func GetUsers(c external.Database) (users []FrontendUserBackendState, err error) {
+	query := `{
 				q(func: type(User)){
 					uid
-					user_email
-					user_modified
-					user_created
-					user_roles {
-						role_name
+					User.email
+					User.modified
+					User.created
+					User.roles {
+						Role.name
 					}
 				}
 			  }`
@@ -124,7 +124,9 @@ func GetUsers(c external.Database) (users []User, err error) {
 		return
 	}
 
-	users = r.Users
+	for _, u := range r.Users {
+		users = append(users, u.ToFrontendUserBackendState())
+	}
 
 	return
 }
@@ -132,14 +134,14 @@ func GetUsers(c external.Database) (users []User, err error) {
 // GetUserByEmail gets a User by E-mail from the db
 func GetUserByEmail(c external.Database, email string) (user User, err error) {
 	query := `query Q($email:string){
-				q(func: eq(user_email,$email))@filter(eq(dgraph.type,` + DTypeUser + `)){
+				q(func: eq(User.email,$email))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
-					user_email
-					user_pwhash
-					user_modified
-					user_created
-					user_roles{
-						role_name
+					User.email
+					User.pwhash
+					User.modified
+					User.created
+					User.roles{
+						Role.name
 					}
 				}
 			  }`
@@ -181,12 +183,12 @@ func GetUser(c external.Database, uid string) (user User, err error) {
 	query := `query Q($uid:string){
 				q(func: uid($uid))@filter(eq(dgraph.type,` + DTypeUser + `)){
 					uid
-					user_email
-					user_pwhash
-					user_modified
-					user_created
-					user_roles{
-						role_name
+					User.email
+					User.pwhash
+					User.modified
+					User.created
+					User.roles{
+						Role.name
 					}
 				}
 			  }`
@@ -330,7 +332,7 @@ func ModifyUser(c external.Database, user User) (err error) {
 		queryVars[roleVarID] = user.Roles[i].Name
 
 		queryStart += roleVarID + ":string"
-		queryRoles += roleUIDPlaceholder + " as var(func: eq(role_name," + roleVarID + "))\n"
+		queryRoles += roleUIDPlaceholder + " as var(func: eq(Role.name," + roleVarID + "))\n"
 
 		if i+1 < len(user.Roles) {
 			queryStart += ","
@@ -382,7 +384,7 @@ func RemoveRolesFromUser(c external.Database, uid string) (err error) {
 		Query: query,
 		Vars:  map[string]string{"$uid": uid},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte("uid(h) <user_roles> * ."),
+			DelNquads: []byte("uid(h) <User.roles> * ."),
 		}},
 		CommitNow: true,
 	}

@@ -6,15 +6,15 @@
       <div>
         {{ attribution.ts.toLocaleDateString() }}
       </div>
-      <v-menu bottom left v-if="!attribution.ispublic ||
-       (attribution.ispublic && isAdminUser(userData))">
+      <v-menu bottom left v-if="!attribution.isPublic ||
+       (attribution.isPublic && isAdminUser(userData))">
         <template v-slot:activator="{ on, attrs }">
           <v-btn icon v-bind="attrs" v-on="on">
             <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
         <v-list>
-          <v-list-item @click="deleteItem(attribution.uid, attribution.tag, attribution.ispublic)">
+          <v-list-item @click="deleteItem(attribution.uid, attribution.tag, attribution.isPublic)">
             <v-list-item-icon>
               <v-icon>{{ icon.mdiDelete }}</v-icon>
             </v-list-item-icon>

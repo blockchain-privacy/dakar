@@ -134,64 +134,64 @@ func SetupSchema(c external.Database) error {
 				HeuristicResult.cluster
 			}
 
-			role_name: string @index(hash) .
+			Role.name: string @index(hash) .
 
 			type Role {
-				role_name
+				Role.name
 			}
 
-			user_email: string @index(term, fulltext) .
-			user_pwhash: string .
-			user_roles: [uid] @reverse .
-			user_created: dateTime @index(day) .
-			user_modified: dateTime @index(day) .
-			user_heuristics: [uid] @reverse .
-
+			User.email: string @index(term, fulltext) .
+			User.pwhash: string .
+			User.roles: [uid] @reverse .
+			User.created: dateTime @index(day) .
+			User.modified: dateTime @index(day) .
+			User.heuristics: [uid] @reverse .
+	
 			type User {
-				user_email
-				user_pwhash
-				user_roles
-				user_created
-				user_modified
-				user_heuristics
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
 			}
 
-			cluster_type: string @index(hash) . # the cluster type
-			cluster_transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
-			cluster_addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
-			cluster_children: [uid] @reverse . # all direct child clusters
-			cluster_user: uid @reverse . # the user which created the cluster
-			cluster_address_count: int . # number of connected addresses connected to this cluster (including child clusters)
-			cluster_ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
-			
+			Cluster.type: string @index(hash) . # the cluster type
+			Cluster.transaction: uid @reverse . # the transaction which contains the address because of which the cluster was created
+			Cluster.addresses: [uid] @reverse . # all direct addresses, these occur in cluster_transaction
+			Cluster.children: [uid] @reverse . # all direct child clusters
+			Cluster.user: uid @reverse . # the user which created the cluster
+			Cluster.addressCount: int . # number of connected addresses connected to this cluster (including child clusters)
+			Cluster.ts: dateTime @index(day). # when the cluster was created, should only be used for custom clusters as for other clusters the creation time can be derived from the connected tx
+	
 			type Cluster {
-				cluster_type
-				cluster_transaction
-				cluster_addresses
-				cluster_children
-				cluster_address_count
-				cluster_user
-				cluster_ts
+				Cluster.type
+				Cluster.transaction
+				Cluster.addresses
+				Cluster.children
+				Cluster.addressCount
+				Cluster.user
+				Cluster.ts
 			}
 
-			attribution_user: uid @reverse . # the user which created the attribution
-			attribution_tag: string @index(term, trigram) . # tag of the attribution
-			attribution_address: uid @reverse . # the attribution's address
-			attribution_ts: dateTime @index(day). # creation time of the attribution
-			attribution_description: string @index(term, trigram) . # description of the attribution
-			attribution_source: string @index(term, trigram) . # source (link) of the attribution
-			attribution_category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
-			attribution_ispublic: bool @index(bool) . # set to true if the attribution is available to everyone
+			Attribution.user: uid @reverse . # the user which created the attribution
+			Attribution.tag: string @index(term, trigram) . # tag of the attribution
+			Attribution.address: uid @reverse . # the attribution's address
+			Attribution.ts: dateTime @index(day). # creation time of the attribution
+			Attribution.description: string @index(term, trigram) . # description of the attribution
+			Attribution.source: string @index(term, trigram) . # source (link) of the attribution
+			Attribution.category: string @index(term, trigram) . # category (e.g. exchange) of the attribution
+			Attribution.isPublic: bool @index(bool) . # set to true if the attribution is available to everyone
 
 			type Attribution {
-				attribution_user
-				attribution_tag
-				attribution_address
-				attribution_ts
-				attribution_description
-				attribution_source
-				attribution_category
-				attribution_ispublic
+				Attribution.user
+				Attribution.tag
+				Attribution.address
+				Attribution.ts
+				Attribution.description
+				Attribution.source
+				Attribution.category
+				Attribution.isPublic
 			}
 		`,
 	})

@@ -16,8 +16,8 @@ export default class ClusterTree extends Tree {
     this.stratify = d3.stratify()
       .id((d) => d.uid)
       .parentId((d) => {
-        if (d.cluster_parent === null || d.cluster_parent === undefined) return null;
-        return d.cluster_parent;
+        if (d.parent === null || d.parent === undefined) return null;
+        return d.parent;
       });
 
     this.drawTree = (data) => {
@@ -71,7 +71,7 @@ export default class ClusterTree extends Tree {
       .attr('y', (d) => (
         d.data.data.parameter !== undefined
           ? -textAreaHeight / 2 + textHeight * 2 : textHeight / 2))
-      .text((d) => `Size:${d.data.data.cluster_address_count}`);
+      .text((d) => `Size:${d.data.data.addressCount}`);
   }
 
   drawNodes(group, nodeData) {

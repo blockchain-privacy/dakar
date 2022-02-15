@@ -18,7 +18,7 @@ const (
 // Role is the database representation of a role
 type Role struct {
 	UID   string   `json:"uid,omitempty"`
-	Name  string   `json:"role_name"`
+	Name  string   `json:"Role.name"`
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
@@ -31,15 +31,21 @@ func (r *Role) SetDType() {
 	r.DType = []string{DTypeRole}
 }
 
+// FrontendRole should be used for client facing responses
+type FrontendRole struct {
+	UID  string `json:"uid,omitempty"`
+	Name string `json:"name"`
+}
+
 // User is the database representation of a user
 type User struct {
 	UID          string                 `json:"uid,omitempty"`
-	Email        string                 `json:"user_email,omitempty"`
-	PasswordHash string                 `json:"user_pwhash,omitempty"`
-	Roles        []Role                 `json:"user_roles,omitempty"`
-	Created      *time.Time             `json:"user_created,omitempty"`
-	Modified     *time.Time             `json:"user_modified,omitempty"`
-	Heuristics   []heuristics.Heuristic `json:"user_heuristics,omitempty"`
+	Email        string                 `json:"User.email,omitempty"`
+	PasswordHash string                 `json:"User.pwhash,omitempty"`
+	Roles        []Role                 `json:"User.roles,omitempty"`
+	Created      *time.Time             `json:"User.created,omitempty"`
+	Modified     *time.Time             `json:"User.modified,omitempty"`
+	Heuristics   []heuristics.Heuristic `json:"User.heuristics,omitempty"`
 	DType        []string               `json:"dgraph.type,omitempty"`
 }
 
@@ -55,19 +61,33 @@ func (u *User) SetDType() {
 
 // ToFrontendUserState returns user data for the frontend
 func (u User) ToFrontendUserState() FrontendUserClientState {
+	var roles []FrontendRole
+
+	for _, r := range u.Roles {
+		convertedRole := FrontendRole{UID: r.UID, Name: r.Name}
+		roles = append(roles, convertedRole)
+	}
+
 	return FrontendUserClientState{
 		UID:   u.UID,
 		Email: u.Email,
-		Roles: u.Roles,
+		Roles: roles,
 	}
 }
 
 // ToFrontendUserBackendState converts frontend user data to the user backend representation
 func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
+	var roles []FrontendRole
+
+	for _, r := range u.Roles {
+		convertedRole := FrontendRole{UID: r.UID, Name: r.Name}
+		roles = append(roles, convertedRole)
+	}
+
 	return FrontendUserBackendState{
 		UID:      u.UID,
 		Email:    u.Email,
-		Roles:    u.Roles,
+		Roles:    roles,
 		Modified: u.Modified,
 		Created:  u.Created,
 	}
@@ -75,36 +95,52 @@ func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
 
 // ModifyUserRequest holds the configuration data for a user modification request
 type ModifyUserRequest struct {
-	UID             string `json:"uid,omitempty"`
-	Email           string `json:"email,omitempty"`
-	CurrentPassword string `json:"current_password,omitempty"`
-	NewPassword     string `json:"new_password,omitempty"`
-	Roles           []Role `json:"roles,omitempty"`
+	UID             string         `json:"uid,omitempty"`
+	Email           string         `json:"email,omitempty"`
+	CurrentPassword string         `json:"current_password,omitempty"`
+	NewPassword     string         `json:"new_password,omitempty"`
+	Roles           []FrontendRole `json:"roles,omitempty"`
 }
 
 // ToUser returns a User object with the given password hash
 func (m ModifyUserRequest) ToUser(pwHash string) User {
+	var roles []Role
+
+	for _, r := range m.Roles {
+		convertedRole := Role{UID: r.UID, Name: r.Name}
+		convertedRole.SetDType()
+		roles = append(roles, convertedRole)
+	}
+
 	return User{
 		UID:          m.UID,
 		Email:        m.Email,
-		Roles:        m.Roles,
+		Roles:        roles,
 		PasswordHash: pwHash,
 	}
 }
 
 // FrontendUserClientState represents the client side state of the user
 type FrontendUserClientState struct {
-	UID   string `json:"uid,omitempty"`
-	Email string `json:"email,omitempty"`
-	Roles []Role `json:"roles,omitempty"`
+	UID   string         `json:"uid,omitempty"`
+	Email string         `json:"email,omitempty"`
+	Roles []FrontendRole `json:"roles,omitempty"`
 }
 
 // ToUser returns a User object
 func (f FrontendUserClientState) ToUser() User {
+	var roles []Role
+
+	for _, r := range f.Roles {
+		convertedRole := Role{UID: r.UID, Name: r.Name}
+		convertedRole.SetDType()
+		roles = append(roles, convertedRole)
+	}
+
 	return User{
 		UID:   f.UID,
 		Email: f.Email,
-		Roles: f.Roles,
+		Roles: roles,
 	}
 }
 
@@ -127,8 +163,8 @@ func (f FrontendUserClientState) IsValid() bool {
 
 // FrontendUserRoles is the role representation for the frontend
 type FrontendUserRoles struct {
-	Email string   `json:"user_email"`
-	Roles []string `json:"user_roles"`
+	Email string   `json:"email"`
+	Roles []string `json:"roles"`
 }
 
 func (f FrontendUserRoles) String() string {
@@ -178,8 +214,8 @@ func (f FrontendUserRoles) IsValid() bool {
 
 // FrontendUserLogin holds data of a user login
 type FrontendUserLogin struct {
-	Email    string `json:"user_email"`
-	Password string `json:"user_pw"`
+	Email    string `json:"email"`
+	Password string `json:"pw"`
 }
 
 func (f FrontendUserLogin) String() string {
@@ -193,11 +229,11 @@ func (f FrontendUserLogin) IsValid() bool {
 
 // FrontendUserBackendState represents the state of the user in the backend
 type FrontendUserBackendState struct {
-	UID      string     `json:"uid,omitempty"`
-	Email    string     `json:"email,omitempty"`
-	Roles    []Role     `json:"roles,omitempty"`
-	Created  *time.Time `json:"created,omitempty"`
-	Modified *time.Time `json:"modified,omitempty"`
+	UID      string         `json:"uid,omitempty"`
+	Email    string         `json:"email,omitempty"`
+	Roles    []FrontendRole `json:"roles,omitempty"`
+	Created  *time.Time     `json:"created,omitempty"`
+	Modified *time.Time     `json:"modified,omitempty"`
 }
 
 // ToFrontendUserClientState converts the backend user state to a frontend user state

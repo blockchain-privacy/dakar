@@ -40,10 +40,10 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 
 				x(func: uid(a))@cascade{
 					uid
-					clusters: ~cluster_addresses@filter(eq(cluster_type,$ctype))@cascade(uid){
+					clusters: ~Cluster.addresses@filter(eq(Cluster.type,$ctype))@cascade(uid){
 						uid
-						cluster_address_count
-						parents:~cluster_children{
+						Cluster.addressCount
+						parents:~Cluster.children{
 							uid
 						}
 					}
@@ -207,8 +207,8 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 			continue
 		}
 		index := strconv.Itoa(i)
-		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as cluster_addresses}\n"
-		setNquads += "<" + o.NewCluster.Uid + "> <cluster_addresses> uid(a" + index + ") .\n"
+		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
+		setNquads += "<" + o.NewCluster.Uid + "> <Cluster.addresses> uid(a" + index + ") .\n"
 
 		for _, oc := range o.OldClusters {
 			delNquads += "<" + oc + "> * * .\n"
@@ -263,12 +263,12 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootCluster ClusterWithParent, err error) {
 	const query = `query Q($uid:string) {
 				var(func: uid($uid))@recurse{
-					c as ~cluster_children
+					c as ~Cluster.children
 				}
 				
-				q(func: uid(c))@filter(eq(count(~cluster_children),0)){
+				q(func: uid(c))@filter(eq(count(~Cluster.children),0)){
 					uid
-					cluster_address_count
+					Cluster.addressCount
 				}
 			  }`
 
@@ -304,9 +304,9 @@ func getClusterQuery(maxAddresses int) string {
 
 	return `q(func: uid(c)){
 				uid
-				cluster_type
-				cluster_address_count
-				cluster_transaction@normalize{
+				Cluster.type
+				Cluster.addressCount
+				Cluster.transaction@normalize{
 					txhash:txhash
 					~transactions{
 						bhash:blockhash
@@ -314,18 +314,18 @@ func getClusterQuery(maxAddresses int) string {
 						ts:ts
 					}
 				}
-				cluster_addresses` + limiter + `{
+				Cluster.addresses` + limiter + `{
 					addresshash
 					output_count: count(addr_outputs)
 					spent_output_count: count(addr_outputs@filter(has(~tx_inputs)))
 				}
 			}
-			tags(func: uid(c))@filter(not eq(cluster_type,` + string(TypeHMI) + `)){
+			tags(func: uid(c))@filter(not eq(Cluster.type,` + string(TypeHMI) + `)){
 				uid
-				tags:cluster_addresses@normalize {
-					~attribution_address@filter(eq(attribution_ispublic,true) or uid_in(attribution_user,$user)) {
-						tag:attribution_tag
-						ispublic:attribution_ispublic
+				tags:Cluster.addresses@normalize {
+					~Attribution.address@filter(eq(Attribution.isPublic,true) or uid_in(Attribution.user,$user)) {
+						tag:Attribution.tag
+						isPublic:Attribution.isPublic
 					}
 				}
 			}`
@@ -377,7 +377,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 	userID string) (clusters []FrontendCluster, err error) {
 	query := `query Q($addressHash:string,$user:string) {
 				var(func:eq(addresshash,$addressHash)){
-					c as ~cluster_addresses
+					c as ~Cluster.addresses
 				}` + getClusterQuery(maxAddresses) + "}"
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash,
@@ -410,12 +410,12 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 func GetHMIClusters(c external.Database, addressHash string) (addressCluster string, clusters []FrontendHMICluster, err error) {
 	const query = string(`query Q($addressHash:string) {
 							var(func: eq(addresshash,$addressHash)){
-								hmi as ~cluster_addresses@filter(eq(cluster_type,` + TypeHMI + `))
+								hmi as ~Cluster.addresses@filter(eq(Cluster.type,` + TypeHMI + `))
 							}
 							
 							var(func: uid(hmi))@recurse{
-								s as cluster_children
-								v as ~cluster_children
+								s as Cluster.children
+								v as ~Cluster.children
 							}
 
 							x(func: uid(hmi)){
@@ -424,14 +424,14 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 							
 							q(func: uid(s,v)){
 								uid
-								cluster_address_count
-								cluster_transaction{
+								Cluster.addressCount
+								Cluster.transaction{
 									txhash
 								}
-								cluster_children{
+								Cluster.children{
 									uid
 								}
-								~cluster_children{
+								~Cluster.children{
 									uid
 								}
 							}
@@ -446,12 +446,12 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 	var r struct {
 		Clusters []struct {
 			Uid          string `json:"uid,omitempty"`
-			AddressCount int    `json:"cluster_address_count,omitempty"`
+			AddressCount int    `json:"Cluster.addressCount,omitempty"`
 			Transaction  struct {
 				TxHash string `json:"txhash,omitempty"`
-			} `json:"cluster_transaction,omitempty"`
-			Children []SubCluster `json:"cluster_children,omitempty"`
-			Parent   []SubCluster `json:"~cluster_children,omitempty"`
+			} `json:"Cluster.transaction,omitempty"`
+			Children []SubCluster `json:"Cluster.children,omitempty"`
+			Parent   []SubCluster `json:"~Cluster.children,omitempty"`
 		} `json:"q,omitempty"`
 		AddressCluster []struct {
 			Uid string `json:"uid,omitempty"`
@@ -506,14 +506,14 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 func GetUserClusters(c external.Database, userID string) (clusters []FrontendUserCluster, err error) {
 	const query = `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
-					c as ~cluster_user
+					c as ~Cluster.user
 				}
 
 				q(func: uid(c)){
 					uid
-					cluster_ts
-					cluster_address_count
-					cluster_addresses(first:10){
+					Cluster.ts
+					Cluster.addressCount
+					Cluster.addresses(first:10){
 						addresshash
 					}
 				}
@@ -528,11 +528,11 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 	var r struct {
 		Clusters []struct {
 			Uid          string `json:"uid,omitempty"`
-			Timestamp    string `json:"cluster_ts,omitempty"`
-			AddressCount int64  `json:"cluster_address_count,omitempty"`
+			Timestamp    string `json:"Cluster.ts,omitempty"`
+			AddressCount int64  `json:"Cluster.addressCount,omitempty"`
 			Addresses    []struct {
 				Hash string `json:"addresshash,omitempty"`
-			} `json:"cluster_addresses,omitempty"`
+			} `json:"Cluster.addresses,omitempty"`
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -561,7 +561,7 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) (err e
 	req := &api.Request{
 		Query: `query Q($user:string,$cluster:string) {
 				var(func:uid($user))@filter(type(User)){
-					c as ~cluster_user@filter(uid($cluster))
+					c as ~Cluster.user@filter(uid($cluster))
 				}
 			  }`,
 		Vars: map[string]string{"$user": userID, "$cluster": clusterUID},
@@ -588,7 +588,7 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 	req := &api.Request{
 		Query: `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
-					c as ~cluster_user
+					c as ~Cluster.user
 				}
 			  }`,
 		Vars: map[string]string{"$user": userID},

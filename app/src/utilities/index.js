@@ -288,7 +288,7 @@ export function isValidQuery(str) {
 }
 
 function isRole(userData, roleName) {
-  return userData && userData.roles && userData.roles.some((d) => d.role_name === roleName);
+  return userData && userData.roles && userData.roles.some((d) => d.name === roleName);
 }
 
 export function isPrivilegedUser(userData) {
