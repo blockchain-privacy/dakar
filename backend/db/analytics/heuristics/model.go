@@ -58,7 +58,7 @@ type Heuristic struct {
 	Timestamp       string             `json:"Heuristic.ts,omitempty"`
 	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
 	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
-	Clusters        []HeuristicCluster `json:"Heuristic.cluster,omitempty"`
+	Clusters        []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`
 	// only included for finding the tx uid in the upsert step
