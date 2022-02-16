@@ -3,6 +3,7 @@ package attribution
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/clustering"
 	"backend/external"
 	"encoding/json"
 	"errors"
@@ -206,6 +207,81 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 
 	for _, attribution := range r.Attributions {
 		attributions = append(attributions, attribution.toFrontendAttribution())
+	}
+
+	return
+}
+
+// GetAttributionsPerCluster returns all attributions (public and private) the user has access to, organized per cluster.
+// The returned map is nil if no attributions could be found.
+func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes []clustering.ClusterType) (
+	attributions map[string]string, err error) {
+	var filter string
+	if clusterTypes != nil {
+		for i, ct := range clusterTypes {
+			filter += string(ct)
+
+			if i+1 < len(clusterTypes) {
+				filter += ","
+			}
+		}
+
+		filter = "or (eq(Cluster.type," + filter + ") and uid_in(Cluster.user,$user))"
+	}
+
+	query := fmt.Sprintf(`query Q($user:string) {
+						var(func:uid($user))@filter(type(User)){
+							a as ~Attribution.user
+						}
+						
+						pa as var(func:type(`+DType+`))@filter(eq(Attribution.isPublic,true))
+						
+						q(func: uid(a, pa)){
+							uid
+							Attribution.address{
+								addresshash
+								~Cluster.addresses(first:1)@filter(eq(Cluster.type,`+string(clustering.TypeFMI)+`) %s){
+									uid
+								}
+							}
+						}
+    			     }`, filter)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Attributions []struct {
+			Uid     string `json:"uid,omitempty"`
+			Address struct {
+				Hash    string `json:"addresshash,omitempty"`
+				Cluster []struct {
+					Uid string `json:"uid,omitempty"`
+				} `json:"~Cluster.addresses,omitempty"`
+			} `json:"Attribution.address,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if r.Attributions == nil {
+		return
+	}
+
+	attributions = make(map[string]string)
+	for _, a := range r.Attributions {
+		// if address does not have a cluster use address hash as cluster identifier
+		if a.Address.Cluster == nil {
+			attributions[a.Address.Hash] = a.Uid
+		} else {
+			attributions[a.Address.Cluster[0].Uid] = a.Uid
+		}
 	}
 
 	return
