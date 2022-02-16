@@ -215,7 +215,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 // GetAttributionsPerCluster returns all attributions (public and private) the user has access to, organized per cluster.
 // The returned map is nil if no attributions could be found.
 func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes []clustering.ClusterType) (
-	attributions map[string]string, err error) {
+	attributions map[string][]string, err error) {
 	var filter string
 	if clusterTypes != nil {
 		for i, ct := range clusterTypes {
@@ -274,13 +274,13 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 		return
 	}
 
-	attributions = make(map[string]string)
+	attributions = make(map[string][]string)
 	for _, a := range r.Attributions {
 		// if address does not have a cluster use address hash as cluster identifier
 		if a.Address.Cluster == nil {
-			attributions[a.Address.Hash] = a.Uid
+			attributions[a.Address.Hash] = append(attributions[a.Address.Hash], a.Uid)
 		} else {
-			attributions[a.Address.Cluster[0].Uid] = a.Uid
+			attributions[a.Address.Cluster[0].Uid] = append(attributions[a.Address.Cluster[0].Uid], a.Uid)
 		}
 	}
 

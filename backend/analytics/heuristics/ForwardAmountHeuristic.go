@@ -113,7 +113,8 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps a cluster to its origin transactions
 	clusterOrigins := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
-
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
@@ -125,7 +126,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
+			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -142,6 +143,9 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			origins[r.UID] = r
 		}
 	}
+
+	// todo remove
+	info(attributionMap)
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
 		return nil, errorNoOriginsAtStart

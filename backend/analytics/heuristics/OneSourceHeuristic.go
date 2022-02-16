@@ -135,15 +135,21 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins
-
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		if len(timeLimitedOrigins) == 0 {
 			continue
+		}
+
+		// merge the attribution maps
+		for id, attributions := range usedAttributions {
+			attributionMap[id] = attributions
 		}
 
 		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)

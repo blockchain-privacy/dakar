@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	dbtx "backend/db/transaction"
 	"backend/external"
@@ -13,6 +14,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/dgraph-io/dgo/v210/protos/api"
@@ -337,10 +339,17 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 	return
 }
 
-// GetTransactionsWithOutputAmountAndCluster returns a slice of transactions.
+type mergedClusterItem struct {
+	clusterHash string
+	clusterUIDs map[string]bool
+}
+
+// GetTransactionsWithOutputAmountAndCluster returns a slice of transactions and used attributions per cluster.
 // Each transaction contains its output amounts and the cluster of all inputs.
+// If no attributions were used or found the returned map is nil.
 func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []string, userUID string,
-	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction, err error) {
+	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction,
+	attributionMapping map[ClusterUID][]string, err error) {
 	isSimpleClustering := requestedClusterTypes == nil // true -> only multi-input clusters will be used
 
 	// get user clusters if necessary
@@ -417,12 +426,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 		return
 	}
 
-	type mergedClusterItem struct {
-		clusterHash string
-		clusterUIDs map[string]bool
-	}
-
-	var mergedClusters []mergedClusterItem
+	var superClusters []mergedClusterItem
 	allClusters := make(map[string]bool)
 
 	if !isSimpleClustering {
@@ -433,9 +437,10 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 				continue
 			}
 
-			mergedClusterUIDS, err := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
-			if err != nil {
-				return nil, err
+			mergedClusterUIDS, relatedErr := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
+			if relatedErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), relatedErr)
+				return
 			}
 
 			mergedCluster := make(map[string]bool)
@@ -444,9 +449,20 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 				allClusters[mcu] = true
 			}
 
-			mergedClusters = append(mergedClusters, mergedClusterItem{clusterUIDs: mergedCluster})
+			superClusters = append(superClusters, mergedClusterItem{clusterUIDs: mergedCluster})
 		}
 	}
+
+	attributions, attributionErr := attribution.GetAttributionsPerCluster(c, userUID, requestedClusterTypes)
+	if attributionErr != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), attributionErr)
+		return
+	}
+
+	type usedCluster struct{ superCluster map[string]bool }
+
+	// allUsedClusters holds all cluster IDs which are used by the generated HeuristicTransactions below
+	allUsedClusters := make(map[string]usedCluster)
 
 	for _, o := range r.Origins {
 		if o.Inputs == nil || o.Inputs[0].Address == nil {
@@ -456,38 +472,30 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 		var cUID ClusterUID
 
-		// if the cluster is not set we use the address uid as the "cluster",
-		// this can happen if the address has not been assigned to a cluster yet
+		// If the cluster is not set, we use the address UID as the "cluster".
+		// This can happen if the address has not been assigned to a cluster yet.
 		if o.Inputs[0].Address[0].Cluster == nil {
-			cUID = ClusterUID(o.Inputs[0].Address[0].UID)
-		} else if isSimpleClustering {
+			id := o.Inputs[0].Address[0].UID
+			cUID = ClusterUID(id)
+			allUsedClusters[id] = usedCluster{superCluster: nil}
+		} else if firstClusterUID := o.Inputs[0].Address[0].Cluster[0].UID; isSimpleClustering {
 			// must have a multi-input cluster UID
-			cUID = ClusterUID(o.Inputs[0].Address[0].Cluster[0].UID)
+			cUID = ClusterUID(firstClusterUID)
+			allUsedClusters[firstClusterUID] = usedCluster{superCluster: nil}
 		} else {
-			// if this clusters uid does not appear in the merged user clusters,
-			// then use the multi-input cluster UID
-			firstClusterUId := o.Inputs[0].Address[0].Cluster[0].UID
-			if !allClusters[firstClusterUId] {
-				cUID = ClusterUID(firstClusterUId)
+			// If this cluster's UID does not appear in the merged user clusters,
+			// then use the multi-input cluster UID.
+			if !allClusters[firstClusterUID] {
+				cUID = ClusterUID(firstClusterUID)
+				allUsedClusters[firstClusterUID] = usedCluster{superCluster: nil}
 			} else {
-				var found bool
-				for i, mc := range mergedClusters {
-					if _, ok := mc.clusterUIDs[firstClusterUId]; ok {
-
-						// lazy creation of map hashes
-						if mc.clusterHash == "" {
-							mc.clusterHash = createKeyHash(mc.clusterUIDs)
-							mergedClusters[i] = mc
-						}
-
-						cUID = ClusterUID(mc.clusterHash)
-						found = true
-						break
-					}
+				var superCluster map[string]bool
+				cUID, superCluster, err = getClusterUIDFromMergedClusters(superClusters, firstClusterUID)
+				if err != nil {
+					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+					return
 				}
-				if !found {
-					return nil, errors.New("did not find cluster uid in merged cluster list")
-				}
+				allUsedClusters[string(cUID)] = usedCluster{superCluster: superCluster}
 			}
 		}
 
@@ -498,17 +506,67 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 		})
 	}
 
+	if attributions == nil {
+		return
+	}
+
+	attributionMapping = make(map[ClusterUID][]string)
+	for clusterID, v := range allUsedClusters {
+		// no super clusters, so either a simple address or a multi-input cluster
+		if v.superCluster == nil {
+			if attr, ok := attributions[clusterID]; ok {
+				attributionMapping[ClusterUID(clusterID)] = attr
+			}
+		} else {
+			for cluster := range v.superCluster {
+				if attr, ok := attributions[cluster]; ok {
+					attributionMapping[ClusterUID(clusterID)] = attr
+				}
+			}
+		}
+	}
+
+	if len(attributionMapping) == 0 {
+		attributionMapping = nil
+	}
+
 	return
 }
 
+// getClusterUIDFromMergedClusters searches for clusterUID in mergedClusters
+// and returns a hash of the merged clusters if found. In case the uid is not found, an error is returned.
+func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem, clusterUID string) (ClusterUID, map[string]bool, error) {
+	for i, mc := range mergedClusters {
+		if _, ok := mc.clusterUIDs[clusterUID]; ok {
+			// lazy creation of map hashes
+			if mc.clusterHash == "" {
+				mc.clusterHash = createKeyHash(mc.clusterUIDs)
+				mergedClusters[i] = mc
+			}
+
+			return ClusterUID(mc.clusterHash), mc.clusterUIDs, nil
+		}
+	}
+
+	return "", nil, errors.New("did not find cluster uid in merged cluster list")
+}
+
 func createKeyHash(someMap map[string]bool) string {
-	var allKeys string
+	// sort elements so a consistent hash can be generated
+	keys := make([]string, len(someMap))
 	for k := range someMap {
-		allKeys += k
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	var allKeys []byte
+	for _, k := range keys {
+		allKeys = append(allKeys, []byte(k)...)
 	}
 
 	sha1Hash := sha1.New()
-	sha1Hash.Write([]byte(allKeys))
+	sha1Hash.Write(allKeys)
 	return base64.URLEncoding.EncodeToString(sha1Hash.Sum(nil))
 }
 

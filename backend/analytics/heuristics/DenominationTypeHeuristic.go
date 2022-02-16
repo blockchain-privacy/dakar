@@ -94,7 +94,8 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
-
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
@@ -108,7 +109,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID, h.clusterTypes)
+			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -124,6 +125,8 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			origins[r.UID] = r
 		}
 	}
+	// todo remove
+	info(attributionMap)
 
 	if len(origins) == 0 {
 		return nil, errorNoOriginsAtStart

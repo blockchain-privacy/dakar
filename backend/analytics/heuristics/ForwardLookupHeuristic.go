@@ -109,6 +109,8 @@ func (h forwardLookupHeuristic) clone() heuristic {
 func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	var results []heuristics.HeuristicTransaction
+	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
+	resultAttributionMap := make(map[heuristics.ClusterUID][]string)
 	{ // separate enclosure so the results slice can be garbage collected
 
 		if isParentHeuristicSet(parentHeuristicUID) {
@@ -120,7 +122,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
+			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -131,9 +133,14 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
+	// todo remove
+	info(resultAttributionMap)
+
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
+	destinationAttributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, o := range results {
-		destinations, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.UID}, h.lookForwardTime, h.userUID, h.clusterTypes)
+		destinations, dstAttributionMap, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.UID}, h.lookForwardTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -147,6 +154,12 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		resultClusters[o.Cluster] = append(resultClusters[o.Cluster], result)
+
+		// merge the attribution maps
+		for id, attributions := range dstAttributionMap {
+			destinationAttributionMap[id] = attributions
+		}
+
 	}
 
 	return createHeuristicClusters(resultClusters), nil
