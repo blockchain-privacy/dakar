@@ -116,7 +116,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, resultAttributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -133,13 +133,11 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
-	// todo remove
-	info(resultAttributionMap)
-
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	destinationAttributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, o := range results {
+		// todo check if dstattributionmap is needed
 		destinations, dstAttributionMap, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.UID}, h.lookForwardTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -162,5 +160,5 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	return createHeuristicClusters(resultClusters, resultAttributionMap), nil
 }

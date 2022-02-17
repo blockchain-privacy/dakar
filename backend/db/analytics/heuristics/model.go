@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"fmt"
 	"time"
@@ -36,9 +37,9 @@ func (r *HeuristicResult) SetDType() {
 // HeuristicCluster holds a set of results (origins) of a heuristic
 // which belong to the same cluster (or merged cluster) and its attributions
 type HeuristicCluster struct {
-	Results      []HeuristicResult `json:"HeuristicCluster.results,omitempty"`
-	Attributions []DummyNode       `json:"HeuristicCluster.attributions,omitempty"`
-	DType        []string          `json:"dgraph.type,omitempty"`
+	Results      []HeuristicResult         `json:"HeuristicCluster.results,omitempty"`
+	Attributions []attribution.Attribution `json:"HeuristicCluster.attributions,omitempty"`
+	DType        []string                  `json:"dgraph.type,omitempty"`
 }
 
 // SetDType sets the DType for dgraph type recognition
@@ -111,6 +112,19 @@ type queryHeuristicTransaction struct {
 	} `json:"~transactions,omitempty"`
 }
 
+type queryHeuristicClusters struct {
+	UID     ClusterUID `json:"uid,omitempty"`
+	Results []struct {
+		Origin struct {
+			UID     string            `json:"uid,omitempty"`
+			Outputs []HeuristicOutput `json:"tx_outputs,omitempty"`
+		} `json:"HeuristicResult.origin,omitempty"`
+	} `json:"HeuristicCluster.results,omitempty"`
+	Attributions []struct {
+		UID string `json:"uid,omitempty"`
+	} `json:"HeuristicCluster.attributions,omitempty"`
+}
+
 type queryHeuristicTransactionInputs struct {
 	UID     string            `json:"uid,omitempty"`
 	Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
@@ -161,7 +175,7 @@ type FrontendHeuristic struct {
 	Parameter       string                    `json:"parameter,omitempty"`
 	ParentHeuristic []Heuristic               `json:"parent,omitempty"`
 	ChildHeuristics []Heuristic               `json:"children,omitempty"`
-	ResultCount     int                       `json:"num_results,omitempty"`
+	ClusterCount    int                       `json:"clusterCount,omitempty"`
 	Results         []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
@@ -173,7 +187,7 @@ type FrontendHeuristicResponse struct {
 	Parameter       string      `json:"parameter,omitempty"`
 	ParentHeuristic []Heuristic `json:"parent,omitempty"`
 	ChildHeuristics []Heuristic `json:"children,omitempty"`
-	ResultCount     int         `json:"num_results,omitempty"`
+	ClusterCount    int         `json:"clusterCount,omitempty"`
 	Results         []struct {
 		Origin []struct {
 			UID         string `json:"uid,omitempty"`
@@ -220,7 +234,7 @@ type ClusterAttribution struct {
 // FrontendHeuristicShort holds all result counts of a heuristic
 type FrontendHeuristicShort struct {
 	UID                 string                       `json:"uid,omitempty"`
-	ResultCount         int                          `json:"num_results,omitempty"`
+	ClusterCount        int                          `json:"clusterCount,omitempty"`
 	Results             []FrontendHeuristicShortItem `json:"results,omitempty"`
 	AddressAttributions []AddressAttribution         `json:"address_attributions,omitempty"`
 	ClusterAttributions []ClusterAttribution         `json:"cluster_attributions,omitempty"`
@@ -252,4 +266,9 @@ type HeuristicListItem struct {
 type DeleteHeuristicRequest struct {
 	DeleteAll       bool   `json:"delete_all"`
 	TransactionHash string `json:"tx_hash,omitempty"`
+}
+
+type mergedClusterItem struct {
+	clusterHash string
+	clusterUIDs map[string]bool
 }

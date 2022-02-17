@@ -91,13 +91,13 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	attributionMap := make(map[heuristics.ClusterUID][]string)
+	var attributionMap map[heuristics.ClusterUID][]string
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -120,9 +120,6 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			origins[r.UID] = r
 		}
 	}
-
-	// todo remove
-	info(attributionMap)
 
 	if len(origins) == 0 {
 		return nil, errorNoOriginsAtStart
@@ -149,7 +146,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
 // containsDenomination returns true if all denominations with at least the same amount of denom1 are contained in denom2

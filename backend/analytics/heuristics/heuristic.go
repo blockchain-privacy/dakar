@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
@@ -401,10 +402,23 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's
-func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult) []heuristics.HeuristicCluster {
+func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult,
+	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
 	var resultCluster []heuristics.HeuristicCluster
-	for _, v := range clusterMap {
-		resultCluster = append(resultCluster, heuristics.HeuristicCluster{Results: v})
+	for clusterID, results := range clusterMap {
+		var attributions []attribution.Attribution
+		if attributionMap != nil {
+			if attrs, ok := attributionMap[clusterID]; ok {
+				for _, a := range attrs {
+					attributions = append(attributions, attribution.Attribution{Uid: a})
+				}
+			}
+		}
+
+		resultCluster = append(resultCluster, heuristics.HeuristicCluster{
+			Results:      results,
+			Attributions: attributions,
+		})
 	}
 
 	return resultCluster

@@ -108,23 +108,23 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
-
+	// parentAttributionMap maps a clusterUID to a slice of attribution UIDs
+	var parentAttributionMap map[heuristics.ClusterUID][]string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
 		// get origins from parent heuristic
-		parentHeuristic, err := heuristics.GetHeuristic(dgraph, parentHeuristicUID)
+		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(parentHeuristic.Clusters) == 0 {
+		if parentHeuristicResults == nil {
 			return nil, errorNoOriginsAtStart
 		}
 
-		for _, heuristicCluster := range parentHeuristic.Clusters {
-			for _, r := range heuristicCluster.Results {
-				originLimit[r.Origin.UID] = true
-			}
+		parentAttributionMap = attrMap
+		for _, hr := range parentHeuristicResults {
+			originLimit[hr.UID] = true
 		}
 	}
 
@@ -142,7 +142,9 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-
+		if timeLimitedOrigins == nil {
+			continue
+		}
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
 			// only save if the uid also exists in the parent origin set
@@ -152,7 +154,8 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			allTimeLimitedOrigins[t.UID] = t
 		}
 
-		if len(timeLimitedOrigins) == 0 {
+		if parentHeuristicSet {
+			// no need to merge the attributions if they are not used
 			continue
 		}
 
@@ -169,5 +172,9 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		})
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	if parentHeuristicSet {
+		return createHeuristicClusters(resultClusters, parentAttributionMap), nil
+	} else {
+		return createHeuristicClusters(resultClusters, attributionMap), nil
+	}
 }

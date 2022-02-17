@@ -120,7 +120,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -143,9 +143,6 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			origins[r.UID] = r
 		}
 	}
-
-	// todo remove
-	info(attributionMap)
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
 		return nil, errorNoOriginsAtStart
@@ -208,5 +205,5 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		})
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }

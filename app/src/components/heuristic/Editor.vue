@@ -365,12 +365,12 @@ export default {
 
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicTypeTitle = displayType;
-      sheet.resultCount = heuristic.num_results;
+      sheet.resultCount = heuristic.clusterCount;
       sheet.heuristicUid = heuristic.uid;
       sheet.transactions = null;
 
       // check if data has to be loaded from backend
-      if (heuristic.num_results === undefined || heuristic.num_results === 0
+      if (heuristic.clusterCount === undefined || heuristic.clusterCount === 0
           || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;

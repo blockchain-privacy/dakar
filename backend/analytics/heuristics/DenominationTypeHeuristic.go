@@ -103,7 +103,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -125,8 +125,6 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			origins[r.UID] = r
 		}
 	}
-	// todo remove
-	info(attributionMap)
 
 	if len(origins) == 0 {
 		return nil, errorNoOriginsAtStart
@@ -152,7 +150,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 		}
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
 // returns true if both destinationDenominations and originDenominations have the exact same types

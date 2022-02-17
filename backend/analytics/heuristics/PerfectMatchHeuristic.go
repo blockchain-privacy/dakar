@@ -101,7 +101,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 		if parentHeuristicSet {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -122,9 +122,6 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 			origins[r.UID] = r
 		}
 	}
-
-	// todo remove
-	info(attributionMap)
 
 	if len(origins) == 0 {
 		return nil, errorNoOriginsAtStart
@@ -150,7 +147,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 		}
 	}
 
-	return createHeuristicClusters(resultClusters), nil
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
 // returns true if all denominations with the same amount of denom1 are contained in denom2
