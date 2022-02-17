@@ -513,8 +513,12 @@ func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem, cluster
 }
 
 func createKeyHash(someMap map[string]bool) string {
+	if len(someMap) == 0 {
+		return ""
+	}
+
 	// sort elements so a consistent hash can be generated
-	keys := make([]string, len(someMap))
+	var keys []string
 	for k := range someMap {
 		keys = append(keys, k)
 	}
