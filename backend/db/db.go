@@ -3,6 +3,7 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"context"
 	"fmt"
@@ -153,7 +154,7 @@ func DropAll(db external.Database) error {
 
 // CreateClient create a new dgraph client connecting to the specified host and port
 func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
 	if err != nil {
