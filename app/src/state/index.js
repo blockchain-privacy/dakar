@@ -42,9 +42,6 @@ const mutations = {
   SET_BLOCK_DATA(state, payload) {
     state.block = payload;
   },
-  SET_SEARCH_RESULT_TYPE(state, payload) {
-    state.searchResultType = payload;
-  },
   UPDATE_SEARCH_RESULT(state, payload) {
     state.searchResultType = payload.type;
     switch (payload.type) {
@@ -114,9 +111,6 @@ const actions = {
   },
   updateSearchResult(context, payload) {
     context.commit('UPDATE_SEARCH_RESULT', payload);
-  },
-  setSearchResultType(context, payload) {
-    context.commit('SET_SEARCH_RESULT_TYPE', payload);
   },
   setActiveUser(context, payload) {
     setLocalUser(payload);
