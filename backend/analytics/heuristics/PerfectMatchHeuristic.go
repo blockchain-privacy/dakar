@@ -93,7 +93,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
-	attributionMap := make(map[heuristics.ClusterUID][]string)
+	var attributionMap map[heuristics.ClusterUID][]string
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)

@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-
 	"fmt"
 	"strconv"
 	"time"
@@ -110,7 +109,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	var results []heuristics.HeuristicTransaction
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
-	resultAttributionMap := make(map[heuristics.ClusterUID][]string)
+	var resultAttributionMap map[heuristics.ClusterUID][]string
 	{ // separate enclosure so the results slice can be garbage collected
 
 		if isParentHeuristicSet(parentHeuristicUID) {
@@ -134,11 +133,8 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
-	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
-	destinationAttributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, o := range results {
-		// todo check if dstattributionmap is needed
-		destinations, dstAttributionMap, err := getOriginDestinationsWithOutputs(dgraph, g, []string{o.UID}, h.lookForwardTime, h.userUID, h.clusterTypes)
+		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -147,17 +143,11 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			Origin: heuristics.DummyNode{UID: o.UID},
 		}
 
-		for _, v := range destinations {
-			result.Destinations = append(result.Destinations, heuristics.DummyNode{UID: v.UID})
+		for k := range uidMap {
+			result.Destinations = append(result.Destinations, heuristics.DummyNode{UID: k})
 		}
 
 		resultClusters[o.Cluster] = append(resultClusters[o.Cluster], result)
-
-		// merge the attribution maps
-		for id, attributions := range dstAttributionMap {
-			destinationAttributionMap[id] = attributions
-		}
-
 	}
 
 	return createHeuristicClusters(resultClusters, resultAttributionMap), nil
