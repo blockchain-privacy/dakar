@@ -223,7 +223,7 @@ type Attribution struct {
 // FrontendHeuristicShort holds all result counts of a heuristic
 type FrontendHeuristicShort struct {
 	UID      string                     `json:"uid,omitempty"`
-	Clusters []FrontendHeuristicCluster `json:"results,omitempty"`
+	Clusters []FrontendHeuristicCluster `json:"clusters,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request

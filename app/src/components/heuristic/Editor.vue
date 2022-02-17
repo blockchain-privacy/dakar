@@ -273,7 +273,7 @@ export default {
         heuristicTypeTitle: '',
         heuristicParameter: '',
         resultCount: null,
-        transactions: null,
+        clusters: null,
       },
       ht: new HeuristicTree(150, this),
       heuristicDescriptors: [],
@@ -367,7 +367,7 @@ export default {
       sheet.heuristicTypeTitle = displayType;
       sheet.resultCount = heuristic.clusterCount;
       sheet.heuristicUid = heuristic.uid;
-      sheet.transactions = null;
+      sheet.clusters = null;
 
       // check if data has to be loaded from backend
       if (heuristic.clusterCount === undefined || heuristic.clusterCount === 0
@@ -377,7 +377,7 @@ export default {
       }
 
       if (this.heuristicDetailsMap.has(heuristic.uid)) {
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
+        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid);
         sheet.isOpen = true;
         return;
       }
@@ -386,7 +386,7 @@ export default {
       this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
         if (this.heuristicDetailsMap.size === 0
             || !this.heuristicDetailsMap.has(heuristic.uid)) return;
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
+        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
         sheet.isOpen = true;
       });
     },

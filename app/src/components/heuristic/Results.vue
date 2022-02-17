@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid>
+  <v-container fluid v-if="items && items.length > 0">
     <v-data-iterator
         :items="items"
         :items-per-page.sync="itemsPerPage"
@@ -40,7 +40,7 @@
             <v-card outlined>
               <v-card-title class="subheading font-weight-bold">
                 Cluster ID {{ item.id }}, txcount:  {{item.txCount}}
-                Address count {{ item.address_count}} Cluster: {{ item.cluster}}
+                Cluster: {{ item.cluster}}
               </v-card-title>
             </v-card>
             Transactions
@@ -75,35 +75,15 @@ export default {
   name: 'Results',
   props: {
     items: { type: Array, required: true },
-    addressAttributions: { type: Array, required: true },
-    clusterAttributions: { type: Array, required: true },
   },
   computed: {
     numberOfPages() {
       return Math.ceil(this.items.length / this.itemsPerPage);
     },
-    addressAttributionMap() {
-      const addressMap = new Map();
-
-      this.addressAttributions.forEach((d) => {
-        addressMap.set(d.addresshash, d.attributions);
-      });
-
-      return addressMap;
-    },
-    clusterAttributionMap() {
-      const clusterMap = new Map();
-
-      this.addressAttributions.forEach((d) => {
-        clusterMap.set(d.uid, d.attributions);
-      });
-
-      return clusterMap;
-    },
   },
   data() {
     return {
-      sortBy: 'address_count',
+      sortBy: 'txCount',
       sortDesc: false,
       itemsPerPage: 15,
       itemsPerPageArray: [4, 8, 12],
@@ -111,7 +91,6 @@ export default {
       page: 1,
       keys: [
         'txCount',
-        'address_count',
       ],
       icons: {
         mdiChevronLeft,
@@ -133,7 +112,7 @@ export default {
   },
   mounted() {
     // todo somehow handle custom clusters in response (custom clusters )
-    // console.log(this.items);
+    console.log(this.items);
   },
 };
 </script>
