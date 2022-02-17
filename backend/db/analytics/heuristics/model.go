@@ -204,15 +204,14 @@ type FrontendHeuristicResponse struct {
 }
 
 type FrontendTransactionResult struct {
-	Address   string `json:"addresshash,omitempty"`
 	Timestamp string `json:"ts,omitempty"`
 	Hash      string `json:"txhash,omitempty"`
 }
 
-// FrontendHeuristicShortItem holds the results counts of a heuristic per cluster
-type FrontendHeuristicShortItem struct {
-	ClusterID          string                      `json:"cluster,omitempty"`
+// FrontendHeuristicCluster holds the results counts of a heuristic per cluster
+type FrontendHeuristicCluster struct {
 	Transactions       []FrontendTransactionResult `json:"txs,omitempty"`
+	Attributions       []Attribution               `json:"attributions,omitempty"`
 	CountForwardLookup int                         `json:"count,omitempty"`
 }
 
@@ -221,23 +220,10 @@ type Attribution struct {
 	IsPublic bool   `json:"isPublic"`
 }
 
-type AddressAttribution struct {
-	Address      string        `json:"addresshash,omitempty"`
-	Attributions []Attribution `json:"attributions,omitempty"`
-}
-
-type ClusterAttribution struct {
-	UID          string        `json:"uid,omitempty"`
-	Attributions []Attribution `json:"attributions,omitempty"`
-}
-
 // FrontendHeuristicShort holds all result counts of a heuristic
 type FrontendHeuristicShort struct {
-	UID                 string                       `json:"uid,omitempty"`
-	ClusterCount        int                          `json:"clusterCount,omitempty"`
-	Results             []FrontendHeuristicShortItem `json:"results,omitempty"`
-	AddressAttributions []AddressAttribution         `json:"address_attributions,omitempty"`
-	ClusterAttributions []ClusterAttribution         `json:"cluster_attributions,omitempty"`
+	UID      string                     `json:"uid,omitempty"`
+	Clusters []FrontendHeuristicCluster `json:"results,omitempty"`
 }
 
 // ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request

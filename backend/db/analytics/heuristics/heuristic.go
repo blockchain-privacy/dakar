@@ -512,7 +512,10 @@ func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem, cluster
 	return "", nil, errors.New("did not find cluster uid in merged cluster list")
 }
 
+// createKeyHash creates from the keys of the map a unique string.
+// Maps with the same keys but in different order create the same output.
 func createKeyHash(someMap map[string]bool) string {
+	// catch both nil Maps and empty maps
 	if len(someMap) == 0 {
 		return ""
 	}
@@ -662,7 +665,7 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only.
 func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID string) (
 	heuristics []FrontendHeuristic, err error) {
-	query := `query Q($hash:string, $user:string){
+	const query = `query Q($hash:string, $user:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
 				var(func: uid($user)){
@@ -702,55 +705,33 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 		return
 	}
 
-	if len(r.Heuristics) > 0 {
-		heuristics = r.Heuristics
-	}
+	heuristics = r.Heuristics
 
 	return
 }
 
-// GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID
+// GetFrontendHeuristicByUID returns the heuristic for the given heuristicUID, which was created by userUID
 func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID string) (
 	frontendHeuristic FrontendHeuristicShort, err error) {
 	const query = `query Q($uid:string,$user:string){
 				var(func:uid($uid))@cascade{
 					~User.heuristics@filter(uid($user))
-					r as Heuristic.results
+					c as Heuristic.clusters
 				}
 
-				q(func: uid(r)){
-					origin:HeuristicResult.origin@normalize{
-						txhash:txhash
-						~transactions{
-							ts:ts
-						}
-						tx_inputs(first:1)@normalize{
-							~addr_outputs{
-								addr as a:addresshash
-								clusters as ~Cluster.addresses@filter(eq(Cluster.type,` + clustering.TypeFMI + `)){
-									cuid:uid
-								}
+				q(func: uid(c)){
+					HeuristicCluster.results{
+						HeuristicResult.origin@normalize{
+							txhash:txhash
+							~transactions{
+								ts:ts
 							}
 						}
-					}
-					d:HeuristicResult.destinations{uid}
-				}
-				
-				# get labels per cluster
-				ca(func:uid(clusters))@cascade{
-					uid
-					cla:Cluster.addresses{
-						attr:~Attribution.address{
-							tag:Attribution.tag
-							isPublic:Attribution.isPublic
+						HeuristicResult.destinations{
+							uid
 						}
 					}
-				}
-
-				# get labels per address, because not all addresses have an associated cluster
-				aa(func:uid(addr))@cascade{
-					a:addresshash
-					attr:~Attribution.address{
+					HeuristicCluster.attributions {
 						tag:Attribution.tag
 						isPublic:Attribution.isPublic
 					}
@@ -759,7 +740,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, string(query), map[string]string{"$uid": heuristicUID, "$user": userUID})
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$user": userUID})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -767,27 +748,16 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 
 	// json struct
 	var r struct {
-		Results []struct {
-			Origin []struct {
-				Address     string `json:"a,omitempty"`
-				Cluster     string `json:"cuid,omitempty"`
-				Transaction string `json:"txhash,omitempty"`
-				Timestamp   string `json:"ts,omitempty"`
-			} `json:"origin,omitempty"`
-			Destinations []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"d,omitempty"`
+		Clusters []struct {
+			Results []struct {
+				// Origin must be declared as an array because in the query @normalize is used
+				Origin       []FrontendTransactionResult `json:"HeuristicResult.origin,omitempty"`
+				Destinations []struct {
+					UID string `json:"uid,omitempty"`
+				} `json:"HeuristicResult.destinations,omitempty"`
+			} `json:"HeuristicCluster.results,omitempty"`
+			Attributions []Attribution `json:"HeuristicCluster.attributions,omitempty"`
 		} `json:"q,omitempty"`
-		ClusterAttribution []struct {
-			UID       string `json:"uid,omitempty"`
-			Addresses []struct {
-				Attributions []Attribution `json:"attr,omitempty"`
-			} `json:"cla,omitempty"`
-		} `json:"ca,omitempty"`
-		AddressAttribution []struct {
-			Address      string        `json:"a,omitempty"`
-			Attributions []Attribution `json:"attr,omitempty"`
-		} `json:"aa,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -795,92 +765,35 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		return
 	}
 
-	if len(r.Results) == 0 {
-		err = errors.New("invalid response from database")
+	if len(r.Clusters) == 0 {
+		err = errors.New("empty response from database")
 		return
 	}
 
-	clusterDestinations := make(map[string]struct {
-		destinations map[string]bool
-		transactions []FrontendTransactionResult
-	})
+	frontendHeuristic.UID = heuristicUID
 
-	for _, result := range r.Results {
-		if len(result.Origin) != 1 {
-			err = fmt.Errorf("invalid number of origins for heuristic %s", heuristicUID)
-			return
+	for _, cluster := range r.Clusters {
+		var origins []FrontendTransactionResult
+		destinationMap := make(map[string]bool)
+		for _, result := range cluster.Results {
+			if len(result.Origin) != 1 {
+				err = errors.New("invalid response from database")
+				return
+			}
+
+			origins = append(origins, result.Origin[0])
+
+			// collect destinations of all results in map
+			for _, destination := range result.Destinations {
+				destinationMap[destination.UID] = true
+			}
 		}
 
-		if result.Origin[0].Cluster == "" && result.Origin[0].Address == "" {
-			err = fmt.Errorf("invalid response from database for tx %s", result.Origin[0].Transaction)
-			return
-		}
-
-		clusterID := result.Origin[0].Cluster
-		if clusterID == "" {
-			clusterID = result.Origin[0].Address
-		}
-
-		// get map item
-		txMap := clusterDestinations[clusterID]
-		txMap.transactions = append(txMap.transactions,
-			FrontendTransactionResult{
-				Hash:      result.Origin[0].Transaction,
-				Address:   result.Origin[0].Address,
-				Timestamp: result.Origin[0].Timestamp,
-			})
-
-		if txMap.destinations == nil {
-			txMap.destinations = make(map[string]bool)
-		}
-
-		// add transaction uids
-		for _, d := range result.Destinations {
-			txMap.destinations[d.UID] = true
-		}
-
-		// set map item
-		clusterDestinations[clusterID] = txMap
-	}
-
-	var results []FrontendHeuristicShortItem
-	for k, v := range clusterDestinations {
-		results = append(results, FrontendHeuristicShortItem{
-			ClusterID:          k,
-			CountForwardLookup: len(v.destinations),
-			Transactions:       v.transactions,
+		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
+			Transactions:       origins,
+			Attributions:       cluster.Attributions,
+			CountForwardLookup: len(destinationMap),
 		})
-	}
-
-	// gather address attributions
-	var addressAttributions []AddressAttribution
-	for _, aa := range r.AddressAttribution {
-		addressAttributions = append(addressAttributions, AddressAttribution{
-			Address:      aa.Address,
-			Attributions: aa.Attributions,
-		})
-	}
-
-	// gather cluster attributions
-	var clusterAttributions []ClusterAttribution
-	for _, ca := range r.ClusterAttribution {
-		var attributions []Attribution
-		for _, a := range ca.Addresses {
-			attributions = append(attributions, a.Attributions...)
-		}
-
-		clusterAttributions = append(clusterAttributions, ClusterAttribution{
-			UID:          ca.UID,
-			Attributions: attributions,
-		})
-	}
-
-	frontendHeuristic = FrontendHeuristicShort{
-		UID:                 heuristicUID,
-		ClusterCount:        len(clusterDestinations),
-		Results:             results,
-		AddressAttributions: addressAttributions,
-		ClusterAttributions: clusterAttributions,
 	}
 
 	return
