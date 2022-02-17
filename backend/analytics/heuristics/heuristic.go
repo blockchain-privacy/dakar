@@ -273,26 +273,6 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 	return uidMap, nil
 }
 
-// getOriginDestinationsWithOutputs returns all destinations
-// of the given transactions limited by time. Each transaction contains its outputs.
-func getOriginDestinationsWithOutputs(dgraph external.Database, g *graph.Wrapper, originUIDs []string,
-	dur time.Duration, userUID string, requestedClusterTypes []clustering.ClusterType) (
-	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
-	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// get tx details for each uid
-	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph,
-		getKeySlice(uidMap), userUID, requestedClusterTypes)
-	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return
-}
-
 // getOriginDestinationsWithInputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its inputs.
 func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
