@@ -166,7 +166,7 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 				defer func(Body io.ReadCloser) {
 					err := Body.Close()
 					if err != nil {
-
+						info("response body could not be closed")
 					}
 				}(resp.Body)
 
