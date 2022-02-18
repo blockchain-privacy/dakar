@@ -1,7 +1,7 @@
 /* eslint-disable no-constant-condition */
 import * as d3 from 'd3';
 import Tree from './tree';
-import { isFunction } from './util';
+import { isFunction, abbreviateNumber } from './util';
 
 // phantom node id
 export const rootIdentifier = 'root';
@@ -32,7 +32,7 @@ export class HeuristicTree extends Tree {
     this.contextMenuCallback = null;
 
     this.drawClicked = (node) => {
-      node.select('.rect').classed('clicked', true);
+      node.selectAll('.rect').classed('clicked', true);
     };
 
     this.drawResetClick = () => {
@@ -189,7 +189,7 @@ export class HeuristicTree extends Tree {
     // reset
     this.rootSvg.selectAll('rect').classed('modified', false);
     // set changes
-    this.rootSvg.selectAll('rect').data(changedNodes, (d) => d.data.data.uid).classed('modified', true);
+    this.rootSvg.selectAll('rect').filter((d) => changedNodes.has(d.data.data.uid)).classed('modified', true);
   }
 
   // checkType checks the passed heuristic can be a child based on the type
@@ -230,7 +230,7 @@ export class HeuristicTree extends Tree {
   }
 
   drawRect(rootElement) {
-    const textAreaHeight = 50;
+    const textAreaHeight = 70;
     const textPadding = 0;
     const rectHeight = textAreaHeight + 2 * textPadding;
     const borderRadius = 5;
@@ -250,20 +250,14 @@ export class HeuristicTree extends Tree {
       .attr('rx', borderRadius)
       .attr('ry', borderRadius)
       .attr('stroke-width', strokeWidth)
-      .attr('stroke-opacity', (d) => {
-        // only draw rect if it is not the root node
-        if (d.data.data.uid !== rootIdentifier) return 1;
-        return 1;
-      });
+      .attr('stroke-opacity', 1);
 
     rootElement
       .append('text')
       .attr('fill', 'currentColor')
-      .attr('x', () => -this.rectWidth / 2 + strokeWidth + 2)
+      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
       // if parameter is not set, position text at center
-      .attr('y', (d) => (
-        d.data.data.parameter !== undefined
-          ? -textAreaHeight / 2 + textHeight * 2 : textHeight / 2))
+      .attr('y', -textAreaHeight / 2 + textHeight * 2)
       .text((d) => {
         let outText;
         // only draw text if it is not the root node
@@ -279,9 +273,54 @@ export class HeuristicTree extends Tree {
 
     rootElement.append('text')
       .attr('fill', 'currentColor')
-      .attr('x', () => -this.rectWidth / 2 + strokeWidth + 2)
+      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
+      .attr('y', textHeight / 2)
+      .text((d) => {
+        if (d.data.data.uid === rootIdentifier) return null;
+        return `Custom clusters: ${d.data.data.useCustomClusters ? 'yes' : 'no'}`;
+      });
+
+    rootElement.append('text')
+      .attr('fill', 'currentColor')
+      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
       .attr('y', textAreaHeight / 2 - textHeight)
-      .text((d) => (d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : null));
+      .text((d) => {
+        if (d.data.data.uid === rootIdentifier) return null;
+        return d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : 'Parameter: None';
+      });
+
+    const resultHeight = 20; const
+      resultWidth = 38; const
+      offset = 1.3;
+
+    // result count
+    rootElement
+      .append('rect')
+      .attr('x', this.rectWidth / 2 - resultWidth / offset)
+      .attr('y', -rectHeight / 2 - resultHeight / 2)
+      .attr('class', 'rect')
+      .attr('width', (d) => {
+        if (d.data.data.uid === rootIdentifier
+            || d.data.data.clusterCount === undefined) return 0;
+        return resultWidth;
+      })
+      .attr('height', resultHeight)
+      .attr('rx', borderRadius)
+      .attr('ry', borderRadius)
+      .attr('stroke-width', strokeWidth)
+      .attr('stroke-opacity', 1);
+
+    rootElement.append('text')
+      .attr('fill', 'currentColor')
+      .attr('transform',
+        `translate(${(this.rectWidth / 2 - resultWidth / offset + resultWidth / 2)} ,
+        ${-rectHeight / 2 - resultHeight / 2 + textHeight + 4})`)
+      .style('text-anchor', 'middle')
+      .text((d) => {
+        if (d.data.data.uid === rootIdentifier
+              || d.data.data.clusterCount === undefined) return null;
+        return `${abbreviateNumber(d.data.data.clusterCount)}`;
+      });
   }
 
   static mouseOverNode(d, classContext, d3This) {

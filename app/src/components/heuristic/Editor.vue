@@ -4,7 +4,7 @@
               v-model="banner.display"
               transition="slide-y-transition"
               color="warning">
-      <v-avatar slot="icon" size="40">
+      <v-avatar :v-slot="icon" size="40">
         <v-icon icon="mdi-lock">{{ this.icon.mdiAlertOctagon }}</v-icon>
       </v-avatar>
       Server is not ready to accept request for new heuristics.
@@ -157,7 +157,7 @@ function getDeletedData(oldStateMap, newStateMap) {
   return deletedUids;
 }
 
-// prepareData prepares the heuristic data so it can be sent to be executed
+// prepareData prepares the heuristic data, so it can be sent to be executed
 function prepareData(oldStateMap, newState, changeSet, deletedData) {
   const changedItems = [];
   const newStateMap = new Map(newState.map((d) => [d.uid, d]));
@@ -179,7 +179,8 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parameter: d.parameter,
       children: d.children,
       parent: d.parent,
-      clusterTypes: [CLUSTER_TYPE_CUSTOM],
+      useAddressExclusionList: d.useAddressExclusionList,
+      clusterTypes: d.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
     });
   });
 
@@ -272,7 +273,7 @@ export default {
         heuristicUid: '',
         heuristicTypeTitle: '',
         heuristicParameter: '',
-        resultCount: null,
+        clusterCount: null,
         clusters: null,
       },
       ht: new HeuristicTree(150, this),
@@ -331,7 +332,13 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
     addNewHeuristic(heuristic) {
-      const newHeuristic = { type: heuristic.type, uid: `${this.newUidPrefix}${this.uidCounter}` };
+      const newHeuristic = {
+        uid: `${this.newUidPrefix}${this.uidCounter}`,
+        type: heuristic.type,
+        useCustomClusters: heuristic.useCustomClusters,
+        useAddressExclusionList: heuristic.useAddressExclusionList,
+      };
+
       if (heuristic.parameter) {
         newHeuristic.parameter = `${heuristic.parameter.value}`;
       }
@@ -365,7 +372,7 @@ export default {
 
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicTypeTitle = displayType;
-      sheet.resultCount = heuristic.clusterCount;
+      sheet.clusterCount = heuristic.clusterCount;
       sheet.heuristicUid = heuristic.uid;
       sheet.clusters = null;
 
@@ -377,7 +384,7 @@ export default {
       }
 
       if (this.heuristicDetailsMap.has(heuristic.uid)) {
-        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid);
+        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
         sheet.isOpen = true;
         return;
       }
@@ -476,7 +483,7 @@ export default {
           a.remove();
         })
         .catch((error) => {
-          this.errorMsg = error;
+          this.setErrorMessage(error);
         });
     },
     // updateChangeSet updates the change set <this.changeSet> based
@@ -498,23 +505,23 @@ export default {
       });
 
       // this set will have some duplicates, if changes are nested we get overlapping descendants
-      const descendantSet = [];
+      const descendantArray = [];
       // find descendants for each changed root element
       originChangeSet.forEach((d) => {
         // get subtree
         const descendants = this.ht.getDescendants(d.uid);
-        descendantSet.push(...descendants);
+        descendantArray.push(...descendants);
       });
 
       // remove duplicates
-      const descendantMap = new Map(descendantSet.map(
+      const descendantMap = new Map(descendantArray.map(
         (tempObject) => [tempObject.data.data.uid, tempObject],
       ));
 
       // save in global changeSet
       descendantMap.forEach((e) => this.changeSet.push(e.data.data.uid));
 
-      this.ht.setNodesChanged(descendantSet);
+      this.ht.setNodesChanged(descendantMap);
     },
     deleteSubTree() {
       const toBeRemoved = this.ht.getRemovableNodes();
@@ -557,7 +564,7 @@ export default {
       // maps the node data to the tree layout
       this.ht.processGraphData(this.data.heuristics);
       // updateChangeSet is called after a graph update,
-      // because otherwise it gets a not up to date descendant state
+      // because otherwise it gets an out of date descendant state
       this.updateChangeSet();
     },
     loadHeuristicData(transactionHash) {
