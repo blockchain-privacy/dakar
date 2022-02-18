@@ -302,7 +302,7 @@ func getClusterQuery(maxAddresses int) string {
 		limiter = "(first:" + strconv.Itoa(maxAddresses) + ")"
 	}
 
-	return `q(func: uid(c)){
+	return `q(func: uid(c))@filter(not has(Cluster.user) or uid_in(Cluster.user,$user)){
 				uid
 				Cluster.type
 				Cluster.addressCount
@@ -559,7 +559,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 // GetUserClustersUIDs returns all UIDs of clusters of a user
 func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
 	var filter string
-	if clusterTypeFilter != nil {
+	if len(clusterTypeFilter) > 0 {
 		for i, ct := range clusterTypeFilter {
 			filter += string(ct)
 

@@ -217,7 +217,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes []clustering.ClusterType) (
 	attributions map[string][]string, err error) {
 	var filter string
-	if clusterTypes != nil {
+	if len(clusterTypes) > 0 {
 		for i, ct := range clusterTypes {
 			filter += string(ct)
 

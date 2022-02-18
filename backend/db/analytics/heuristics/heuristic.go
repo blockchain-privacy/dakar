@@ -311,7 +311,7 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []string, userUID string,
 	requestedClusterTypes []clustering.ClusterType) (origins []HeuristicTransaction,
 	attributionMapping map[ClusterUID][]string, err error) {
-	isSimpleClustering := requestedClusterTypes == nil // true -> only multi-input clusters will be used
+	isSimpleClustering := len(requestedClusterTypes) == 0 // true -> only multi-input clusters will be used
 
 	// get user clusters if necessary
 	var userClusterUIDs []string

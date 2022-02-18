@@ -337,7 +337,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, results []heuri
 
 // areClusterTypesValid checks if the given clusterTypes are valid
 func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
-	if clusterTypes == nil {
+	if len(clusterTypes) == 0 {
 		return true
 	}
 
