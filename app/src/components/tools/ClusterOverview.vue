@@ -7,15 +7,9 @@
         Cluster Overview
       </v-toolbar-title>
       <v-spacer></v-spacer>
-      <v-menu
-          bottom
-          left>
+      <v-menu bottom left>
         <template v-slot:activator="{ on, attrs }">
-          <v-btn
-              dark
-              icon
-              v-bind="attrs"
-              v-on="on">
+          <v-btn dark icon v-bind="attrs" v-on="on">
             <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
