@@ -677,6 +677,8 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 					ts:Heuristic.ts
 					type:Heuristic.type
 					parameter:Heuristic.parameter
+					clusterTypes:Heuristic.clusterTypes
+					excludeAddresses:Heuristic.excludeAddresses
 					parent:Heuristic.parent{
 						uid
 					}
@@ -818,6 +820,8 @@ func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (c
 					ts:Heuristic.ts
 					type:Heuristic.type
 					parameter:Heuristic.parameter
+					clusterTypes:Heuristic.clusterTypes
+					excludeAddresses:Heuristic.excludeAddresses
 					parent:Heuristic.parent{
 						uid
 					}

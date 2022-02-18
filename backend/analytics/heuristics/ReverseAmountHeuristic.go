@@ -16,6 +16,7 @@ type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	excludeAddresses     bool
 	clusterTypes         []clustering.ClusterType
 }
 
@@ -54,6 +55,21 @@ func (h *reverseAmountHeuristic) setClusterTypes(clusterTypes []clustering.Clust
 
 	h.clusterTypes = clusterTypes
 	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *reverseAmountHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *reverseAmountHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *reverseAmountHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
 }
 
 // setUserUID sets the UID of the user who created this heuristic

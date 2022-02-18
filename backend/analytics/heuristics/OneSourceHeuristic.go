@@ -18,6 +18,7 @@ type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	excludeAddresses     bool
 	lookBackTime         time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -67,6 +68,21 @@ func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterTy
 
 	h.clusterTypes = clusterTypes
 	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *oneSourceHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *oneSourceHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *oneSourceHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
 }
 
 // setUserUID sets the UID of the user who created this heuristic

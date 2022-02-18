@@ -15,6 +15,7 @@ type denominationTypeHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	excludeAddresses     bool
 	clusterTypes         []clustering.ClusterType
 }
 
@@ -53,6 +54,21 @@ func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.Cl
 
 	h.clusterTypes = clusterTypes
 	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *denominationTypeHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *denominationTypeHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *denominationTypeHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
 }
 
 // setUserUID sets the UID of the user who created this heuristic

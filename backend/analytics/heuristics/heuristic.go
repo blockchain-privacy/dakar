@@ -57,6 +57,12 @@ type heuristic interface {
 	// If cluster types are set to nil, the result will not be clustered.
 	// If multiple cluster types are set, then the consolidation of these clusters will be used.
 	setClusterTypes([]clustering.ClusterType) error
+	// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+	getClusterTypes() []clustering.ClusterType
+	// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+	setExcludeAddresses(bool)
+	// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+	getExcludeAddresses() bool
 	// setUserUID sets the UID of the user who created this heuristic
 	setUserUID(string)
 	// String returns the heuristic in string format
@@ -365,12 +371,19 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
 	}
 
+	var clusterTypes []string
+	for _, cType := range h.getClusterTypes() {
+		clusterTypes = append(clusterTypes, string(cType))
+	}
+
 	thisUID, err = heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
-		HeuristicType:   h.getType(),
-		Clusters:        heuristicClusters,
-		Parameter:       h.getParameterString(),
-		ParentHeuristic: pHeuristic,
-		TxHash:          txHash,
+		HeuristicType:    h.getType(),
+		ClusterTypes:     clusterTypes,
+		ExcludeAddresses: h.getExcludeAddresses(),
+		Clusters:         heuristicClusters,
+		Parameter:        h.getParameterString(),
+		ParentHeuristic:  pHeuristic,
+		TxHash:           txHash,
 	}, userUID)
 
 	if err != nil {

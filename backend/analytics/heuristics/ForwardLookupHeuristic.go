@@ -16,6 +16,7 @@ type forwardLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
 	userUID              string
+	excludeAddresses     bool
 	lookForwardTime      time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -65,6 +66,21 @@ func (h *forwardLookupHeuristic) setClusterTypes(clusterTypes []clustering.Clust
 
 	h.clusterTypes = clusterTypes
 	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *forwardLookupHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *forwardLookupHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *forwardLookupHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
 }
 
 // setUserUID sets the UID of the user who created this heuristic
