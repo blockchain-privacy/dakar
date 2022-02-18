@@ -114,6 +114,8 @@ func SetupSchema(c external.Database) error {
 			Heuristic.clusters: [uid] @count @reverse .
 			Heuristic.parent: [uid] @reverse .
 			Heuristic.ts: dateTime @index(day) .
+			Heuristic.clusterTypes: [string] .
+			Heuristic.excludeAddresses: bool .
 
 			type Heuristic {
 				Heuristic.type
@@ -122,6 +124,8 @@ func SetupSchema(c external.Database) error {
 				Heuristic.clusters
 				Heuristic.ts
 				Heuristic.parent
+				Heuristic.clusterTypes
+				Heuristic.excludeAddresses
 			}
 
 			HeuristicResult.origin: uid @reverse .

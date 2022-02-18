@@ -202,4 +202,10 @@ func main() {
 	//	info(err)
 	//}
 	//info("migrate heuristics done")
+
+	//info("add heuristic properties starting ...")
+	//if err := db.AlterSchemaAddHeuristicProperties(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("add heuristic properties done")
 }

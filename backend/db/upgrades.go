@@ -886,3 +886,30 @@ func MigrateHeuristics(c external.Database) error {
 		`,
 	})
 }
+
+// AlterSchemaAddHeuristicProperties changes adds the new heuristic type
+func AlterSchemaAddHeuristicProperties(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.clusters: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
+			Heuristic.clusterTypes: [string] .
+			Heuristic.excludeAddresses: bool .
+
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.clusters
+				Heuristic.ts
+				Heuristic.parent
+				Heuristic.clusterTypes
+				Heuristic.excludeAddresses
+			}
+		`,
+	})
+}
