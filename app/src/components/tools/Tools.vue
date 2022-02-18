@@ -62,28 +62,6 @@
         </transition>
       </v-col>
     </v-row>
-    <v-bottom-navigation shift class="hidden-lg-and-up" fixed color="primary">
-      <v-btn :to="{ name: shortestPathPage}">
-        <span>Shortest Path</span>
-        <v-icon>{{ icon.mdiChartTimelineVariant }}</v-icon>
-      </v-btn>
-      <v-btn :to="{ name: heuristicsPage}">
-        <span>Heuristics</span>
-        <v-icon>{{ icon.mdiGraph }}</v-icon>
-      </v-btn>
-      <v-btn :to="{ name: connectionLookupPage}">
-        <span>Connection Lookup</span>
-        <v-icon>{{ icon.mdiTextBoxSearch }}</v-icon>
-      </v-btn>
-      <v-btn :to="{ name: clusterOverviewPage}">
-        <span>Cluster Overview</span>
-        <v-icon>{{ icon.mdiMerge }}</v-icon>
-      </v-btn>
-      <v-btn :to="{ name: attributionsPage}">
-        <span>Attributions</span>
-        <v-icon>{{ icon.mdiTag }}</v-icon>
-      </v-btn>
-    </v-bottom-navigation>
   </div>
 </template>
 
