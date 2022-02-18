@@ -289,11 +289,11 @@ export class HeuristicTree extends Tree {
         return d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : 'Parameter: None';
       });
 
-    const resultHeight = 20; const
+    const resultHeight = 18; const
       resultWidth = 38; const
       offset = 1.3;
 
-    // result count
+    // result box rect
     rootElement
       .append('rect')
       .attr('x', this.rectWidth / 2 - resultWidth / offset)
@@ -310,11 +310,12 @@ export class HeuristicTree extends Tree {
       .attr('stroke-width', strokeWidth)
       .attr('stroke-opacity', 1);
 
+    // result box text
     rootElement.append('text')
       .attr('fill', 'currentColor')
       .attr('transform',
         `translate(${(this.rectWidth / 2 - resultWidth / offset + resultWidth / 2)} ,
-        ${-rectHeight / 2 - resultHeight / 2 + textHeight + 4})`)
+        ${-rectHeight / 2 - resultHeight / 2 + textHeight + 3})`)
       .style('text-anchor', 'middle')
       .text((d) => {
         if (d.data.data.uid === rootIdentifier
