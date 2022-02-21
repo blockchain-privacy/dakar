@@ -161,12 +161,13 @@ type FrontendHeuristicResult struct {
 
 // FrontendHeuristicRequest holds all heuristic data which is set by the user
 type FrontendHeuristicRequest struct {
-	UID             string                   `json:"uid,omitempty"`
-	Type            string                   `json:"type,omitempty"`
-	Parameter       string                   `json:"parameter,omitempty"`
-	ParentHeuristic []Heuristic              `json:"parent,omitempty"`
-	ChildHeuristics []Heuristic              `json:"children,omitempty"`
-	ClusterTypes    []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	UID              string                   `json:"uid,omitempty"`
+	Type             string                   `json:"type,omitempty"`
+	Parameter        string                   `json:"parameter,omitempty"`
+	ParentHeuristic  []Heuristic              `json:"parent,omitempty"`
+	ChildHeuristics  []Heuristic              `json:"children,omitempty"`
+	ClusterTypes     []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	ExcludeAddresses bool                     `json:"useAddressExclusionList"`
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend

@@ -29,6 +29,21 @@
                         </IconItem>
                       </v-col>
                     </v-row>
+                    <v-row>
+                      <v-col>
+                        <IconItem title="Custom clusters" :icon="icon.mdiTune">
+                          {{ heuristicData.heuristicCustomClusters ? 'yes' : 'no' }}
+                        </IconItem>
+                      </v-col>
+                      <!-- disabled for -->
+                      <v-col v-if="false">
+                        <IconItem v-if="heuristicData.heuristicParameter"
+                                  title="Exclude Addresses"
+                                  :icon="icon.mdiTune">
+                          {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
+                        </IconItem>
+                      </v-col>
+                    </v-row>
                     <v-row v-if="isHollow">
                       <v-col>
                         <v-card-title class="text-h5">

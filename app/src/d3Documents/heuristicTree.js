@@ -277,7 +277,7 @@ export class HeuristicTree extends Tree {
       .attr('y', textHeight / 2)
       .text((d) => {
         if (d.data.data.uid === rootIdentifier) return null;
-        return `Custom clusters: ${d.data.data.useCustomClusters ? 'yes' : 'no'}`;
+        return `Custom clusters: ${d.data.data.clusterTypes && d.data.data.clusterTypes.length > 0 ? 'yes' : 'no'}`;
       });
 
     rootElement.append('text')
