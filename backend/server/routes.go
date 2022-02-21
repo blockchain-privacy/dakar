@@ -10,7 +10,6 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,7 +21,6 @@ import (
 
 	"github.com/dgraph-io/ristretto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"golang.org/x/crypto/ed25519"
 )
 
 var (
@@ -57,7 +55,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func handlerSearch(dgraph external.Database, route string) http.Handler {
+func (s *Server) handlerSearch(route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -80,7 +78,7 @@ func handlerSearch(dgraph external.Database, route string) http.Handler {
 
 			// iterate over db access functions
 			for _, fn := range searchOrder {
-				data, ok, err := fn(dgraph, queryString)
+				data, ok, err := fn(s.db, queryString)
 				if err != nil {
 					info(cliutil.ShowCallInfo(), err)
 					break
@@ -108,7 +106,7 @@ func handlerSearch(dgraph external.Database, route string) http.Handler {
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func handlerDetails(dgraph external.Database, route string, fn func(external.Database, string) (
+func (s *Server) handlerDetails(route string, fn func(external.Database, string) (
 	SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -122,7 +120,7 @@ func handlerDetails(dgraph external.Database, route string, fn func(external.Dat
 		}
 
 		if isValid(queryString) {
-			data, ok, fnErr := fn(dgraph, queryString)
+			data, ok, fnErr := fn(s.db, queryString)
 			if fnErr != nil {
 				handleError(w, fnErr)
 				return
@@ -143,7 +141,7 @@ func handlerDetails(dgraph external.Database, route string, fn func(external.Dat
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func handlerAddressOutputRange(dgraph external.Database, route string) http.Handler {
+func (s *Server) handlerAddressOutputRange(route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -191,7 +189,7 @@ func handlerAddressOutputRange(dgraph external.Database, route string) http.Hand
 				return
 			}
 
-			data, ok, addrErr := GetAddressWithOptions(dgraph, queryString,
+			data, ok, addrErr := GetAddressWithOptions(s.db, queryString,
 				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 			if addrErr != nil {
 				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), addrErr))
@@ -212,7 +210,7 @@ func handlerAddressOutputRange(dgraph external.Database, route string) http.Hand
 }
 
 // API pattern: "/api/v1/blkRange/<address_hash>"
-func handlerBlockRange(dgraph external.Database, route string) http.Handler {
+func (s *Server) handlerBlockRange(route string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -247,7 +245,7 @@ func handlerBlockRange(dgraph external.Database, route string) http.Handler {
 				return
 			}
 
-			data, ok, blockErr := GetBlockWithOptions(dgraph, queryString, blockRequest.Offset)
+			data, ok, blockErr := GetBlockWithOptions(s.db, queryString, blockRequest.Offset)
 			if blockErr != nil {
 				handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), blockErr))
 				return
@@ -267,14 +265,14 @@ func handlerBlockRange(dgraph external.Database, route string) http.Handler {
 }
 
 // API pattern: "/api/v1/meta/"
-func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handler {
+func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 		// async request rpc info
-		futureBlockchainInfo := client.GetBlockChainInfoAsync()
+		futureBlockchainInfo := s.client.GetBlockChainInfoAsync()
 
 		// get data from db
-		verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
+		verboseStatus, err := dbstat.GetFrontendStatus(s.db)
 		if err != nil {
 			handleError(w, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
 			return
@@ -307,7 +305,7 @@ func handlerMeta(dgraph external.Database, client external.RPCClient) http.Handl
 }
 
 // API pattern: "/api/v1/heuristicsSummary/<hash>"
-func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
+func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -324,25 +322,25 @@ func handlerHeuristicsSummary(dgraph external.Database) http.Handler {
 			return
 		}
 
-		writeHeuristicSummary(w, dgraph, tUser, txHashString)
+		writeHeuristicSummary(w, s.db, tUser, txHashString)
 	})
 }
 
 // API pattern: "/api/v1/clusterSummary"
-func handlerClusterSummary(dgraph external.Database) http.Handler {
+func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		writeClusterSummary(w, r, dgraph)
+		writeClusterSummary(w, r, s.db)
 	})
 }
 
 // API pattern: "/api/v1/addCluster"
-func handlerAddCluster(dgraph external.Database) http.Handler {
+func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddClusterReply(dgraph, r)
+		reply := getAddClusterReply(s.db, r)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -353,7 +351,7 @@ func handlerAddCluster(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/deleteCluster/<cluster_uid>"
-func handlerDeleteCluster(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -365,7 +363,7 @@ func handlerDeleteCluster(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteClusterReply(dgraph, tUser.ID, clusterUid)
+			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUid)
 		}
 
 		// encoding
@@ -377,7 +375,7 @@ func handlerDeleteCluster(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/deleteAllClusters"
-func handlerDeleteAllClusters(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -387,7 +385,7 @@ func handlerDeleteAllClusters(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAllClustersReply(dgraph, tUser.ID)
+			reply = getDeleteAllClustersReply(s.db, tUser.ID)
 		}
 
 		// encoding
@@ -399,7 +397,7 @@ func handlerDeleteAllClusters(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/clusterOverview"
-func handlerClusterOverview(dgraph external.Database) http.Handler {
+func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -409,7 +407,7 @@ func handlerClusterOverview(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getClusterOverviewReply(dgraph, tUser.ID)
+			reply = getClusterOverviewReply(s.db, tUser.ID)
 		}
 
 		// encoding
@@ -421,7 +419,7 @@ func handlerClusterOverview(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/attributionOverview"
-func handlerAttributionOverview(dgraph external.Database) http.Handler {
+func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -431,7 +429,7 @@ func handlerAttributionOverview(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getAttributionOverviewReply(dgraph, tUser.ID)
+			reply = getAttributionOverviewReply(s.db, tUser.ID)
 		}
 
 		// encoding
@@ -443,11 +441,11 @@ func handlerAttributionOverview(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/addPrivateAttribution"
-func handlerAddPrivateAttribution(dgraph external.Database) http.Handler {
+func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddAttributionReply(dgraph, r, false)
+		reply := getAddAttributionReply(s.db, r, false)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -458,11 +456,11 @@ func handlerAddPrivateAttribution(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/addPublicAttribution"
-func handlerAddPublicAttribution(dgraph external.Database) http.Handler {
+func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddAttributionReply(dgraph, r, true)
+		reply := getAddAttributionReply(s.db, r, true)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -473,7 +471,7 @@ func handlerAddPublicAttribution(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/deletePrivateAttribution/<cluster_uid>"
-func handlerDeletePrivateAttribution(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -485,7 +483,7 @@ func handlerDeletePrivateAttribution(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid, false)
+			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUid, false)
 		}
 
 		// encoding
@@ -497,7 +495,7 @@ func handlerDeletePrivateAttribution(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/deletePublicAttribution/<cluster_uid>"
-func handlerDeletePublicAttribution(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -509,7 +507,7 @@ func handlerDeletePublicAttribution(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAttributionReply(dgraph, tUser.ID, attributionUid, true)
+			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUid, true)
 		}
 
 		// encoding
@@ -521,7 +519,7 @@ func handlerDeletePublicAttribution(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/deleteAllPrivateAttributions"
-func handlerDeleteAllPrivateAttributions(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -531,7 +529,7 @@ func handlerDeleteAllPrivateAttributions(dgraph external.Database) http.Handler 
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAllAttributionsReply(dgraph, tUser.ID)
+			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
 		}
 
 		// encoding
@@ -543,7 +541,7 @@ func handlerDeleteAllPrivateAttributions(dgraph external.Database) http.Handler 
 }
 
 // API pattern: "/api/v1/searchAttributions"
-func handlerSearchAttributions(dgraph external.Database) http.Handler {
+func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -553,7 +551,7 @@ func handlerSearchAttributions(dgraph external.Database) http.Handler {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getAttributionSearchReply(dgraph, tUser.ID, r.Body)
+			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
 		}
 
 		// encoding
@@ -565,7 +563,7 @@ func handlerSearchAttributions(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristics/<hash>"
-func handlerHeuristics(dgraph external.Database, worker *heuristics.Worker) http.Handler {
+func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -582,7 +580,7 @@ func handlerHeuristics(dgraph external.Database, worker *heuristics.Worker) http
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicReply(dgraph, worker, txHashString, tUser.ID)
+			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -594,7 +592,7 @@ func handlerHeuristics(dgraph external.Database, worker *heuristics.Worker) http
 }
 
 // API pattern: "/api/v1/hmiLookup/<hash>"
-func handlerHMILookup(dgraph external.Database) http.Handler {
+func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -605,7 +603,7 @@ func handlerHMILookup(dgraph external.Database) http.Handler {
 			return
 		}
 
-		reply := getHMILookupReply(dgraph, addressHash)
+		reply := getHMILookupReply(s.db, addressHash)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -616,7 +614,7 @@ func handlerHMILookup(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicStatus/<hash>"
-func handlerHeuristicStatus(worker *heuristics.Worker) http.Handler {
+func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -634,7 +632,7 @@ func handlerHeuristicStatus(worker *heuristics.Worker) http.Handler {
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply.Success = true
-			reply.Status = worker.GetStatus(txHashString, tUser.ID)
+			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -646,7 +644,7 @@ func handlerHeuristicStatus(worker *heuristics.Worker) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicDetails/"
-func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
+func (s *Server) handlerHeuristicsDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -672,7 +670,7 @@ func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID)
+		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			info(cliutil.ShowCallInfo(), err)
@@ -688,7 +686,7 @@ func handlerHeuristicsDetails(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/executeHeuristics/<hash>"
-func handlerHeuristicsExecution(dgraph external.Database, worker *heuristics.Worker) http.Handler {
+func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -705,7 +703,7 @@ func handlerHeuristicsExecution(dgraph external.Database, worker *heuristics.Wor
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getHeuristicExecutionReply(dgraph, worker, r.Body, txHashString, tUser.ID)
+			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
 		}
 
 		// encoding
@@ -717,7 +715,7 @@ func handlerHeuristicsExecution(dgraph external.Database, worker *heuristics.Wor
 }
 
 // API pattern: "/api/v1/heuristicList/"
-func handlerHeuristicList(dgraph external.Database) http.Handler {
+func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -727,7 +725,7 @@ func handlerHeuristicList(dgraph external.Database) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			items, err := dbtxh.GetHeuristicListByUser(dgraph, tUser.ID)
+			items, err := dbtxh.GetHeuristicListByUser(s.db, tUser.ID)
 			if err != nil {
 				info(cliutil.ShowCallInfo(), err)
 			} else {
@@ -745,7 +743,7 @@ func handlerHeuristicList(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/heuristicDescriptors/"
-func handlerHeuristicDescriptors() http.Handler {
+func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -766,7 +764,7 @@ func handlerHeuristicDescriptors() http.Handler {
 }
 
 // API pattern: "/api/v1/deleteHeuristic/"
-func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -775,7 +773,7 @@ func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
 			reply.Msg = "error extracting user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteHeuristicReply(dgraph, r.Body, tUser.ID)
+			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
 		}
 
 		// encoding
@@ -787,11 +785,11 @@ func handlerDeleteHeuristic(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/createUser"
-func handlerCreateUser(dgraph external.Database) http.Handler {
+func (s *Server) handlerCreateUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getCreateUserReply(dgraph, r.Body)
+		reply := getCreateUserReply(s.db, r.Body)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -802,11 +800,11 @@ func handlerCreateUser(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/getUsers/"
-func handlerGetUsers(dgraph external.Database) http.Handler {
+func (s *Server) handlerGetUsers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		users, err := dbus.GetUsers(dgraph)
+		users, err := dbus.GetUsers(s.db)
 		if err != nil {
 			handleError(w, err)
 			return
@@ -821,7 +819,7 @@ func handlerGetUsers(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/logout/"
-func handlerLogout() http.Handler {
+func (s *Server) handlerLogout() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 		invalidateToken(w)
@@ -835,7 +833,7 @@ func handlerLogout() http.Handler {
 }
 
 // API pattern: "/api/v1/deleteUser/<userUid>"
-func handlerDeleteUser(dgraph external.Database) http.Handler {
+func (s *Server) handlerDeleteUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -848,7 +846,7 @@ func handlerDeleteUser(dgraph external.Database) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteUserReply(dgraph, userUID, tUser)
+			reply = getDeleteUserReply(s.db, userUID, tUser)
 		}
 
 		// encoding
@@ -860,15 +858,15 @@ func handlerDeleteUser(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/login/"
-func handlerLogin(dgraph external.Database, privateSigningKey ed25519.PrivateKey) http.Handler {
+func (s *Server) handlerLogin() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getLoginReply(dgraph, r.Body)
+		reply := getLoginReply(s.db, r.Body)
 
 		// set token if login is successful
 		if reply.Success {
-			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), privateSigningKey)
+			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), s.tokenPrivateKey)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				info(cliutil.ShowCallInfo(), err)
@@ -888,7 +886,7 @@ func handlerLogin(dgraph external.Database, privateSigningKey ed25519.PrivateKey
 }
 
 // API pattern: "/api/v1/modifyUser/"
-func handlerModifyUser(dgraph external.Database) http.Handler {
+func (s *Server) handlerModifyUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -899,7 +897,7 @@ func handlerModifyUser(dgraph external.Database) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getModifyUserReply(dgraph, r.Body, tUser)
+			reply = getModifyUserReply(s.db, r.Body, tUser)
 		}
 
 		// encoding
@@ -911,11 +909,11 @@ func handlerModifyUser(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/shortestTransactionPath/"
-func handlerShortestTransactionPath(dgraph external.Database) http.Handler {
+func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getShortestTransactionPathReply(dgraph, r.Body)
+		reply := getShortestTransactionPathReply(s.db, r.Body)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -926,11 +924,11 @@ func handlerShortestTransactionPath(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
-func handlerConnectionLookup(dgraph external.Database, worker *heuristics.Worker) http.Handler {
+func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getConnectionLookupReply(dgraph, worker, r.URL.Query(), r.URL.Path)
+		reply := getConnectionLookupReply(s.db, s.worker, r.URL.Query(), r.URL.Path)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -941,7 +939,7 @@ func handlerConnectionLookup(dgraph external.Database, worker *heuristics.Worker
 }
 
 // API pattern: "/api/v1/clusterLookup/<addressHash>"
-func handlerClusterLookup(dgraph external.Database) http.Handler {
+func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -951,7 +949,7 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 			reply.Msg = "error modifying user"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getClusterLookupReply(dgraph, r.Body, tUser)
+			reply = getClusterLookupReply(s.db, r.Body, tUser)
 		}
 
 		// encoding
@@ -963,11 +961,11 @@ func handlerClusterLookup(dgraph external.Database) http.Handler {
 }
 
 // API pattern: "/api/v1/mixingActivity/"
-func handlerMixingActivity(dgraph external.Database) http.Handler {
+func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getMixingActivity(dgraph, r.Body)
+		reply := getMixingActivity(s.db, r.Body)
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -978,19 +976,7 @@ func handlerMixingActivity(dgraph external.Database) http.Handler {
 }
 
 // setupHandlers creates endpoint handlers
-func setupHandlers(dgraph external.Database, client external.RPCClient, worker *heuristics.Worker,
-	basicAuthUser string, basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) {
-
-	privkey, err := hex.DecodeString(tokenPrivateKey)
-	if err != nil {
-		panic(err)
-	}
-
-	pubkey, err := hex.DecodeString(tokenPublicKey)
-	if err != nil {
-		panic(err)
-	}
-
+func (s *Server) setupHandlers() {
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
@@ -1004,136 +990,134 @@ func setupHandlers(dgraph external.Database, client external.RPCClient, worker *
 	// API end points
 
 	// Metrics
-	http.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
-		basicAuthMiddleware(basicAuthUser, basicAuthHash), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
+		limitMethod("GET"), s.basicAuth(), maxBody()))
 
 	// Search
-	http.Handle(constants.GetRouteSearch(),
-		adapt(handlerSearch(dgraph, constants.GetRouteSearch()), constants.GetRouteSearch(),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteSearch(),
+		adapt(s.handlerSearch(constants.GetRouteSearch()), constants.GetRouteSearch(),
+			limitMethod("GET"), useCache(cache, time.Minute*10), maxBody()))
 
 	// Common data
-	http.Handle(constants.GetRouteTransaction(),
-		adapt(handlerDetails(dgraph, constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
-			cacheMiddleware(cache, time.Second*0), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteTransaction(),
+		adapt(s.handlerDetails(constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
+			limitMethod("GET"), useCache(cache, time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	http.Handle(constants.GetRouteBlock(),
-		adapt(handlerDetails(dgraph, constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
-			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteAddress(),
-		adapt(handlerDetails(dgraph, constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
-			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteBlock(),
+		adapt(s.handlerDetails(constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
+			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
+	s.handler.Handle(constants.GetRouteAddress(),
+		adapt(s.handlerDetails(constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
+			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
 
-	http.Handle(constants.GetRouteAddressOutputRange(),
-		adapt(handlerAddressOutputRange(dgraph, constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteAddressOutputRange(),
+		adapt(s.handlerAddressOutputRange(constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
+			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
 
-	http.Handle(constants.GetRouteBlockRange(),
-		adapt(handlerBlockRange(dgraph, constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteBlockRange(),
+		adapt(s.handlerBlockRange(constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
+			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
 
 	// Meta
-	http.Handle(constants.GetRouteMeta(),
-		adapt(handlerMeta(dgraph, client), constants.GetRouteMeta(),
-			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Second*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
+		limitMethod("GET"), s.authorization(), useCache(cache, time.Second*10), maxBody()))
 
 	// heuristic
-	http.Handle(constants.GetRouteHeuristics(),
-		adapt(handlerHeuristics(dgraph, worker), constants.GetRouteHeuristics(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicStatus(),
-		adapt(handlerHeuristicStatus(worker), constants.GetRouteHeuristicStatus(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicDetails(),
-		adapt(handlerHeuristicsDetails(dgraph), constants.GetRouteHeuristicDetails(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicsExecution(),
-		adapt(handlerHeuristicsExecution(dgraph, worker), constants.GetRouteHeuristicsExecution(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicsSummary(),
-		adapt(handlerHeuristicsSummary(dgraph), constants.GetRouteHeuristicsSummary(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicList(),
-		adapt(handlerHeuristicList(dgraph), constants.GetRouteHeuristicList(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHeuristicDescriptors(),
-		adapt(handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
-			authorizationMiddleware(privkey, pubkey), cacheMiddleware(cache, 0), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteHeuristic(),
-		adapt(handlerDeleteHeuristic(dgraph), constants.GetRouteDeleteHeuristic(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteHeuristics(),
+		adapt(s.handlerHeuristics(), constants.GetRouteHeuristics(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicStatus(),
+		adapt(s.handlerHeuristicStatus(), constants.GetRouteHeuristicStatus(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicDetails(),
+		adapt(s.handlerHeuristicsDetails(), constants.GetRouteHeuristicDetails(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicsExecution(),
+		adapt(s.handlerHeuristicsExecution(), constants.GetRouteHeuristicsExecution(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicsSummary(),
+		adapt(s.handlerHeuristicsSummary(), constants.GetRouteHeuristicsSummary(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicList(),
+		adapt(s.handlerHeuristicList(), constants.GetRouteHeuristicList(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHeuristicDescriptors(),
+		adapt(s.handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
+			limitMethod("GET"), s.authorization(), useCache(cache, 0), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteHeuristic(),
+		adapt(s.handlerDeleteHeuristic(), constants.GetRouteDeleteHeuristic(),
+			limitMethod("POST"), s.authorization(), maxBody()))
 
 	// Analytics
-	http.Handle(constants.GetRouteShortestTransactionPath(),
-		adapt(handlerShortestTransactionPath(dgraph), constants.GetRouteShortestTransactionPath(),
-			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteConnectionLookup(),
-		adapt(handlerConnectionLookup(dgraph, worker), constants.GetRouteConnectionLookup(),
-			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteMixingActivity(),
-		adapt(handlerMixingActivity(dgraph), constants.GetRouteMixingActivity(),
-			authorizationMiddleware(privkey, pubkey),
-			cacheMiddleware(cache, time.Minute*10), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
+		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
+			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteConnectionLookup(),
+		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
+			limitMethod("GET"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteMixingActivity(),
+		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
+			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
 
 	// Clusters
-	http.Handle(constants.GetRouteClusterLookup(),
-		adapt(handlerClusterLookup(dgraph), constants.GetRouteClusterLookup(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteHMILookup(),
-		adapt(handlerHMILookup(dgraph), constants.GetRouteHMILookup(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteClusterSummary(),
-		adapt(handlerClusterSummary(dgraph), constants.GetRouteClusterSummary(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteAddCluster(),
-		adapt(handlerAddCluster(dgraph), constants.GetRouteAddCluster(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteCluster(),
-		adapt(handlerDeleteCluster(dgraph), constants.GetRouteDeleteCluster(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteAllClusters(),
-		adapt(handlerDeleteAllClusters(dgraph), constants.GetRouteDeleteAllClusters(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteClusterOverview(),
-		adapt(handlerClusterOverview(dgraph), constants.GetRouteClusterOverview(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteClusterLookup(),
+		adapt(s.handlerClusterLookup(), constants.GetRouteClusterLookup(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteHMILookup(),
+		adapt(s.handlerHMILookup(), constants.GetRouteHMILookup(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteClusterSummary(),
+		adapt(s.handlerClusterSummary(), constants.GetRouteClusterSummary(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddCluster(),
+		adapt(s.handlerAddCluster(), constants.GetRouteAddCluster(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteCluster(),
+		adapt(s.handlerDeleteCluster(), constants.GetRouteDeleteCluster(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAllClusters(),
+		adapt(s.handlerDeleteAllClusters(), constants.GetRouteDeleteAllClusters(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteClusterOverview(),
+		adapt(s.handlerClusterOverview(), constants.GetRouteClusterOverview(),
+			limitMethod("GET"), limitMethod("GET"), s.authorization(), maxBody()))
 
 	// Attributions
-	http.Handle(constants.GetRouteAddPrivateAttribution(),
-		adapt(handlerAddPrivateAttribution(dgraph), constants.GetRouteAddPrivateAttribution(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteAddPublicAttribution(),
-		adapt(handlerAddPublicAttribution(dgraph), constants.GetRouteAddPublicAttribution(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteAttributionOverview(),
-		adapt(handlerAttributionOverview(dgraph), constants.GetRouteAttributionOverview(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeletePrivateAttribution(),
-		adapt(handlerDeletePrivateAttribution(dgraph), constants.GetRouteDeletePrivateAttribution(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeletePublicAttribution(),
-		adapt(handlerDeletePublicAttribution(dgraph), constants.GetRouteDeletePublicAttribution(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteAllPrivateAttributions(),
-		adapt(handlerDeleteAllPrivateAttributions(dgraph), constants.GetRouteDeleteAllPrivateAttributions(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteSearchAttributions(),
-		adapt(handlerSearchAttributions(dgraph), constants.GetRouteSearchAttributions(),
-			authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteAddPrivateAttribution(),
+		adapt(s.handlerAddPrivateAttribution(), constants.GetRouteAddPrivateAttribution(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddPublicAttribution(),
+		adapt(s.handlerAddPublicAttribution(), constants.GetRouteAddPublicAttribution(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAttributionOverview(),
+		adapt(s.handlerAttributionOverview(), constants.GetRouteAttributionOverview(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeletePrivateAttribution(),
+		adapt(s.handlerDeletePrivateAttribution(), constants.GetRouteDeletePrivateAttribution(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeletePublicAttribution(),
+		adapt(s.handlerDeletePublicAttribution(), constants.GetRouteDeletePublicAttribution(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAllPrivateAttributions(),
+		adapt(s.handlerDeleteAllPrivateAttributions(), constants.GetRouteDeleteAllPrivateAttributions(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteSearchAttributions(),
+		adapt(s.handlerSearchAttributions(), constants.GetRouteSearchAttributions(),
+			limitMethod("POST"), s.authorization(), maxBody()))
 
 	// User
-	http.Handle(constants.GetRouteLogin(), handlerLogin(dgraph, privkey))
-	http.Handle(constants.GetRouteLogout(), handlerLogout())
-	http.Handle(constants.GetRouteCreateUser(),
-		adapt(handlerCreateUser(dgraph), constants.GetRouteCreateUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteDeleteUser(),
-		adapt(handlerDeleteUser(dgraph), constants.GetRouteDeleteUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteGetUsers(),
-		adapt(handlerGetUsers(dgraph), constants.GetRouteGetUsers(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
-	http.Handle(constants.GetRouteModifyUser(),
-		adapt(handlerModifyUser(dgraph), constants.GetRouteModifyUser(), authorizationMiddleware(privkey, pubkey), maxBodyMiddleware()))
+	s.handler.Handle(constants.GetRouteLogin(), adapt(s.handlerLogin(),
+		constants.GetRouteLogin(), limitMethod("POST")))
+	s.handler.Handle(constants.GetRouteLogout(), adapt(s.handlerLogout(),
+		constants.GetRouteLogout(), limitMethod("GET")))
+
+	s.handler.Handle(constants.GetRouteCreateUser(), adapt(s.handlerCreateUser(), constants.GetRouteCreateUser(),
+		limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteUser(), adapt(s.handlerDeleteUser(), constants.GetRouteDeleteUser(),
+		limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteGetUsers(), adapt(s.handlerGetUsers(), constants.GetRouteGetUsers(),
+		limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteModifyUser(), adapt(s.handlerModifyUser(), constants.GetRouteModifyUser(),
+		limitMethod("POST"), s.authorization(), maxBody()))
 }

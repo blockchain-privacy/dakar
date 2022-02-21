@@ -447,13 +447,18 @@ func main() {
 		}()
 	}
 
-	// activate server
+	// start server
 	var srv *http.Server
 	if config.Modules.HTTP.Active {
+		apiServer, serverErr := server.NewServer(graphDB, client, worker, config.Modules.HTTP.BasicAuthUser,
+			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey)
+		if serverErr != nil {
+			info(serverErr)
+		}
+
 		wg.Add(1)
-		srv = server.StartServer(&wg, config.Modules.HTTP.Port, config.Modules.HTTP.BasicAuthUser,
-			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey,
-			graphDB, client, worker)
+
+		srv = apiServer.StartServer(&wg, config.Modules.HTTP.Port)
 	}
 
 	////// HANDLE SHUTDOWN //////
