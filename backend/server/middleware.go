@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto"
-	"golang.org/x/crypto/ed25519"
 )
 
 type contextKeyUser int
@@ -52,7 +51,7 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	}
 }
 
-func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKey) adapter {
+func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie(cookieTokenName)
@@ -61,7 +60,7 @@ func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKe
 				return
 			}
 
-			token, _, verifyErr := verifyToken(cookie.Value, pubkey)
+			token, _, verifyErr := verifyToken(cookie.Value, s.tokenPublicKey)
 			if verifyErr != nil {
 				sendRedirectMessage(w)
 				return
@@ -110,7 +109,7 @@ func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKe
 			}
 
 			if timeUntilTokenExpires <= reissueDuration {
-				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState(), privkey); tokenErr != nil {
+				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState(), s.tokenPrivateKey); tokenErr != nil {
 					sendRedirectMessage(w)
 					info(cliutil.ShowCallInfo(), tokenErr)
 					return
@@ -122,12 +121,11 @@ func authorizationMiddleware(privkey ed25519.PrivateKey, pubkey ed25519.PublicKe
 	}
 }
 
-type cacheElement struct {
-	buffer     []byte
-	statusCode int
-}
-
-func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
+func useCache(cache *ristretto.Cache, ttl time.Duration) adapter {
+	type cacheElement struct {
+		buffer     []byte
+		statusCode int
+	}
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// set headers
@@ -196,7 +194,7 @@ func cacheMiddleware(cache *ristretto.Cache, ttl time.Duration) adapter {
 	}
 }
 
-func basicAuthMiddleware(u, pwhash string) adapter {
+func (s *Server) basicAuth() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// set headers
@@ -210,14 +208,14 @@ func basicAuthMiddleware(u, pwhash string) adapter {
 			}
 
 			// constant time compare and sleep to avoid timing attacks
-			if subtle.ConstantTimeCompare([]byte(u), []byte(requestUser)) != 1 {
+			if subtle.ConstantTimeCompare([]byte(s.basicAuthUser), []byte(requestUser)) != 1 {
 				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
 
 			// constant time compare and sleep to avoid timing attacks
-			if equal, err := user.ComparePassword(requestPassword, pwhash); err != nil {
+			if equal, err := user.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
 				info(cliutil.ShowCallInfo(), err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
@@ -232,10 +230,24 @@ func basicAuthMiddleware(u, pwhash string) adapter {
 	}
 }
 
-func maxBodyMiddleware() adapter {
+func maxBody() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func limitMethod(method string) adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.Method != method {
+				info("error received", r.Method, "request for route", route, "instead of", method)
+				w.WriteHeader(http.StatusMethodNotAllowed)
+				return
+			}
+
 			h.ServeHTTP(w, r)
 		})
 	}
