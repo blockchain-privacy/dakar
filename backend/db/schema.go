@@ -156,6 +156,7 @@ func SetupSchema(c external.Database) error {
 			User.created: dateTime @index(day) .
 			User.modified: dateTime @index(day) .
 			User.heuristics: [uid] @reverse .
+			User.addressExclusions: [uid] @reverse .
 	
 			type User {
 				User.email
@@ -164,6 +165,7 @@ func SetupSchema(c external.Database) error {
 				User.created
 				User.modified
 				User.heuristics
+				User.addressExclusions
 			}
 
 			Cluster.type: string @index(hash) . # the cluster type
