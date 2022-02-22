@@ -142,7 +142,8 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime, h.userUID, h.clusterTypes)
+			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime,
+				h.userUID, h.clusterTypes, false)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -177,7 +178,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		for k := range txMap {
 			txUIDs = append(txUIDs, k)
 		}
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime)
+		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime, h.excludeAddresses)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
