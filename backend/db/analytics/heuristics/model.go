@@ -53,7 +53,7 @@ type Heuristic struct {
 	HeuristicType    string   `json:"Heuristic.type,omitempty"`
 	Parameter        string   `json:"Heuristic.parameter,omitempty"`
 	ClusterTypes     []string `json:"Heuristic.clusterTypes,omitempty"`
-	ExcludeAddresses bool     `json:"Heuristic.excludeAddresses"`
+	ExcludeAddresses *bool    `json:"Heuristic.excludeAddresses"`
 	UserUID          string   `json:"~User.heuristics,omitempty"`
 	Transaction      struct {
 		UID string `json:"uid,omitempty"`
