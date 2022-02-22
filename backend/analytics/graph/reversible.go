@@ -256,12 +256,10 @@ func (g *ReversibleGraph) SetEdge(e graph.Edge) {
 // SetEdgeWithoutOverwrite adds e, an edge from one node to another. If the nodes do not exist, they are added
 // and are set to the nodes of the edge otherwise.
 // It will panic if the IDs of the e.From and e.To are equal.
-func (g *ReversibleGraph) SetEdgeWithoutOverwrite(e graph.Edge) {
+func (g *ReversibleGraph) SetEdgeWithoutOverwrite(from graph.Node, to graph.Node, addressUID int64) {
 	var (
-		from = e.From()
-		fid  = from.ID()
-		to   = e.To()
-		tid  = to.ID()
+		fid = from.ID()
+		tid = to.ID()
 	)
 
 	if fid == tid {
@@ -277,14 +275,29 @@ func (g *ReversibleGraph) SetEdgeWithoutOverwrite(e graph.Edge) {
 	}
 
 	if fm, ok := g.from[fid]; ok {
-		fm[tid] = e
+		if toEdge, ok := fm[tid]; ok {
+			// append address UID
+			addrEdge := toEdge.(addressEdge)
+			addrEdge.addressUIDs = append(addrEdge.addressUIDs, addressUID)
+			fm[tid] = addrEdge
+		} else {
+			fm[tid] = addressEdge{F: from, T: to, addressUIDs: []int64{addressUID}}
+		}
 	} else {
-		g.from[fid] = map[int64]graph.Edge{tid: e}
+		g.from[fid] = map[int64]graph.Edge{tid: addressEdge{F: from, T: to, addressUIDs: []int64{addressUID}}}
 	}
+
 	if tm, ok := g.to[tid]; ok {
-		tm[fid] = e
+		if fromEdge, ok := tm[fid]; ok {
+			// append address UID
+			addrEdge := fromEdge.(addressEdge)
+			addrEdge.addressUIDs = append(addrEdge.addressUIDs, addressUID)
+			tm[fid] = addrEdge
+		} else {
+			tm[fid] = addressEdge{F: from, T: to, addressUIDs: []int64{addressUID}}
+		}
 	} else {
-		g.to[tid] = map[int64]graph.Edge{fid: e}
+		g.to[tid] = map[int64]graph.Edge{fid: addressEdge{F: from, T: to, addressUIDs: []int64{addressUID}}}
 	}
 }
 

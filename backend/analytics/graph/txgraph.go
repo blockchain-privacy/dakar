@@ -167,6 +167,7 @@ func LoadTransactionGraph(c external.Database) (*ReversibleGraph, error) {
 	}
 	runtime.GC()
 	info("transaction graph loaded")
+
 	return g, nil
 }
 
@@ -206,15 +207,20 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
+		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Ts, privacyType: node.PrivacyType})
 
 		for _, input := range node.Inputs {
-			inputUID, parseErr := toInteger(input.UID)
+			inputUID, parseErr := toInteger(input.InputTransaction)
 			if parseErr != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
 			}
 
-			g.SetEdgeWithoutOverwrite(simple.Edge{F: simple.Node(nodeUID), T: simple.Node(inputUID)})
+			addressUID, parseErr := toInteger(input.Address)
+			if parseErr != nil {
+				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
+			}
+
+			g.SetEdgeWithoutOverwrite(simple.Node(nodeUID), simple.Node(inputUID), addressUID)
 		}
 	}
 
