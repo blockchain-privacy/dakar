@@ -7,6 +7,28 @@
         <v-icon>{{ icon.mdiGraph }}</v-icon>
         Heuristics
       </v-toolbar-title>
+      <v-spacer />
+      <v-menu bottom left>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn dark icon v-bind="attrs" v-on="on">
+            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item :disabled="isLoading" @click="refreshHeuristicList">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiRefresh }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Refresh</v-list-item-title>
+          </v-list-item>
+          <v-list-item  @click="showDeleteAllHeuristicsDialog">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiDelete }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Delete All</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-toolbar>
     <v-toolbar dark flat class="hidden-sm-and-up" color="primary">
       <v-text-field
@@ -17,17 +39,6 @@
           hide-details
           style="max-width: 500px"
       ></v-text-field>
-      <v-spacer></v-spacer>
-      <v-btn outlined @click="refreshHeuristicList" :disabled="isLoading">
-        <v-icon>{{ icon.mdiRefresh }}</v-icon>
-      </v-btn>
-      <v-btn
-          outlined
-          class="ml-1"
-          @click="showDeleteAllHeuristicsDialog">
-        <v-icon>{{ icon.mdiDelete }}</v-icon>
-        <div class="ml-2 hidden-sm-and-down">Delete All</div>
-      </v-btn>
     </v-toolbar>
     <v-toolbar dark flat class="hidden-xs-only rounded-toolbar" color="primary">
       <v-toolbar-title>
@@ -41,20 +52,29 @@
           label="Filter items"
           single-line
           hide-details
-          style="max-width: 500px"
-      ></v-text-field>
+          style="max-width: 500px"/>
       <v-spacer></v-spacer>
-      <v-btn outlined @click="refreshHeuristicList" :disabled="isLoading">
-        <v-icon>{{ icon.mdiRefresh }}</v-icon>
-        <div class="ml-2 hidden-sm-and-down">Refresh</div>
-      </v-btn>
-      <v-btn
-          outlined
-          class="ml-1"
-          @click="showDeleteAllHeuristicsDialog">
-        <v-icon>{{ icon.mdiDelete }}</v-icon>
-        <div class="ml-2 hidden-sm-and-down">Delete All</div>
-      </v-btn>
+      <v-menu bottom left>
+        <template v-slot:activator="{ on, attrs }">
+          <v-btn dark icon v-bind="attrs" v-on="on">
+            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item :disabled="isLoading" @click="refreshHeuristicList">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiRefresh }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Refresh</v-list-item-title>
+          </v-list-item>
+          <v-list-item  @click="showDeleteAllHeuristicsDialog">
+            <v-list-item-icon>
+              <v-icon>{{ icon.mdiDelete }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>Delete All</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-toolbar>
     <v-data-table
         :headers="headers"
@@ -65,23 +85,14 @@
         sort-by="mod_time"
         sort-desc
         class="elevation-1">
-
       <template v-slot:[`item.txhash`]="{ item }">
-        <router-link :to="{ name: transactionRoute,
+        <router-link :to="{ name: heuristicRoute,
                     params: { id: item.txhash }}">
           {{ shortenHash(item.txhash) }}
         </router-link>
       </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon
-            small
-            :disabled="isLoading"
-            class="mr-2"
-            @click="goToHeuristicPage(item)">
-          {{ icon.mdiOpenInNew }}
-        </v-icon>
-        <v-icon
-            small
             :disabled="isLoading"
             @click="showDeleteHeuristicDialog(item)">
           {{ icon.mdiDelete }}
@@ -105,9 +116,9 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="closeDeleteAllHeuristicsDialog">Cancel</v-btn>
+          <v-btn color="red" text @click="closeDeleteAllHeuristicsDialog">Cancel</v-btn>
           <v-btn
-              color="blue darken-1"
+              color="primary"
               text
               @click="deleteAllHeuristics">Delete all heuristics
           </v-btn>
@@ -120,22 +131,22 @@
         v-if="this.transactionToDelete">
       <v-card>
         <v-card-title>
-          <span class="text-h5">Delete all transaction heuristics</span>
+          <span class="text-h5">Delete heuristics</span>
         </v-card-title>
         <v-card-text>
           <p class="font-weight-black text-body-1 my-0">
-            All your heuristics of transaction
+            All heuristics you defined for transaction
             {{ shortenHash(this.transactionToDelete.txhash) }}
             will be deleted. Continue?
           </p>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="closeDeleteHeuristicDialog">Cancel</v-btn>
+          <v-btn color="red" text @click="closeDeleteHeuristicDialog">Cancel</v-btn>
           <v-btn
-              color="blue darken-1"
+              color="primary"
               text
-              @click="deleteTransactionHeuristic">Delete
+              @click="deleteTransactionHeuristic">Yes, delete them
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -146,11 +157,10 @@
 <script>
 
 import {
-  mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
+  mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
 } from '@mdi/js';
 import {
-  PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_DELETE_HEURISTIC,
-  ROUTE_HEURISTIC_LIST,
+  PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_DELETE_HEURISTIC, ROUTE_HEURISTIC_LIST,
 } from '../../constants';
 import {
   doGet, doPost, handleError, shortenHash,
@@ -161,10 +171,10 @@ export default {
   data() {
     return {
       icon: {
-        mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiOpenInNew,
+        mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
       },
       heuristicList: null,
-      transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
+      heuristicRoute: ROUTE_NAME_HEURISTIC_PAGE,
       showDeleteAllDialog: false,
       showDeleteTransactionHeuristicDialog: false,
       transactionToDelete: null,
@@ -181,7 +191,7 @@ export default {
           text: 'Last modification', value: 'mod_time',
         },
         {
-          text: 'Actions', value: 'actions', sortable: false, align: 'end',
+          text: '', value: 'actions', sortable: false, align: 'end',
         },
       ],
     };
@@ -234,10 +244,6 @@ export default {
         .catch((error) => {
           this.setErrorMessage(error);
         });
-    },
-    goToHeuristicPage(item) {
-      const id = item.txhash;
-      this.$router.push({ name: ROUTE_NAME_HEURISTIC_PAGE, params: { id } });
     },
     deleteTransactionHeuristic() {
       this.isLoading = true;

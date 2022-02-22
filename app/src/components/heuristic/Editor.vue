@@ -4,7 +4,7 @@
               v-model="banner.display"
               transition="slide-y-transition"
               color="warning">
-      <v-avatar slot="icon" size="40">
+      <v-avatar :v-slot="icon" size="40">
         <v-icon icon="mdi-lock">{{ this.icon.mdiAlertOctagon }}</v-icon>
       </v-avatar>
       Server is not ready to accept request for new heuristics.
@@ -137,7 +137,7 @@ import {
   ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
   ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
-  ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME,
+  ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME, CLUSTER_TYPE_CUSTOM,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import { HeuristicTree, rootIdentifier } from '../../d3Documents/heuristicTree';
@@ -157,7 +157,7 @@ function getDeletedData(oldStateMap, newStateMap) {
   return deletedUids;
 }
 
-// prepareData prepares the heuristic data so it can be sent to be executed
+// prepareData prepares the heuristic data, so it can be sent to be executed
 function prepareData(oldStateMap, newState, changeSet, deletedData) {
   const changedItems = [];
   const newStateMap = new Map(newState.map((d) => [d.uid, d]));
@@ -179,6 +179,8 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parameter: d.parameter,
       children: d.children,
       parent: d.parent,
+      useAddressExclusionList: d.useAddressExclusionList,
+      clusterTypes: d.clusterTypes,
     });
   });
 
@@ -271,8 +273,10 @@ export default {
         heuristicUid: '',
         heuristicTypeTitle: '',
         heuristicParameter: '',
-        resultCount: null,
-        transactions: null,
+        heuristicCustomClusters: false,
+        heuristicExcludeAddresses: false,
+        clusterCount: null,
+        clusters: null,
       },
       ht: new HeuristicTree(150, this),
       heuristicDescriptors: [],
@@ -330,7 +334,13 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
     },
     addNewHeuristic(heuristic) {
-      const newHeuristic = { type: heuristic.type, uid: `${this.newUidPrefix}${this.uidCounter}` };
+      const newHeuristic = {
+        uid: `${this.newUidPrefix}${this.uidCounter}`,
+        type: heuristic.type,
+        clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
+        useAddressExclusionList: heuristic.useAddressExclusionList,
+      };
+
       if (heuristic.parameter) {
         newHeuristic.parameter = `${heuristic.parameter.value}`;
       }
@@ -363,20 +373,23 @@ export default {
       });
 
       sheet.heuristicParameter = heuristic.parameter;
+      sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
+      sheet.heuristicCustomClusters = heuristic.clusterTypes
+          && heuristic.clusterTypes.length > 0;
       sheet.heuristicTypeTitle = displayType;
-      sheet.resultCount = heuristic.num_results;
+      sheet.clusterCount = heuristic.clusterCount;
       sheet.heuristicUid = heuristic.uid;
-      sheet.transactions = null;
+      sheet.clusters = null;
 
       // check if data has to be loaded from backend
-      if (heuristic.num_results === undefined || heuristic.num_results === 0
+      if (heuristic.clusterCount === undefined || heuristic.clusterCount === 0
           || heuristic.uid.startsWith(this.newUidPrefix)) {
         sheet.isOpen = true;
         return;
       }
 
       if (this.heuristicDetailsMap.has(heuristic.uid)) {
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
+        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
         sheet.isOpen = true;
         return;
       }
@@ -385,7 +398,7 @@ export default {
       this.loadHeuristicDetails({ uid: heuristic.uid }).then(() => {
         if (this.heuristicDetailsMap.size === 0
             || !this.heuristicDetailsMap.has(heuristic.uid)) return;
-        sheet.transactions = this.heuristicDetailsMap.get(heuristic.uid);
+        sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
         sheet.isOpen = true;
       });
     },
@@ -475,7 +488,7 @@ export default {
           a.remove();
         })
         .catch((error) => {
-          this.errorMsg = error;
+          this.setErrorMessage(error);
         });
     },
     // updateChangeSet updates the change set <this.changeSet> based
@@ -497,23 +510,23 @@ export default {
       });
 
       // this set will have some duplicates, if changes are nested we get overlapping descendants
-      const descendantSet = [];
+      const descendantArray = [];
       // find descendants for each changed root element
       originChangeSet.forEach((d) => {
         // get subtree
         const descendants = this.ht.getDescendants(d.uid);
-        descendantSet.push(...descendants);
+        descendantArray.push(...descendants);
       });
 
       // remove duplicates
-      const descendantMap = new Map(descendantSet.map(
+      const descendantMap = new Map(descendantArray.map(
         (tempObject) => [tempObject.data.data.uid, tempObject],
       ));
 
       // save in global changeSet
       descendantMap.forEach((e) => this.changeSet.push(e.data.data.uid));
 
-      this.ht.setNodesChanged(descendantSet);
+      this.ht.setNodesChanged(descendantMap);
     },
     deleteSubTree() {
       const toBeRemoved = this.ht.getRemovableNodes();
@@ -556,7 +569,7 @@ export default {
       // maps the node data to the tree layout
       this.ht.processGraphData(this.data.heuristics);
       // updateChangeSet is called after a graph update,
-      // because otherwise it gets a not up to date descendant state
+      // because otherwise it gets an out of date descendant state
       this.updateChangeSet();
     },
     loadHeuristicData(transactionHash) {
@@ -766,13 +779,14 @@ svg {
   --background-color: white;
 }
 
->>> .rect{
+>>> .rect {
   stroke: #008ee5;
   fill: var(--background-color);
   fill-opacity: 1;
   cursor: pointer;
 }
-[data-theme="darkMode"]{
+
+[data-theme="darkMode"] {
   /* Variables for dark mode */
   --background-color: black;
 }

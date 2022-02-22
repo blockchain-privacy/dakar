@@ -17,7 +17,7 @@ import (
 // GetTransactionsOutputs returns all outputs of each given transaction
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (transaction []OutputTransactionMapping, err error) {
 	query := `{
-				q(func: eq(txhash,` + db.CreateUIDList(transactionHashes) + `)){
+				q(func: eq(txhash,` + db.CreateCommaArray(transactionHashes) + `)){
 					txhash
 					tx_outputs{
 						uid
@@ -273,7 +273,7 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 	// without retry, as this request can easily time out
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateUIDList(txUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateCommaArray(txUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

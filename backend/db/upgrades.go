@@ -832,5 +832,84 @@ func MigrateCluster(c external.Database) error {
 			}
 		`,
 	})
+}
 
+// MigrateHeuristics migrates the heuristics predicates to the new structure (including attributions and clusters)
+func MigrateHeuristics(c external.Database) error {
+	// drop old predicate
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "Heuristic.results",
+	}); err != nil {
+		return err
+	}
+
+	if err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "HeuristicResult.cluster",
+	}); err != nil {
+		return err
+	}
+
+	// update type definition
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.clusters: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
+
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.clusters
+				Heuristic.ts
+				Heuristic.parent
+			}
+
+			HeuristicResult.origin: uid @reverse .
+			HeuristicResult.destinations: [uid] @reverse .
+
+			type HeuristicResult {
+				HeuristicResult.origin
+				HeuristicResult.destinations
+			}
+
+			HeuristicCluster.results: [uid] @reverse .
+			HeuristicCluster.attributions: [uid] @reverse .
+
+			type HeuristicCluster {
+				HeuristicCluster.results
+				HeuristicCluster.attributions
+			}
+		`,
+	})
+}
+
+// AlterSchemaAddHeuristicProperties changes adds the new heuristic type
+func AlterSchemaAddHeuristicProperties(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			Heuristic.type: string @index(hash) .
+			Heuristic.parameter: string .
+			Heuristic.transaction: uid @reverse .
+			Heuristic.clusters: [uid] @count @reverse .
+			Heuristic.parent: [uid] @reverse .
+			Heuristic.ts: dateTime @index(day) .
+			Heuristic.clusterTypes: [string] .
+			Heuristic.excludeAddresses: bool .
+
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.clusters
+				Heuristic.ts
+				Heuristic.parent
+				Heuristic.clusterTypes
+				Heuristic.excludeAddresses
+			}
+		`,
+	})
 }

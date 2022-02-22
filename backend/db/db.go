@@ -3,6 +3,7 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"context"
 	"fmt"
@@ -153,7 +154,7 @@ func DropAll(db external.Database) error {
 
 // CreateClient create a new dgraph client connecting to the specified host and port
 func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure(),
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
 	if err != nil {
@@ -164,9 +165,9 @@ func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) 
 	return &external.GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
 }
 
-// CreateUIDEnum returns a formatted string which contains all given uids for usage with Dgraph
+// CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph
 // Example: 0x123,0x1a1d
-func CreateUIDEnum(uids []string) string {
+func CreateCommaList(uids []string) string {
 	var uidEnum string
 	for i, uid := range uids {
 		uidEnum += uid
@@ -177,8 +178,8 @@ func CreateUIDEnum(uids []string) string {
 	return uidEnum
 }
 
-// CreateUIDList returns a formatted string which contains all given uids for usage with Dgraph
+// CreateCommaArray returns a formatted string which contains all given uids for usage with Dgraph
 // Example: [0x123,0x1a1d]
-func CreateUIDList(uids []string) string {
-	return "[" + CreateUIDEnum(uids) + "]"
+func CreateCommaArray(uids []string) string {
+	return "[" + CreateCommaList(uids) + "]"
 }

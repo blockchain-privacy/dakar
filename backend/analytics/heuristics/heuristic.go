@@ -3,6 +3,8 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/attribution"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/db/transaction"
@@ -15,6 +17,9 @@ import (
 
 // errorNoOriginsAtStart defines an error which should be used when no origins are available
 var errorNoOriginsAtStart = errors.New("no origins can be fetched")
+
+//
+var errorInvalidClusterTypes = errors.New("cluster types are not valid")
 
 const (
 	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
@@ -39,7 +44,7 @@ type Descriptor struct {
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]heuristics.HeuristicResult, error)
+	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -48,6 +53,18 @@ type heuristic interface {
 	hasParameter() bool
 	// setParameter sets the parameter
 	setParameter(string) error
+	// setClusterTypes sets the cluster types, which are used to cluster the results of the heuristic.
+	// If cluster types are set to nil, the result will not be clustered.
+	// If multiple cluster types are set, then the consolidation of these clusters will be used.
+	setClusterTypes([]clustering.ClusterType) error
+	// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+	getClusterTypes() []clustering.ClusterType
+	// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+	setExcludeAddresses(bool)
+	// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+	getExcludeAddresses() bool
+	// setUserUID sets the UID of the user who created this heuristic
+	setUserUID(string)
 	// String returns the heuristic in string format
 	String() string
 	// GetDescriptor returns description of the heuristic and its expected parameter for the frontend
@@ -134,7 +151,8 @@ func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]h
 
 // countClusterDenominations creates a map of clusters with the
 // number of denominations of the specified denomination type
-func countClusterDenominations(origins []heuristics.HeuristicTransaction, denominationIndex int) (oSource clusterDenominations, err error) {
+func countClusterDenominations(origins []heuristics.HeuristicTransaction, denominationIndex int) (
+	oSource clusterDenominations, err error) {
 	oSource.denominationIndex = denominationIndex
 	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
@@ -172,17 +190,19 @@ func getKeySlice(m map[string]bool) (keys []string) {
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
+	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType) (
+	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// get tx details for each uid
-	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(endpoints))
+	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(endpoints),
+		userUID, clusterTypes)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return
@@ -190,28 +210,31 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
-func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper,
-	txHash string) ([]heuristics.HeuristicTransaction, error) {
-	origins, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90)
+func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash string, userUID string,
+	requestedClusterTypes []clustering.ClusterType) ([]heuristics.HeuristicTransaction,
+	map[heuristics.ClusterUID][]string, error) {
+	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90,
+		userUID, requestedClusterTypes)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
-	return origins, nil
+	return origins, attributionMapping, nil
 }
 
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
-func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper,
-	txHash string, dur time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
+func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper, txHash string,
+	dur time.Duration, userUID string, requestedClusterTypes []clustering.ClusterType) (
+	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUID(dgraph, txHash)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	inputTransactions, err := g.GetInputTransactions(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	uidMap := make(map[string]bool)
@@ -219,7 +242,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	for _, it := range inputTransactions {
 		endpoints, lookupErr := g.ReverseLookup(it, dur)
 		if lookupErr != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
+			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
 
 		for k := range endpoints {
@@ -228,9 +251,10 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	}
 
 	// get tx details for each uid
-	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
+	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(uidMap),
+		userUID, requestedClusterTypes)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return
@@ -253,24 +277,6 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 	}
 
 	return uidMap, nil
-}
-
-// getOriginDestinationsWithOutputs returns all destinations
-// of the given transactions limited by time. Each transaction contains its outputs.
-func getOriginDestinationsWithOutputs(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration) (origins []heuristics.HeuristicTransaction, err error) {
-	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	// get tx details for each uid
-	origins, err = heuristics.GetTransactionsWithOutputAmountAndInputAddresses(dgraph, getKeySlice(uidMap))
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return
 }
 
 // getOriginDestinationsWithInputs returns all destinations
@@ -335,7 +341,6 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
 					executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr))
 		}
-
 	}
 
 	var returnError error
@@ -346,15 +351,18 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 // exec executes the heuristic on the transaction specified by txHash for the given userUID
 func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
 	userUID string) (thisUID string, err error) {
-	heuristicResults, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
+	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, errorNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	// set DType
-	for i := range heuristicResults {
-		heuristicResults[i].SetDType()
+	for i := range heuristicClusters {
+		heuristicClusters[i].SetDType()
+		for y := range heuristicClusters[i].Results {
+			heuristicClusters[i].Results[y].SetDType()
+		}
 	}
 
 	// only set parent heuristic if uid is provided
@@ -363,12 +371,19 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
 	}
 
+	var clusterTypes []string
+	for _, cType := range h.getClusterTypes() {
+		clusterTypes = append(clusterTypes, string(cType))
+	}
+
 	thisUID, err = heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
-		HeuristicType:   h.getType(),
-		Results:         heuristicResults,
-		Parameter:       h.getParameterString(),
-		ParentHeuristic: pHeuristic,
-		TxHash:          txHash,
+		HeuristicType:    h.getType(),
+		ClusterTypes:     clusterTypes,
+		ExcludeAddresses: h.getExcludeAddresses(),
+		Clusters:         heuristicClusters,
+		Parameter:        h.getParameterString(),
+		ParentHeuristic:  pHeuristic,
+		TxHash:           txHash,
 	}, userUID)
 
 	if err != nil {
@@ -377,4 +392,27 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	}
 
 	return
+}
+
+// createHeuristicClusters converts the given map into HeuristicCluster's
+func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult,
+	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
+	var resultCluster []heuristics.HeuristicCluster
+	for clusterID, results := range clusterMap {
+		var attributions []attribution.Attribution
+		if attributionMap != nil {
+			if attrs, ok := attributionMap[clusterID]; ok {
+				for _, a := range attrs {
+					attributions = append(attributions, attribution.Attribution{Uid: a})
+				}
+			}
+		}
+
+		resultCluster = append(resultCluster, heuristics.HeuristicCluster{
+			Results:      results,
+			Attributions: attributions,
+		})
+	}
+
+	return resultCluster
 }

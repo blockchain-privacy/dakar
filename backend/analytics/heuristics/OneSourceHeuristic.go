@@ -3,8 +3,10 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"errors"
 
 	"fmt"
 	"strconv"
@@ -15,16 +17,20 @@ import (
 type oneSourceHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
+	excludeAddresses     bool
 	lookBackTime         time.Duration
+	clusterTypes         []clustering.ClusterType
 }
 
 // newOneSourceHeuristic constructs an oneSourceHeuristic. hoursToLookBack in hours
-func newOneSourceHeuristic(hoursToLookBack uint32) *oneSourceHeuristic {
+func newOneSourceHeuristic(hoursToLookBack uint32, clusterTypes []clustering.ClusterType) *oneSourceHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &oneSourceHeuristic{
 		heuristicType:        "one_source",
 		lookBackTime:         lBackTime,
 		parameterDescription: strconv.FormatUint(uint64(hoursToLookBack), 10),
+		clusterTypes:         clusterTypes,
 	}
 }
 
@@ -49,6 +55,39 @@ func (h *oneSourceHeuristic) setParameter(p string) error {
 	h.lookBackTime = lBackTime
 	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
 	return nil
+}
+
+// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
+// Multi-input clusters are always used to execute the heuristic,
+// any cluster type set here will be used additionally. If at least one cluster type is set,
+// then the consolidation of the multi-input clusters and the additional clusters will be used.
+func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
+	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *oneSourceHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *oneSourceHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *oneSourceHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
+}
+
+// setUserUID sets the UID of the user who created this heuristic
+func (h *oneSourceHeuristic) setUserUID(uid string) {
+	h.userUID = uid
 }
 
 func (h oneSourceHeuristic) String() string {
@@ -90,7 +129,7 @@ type txAndOrigins struct {
 // - filter all origins of sources, which do not occur in all sets of input transaction origins
 // This heuristic does not use the results from its parent heuristic
 func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
-	[]heuristics.HeuristicResult, error) {
+	[]heuristics.HeuristicCluster, error) {
 	// Get all transactions which are connected via the inputs of the destination
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
@@ -112,15 +151,21 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
 	var allTxAndOrigins []txAndOrigins
-
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
 		if len(timeLimitedOrigins) == 0 {
 			continue
+		}
+
+		// merge the attribution maps
+		for id, attributions := range usedAttributions {
+			attributionMap[id] = attributions
 		}
 
 		allTimeLimitedOrigins = append(allTimeLimitedOrigins, timeLimitedOrigins...)
@@ -195,12 +240,21 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		}
 	}
 
-	var ret []heuristics.HeuristicResult
-	for k := range remainingOrigins {
-		ret = append(ret, heuristics.HeuristicResult{
-			Origin: heuristics.DummyNode{UID: k},
-		})
+	allOriginMap := make(map[string]heuristics.HeuristicTransaction)
+	for _, tx := range allTimeLimitedOrigins {
+		allOriginMap[tx.UID] = tx
 	}
 
-	return ret, nil
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	for k := range remainingOrigins {
+		if v, ok := allOriginMap[k]; !ok {
+			return nil, errors.New("could not find origin in all origin map")
+		} else {
+			resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
+				Origin: heuristics.DummyNode{UID: k},
+			})
+		}
+	}
+
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }

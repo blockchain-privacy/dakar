@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 
@@ -15,16 +16,20 @@ import (
 type reverseLookupHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
+	excludeAddresses     bool
 	lookBackTime         time.Duration
+	clusterTypes         []clustering.ClusterType
 }
 
 // newReverseLookupHeuristic constructs a reverseLookupHeuristic. hoursToLookBack in hours.
-func newReverseLookupHeuristic(hoursToLookBack uint32) *reverseLookupHeuristic {
+func newReverseLookupHeuristic(hoursToLookBack uint32, clusteringMethod []clustering.ClusterType) *reverseLookupHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &reverseLookupHeuristic{
 		heuristicType:        "reverse_lookup",
 		lookBackTime:         lBackTime,
 		parameterDescription: lBackTime.String(),
+		clusterTypes:         clusteringMethod,
 	}
 }
 
@@ -49,6 +54,39 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 	h.lookBackTime = lBackTime
 	h.parameterDescription = strconv.FormatUint(hoursToLookBack, 10)
 	return nil
+}
+
+// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
+// Multi-input clusters are always used to execute the heuristic,
+// any cluster type set here will be used additionally. If at least one cluster type is set,
+// then the consolidation of the multi-input clusters and the additional clusters will be used.
+func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
+	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *reverseLookupHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *reverseLookupHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *reverseLookupHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
+}
+
+// setUserUID sets the UID of the user who created this heuristic
+func (h *reverseLookupHeuristic) setUserUID(uid string) {
+	h.userUID = uid
 }
 
 func (h reverseLookupHeuristic) String() string {
@@ -83,24 +121,26 @@ func (h reverseLookupHeuristic) clone() heuristic {
 // reverseLookupHeuristic applies the following heuristics:
 // - filter all origins, which are not created in the time span defined by lookBackTime
 func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string) ([]heuristics.HeuristicResult, error) {
+	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// holds all origins from either the parent heuristic or the associated destination transaction
 	originLimit := make(map[string]bool)
-
+	// parentAttributionMap maps a clusterUID to a slice of attribution UIDs
+	var parentAttributionMap map[heuristics.ClusterUID][]string
 	parentHeuristicSet := isParentHeuristicSet(parentHeuristicUID)
 	if parentHeuristicSet {
 		// get origins from parent heuristic
-		parentHeuristic, err := heuristics.GetHeuristic(dgraph, parentHeuristicUID)
+		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		if len(parentHeuristic.Results) == 0 {
+		if parentHeuristicResults == nil {
 			return nil, errorNoOriginsAtStart
 		}
 
-		for _, r := range parentHeuristic.Results {
-			originLimit[r.Origin.UID] = true
+		parentAttributionMap = attrMap
+		for _, hr := range parentHeuristicResults {
+			originLimit[hr.UID] = true
 		}
 	}
 
@@ -110,30 +150,47 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	allTimeLimitedOrigins := make(map[string]bool)
-
+	allTimeLimitedOrigins := make(map[string]heuristics.HeuristicTransaction)
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime)
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
-
+		if timeLimitedOrigins == nil {
+			continue
+		}
 		// save all origins only once
 		for _, t := range timeLimitedOrigins {
 			// only save if the uid also exists in the parent origin set
 			if parentHeuristicSet && !originLimit[t.UID] {
 				continue
 			}
-			allTimeLimitedOrigins[t.UID] = true
+			allTimeLimitedOrigins[t.UID] = t
+		}
+
+		if parentHeuristicSet {
+			// no need to merge the attributions if they are not used
+			continue
+		}
+
+		// merge the attribution maps
+		for id, attributions := range usedAttributions {
+			attributionMap[id] = attributions
 		}
 	}
 
-	var ret []heuristics.HeuristicResult
-	for k := range allTimeLimitedOrigins {
-		ret = append(ret, heuristics.HeuristicResult{
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
+	for k, v := range allTimeLimitedOrigins {
+		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
 			Origin: heuristics.DummyNode{UID: k},
 		})
 	}
 
-	return ret, nil
+	if parentHeuristicSet {
+		return createHeuristicClusters(resultClusters, parentAttributionMap), nil
+	} else {
+		return createHeuristicClusters(resultClusters, attributionMap), nil
+	}
 }

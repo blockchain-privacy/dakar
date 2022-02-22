@@ -3,6 +3,7 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	dbop "backend/db/output"
 	"backend/external"
@@ -14,12 +15,16 @@ import (
 type reverseAmountHeuristic struct {
 	heuristicType        string
 	parameterDescription string
+	userUID              string
+	excludeAddresses     bool
+	clusterTypes         []clustering.ClusterType
 }
 
 // newReverseAmountHeuristic constructs an reverseAmountHeuristic
-func newReverseAmountHeuristic() reverseAmountHeuristic {
-	return reverseAmountHeuristic{
+func newReverseAmountHeuristic(clusterTypes []clustering.ClusterType) *reverseAmountHeuristic {
+	return &reverseAmountHeuristic{
 		heuristicType: "reverse_amount",
+		clusterTypes:  clusterTypes,
 	}
 }
 
@@ -37,6 +42,39 @@ func (h reverseAmountHeuristic) hasParameter() bool {
 
 func (h reverseAmountHeuristic) setParameter(_ string) error {
 	return nil
+}
+
+// setClusterTypes sets additional cluster types, which are used to execute the heuristic.
+// Multi-input clusters are always used to execute the heuristic,
+// any cluster type set here will be used additionally. If at least one cluster type is set,
+// then the consolidation of the multi-input clusters and the additional clusters will be used.
+func (h *reverseAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
+	if !areClusterTypesValid(clusterTypes) {
+		return errorInvalidClusterTypes
+	}
+
+	h.clusterTypes = clusterTypes
+	return nil
+}
+
+// getClusterTypes returns the cluster types this heuristic uses to cluster addresses
+func (h *reverseAmountHeuristic) getClusterTypes() []clustering.ClusterType {
+	return h.clusterTypes
+}
+
+// setExcludeAddresses sets whether certain addresses should be excluded from the lookups
+func (h *reverseAmountHeuristic) setExcludeAddresses(excludeAddresses bool) {
+	h.excludeAddresses = excludeAddresses
+}
+
+// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
+func (h *reverseAmountHeuristic) getExcludeAddresses() bool {
+	return h.excludeAddresses
+}
+
+// setUserUID sets the UID of the user who created this heuristic
+func (h *reverseAmountHeuristic) setUserUID(uid string) {
+	h.userUID = uid
 }
 
 func (h reverseAmountHeuristic) String() string {
@@ -62,24 +100,26 @@ func (h reverseAmountHeuristic) clone() heuristic {
 // reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
 func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
-	[]heuristics.HeuristicResult, error) {
+	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
+	// attributionMap maps a clusterUID to a slice of attribution UIDs
+	var attributionMap map[heuristics.ClusterUID][]string
 	{ // separate enclosure so the results slice can be garbage collected
 		var results []heuristics.HeuristicTransaction
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error
-			results, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
+			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
 		} else {
 			var err error
-			results, err = getDestinationTxOrigins(dgraph, g, txHash)
+			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID, h.clusterTypes)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -110,18 +150,19 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	originAmounts := buildSourceAmounts(origins)
 
-	var filteredOrigins []heuristics.HeuristicResult
+	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for clusterID, denominationSlice := range originAmounts {
 		if containsDenomination(inputDenominationCounts, denominationSlice) {
 			// save all transaction uids of a particular cluster to the return set
 			for _, tx := range sourceTransactionMap[clusterID] {
-
-				filteredOrigins = append(filteredOrigins, heuristics.HeuristicResult{Origin: heuristics.DummyNode{UID: tx.UID}})
+				resultClusters[tx.Cluster] = append(resultClusters[tx.Cluster], heuristics.HeuristicResult{
+					Origin: heuristics.DummyNode{UID: tx.UID},
+				})
 			}
 		}
 	}
 
-	return filteredOrigins, nil
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
 // containsDenomination returns true if all denominations with at least the same amount of denom1 are contained in denom2

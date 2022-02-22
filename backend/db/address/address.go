@@ -241,7 +241,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 // GetAddressUIDs returns all requested address nodes
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	query := `{
-				q(func: eq(addresshash,` + db.CreateUIDList(addressHashes) + `)){
+				q(func: eq(addresshash,` + db.CreateCommaArray(addressHashes) + `)){
 					uid
 					addresshash
 				}

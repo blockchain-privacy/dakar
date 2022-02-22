@@ -22,17 +22,16 @@
                       v-for="item in tabItems"
                       :key="item">
             <div class="d-flex flex-wrap" style="align-items: flex-start;">
-              <v-card
-                  outlined
-                  v-for="(item, index)
-                      in descriptors.filter((e) => {
+              <v-card outlined
+                      v-for="(item, index)
+                      in heuristicTypes.filter((e) => {
                         if(!e.category && item === 'Other')
                           return true;
                         return e.category === item
                       })"
-                  :key="index"
-                  class="mx-3 mb-6"
-                  max-width="300">
+                      :key="index"
+                      class="mx-3 mb-6"
+                      max-width="300">
                 <v-card-title>
                   {{ item.title }}
                 </v-card-title>
@@ -48,9 +47,18 @@
                         required>
                     </v-text-field>
                   </v-form>
+                  <v-switch
+                      label="Use custom clusters"
+                      v-model="item.useCustomClusters"/>
+                  <!-- for now disabled -->
+                  <v-switch v-if="false"
+                            label="Use address exclusion list"
+                            v-model="item.useAddressExclusionList"/>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
-                  <v-btn outlined color="primary" @click="addNewHeuristicAction(item)">Add</v-btn>
+                  <v-btn class="ml-auto" outlined color="primary"
+                         @click="addNewHeuristicAction(item)">Add
+                  </v-btn>
                 </v-card-actions>
               </v-card>
             </div>
@@ -90,6 +98,13 @@ export default {
     };
   },
   computed: {
+    heuristicTypes() {
+      return this.descriptors.map((descriptor) => {
+        descriptor.useCustomClusters = false;
+        descriptor.useAddressExclusionList = false;
+        return descriptor;
+      });
+    },
     inputVal: {
       get() {
         return this.value;

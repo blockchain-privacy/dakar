@@ -10,23 +10,15 @@
         </div>
         <v-text-field
             v-model="query"
+            :append-icon="icons.mdiMagnify"
             full-width
             outlined
             class="search-field v-input--is-focused"
             label="Search for blocks, transactions and addresses"
             :rules="[isValidQuery]"
             :background-color="$vuetify.theme.dark?'black':'white'"
+            @click:append="handleQuery(query)"
             @keydown.enter="handleQuery(query)">
-          <template v-slot:append-outer>
-            <v-btn
-                outlined
-                class="search-btn"
-                :class="$vuetify.theme.dark?'dark-background':'light-background'"
-                color="primary"
-                @click="handleQuery(query)">
-              <v-icon> {{ icons.mdiMagnify }}</v-icon>
-            </v-btn>
-          </template>
         </v-text-field>
         <div class="d-flex justify-center ">
           <p class="text-h6" style="position:relative; z-index: 5">
@@ -159,28 +151,13 @@ export default {
 
 <style scoped>
 
-.search-field {
-  z-index: 5;
-  border-bottom-right-radius: 0;
-  border-top-right-radius: 0;
-}
-
 >>> .search-field fieldset {
-  border-width: 3px 0 3px 3px;
+  border-width: 3px 3px 3px 3px;
   border-color: #1976d2;
 }
 
 >>> .v-input--is-focused {
   transform: none;
-}
-
-.search-btn {
-  margin-left: -10px;
-  margin-top: -19px;
-  height: 57px !important;
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  border-width: 3px 3px 3px 0;
 }
 
 </style>

@@ -207,7 +207,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 			continue
 		}
 		index := strconv.Itoa(i)
-		query += "var(func:uid(" + db.CreateUIDEnum(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
+		query += "var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
 		setNquads += "<" + o.NewCluster.Uid + "> <Cluster.addresses> uid(a" + index + ") .\n"
 
 		for _, oc := range o.OldClusters {
@@ -302,7 +302,7 @@ func getClusterQuery(maxAddresses int) string {
 		limiter = "(first:" + strconv.Itoa(maxAddresses) + ")"
 	}
 
-	return `q(func: uid(c)){
+	return `q(func: uid(c))@filter(not has(Cluster.user) or uid_in(Cluster.user,$user)){
 				uid
 				Cluster.type
 				Cluster.addressCount
@@ -556,6 +556,54 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 	return
 }
 
+// GetUserClustersUIDs returns all UIDs of clusters of a user
+func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+	var filter string
+	if len(clusterTypeFilter) > 0 {
+		for i, ct := range clusterTypeFilter {
+			filter += string(ct)
+
+			if i+1 < len(clusterTypeFilter) {
+				filter += ","
+			}
+		}
+
+		filter = "@filter(eq(Cluster.type," + filter + "))"
+	}
+
+	query := fmt.Sprintf(`query Q($user:string) {
+				var(func:uid($user))@filter(type(User)){
+					c as ~Cluster.user%s
+				}
+
+				q(func: uid(c)){
+					uid
+				}
+			  }`, filter)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		clusters = append(clusters, cluster.Uid)
+	}
+
+	return
+}
+
 // DeleteCluster deletes the given cluster
 func DeleteCluster(c external.Database, userID string, clusterUID string) (err error) {
 	req := &api.Request{
@@ -605,6 +653,57 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
 		return errors.New("nothing was deleted")
+	}
+
+	return
+}
+
+// GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster
+func GetRelatedClusters(c external.Database, clusterUID string, userUID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
+	if clusterTypeFilter == nil {
+		err = errors.New("no cluster types passed to function")
+		return
+	}
+
+	var filter string
+	for i, ct := range clusterTypeFilter {
+		filter += string(ct)
+
+		if i+1 < len(clusterTypeFilter) {
+			filter += ","
+		}
+	}
+
+	query := fmt.Sprintf(`query Q($user:string,$cluster:string) {
+					var(func: uid($cluster))@recurse{
+    					Cluster.addresses
+    					c as ~Cluster.addresses@filter(eq(Cluster.type, `+string(TypeFMI)+`) or (eq(Cluster.type,%s) and uid_in(Cluster.user,$user)))
+  					}
+
+  					q(func: uid(c)) {
+    					uid
+					}
+				  }`, filter)
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$user": userUID, "$cluster": clusterUID})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Clusters []struct {
+			Uid string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	for _, cluster := range r.Clusters {
+		clusters = append(clusters, cluster.Uid)
 	}
 
 	return

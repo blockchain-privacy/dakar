@@ -2,9 +2,9 @@ package heuristics
 
 import (
 	"backend/cmd/cliutil"
+	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-
 	"errors"
 	"fmt"
 	"strings"
@@ -12,9 +12,9 @@ import (
 
 // ValidHeuristicTypes includes all heuristics which are possible to receive from the frontend.
 // New heuristics must be added here
-var ValidHeuristicTypes = []heuristic{newOneSourceHeuristic(0), newReverseAmountHeuristic(),
-	newPerfectMatchHeuristic(), newDenominationTypeHeuristic(), newReverseLookupHeuristic(0),
-	newForwardLookupHeuristic(0), newForwardAmountHeuristic(0)}
+var ValidHeuristicTypes = []heuristic{newOneSourceHeuristic(0, nil), newReverseAmountHeuristic(nil),
+	newPerfectMatchHeuristic(nil), newDenominationTypeHeuristic(nil), newReverseLookupHeuristic(0, nil),
+	newForwardLookupHeuristic(0, nil), newForwardAmountHeuristic(0, nil)}
 
 // typeMap K: heuristic types, v: heuristics
 var typeMap = make(map[string]heuristic)
@@ -41,7 +41,7 @@ type heuristicTreeElement struct {
 }
 
 // isValid checks if the given heuristics are all valid
-func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) bool {
+func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristicRequest) bool {
 	if len(heuristics) == 0 {
 		return false
 	}
@@ -61,7 +61,8 @@ func isValid(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristi
 	return true
 }
 
-func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristic) (builtHeuristics map[string]heuristicTreeElement,
+func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristics.FrontendHeuristicRequest,
+	userUID string) (builtHeuristics map[string]heuristicTreeElement,
 	err error) {
 	// create map
 	builtHeuristics = make(map[string]heuristicTreeElement)
@@ -87,6 +88,14 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 					return
 				}
 			}
+
+			err = newHeuristic.setClusterTypes(h.ClusterTypes)
+			if err != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return
+			}
+
+			newHeuristic.setUserUID(userUID)
 
 			var childHeuristicUids []string
 
@@ -267,7 +276,8 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 }
 
 // ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristic) (
+func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristicRequest,
+	userUID string) (
 	executors []heuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
@@ -281,7 +291,7 @@ func ConstructExecutors(dgraph external.Database, txhash string, results []heuri
 		return
 	}
 
-	newHeuristics, err := buildHeuristicTreeElements(typeMap, results)
+	newHeuristics, err := buildHeuristicTreeElements(typeMap, results, userUID)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -325,8 +335,18 @@ func ConstructExecutors(dgraph external.Database, txhash string, results []heuri
 	return
 }
 
+// areClusterTypesValid checks if the given clusterTypes are valid
+func areClusterTypesValid(clusterTypes []clustering.ClusterType) bool {
+	if len(clusterTypes) == 0 {
+		return true
+	}
+
+	// for now only one additional cluster type exists
+	return len(clusterTypes) == 1 && clusterTypes[0] == clustering.TypeCustom
+}
+
 // areSetsValid checks if the uids of removed are appearing in changed
-func areSetsValid(changed []heuristics.FrontendHeuristic, removed []string) bool {
+func areSetsValid(changed []heuristics.FrontendHeuristicRequest, removed []string) bool {
 	// if both are empty there is an error
 	if len(changed) == 0 && len(removed) == 0 {
 		return false
@@ -355,7 +375,7 @@ func areSetsValid(changed []heuristics.FrontendHeuristic, removed []string) bool
 }
 
 // mergeRemoveList adds the uids of
-func mergeRemoveList(changed []heuristics.FrontendHeuristic, removed []string) []string {
+func mergeRemoveList(changed []heuristics.FrontendHeuristicRequest, removed []string) []string {
 	for _, c := range changed {
 		// only add heuristics which actually exist in the database
 		if !strings.HasPrefix(c.UID, newUIDPrefix) {
@@ -367,7 +387,8 @@ func mergeRemoveList(changed []heuristics.FrontendHeuristic, removed []string) [
 }
 
 // CreateWork does some checks changed and toRemove
-func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristic, toRemove []string) (w Work, err error) {
+func CreateWork(dgraph external.Database, transactionHash string, changed []heuristics.FrontendHeuristicRequest,
+	toRemove []string, userUID string) (w Work, err error) {
 	if !areSetsValid(changed, toRemove) {
 		err = errors.New("error sets are not valid")
 		return
@@ -375,7 +396,7 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 
 	if len(changed) > 0 {
 		// create heuristicExecutor trees
-		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed)
+		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed, userUID)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
