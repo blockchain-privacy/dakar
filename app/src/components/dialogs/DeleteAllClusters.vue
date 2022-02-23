@@ -53,7 +53,7 @@ export default {
     },
     deleteAllClusters() {
       this.isLoading = true;
-      doGet(ROUTE_DELETE_ALL_CLUSTERS, this.$router, this.$store, this.clusterUid)
+      doGet(ROUTE_DELETE_ALL_CLUSTERS, this.$router, this.$store)
         .then((d) => {
           if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting clusters');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
