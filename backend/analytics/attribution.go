@@ -18,15 +18,14 @@ type Attribution struct {
 	Category    string
 }
 
-var (
-	errTooManyAddresses   = errors.New("request contains more than 1000 addresses")
-	errNonExistentAddress = errors.New("address does not exist")
-)
-
 // ImportAttribution writes the given address relations into the database
 func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string, isPublic bool) error {
 	if userID == "" {
 		return errors.New("user ID is not set")
+	}
+
+	if len(attributions) == 0 {
+		return errors.New("attribution list is empty")
 	}
 
 	err, addrToUID := validateAddresses(dgraph, attributions)
@@ -71,13 +70,13 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 }
 
 // validateAddresses returns an error, if the given attribution items are not valid.
-// Returns errTooManyAddresses if there are more than 1000 items.
-// If an address does not exist on the db an error containing the address hash is returned.
+// Returns ErrTooManyAddresses if there are more than 1000 items.
+// If an address does not exist on the db, an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID.
 func validateAddresses(dgraph external.Database, attributions []Attribution) (error, map[string]string) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
-		return errTooManyAddresses, nil
+		return ErrTooManyAddresses, nil
 	}
 
 	addresses := map[string]bool{}
@@ -109,7 +108,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (er
 			break
 		}
 
-		return fmt.Errorf("%s: %w", nonAddress, errNonExistentAddress), nil
+		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
 	}
 
 	// build mapping
