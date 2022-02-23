@@ -41,6 +41,10 @@ const (
 	routeDeletePublicAttribution      string = "deletePublicAttribution"
 	routeDeleteAllPrivateAttributions string = "deleteAllPrivateAttributions"
 	routeSearchAttributions           string = "searchAttributions"
+	routeAddAddressExclusions         string = "addAddressExclusions"
+	routeDeleteAddressExclusion       string = "deleteAddressExclusion"
+	routeDeleteAllAddressExclusions   string = "deleteAllAddressExclusions"
+	routeAddressExclusionOverview     string = "addressExclusionOverview"
 	routeMetrics                      string = "/metrics"
 )
 
@@ -236,6 +240,26 @@ func GetRouteDeleteAllPrivateAttributions() string {
 // GetRouteSearchAttributions returns a route
 func GetRouteSearchAttributions() string {
 	return getRoute(routeSearchAttributions)
+}
+
+// GetRouteAddAddressExclusions returns a route
+func GetRouteAddAddressExclusions() string {
+	return getRoute(routeAddAddressExclusions)
+}
+
+// GetRouteDeleteAddressExclusion returns a route
+func GetRouteDeleteAddressExclusion() string {
+	return getRoute(routeDeleteAddressExclusion)
+}
+
+// GetRouteDeleteAllAddressExclusions returns a route
+func GetRouteDeleteAllAddressExclusions() string {
+	return getRoute(routeDeleteAllAddressExclusions)
+}
+
+// GetRouteAddressExclusionOverview returns a route
+func GetRouteAddressExclusionOverview() string {
+	return getRoute(routeAddressExclusionOverview)
 }
 
 // GetRouteMetrics returns a route

@@ -40,6 +40,10 @@ export const ROUTE_DELETE_PRIVATE_ATTRIBUTION = `${routePrefix}deletePrivateAttr
 export const ROUTE_DELETE_PUBLIC_ATTRIBUTION = `${routePrefix}deletePublicAttribution/`;
 export const ROUTE_DELETE_ALL_PRIVATE_ATTRIBUTIONS = `${routePrefix}deleteAllPrivateAttributions/`;
 export const ROUTE_SEARCH_ATTRIBUTIONS = `${routePrefix}searchAttributions/`;
+export const ROUTE_ADD_ADDRESS_EXCLUSION = `${routePrefix}addAddressExclusions/`;
+export const ROUTE_DELETE_ADDRESS_EXCLUSION = `${routePrefix}deleteAddressExclusion/`;
+export const ROUTE_DELETE_ALL_ADDRESS_EXCLUSIONS = `${routePrefix}deleteAllAddressExclusions/`;
+export const ROUTE_ADDRESS_EXCLUSION_OVERVIEW = `${routePrefix}addressExclusionOverview/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
@@ -66,6 +70,7 @@ export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
+export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 
 // application
 export const PAGE_TITLE = 'Dakar';
