@@ -47,12 +47,9 @@
                         required>
                     </v-text-field>
                   </v-form>
-                  <v-switch
-                      label="Use custom clusters"
+                  <v-switch label="Use custom clusters"
                       v-model="item.useCustomClusters"/>
-                  <!-- for now disabled -->
-                  <v-switch v-if="false"
-                            label="Use address exclusion list"
+                  <v-switch label="Use address exclusion list"
                             v-model="item.useAddressExclusionList"/>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
