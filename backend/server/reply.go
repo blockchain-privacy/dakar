@@ -9,11 +9,13 @@ import (
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+	"strings"
 
 	"encoding/csv"
 	"encoding/json"
@@ -1029,11 +1031,9 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	}
 
 	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
-		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+		if errors.Is(err, analytics.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
-		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
-			reply.Msg = CsvShallowCluster
-		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
 			reply.Msg = err.Error()
 		} else {
 			reply.Msg = CsvErrorImporting
@@ -1168,6 +1168,128 @@ func getAttributionSearchReply(dgraph external.Database, userUID string, body io
 
 	reply.Success = true
 	reply.Attributions = attributions
+
+	return
+}
+
+func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply addAddressExclusionsReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
+		return
+	}
+
+	// Get handler for filename, size and headers
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		reply.Msg = CsvReadError
+		return
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			info("Error closing CSV-file")
+		}
+	}(file)
+
+	csvReader := csv.NewReader(file)
+	csvReader.ReuseRecord = true
+	csvReader.FieldsPerRecord = 1
+	var line []string
+
+	var addresses []string
+	var index int
+	for ; ; index++ {
+		line, err = csvReader.Read()
+		if err != nil {
+			if errors.Is(err, csv.ErrFieldCount) {
+				reply.Msg = CsvInvalidFieldCount
+				return
+			} else if !errors.Is(err, io.EOF) {
+				reply.Msg = CsvInvalidData
+				return
+			}
+			break
+		}
+
+		trimmed := strings.TrimSpace(line[0])
+
+		if trimmed == "" {
+			reply.Msg = CsvInvalidData
+			return
+		}
+
+		addresses = append(addresses, trimmed)
+	}
+
+	if len(addresses) == 0 {
+		reply.Msg = CsvNoData
+		return
+	}
+
+	if err := analytics.ImportAddressExclusions(dgraph, addresses, tUser.ID); err != nil {
+		if errors.Is(err, analytics.ErrTooManyAddresses) {
+			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
+			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
+		}
+
+		return
+	}
+
+	reply.Success = true
+	return
+}
+
+func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) (reply addressExclusionOverviewReply) {
+	addresses, count, err := exclusion.GetAddressExclusions(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no addresses found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.AddressHashes = addresses
+	reply.Count = count
+
+	return
+}
+
+func getDeleteAddressExclusionReply(dgraph external.Database, userUID string, addressHash string) (reply deleteAddressExclusionReply) {
+	if addressHash == "" {
+		reply.Msg = "address hash was not set"
+		return
+	}
+
+	if err := exclusion.DeleteAddressExclusion(dgraph, userUID, addressHash); err != nil {
+		reply.Msg = "could not delete address exclusion"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllAddressExclusionsReply(dgraph external.Database, userUID string) (reply deleteAddressExclusionReply) {
+	if err := exclusion.DeleteAllAddressExclusions(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete address exclusions"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
 
 	return
 }

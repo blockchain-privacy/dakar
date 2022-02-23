@@ -277,3 +277,20 @@ type deleteAttributionReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
 }
+
+type addAddressExclusionsReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type addressExclusionOverviewReply struct {
+	Success       bool     `json:"success"`
+	Msg           string   `json:"msg,omitempty"`
+	AddressHashes []string `json:"addresses"`
+	Count         int64    `json:"addressCount,omitempty"`
+}
+
+type deleteAddressExclusionReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}

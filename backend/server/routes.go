@@ -40,8 +40,7 @@ type searchResponse struct {
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 	w.Header().Set("Content-Type", "application/json")
 }
@@ -552,6 +551,89 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/addAddressExclusions"
+func (s *Server) handlerAddAddressExclusions() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddAddressExclusionsReply(s.db, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAddressExclusion/<address_exclusion_uid>"
+func (s *Server) handlerDeleteAddressExclusion() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAddressExclusionReply
+
+		addressHash := r.URL.Path[len(constants.GetRouteDeleteAddressExclusion()):]
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAllAddressExclusions"
+func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAddressExclusionReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/addressExclusionOverview"
+func (s *Server) handlerAddressExclusionOverview() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply addressExclusionOverviewReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
 		}
 
 		// encoding
@@ -1081,7 +1163,7 @@ func (s *Server) setupHandlers() {
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteClusterOverview(),
 		adapt(s.handlerClusterOverview(), constants.GetRouteClusterOverview(),
-			limitMethod("GET"), limitMethod("GET"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 
 	// Attributions
 	s.handler.Handle(constants.GetRouteAddPrivateAttribution(),
@@ -1105,6 +1187,20 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(constants.GetRouteSearchAttributions(),
 		adapt(s.handlerSearchAttributions(), constants.GetRouteSearchAttributions(),
 			limitMethod("POST"), s.authorization(), maxBody()))
+
+	// Address Exclusions
+	s.handler.Handle(constants.GetRouteAddAddressExclusions(),
+		adapt(s.handlerAddAddressExclusions(), constants.GetRouteAddAddressExclusions(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAddressExclusion(),
+		adapt(s.handlerDeleteAddressExclusion(), constants.GetRouteDeleteAddressExclusion(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAllAddressExclusions(),
+		adapt(s.handlerDeleteAllAddressExclusions(), constants.GetRouteDeleteAllAddressExclusions(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddressExclusionOverview(),
+		adapt(s.handlerAddressExclusionOverview(), constants.GetRouteAddressExclusionOverview(),
+			limitMethod("GET"), s.authorization(), maxBody()))
 
 	// User
 	s.handler.Handle(constants.GetRouteLogin(), adapt(s.handlerLogin(),
