@@ -50,7 +50,7 @@ type Cluster struct {
 	Type         ClusterType       `json:"Cluster.type,omitempty"`
 	AddressCount *int              `json:"Cluster.addressCount,omitempty"`
 	Transaction  HollowTransaction `json:"Cluster.transaction,omitempty"`
-	Children     []SubCluster      `json:"Cluster.childre,omitempty"`
+	Children     []SubCluster      `json:"Cluster.children,omitempty"`
 	Addresses    []HollowAddress   `json:"Cluster.addresses,omitempty"`
 	DType        []string          `json:"dgraph.type,omitempty"`
 }
