@@ -11,6 +11,7 @@
           <code>tag</code>,<code>description</code>,<code>source</code> and
           <code>category</code>). The fields <code>address</code>
           and <code>tag</code> are mandatory, the rest are optional.
+          The file may contain at maximum {{ Number(1000).toLocaleString() }} attributions.
         </div>
         <v-expansion-panels flat>
           <v-expansion-panel>
@@ -90,7 +91,7 @@ function codeToMsg(msgCode) {
     case 'file_reading_error':
       return 'could not read file';
     case 'file_too_many_addresses':
-      return 'file has more than 1000 addresses';
+      return `file has more than ${Number(1000).toLocaleString()} attributions`;
     case 'file_error_importing':
       return 'error importing file';
     default:

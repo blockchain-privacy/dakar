@@ -9,6 +9,7 @@
           Import address clusters by uploading a CSV-file.
           The file must have two columns, where the first column contains an
           identifier for each cluster and the second column the addresses.
+          The file may contain at maximum {{ Number(1000).toLocaleString() }} clusters.
         </div>
         <v-expansion-panels flat>
           <v-expansion-panel>
@@ -82,7 +83,7 @@ function codeToMsg(msgCode) {
     case 'file_reading_error':
       return 'could not read file';
     case 'file_too_many_addresses':
-      return 'file has more than 1000 addresses';
+      return `file has more than ${Number(1000).toLocaleString()} clusters`;
     case 'file_shallow_cluster':
       return 'file contains clusters with only one address';
     case 'file_error_importing':
