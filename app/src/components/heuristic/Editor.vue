@@ -373,7 +373,7 @@ export default {
       });
 
       sheet.heuristicParameter = heuristic.parameter;
-      sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
+      sheet.heuristicExcludeAddresses = heuristic.useAddressExclusionList;
       sheet.heuristicCustomClusters = heuristic.clusterTypes
           && heuristic.clusterTypes.length > 0;
       sheet.heuristicTypeTitle = displayType;
