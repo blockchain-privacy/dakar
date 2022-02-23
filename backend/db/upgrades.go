@@ -918,7 +918,7 @@ func AlterSchemaAddHeuristicProperties(c external.Database) error {
 func AlterSchemaAddAddressExclusion(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			User.addressExclusions: [uid] @reverse .
+			User.addressExclusions: [uid] @count @reverse .
 	
 			type User {
 				User.email

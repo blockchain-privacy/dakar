@@ -156,7 +156,7 @@ func SetupSchema(c external.Database) error {
 			User.created: dateTime @index(day) .
 			User.modified: dateTime @index(day) .
 			User.heuristics: [uid] @reverse .
-			User.addressExclusions: [uid] @reverse .
+			User.addressExclusions: [uid] @count @reverse .
 	
 			type User {
 				User.email
