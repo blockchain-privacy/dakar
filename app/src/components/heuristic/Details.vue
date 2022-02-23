@@ -35,11 +35,8 @@
                           {{ heuristicData.heuristicCustomClusters ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
-                      <!-- disabled for -->
-                      <v-col v-if="false">
-                        <IconItem v-if="heuristicData.heuristicParameter"
-                                  title="Exclude Addresses"
-                                  :icon="icon.mdiTune">
+                      <v-col>
+                        <IconItem title="Exclude Addresses" :icon="icon.mdiTune">
                           {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
