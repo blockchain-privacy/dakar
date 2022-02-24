@@ -294,3 +294,9 @@ type deleteAddressExclusionReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
 }
+
+type addressExclusionStatusReply struct {
+	Success     bool   `json:"success"`
+	IsExclusion bool   `json:"isExclusion"`
+	Msg         string `json:"msg,omitempty"`
+}

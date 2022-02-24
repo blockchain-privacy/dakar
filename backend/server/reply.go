@@ -1265,7 +1265,8 @@ func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) 
 	return
 }
 
-func getDeleteAddressExclusionReply(dgraph external.Database, userUID string, addressHash string) (reply deleteAddressExclusionReply) {
+func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
+	addressHash string) (reply deleteAddressExclusionReply) {
 	if addressHash == "" {
 		reply.Msg = "address hash was not set"
 		return
@@ -1290,6 +1291,33 @@ func getDeleteAllAddressExclusionsReply(dgraph external.Database, userUID string
 	}
 
 	reply.Success = true
+
+	return
+}
+
+func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, addressHash string) (
+	reply addressExclusionStatusReply) {
+	if !isValid(addressHash) {
+		reply.Msg = "address hash is not valid"
+		return
+	}
+
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "user not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	status, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
+	if err != nil {
+		reply.Msg = "error getting exclusion status"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.IsExclusion = status
 
 	return
 }

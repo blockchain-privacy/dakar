@@ -9,13 +9,13 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 
@@ -1056,6 +1056,22 @@ func (s *Server) handlerMixingActivity() http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addressExclusionStatus/<address_hash>"
+func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		// todo use path.Base() instead of slice cutting
+		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Metrics
@@ -1188,12 +1204,15 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(constants.GetRouteAddressExclusionOverview(),
 		adapt(s.handlerAddressExclusionOverview(), constants.GetRouteAddressExclusionOverview(),
 			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddressExclusionStatus(),
+		adapt(s.handlerGetAddressExclusionStatus(), constants.GetRouteAddressExclusionStatus(),
+			limitMethod("GET"), s.authorization(), maxBody()))
 
 	// User
 	s.handler.Handle(constants.GetRouteLogin(), adapt(s.handlerLogin(),
-		constants.GetRouteLogin(), limitMethod("POST")))
+		constants.GetRouteLogin(), limitMethod("POST"), maxBody()))
 	s.handler.Handle(constants.GetRouteLogout(), adapt(s.handlerLogout(),
-		constants.GetRouteLogout(), limitMethod("GET")))
+		constants.GetRouteLogout(), limitMethod("GET"), maxBody()))
 
 	s.handler.Handle(constants.GetRouteCreateUser(), adapt(s.handlerCreateUser(), constants.GetRouteCreateUser(),
 		limitMethod("POST"), s.authorization(), maxBody()))

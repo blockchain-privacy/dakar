@@ -108,6 +108,7 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 
 	if len(r.Count) != 1 {
 		err = errors.New("invalid response from database")
+		return
 	}
 
 	for _, e := range r.Exclusions {
@@ -164,6 +165,42 @@ func DeleteAllAddressExclusions(c external.Database, userID string) (err error) 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
 		return errors.New("nothing was deleted")
 	}
+
+	return
+}
+
+// GetAddressExclusionStatus returns true if the given address is part of the users address exclusion list
+func GetAddressExclusionStatus(c external.Database, addressHash string, userID string) (isExcluded bool, err error) {
+	const query = `query Q($user:string,$hash:string) {
+					q(func: eq(addresshash,$hash))@filter(uid_in(~User.addressExclusions,$user)){
+						uid
+					}
+				  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID, "$hash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Address []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+	if len(r.Address) == 0 {
+		isExcluded = false
+		return
+	} else if len(r.Address) > 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	isExcluded = r.Address[0].UID != ""
 
 	return
 }

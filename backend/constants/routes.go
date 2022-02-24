@@ -45,6 +45,7 @@ const (
 	routeDeleteAddressExclusion       string = "deleteAddressExclusion"
 	routeDeleteAllAddressExclusions   string = "deleteAllAddressExclusions"
 	routeAddressExclusionOverview     string = "addressExclusionOverview"
+	routeAddressExclusionStatus       string = "addressExclusionStatus"
 	routeMetrics                      string = "/metrics"
 )
 
@@ -260,6 +261,11 @@ func GetRouteDeleteAllAddressExclusions() string {
 // GetRouteAddressExclusionOverview returns a route
 func GetRouteAddressExclusionOverview() string {
 	return getRoute(routeAddressExclusionOverview)
+}
+
+// GetRouteAddressExclusionStatus returns a route
+func GetRouteAddressExclusionStatus() string {
+	return getRoute(routeAddressExclusionStatus)
 }
 
 // GetRouteMetrics returns a route
