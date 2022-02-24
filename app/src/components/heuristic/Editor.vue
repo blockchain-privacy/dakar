@@ -179,7 +179,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parameter: d.parameter,
       children: d.children,
       parent: d.parent,
-      useAddressExclusionList: d.useAddressExclusionList,
+      useAddressExclusionList: d.excludeAddresses,
       clusterTypes: d.clusterTypes,
     });
   });
@@ -338,7 +338,7 @@ export default {
         uid: `${this.newUidPrefix}${this.uidCounter}`,
         type: heuristic.type,
         clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-        useAddressExclusionList: heuristic.useAddressExclusionList,
+        excludeAddresses: heuristic.useAddressExclusionList,
       };
 
       if (heuristic.parameter) {
@@ -373,7 +373,7 @@ export default {
       });
 
       sheet.heuristicParameter = heuristic.parameter;
-      sheet.heuristicExcludeAddresses = heuristic.useAddressExclusionList;
+      sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
       sheet.heuristicCustomClusters = heuristic.clusterTypes
           && heuristic.clusterTypes.length > 0;
       sheet.heuristicTypeTitle = displayType;
