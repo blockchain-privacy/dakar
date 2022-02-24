@@ -3,6 +3,7 @@ package server
 import (
 	heuristic "backend/analytics/heuristics"
 	"backend/external"
+	"github.com/dgraph-io/ristretto"
 
 	"encoding/hex"
 	"errors"
@@ -40,6 +41,7 @@ type Server struct {
 	db              external.Database
 	client          external.RPCClient
 	worker          *heuristic.Worker
+	cache           *ristretto.Cache
 	basicAuthUser   string
 	basicAuthHash   string
 	tokenPublicKey  []byte
@@ -47,39 +49,50 @@ type Server struct {
 	handler         *http.ServeMux
 }
 
-func NewServer(db external.Database, client external.RPCClient, worker *heuristic.Worker,
-	basicAuthUser string, basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) (Server, error) {
+func NewServer(db external.Database, client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
+	basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) (*Server, error) {
 
 	if tokenPublicKey == "" || tokenPrivateKey == "" {
-		return Server{}, errors.New("keys are not set")
+		return nil, errors.New("keys are not set")
 	}
 
 	if basicAuthUser == "" {
-		return Server{}, errors.New("basic authentication user is not set")
+		return nil, errors.New("basic authentication user is not set")
 	}
 
 	if basicAuthHash == "" {
-		return Server{}, errors.New("basic authentication hash is not set")
+		return nil, errors.New("basic authentication hash is not set")
 	}
 
 	if worker == nil {
-		return Server{}, errors.New("worker pointer is nil")
+		return nil, errors.New("worker pointer is nil")
 	}
 
 	privateKey, err := hex.DecodeString(tokenPrivateKey)
 	if err != nil {
-		return Server{}, err
+		return nil, err
 	}
 
 	publicKey, err := hex.DecodeString(tokenPublicKey)
 	if err != nil {
-		return Server{}, err
+		return nil, err
 	}
 
-	return Server{
+	// init cache
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
+		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
+		BufferItems: 64,      // number of keys per Get buffer.
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Server{
 		db:              db,
 		client:          client,
 		worker:          worker,
+		cache:           cache,
 		basicAuthUser:   basicAuthUser,
 		basicAuthHash:   basicAuthHash,
 		tokenPublicKey:  publicKey,

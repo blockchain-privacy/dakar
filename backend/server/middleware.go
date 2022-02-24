@@ -13,8 +13,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"time"
-
-	"github.com/dgraph-io/ristretto"
 )
 
 type contextKeyUser int
@@ -121,7 +119,7 @@ func (s *Server) authorization() adapter {
 	}
 }
 
-func useCache(cache *ristretto.Cache, ttl time.Duration) adapter {
+func (s *Server) useCache(ttl time.Duration) adapter {
 	type cacheElement struct {
 		buffer     []byte
 		statusCode int
@@ -144,7 +142,7 @@ func useCache(cache *ristretto.Cache, ttl time.Duration) adapter {
 			cacheKey := buildKey(route, query, body)
 
 			// try to get request from cache
-			value, found := cache.Get(cacheKey)
+			value, found := s.cache.Get(cacheKey)
 			var buf []byte
 			var httpStatusCode int
 			if found {
@@ -179,7 +177,7 @@ func useCache(cache *ristretto.Cache, ttl time.Duration) adapter {
 
 				// only insert in cache if no error occurred
 				if httpStatusCode < http.StatusBadRequest {
-					cache.SetWithTTL(cacheKey, ce, 1, ttl)
+					s.cache.SetWithTTL(cacheKey, ce, 1, ttl)
 				}
 			}
 

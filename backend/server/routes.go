@@ -19,7 +19,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/ristretto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -1059,18 +1058,6 @@ func (s *Server) handlerMixingActivity() http.Handler {
 
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
-	// init cache
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
-		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
-		BufferItems: 64,      // number of keys per Get buffer.
-	})
-	if err != nil {
-		panic(fmt.Sprintln("error initializing cache", err))
-	}
-
-	// API end points
-
 	// Metrics
 	s.handler.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
 		limitMethod("GET"), s.basicAuth(), maxBody()))
@@ -1078,32 +1065,32 @@ func (s *Server) setupHandlers() {
 	// Search
 	s.handler.Handle(constants.GetRouteSearch(),
 		adapt(s.handlerSearch(constants.GetRouteSearch()), constants.GetRouteSearch(),
-			limitMethod("GET"), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))
 
 	// Common data
 	s.handler.Handle(constants.GetRouteTransaction(),
 		adapt(s.handlerDetails(constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
-			limitMethod("GET"), useCache(cache, time.Second*0), maxBody()))
+			limitMethod("GET"), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
 	s.handler.Handle(constants.GetRouteBlock(),
 		adapt(s.handlerDetails(constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
-			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
+			limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
 	s.handler.Handle(constants.GetRouteAddress(),
 		adapt(s.handlerDetails(constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
-			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
+			limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
 
 	s.handler.Handle(constants.GetRouteAddressOutputRange(),
 		adapt(s.handlerAddressOutputRange(constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
-			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
 	s.handler.Handle(constants.GetRouteBlockRange(),
 		adapt(s.handlerBlockRange(constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
-			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
-		limitMethod("GET"), s.authorization(), useCache(cache, time.Second*10), maxBody()))
+		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(constants.GetRouteHeuristics(),
@@ -1126,7 +1113,7 @@ func (s *Server) setupHandlers() {
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteHeuristicDescriptors(),
 		adapt(s.handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
-			limitMethod("GET"), s.authorization(), useCache(cache, 0), maxBody()))
+			limitMethod("GET"), s.authorization(), s.useCache(0), maxBody()))
 	s.handler.Handle(constants.GetRouteDeleteHeuristic(),
 		adapt(s.handlerDeleteHeuristic(), constants.GetRouteDeleteHeuristic(),
 			limitMethod("POST"), s.authorization(), maxBody()))
@@ -1134,13 +1121,13 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
-			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteConnectionLookup(),
 		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
-			limitMethod("GET"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("GET"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
-			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(constants.GetRouteClusterLookup(),
