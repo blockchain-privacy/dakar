@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"strconv"
@@ -165,6 +166,15 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		return nil, errorNoOriginsAtStart
 	}
 
+	var exclusions []string
+	if h.excludeAddresses {
+		var err error
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
 	type clusterDestination struct {
 		cluster heuristics.ClusterUID
 		txs     map[string]heuristics.HeuristicTransaction
@@ -178,7 +188,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		for k := range txMap {
 			txUIDs = append(txUIDs, k)
 		}
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime, h.excludeAddresses)
+		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime, exclusions)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"errors"
@@ -153,9 +154,19 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	var allTxAndOrigins []txAndOrigins
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
+
+	var exclusions []string
+
+	if h.excludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
-			h.clusterTypes, h.excludeAddresses)
+			h.clusterTypes, exclusions)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

@@ -191,17 +191,8 @@ func getKeySlice(m map[string]bool) (keys []string) {
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, excludeAddresses bool) (
+	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, exclusions []string) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
-
-	var exclusions []string
-
-	if excludeAddresses {
-		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, userUID)
-		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
-	}
 
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions)
@@ -248,10 +239,18 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
+	var exclusions []string
+	if excludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, userUID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		endpoints, lookupErr := g.ReverseLookup(it, dur, nil)
+		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions)
 		if lookupErr != nil {
 			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
@@ -273,11 +272,11 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 
 // getOriginDestinationTimeLimited returns UID map of all destinations of the given origin UIDs
 func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
-	dur time.Duration, excludeAddresses bool) (map[string]bool, error) {
+	dur time.Duration, exclusions []string) (map[string]bool, error) {
 	uidMap := make(map[string]bool)
 	// do forward lookup for all origin transactions
 	for _, it := range originUIDs {
-		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, nil)
+		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions)
 		if lookupErr != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
@@ -293,8 +292,8 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 // getOriginDestinationsWithInputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its inputs.
 func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration, excludeAddresses bool) (origins []heuristics.HeuristicTransaction, err error) {
-	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, excludeAddresses)
+	originUIDs []string, dur time.Duration, exclusions []string) (origins []heuristics.HeuristicTransaction, err error) {
+	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

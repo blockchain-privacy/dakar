@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 	"fmt"
@@ -149,9 +150,18 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 	}
 
+	var exclusions []string
+	if h.excludeAddresses {
+		var err error
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for _, o := range results {
-		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime, h.excludeAddresses)
+		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime, exclusions)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
