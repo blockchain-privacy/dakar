@@ -708,3 +708,42 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 
 	return
 }
+
+// GetClusterAddressCount returns the number of addresses the cluster of the given address is connected to
+func GetClusterAddressCount(c external.Database, addressHash string) (addressCount int64, err error) {
+	const query = `query Q($addressHash:string){
+				q(func:eq(addresshash,$addressHash))@normalize{
+					~Cluster.addresses@filter(eq(Cluster.type,` + string(TypeFMI) + `)){
+						count:Cluster.addressCount
+					}
+				}
+			   }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Count []struct {
+			Count int64 `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Count) == 0 {
+		return 0, nil
+	}
+
+	if len(r.Count) != 1 {
+		return 0, errors.New("invalid response from database")
+	}
+
+	addressCount = r.Count[0].Count
+
+	return
+}

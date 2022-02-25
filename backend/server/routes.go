@@ -53,11 +53,11 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func (s *Server) handlerSearch(route string) http.Handler {
+func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		// set response struct
 		reply := searchResponse{
@@ -104,12 +104,11 @@ func (s *Server) handlerSearch(route string) http.Handler {
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func (s *Server) handlerDetails(route string, fn func(external.Database, string) (
-	SearchResult, bool, error)) http.Handler {
+func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		// set response struct
 		reply := searchResponse{
@@ -139,11 +138,11 @@ func (s *Server) handlerDetails(route string, fn func(external.Database, string)
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func (s *Server) handlerAddressOutputRange(route string) http.Handler {
+func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		reply := searchResponse{
 			Type:    "response_empty",
@@ -208,11 +207,11 @@ func (s *Server) handlerAddressOutputRange(route string) http.Handler {
 }
 
 // API pattern: "/api/v1/blkRange/<address_hash>"
-func (s *Server) handlerBlockRange(route string) http.Handler {
+func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		reply := searchResponse{
 			Type:    "response_empty",
@@ -307,7 +306,7 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
@@ -355,7 +354,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 
 		var reply deleteClusterReply
 
-		clusterUid := r.URL.Path[len(constants.GetRouteDeleteCluster()):]
+		clusterUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -475,7 +474,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := r.URL.Path[len(constants.GetRouteDeletePrivateAttribution()):]
+		attributionUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -499,7 +498,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := r.URL.Path[len(constants.GetRouteDeletePublicAttribution()):]
+		attributionUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -582,7 +581,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 
 		var reply deleteAddressExclusionReply
 
-		addressHash := r.URL.Path[len(constants.GetRouteDeleteAddressExclusion()):]
+		addressHash := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -648,7 +647,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristics()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -677,7 +676,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		addressHash := r.URL.Path[len(constants.GetRouteHMILookup()):]
+		addressHash := path.Base(r.URL.Path)
 
 		if !isValid(addressHash) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -699,7 +698,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicStatus()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -771,7 +770,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsExecution()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
@@ -918,7 +917,7 @@ func (s *Server) handlerDeleteUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		userUID := r.URL.Path[len(constants.GetRouteDeleteUser()):]
+		userUID := path.Base(r.URL.Path)
 
 		var reply userReply
 
@@ -1061,7 +1060,6 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		// todo use path.Base() instead of slice cutting
 		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
 
 		// encoding
@@ -1079,30 +1077,26 @@ func (s *Server) setupHandlers() {
 		limitMethod("GET"), s.basicAuth(), maxBody()))
 
 	// Search
-	s.handler.Handle(constants.GetRouteSearch(),
-		adapt(s.handlerSearch(constants.GetRouteSearch()), constants.GetRouteSearch(),
-			limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteSearch(), adapt(s.handlerSearch(), constants.GetRouteSearch(),
+		limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))
 
 	// Common data
 	s.handler.Handle(constants.GetRouteTransaction(),
-		adapt(s.handlerDetails(constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
+		adapt(s.handlerDetails(GetTransaction), constants.GetRouteTransaction(),
 			limitMethod("GET"), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	s.handler.Handle(constants.GetRouteBlock(),
-		adapt(s.handlerDetails(constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
-			limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
-	s.handler.Handle(constants.GetRouteAddress(),
-		adapt(s.handlerDetails(constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
-			limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(constants.GetRouteBlock(), adapt(s.handlerDetails(GetBlock), constants.GetRouteBlock(),
+		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(constants.GetRouteAddress(), adapt(s.handlerDetails(GetAddress), constants.GetRouteAddress(),
+		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
 
 	s.handler.Handle(constants.GetRouteAddressOutputRange(),
-		adapt(s.handlerAddressOutputRange(constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
+		adapt(s.handlerAddressOutputRange(), constants.GetRouteAddressOutputRange(),
 			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
-	s.handler.Handle(constants.GetRouteBlockRange(),
-		adapt(s.handlerBlockRange(constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
-			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteBlockRange(), adapt(s.handlerBlockRange(), constants.GetRouteBlockRange(),
+		limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),

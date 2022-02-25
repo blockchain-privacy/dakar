@@ -805,6 +805,20 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 		info(cliutil.ShowCallInfo(), decodeErr)
 		return
 	}
+	const maxAddressCount = 2000
+	if req.IsClusterLookup {
+		addressCount, err := clustering.GetClusterAddressCount(dgraph, req.AddressHash)
+		if err != nil {
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if addressCount > maxAddressCount {
+			reply.Msg = "too_many_addresses"
+			reply.Success = true
+			return
+		}
+	}
 
 	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
 	if err != nil {
@@ -902,8 +916,8 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 		}
 
 		newAddress := analyticsClustering.ExternalClusterItem{
-			ClusterID:   line[0],
-			AddressHash: line[1],
+			ClusterID:   strings.TrimSpace(line[0]),
+			AddressHash: strings.TrimSpace(line[1]),
 		}
 
 		if newAddress.ClusterID == "" || newAddress.AddressHash == "" {
@@ -1010,11 +1024,11 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 		}
 
 		newAttribution := analytics.Attribution{
-			AddressHash: line[0],
-			Tag:         line[1],
-			Description: line[2],
-			Source:      line[3],
-			Category:    line[4],
+			AddressHash: strings.TrimSpace(line[0]),
+			Tag:         strings.TrimSpace(line[1]),
+			Description: strings.TrimSpace(line[2]),
+			Source:      strings.TrimSpace(line[3]),
+			Category:    strings.TrimSpace(line[4]),
 		}
 
 		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {

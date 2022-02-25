@@ -243,6 +243,7 @@ type hmiLookupReply struct {
 
 type mixingActivityReply struct {
 	Success    bool                       `json:"success"`
+	Msg        string                     `json:"msg,omitempty"`
 	Activities []analytics.MixingActivity `json:"activities,omitempty"`
 }
 
