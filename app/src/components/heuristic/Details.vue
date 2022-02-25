@@ -31,12 +31,12 @@
                     </v-row>
                     <v-row>
                       <v-col>
-                        <IconItem title="Custom clusters" :icon="icon.mdiTune">
+                        <IconItem title="Custom clusters" :icon="icon.mdiMerge">
                           {{ heuristicData.heuristicCustomClusters ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
                       <v-col>
-                        <IconItem title="Exclude Addresses" :icon="icon.mdiTune">
+                        <IconItem title="Exclude Addresses" :icon="icon.mdiPlaylistRemove">
                           {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
@@ -117,7 +117,7 @@
 
 <script>
 import {
-  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
+  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
 } from '@mdi/js';
 import IconItem from '../common/IconItem.vue';
 import Histogram from '../../d3Documents/histogram';
@@ -135,7 +135,7 @@ export default {
   data() {
     return {
       icon: {
-        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
+        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
       },
       chart: null,
       svgHistogram: null,
