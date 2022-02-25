@@ -44,6 +44,7 @@ export const ROUTE_ADD_ADDRESS_EXCLUSION = `${routePrefix}addAddressExclusions/`
 export const ROUTE_DELETE_ADDRESS_EXCLUSION = `${routePrefix}deleteAddressExclusion/`;
 export const ROUTE_DELETE_ALL_ADDRESS_EXCLUSIONS = `${routePrefix}deleteAllAddressExclusions/`;
 export const ROUTE_ADDRESS_EXCLUSION_OVERVIEW = `${routePrefix}addressExclusionOverview/`;
+export const ROUTE_ADDRESS_EXCLUSION_STATUS = `${routePrefix}addressExclusionStatus/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';
