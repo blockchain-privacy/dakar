@@ -135,7 +135,12 @@ export default {
   data() {
     return {
       icon: {
-        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
+        mdiIframeVariableOutline,
+        mdiTune,
+        mdiPoundBoxOutline,
+        mdiChartBar,
+        mdiMerge,
+        mdiPlaylistRemove,
       },
       chart: null,
       svgHistogram: null,
