@@ -2,7 +2,7 @@
   <div>
     <v-card flat>
       <v-card-text>
-        <v-row v-if="activities && activities.length > 0">
+        <v-row v-if="(activities && activities.length > 0) || showTooManyAddressesMsg">
           <v-col>
             <v-select
                 multiple
@@ -67,6 +67,12 @@
     <v-card class="my-3" flat v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
       <v-card-text class="text-h6" style="text-align:center">
         No mixing activity available
+      </v-card-text>
+    </v-card>
+    <v-card class="my-3" flat v-if="hasLoaded && showTooManyAddressesMsg && !isLoading">
+      <v-card-text class="text-h6" style="text-align:center">
+        Mixing activity lookup is not possible because the cluster
+        of this address is connected to too many addresses
       </v-card-text>
     </v-card>
     <v-card class="my-3" flat v-show="this.activities && this.activities.length > 0">
@@ -235,7 +241,7 @@ export default {
       icons: { mdiCalendarRange },
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       lastQuery: '',
-      includeCluster: true,
+      includeCluster: false,
       selectedPrivacyLabel: [],
       showHistogram: false,
       showGraph: false,
@@ -244,10 +250,11 @@ export default {
       svgGraph: null,
       isLoading: false,
       showEmptyResponseMessage: false,
+      showTooManyAddressesMsg: false,
       showNotEnoughDataMessage: false,
       activities: null,
       initialLoadDone: false,
-      includeCusterAddresses: true,
+      includeCusterAddresses: false,
       datePicker: {
         range: null,
         oldRange: null,
@@ -299,6 +306,9 @@ export default {
   },
   methods: {
     capitalize,
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
     onBarClick(data) {
       if (data.x0.getHours() === data.x1.getHours()
           && data.x0.getMinutes() === data.x1.getMinutes()) {
@@ -399,11 +409,28 @@ export default {
       this.showHistogram = false;
       this.showGraph = false;
       this.isLoading = true;
+      this.showTooManyAddressesMsg = false;
 
       // check if new data has to be loaded
       if (pullNewData || !this.initialLoadDone) {
         const mixingActivity = await this.getMixingActivity();
         this.hasLoaded = true;
+
+        if (!mixingActivity.success) {
+          this.isLoading = false;
+          this.activities = [];
+          this.setErrorMessage('error getting mixing activity');
+          return;
+        }
+
+        if (mixingActivity.msg && mixingActivity.msg === 'too_many_addresses') {
+          this.showTooManyAddressesMsg = true;
+          this.initialLoadDone = true;
+          this.isLoading = false;
+          this.activities = [];
+          return;
+        }
+
         if (mixingActivity.activities === undefined) {
           this.showEmptyResponseMessage = true;
           this.isLoading = false;
