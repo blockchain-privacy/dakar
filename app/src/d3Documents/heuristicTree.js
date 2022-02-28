@@ -1,5 +1,6 @@
 /* eslint-disable no-constant-condition */
 import * as d3 from 'd3';
+import { mdiMerge, mdiPlaylistRemove, mdiTune } from '@mdi/js';
 import Tree from './tree';
 import { isFunction, abbreviateNumber } from './util';
 
@@ -230,12 +231,15 @@ export class HeuristicTree extends Tree {
   }
 
   drawRect(rootElement) {
-    const textAreaHeight = 70;
+    const textAreaHeight = 50;
     const textPadding = 0;
     const rectHeight = textAreaHeight + 2 * textPadding;
     const borderRadius = 5;
     const strokeWidth = 2;
     const textHeight = 10;
+    const iconScale = 'scale(0.7,0.7)';
+    const iconWidth = 16;
+    const iconY = rectHeight / 2 - 20;
 
     rootElement
       .append('rect')
@@ -252,11 +256,53 @@ export class HeuristicTree extends Tree {
       .attr('stroke-width', strokeWidth)
       .attr('stroke-opacity', 1);
 
+    // exclusion list icon
+    rootElement
+      .append('g')
+      .attr('transform', `translate(${this.rectWidth / 2 - iconWidth - 4},${iconY}) ${iconScale}`)
+      .append('path')
+      .attr('fill', 'currentColor')
+      .attr('d', (d) => {
+        if (d.data.data.uid === rootIdentifier) {
+          return '';
+        }
+        if (d.data.data.excludeAddresses) return mdiPlaylistRemove;
+        return '';
+      });
+
+    // cluster icon
+    rootElement
+      .append('g')
+      .attr('transform', `translate(${this.rectWidth / 2 - 2 * iconWidth - 2 * 4},${iconY}) ${iconScale}`)
+      .append('path')
+      .attr('fill', 'currentColor')
+      .attr('d', (d) => {
+        if (d.data.data.uid === rootIdentifier) {
+          return '';
+        }
+        if (d.data.data.clusterTypes
+            && d.data.data.clusterTypes.length > 0) return mdiMerge;
+        return '';
+      });
+
+    // parameter icon
+    rootElement
+      .append('g')
+      .attr('transform', `translate(${-this.rectWidth / 2 + 4},${iconY}) ${iconScale}`)
+      .append('path')
+      .attr('fill', 'currentColor')
+      .attr('d', (d) => {
+        if (d.data.data.uid === rootIdentifier) {
+          return '';
+        }
+        if (d.data.data.parameter !== undefined) return mdiTune;
+        return '';
+      });
+
     rootElement
       .append('text')
+      .style('text-anchor', 'middle')
       .attr('fill', 'currentColor')
-      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
-      // if parameter is not set, position text at center
       .attr('y', -textAreaHeight / 2 + textHeight * 2)
       .text((d) => {
         let outText;
@@ -265,7 +311,7 @@ export class HeuristicTree extends Tree {
           outText = null;
         } else {
           const title = this.heuristicTypeMap.get(d.data.data.type);
-          if (title !== undefined) outText = `Type: ${title}`;
+          if (title !== undefined) outText = title;
         }
 
         return outText;
@@ -273,20 +319,11 @@ export class HeuristicTree extends Tree {
 
     rootElement.append('text')
       .attr('fill', 'currentColor')
-      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
-      .attr('y', textHeight / 2)
+      .attr('x', -this.rectWidth / 2 + 25)
+      .attr('y', 18)
       .text((d) => {
         if (d.data.data.uid === rootIdentifier) return null;
-        return `Custom clusters: ${d.data.data.clusterTypes && d.data.data.clusterTypes.length > 0 ? 'yes' : 'no'}`;
-      });
-
-    rootElement.append('text')
-      .attr('fill', 'currentColor')
-      .attr('x', -this.rectWidth / 2 + strokeWidth + 2)
-      .attr('y', textAreaHeight / 2 - textHeight)
-      .text((d) => {
-        if (d.data.data.uid === rootIdentifier) return null;
-        return d.data.data.parameter !== undefined ? `Parameter: ${d.data.data.parameter}` : 'Parameter: None';
+        return d.data.data.parameter !== undefined ? d.data.data.parameter : '';
       });
 
     const resultHeight = 18; const
