@@ -43,6 +43,13 @@
                 :color="iconColor.default"
                 :to="{ name: routes.attributionsPage }"/>
           </v-col>
+          <v-col>
+            <LinkCard
+                title="Address Exclusions"
+                :icon="icons.mdiPlaylistRemove"
+                :color="iconColor.default"
+                :to="{ name: routes.addressExclusionPage }"/>
+          </v-col>
         </v-row>
       </div>
       <v-divider class="my-2"/>
@@ -69,12 +76,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge, mdiTag,
+  mdiMerge, mdiTag, mdiPlaylistRemove,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-  ROUTE_NAME_ATTRIBUTIONS,
+  ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminUser, isPrivilegedUser } from '../utilities';
@@ -96,6 +103,7 @@ export default {
         mdiServer,
         mdiMerge,
         mdiTag,
+        mdiPlaylistRemove,
       },
       iconColor: {
         default: 'primary',
@@ -109,6 +117,7 @@ export default {
         serverStatusPage: ROUTE_NAME_STATUS_PAGE,
         clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
         attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
+        addressExclusionPage: ROUTE_NAME_ADDRESS_EXCLUSIONS,
       },
     };
   },

@@ -767,7 +767,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		return
 	}
 
-	if len(r.Clusters) == 0 {
+	if heuristicUID == "" {
 		err = errors.New("empty response from database")
 		return
 	}
@@ -783,6 +783,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				return
 			}
 
+			result.Origin[0].DestinationCount = len(result.Destinations)
+
 			origins = append(origins, result.Origin[0])
 
 			// collect destinations of all results in map
@@ -792,115 +794,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		}
 
 		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
-			Transactions:       origins,
-			Attributions:       cluster.Attributions,
-			CountForwardLookup: len(destinationMap),
-		})
-	}
-
-	return
-}
-
-// GetFrontendHeuristic returns all heuristics for a given transaction
-func GetFrontendHeuristic(c external.Database, txHash string, userUID string) (completeHeuristic FrontendHeuristicComplete, err error) {
-	query := `query Q($hash: string, $uuid: string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				var(func: uid($uuid)){
-					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
-				}
-				t(func: uid(tx))@normalize{
-					uid:uid
-					~transactions{
-						ts:ts
-					}
-				}
-				q(func: uid(h)){
-					uid
-					ts:Heuristic.ts
-					type:Heuristic.type
-					parameter:Heuristic.parameter
-					clusterTypes:Heuristic.clusterTypes
-					excludeAddresses:Heuristic.excludeAddresses
-					parent:Heuristic.parent{
-						uid
-					}
-					children: ~Heuristic.parent{
-						uid
-					}
-					results:Heuristic.results{
-						origin:HeuristicResult.origin@normalize{
-							uid:uid
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-							tx_inputs{ 
-								~addr_outputs{
-									addresshash:addresshash
-								}
-							}
-						}
-						destinations:HeuristicResult.destinations@normalize{
-							uid:uid
-							txhash:txhash
-							~transactions{
-								ts:ts
-							}
-						}
-					}
-				}
-			  }`
-
-	ctx, cancel := db.GetFrontendContext()
-	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$uuid": userUID})
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	// json struct
-	var r struct {
-		Heuristics  []FrontendHeuristicResponse `json:"q,omitempty"`
-		Transaction []FrontendHeuristicComplete `json:"t,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
-	}
-
-	if len(r.Transaction) != 1 || len(r.Heuristics) == 0 ||
-		len(r.Transaction[0].UID) == 0 || len(r.Transaction[0].Timestamp) == 0 {
-		err = errors.New("invalid response from database")
-		return
-	}
-
-	completeHeuristic = r.Transaction[0]
-
-	for _, h := range r.Heuristics {
-		transactions := make(map[string]bool)
-
-		var results []FrontendHeuristicResult
-		for _, r := range h.Results {
-			// only append a result once per transaction
-			if transactions[r.Origin[0].UID] {
-				continue
-			}
-			results = append(results, FrontendHeuristicResult{Origin: r.Origin[0], Destinations: r.Destinations})
-			transactions[r.Origin[0].UID] = true
-		}
-
-		completeHeuristic.Heuristics = append(completeHeuristic.Heuristics, FrontendHeuristic{
-			UID:             h.UID,
-			Timestamp:       h.Timestamp,
-			Type:            h.Type,
-			Parameter:       h.Parameter,
-			ParentHeuristic: h.ParentHeuristic,
-			ChildHeuristics: h.ChildHeuristics,
-			ClusterCount:    h.ClusterCount,
-			Results:         results,
+			Transactions: origins,
+			Attributions: cluster.Attributions,
 		})
 	}
 

@@ -25,8 +25,25 @@ func toInteger(hexString string) (int64, error) {
 	return strconv.ParseInt(hexString[2:], 16, 64)
 }
 
+// shouldTraverseEdge returns true if any of the addresses of the given edge
+// are not contained in the exclusion map, or if the given map is empty
+func shouldTraverseEdge(exclusions map[int64]bool, edge addressEdge) bool {
+	if len(exclusions) == 0 {
+		return true
+	}
+
+	for _, address := range edge.addressUIDs {
+		if !exclusions[address] {
+			return true
+		}
+	}
+
+	return false
+}
+
 // ReverseLookupByID performs a reverse lookup starting at the given nodeId
-func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration) (map[string]bool, error) {
+func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Duration,
+	addressExclusions []string) (map[string]bool, error) {
 	node := g.Node(nodeID)
 	if node == nil {
 		return nil, errNodeNotFound(nodeID)
@@ -38,8 +55,33 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 
 	isReversed := g.IsReversed()
 
+	exclusionsMap := make(map[int64]bool, len(addressExclusions))
+
+	for _, e := range addressExclusions {
+		integer, err := toInteger(e)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+
+		exclusionsMap[integer] = true
+	}
+
+	didNotTraverseEdgeCounter := 0
+	didNotTraverseMixing := 0
+
 	w := traverse.BreadthFirst{
 		Traverse: func(e graph.Edge) bool {
+
+			if !shouldTraverseEdge(exclusionsMap, e.(addressEdge)) {
+				didNotTraverseEdgeCounter++
+				toNode := g.Node(e.To().ID()).(transactionNode)
+				if toNode.privacyType.IsMixing() {
+					didNotTraverseMixing++
+				}
+
+				return false
+			}
+
 			// get node to which the edge leads
 			toNode := g.Node(e.To().ID()).(transactionNode)
 
@@ -88,19 +130,20 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 		return false
 	})
 
+	info("did not traverse edge counter:", didNotTraverseEdgeCounter, "mixing", didNotTraverseMixing)
 	return foundEndpoints, nil
 }
 
 // ReverseLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph backward
 func ReverseLookup(g *ReversibleGraph, uid string,
-	maxLookBackTime time.Duration) (map[string]bool, error) {
+	maxLookBackTime time.Duration, addressExclusions []string) (map[string]bool, error) {
 	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 	g.SetReverse(false)
 
-	results, err := ReverseLookupByID(g, nodeUID, maxLookBackTime)
+	results, err := ReverseLookupByID(g, nodeUID, maxLookBackTime, addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -109,7 +152,8 @@ func ReverseLookup(g *ReversibleGraph, uid string,
 
 // ForwardLookup returns all leaf nodes of the tree which has uid as its root while traversing the graph forward.
 // It does not traverse paths which have a timestamp younger than the node specified by targetUid.
-func ForwardLookup(g *ReversibleGraph, uid string, targetUID string) (map[string]bool, error) {
+func ForwardLookup(g *ReversibleGraph, uid string, targetUID string,
+	addressExclusions []string) (map[string]bool, error) {
 	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -124,7 +168,7 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUID string) (map[string
 	targetNode := g.Node(targetNodeUID).(transactionNode)
 
 	g.SetReverse(true)
-	origins, err := ReverseLookupByID(g, nodeUID, targetNode.ts.Sub(node.ts))
+	origins, err := ReverseLookupByID(g, nodeUID, targetNode.ts.Sub(node.ts), addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -134,14 +178,15 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUID string) (map[string
 
 // ForwardLookupByTime returns all leaf nodes of the tree which has uid as its root while traversing the graph forward
 // It does not traverse paths which are outside maxLookForwardTime.
-func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time.Duration,
+	addressExclusions []string) (map[string]bool, error) {
 	nodeUID, err := toInteger(uid)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	g.SetReverse(true)
-	origins, err := ReverseLookupByID(g, nodeUID, maxLookForwardTime)
+	origins, err := ReverseLookupByID(g, nodeUID, maxLookForwardTime, addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -165,8 +210,7 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 	var uids []string
 	fromNodes := g.From(nodeUID)
 	for fromNodes.Next() {
-		n := fromNodes.Node()
-		uids = append(uids, toHex(n.ID()))
+		uids = append(uids, fromNodes.Node().(transactionNode).String())
 	}
 
 	return uids, nil

@@ -1,104 +1,101 @@
 <template>
-  <v-card
-      class="mx-auto elevation-4" max-width="1200">
-    <v-toolbar dark flat color="primary" class="mb-1">
-      <v-toolbar-title>
-        <v-icon>{{ icon.mdiMerge }}</v-icon>
-        Cluster Overview
-      </v-toolbar-title>
-      <v-spacer></v-spacer>
-      <v-menu bottom left>
-        <template v-slot:activator="{ on, attrs }">
-          <v-btn dark icon v-bind="attrs" v-on="on">
-            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item @click="addClusterDialog = true">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiFileImport }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Import clusters</v-list-item-title>
-          </v-list-item>
-          <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
-            <v-list-item-icon>
-              <v-icon>{{ icon.mdiDelete }}</v-icon>
-            </v-list-item-icon>
-            <v-list-item-title>Delete all clusters</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-    </v-toolbar>
-    <v-card-text>
-      <v-row>
-        <v-col v-if="items.length > 0">
-          <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-          These clusters have been created by you.
-        </v-col>
-        <v-col v-else>
-          <div class="d-flex justify-center">
-            <v-btn @click="addClusterDialog = true" text>
-              <v-icon>{{ icon.mdiFileImport }}</v-icon> Import clusters
+  <div>
+    <v-card class="mx-auto elevation-4" max-width="1200">
+      <v-toolbar dark flat color="primary" class="mb-1">
+        <v-toolbar-title>
+          <v-icon>{{ icon.mdiMerge }}</v-icon>
+          Cluster Overview
+        </v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-menu bottom left>
+          <template v-slot:activator="{ on, attrs }">
+            <v-btn dark icon v-bind="attrs" v-on="on">
+              <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
             </v-btn>
-          </div>
-        </v-col>
-      </v-row>
-      <v-row v-if="items.length > 0">
-        <v-col
-            v-for="(item, i) in items"
-            :key="i"
-            cols="12"
-            sm="6"
-            md="4"
-            lg="4">
-          <v-card outlined>
-            <v-list-item two-line>
-              <v-list-item-title>
-                {{ item.address_count }} Addresses
-              </v-list-item-title>
-              <v-list-item-subtitle class="text-right">
-                {{ item.ts.toLocaleDateString() }}
-              </v-list-item-subtitle>
-              <v-menu
-                  bottom
-                  left>
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn
-                      icon
-                      v-bind="attrs"
-                      v-on="on">
-                    <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
-                  </v-btn>
-                </template>
-                <v-list>
-                  <v-list-item @click="deleteItem(item.uid, item.address_count)">
-                    <v-list-item-icon>
-                      <v-icon>{{ icon.mdiDelete }}</v-icon>
-                    </v-list-item-icon>
-                    <v-list-item-title>Delete</v-list-item-title>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
+          </template>
+          <v-list>
+            <v-list-item @click="addClusterDialog = true">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>Import clusters</v-list-item-title>
             </v-list-item>
-            <v-list-item
-                v-for="address in item.addresses"
-                :key="address"
-                :to="{ name: routes.addressRoute, params: { id: address }}">
-              <v-list-item-content>
-                {{ address }}
-              </v-list-item-content>
+            <v-list-item :disabled="items.length === 0" @click="deleteAllClustersDialog = true">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiDelete }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>Delete all clusters</v-list-item-title>
             </v-list-item>
-          </v-card>
-        </v-col>
-      </v-row>
-    </v-card-text>
-    <import-cluster v-model="addClusterDialog" @added="loadData"/>
-    <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData"/>
-    <delete-cluster v-model="deleteClusterDialog"
-                    :cluster-uid="deleteClusterUid"
-                    :num-addresses="deleteClusterSize"
-                    @deleted="handleClusterDeletion"/>
-  </v-card>
+          </v-list>
+        </v-menu>
+      </v-toolbar>
+      <v-card-text>
+        <v-row>
+          <v-col v-if="items.length > 0">
+            <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
+            These clusters have been created by you.
+          </v-col>
+          <v-col v-else>
+            <div class="d-flex justify-center">
+              <v-btn @click="addClusterDialog = true" text>
+                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                Import clusters
+              </v-btn>
+            </div>
+          </v-col>
+        </v-row>
+      </v-card-text>
+      <import-cluster v-model="addClusterDialog" @added="loadData"/>
+      <delete-all-clusters v-model="deleteAllClustersDialog" @deleted="loadData"/>
+      <delete-cluster v-model="deleteClusterDialog"
+                      :cluster-uid="deleteClusterUid"
+                      :num-addresses="deleteClusterSize"
+                      @deleted="handleClusterDeletion"/>
+    </v-card>
+    <v-row v-if="items.length > 0" class="mt-2 mx-auto"
+           style="max-width: 1200px; background-color: transparent">
+      <v-col v-for="(item, i) in items" :key="i" cols="12" sm="6" md="4" lg="4">
+        <v-card elevation="4">
+          <v-list-item two-line>
+            <v-list-item-title>
+              {{ item.address_count }} Addresses
+            </v-list-item-title>
+            <v-list-item-subtitle class="text-right">
+              {{ item.ts.toLocaleDateString() }}
+            </v-list-item-subtitle>
+            <v-menu
+                bottom
+                left>
+              <template v-slot:activator="{ on, attrs }">
+                <v-btn
+                    icon
+                    v-bind="attrs"
+                    v-on="on">
+                  <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                </v-btn>
+              </template>
+              <v-list>
+                <v-list-item @click="deleteItem(item.uid, item.address_count)">
+                  <v-list-item-icon>
+                    <v-icon>{{ icon.mdiDelete }}</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-title>Delete</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
+          </v-list-item>
+          <v-list-item
+              v-for="address in item.addresses"
+              :key="address"
+              :to="{ name: routes.addressRoute, params: { id: address }}">
+            <v-list-item-content>
+              {{ address }}
+            </v-list-item-content>
+          </v-list-item>
+        </v-card>
+      </v-col>
+    </v-row>
+  </div>
 </template>
 
 <script>

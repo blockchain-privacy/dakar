@@ -3,6 +3,7 @@ package analytics
 import (
 	"backend/analytics/clustering"
 	"backend/analytics/graph"
+	"errors"
 	"io"
 	"log"
 )
@@ -18,3 +19,8 @@ func InitLogger(out io.Writer, flag int) {
 	graph.InitLogger(out, flag)
 	clustering.InitLogger(out, flag)
 }
+
+var (
+	ErrTooManyAddresses   = errors.New("request contains too many addresses")
+	ErrNonExistentAddress = errors.New("address does not exist")
+)

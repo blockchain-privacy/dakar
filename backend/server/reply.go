@@ -9,11 +9,13 @@ import (
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+	"strings"
 
 	"encoding/csv"
 	"encoding/json"
@@ -645,93 +647,61 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, txHashString string) {
-	cHeuristic, err := dbHeuristic.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
+func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, heuristicUID string) {
+	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
 		handleError(w, err)
+		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	if len(cHeuristic.Heuristics) == 0 {
+	if cHeuristic.UID == "" {
 		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 		return
 	}
 
 	// headers for streaming data to client
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", heuristicUID))
 	w.Header().Set("Content-Type", "text/csv")
-
-	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
-	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
 
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
-		"heuristic type", "heuristic parameter", "heuristic timestamp",
-		"origin uid", "origin transaction hash", "origin timestamp",
-		"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
+	header := []string{"cluster ID", "attributions", "origin transaction hash",
+		"origin timestamp", "destination count"}
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 		info(cliutil.ShowCallInfo(), err)
 	}
 
-	for _, h := range cHeuristic.Heuristics {
-		for _, result := range h.Results {
-			var row []string
-			// per heuristic information
-			row = append(row, h.UID)
-			var parentHeuristic string
-			if len(h.ParentHeuristic) > 0 {
-				// only one parent heuristic is possible
-				parentHeuristic = h.ParentHeuristic[0].UID
+	var clusterCount int
+	for _, c := range cHeuristic.Clusters {
+		clusterCount++
+		var attributions string
+
+		for i, a := range c.Attributions {
+			attributions += a.Tag
+
+			if i+1 < len(c.Attributions) {
+				attributions += ","
 			}
-			row = append(row, parentHeuristic)
+		}
 
-			var childHeuristics string
-			for i, c := range h.ChildHeuristics {
-				childHeuristics += c.UID
-				if i+1 < len(h.ChildHeuristics) {
-					childHeuristics += ","
-				}
-			}
+		for _, transaction := range c.Transactions {
+			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash,
+				transaction.Timestamp, strconv.Itoa(transaction.DestinationCount)}
 
-			row = append(row, childHeuristics)
-			row = append(row, h.Type)
-			row = append(row, h.Parameter)
-			row = append(row, h.Timestamp)
-
-			// per origin information
-			row = append(row, result.Origin.UID)
-			row = append(row, result.Origin.TxHash)
-			row = append(row, result.Origin.Timestamp)
-			row = append(row, result.Origin.AddressHash)
-
-			// add destination data if there exists any
-			if len(result.Destinations) > 0 {
-				for _, d := range result.Destinations {
-					withDestinations := make([]string, len(row))
-					// copy because for each destination the row gets reused
-					copy(withDestinations, row)
-
-					withDestinations = append(withDestinations, d.UID)
-					withDestinations = append(withDestinations, d.TxHash)
-					withDestinations = append(withDestinations, d.Timestamp)
-
-					if err = csvWriter.Write(withDestinations); err != nil {
-						handleError(w, err)
-					}
-				}
-				csvWriter.Flush()
-			} else {
-				if err = csvWriter.Write(row); err != nil {
-					handleError(w, err)
-				}
+			if err = csvWriter.Write(row); err != nil {
+				handleError(w, err)
+				info(cliutil.ShowCallInfo(), err)
+				return
 			}
 		}
 		csvWriter.Flush()
 	}
+
+	csvWriter.Flush()
 }
 
 // writeClusterSummary writes heuristic data in CSV format
@@ -802,6 +772,20 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
 		info(cliutil.ShowCallInfo(), decodeErr)
 		return
+	}
+	const maxAddressCount = 2000
+	if req.IsClusterLookup {
+		addressCount, err := clustering.GetClusterAddressCount(dgraph, req.AddressHash)
+		if err != nil {
+			info(cliutil.ShowCallInfo(), err)
+			return
+		}
+
+		if addressCount > maxAddressCount {
+			reply.Msg = "too_many_addresses"
+			reply.Success = true
+			return
+		}
 	}
 
 	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
@@ -900,8 +884,8 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 		}
 
 		newAddress := analyticsClustering.ExternalClusterItem{
-			ClusterID:   line[0],
-			AddressHash: line[1],
+			ClusterID:   strings.TrimSpace(line[0]),
+			AddressHash: strings.TrimSpace(line[1]),
 		}
 
 		if newAddress.ClusterID == "" || newAddress.AddressHash == "" {
@@ -1008,11 +992,11 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 		}
 
 		newAttribution := analytics.Attribution{
-			AddressHash: line[0],
-			Tag:         line[1],
-			Description: line[2],
-			Source:      line[3],
-			Category:    line[4],
+			AddressHash: strings.TrimSpace(line[0]),
+			Tag:         strings.TrimSpace(line[1]),
+			Description: strings.TrimSpace(line[2]),
+			Source:      strings.TrimSpace(line[3]),
+			Category:    strings.TrimSpace(line[4]),
 		}
 
 		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {
@@ -1029,11 +1013,9 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	}
 
 	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
-		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+		if errors.Is(err, analytics.ErrTooManyAddresses) {
 			reply.Msg = CsvTooManyAddresses
-		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
-			reply.Msg = CsvShallowCluster
-		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
 			reply.Msg = err.Error()
 		} else {
 			reply.Msg = CsvErrorImporting
@@ -1168,6 +1150,156 @@ func getAttributionSearchReply(dgraph external.Database, userUID string, body io
 
 	reply.Success = true
 	reply.Attributions = attributions
+
+	return
+}
+
+func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply addAddressExclusionsReply) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "User not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := r.ParseMultipartForm(maxBodySize); err != nil {
+		return
+	}
+
+	// Get handler for filename, size and headers
+	file, _, err := r.FormFile("file")
+	if err != nil {
+		reply.Msg = CsvReadError
+		return
+	}
+
+	defer func(file multipart.File) {
+		err := file.Close()
+		if err != nil {
+			info("Error closing CSV-file")
+		}
+	}(file)
+
+	csvReader := csv.NewReader(file)
+	csvReader.ReuseRecord = true
+	csvReader.FieldsPerRecord = 1
+	var line []string
+
+	var addresses []string
+	var index int
+	for ; ; index++ {
+		line, err = csvReader.Read()
+		if err != nil {
+			if errors.Is(err, csv.ErrFieldCount) {
+				reply.Msg = CsvInvalidFieldCount
+				return
+			} else if !errors.Is(err, io.EOF) {
+				reply.Msg = CsvInvalidData
+				return
+			}
+			break
+		}
+
+		trimmed := strings.TrimSpace(line[0])
+
+		if trimmed == "" {
+			reply.Msg = CsvInvalidData
+			return
+		}
+
+		addresses = append(addresses, trimmed)
+	}
+
+	if len(addresses) == 0 {
+		reply.Msg = CsvNoData
+		return
+	}
+
+	if err := analytics.ImportAddressExclusions(dgraph, addresses, tUser.ID); err != nil {
+		if errors.Is(err, analytics.ErrTooManyAddresses) {
+			reply.Msg = CsvTooManyAddresses
+		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
+			reply.Msg = err.Error()
+		} else {
+			reply.Msg = CsvErrorImporting
+			info(err)
+		}
+
+		return
+	}
+
+	reply.Success = true
+	return
+}
+
+func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) (reply addressExclusionOverviewReply) {
+	addresses, count, err := exclusion.GetAddressExclusions(dgraph, userUID)
+	if err != nil {
+		reply.Msg = "no addresses found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.AddressHashes = addresses
+	reply.Count = count
+
+	return
+}
+
+func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
+	addressHash string) (reply deleteAddressExclusionReply) {
+	if addressHash == "" {
+		reply.Msg = "address hash was not set"
+		return
+	}
+
+	if err := exclusion.DeleteAddressExclusion(dgraph, userUID, addressHash); err != nil {
+		reply.Msg = "could not delete address exclusion"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getDeleteAllAddressExclusionsReply(dgraph external.Database, userUID string) (reply deleteAddressExclusionReply) {
+	if err := exclusion.DeleteAllAddressExclusions(dgraph, userUID); err != nil {
+		reply.Msg = "could not delete address exclusions"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, addressHash string) (
+	reply addressExclusionStatusReply) {
+	if !isValid(addressHash) {
+		reply.Msg = "address hash is not valid"
+		return
+	}
+
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		reply.Msg = "user not found"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	status, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
+	if err != nil {
+		reply.Msg = "error getting exclusion status"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+	reply.IsExclusion = status
 
 	return
 }

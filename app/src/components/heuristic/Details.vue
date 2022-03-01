@@ -4,6 +4,13 @@
       <v-card-title>
         <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>
         Heuristic Properties
+        <v-btn v-if="!isHollow" icon large class="ml-auto"
+               id="heuristic_download" @click="downloadSummary">
+          <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+        </v-btn>
+        <v-tooltip bottom activator="#heuristic_download">
+          <span>Download heuristic summary</span>
+        </v-tooltip>
       </v-card-title>
       <v-divider/>
       <v-card-text style="height: 80%">
@@ -31,15 +38,12 @@
                     </v-row>
                     <v-row>
                       <v-col>
-                        <IconItem title="Custom clusters" :icon="icon.mdiTune">
+                        <IconItem title="Custom clusters" :icon="icon.mdiMerge">
                           {{ heuristicData.heuristicCustomClusters ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
-                      <!-- disabled for -->
-                      <v-col v-if="false">
-                        <IconItem v-if="heuristicData.heuristicParameter"
-                                  title="Exclude Addresses"
-                                  :icon="icon.mdiTune">
+                      <v-col>
+                        <IconItem title="Exclude Addresses" :icon="icon.mdiPlaylistRemove">
                           {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
@@ -120,11 +124,14 @@
 
 <script>
 import {
-  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
+  mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
+  mdiFileDownloadOutline,
 } from '@mdi/js';
 import IconItem from '../common/IconItem.vue';
 import Histogram from '../../d3Documents/histogram';
 import Results from './Results.vue';
+import { doGetBlob, getCurrentDate } from '../../utilities';
+import { ROUTE_HEURISTICS_SUMMARY } from '../../constants';
 
 export default {
   name: 'Details',
@@ -138,7 +145,13 @@ export default {
   data() {
     return {
       icon: {
-        mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar,
+        mdiIframeVariableOutline,
+        mdiTune,
+        mdiPoundBoxOutline,
+        mdiChartBar,
+        mdiMerge,
+        mdiPlaylistRemove,
+        mdiFileDownloadOutline,
       },
       chart: null,
       svgHistogram: null,
@@ -183,6 +196,23 @@ export default {
       this.svgHistogram.draw(detailArray);
       this.enoughDataForGraph = !this.svgHistogram.empty;
       this.durationInMinutes = this.svgHistogram.getDurationInMinutes;
+    },
+    downloadSummary() {
+      doGetBlob(ROUTE_HEURISTICS_SUMMARY, this.$router, this.$store,
+        this.heuristicData.heuristicUid)
+        .then((blob) => {
+          // looks hacky, but it is the only way with good UX
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+
+          a.setAttribute('download',
+            `heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`);
+          a.click();
+          a.remove();
+        })
+        .catch((error) => {
+          this.setErrorMessage(error);
+        });
     },
   },
   updated() {

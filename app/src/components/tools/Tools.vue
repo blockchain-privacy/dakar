@@ -53,6 +53,14 @@
                 Attributions
               </v-list-item-title>
             </v-list-item>
+            <v-list-item :to="{ name: addressExclusionPage}">
+              <v-list-item-icon>
+                <v-icon>{{ icon.mdiPlaylistRemove }}</v-icon>
+              </v-list-item-icon>
+              <v-list-item-title>
+                Address Exclusions
+              </v-list-item-title>
+            </v-list-item>
           </v-list>
         </v-navigation-drawer>
       </v-col>
@@ -68,14 +76,14 @@
 <script>
 import {
   mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch, mdiMerge,
-  mdiTag,
+  mdiTag, mdiPlaylistRemove,
 } from '@mdi/js';
 import {
   ROUTE_NAME_USER_HEURISTIC_PAGE,
   ROUTE_NAME_SHORTEST_PATH_PAGE,
   ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_CLUSTER_OVERVIEW,
-  ROUTE_NAME_ATTRIBUTIONS,
+  ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS,
 } from '../../constants';
 
 export default {
@@ -87,6 +95,7 @@ export default {
       connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
       clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
       attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
+      addressExclusionPage: ROUTE_NAME_ADDRESS_EXCLUSIONS,
       icon: {
         mdiGraph,
         mdiChartTimelineVariant,
@@ -94,6 +103,7 @@ export default {
         mdiTextBoxSearch,
         mdiMerge,
         mdiTag,
+        mdiPlaylistRemove,
       },
     };
   },

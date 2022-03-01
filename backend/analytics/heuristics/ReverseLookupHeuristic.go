@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
+	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
 
@@ -150,11 +151,20 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
+	var exclusions []string
+	if h.excludeAddresses {
+		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		}
+	}
+
 	allTimeLimitedOrigins := make(map[string]heuristics.HeuristicTransaction)
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
-		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID, h.clusterTypes)
+		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
+			h.clusterTypes, exclusions)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

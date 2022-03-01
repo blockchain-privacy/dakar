@@ -123,7 +123,8 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 			}
 		} else {
 			var err error
-			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID, h.clusterTypes)
+			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
+				h.clusterTypes, h.excludeAddresses)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

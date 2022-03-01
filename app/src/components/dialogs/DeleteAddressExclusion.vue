@@ -2,18 +2,19 @@
   <v-dialog v-model="show" max-width="400px">
     <v-card class="mx-auto elevation-4">
       <v-card-title>
-        <span class="text-h5">Delete All Clusters</span>
+        <span class="text-h5">Delete Address Exclusion</span>
       </v-card-title>
       <v-card-text>
         <div class="text-subtitle-1">
-          Are you sure you want to delete all clusters?
+          Are you sure you want to delete the address <code>{{ addressHash }}</code>
+          from the address exclusion list?
         </div>
         <v-row class="mt-4">
           <v-col class="d-flex justify-end align-center">
             <v-btn text :disabled="isLoading" class="mr-2" @click="show = false">
               Cancel
             </v-btn>
-            <v-btn text color="red" :loading="isLoading" @click="deleteAllClusters">
+            <v-btn text :loading="isLoading" color="red" @click="deleteCluster">
               Delete
             </v-btn>
           </v-col>
@@ -25,12 +26,13 @@
 
 <script>
 import { doGet } from '../../utilities';
-import { ROUTE_DELETE_ALL_CLUSTERS } from '../../constants';
+import { ROUTE_DELETE_ADDRESS_EXCLUSION } from '../../constants';
 
 export default {
-  name: 'DeleteAllClusters',
+  name: 'DeleteAddressExclusion',
   props: {
     value: { type: Boolean, required: true },
+    addressHash: { type: String, required: true },
   },
   data() {
     return {
@@ -51,13 +53,19 @@ export default {
     setPersistentErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
     },
-    deleteAllClusters() {
+    deleteCluster() {
+      if (this.addressHash === '') {
+        this.setPersistentErrorMessage('could not delete address exclusion');
+        this.show = false;
+        return;
+      }
+
       this.isLoading = true;
-      doGet(ROUTE_DELETE_ALL_CLUSTERS, this.$router, this.$store)
+      doGet(ROUTE_DELETE_ADDRESS_EXCLUSION, this.$router, this.$store, this.addressHash)
         .then((d) => {
-          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting clusters');
+          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error deleting address exclusion');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
-          this.$emit('deleted');
+          this.$emit('deleted', this.addressHash);
         })
         .catch((e) => {
           this.setPersistentErrorMessage(e);

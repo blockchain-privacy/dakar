@@ -18,7 +18,7 @@
             <!-- hmi cluster lookup disabled for now -->
             <v-btn v-if="false"
                    id="btn_open_cluster_view"
-                   style="margin-right: 0" outlined icon
+                   style="margin-right: 0" icon
                    :to="{ name: clusterViewRoute }">
               <v-icon>{{ icon.mdiGraph }}</v-icon>
             </v-btn>
@@ -28,6 +28,33 @@
           </v-toolbar>
           <v-card-text>
             <v-container>
+              <v-alert dense text color="primary" v-if="showExclusionAlert">
+                <div class="d-flex">
+                  <div class="align-self-center">
+                    This address is part of your
+                    <router-link :to="{ name: exclusionListRoute }">
+                      address exclusion list.
+                    </router-link>
+                  </div>
+                  <div class="align-self-center ml-auto">
+                    <v-menu bottom left>
+                      <template v-slot:activator="{ on, attrs }">
+                        <v-btn :light="!$vuetify.theme.dark" icon v-bind="attrs" v-on="on">
+                          <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                        </v-btn>
+                      </template>
+                      <v-list>
+                        <v-list-item @click="deleteExclusionDialog = true">
+                          <v-list-item-icon>
+                            <v-icon>{{ icon.mdiDelete }}</v-icon>
+                          </v-list-item-icon>
+                          <v-list-item-title>Remove from address exlcusion list</v-list-item-title>
+                        </v-list-item>
+                      </v-list>
+                    </v-menu>
+                  </div>
+                </div>
+              </v-alert>
               <v-row>
                 <v-col>
                   <IconItem :icon="icon.mdiScaleBalance" title="Balance">
@@ -142,39 +169,44 @@
               </v-card>
             </v-tab-item>
             <v-tab-item>
-              <cluster-lookup :addressHash="addressHash" />
+              <cluster-lookup :addressHash="addressHash"/>
             </v-tab-item>
             <v-tab-item>
-              <mixing-activity :address-hash="addressHash" />
+              <mixing-activity :address-hash="addressHash"/>
             </v-tab-item>
           </v-tabs-items>
         </v-card>
       </v-col>
     </v-row>
+    <delete-address-exclusion v-model="deleteExclusionDialog"
+                              :address-hash="addressHash"
+                              @deleted="hideExclusionAlert"/>
   </v-container>
 </template>
 
 <script>
 import {
   mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-  mdiBankTransferOut, mdiPound, mdiMerge,
+  mdiBankTransferOut, mdiPound, mdiMerge, mdiDotsVertical, mdiDelete,
 } from '@mdi/js';
 import {
-  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash,
+  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash, doGet,
 } from '../../../utilities';
 import {
-  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE,
+  PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_ADDRESS_EXCLUSIONS,
   ROUTE_ADDRESS_OUTPUT_RANGE, COIN_UNIT, ROUTE_NAME_CLUSTER_VIEW_PAGE,
+  ROUTE_ADDRESS_EXCLUSION_STATUS,
 } from '../../../constants';
 import IconItem from '../../common/IconItem.vue';
 import SortAndFilter from './SortAndFilter.vue';
 import MixingActivity from './MixingActivity.vue';
 import ClusterLookup from './ClusterLookup.vue';
+import DeleteAddressExclusion from '../../dialogs/DeleteAddressExclusion.vue';
 
 export default {
   name: 'AddressLookup',
   components: {
-    ClusterLookup, MixingActivity, SortAndFilter, IconItem,
+    ClusterLookup, MixingActivity, SortAndFilter, IconItem, DeleteAddressExclusion,
   },
   data() {
     return {
@@ -185,13 +217,18 @@ export default {
         mdiBankTransferOut,
         mdiPound,
         mdiMerge,
+        mdiDotsVertical,
+        mdiDelete,
       },
       coinUnit: COIN_UNIT,
       transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       clusterViewRoute: ROUTE_NAME_CLUSTER_VIEW_PAGE,
+      exclusionListRoute: ROUTE_NAME_ADDRESS_EXCLUSIONS,
       itemsPerPage: 20,
       addressHash: '',
       tab: null,
+      deleteExclusionDialog: false,
+      showExclusionAlert: false,
       isLoading: false,
       // emptyResponse is only used for data loaded after the initial data load
       emptyResponse: false,
@@ -233,6 +270,9 @@ export default {
   methods: {
     shortenHash,
     convertAmount,
+    setInfoMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'info', temporary: true });
+    },
     isResponseValid(data) {
       return !(!data.type || data.type !== 'addr' || !data.payload || !data.payload.addr_outputs
           || data.payload.addr_outputs.length === 0);
@@ -254,9 +294,30 @@ export default {
 
           this.data = data.payload;
 
-          // this.data.addr_outputs = data.payload.addr_outputs;
           this.$store.dispatch('resetMessages');
           this.emptyResponse = false;
+        })
+        .catch((e) => {
+          handleError(this.$store, e);
+        })
+        .finally(() => {
+          this.isLoading = false;
+        });
+    },
+    getExclusionStatus() {
+      if (this.addressHash === '') return;
+      this.isLoading = true;
+      doGet(ROUTE_ADDRESS_EXCLUSION_STATUS, this.$router, this.$store, this.addressHash)
+        .then((data) => {
+          if (data.success === undefined) throw Error('error getting address exclusion status');
+          if (data.success === false) {
+            throw new Error(data.msg);
+          }
+          if (data.success === true && data.msg !== undefined) {
+            this.setInfoMessage(data.msg);
+          }
+
+          this.showExclusionAlert = data.isExclusion;
         })
         .catch((e) => {
           handleError(this.$store, e);
@@ -287,6 +348,9 @@ export default {
         order: 0,
       };
     },
+    hideExclusionAlert() {
+      this.showExclusionAlert = false;
+    },
   },
   mounted() {
     this.setAddressHash();
@@ -300,6 +364,12 @@ export default {
       handler() {
         this.getTableData();
       },
+    },
+    addressHash() {
+      // only get exclusion status if this is a at least privileged user
+      if (this.showAdvanced) {
+        this.getExclusionStatus();
+      }
     },
   },
 };

@@ -243,6 +243,7 @@ type hmiLookupReply struct {
 
 type mixingActivityReply struct {
 	Success    bool                       `json:"success"`
+	Msg        string                     `json:"msg,omitempty"`
 	Activities []analytics.MixingActivity `json:"activities,omitempty"`
 }
 
@@ -276,4 +277,27 @@ type attributionOverviewReply struct {
 type deleteAttributionReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
+}
+
+type addAddressExclusionsReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type addressExclusionOverviewReply struct {
+	Success       bool     `json:"success"`
+	Msg           string   `json:"msg,omitempty"`
+	AddressHashes []string `json:"addresses"`
+	Count         int64    `json:"addressCount,omitempty"`
+}
+
+type deleteAddressExclusionReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
+type addressExclusionStatusReply struct {
+	Success     bool   `json:"success"`
+	IsExclusion bool   `json:"isExclusion"`
+	Msg         string `json:"msg,omitempty"`
 }

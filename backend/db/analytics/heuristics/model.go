@@ -53,7 +53,7 @@ type Heuristic struct {
 	HeuristicType    string   `json:"Heuristic.type,omitempty"`
 	Parameter        string   `json:"Heuristic.parameter,omitempty"`
 	ClusterTypes     []string `json:"Heuristic.clusterTypes,omitempty"`
-	ExcludeAddresses bool     `json:"Heuristic.excludeAddresses"`
+	ExcludeAddresses *bool    `json:"Heuristic.excludeAddresses"`
 	UserUID          string   `json:"~User.heuristics,omitempty"`
 	Transaction      struct {
 		UID string `json:"uid,omitempty"`
@@ -184,42 +184,16 @@ type FrontendHeuristic struct {
 	Results          []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
-// FrontendHeuristicResponse holds all heuristic data of a heuristic frontend response
-type FrontendHeuristicResponse struct {
-	UID              string      `json:"uid,omitempty"`
-	Timestamp        string      `json:"ts,omitempty"`
-	Type             string      `json:"type,omitempty"`
-	Parameter        string      `json:"parameter,omitempty"`
-	ExcludeAddresses bool        `json:"excludeAddresses"`
-	ClusterTypes     []string    `json:"clusterTypes,omitempty"`
-	ParentHeuristic  []Heuristic `json:"parent,omitempty"`
-	ChildHeuristics  []Heuristic `json:"children,omitempty"`
-	ClusterCount     int         `json:"clusterCount,omitempty"`
-	Results          []struct {
-		Origin []struct {
-			UID         string `json:"uid,omitempty"`
-			Timestamp   string `json:"ts,omitempty"`
-			AddressHash string `json:"addresshash,omitempty"`
-			TxHash      string `json:"txhash,omitempty"`
-		} `json:"origin,omitempty"`
-		Destinations []struct {
-			UID       string `json:"uid,omitempty"`
-			Timestamp string `json:"ts,omitempty"`
-			TxHash    string `json:"txhash,omitempty"`
-		} `json:"destinations,omitempty"`
-	} `json:"results,omitempty"`
-}
-
 type FrontendTransactionResult struct {
-	Timestamp string `json:"ts,omitempty"`
-	Hash      string `json:"txhash,omitempty"`
+	Timestamp        string `json:"ts,omitempty"`
+	Hash             string `json:"txhash,omitempty"`
+	DestinationCount int    `json:"destinationCount,omitempty"`
 }
 
 // FrontendHeuristicCluster holds the results counts of a heuristic per cluster
 type FrontendHeuristicCluster struct {
-	Transactions       []FrontendTransactionResult `json:"txs,omitempty"`
-	Attributions       []Attribution               `json:"attributions,omitempty"`
-	CountForwardLookup int                         `json:"count,omitempty"`
+	Transactions []FrontendTransactionResult `json:"txs,omitempty"`
+	Attributions []Attribution               `json:"attributions,omitempty"`
 }
 
 type Attribution struct {

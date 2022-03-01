@@ -208,4 +208,10 @@ func main() {
 	//	info(err)
 	//}
 	//info("add heuristic properties done")
+
+	//info("add addressExclusions predicate starting ...")
+	//if err := db.AlterSchemaAddAddressExclusion(dgraph); err != nil {
+	//	info(err)
+	//}
+	//info("add addressExclusions predicate done")
 }

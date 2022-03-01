@@ -9,17 +9,16 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"path"
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/ristretto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -40,8 +39,7 @@ type searchResponse struct {
 }
 
 func setDefaultHeader(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8080")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
 	w.Header().Set("Content-Type", "application/json")
 }
@@ -55,11 +53,11 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // API pattern: "/api/v1/search/<hash>"
-func (s *Server) handlerSearch(route string) http.Handler {
+func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		// set response struct
 		reply := searchResponse{
@@ -106,12 +104,11 @@ func (s *Server) handlerSearch(route string) http.Handler {
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
 // API pattern: "/api/v1/tx/<query>"
-func (s *Server) handlerDetails(route string, fn func(external.Database, string) (
-	SearchResult, bool, error)) http.Handler {
+func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		// set response struct
 		reply := searchResponse{
@@ -141,11 +138,11 @@ func (s *Server) handlerDetails(route string, fn func(external.Database, string)
 }
 
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
-func (s *Server) handlerAddressOutputRange(route string) http.Handler {
+func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		reply := searchResponse{
 			Type:    "response_empty",
@@ -210,11 +207,11 @@ func (s *Server) handlerAddressOutputRange(route string) http.Handler {
 }
 
 // API pattern: "/api/v1/blkRange/<address_hash>"
-func (s *Server) handlerBlockRange(route string) http.Handler {
+func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := r.URL.Path[len(route):]
+		queryString := path.Base(r.URL.Path)
 
 		reply := searchResponse{
 			Type:    "response_empty",
@@ -304,15 +301,15 @@ func (s *Server) handlerMeta() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/heuristicsSummary/<hash>"
+// API pattern: "/api/v1/heuristicsSummary/<heuristic_UID>"
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsSummary()):]
+		heuristicUID := path.Base(r.URL.Path)
 
-		if !isValid(txHashString) {
-			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		if heuristicUID == "." || heuristicUID == "" {
+			handleError(w, errors.New("no heuristic UID provided"))
 			return
 		}
 
@@ -322,7 +319,7 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 			return
 		}
 
-		writeHeuristicSummary(w, s.db, tUser, txHashString)
+		writeHeuristicSummary(w, s.db, tUser, heuristicUID)
 	})
 }
 
@@ -357,7 +354,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 
 		var reply deleteClusterReply
 
-		clusterUid := r.URL.Path[len(constants.GetRouteDeleteCluster()):]
+		clusterUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -477,7 +474,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := r.URL.Path[len(constants.GetRouteDeletePrivateAttribution()):]
+		attributionUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -501,7 +498,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := r.URL.Path[len(constants.GetRouteDeletePublicAttribution()):]
+		attributionUid := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
@@ -562,12 +559,95 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addAddressExclusions"
+func (s *Server) handlerAddAddressExclusions() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddAddressExclusionsReply(s.db, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAddressExclusion/<address_exclusion_uid>"
+func (s *Server) handlerDeleteAddressExclusion() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAddressExclusionReply
+
+		addressHash := path.Base(r.URL.Path)
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteAllAddressExclusions"
+func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply deleteAddressExclusionReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/addressExclusionOverview"
+func (s *Server) handlerAddressExclusionOverview() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply addressExclusionOverviewReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "User not found"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
+		}
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/heuristics/<hash>"
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristics()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -596,7 +676,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		addressHash := r.URL.Path[len(constants.GetRouteHMILookup()):]
+		addressHash := path.Base(r.URL.Path)
 
 		if !isValid(addressHash) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -618,7 +698,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicStatus()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristics, http.StatusNotFound)
@@ -690,7 +770,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := r.URL.Path[len(constants.GetRouteHeuristicsExecution()):]
+		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
 			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
@@ -837,7 +917,7 @@ func (s *Server) handlerDeleteUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		userUID := r.URL.Path[len(constants.GetRouteDeleteUser()):]
+		userUID := path.Base(r.URL.Path)
 
 		var reply userReply
 
@@ -975,53 +1055,52 @@ func (s *Server) handlerMixingActivity() http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/addressExclusionStatus/<address_hash>"
+func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
-	// init cache
-	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
-		MaxCost:     1 << 30, // maximum cost of cache (1 GB).
-		BufferItems: 64,      // number of keys per Get buffer.
-	})
-	if err != nil {
-		panic(fmt.Sprintln("error initializing cache", err))
-	}
-
-	// API end points
-
 	// Metrics
 	s.handler.Handle(constants.GetRouteMetrics(), adapt(promhttp.Handler(), constants.GetRouteMetrics(),
 		limitMethod("GET"), s.basicAuth(), maxBody()))
 
 	// Search
-	s.handler.Handle(constants.GetRouteSearch(),
-		adapt(s.handlerSearch(constants.GetRouteSearch()), constants.GetRouteSearch(),
-			limitMethod("GET"), useCache(cache, time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteSearch(), adapt(s.handlerSearch(), constants.GetRouteSearch(),
+		limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))
 
 	// Common data
 	s.handler.Handle(constants.GetRouteTransaction(),
-		adapt(s.handlerDetails(constants.GetRouteTransaction(), GetTransaction), constants.GetRouteTransaction(),
-			limitMethod("GET"), useCache(cache, time.Second*0), maxBody()))
+		adapt(s.handlerDetails(GetTransaction), constants.GetRouteTransaction(),
+			limitMethod("GET"), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	s.handler.Handle(constants.GetRouteBlock(),
-		adapt(s.handlerDetails(constants.GetRouteBlock(), GetBlock), constants.GetRouteBlock(),
-			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
-	s.handler.Handle(constants.GetRouteAddress(),
-		adapt(s.handlerDetails(constants.GetRouteAddress(), GetAddress), constants.GetRouteAddress(),
-			limitMethod("GET"), useCache(cache, time.Second*10), maxBody()))
+	s.handler.Handle(constants.GetRouteBlock(), adapt(s.handlerDetails(GetBlock), constants.GetRouteBlock(),
+		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(constants.GetRouteAddress(), adapt(s.handlerDetails(GetAddress), constants.GetRouteAddress(),
+		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
 
 	s.handler.Handle(constants.GetRouteAddressOutputRange(),
-		adapt(s.handlerAddressOutputRange(constants.GetRouteAddressOutputRange()), constants.GetRouteAddressOutputRange(),
-			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
+		adapt(s.handlerAddressOutputRange(), constants.GetRouteAddressOutputRange(),
+			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
-	s.handler.Handle(constants.GetRouteBlockRange(),
-		adapt(s.handlerBlockRange(constants.GetRouteBlockRange()), constants.GetRouteBlockRange(),
-			limitMethod("POST"), useCache(cache, time.Minute*10), maxBody()))
+	s.handler.Handle(constants.GetRouteBlockRange(), adapt(s.handlerBlockRange(), constants.GetRouteBlockRange(),
+		limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
-		limitMethod("GET"), s.authorization(), useCache(cache, time.Second*10), maxBody()))
+		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(constants.GetRouteHeuristics(),
@@ -1044,7 +1123,7 @@ func (s *Server) setupHandlers() {
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteHeuristicDescriptors(),
 		adapt(s.handlerHeuristicDescriptors(), constants.GetRouteHeuristicDescriptors(),
-			limitMethod("GET"), s.authorization(), useCache(cache, 0), maxBody()))
+			limitMethod("GET"), s.authorization(), s.useCache(0), maxBody()))
 	s.handler.Handle(constants.GetRouteDeleteHeuristic(),
 		adapt(s.handlerDeleteHeuristic(), constants.GetRouteDeleteHeuristic(),
 			limitMethod("POST"), s.authorization(), maxBody()))
@@ -1052,13 +1131,13 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
-			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteConnectionLookup(),
 		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
-			limitMethod("GET"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("GET"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
-			limitMethod("POST"), s.authorization(), useCache(cache, time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(constants.GetRouteClusterLookup(),
@@ -1081,7 +1160,7 @@ func (s *Server) setupHandlers() {
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteClusterOverview(),
 		adapt(s.handlerClusterOverview(), constants.GetRouteClusterOverview(),
-			limitMethod("GET"), limitMethod("GET"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 
 	// Attributions
 	s.handler.Handle(constants.GetRouteAddPrivateAttribution(),
@@ -1106,11 +1185,28 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerSearchAttributions(), constants.GetRouteSearchAttributions(),
 			limitMethod("POST"), s.authorization(), maxBody()))
 
+	// Address Exclusions
+	s.handler.Handle(constants.GetRouteAddAddressExclusions(),
+		adapt(s.handlerAddAddressExclusions(), constants.GetRouteAddAddressExclusions(),
+			limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAddressExclusion(),
+		adapt(s.handlerDeleteAddressExclusion(), constants.GetRouteDeleteAddressExclusion(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteAllAddressExclusions(),
+		adapt(s.handlerDeleteAllAddressExclusions(), constants.GetRouteDeleteAllAddressExclusions(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddressExclusionOverview(),
+		adapt(s.handlerAddressExclusionOverview(), constants.GetRouteAddressExclusionOverview(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+	s.handler.Handle(constants.GetRouteAddressExclusionStatus(),
+		adapt(s.handlerGetAddressExclusionStatus(), constants.GetRouteAddressExclusionStatus(),
+			limitMethod("GET"), s.authorization(), maxBody()))
+
 	// User
 	s.handler.Handle(constants.GetRouteLogin(), adapt(s.handlerLogin(),
-		constants.GetRouteLogin(), limitMethod("POST")))
+		constants.GetRouteLogin(), limitMethod("POST"), maxBody()))
 	s.handler.Handle(constants.GetRouteLogout(), adapt(s.handlerLogout(),
-		constants.GetRouteLogout(), limitMethod("GET")))
+		constants.GetRouteLogout(), limitMethod("GET"), maxBody()))
 
 	s.handler.Handle(constants.GetRouteCreateUser(), adapt(s.handlerCreateUser(), constants.GetRouteCreateUser(),
 		limitMethod("POST"), s.authorization(), maxBody()))

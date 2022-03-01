@@ -1,6 +1,6 @@
 <template>
   <div class="my-2 mx-1">
-    <v-card elevation-4>
+    <v-card elevation="4">
       <v-card-text>
         <v-text-field
             v-model="query"

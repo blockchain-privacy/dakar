@@ -23,6 +23,7 @@ import Store from '../state';
 import HMIView from '../components/cluster/HMIView.vue';
 import ClusterOverview from '../components/tools/ClusterOverview.vue';
 import Attributions from '../components/tools/attributions/Attributions.vue';
+import AddressExclusions from '../components/tools/AddressExclusions.vue';
 
 Vue.use(Router);
 
@@ -185,6 +186,11 @@ export default new Router({
           path: 'attributions',
           name: Constants.ROUTE_NAME_ATTRIBUTIONS,
           component: Attributions,
+        },
+        {
+          path: 'addressExclusions',
+          name: Constants.ROUTE_NAME_ADDRESS_EXCLUSIONS,
+          component: AddressExclusions,
         },
       ],
     },

@@ -53,9 +53,12 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 					block:~transactions{
 						ts
 					}
-					i:tx_inputs@normalize{
+					i:tx_inputs{
+						~addr_outputs{
+							uid
+						}
 						~tx_outputs{
-							uid:uid
+							uid
 						}
 					}
 				}
@@ -67,14 +70,25 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 	}
 
 	var r struct {
-		Q []ConnectedNode `json:"q"`
+		Q []ConnectedNodeRequest `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return r.Q, nil
+	var connectedNodes []ConnectedNode
+
+	for _, connectedNode := range r.Q {
+		node, conversionErr := connectedNode.toConnectedNode()
+		if conversionErr != nil {
+			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+		}
+
+		connectedNodes = append(connectedNodes, *node)
+	}
+
+	return connectedNodes, nil
 }
 
 // GetPrivacyTransactions gets the numNodes maxTx privacy transactions from the database.
@@ -228,8 +242,11 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 					block:~transactions{
 						ts
 					}
-					i:tx_inputs@normalize{
+					i:tx_inputs{
 						~tx_outputs{
+							uid:uid
+						}
+						~addr_outputs{
 							uid:uid
 						}
 					}
@@ -251,13 +268,24 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	}
 
 	var r struct {
-		Connected []ConnectedNode `json:"connected"`
-		Single    []Node          `json:"single"`
+		Connected []ConnectedNodeRequest `json:"connected"`
+		Single    []Node                 `json:"single"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return r.Connected, r.Single, nil
+	var connectedNodes []ConnectedNode
+
+	for _, connectedNode := range r.Connected {
+		node, conversionErr := connectedNode.toConnectedNode()
+		if conversionErr != nil {
+			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+		}
+
+		connectedNodes = append(connectedNodes, *node)
+	}
+
+	return connectedNodes, r.Single, nil
 }

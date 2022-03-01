@@ -32,6 +32,13 @@ export default class ForceGraph {
     this.height = height;
     this.colorMap = colorMap;
 
+    this.initSvg();
+
+    // click
+    this.clickCallBack = null;
+  }
+
+  initSvg() {
     // add attributes to root svg
     this.rootSvg = d3.select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
     this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
@@ -53,9 +60,6 @@ export default class ForceGraph {
       .scaleExtent([0.25, 8]);
     this.rootSvg.call(this.zoom);
 
-    // click
-    this.clickCallBack = null;
-
     // add arrow defintion
     this.rootSvg
       .append('svg:defs')
@@ -75,6 +79,11 @@ export default class ForceGraph {
   draw(nodes, links) {
     if (this.clickCallBack === null) {
       throw new Error('click call back is not set');
+    }
+
+    // check if the svg is still initialized
+    if (d3.select(`#${this.svgId}`).nodes()[0].childElementCount === 0) {
+      this.initSvg();
     }
 
     const simulation = d3.forceSimulation(nodes)

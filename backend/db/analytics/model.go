@@ -2,19 +2,68 @@ package analytics
 
 import (
 	"backend/constants"
+	"fmt"
 	"time"
 )
 
-// ConnectedNode holds data for the current node and all connections on the input side
-type ConnectedNode struct {
+// ConnectedNodeRequest is the request for ConnectedNode
+type ConnectedNodeRequest struct {
 	UID         string                `json:"uid"`
 	PrivacyType constants.PrivacyType `json:"privacytype"`
 	Block       []struct {
 		Ts time.Time `json:"ts"`
 	} `json:"block"`
 	Inputs []struct {
-		UID string `json:"uid"`
+		Addresses []struct {
+			UID string `json:"uid"`
+		} `json:"~addr_outputs,omitempty"`
+		InputTransactions []struct {
+			UID string `json:"uid"`
+		} `json:"~tx_outputs,omitempty"`
 	} `json:"i"`
+}
+
+func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
+	if len(c.Block) != 1 {
+		return nil, fmt.Errorf("invalid block count: %d", len(c.Block))
+	}
+
+	node := ConnectedNode{
+		UID:         c.UID,
+		PrivacyType: c.PrivacyType,
+		Ts:          c.Block[0].Ts,
+	}
+
+	for _, i := range c.Inputs {
+		if len(i.Addresses) != 1 {
+			return nil, fmt.Errorf("invalid address count: %d", len(i.Addresses))
+		}
+
+		if len(i.InputTransactions) != 1 {
+			return nil, fmt.Errorf("invalid input transaction count: %d", len(i.InputTransactions))
+		}
+
+		node.Inputs = append(node.Inputs, struct {
+			Address          string
+			InputTransaction string
+		}{
+			Address:          i.Addresses[0].UID,
+			InputTransaction: i.InputTransactions[0].UID,
+		})
+	}
+
+	return &node, nil
+}
+
+// ConnectedNode holds data for the current node and all connections on the input side
+type ConnectedNode struct {
+	UID         string
+	PrivacyType constants.PrivacyType
+	Ts          time.Time
+	Inputs      []struct {
+		Address          string
+		InputTransaction string
+	}
 }
 
 // Node holds data for the current node

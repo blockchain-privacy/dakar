@@ -48,15 +48,6 @@
           style="min-width: 32px !important;"
           class="ml-1 pa-2"
           outlined
-          @click="downloadHeuristicSummary"
-          :disabled="this.executionStatus.value.executing || !doesDataExist()">
-        <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
-        <div class="hidden-sm-and-down">Summary</div>
-      </v-btn>
-      <v-btn
-          style="min-width: 32px !important;"
-          class="ml-1 pa-2"
-          outlined
           @click="executeHeuristics"
           :disabled="this.banner.show || this.executionStatus.value.executing || !isExecutable()">
         <v-icon>{{ icon.mdiSourceBranchCheck }}</v-icon>
@@ -134,16 +125,14 @@ import TypeSelection from './TypeSelection.vue';
 import Details from './Details.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
-  ROUTE_NAME_HEURISTIC_PAGE, ROUTE_HEURISTICS_SUMMARY,
+  ROUTE_NAME_HEURISTIC_PAGE,
   ROUTE_HEURISTIC_STATUS, ROUTE_NAME_USER_HEURISTIC_PAGE,
   ROUTE_HEURISTIC_DESCRIPTORS, ROUTE_HEURISTICS,
   ROUTE_HEURISTIC_DETAILS, APPLICATION_NAME, CLUSTER_TYPE_CUSTOM,
 } from '../../constants';
 import NestedMenu from '../common/NestedMenu.vue';
 import { HeuristicTree, rootIdentifier } from '../../d3Documents/heuristicTree';
-import {
-  getCurrentDate, doPost, doGet, handleError, doGetBlob,
-} from '../../utilities';
+import { doPost, doGet, handleError } from '../../utilities';
 
 function getDeletedData(oldStateMap, newStateMap) {
   // search for deleted items
@@ -179,7 +168,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parameter: d.parameter,
       children: d.children,
       parent: d.parent,
-      useAddressExclusionList: d.useAddressExclusionList,
+      useAddressExclusionList: d.excludeAddresses,
       clusterTypes: d.clusterTypes,
     });
   });
@@ -306,12 +295,6 @@ export default {
             title: 'Actions',
             menu: [
               {
-                title: 'Download Summary',
-                icon: mdiFileDownloadOutline,
-                action: this.downloadHeuristicSummary,
-                disabled: this.doesDataExist,
-              },
-              {
                 title: 'Execute Heuristics',
                 icon: mdiSourceBranchCheck,
                 action: this.executeHeuristics,
@@ -338,7 +321,7 @@ export default {
         uid: `${this.newUidPrefix}${this.uidCounter}`,
         type: heuristic.type,
         clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-        useAddressExclusionList: heuristic.useAddressExclusionList,
+        excludeAddresses: heuristic.useAddressExclusionList,
       };
 
       if (heuristic.parameter) {
@@ -410,16 +393,6 @@ export default {
 
       return this.deletedData.length > 0;
     },
-    doesDataExist() {
-      if (!this.data || !this.data.heuristics) return false;
-
-      // count elements which are not root or non-executed
-      const numElements = this.data.heuristics.reduce(
-        (sum, e) => (e.uid.startsWith(this.newUidPrefix) || e.uid === 'root' ? sum : sum + 1), 0,
-      );
-
-      return numElements > 0;
-    },
     executeHeuristics() {
       // prevent execution if not data is available
       if (!this.isExecutable()) {
@@ -473,23 +446,6 @@ export default {
           this.executionStatus.value.executing = false;
           this.banner.show = false;
       }
-    },
-    downloadHeuristicSummary() {
-      if (!this.doesDataExist()) return;
-      doGetBlob(ROUTE_HEURISTICS_SUMMARY, this.$router, this.$store, this.transactionHash)
-        .then((blob) => {
-          // looks hacky, but it is the only way with good UX
-          const a = document.createElement('a');
-          a.href = URL.createObjectURL(blob);
-
-          a.setAttribute('download',
-            `heuristic_summary_${getCurrentDate()}_${this.transactionHash}.csv`);
-          a.click();
-          a.remove();
-        })
-        .catch((error) => {
-          this.setErrorMessage(error);
-        });
     },
     // updateChangeSet updates the change set <this.changeSet> based
     // on the differences of this.data.heuristics and this.dbState

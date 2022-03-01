@@ -80,14 +80,15 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 }
 
 // ReverseLookup performs a reverse lookup of the given uid.
-func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
+func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
+	addressExclusions []string) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime)
+	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime, addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -95,14 +96,15 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookup(uid string, targetUID string) (map[string]bool, error) {
+func (w *Wrapper) ForwardLookup(uid string, targetUID string,
+	addressExclusions []string) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ForwardLookup(w.transactionGraph, uid, targetUID)
+	results, err := ForwardLookup(w.transactionGraph, uid, targetUID, addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -111,14 +113,15 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string) (map[string]bool, 
 }
 
 // ForwardLookupByTime performs a forward lookup of the given uid.
-func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
+func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration,
+	addressExclusions []string) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
 		return nil, errors.New("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime)
+	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime, addressExclusions)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

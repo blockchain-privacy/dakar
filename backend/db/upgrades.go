@@ -913,3 +913,22 @@ func AlterSchemaAddHeuristicProperties(c external.Database) error {
 		`,
 	})
 }
+
+// AlterSchemaAddAddressExclusion changes adds the new addressExclusions predicate
+func AlterSchemaAddAddressExclusion(c external.Database) error {
+	return c.Alter(context.Background(), &api.Operation{
+		Schema: `
+			User.addressExclusions: [uid] @count @reverse .
+	
+			type User {
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
+				User.addressExclusions
+			}
+		`,
+	})
+}
