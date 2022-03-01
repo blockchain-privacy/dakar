@@ -211,15 +211,15 @@ type FrontendHeuristicResponse struct {
 }
 
 type FrontendTransactionResult struct {
-	Timestamp string `json:"ts,omitempty"`
-	Hash      string `json:"txhash,omitempty"`
+	Timestamp        string `json:"ts,omitempty"`
+	Hash             string `json:"txhash,omitempty"`
+	DestinationCount int    `json:"destinationCount,omitempty"`
 }
 
 // FrontendHeuristicCluster holds the results counts of a heuristic per cluster
 type FrontendHeuristicCluster struct {
-	Transactions       []FrontendTransactionResult `json:"txs,omitempty"`
-	Attributions       []Attribution               `json:"attributions,omitempty"`
-	CountForwardLookup int                         `json:"count,omitempty"`
+	Transactions []FrontendTransactionResult `json:"txs,omitempty"`
+	Attributions []Attribution               `json:"attributions,omitempty"`
 }
 
 type Attribution struct {

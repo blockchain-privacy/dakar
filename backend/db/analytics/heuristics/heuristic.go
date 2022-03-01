@@ -767,7 +767,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		return
 	}
 
-	if len(r.Clusters) == 0 {
+	if heuristicUID == "" {
 		err = errors.New("empty response from database")
 		return
 	}
@@ -783,6 +783,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 				return
 			}
 
+			result.Origin[0].DestinationCount = len(result.Destinations)
+
 			origins = append(origins, result.Origin[0])
 
 			// collect destinations of all results in map
@@ -792,9 +794,8 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		}
 
 		frontendHeuristic.Clusters = append(frontendHeuristic.Clusters, FrontendHeuristicCluster{
-			Transactions:       origins,
-			Attributions:       cluster.Attributions,
-			CountForwardLookup: len(destinationMap),
+			Transactions: origins,
+			Attributions: cluster.Attributions,
 		})
 	}
 
