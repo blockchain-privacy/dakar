@@ -301,15 +301,15 @@ func (s *Server) handlerMeta() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/heuristicsSummary/<hash>"
+// API pattern: "/api/v1/heuristicsSummary/<heuristic_UID>"
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		txHashString := path.Base(r.URL.Path)
+		heuristicUID := path.Base(r.URL.Path)
 
-		if !isValid(txHashString) {
-			http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		if heuristicUID == "." || heuristicUID == "" {
+			handleError(w, errors.New("no heuristic UID provided"))
 			return
 		}
 
@@ -319,7 +319,7 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 			return
 		}
 
-		writeHeuristicSummary(w, s.db, tUser, txHashString)
+		writeHeuristicSummary(w, s.db, tUser, heuristicUID)
 	})
 }
 

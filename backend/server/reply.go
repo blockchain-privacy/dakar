@@ -647,93 +647,61 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, txHashString string) {
-	cHeuristic, err := dbHeuristic.GetFrontendHeuristic(dgraph, txHashString, tUser.ID)
+func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, heuristicUID string) {
+	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
 		handleError(w, err)
+		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	if len(cHeuristic.Heuristics) == 0 {
+	if cHeuristic.UID == "" {
 		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 		return
 	}
 
 	// headers for streaming data to client
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", txHashString))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s.csv", heuristicUID))
 	w.Header().Set("Content-Type", "text/csv")
-
-	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
-	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
 
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"heuristic uid", "parent heuristic uid", "child heuristic uid",
-		"heuristic type", "heuristic parameter", "heuristic timestamp",
-		"origin uid", "origin transaction hash", "origin timestamp",
-		"origin address hash", "destination uid", "destination transaction hash", "destination timestamp"}
+	header := []string{"cluster ID", "attributions", "origin transaction hash",
+		"origin timestamp", "destination count"}
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
 		info(cliutil.ShowCallInfo(), err)
 	}
 
-	for _, h := range cHeuristic.Heuristics {
-		for _, result := range h.Results {
-			var row []string
-			// per heuristic information
-			row = append(row, h.UID)
-			var parentHeuristic string
-			if len(h.ParentHeuristic) > 0 {
-				// only one parent heuristic is possible
-				parentHeuristic = h.ParentHeuristic[0].UID
+	var clusterCount int
+	for _, c := range cHeuristic.Clusters {
+		clusterCount++
+		var attributions string
+
+		for i, a := range c.Attributions {
+			attributions += a.Tag
+
+			if i+1 < len(c.Attributions) {
+				attributions += ","
 			}
-			row = append(row, parentHeuristic)
+		}
 
-			var childHeuristics string
-			for i, c := range h.ChildHeuristics {
-				childHeuristics += c.UID
-				if i+1 < len(h.ChildHeuristics) {
-					childHeuristics += ","
-				}
-			}
+		for _, transaction := range c.Transactions {
+			row := []string{strconv.Itoa(clusterCount), attributions, transaction.Hash,
+				transaction.Timestamp, strconv.Itoa(transaction.DestinationCount)}
 
-			row = append(row, childHeuristics)
-			row = append(row, h.Type)
-			row = append(row, h.Parameter)
-			row = append(row, h.Timestamp)
-
-			// per origin information
-			row = append(row, result.Origin.UID)
-			row = append(row, result.Origin.TxHash)
-			row = append(row, result.Origin.Timestamp)
-			row = append(row, result.Origin.AddressHash)
-
-			// add destination data if there exists any
-			if len(result.Destinations) > 0 {
-				for _, d := range result.Destinations {
-					withDestinations := make([]string, len(row))
-					// copy because for each destination the row gets reused
-					copy(withDestinations, row)
-
-					withDestinations = append(withDestinations, d.UID)
-					withDestinations = append(withDestinations, d.TxHash)
-					withDestinations = append(withDestinations, d.Timestamp)
-
-					if err = csvWriter.Write(withDestinations); err != nil {
-						handleError(w, err)
-					}
-				}
-				csvWriter.Flush()
-			} else {
-				if err = csvWriter.Write(row); err != nil {
-					handleError(w, err)
-				}
+			if err = csvWriter.Write(row); err != nil {
+				handleError(w, err)
+				info(cliutil.ShowCallInfo(), err)
+				return
 			}
 		}
 		csvWriter.Flush()
 	}
+
+	csvWriter.Flush()
 }
 
 // writeClusterSummary writes heuristic data in CSV format
