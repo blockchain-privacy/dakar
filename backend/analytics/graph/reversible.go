@@ -15,7 +15,6 @@ var (
 	_ graph.Directed    = dg
 	_ graph.NodeAdder   = dg
 	_ graph.NodeRemover = dg
-	_ graph.EdgeAdder   = dg
 	_ graph.EdgeRemover = dg
 )
 
@@ -79,7 +78,7 @@ func (g *ReversibleGraph) Edge(uid, vid int64) graph.Edge {
 			return nil
 		}
 
-		return g.NewEdge(edge.To(), edge.From())
+		return g.NewEdge(edge.To(), edge.From(), edge.(addressEdge).addressUIDs)
 	}
 
 	edge, ok := g.from[uid][vid]
@@ -147,8 +146,8 @@ func (g *ReversibleGraph) HasEdgeFromTo(uid, vid int64) bool {
 }
 
 // NewEdge returns a new Edge from the source to the destination node.
-func (g *ReversibleGraph) NewEdge(from, to graph.Node) graph.Edge {
-	return simple.Edge{F: from, T: to}
+func (g *ReversibleGraph) NewEdge(from, to graph.Node, addresses []int64) graph.Edge {
+	return addressEdge{F: from, T: to, addressUIDs: addresses}
 }
 
 // NewNode returns a new unique Node to be added to g. The Node's ID does
