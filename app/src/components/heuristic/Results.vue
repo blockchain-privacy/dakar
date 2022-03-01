@@ -30,7 +30,7 @@
         hide-default-footer>
       <template v-slot:default="props">
         <v-row>
-          <v-col v-for="cluster in props.items" :key="cluster.id" cols="12" sm="6" md="4" lg="3">
+          <v-col v-for="cluster in props.items" :key="cluster.id" cols="12" sm="12" md="8" lg="6">
             <v-card outlined>
               <v-card-title>
                 <v-expansion-panels flat>
@@ -46,6 +46,9 @@
                                   params: { id: tx.txhash }}">
                           <v-list-item-title>
                             {{ tx.txhash }}
+                            <div v-if="tx.destinationCount">
+                              Destinations: {{ tx.destinationCount }}
+                            </div>
                           </v-list-item-title>
                         </v-list-item>
                       </v-list>
