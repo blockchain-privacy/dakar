@@ -70,6 +70,12 @@ var (
 		constants.GetRouteDeletePrivateAttribution():     true,
 		constants.GetRouteDeleteAllPrivateAttributions(): true,
 		constants.GetRouteSearchAttributions():           true,
+		// Address exclusion
+		constants.GetRouteAddressExclusionOverview():   true,
+		constants.GetRouteAddressExclusionStatus():     true,
+		constants.GetRouteDeleteAddressExclusion():     true,
+		constants.GetRouteAddAddressExclusions():       true,
+		constants.GetRouteDeleteAllAddressExclusions(): true,
 	}
 
 	errorRoleDoesNotExist = errors.New("error role does not exist")
