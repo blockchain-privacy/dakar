@@ -155,7 +155,7 @@ func (w *Wrapper) LoadGraphs() error {
 
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil {
-		if errors.Is(err, status.ErrorStatusNotFound) {
+		if errors.Is(err, status.ErrStatusNotFound) {
 			info("Classifier status is not set. Classify at least one block before starting to load graphs.")
 			return nil
 		}

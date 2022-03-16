@@ -164,7 +164,8 @@ func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, output
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
-func processAddresses(dgraph external.Database, cache *outputCache, transactionMappings []transactionMapping) (err error) {
+func processAddresses(dgraph external.Database, cache *outputCache,
+	transactionMappings []transactionMapping) (err error) {
 	if len(transactionMappings) == 0 {
 		return
 	}
@@ -426,7 +427,7 @@ func processBlock(dgraph external.Database, transactions []dbtx.Transaction, cur
 	return
 }
 
-var errorBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
+var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
@@ -450,7 +451,7 @@ func getStartingID(dgraph external.Database) (startID uint64, err error) {
 	}
 
 	if *status.LastBlockID != highestBlockID {
-		err = errorBlockIdsDoNotMatch
+		err = errBlockIdsDoNotMatch
 	}
 
 	startID = *status.LastBlockID
@@ -513,11 +514,11 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 // getInitialState creates the initial state of the processing loop
 func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
-		if !errors.Is(err, errorBlockIdsDoNotMatch) {
+		if !errors.Is(err, errBlockIdsDoNotMatch) {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
-		info(errorBlockIdsDoNotMatch.Error(), "continuing...")
+		info(errBlockIdsDoNotMatch.Error(), "continuing...")
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
@@ -539,7 +540,8 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 }
 
 // createTransactionHashmap creates a hash map of btcjson.TxRawResult
-func createTransactionHashmap(client external.BatchRPCClient, transactions []string) (map[string]btcjson.TxRawResult, error) {
+func createTransactionHashmap(client external.BatchRPCClient,
+	transactions []string) (map[string]btcjson.TxRawResult, error) {
 	type txLookup struct {
 		hash   string
 		result rpcclient.FutureGetRawTransactionVerboseResult
@@ -600,7 +602,8 @@ func createTransactionHashmap(client external.BatchRPCClient, transactions []str
 	return txs, nil
 }
 
-func getExternalOutputs(dgraph external.Database, outputs map[string][]uint32) (map[string]map[uint32]dbop.Output, error) {
+func getExternalOutputs(dgraph external.Database,
+	outputs map[string][]uint32) (map[string]map[uint32]dbop.Output, error) {
 	if len(outputs) == 0 {
 		return nil, nil
 	}

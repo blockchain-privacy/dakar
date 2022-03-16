@@ -177,7 +177,8 @@ func GetAddressExclusionStatus(c external.Database, addressHash string, userID s
 					}
 				  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID, "$hash": addressHash})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$user": userID, "$hash": addressHash})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

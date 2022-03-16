@@ -24,7 +24,8 @@ type forwardAmountHeuristic struct {
 }
 
 // newForwardAmountHeuristic constructs an forwardAmountHeuristic. hoursToLookForward in hours.
-func newForwardAmountHeuristic(hoursToLookForward uint32, clusterTypes []clustering.ClusterType) *forwardAmountHeuristic {
+func newForwardAmountHeuristic(hoursToLookForward uint32,
+	clusterTypes []clustering.ClusterType) *forwardAmountHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
 	return &forwardAmountHeuristic{
 		heuristicType:        "forward_amount",
@@ -63,7 +64,7 @@ func (h *forwardAmountHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *forwardAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -123,7 +124,8 @@ func (h *forwardAmountHeuristic) clone() heuristic {
 
 // forwardAmountHeuristic applies the following heuristic:
 // - filters all destinations which can not be funded by the sources based on the denominations of the source
-func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+	txHash string, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
@@ -150,11 +152,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			}
 		}
 
-		var err error
-		clusterOrigins, err = addOriginsToMap(clusterOrigins, results)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		clusterOrigins = addOriginsToMap(clusterOrigins, results)
 
 		// Convert from slice to Hash
 		for _, r := range results {
@@ -163,7 +161,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
-		return nil, errorNoOriginsAtStart
+		return nil, errNoOriginsAtStart
 	}
 
 	var exclusions []string

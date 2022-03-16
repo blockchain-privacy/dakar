@@ -496,7 +496,8 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 // getClusterUIDFromMergedClusters searches for clusterUID in mergedClusters
 // and returns a hash of the merged clusters if found. In case the uid is not found, an error is returned.
-func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem, clusterUID string) (ClusterUID, map[string]bool, error) {
+func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem,
+	clusterUID string) (ClusterUID, map[string]bool, error) {
 	for i, mc := range mergedClusters {
 		if _, ok := mc.clusterUIDs[clusterUID]; ok {
 			// lazy creation of map hashes

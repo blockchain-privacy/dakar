@@ -147,7 +147,7 @@ func isCrawling(db external.Database) (bool, error) {
 	if err != nil {
 		// no status information found -> database is completely new
 		// and thus no crawling is happening right now
-		if errors.Is(err, status.ErrorStatusNotFound) {
+		if errors.Is(err, status.ErrStatusNotFound) {
 			return false, nil
 		}
 

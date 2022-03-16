@@ -49,7 +49,7 @@ func (h denominationTypeHeuristic) setParameter(_ string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -132,11 +132,8 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			}
 		}
 
-		var err error
-		sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, results)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
+
 		// Convert from slice to Hash
 		for _, r := range results {
 			origins[r.UID] = r
@@ -144,7 +141,7 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	}
 
 	if len(origins) == 0 {
-		return nil, errorNoOriginsAtStart
+		return nil, errNoOriginsAtStart
 	}
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)

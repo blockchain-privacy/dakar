@@ -157,7 +157,7 @@ func GetBlockWithOptions(dgraph external.Database, query string, offset int) (Se
 	block, err := dbblk.GetFrontendBlock(dgraph, query, offset)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbblk.ErrorBlockNotFound) {
+		if !errors.Is(err, dbblk.ErrBlockNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil
@@ -171,7 +171,7 @@ func GetTransaction(dgraph external.Database, query string) (SearchResult, bool,
 	tx, err := dbtx.GetFrontendTransaction(dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbtx.ErrorTransactionNotFound) {
+		if !errors.Is(err, dbtx.ErrTransactionNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil
@@ -189,11 +189,12 @@ func GetAddress(dgraph external.Database, query string) (SearchResult, bool, err
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports sorting and setting an offset. For sorting use the constants defined in the db address module.
 // A maximum of 20 elements is returned.
-func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int, offset int, filters []int) (SearchResult, bool, error) {
+func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int,
+	offset int, filters []int) (SearchResult, bool, error) {
 	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbaddr.ErrorAddressNotFound) {
+		if !errors.Is(err, dbaddr.ErrAddressNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil

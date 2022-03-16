@@ -40,7 +40,8 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 	return nil
 }
 
-func buildDatabaseClusters(clusters []ExternalClusterItem, userID string, hashToUID map[string]string) []clustering.CustomCluster {
+func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
+	hashToUID map[string]string) []clustering.CustomCluster {
 	set := buildClusterSet(clusters)
 
 	clusterTimestamp := time.Now().UTC().Format(time.RFC3339)

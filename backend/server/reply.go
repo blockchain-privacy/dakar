@@ -373,7 +373,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 
 	fromBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.From)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+		if errors.Is(err, dbtx.ErrTransactionNotFound) {
 			reply.Success = true
 			reply.Msg = "Transaction " + req.From + " does not exist"
 			return
@@ -386,7 +386,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 
 	toBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.To)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+		if errors.Is(err, dbtx.ErrTransactionNotFound) {
 			reply.Msg = "error transaction" + req.To + " does not exist"
 			return
 		}
@@ -523,7 +523,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	uid, err := dbtx.GetTransactionUID(dgraph, txhash)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrorTransactionNotFound) {
+		if errors.Is(err, dbtx.ErrTransactionNotFound) {
 			reply.Success = true
 			reply.Msg = "Transaction " + txhash + " does not exist"
 			return
@@ -735,7 +735,8 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
 
-	header := []string{"cluster type", "last cluster update (transaction)", "last cluster update (timestamp)", "address hash", "output count", "unspent output count"}
+	header := []string{"cluster type", "last cluster update (transaction)", "last cluster update (timestamp)",
+		"address hash", "output count", "unspent output count"}
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
@@ -1123,7 +1124,8 @@ func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (re
 	return
 }
 
-func getAttributionSearchReply(dgraph external.Database, userUID string, body io.ReadCloser) (reply attributionOverviewReply) {
+func getAttributionSearchReply(dgraph external.Database, userUID string,
+	body io.ReadCloser) (reply attributionOverviewReply) {
 	var searchRequest struct {
 		Query string `json:"q,omitempty"`
 	}

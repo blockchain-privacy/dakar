@@ -11,9 +11,9 @@ import (
 const DType = "Transaction"
 
 var (
-	// ErrorTransactionNotFound is returned if a requested transaction has not been found
-	ErrorTransactionNotFound = errors.New("no transaction found")
-	errorInvalidResult       = errors.New("invalid result")
+	// ErrTransactionNotFound is returned if a requested transaction has not been found
+	ErrTransactionNotFound = errors.New("no transaction found")
+	errInvalidResult       = errors.New("invalid result")
 )
 
 // Transaction is the database representation of a transaction

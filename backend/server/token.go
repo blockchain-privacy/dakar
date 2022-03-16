@@ -72,7 +72,8 @@ func invalidateToken(w http.ResponseWriter) {
 }
 
 // issueToken creates a token from user
-func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string, expirationTime time.Time, err error) {
+func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string,
+	expirationTime time.Time, err error) {
 	var roles []dbus.Role
 
 	for _, r := range user.Roles {
@@ -103,7 +104,8 @@ func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey
 }
 
 // verifyToken checks if token is valid
-func verifyToken(token string, publicKey ed25519.PublicKey) (newJSONToken paseto.JSONToken, newFooter string, err error) {
+func verifyToken(token string, publicKey ed25519.PublicKey) (newJSONToken paseto.JSONToken,
+	newFooter string, err error) {
 	// Verify data
 	err = paseto.NewV2().Verify(token, publicKey, &newJSONToken, &newFooter)
 	return

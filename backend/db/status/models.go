@@ -88,7 +88,8 @@ func (c *ClassifierStatus) SetDType() {
 	c.DType = []string{ClassifierStatusDType}
 }
 
-// ClusteringHierarchicalMultiInputStatus is the database representation of the hierarchical multi-input clustering status
+// ClusteringHierarchicalMultiInputStatus is the database representation
+// of the hierarchical multi-input clustering status
 type ClusteringHierarchicalMultiInputStatus struct {
 	UID string `json:"uid,omitempty"`
 
@@ -170,16 +171,16 @@ func (v FrontendStatus) String() string {
 }
 
 var (
-	// ErrorStatusNotFound is returned if the status has not been set yet
-	ErrorStatusNotFound                          = errors.New("no status found")
-	errorInvalidNumber                           = errors.New("wrong number of status objects returned")
-	errorLastBlockIDNotFound                     = errors.New("last block id not found")
-	errorIsCrawlingNotFound                      = errors.New("crawler status not found")
-	errorIsClassifyingNotFound                   = errors.New("classifier status not found")
-	errorIsClusteringMultiInputNotFound          = errors.New("multi-input clustering status not found")
-	errorLastClassifiedBlockIDNotFound           = errors.New("block id of last classified block not found")
-	errorLastClusteringMultiInputBlockIDNotFound = errors.New("block id of last clustered multi-input block not found")
-	errorTopBlockNotFound                        = errors.New("top block not found")
+	// ErrStatusNotFound is returned if the status has not been set yet
+	ErrStatusNotFound                          = errors.New("no status found")
+	errInvalidNumber                           = errors.New("wrong number of status objects returned")
+	errLastBlockIDNotFound                     = errors.New("last block id not found")
+	errIsCrawlingNotFound                      = errors.New("crawler status not found")
+	errIsClassifyingNotFound                   = errors.New("classifier status not found")
+	errIsClusteringMultiInputNotFound          = errors.New("multi-input clustering status not found")
+	errLastClassifiedBlockIDNotFound           = errors.New("block id of last classified block not found")
+	errLastClusteringMultiInputBlockIDNotFound = errors.New("block id of last clustered multi-input block not found")
+	errTopBlockNotFound                        = errors.New("top block not found")
 )
 
 type crawlerStatusQuery struct {
@@ -190,12 +191,12 @@ func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
 	lenQ := len(c.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	}
 
@@ -211,12 +212,12 @@ func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	}
 
@@ -232,12 +233,12 @@ func (a clusteringHMIStatusQuery) payload() (status ClusteringHierarchicalMultiI
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	}
 
@@ -253,12 +254,12 @@ func (a clusteringFMIStatusQuery) payload() (status ClusteringFlatMultiInputStat
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorStatusNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	}
 

@@ -11,7 +11,8 @@ const (
 	// MinCollateral is 1/10 of the smallest denomination: round(100001/10).
 	MinCollateral = 10000
 
-	// OldMinCollateral is the minimum collateral before the 5th denomination was added in protocol version 70213 it was round(1000010/10): 100000
+	// OldMinCollateral is the minimum collateral before the 5th denomination
+	// was added in protocol version 70213 it was round(1000010/10): 100000
 	// OldMinCollateral = 100000
 
 	// MaxCollateral is the maximum allowed collateral

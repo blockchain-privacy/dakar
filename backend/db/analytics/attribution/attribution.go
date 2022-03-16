@@ -166,7 +166,8 @@ func DeleteAllAttributions(c external.Database, userID string) (err error) {
 }
 
 // SearchAttributions returns the attributions that match the query string
-func SearchAttributions(c external.Database, userID string, searchQuery string) (attributions []FrontendAttribution, err error) {
+func SearchAttributions(c external.Database, userID string, searchQuery string) (
+	attributions []FrontendAttribution, err error) {
 	regex := "/" + regexp.QuoteMeta(searchQuery) + "/i"
 
 	const query = `query Q($user:string,$regex:string) {
@@ -212,7 +213,8 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	return
 }
 
-// GetAttributionsPerCluster returns all attributions (public and private) the user has access to, organized per cluster.
+// GetAttributionsPerCluster returns all attributions (public and private)
+// the user has access to, organized per cluster.
 // The returned map is nil if no attributions could be found.
 func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes []clustering.ClusterType) (
 	attributions map[string][]string, err error) {

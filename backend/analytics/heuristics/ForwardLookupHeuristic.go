@@ -23,7 +23,8 @@ type forwardLookupHeuristic struct {
 }
 
 // newForwardLookupHeuristic constructs a forwardLookupHeuristic. hoursToLookForward in hours.
-func newForwardLookupHeuristic(hoursToLookForward uint32, clusterTypes []clustering.ClusterType) *forwardLookupHeuristic {
+func newForwardLookupHeuristic(hoursToLookForward uint32,
+	clusterTypes []clustering.ClusterType) *forwardLookupHeuristic {
 	lForwardTime := time.Duration(hoursToLookForward) * time.Hour
 	return &forwardLookupHeuristic{
 		heuristicType:        "forward_lookup",
@@ -62,7 +63,7 @@ func (h *forwardLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *forwardLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -146,7 +147,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if len(results) == 0 {
-			return nil, errorNoOriginsAtStart
+			return nil, errNoOriginsAtStart
 		}
 	}
 
