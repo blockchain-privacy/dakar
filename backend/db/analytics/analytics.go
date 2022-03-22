@@ -43,8 +43,8 @@ import (
 
 // GetConnectedPrivacyTransactions gets the first numNodes privacy transactions including their input transaction
 // from the database.
-func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, privacyRangeFirst constants.PrivacyType,
-	privacyRangeLast constants.PrivacyType) ([]ConnectedNode, error) {
+func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNodes int,
+	privacyRangeFirst constants.PrivacyType, privacyRangeLast constants.PrivacyType) ([]ConnectedNode, error) {
 	query := fmt.Sprintf(`{
 				q(func: between(privacytype,`+
 		strconv.Itoa(int(privacyRangeFirst))+","+strconv.Itoa(int(privacyRangeLast))+`), first:%d, offset:%d ){

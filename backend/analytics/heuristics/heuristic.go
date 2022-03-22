@@ -16,11 +16,11 @@ import (
 	"time"
 )
 
-// errorNoOriginsAtStart defines an error which should be used when no origins are available
-var errorNoOriginsAtStart = errors.New("no origins can be fetched")
+// errNoOriginsAtStart defines an error which should be used when no origins are available
+var errNoOriginsAtStart = errors.New("no origins can be fetched")
 
 //
-var errorInvalidClusterTypes = errors.New("cluster types are not valid")
+var errInvalidClusterTypes = errors.New("cluster types are not valid")
 
 const (
 	// heuristicCategoryReverse defines a category string for the frontend to order the heuristic
@@ -45,7 +45,8 @@ type Descriptor struct {
 
 type heuristic interface {
 	// exec executes the heuristic and returns the altered set of origin uids
-	exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
+	exec(dgraph external.Database, g *graph.Wrapper, txHash string,
+		parentHeuristicUID string) ([]heuristics.HeuristicCluster, error)
 	// getType returns the heuristic type
 	getType() string
 	// getParameterString returns the used parameter for this heuristic as a string
@@ -132,7 +133,7 @@ type clusterDenominations struct {
 // addOriginsToMap adds all origins to their respective source in sourceTransactionMap.
 // The returned map contains the provided origins
 func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
-	origins []heuristics.HeuristicTransaction) (map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction, error) {
+	origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
 
 	for _, o := range origins {
 
@@ -147,13 +148,13 @@ func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]h
 		sourceTransactionMap[o.Cluster] = transactions
 	}
 
-	return sourceTransactionMap, nil
+	return sourceTransactionMap
 }
 
 // countClusterDenominations creates a map of clusters with the
 // number of denominations of the specified denomination type
-func countClusterDenominations(origins []heuristics.HeuristicTransaction, denominationIndex int) (
-	oSource clusterDenominations, err error) {
+func countClusterDenominations(origins []heuristics.HeuristicTransaction,
+	denominationIndex int) (oSource clusterDenominations) {
 	oSource.denominationIndex = denominationIndex
 	oSource.clusters = make(map[heuristics.ClusterUID]int)
 	for _, o := range origins {
@@ -340,7 +341,7 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+			fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 				hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err))
 	}
 
@@ -348,7 +349,7 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 		if runErr := executor.run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-				fmt.Errorf("heuristic type: %s, parameter: %s, %s",
+				fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 					executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr))
 		}
 	}
@@ -362,7 +363,7 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string, h heuristic,
 	userUID string) (thisUID string, err error) {
 	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
-	if err != nil && !errors.Is(err, errorNoOriginsAtStart) {
+	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

@@ -24,7 +24,8 @@ type reverseLookupHeuristic struct {
 }
 
 // newReverseLookupHeuristic constructs a reverseLookupHeuristic. hoursToLookBack in hours.
-func newReverseLookupHeuristic(hoursToLookBack uint32, clusteringMethod []clustering.ClusterType) *reverseLookupHeuristic {
+func newReverseLookupHeuristic(hoursToLookBack uint32,
+	clusteringMethod []clustering.ClusterType) *reverseLookupHeuristic {
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	return &reverseLookupHeuristic{
 		heuristicType:        "reverse_lookup",
@@ -63,7 +64,7 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -136,7 +137,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		}
 
 		if parentHeuristicResults == nil {
-			return nil, errorNoOriginsAtStart
+			return nil, errNoOriginsAtStart
 		}
 
 		parentAttributionMap = attrMap

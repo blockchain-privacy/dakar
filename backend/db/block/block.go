@@ -122,10 +122,10 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	}
 
 	if len(r.Blocks) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrBlockNotFound)
 		return
 	} else if len(r.Blocks) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorInvalidResult)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrInvalidResult)
 		return
 	}
 

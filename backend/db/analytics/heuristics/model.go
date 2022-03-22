@@ -96,7 +96,8 @@ type HeuristicOutput struct {
 }
 
 func (h HeuristicTransaction) String() string {
-	return fmt.Sprintf("UID: %s, timestamp: %s, associated cluster: %s, output count: %d", h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
+	return fmt.Sprintf("UID: %s, timestamp: %s, associated cluster: %s, output count: %d",
+		h.UID, h.Timestamp, h.Cluster, len(h.Outputs))
 }
 
 // HeuristicInput only holds the uid of the input address

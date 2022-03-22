@@ -1,5 +1,5 @@
 <template>
-  <v-bottom-sheet scrollable v-model="inputVal">
+  <v-bottom-sheet scrollable v-model="inputVal" width="100%">
     <v-card style="max-height: 800px">
       <v-card-title>
         <v-icon class="mr-2">{{ icon.mdiChartBar }}</v-icon>

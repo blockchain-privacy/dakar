@@ -144,13 +144,13 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 	}
 
 	if len(r.TopBlock) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errTopBlockNotFound)
 		return
 	} else if len(r.TopBlock) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	} else if r.TopBlock[0].Max == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorTopBlockNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errTopBlockNotFound)
 		return
 	}
 	max = r.TopBlock[0].Max
@@ -201,52 +201,52 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 
 	// check if all values are set correctly
 	if len(r.Crawler) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidNumber)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
 		return
 	}
 
 	if r.Crawler[0].IsCrawling == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsCrawlingNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsCrawlingNotFound)
 		return
 	}
 
 	if r.Crawler[0].LastBlockID == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastBlockIDNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastBlockIDNotFound)
 		return
 	}
 
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClassifyingNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClassifyingNotFound)
 			return
 		}
 
 		if r.Classifier[0].LastClassifiedBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClassifiedBlockIDNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.HMI) == 1 {
 		if r.HMI[0].IsClustering == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClusteringMultiInputNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.HMI[0].LastClusteredBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClusteringMultiInputBlockIDNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.FMI) == 1 {
 		if r.FMI[0].IsClustering == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorIsClusteringMultiInputNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.FMI[0].LastClusteredBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorLastClusteringMultiInputBlockIDNotFound)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}

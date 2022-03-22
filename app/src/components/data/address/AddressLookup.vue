@@ -48,7 +48,7 @@
                           <v-list-item-icon>
                             <v-icon>{{ icon.mdiDelete }}</v-icon>
                           </v-list-item-icon>
-                          <v-list-item-title>Remove from address exlcusion list</v-list-item-title>
+                          <v-list-item-title>Remove from address exclusion list</v-list-item-title>
                         </v-list-item>
                       </v-list>
                     </v-menu>

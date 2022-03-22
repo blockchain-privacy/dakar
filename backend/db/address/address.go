@@ -16,8 +16,8 @@ import (
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
-func GetFrontendAddress(c external.Database, addrHash string, sortOrder int, offset int, filters []int) (addr FrontendAddress,
-	err error) {
+func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
+	offset int, filters []int) (addr FrontendAddress, err error) {
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
 	sortBy := "val(ots)"
@@ -162,14 +162,14 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int, off
 	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
 		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
 		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
-		err = ErrorInvalidResult
+		err = ErrInvalidResult
 		return
 	}
 
 	// not checking the length of r.Outputs, as for certain filters the number of outputs can be 0
 	// instead check for the calculated output count
 	if r.OutputCount[0].Count == 0 {
-		err = ErrorAddressNotFound
+		err = ErrAddressNotFound
 		return
 	}
 

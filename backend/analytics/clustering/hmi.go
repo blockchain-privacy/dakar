@@ -161,7 +161,8 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 					} else {
 						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.Uid)
 						if dbErr != nil {
-							return false, fmt.Errorf("%s - block %d cluster uid %s: %w", cliutil.ShowCallInfo(), m.state.ID, transactionCluster.Uid, dbErr)
+							return false, fmt.Errorf("%s - block %d cluster uid %s: %w",
+								cliutil.ShowCallInfo(), m.state.ID, transactionCluster.Uid, dbErr)
 						}
 
 						clusterMap[root.Uid] = clustering.Cluster{
@@ -179,7 +180,8 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 						}
 					}
 				} else if r := getClusterRootByCluster(addressToClusterRoot, addr.Uid); r != "" {
-					// this is the case if the address has no cluster attached (db-state) but a local (not upserted) cluster was created
+					// this is the case if the address has no cluster attached
+					// (db-state) but a local (not upserted) cluster was created
 					existingClusters[r] = true
 				} else {
 					addressesWithoutCluster[addr.Uid] = true

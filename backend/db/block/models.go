@@ -11,10 +11,10 @@ import (
 const DType = "Block"
 
 var (
-	// ErrorBlockNotFound is returned if no block was found
-	ErrorBlockNotFound = errors.New("no block found")
-	// ErrorInvalidResult is returned if an invalid result was returned from the database
-	ErrorInvalidResult = errors.New("invalid result")
+	// ErrBlockNotFound is returned if no block was found
+	ErrBlockNotFound = errors.New("no block found")
+	// ErrInvalidResult is returned if an invalid result was returned from the database
+	ErrInvalidResult = errors.New("invalid result")
 )
 
 // Block is the database representation of a block

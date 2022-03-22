@@ -139,7 +139,8 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 		constants.StrPrivacyDestinationFirst + "," + constants.StrPrivacyDestinationLast + `))@cascade{	
 					tx_inputs{
 						~tx_outputs@filter(between(privacytype,0,` + constants.StrPrivacyMixingLast +
-		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," + constants.StrPrivacyCollateralCreationLast + `))}
+		`) or between(privacytype,` + constants.StrPrivacyOriginFirst + "," +
+		constants.StrPrivacyCollateralCreationLast + `))}
 				}
 				q(func: uid(cc)){count(uid)}
 			  }`
@@ -195,7 +196,8 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 		"," + constants.StrPrivacyCollateralPaymentLast + "))"
 
 	const query = `query Q($uids: string) {
-				cp as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` + constants.StrPrivacyDestinationFirst + "," +
+				cp as var(func: uid($uids))@filter(not has(privacytype) or between(privacytype,` +
+		constants.StrPrivacyDestinationFirst + "," +
 		constants.StrPrivacyDestinationLast + `))@cascade{	
 					tx_inputs{
 						~tx_outputs` + filter + `}
@@ -241,7 +243,8 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	return
 }
 
-// GetCollateralInputTransactions returns the input transactions of the provided transactions until the given block height
+// GetCollateralInputTransactions returns the input transactions of
+// the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
 	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
 	uidList := db.CreateCommaArray(txUids)

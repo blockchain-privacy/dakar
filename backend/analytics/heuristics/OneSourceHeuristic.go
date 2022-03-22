@@ -64,7 +64,7 @@ func (h *oneSourceHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -186,10 +186,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	}
 
 	// save origins in global cluster->origin map
-	sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, allTimeLimitedOrigins)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
+	sourceTransactionMap = addOriginsToMap(sourceTransactionMap, allTimeLimitedOrigins)
 
 	for _, t := range allTxAndOrigins {
 		// get input denominations
@@ -198,10 +195,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
 		}
 
-		oSource, buildErr := countClusterDenominations(t.origins, denominationIndex)
-		if buildErr != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), buildErr)
-		}
+		oSource := countClusterDenominations(t.origins, denominationIndex)
 
 		// add element inputSources and set index of current element
 		inputSources = append(inputSources, make(map[heuristics.ClusterUID]bool))

@@ -33,10 +33,10 @@ const (
 )
 
 var (
-	// ErrorAddressNotFound is returned if no address has been found
-	ErrorAddressNotFound = errors.New("no address found")
-	// ErrorInvalidResult is returned if no valid result was found
-	ErrorInvalidResult = errors.New("invalid result")
+	// ErrAddressNotFound is returned if no address has been found
+	ErrAddressNotFound = errors.New("no address found")
+	// ErrInvalidResult is returned if no valid result was found
+	ErrInvalidResult = errors.New("invalid result")
 )
 
 // IsValidSortOrder returns true if sortOrder has a valid sort order value

@@ -50,7 +50,7 @@ func (h reverseAmountHeuristic) setParameter(_ string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errorInvalidClusterTypes
+		return errInvalidClusterTypes
 	}
 
 	h.clusterTypes = clusterTypes
@@ -99,7 +99,8 @@ func (h reverseAmountHeuristic) clone() heuristic {
 
 // reverseAmountHeuristic applies the following heuristic:
 // - filter all origins of sources, which do not have equal or more denominations to fund the destination transaction
-func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuristicUID string) (
+func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
+	txHash string, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
 	//or the destination transaction specified by txHash
@@ -126,11 +127,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			}
 		}
 
-		var err error
-		sourceTransactionMap, err = addOriginsToMap(sourceTransactionMap, results)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		}
+		sourceTransactionMap = addOriginsToMap(sourceTransactionMap, results)
 
 		// Convert from slice to Hash
 		for _, r := range results {
@@ -139,7 +136,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	if len(origins) == 0 {
-		return nil, errorNoOriginsAtStart
+		return nil, errNoOriginsAtStart
 	}
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
@@ -166,7 +163,8 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	return createHeuristicClusters(resultClusters, attributionMap), nil
 }
 
-// containsDenomination returns true if all denominations with at least the same amount of denom1 are contained in denom2
+// containsDenomination returns true if all denominations with at
+// least the same amount of denom1 are contained in denom2
 func containsDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {

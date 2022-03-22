@@ -15,7 +15,8 @@ import (
 )
 
 // GetTransactionsOutputs returns all outputs of each given transaction
-func GetTransactionsOutputs(c external.Database, transactionHashes []string) (transaction []OutputTransactionMapping, err error) {
+func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
+	transaction []OutputTransactionMapping, err error) {
 	query := `{
 				q(func: eq(txhash,` + db.CreateCommaArray(transactionHashes) + `)){
 					txhash
@@ -91,7 +92,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	}
 
 	if len(r.Q) == 0 {
-		err = fmt.Errorf("%s: %w", ErrorTransactionNotFound, fmt.Errorf("block: %d", blockID))
+		err = fmt.Errorf("%s: %w", ErrTransactionNotFound, fmt.Errorf("block: %d", blockID))
 		return
 	}
 
@@ -100,7 +101,8 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	return
 }
 
-// GetOutputAddressCounts returns the number of distinct addresses associated with the inputs and outputs of the transaction uid
+// GetOutputAddressCounts returns the number of distinct addresses associated
+// with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	query := `query Q($uid: string){
 				var(func: uid($uid)){
@@ -145,12 +147,12 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 	}
 
 	if len(r.Input) == 0 || len(r.Output) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrTransactionNotFound)
 		return
 	}
 
 	if len(r.Input) > 1 || len(r.Output) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidResult)
 		return
 	}
 
@@ -218,13 +220,13 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 	}
 
 	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrTransactionNotFound)
 		return
 	}
 
 	for _, t := range r.Transaction {
 		if len(t.Block) == 0 || len(t.Block) != 1 {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errorInvalidResult)
+			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidResult)
 			return
 		}
 
@@ -326,7 +328,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 	}
 
 	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrTransactionNotFound)
 		return
 	}
 
@@ -396,7 +398,7 @@ func GetTransactionUID(c external.Database, txHash string) (uid string, err erro
 	}
 
 	if len(r.Q) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorTransactionNotFound)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrTransactionNotFound)
 		return
 	}
 
@@ -423,8 +425,9 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
-		"$id2": strconv.FormatInt(toBlockID, 10)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
+			"$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return

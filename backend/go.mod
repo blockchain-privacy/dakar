@@ -10,11 +10,11 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/o1egl/paseto v1.0.0
 	github.com/prometheus/client_golang v1.12.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/wcharczuk/go-chart/v2 v2.1.0
-	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
-	gonum.org/v1/gonum v0.9.3
-	google.golang.org/grpc v1.44.0
+	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
+	gonum.org/v1/gonum v0.11.0
+	google.golang.org/grpc v1.45.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
@@ -40,11 +40,11 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/stretchr/objx v0.3.0 // indirect
-	golang.org/x/image v0.0.0-20211028202545-6944b10bf410 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/image v0.0.0-20220302094943-723b81ca9867 // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220211171837-173942840c17 // indirect
+	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )
 
