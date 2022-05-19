@@ -79,7 +79,8 @@
       <v-card-text>
         <v-tabs v-model="graphTabs" grow>
           <v-tab key="histogram" @change="onTabChange('histogram')">Histogram</v-tab>
-          <v-tab key="graph" @change="onTabChange('graph')">Force Graph</v-tab>
+          <v-tab  key="graph" @change="onTabChange('graph')"
+                  :disabled="disableForceGraph" >Force Graph</v-tab>
         </v-tabs>
         <v-tabs-items v-model="graphTabs">
           <v-tab-item eager key="histogram">
@@ -252,6 +253,7 @@ export default {
       showEmptyResponseMessage: false,
       showTooManyAddressesMsg: false,
       showNotEnoughDataMessage: false,
+      disableForceGraph: false,
       activities: null,
       initialLoadDone: false,
       includeCusterAddresses: false,
@@ -479,6 +481,8 @@ export default {
         this.showNotEnoughDataMessage = true;
         return;
       }
+
+      this.disableForceGraph = filtered.items.length > 1000;
 
       // draw
       if (this.graphMode) {
