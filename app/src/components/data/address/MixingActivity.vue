@@ -64,7 +64,7 @@
         </v-row>
       </v-card-text>
     </v-card>
-    <v-card class="my-3" flat v-if="hasLoaded && showEmptyResponseMessage && !isLoading">
+    <v-card class="my-3" flat v-if="hasLoaded && showEmptyResponseMsg && !isLoading">
       <v-card-text class="text-h6" style="text-align:center">
         No mixing activity available
       </v-card-text>
@@ -79,13 +79,15 @@
       <v-card-text>
         <v-tabs v-model="graphTabs" grow>
           <v-tab key="histogram" @change="onTabChange('histogram')">Histogram</v-tab>
-          <v-tab key="graph" @change="onTabChange('graph')">Force Graph</v-tab>
+          <v-tab key="graph" @change="onTabChange('graph')">
+            Force Graph
+          </v-tab>
         </v-tabs>
         <v-tabs-items v-model="graphTabs">
           <v-tab-item eager key="histogram">
             <v-card flat>
               <v-card-text>
-                <p v-if="showNotEnoughDataMessage && !isLoading"
+                <p v-if="showNotEnoughDataMsg && !isLoading"
                    class="text-h6" style="text-align: center">
                   Not enough data available to draw chart
                 </p>
@@ -152,7 +154,22 @@
           <v-tab-item eager key="graph">
             <v-card flat>
               <v-card-text>
-                <p v-if="!showGraph && !isLoading"
+                <div v-if="!overrideTooManyTransactionsWarning && showTooManyTransactionsMsg"
+                     style="text-align:center">
+                  <v-alert text
+                           prominent type="warning">
+                    The mixing activity results have more than
+                    {{ tooManyTransactionsThreshold }} transactions.
+                    Displaying a large number of items in a force graph may severely degrade
+                    the performance of your browser.
+                    Consider filtering the results by time or privacy type.
+                  </v-alert>
+                  <v-btn color="primary" @click="showForceGraphDespiteWarning">
+                    Display force graph anyway
+                  </v-btn>
+                </div>
+
+                <p v-if="!showGraph && !isLoading && !showTooManyTransactionsMsg"
                    class="text-h6" style="text-align: center">
                   No data available
                 </p>
@@ -249,9 +266,12 @@ export default {
       svgHistogram: null,
       svgGraph: null,
       isLoading: false,
-      showEmptyResponseMessage: false,
+      showEmptyResponseMsg: false,
       showTooManyAddressesMsg: false,
-      showNotEnoughDataMessage: false,
+      showNotEnoughDataMsg: false,
+      showTooManyTransactionsMsg: false,
+      overrideTooManyTransactionsWarning: false,
+      tooManyTransactionsThreshold: 500,
       activities: null,
       initialLoadDone: false,
       includeCusterAddresses: false,
@@ -401,8 +421,21 @@ export default {
 
       return [...new Set(filtered.map((d) => d.privacytype))];
     },
+    showForceGraphDespiteWarning() {
+      this.overrideTooManyTransactionsWarning = true;
+      this.onTabChange('graph');
+    },
     onTabChange(tab) {
       this.graphMode = tab === 'graph';
+
+      if (this.graphMode) {
+        if (!this.showTooManyTransactionsMsg
+            || this.overrideTooManyTransactionsWarning) {
+          this.updateSvgData();
+        }
+        return;
+      }
+
       this.updateSvgData();
     },
     async updateSvgData(pullNewData) {
@@ -432,7 +465,7 @@ export default {
         }
 
         if (mixingActivity.activities === undefined) {
-          this.showEmptyResponseMessage = true;
+          this.showEmptyResponseMsg = true;
           this.isLoading = false;
           this.activities = [];
           return;
@@ -468,7 +501,7 @@ export default {
         this.initialLoadDone = true;
       }
 
-      this.showEmptyResponseMessage = false;
+      this.showEmptyResponseMsg = false;
 
       const filtered = this.getFilteredData(this.graphMode);
 
@@ -476,20 +509,25 @@ export default {
         this.isLoading = false;
         this.showGraph = false;
         this.showHistogram = false;
-        this.showNotEnoughDataMessage = true;
+        this.showNotEnoughDataMsg = true;
         return;
       }
 
+      this.showTooManyTransactionsMsg = filtered.items.length > this.tooManyTransactionsThreshold;
+
       // draw
       if (this.graphMode) {
-        this.svgGraph.draw(filtered.items, filtered.links);
-        this.showGraph = true;
+        if (!this.showTooManyTransactionsMsg
+              || this.overrideTooManyTransactionsWarning) {
+          this.svgGraph.draw(filtered.items, filtered.links);
+          this.showGraph = true;
+        }
       } else {
         this.svgHistogram.reset();
         this.svgHistogram.drawStacked(filtered.items,
           this.getCategories(filtered.items), this.colorMap);
         this.showHistogram = !this.svgHistogram.empty;
-        this.showNotEnoughDataMessage = this.svgHistogram.empty;
+        this.showNotEnoughDataMsg = this.svgHistogram.empty;
       }
 
       this.isLoading = false;

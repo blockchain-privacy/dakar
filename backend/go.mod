@@ -1,21 +1,21 @@
 module backend
 
-go 1.17
+go 1.18
 
 require (
-	github.com/btcsuite/btcd v0.22.0-beta
+	github.com/btcsuite/btcd v0.22.1
 	github.com/btcsuite/btcutil v1.0.3-0.20201208143702-a53e38424cce
 	github.com/dgraph-io/dgo/v210 v210.0.0-20220113041351-ba0e5dfc4c3e
 	github.com/dgraph-io/ristretto v0.1.0
 	github.com/go-echarts/go-echarts/v2 v2.2.4
 	github.com/o1egl/paseto v1.0.0
-	github.com/prometheus/client_golang v1.12.1
+	github.com/prometheus/client_golang v1.12.2
 	github.com/stretchr/testify v1.7.1
 	github.com/wcharczuk/go-chart/v2 v2.1.0
-	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
+	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 	gonum.org/v1/gonum v0.11.0
-	google.golang.org/grpc v1.45.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	google.golang.org/grpc v1.46.2
+	gopkg.in/yaml.v3 v3.0.0-20220512140231-539c8e751b99
 )
 
 require (
@@ -37,15 +37,15 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.32.1 // indirect
+	github.com/prometheus/common v0.34.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/stretchr/objx v0.3.0 // indirect
-	golang.org/x/image v0.0.0-20220302094943-723b81ca9867 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
-	golang.org/x/sys v0.0.0-20220315194320-039c03cc5b86 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
+	golang.org/x/image v0.0.0-20220413100746-70e8d0d3baa9 // indirect
+	golang.org/x/net v0.0.0-20220517181318-183a9ca12b87 // indirect
+	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220314164441-57ef72a4c106 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/genproto v0.0.0-20220518221133-4f43b3371335 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 )
 
 replace github.com/btcsuite/btcd => github.com/decfi/btcd v0.22.0-beta
