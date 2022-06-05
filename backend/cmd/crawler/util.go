@@ -58,16 +58,14 @@ type ModulesConfig struct {
 }
 
 type Config struct {
-	BlockchainMode string         `yaml:"blockchainMode"`
-	Logfile        string         `yaml:"logfile"`
-	RPC            RPCConfig      `yaml:"rpc"`
-	Database       DatabaseConfig `yaml:"database"`
-	Modules        ModulesConfig  `yaml:"modules"`
+	Logfile  string         `yaml:"logfile"`
+	RPC      RPCConfig      `yaml:"rpc"`
+	Database DatabaseConfig `yaml:"database"`
+	Modules  ModulesConfig  `yaml:"modules"`
 }
 
 var defaultConfig = Config{
-	BlockchainMode: "Dash",
-	Logfile:        "dakar.log",
+	Logfile: "dakar.log",
 	RPC: RPCConfig{
 		Host:     "0.0.0.0",
 		Port:     9998,
@@ -282,7 +280,7 @@ func shutdownServer(srv *http.Server) {
 
 // printVersion prints the version of the application and build information
 func printVersion() {
-	fmt.Println("Dakar", VersionString, "compiled with", runtime.Version())
+	fmt.Println("Dakar", versionString, "compiled with", runtime.Version())
 	buildInfo, ok := debug.ReadBuildInfo()
 	if ok {
 		fmt.Println("Modules:")

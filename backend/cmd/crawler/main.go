@@ -27,8 +27,13 @@ import (
 	"github.com/btcsuite/btcd/rpcclient"
 )
 
-// VersionString displays the version of the Crawler
-const VersionString = "v1.0.0"
+// versionString displays the version of the Crawler
+const versionString = "v1.0.0"
+
+// blockchainMode is empty by default and should be set at compile time via the ldflags options.
+// blockchainMode controls various config parameters (see config.go).
+// Allowed values: "Dash" "Bitcoin" "Doge"
+var blockchainMode = ""
 
 var thisLogger *log.Logger
 
@@ -131,19 +136,22 @@ func main() {
 	initAllLoggers()
 
 	// select blockchain config
+	// ignore IDE warnings regarding blockchainMode, it is set at compile time
 	var processorConfig processor.Config
 	var analyserConfig analytics.Config
-	if config.BlockchainMode == "Dash" {
+	if blockchainMode == "Dash" {
 		processorConfig = processor.NewDashConfig()
 		analyserConfig = analytics.NewDashConfig()
-	} else if config.BlockchainMode == "BTC" {
+	} else if blockchainMode == "Bitcoin" {
 		processorConfig = processor.NewBitcoinConfig()
 		analyserConfig = analytics.NewBitcoinConfig()
-	} else if config.BlockchainMode == "Doge" {
+	} else if blockchainMode == "Doge" {
 		processorConfig = processor.NewDogecoinConfig()
 		analyserConfig = analytics.NewDogecoinConfig()
 	} else {
-		fmt.Println("invalid blockchain mode selected")
+		fmt.Println("invalid blockchain mode selected: '" + blockchainMode + "'")
+		fmt.Println("the blockchain mode has to be set at compile time via the ldflags option.")
+		fmt.Println("example: go build -ldflags \"-X main.blockchainMode=Dash\" .")
 		return
 	}
 
