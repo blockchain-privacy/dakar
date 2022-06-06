@@ -16,7 +16,7 @@ func SetupSchema(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
 			Meta.creationTime: dateTime . # The time when this database was initialized
-			Meta.blockchainMode: string . # The blockchain mode of this database. Possible values: Bitcoin, Dash, Doge
+			Meta.blockchainMode: string . # The blockchain mode of this database.
 			Meta.schemaVersion: int . # The schema version of this database. 
 
 			type Meta {
