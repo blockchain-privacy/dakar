@@ -22,7 +22,7 @@ dash: ## Build the Dash binary
 	go build -v -ldflags "-X main.blockchainMode=Dash" -o crawler_dash
 
 bitcoin: ## Build the Bitcoin binary
-	go build -v -ldflags "-X main.blockchainMode=Bitcoin" -modfile build/go.mod -o crawler_bitcoin
+	go build -v -ldflags "-X main.blockchainMode=Bitcoin" -modfile build/bitcoin_go.mod -o crawler_bitcoin
 
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)
