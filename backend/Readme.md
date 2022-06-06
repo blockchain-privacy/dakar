@@ -51,16 +51,16 @@ docker network create dgraph_default
 * After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
 
 ### Setup Crawler
-* Build the `crawler`
+* Build the dash version of the crawler
 ```shell script
 cd <project_dir>/backend/cmd/crawler
-go build .
+make dash
 ```
 
 * Launch the crawler with the following command
 ```shell script
 # -reset will delete all data of the dgraph instance and setup a new schema
-./crawler -dash -reset
+./crawler_dash -reset
 ```
 * The REST API can be accessed via the address printed in the standard output.
 Check the [crawler description](cmd/crawler/Readme.md) for more details. 
