@@ -281,6 +281,7 @@ func shutdownServer(srv *http.Server) {
 // printVersion prints the version of the application and build information
 func printVersion() {
 	fmt.Println("Dakar", versionString, "compiled with", runtime.Version())
+	fmt.Println("Blockchain mode:", blockchainMode)
 	buildInfo, ok := debug.ReadBuildInfo()
 	if ok {
 		fmt.Println("Modules:")
