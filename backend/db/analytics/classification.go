@@ -99,7 +99,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 				SetNquads: []byte("uid(dest) <privacytype> \"" + constants.StrPrivacyDestination + "\" ."),
 			},
 			{
-				// only insert origins if there are not transactions to classify
+				// only insert origins if there are no transactions to classify
 				Cond:      "@if(gt(len(orig), 0) and eq(len(to_classify),0))",
 				SetNquads: []byte("uid(orig) <privacytype> \"" + constants.StrPrivacyOrigin + "\" ."),
 			}},

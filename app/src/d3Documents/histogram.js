@@ -147,7 +147,7 @@ export default class Histogram {
           colorMap.forEach((v, privacyType) => {
             const g = privacyGroups.get(privacyType);
             if (g === undefined) {
-              // this privacy type does not exists
+              // this privacy type does not exist
               return;
             }
 

@@ -243,7 +243,7 @@ export default {
       if (!this.users) return;
 
       this.users = this.users.map((d) => {
-        // convert dates to unix time so they can be sorted in data table
+        // convert dates to unix time so, they can be sorted in data table
         d.modified = new Date(d.modified).getTime();
         d.created = new Date(d.created).getTime();
 

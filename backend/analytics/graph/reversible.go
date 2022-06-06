@@ -103,8 +103,7 @@ func (g *ReversibleGraph) Edges() graph.Edges {
 }
 
 // From returns all nodes in g that can be reached directly from n.
-//
-// The returned graph.Nodes is only valid until the next mutation of
+// The returned graph.Nodes are only valid until the next mutation of
 // the receiver.
 func (g *ReversibleGraph) From(id int64) graph.Nodes {
 	if g.reversed {
@@ -169,8 +168,7 @@ func (g *ReversibleGraph) Node(id int64) graph.Node {
 }
 
 // Nodes returns all the nodes in the graph.
-//
-// The returned graph.Nodes is only valid until the next mutation of
+// The returned graph.Nodes are only valid until the next mutation of
 // the receiver.
 func (g *ReversibleGraph) Nodes() graph.Nodes {
 	if len(g.nodes) == 0 {
@@ -301,8 +299,7 @@ func (g *ReversibleGraph) SetEdgeWithoutOverwrite(from graph.Node, to graph.Node
 }
 
 // To returns all nodes in g that can reach directly to n.
-//
-// The returned graph.Nodes is only valid until the next mutation of
+// The returned graph.Nodes are only valid until the next mutation of
 // the receiver.
 func (g *ReversibleGraph) To(id int64) graph.Nodes {
 	if g.reversed {

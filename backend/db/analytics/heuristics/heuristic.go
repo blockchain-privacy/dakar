@@ -803,7 +803,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	return
 }
 
-// GetShortestTransactionPathAnyDirection returns the transactions of a shortest path between two transactions.
+// GetShortestTransactionPathAnyDirection returns the transactions of the shortest path between two transactions.
 // anyDirection determines the search direction of the shortest transaction path query
 // True: Both inputs and outputs are traversed
 // False: Only inputs are traversed

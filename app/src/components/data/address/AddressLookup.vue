@@ -366,7 +366,7 @@ export default {
       },
     },
     addressHash() {
-      // only get exclusion status if this is a at least privileged user
+      // only get exclusion status if this is an at least privileged user
       if (this.showAdvanced) {
         this.getExclusionStatus();
       }
