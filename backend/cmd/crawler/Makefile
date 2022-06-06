@@ -16,8 +16,13 @@ test: ## Run unittests
 vet: ## Run vet
 	@go vet ${PKG_LIST}
 
-build: ## Build the binary file
-	@go build -i -v
+build: dash ## Builds Dash by default
+
+dash: ## Build the Dash binary
+	go build -v -ldflags "-X main.blockchainMode=Dash"
+
+bitcoin: ## Build the Bitcoin binary
+	go build -v -ldflags "-X main.blockchainMode=Bitcoin" -modfile build/go.mod
 
 clean: ## Remove previous build
 	@rm -f $(PROJECT_NAME)
