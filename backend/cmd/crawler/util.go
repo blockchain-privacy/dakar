@@ -1,6 +1,7 @@
 package main
 
 import (
+	database "backend/db"
 	"backend/db/status"
 	"backend/external"
 	"backend/user"
@@ -294,4 +295,36 @@ func printVersion() {
 			fmt.Println(moduleName)
 		}
 	}
+}
+
+// checkMeta returns true if the blockchain mode and the schema version of the database match with the executable.
+func checkMeta(db external.Database) bool {
+	meta, err := status.GetMeta(db)
+	if err != nil {
+		info(err)
+		return false
+	}
+
+	// check if the blockchain mode of database matches the blockchain mode of the executable
+	if meta.BlockchainMode != blockchainMode {
+		info("Database is using different blockchain mode than executable.")
+		info("Database blockchain mode:", meta.BlockchainMode)
+		info("Executable blockchain mode:", blockchainMode)
+		return false
+	}
+
+	if meta.SchemaVersion == nil {
+		info("database schema version is not set")
+		return false
+	}
+
+	// check if the database schema version matches the schema version of the executable
+	if *meta.SchemaVersion != database.SchemaVersion {
+		info("Database is using different blockchain mode than executable.")
+		info("Database blockchain mode:", meta.BlockchainMode)
+		info("Executable blockchain mode:", blockchainMode)
+		return false
+	}
+
+	return true
 }
