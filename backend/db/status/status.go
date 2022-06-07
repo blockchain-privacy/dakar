@@ -274,6 +274,33 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	return
 }
 
+// GetMeta gets the database metadata
+func GetMeta(c external.Database) (meta Meta, err error) {
+	query := `{
+				 q(func: type(` + MetaDType + `)){
+					uid
+					Meta.creationTime
+					Meta.blockchainMode
+					Meta.schemaVersion
+				  }
+				}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r metaQuery
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	return r.payload()
+}
+
 // SetCrawlerStatus sets the new crawler status
 func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 	status.UID = "uid(v)"
@@ -410,7 +437,27 @@ func SetLastClusteredFMIBlockID(c external.Database, id uint64) error {
 func IsConnectionEstablished(c external.Database) bool {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
+	// todo: switch from checking presence of blocks to presence of meta
 	_, err := c.Query(ctx, "{q(func: has(blockhash),first:1){uid}}", nil)
 
 	return err == nil
+}
+
+// SetMeta sets the database metadata
+func SetMeta(c external.Database, meta Meta) error {
+	meta.UID = "uid(v)"
+	meta.SetDType()
+
+	pb, err := json.Marshal(meta)
+	if err != nil {
+		return err
+	}
+
+	req := &api.Request{
+		Query:     "{q(func: type(" + MetaDType + ")){v as uid}}",
+		Mutations: []*api.Mutation{{SetJson: pb}},
+		CommitNow: true,
+	}
+
+	return db.TxWithRetry(c, time.Minute*10, req)
 }

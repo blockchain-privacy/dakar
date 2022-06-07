@@ -19,6 +19,9 @@ const ClusteringHierarchicalMultiInputDType = "CHMIStatus"
 // ClusteringFlatMultiInputDType is the dgraph database type for the CFMIStatus type
 const ClusteringFlatMultiInputDType = "CFMIStatus"
 
+// MetaDType is the dgraph database type for the Meta type
+const MetaDType = "Meta"
+
 // CrawlerStatus is the database representation of the crawler status
 type CrawlerStatus struct {
 	UID string `json:"uid,omitempty"`
@@ -264,5 +267,45 @@ func (a clusteringFMIStatusQuery) payload() (status ClusteringFlatMultiInputStat
 	}
 
 	status = a.Q[0]
+	return
+}
+
+// Meta holds values regarding metadata of the database
+type Meta struct {
+	UID string `json:"uid,omitempty"`
+
+	// CreationTime is the time when this database was initialized
+	CreationTime string `json:"Meta.creationTime,omitempty"`
+	// BlockchainMode of this database
+	BlockchainMode string `json:"Meta.blockchainMode,omitempty"`
+	// SchemaVersion  of this database
+	SchemaVersion *uint64 `json:"Meta.schemaVersion,omitempty"`
+
+	DType []string `json:"dgraph.type,omitempty"`
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (m *Meta) SetDType() {
+	m.DType = []string{MetaDType}
+}
+
+type metaQuery struct {
+	Q []Meta `json:"q"`
+}
+
+func (m metaQuery) payload() (meta Meta, err error) {
+	lenQ := len(m.Q)
+
+	if lenQ == 0 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		return
+	}
+
+	if lenQ > 1 {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		return
+	}
+
+	meta = m.Q[0]
 	return
 }
