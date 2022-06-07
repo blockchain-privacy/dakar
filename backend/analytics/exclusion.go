@@ -19,7 +19,7 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 		return errors.New("address exclusion list is empty")
 	}
 
-	err, uids := validateExclusionAddresses(dgraph, exclusions)
+	uids, err := validateExclusionAddresses(dgraph, exclusions)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -33,13 +33,11 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 }
 
 func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusion.User {
-	var dbExclusions []exclusion.AddressExclusions
-	for _, e := range exclusions {
-		excl := exclusion.AddressExclusions{
+	dbExclusions := make([]exclusion.AddressExclusions, len(exclusions))
+	for i, e := range exclusions {
+		dbExclusions[i] = exclusion.AddressExclusions{
 			UID: e,
 		}
-
-		dbExclusions = append(dbExclusions, excl)
 	}
 
 	return exclusion.User{
@@ -52,10 +50,10 @@ func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusio
 // Returns ErrTooManyAddresses if there are more than 20000 addresses.
 // If an address does not exist on the db, an error containing the address hash is returned.
 // Returns a list of the address UIDs
-func validateExclusionAddresses(dgraph external.Database, exclusions []string) (error, []string) {
+func validateExclusionAddresses(dgraph external.Database, exclusions []string) ([]string, error) {
 	// check maximum number of items
 	if len(exclusions) > 10000 {
-		return ErrTooManyAddresses, nil
+		return nil, ErrTooManyAddresses
 	}
 
 	addresses := map[string]bool{}
@@ -63,7 +61,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		addresses[c] = true
 	}
 
-	var uniqueAddresses []string
+	uniqueAddresses := make([]string, 0, len(addresses))
 	for k := range addresses {
 		uniqueAddresses = append(uniqueAddresses, k)
 	}
@@ -71,7 +69,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	// check if all addresses exist
 	dbAddresses, err := address.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err), nil
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// check if there is some mismatch
@@ -87,17 +85,18 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			break
 		}
 
-		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
+		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
-	var uids []string
-	for _, dbAddress := range dbAddresses {
+
+	uids := make([]string, len(dbAddresses))
+	for i, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return fmt.Errorf("address invalid: %v", dbAddress), nil
+			return nil, fmt.Errorf("address invalid: %v", dbAddress)
 		}
-		uids = append(uids, dbAddress.UID)
+		uids[i] = dbAddress.UID
 	}
 
-	return nil, uids
+	return uids, nil
 }
