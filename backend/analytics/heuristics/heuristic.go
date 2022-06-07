@@ -103,7 +103,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 // getDenominationCountsWithFilter gets the counts of each denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
 func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
-	var denominations []int64
+	var denominations []int64 //nolint:prealloc
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
 			continue
@@ -116,9 +116,9 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 
 // gets the counts of each denomination type
 func getDenominationCounts(it heuristics.HeuristicTransaction) [dbop.NumDenominations]int {
-	var denominations []int64
-	for _, output := range it.Outputs {
-		denominations = append(denominations, output.Amount)
+	denominations := make([]int64, len(it.Outputs))
+	for i, output := range it.Outputs {
+		denominations[i] = output.Amount
 	}
 
 	return dbop.CountAmountDenominations(denominations)
@@ -382,9 +382,9 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		pHeuristic = []heuristics.Heuristic{{UID: parentHeuristicUID}}
 	}
 
-	var clusterTypes []string
-	for _, cType := range h.getClusterTypes() {
-		clusterTypes = append(clusterTypes, string(cType))
+	clusterTypes := make([]string, len(h.getClusterTypes()))
+	for i, cType := range h.getClusterTypes() {
+		clusterTypes[i] = string(cType)
 	}
 
 	shouldExcludeAddresses := h.getExcludeAddresses()
@@ -410,7 +410,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 // createHeuristicClusters converts the given map into HeuristicCluster's
 func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.HeuristicResult,
 	attributionMap map[heuristics.ClusterUID][]string) []heuristics.HeuristicCluster {
-	var resultCluster []heuristics.HeuristicCluster
+	resultCluster := make([]heuristics.HeuristicCluster, 0, len(clusterMap))
 	for clusterID, results := range clusterMap {
 		var attributions []attribution.Attribution
 		if attributionMap != nil {

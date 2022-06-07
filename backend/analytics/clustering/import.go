@@ -27,7 +27,7 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 		return errors.New("user ID is not set")
 	}
 
-	err, addrToUID := validateAddresses(dgraph, clusters)
+	addrToUID, err := validateAddresses(dgraph, clusters)
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
 
 	clusterTimestamp := time.Now().UTC().Format(time.RFC3339)
 
-	var dbClusters []clustering.CustomCluster
+	dbClusters := make([]clustering.CustomCluster, 0, len(set))
 	for _, c := range set {
 		numAddresses := len(c)
 		dbCluster := clustering.CustomCluster{
@@ -88,34 +88,34 @@ func buildClusterSet(clusters []ExternalClusterItem) map[string]map[string]bool 
 // Returns ErrShallowCluster if there are clusters with less than 2 addresses.
 // If an address does not exist on the db an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID.
-func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem) (error, map[string]string) {
+func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem) (map[string]string, error) {
 	addresses := map[string]bool{}
 	for _, c := range clusters {
 		addresses[c.AddressHash] = true
 	}
 
-	var uniqueAddresses []string
+	uniqueAddresses := make([]string, 0, len(addresses))
 	for k := range addresses {
 		uniqueAddresses = append(uniqueAddresses, k)
 	}
 
 	// check maximum number of addresses
 	if len(uniqueAddresses) > 1000 {
-		return ErrTooManyAddresses, nil
+		return nil, ErrTooManyAddresses
 	}
 
 	// check if clusters contain at least two addresses
 	clusterSet := buildClusterSet(clusters)
 	for _, v := range clusterSet {
 		if v == nil || len(v) < 2 {
-			return ErrShallowCluster, nil
+			return nil, ErrShallowCluster
 		}
 	}
 
 	// check if all addresses exist
 	dbAddresses, err := address.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err), nil
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// check if there is some mismatch
@@ -131,17 +131,17 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			break
 		}
 
-		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
+		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
-	hashToUid := map[string]string{}
+	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return fmt.Errorf("address invalid: %v", dbAddress), nil
+			return nil, fmt.Errorf("address invalid: %v", dbAddress)
 		}
-		hashToUid[dbAddress.Hash] = dbAddress.UID
+		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}
 
-	return nil, hashToUid
+	return hashToUID, nil
 }
