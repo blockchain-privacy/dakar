@@ -34,7 +34,7 @@ import (
 // └──────┘  │                      │
 //           │  O:2         O:2     │
 // ┌──────┐  │ ┌──────┐    ┌──────┐ │
-// │Origin├──┴─┤Mixing├────┤Mixing├─┤  O:3  C
+// │Origin├──┴─┤Mixing├────┤Mixing├─┤  O:6  C
 // └──────┘    └──────┘    └──────┘ │ ┌──────┐
 //              O:1         O:1     ├─┤Mixing│
 // ┌──────┐    ┌──────┐    ┌──────┐ │ └──────┘
@@ -77,15 +77,15 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	var connectedNodes []ConnectedNode
+	connectedNodes := make([]ConnectedNode, len(r.Q))
 
-	for _, connectedNode := range r.Q {
+	for i, connectedNode := range r.Q {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
 		}
 
-		connectedNodes = append(connectedNodes, *node)
+		connectedNodes[i] = *node
 	}
 
 	return connectedNodes, nil
@@ -276,15 +276,15 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	var connectedNodes []ConnectedNode
+	connectedNodes := make([]ConnectedNode, len(r.Connected))
 
-	for _, connectedNode := range r.Connected {
+	for i, connectedNode := range r.Connected {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
 			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
 		}
 
-		connectedNodes = append(connectedNodes, *node)
+		connectedNodes[i] = *node
 	}
 
 	return connectedNodes, r.Single, nil

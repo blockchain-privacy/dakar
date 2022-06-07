@@ -140,7 +140,7 @@ func handleError(w http.ResponseWriter, err error) {
 func buildKey(route string, query string, body []byte) (key string) {
 	key = route + query
 	if len(body) > 0 {
-		key += string(body[:])
+		key += string(body)
 	}
 
 	return

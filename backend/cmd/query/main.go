@@ -42,15 +42,15 @@ type privacyTypePair struct {
 type Config struct {
 	Logfile  string `yaml:"logfile"`
 	ChartDir string `yaml:"chartDir"`
-	DbHost   string `yaml:"host"`
-	DbPort   uint   `yaml:"port"`
+	DBHost   string `yaml:"host"`
+	DBPort   uint   `yaml:"port"`
 }
 
 var defaultConfig = Config{
 	Logfile:  "",
 	ChartDir: "",
-	DbHost:   "0.0.0.0",
-	DbPort:   9080,
+	DBHost:   "0.0.0.0",
+	DBPort:   9080,
 }
 
 func main() {
@@ -96,7 +96,7 @@ func main() {
 
 	initLogger()
 
-	endpoint, err := cli.BuildEndpoint(config.DbHost, config.DbPort)
+	endpoint, err := cli.BuildEndpoint(config.DBHost, config.DBPort)
 	if err != nil {
 		info(err)
 		return
@@ -117,11 +117,11 @@ func main() {
 
 		privacyTypes := []privacyTypePair{
 			{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
-			//{label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
-			//{label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
-			//{label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
-			//{label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
-			//{label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
+			// {label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
+			// {label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
+			// {label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
+			// {label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
+			// {label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
 			{label: "origin", start: constants.StrPrivacyOriginFirst, stop: constants.StrPrivacyOriginLast},
 			{label: "destination", start: constants.StrPrivacyDestinationFirst,
 				stop: constants.StrPrivacyDestinationLast},
@@ -133,7 +133,7 @@ func main() {
 		}
 
 		durations := []dur{
-			//{label: "block", d: 1},
+			// {label: "block", d: 1},
 			{label: "day", d: time.Hour * 24, sma: true},
 			{label: "7 days", d: time.Hour * 24 * 7},
 		}
@@ -208,7 +208,7 @@ func drawChart(dir string, data map[time.Time]int, chartName string, durationLab
 		count int
 	}
 
-	var timeData []dataPoint
+	timeData := make([]dataPoint, 0, len(data))
 
 	for k, v := range data {
 		timeData = append(timeData, dataPoint{
