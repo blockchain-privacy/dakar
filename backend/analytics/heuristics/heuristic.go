@@ -416,7 +416,7 @@ func createHeuristicClusters(clusterMap map[heuristics.ClusterUID][]heuristics.H
 		if attributionMap != nil {
 			if attrs, ok := attributionMap[clusterID]; ok {
 				for _, a := range attrs {
-					attributions = append(attributions, attribution.Attribution{Uid: a})
+					attributions = append(attributions, attribution.Attribution{UID: a})
 				}
 			}
 		}

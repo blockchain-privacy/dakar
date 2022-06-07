@@ -17,7 +17,7 @@ import (
 func AddAttributions(c external.Database, attributions []Attribution) error {
 	// validate data
 	for _, a := range attributions {
-		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" ||
+		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
 			return fmt.Errorf("attribution invalid: %v", a)
 		}

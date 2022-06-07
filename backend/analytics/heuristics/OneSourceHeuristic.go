@@ -253,13 +253,14 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for k := range remainingOrigins {
-		if v, ok := allOriginMap[k]; !ok {
+		v, ok := allOriginMap[k]
+		if !ok {
 			return nil, errors.New("could not find origin in all origin map")
-		} else {
-			resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
-				Origin: heuristics.DummyNode{UID: k},
-			})
 		}
+
+		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{
+			Origin: heuristics.DummyNode{UID: k},
+		})
 	}
 
 	return createHeuristicClusters(resultClusters, attributionMap), nil
