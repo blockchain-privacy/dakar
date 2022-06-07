@@ -76,11 +76,10 @@ func (u User) ToFrontendUserState() FrontendUserClientState {
 
 // ToFrontendUserBackendState converts frontend user data to the user backend representation
 func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
-	var roles []FrontendRole
+	roles := make([]FrontendRole, len(u.Roles))
 
-	for _, r := range u.Roles {
-		convertedRole := FrontendRole{UID: r.UID, Name: r.Name}
-		roles = append(roles, convertedRole)
+	for i, r := range u.Roles {
+		roles[i] = FrontendRole{UID: r.UID, Name: r.Name}
 	}
 
 	return FrontendUserBackendState{
