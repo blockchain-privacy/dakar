@@ -3,6 +3,7 @@ package main
 import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/status"
 	"flag"
 	"fmt"
 	"log"
@@ -106,6 +107,15 @@ func main() {
 	info("AlterSchemaAddMeta starting ...")
 	if err := db.AlterSchemaAddMeta(dgraph); err != nil {
 		info(err)
+		return
 	}
 	info("AlterSchemaAddMeta done")
+
+	info("init database metadata starting ...")
+	err = status.InitializeMeta(dgraph, "Dash")
+	if err != nil {
+		info(err)
+		return
+	}
+	info("init database metadata done")
 }
