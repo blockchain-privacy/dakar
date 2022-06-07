@@ -73,19 +73,19 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	// create address to cluster lookup map
 	addressToCluster := make(map[string][]ClusterWithParent)
 	for _, ac := range r.AddressToClusters {
-		addressToCluster[ac.Uid] = ac.Clusters
+		addressToCluster[ac.UID] = ac.Clusters
 	}
 
 	// merge the two returned arrays
 	for _, t := range r.TransactionToAddresses {
 		// new transaction
-		tx := ClusterTransaction{Uid: t.Uid}
+		tx := ClusterTransaction{UID: t.UID}
 
 		for _, a := range t.Addresses {
-			ca := ClusterAddress{Uid: a.Uid}
+			ca := ClusterAddress{UID: a.UID}
 
-			if _, ok := addressToCluster[a.Uid]; ok {
-				ca.Clusters = append(ca.Clusters, addressToCluster[a.Uid]...)
+			if _, ok := addressToCluster[a.UID]; ok {
+				ca.Clusters = append(ca.Clusters, addressToCluster[a.UID]...)
 			}
 
 			tx.Addresses = append(tx.Addresses, ca)
@@ -138,7 +138,7 @@ func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 			return errors.New("cluster type is not set")
 		}
 
-		if checkTx && cluster.Transaction.Uid == "" {
+		if checkTx && cluster.Transaction.UID == "" {
 			return errors.New("cluster transaction is not set")
 		}
 
@@ -208,7 +208,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}
 		index := strconv.Itoa(i)
 		query += "var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
-		setNquads += "<" + o.NewCluster.Uid + "> <Cluster.addresses> uid(a" + index + ") .\n"
+		setNquads += "<" + o.NewCluster.UID + "> <Cluster.addresses> uid(a" + index + ") .\n"
 
 		for _, oc := range o.OldClusters {
 			delNquads += "<" + oc + "> * * .\n"
@@ -337,7 +337,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	tagMap := make(map[string][]Attribution)
 
 	for _, c := range clusterTags {
-		tagMap[c.Uid] = c.Attributions
+		tagMap[c.UID] = c.Attributions
 	}
 
 	for _, cluster := range clusters {
@@ -350,12 +350,12 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 			Type:         cluster.Type,
 			AddressCount: cluster.AddressCount,
 			Addresses:    cluster.Addresses,
-			Attributions: tagMap[cluster.Uid],
+			Attributions: tagMap[cluster.UID],
 		}
 
 		// uid is only needed for deleting custom clusters
 		if cluster.Type == "custom" {
-			frontendCluster.Uid = cluster.Uid
+			frontendCluster.UID = cluster.UID
 		}
 
 		// Transaction can be not set if the cluster was created by a user
@@ -482,16 +482,16 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 		var parentUID string
 		if len(cluster.Parent) == 1 {
-			parentUID = cluster.Parent[0].Uid
+			parentUID = cluster.Parent[0].UID
 		}
 
 		var childClusters []string
 		for _, child := range cluster.Children {
-			childClusters = append(childClusters, child.Uid)
+			childClusters = append(childClusters, child.UID)
 		}
 
 		clusters = append(clusters, FrontendHMICluster{
-			Uid:             cluster.Uid,
+			UID:             cluster.Uid,
 			AddressCount:    cluster.AddressCount,
 			TransactionHash: cluster.Transaction.TxHash,
 			Parent:          parentUID,
@@ -546,7 +546,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			addresses = append(addresses, a.Hash)
 		}
 		clusters = append(clusters, FrontendUserCluster{
-			Uid:          cluster.Uid,
+			UID:          cluster.Uid,
 			Timestamp:    cluster.Timestamp,
 			AddressCount: cluster.AddressCount,
 			Addresses:    addresses,

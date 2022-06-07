@@ -142,55 +142,55 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 					transactionCluster := addr.Clusters[0]
 
-					clusterMap[transactionCluster.Uid] = clustering.Cluster{
-						Uid:          transactionCluster.Uid,
+					clusterMap[transactionCluster.UID] = clustering.Cluster{
+						UID:          transactionCluster.UID,
 						AddressCount: &transactionCluster.AddressCount,
 					}
 
 					if transactionCluster.Parents == nil {
-						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.Uid); localRoot != "" {
+						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.UID); localRoot != "" {
 							// this happens if db-root cluster was found for which a new (local) cluster exists
-							childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							childClusterToClusterRoot[transactionCluster.UID] = localRoot
 							existingClusters[localRoot] = true
 						} else {
-							existingClusters[transactionCluster.Uid] = true
+							existingClusters[transactionCluster.UID] = true
 						}
-					} else if r := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.Uid); r != "" {
+					} else if r := getClusterRootByCluster(childClusterToClusterRoot, transactionCluster.UID); r != "" {
 						// this is the case if for the cluster a known root cluster exists
 						existingClusters[r] = true
 					} else {
-						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.Uid)
+						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
 						if dbErr != nil {
 							return false, fmt.Errorf("%s - block %d cluster uid %s: %w",
-								cliutil.ShowCallInfo(), m.state.ID, transactionCluster.Uid, dbErr)
+								cliutil.ShowCallInfo(), m.state.ID, transactionCluster.UID, dbErr)
 						}
 
-						clusterMap[root.Uid] = clustering.Cluster{
-							Uid:          root.Uid,
+						clusterMap[root.UID] = clustering.Cluster{
+							UID:          root.UID,
 							AddressCount: &root.AddressCount,
 						}
 
-						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, root.Uid); localRoot != "" {
+						if localRoot := getClusterRootByCluster(childClusterToClusterRoot, root.UID); localRoot != "" {
 							// this happens if db-root cluster was found for which a new (local) cluster exists
-							childClusterToClusterRoot[transactionCluster.Uid] = localRoot
+							childClusterToClusterRoot[transactionCluster.UID] = localRoot
 							existingClusters[localRoot] = true
 						} else {
-							childClusterToClusterRoot[transactionCluster.Uid] = root.Uid
-							existingClusters[root.Uid] = true
+							childClusterToClusterRoot[transactionCluster.UID] = root.UID
+							existingClusters[root.UID] = true
 						}
 					}
-				} else if r := getClusterRootByCluster(addressToClusterRoot, addr.Uid); r != "" {
+				} else if r := getClusterRootByCluster(addressToClusterRoot, addr.UID); r != "" {
 					// this is the case if the address has no cluster attached
 					// (db-state) but a local (not upserted) cluster was created
 					existingClusters[r] = true
 				} else {
-					addressesWithoutCluster[addr.Uid] = true
+					addressesWithoutCluster[addr.UID] = true
 				}
 			}
 
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
-				return false, errors.New("Transaction " + tx.Uid +
+				return false, errors.New("Transaction " + tx.UID +
 					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
 			}
 
@@ -203,7 +203,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			// create new cluster
 			clusterIndex++
-			cluster := clustering.NewHMICluster(clusterIndex, tx.Uid)
+			cluster := clustering.NewHMICluster(clusterIndex, tx.UID)
 
 			var addressCount int
 
@@ -214,37 +214,37 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			// add addresses
 			addressCount += len(addressesWithoutCluster)
 			for address := range addressesWithoutCluster {
-				cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{Uid: address})
+				cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{UID: address})
 			}
 
 			// set the new cluster root for all addresses in the transaction
 			for _, addr := range tx.Addresses {
-				addressToClusterRoot[addr.Uid] = cluster.Uid
+				addressToClusterRoot[addr.UID] = cluster.UID
 			}
 
 			// add child clusters
 			for c := range existingClusters {
-				cluster.Children = append(cluster.Children, clustering.SubCluster{Uid: c})
+				cluster.Children = append(cluster.Children, clustering.SubCluster{UID: c})
 				// accumulate address counts from existing clusters
 				if existingCluster, ok := clusterMap[c]; ok {
 					addressCount += *existingCluster.AddressCount
 				}
 
-				childClusterToClusterRoot[c] = cluster.Uid
+				childClusterToClusterRoot[c] = cluster.UID
 				// the local cluster to cluster mapping has to be added to the address map so cluster connections can be followed
-				addressToClusterRoot[c] = cluster.Uid
+				addressToClusterRoot[c] = cluster.UID
 			}
 
 			for _, addr := range tx.Addresses {
 				if addr.Clusters != nil {
-					childClusterToClusterRoot[addr.Clusters[0].Uid] = cluster.Uid
+					childClusterToClusterRoot[addr.Clusters[0].UID] = cluster.UID
 				}
 			}
 
 			cluster.AddressCount = &addressCount
 
 			newClusters = append(newClusters, cluster)
-			clusterMap[cluster.Uid] = cluster
+			clusterMap[cluster.UID] = cluster
 		}
 
 		// insert new clusters
@@ -381,21 +381,21 @@ func validateClusters(clusters []clustering.Cluster) error {
 	addressUIDs := make(map[string]bool)
 	for _, cluster := range clusters {
 		if len(cluster.Children) == 0 && len(cluster.Addresses) == 0 {
-			return fmt.Errorf("cluster %s has no addresses and no children", cluster.Uid)
+			return fmt.Errorf("cluster %s has no addresses and no children", cluster.UID)
 		}
 
 		for _, child := range cluster.Children {
-			if clusterUIDs[child.Uid] {
-				return fmt.Errorf("cluster %s has multiple parents", child.Uid)
+			if clusterUIDs[child.UID] {
+				return fmt.Errorf("cluster %s has multiple parents", child.UID)
 			}
-			clusterUIDs[child.Uid] = true
+			clusterUIDs[child.UID] = true
 		}
 
 		for _, addr := range cluster.Addresses {
-			if addressUIDs[addr.Uid] {
-				return fmt.Errorf("address %s has multiple parents", addr.Uid)
+			if addressUIDs[addr.UID] {
+				return fmt.Errorf("address %s has multiple parents", addr.UID)
 			}
-			addressUIDs[addr.Uid] = true
+			addressUIDs[addr.UID] = true
 		}
 	}
 

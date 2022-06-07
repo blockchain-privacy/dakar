@@ -15,23 +15,23 @@ const (
 )
 
 type HollowTransaction struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type HollowUser struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type HollowAddress struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type SubCluster struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type CustomCluster struct {
-	Uid          string          `json:"uid,omitempty"`
+	UID          string          `json:"uid,omitempty"`
 	Type         ClusterType     `json:"Cluster.type,omitempty"`
 	Timestamp    string          `json:"Cluster.ts,omitempty"`
 	AddressCount *int            `json:"Cluster.addressCount,omitempty"`
@@ -46,7 +46,7 @@ func (cc *CustomCluster) SetDType() {
 }
 
 type Cluster struct {
-	Uid          string            `json:"uid,omitempty"`
+	UID          string            `json:"uid,omitempty"`
 	Type         ClusterType       `json:"Cluster.type,omitempty"`
 	AddressCount *int              `json:"Cluster.addressCount,omitempty"`
 	Transaction  HollowTransaction `json:"Cluster.transaction,omitempty"`
@@ -62,16 +62,16 @@ func (c *Cluster) SetDType() {
 
 func NewHMICluster(index int, txUID string) Cluster {
 	return Cluster{
-		Uid:         "_:c" + strconv.Itoa(index),
+		UID:         "_:c" + strconv.Itoa(index),
 		Type:        TypeHMI,
-		Transaction: HollowTransaction{Uid: txUID},
+		Transaction: HollowTransaction{UID: txUID},
 		DType:       []string{DType},
 	}
 }
 
 func NewFMICluster(index int) Cluster {
 	return Cluster{
-		Uid:   "_:c" + strconv.Itoa(index),
+		UID:   "_:c" + strconv.Itoa(index),
 		Type:  TypeFMI,
 		DType: []string{DType},
 	}
@@ -79,32 +79,32 @@ func NewFMICluster(index int) Cluster {
 
 func NewFMIClusterByUID(UID string) Cluster {
 	return Cluster{
-		Uid:   UID,
+		UID:   UID,
 		Type:  TypeFMI,
 		DType: []string{DType},
 	}
 }
 
 type ClusterWithParent struct {
-	Uid          string `json:"uid"`
+	UID          string `json:"uid"`
 	AddressCount int    `json:"Cluster.addressCount,omitempty"`
 	Parents      []struct {
-		Uid string `json:"uid"`
+		UID string `json:"uid"`
 	} `json:"parents,omitempty"`
 }
 
 type ClusterAddress struct {
-	Uid      string              `json:"uid"`
+	UID      string              `json:"uid"`
 	Clusters []ClusterWithParent `json:"clusters,omitempty"`
 }
 
 type ClusterTransaction struct {
-	Uid       string           `json:"uid"`
+	UID       string           `json:"uid"`
 	Addresses []ClusterAddress `json:"addr,omitempty"`
 }
 
 type TransactionWithAddresses struct {
-	Uid       string          `json:"uid"`
+	UID       string          `json:"uid"`
 	Addresses []HollowAddress `json:"addr,omitempty"`
 }
 
@@ -121,7 +121,7 @@ type FrontendAddress struct {
 }
 
 type FrontendCluster struct {
-	Uid             string            `json:"uid,omitempty"`
+	UID             string            `json:"uid,omitempty"`
 	Type            ClusterType       `json:"type,omitempty"`
 	AddressCount    int               `json:"addressCount,omitempty"`
 	TransactionHash string            `json:"txhash,omitempty"`
@@ -138,12 +138,12 @@ type Attribution struct {
 }
 
 type ClusterTags struct {
-	Uid          string        `json:"uid,omitempty"`
+	UID          string        `json:"uid,omitempty"`
 	Attributions []Attribution `json:"tags,omitempty"`
 }
 
 type FrontendClusterRequest struct {
-	Uid          string      `json:"uid,omitempty"`
+	UID          string      `json:"uid,omitempty"`
 	Type         ClusterType `json:"Cluster.type,omitempty"`
 	AddressCount int         `json:"Cluster.addressCount,omitempty"`
 	Transaction  []struct {
@@ -156,7 +156,7 @@ type FrontendClusterRequest struct {
 }
 
 type FrontendHMICluster struct {
-	Uid             string   `json:"uid,omitempty"`
+	UID             string   `json:"uid,omitempty"`
 	AddressCount    int      `json:"addressCount,omitempty"`
 	TransactionHash string   `json:"txhash,omitempty"`
 	Parent          string   `json:"parent,omitempty"`
@@ -164,7 +164,7 @@ type FrontendHMICluster struct {
 }
 
 type FrontendUserCluster struct {
-	Uid          string   `json:"uid,omitempty"`
+	UID          string   `json:"uid,omitempty"`
 	Timestamp    string   `json:"ts,omitempty"`
 	AddressCount int64    `json:"address_count,omitempty"`
 	Addresses    []string `json:"addresses,omitempty"`

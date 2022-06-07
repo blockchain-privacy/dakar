@@ -53,13 +53,13 @@ func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
 			Type:         clustering.TypeCustom,
 			Timestamp:    clusterTimestamp,
 			AddressCount: &numAddresses,
-			User:         clustering.HollowUser{Uid: userID},
+			User:         clustering.HollowUser{UID: userID},
 		}
 
 		dbCluster.SetDType()
 
 		for a := range c {
-			dbCluster.Addresses = append(dbCluster.Addresses, clustering.HollowAddress{Uid: hashToUID[a]})
+			dbCluster.Addresses = append(dbCluster.Addresses, clustering.HollowAddress{UID: hashToUID[a]})
 		}
 
 		dbClusters = append(dbClusters, dbCluster)
