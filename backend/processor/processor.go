@@ -187,7 +187,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 	wg.Wait()
 
 	// map to slice
-	var addrSlice []dbaddr.Address
+	addrSlice := make([]dbaddr.Address, 0, len(addrMap))
 	for _, a := range addrMap {
 		addrSlice = append(addrSlice, a)
 	}
@@ -608,7 +608,7 @@ func getExternalOutputs(dgraph external.Database,
 		return nil, nil
 	}
 
-	var transactionHashes []string
+	transactionHashes := make([]string, 0, len(outputs))
 	for k := range outputs {
 		transactionHashes = append(transactionHashes, k)
 	}
@@ -647,13 +647,12 @@ func getExternalOutputs(dgraph external.Database,
 
 // processRound process the given block. That includes the insertion of the block,
 // its transaction, the outputs of all transaction and the mapping between outputs and addresses
-func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, state crawlerState,
+func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, state crawlerState,
 	block *btcjson.GetBlockVerboseResult, config Config, cache *outputCache) (
 	blkCounter int64, txCounter int64, err error) {
 	var txMapping []transactionMapping
-	var transactions []dbtx.Transaction
 
-	txHashMap, err := createTransactionHashmap(batchRpc, block.Tx)
+	txHashMap, err := createTransactionHashmap(batchRPC, block.Tx)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
 		return
@@ -664,6 +663,7 @@ func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, st
 		return 0, 0, err
 	}
 
+	transactions := make([]dbtx.Transaction, 0, len(txHashMap))
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
@@ -708,8 +708,8 @@ func processRound(dgraph external.Database, batchRpc external.BatchRPCClient, st
 		txCounter = 0
 	}
 
-	blockId := int64(state.id)
-	transactionOutputs, err := dbtx.GetOutputs(dgraph, blockId, blockId)
+	blockID := int64(state.id)
+	transactionOutputs, err := dbtx.GetOutputs(dgraph, blockID, blockID)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
