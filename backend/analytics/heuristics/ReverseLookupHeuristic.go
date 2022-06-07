@@ -201,7 +201,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	if parentHeuristicSet {
 		return createHeuristicClusters(resultClusters, parentAttributionMap), nil
-	} else {
-		return createHeuristicClusters(resultClusters, attributionMap), nil
 	}
+
+	return createHeuristicClusters(resultClusters, attributionMap), nil
 }

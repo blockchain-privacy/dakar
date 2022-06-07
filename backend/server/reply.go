@@ -557,8 +557,8 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	info("time:", time.Since(rLookupTime), "endpoints: origins:", len(endpoints))
 
 	// reply with the first 30 endpoints
-	var transactionUids []string
 	const numOutputNodes = 30
+	transactionUids := make([]string, 0, numOutputNodes)
 	i := 0
 	for k := range endpoints {
 		transactionUids = append(transactionUids, k)
@@ -730,7 +730,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 	w.Header().Set("Content-Type", "text/csv")
 
 	// somehow both content-length and transfer-encoding headers are both set, so one must be removed
-	//w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
+	// w.Header().Set("Content-Length", r.Header.Get("Content-Length"))
 
 	csvWriter := csv.NewWriter(w)
 	csvWriter.Comma = ';'
@@ -835,9 +835,8 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	if separator != ";" && separator != "," {
 		reply.Msg = CsvInvalidSeparator
 		return
-	} else {
-		rSeparator = []rune(separator)[0]
 	}
+	rSeparator = []rune(separator)[0]
 
 	headerFlag := r.FormValue("hasHeader")
 	if headerFlag == "" {
@@ -943,9 +942,8 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	if separator != ";" && separator != "," {
 		reply.Msg = CsvInvalidSeparator
 		return
-	} else {
-		rSeparator = []rune(separator)[0]
 	}
+	rSeparator = []rune(separator)[0]
 
 	headerFlag := r.FormValue("hasHeader")
 	if headerFlag == "" {
@@ -1088,17 +1086,17 @@ func getAttributionOverviewReply(dgraph external.Database, userUID string) (repl
 }
 
 func getDeleteAttributionReply(dgraph external.Database, userUID string,
-	attributionUid string, isPublicDeletion bool) (reply deleteAttributionReply) {
-	if attributionUid == "" {
+	attributionUID string, isPublicDeletion bool) (reply deleteAttributionReply) {
+	if attributionUID == "" {
 		reply.Msg = "attribution uid was not set"
 		return
 	}
 
 	var err error
 	if isPublicDeletion {
-		err = attribution.DeletePublicAttribution(dgraph, attributionUid)
+		err = attribution.DeletePublicAttribution(dgraph, attributionUID)
 	} else {
-		err = attribution.DeletePrivateAttribution(dgraph, userUID, attributionUid)
+		err = attribution.DeletePrivateAttribution(dgraph, userUID, attributionUID)
 	}
 
 	if err != nil {

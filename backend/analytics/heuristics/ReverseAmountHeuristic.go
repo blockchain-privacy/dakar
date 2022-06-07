@@ -103,7 +103,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	txHash string, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
-	//or the destination transaction specified by txHash
+	// or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps an address to its origin transactions
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
