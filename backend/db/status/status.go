@@ -461,3 +461,14 @@ func SetMeta(c external.Database, meta Meta) error {
 
 	return db.TxWithRetry(c, time.Minute*10, req)
 }
+
+// InitializeMeta sets the initial values of the database metadata.
+// It should only be called when new database is set up.
+func InitializeMeta(c external.Database, blockchainMode string) error {
+	dbVersion := db.SchemaVersion
+	return SetMeta(c, Meta{
+		CreationTime:   time.Now().UTC().Format(time.RFC3339),
+		BlockchainMode: blockchainMode,
+		SchemaVersion:  &dbVersion,
+	})
+}
