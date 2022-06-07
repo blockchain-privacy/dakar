@@ -37,7 +37,7 @@ func loadOriginTransactions(c external.Database, g *ReversibleGraph, max int) er
 }
 
 // loadCCTransactions loads cc transactions from the database into the graph.
-//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
 func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
@@ -60,7 +60,7 @@ func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error 
 }
 
 // loadMixingTransactions loads mixing transactions from the database into the graph.
-//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
 func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) error {
 	const step = 50000
 	for i := 0; ; i += step {
@@ -86,7 +86,7 @@ func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) er
 }
 
 // loadDestinationTransactions loads destination transactions from the database into the graph
-//max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
+// max is the number of transactions which get maximally loaded. If max is zero all possible transaction are loaded.
 func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max int) error {
 	const step = 10000
 	for i := 0; ; i += step {
