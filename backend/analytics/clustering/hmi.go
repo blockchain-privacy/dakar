@@ -89,7 +89,7 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 		state.Top = *clusteringStatus.LastClusteredBlockID
 	} else {
 		// this is the usual case: Set Top to the current last classified block height
-		state.Top = *clusteringStatus.LastClusteredBlockID
+		state.Top = *classifierStatus.LastClassifiedBlockID
 	}
 
 	m.state = state

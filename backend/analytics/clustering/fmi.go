@@ -91,7 +91,7 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 		state.Top = *clusteringStatus.LastClusteredBlockID
 	} else {
 		// this is the usual case: Set Top to the current last classified block height
-		state.Top = *clusteringStatus.LastClusteredBlockID
+		state.Top = *classifierStatus.LastClassifiedBlockID
 	}
 
 	m.state = state
@@ -177,18 +177,19 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		var operations []clustering.DBOperation
 		var clusterIndex int
 
-		operations, err = buildDbOperation(processedClusters, addressMergeMap, clusterIndex)
+		operations, err = buildDBOperation(processedClusters, addressMergeMap, clusterIndex)
 		if err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
+
 		// increase index
 		clusterIndex += len(operations)
 
-		if clusters, clusterErr := buildDbOperation(processedClusters, clusterMergeMap, clusterIndex); err != nil {
+		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
+		if err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
-		} else {
-			operations = append(operations, clusters...)
 		}
+		operations = append(operations, clusters...)
 
 		// insert new clusters
 		if len(operations) > 0 {
@@ -372,7 +373,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	// new addresses to newCluster
 	for a := range newAddresses {
 		mergeListPtr.addresses[a] = true
-		//clusterMergeMap[a] = mergeListPtr
+		// clusterMergeMap[a] = mergeListPtr
 	}
 
 	// find new clusters by querying the clusterMergeMap and append them to the mergeList
@@ -403,7 +404,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	}
 }
 
-func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
+func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
 	clusterIndex int) ([]clustering.DBOperation, error) {
 	var operations []clustering.DBOperation
 
@@ -424,7 +425,6 @@ func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*
 		var oldClusters []string
 
 		if len(i.mergeList) > 0 {
-
 			// find the largest cluster, so we have to move the least amount of addresses
 			var largestClusterUID string
 			var largestAddressesCount int
