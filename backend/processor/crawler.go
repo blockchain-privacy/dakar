@@ -71,8 +71,8 @@ func (c *Crawler) Context() context.Context {
 	return c.ctx
 }
 
-// Db returns the database access
-func (c *Crawler) Db() external.Database {
+// DB returns the database access
+func (c *Crawler) DB() external.Database {
 	return c.db
 }
 

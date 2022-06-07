@@ -171,8 +171,8 @@ func createCharts(durations []dur, ts []time.Time, dir string, privacyType strin
 		for _, t := range ts {
 			timeMap[t.Truncate(d.d)] = timeMap[t.Truncate(d.d)] + 1
 		}
-		maxTs, maxVal := findMaximum(timeMap)
-		info(privacyType, "maximum count:", maxTs, maxVal)
+		maxTS, maxVal := findMaximum(timeMap)
+		info(privacyType, "maximum count:", maxTS, maxVal)
 
 		chartErr := drawChart(dir, timeMap, privacyType, d.label, d.sma)
 		if chartErr != nil {

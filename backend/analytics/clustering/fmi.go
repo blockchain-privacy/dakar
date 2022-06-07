@@ -406,7 +406,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 
 func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
 	clusterIndex int) ([]clustering.DBOperation, error) {
-	var operations []clustering.DBOperation
+	var operations []clustering.DBOperation //nolint:prealloc
 
 	for _, i := range items {
 		if processedClusters[i] {

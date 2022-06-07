@@ -61,11 +61,10 @@ func (u *User) SetDType() {
 
 // ToFrontendUserState returns user data for the frontend
 func (u User) ToFrontendUserState() FrontendUserClientState {
-	var roles []FrontendRole
+	roles := make([]FrontendRole, len(u.Roles))
 
-	for _, r := range u.Roles {
-		convertedRole := FrontendRole{UID: r.UID, Name: r.Name}
-		roles = append(roles, convertedRole)
+	for i, r := range u.Roles {
+		roles[i] = FrontendRole{UID: r.UID, Name: r.Name}
 	}
 
 	return FrontendUserClientState{
@@ -104,12 +103,12 @@ type ModifyUserRequest struct {
 
 // ToUser returns a User object with the given password hash
 func (m ModifyUserRequest) ToUser(pwHash string) User {
-	var roles []Role
+	roles := make([]Role, len(m.Roles))
 
-	for _, r := range m.Roles {
+	for i, r := range m.Roles {
 		convertedRole := Role{UID: r.UID, Name: r.Name}
 		convertedRole.SetDType()
-		roles = append(roles, convertedRole)
+		roles[i] = convertedRole
 	}
 
 	return User{
@@ -129,12 +128,12 @@ type FrontendUserClientState struct {
 
 // ToUser returns a User object
 func (f FrontendUserClientState) ToUser() User {
-	var roles []Role
+	roles := make([]Role, len(f.Roles))
 
-	for _, r := range f.Roles {
+	for i, r := range f.Roles {
 		convertedRole := Role{UID: r.UID, Name: r.Name}
 		convertedRole.SetDType()
-		roles = append(roles, convertedRole)
+		roles[i] = convertedRole
 	}
 
 	return User{
@@ -173,12 +172,10 @@ func (f FrontendUserRoles) String() string {
 
 // ToUser returns a User object
 func (f FrontendUserRoles) ToUser() User {
-	var roles []Role
+	roles := make([]Role, len(f.Roles))
 
-	for _, r := range f.Roles {
-		roles = append(roles, Role{
-			Name: r,
-		})
+	for i, r := range f.Roles {
+		roles[i] = Role{Name: r}
 	}
 
 	if len(roles) == 0 {

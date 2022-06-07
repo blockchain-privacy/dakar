@@ -179,7 +179,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.AddNode(transactionNode{id: nodeUID, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
+		g.AddNode(transactionNode{id: nodeUID, ts: node.Block[0].TS, privacyType: node.PrivacyType})
 	}
 
 	return nil
@@ -193,7 +193,7 @@ func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Block[0].Ts, privacyType: node.PrivacyType})
+		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Block[0].TS, privacyType: node.PrivacyType})
 	}
 
 	return nil
@@ -207,7 +207,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Ts, privacyType: node.PrivacyType})
+		g.UpdateNode(transactionNode{id: nodeUID, ts: node.TS, privacyType: node.PrivacyType})
 
 		for _, input := range node.Inputs {
 			inputUID, parseErr := toInteger(input.InputTransaction)

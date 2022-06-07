@@ -9,7 +9,7 @@ import (
 	dbtx "backend/db/transaction"
 	"backend/external"
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -522,7 +522,7 @@ func createKeyHash(someMap map[string]bool) string {
 	}
 
 	// sort elements so a consistent hash can be generated
-	var keys []string
+	keys := make([]string, 0, len(someMap))
 	for k := range someMap {
 		keys = append(keys, k)
 	}
@@ -534,9 +534,9 @@ func createKeyHash(someMap map[string]bool) string {
 		allKeys = append(allKeys, []byte(k)...)
 	}
 
-	sha1Hash := sha1.New()
-	sha1Hash.Write(allKeys)
-	return base64.URLEncoding.EncodeToString(sha1Hash.Sum(nil))
+	sha256Hash := sha256.New()
+	sha256Hash.Write(allKeys)
+	return base64.URLEncoding.EncodeToString(sha256Hash.Sum(nil))
 }
 
 // GetTransactionsWithInputAmount returns a slice of transactions. Each transaction contains its input amounts.

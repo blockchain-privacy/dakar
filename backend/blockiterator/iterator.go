@@ -23,7 +23,7 @@ type BlockIterator interface {
 	Iterate() (bool, error)
 	// NextBlock tries to increase the internal state to the next block. Returns false if this fails.
 	// This will be called periodically when Empty returns true. Should return true if the state
-	//transition was successful.
+	// transition was successful.
 	NextBlock() (bool, error)
 	// PostExecution is always executed, even if PreLoop or Loop fail.
 	// This function should do operations like the setting the database status
@@ -94,7 +94,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// check if we need to wait
 		if iterator.Empty() {
-			isInterrupt, waitErr := waitForNextDbBlockID(iterator)
+			isInterrupt, waitErr := waitForNextDBBlockID(iterator)
 			if waitErr != nil {
 				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), waitErr)
 				return
@@ -131,10 +131,10 @@ func StartIteration(iterator BlockIterator) (err error) {
 	}
 }
 
-// waitForNextDbBlockID waits for the next block.
+// waitForNextDBBlockID waits for the next block.
 // if the interrupt receives a signal isInterrupt is true
 // if the next block is available, currentBlock gets updated
-func waitForNextDbBlockID(it BlockIterator) (isInterrupt bool, err error) {
+func waitForNextDBBlockID(it BlockIterator) (isInterrupt bool, err error) {
 	ctx := it.Context()
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()

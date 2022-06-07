@@ -11,7 +11,7 @@ type ConnectedNodeRequest struct {
 	UID         string                `json:"uid"`
 	PrivacyType constants.PrivacyType `json:"privacytype"`
 	Block       []struct {
-		Ts time.Time `json:"ts"`
+		TS time.Time `json:"ts"`
 	} `json:"block"`
 	Inputs []struct {
 		Addresses []struct {
@@ -31,7 +31,7 @@ func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 	node := ConnectedNode{
 		UID:         c.UID,
 		PrivacyType: c.PrivacyType,
-		Ts:          c.Block[0].Ts,
+		TS:          c.Block[0].TS,
 	}
 
 	for _, i := range c.Inputs {
@@ -59,7 +59,7 @@ func (c ConnectedNodeRequest) toConnectedNode() (*ConnectedNode, error) {
 type ConnectedNode struct {
 	UID         string
 	PrivacyType constants.PrivacyType
-	Ts          time.Time
+	TS          time.Time
 	Inputs      []struct {
 		Address          string
 		InputTransaction string
@@ -71,7 +71,7 @@ type Node struct {
 	UID         string                `json:"uid"`
 	PrivacyType constants.PrivacyType `json:"privacytype"`
 	Block       []struct {
-		Ts time.Time `json:"ts"`
+		TS time.Time `json:"ts"`
 	} `json:"block"`
 }
 

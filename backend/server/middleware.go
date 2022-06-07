@@ -9,7 +9,6 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"io"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"time"
@@ -207,7 +206,6 @@ func (s *Server) basicAuth() adapter {
 
 			// constant time compare and sleep to avoid timing attacks
 			if subtle.ConstantTimeCompare([]byte(s.basicAuthUser), []byte(requestUser)) != 1 {
-				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -218,7 +216,6 @@ func (s *Server) basicAuth() adapter {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			} else if !equal {
-				time.Sleep(time.Second * time.Duration(1+rand.Intn(5)))
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
