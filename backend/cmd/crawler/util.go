@@ -307,9 +307,10 @@ func checkMeta(db external.Database) bool {
 
 	// check if the blockchain mode of database matches the blockchain mode of the executable
 	if meta.BlockchainMode != blockchainMode {
-		info("Database is using different blockchain mode than executable.")
+		info("Database is using a different blockchain mode than the executable")
 		info("Database blockchain mode:", meta.BlockchainMode)
 		info("Executable blockchain mode:", blockchainMode)
+		info("You likely used the wrong executable or connected to the wrong database")
 		return false
 	}
 
@@ -320,9 +321,10 @@ func checkMeta(db external.Database) bool {
 
 	// check if the database schema version matches the schema version of the executable
 	if *meta.SchemaVersion != database.SchemaVersion {
-		info("Database is using different blockchain mode than executable.")
-		info("Database blockchain mode:", meta.BlockchainMode)
-		info("Executable blockchain mode:", blockchainMode)
+		info("Database is using a different schema version than executable")
+		info("Database blockchain mode:", *meta.SchemaVersion)
+		info("Executable blockchain mode:", database.SchemaVersion)
+		info("You likely used the wrong executable or connected to the wrong database")
 		return false
 	}
 
