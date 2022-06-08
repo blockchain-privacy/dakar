@@ -5,13 +5,17 @@ import (
 	"backend/constants"
 	"backend/db"
 	dban "backend/db/analytics"
-	"flag"
+	"backend/db/status"
+	"backend/external"
 
+	"encoding/csv"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/wcharczuk/go-chart/v2"
@@ -39,11 +43,17 @@ type privacyTypePair struct {
 	stop  string
 }
 
+type UniqueAddressesModule struct {
+	Active bool `yaml:"active"`
+	Option int  `yaml:"option"`
+}
+
 type Config struct {
-	Logfile  string `yaml:"logfile"`
-	ChartDir string `yaml:"chartDir"`
-	DBHost   string `yaml:"host"`
-	DBPort   uint   `yaml:"port"`
+	Logfile         string                `yaml:"logfile"`
+	ChartDir        string                `yaml:"chartDir"`
+	DBHost          string                `yaml:"host"`
+	DBPort          uint                  `yaml:"port"`
+	UniqueAddresses UniqueAddressesModule `yaml:"uniqueAddresses"`
 }
 
 var defaultConfig = Config{
@@ -51,6 +61,10 @@ var defaultConfig = Config{
 	ChartDir: "",
 	DBHost:   "0.0.0.0",
 	DBPort:   9080,
+	UniqueAddresses: UniqueAddressesModule{
+		Active: false,
+		Option: 0,
+	},
 }
 
 func main() {
@@ -146,6 +160,69 @@ func main() {
 			}
 
 			createCharts(durations, ts, config.ChartDir, privacyType.label)
+		}
+	}
+
+	if config.UniqueAddresses.Active {
+		info("Starting unique address analysis")
+		doUniqueAddressAnalysis(dgraph, config.UniqueAddresses.Option, "uniqueAddresses")
+	}
+}
+
+func doUniqueAddressAnalysis(database external.Database, option int, fileName string) {
+
+	// get the highest clustered block ID
+	fmiStatus, err := status.GetClusteringFMIStatus(database)
+	if err != nil {
+		info(err)
+		return
+	}
+	lastBlock := *fmiStatus.LastClusteredBlockID
+
+	f, err := os.Create(fileName + "_option" + strconv.Itoa(option) + ".csv")
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			info(err)
+		}
+	}(f)
+
+	if err != nil {
+		info(err)
+		return
+	}
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	// write header
+	header := []string{"Block ID", "Timestamp", "Addresses", "Clusters", "Addresses Without Cluster"}
+	if err := w.Write(header); err != nil {
+		info("error writing header to file", err)
+		return
+	}
+
+	// write data
+	for i := uint64(1); i <= lastBlock; i++ {
+		addressCount, clusterCount, addressesWithClusterCount, timestamp, err :=
+			dban.GetUniqueAddressCountsPerBlock(database, i, option)
+		if err != nil {
+			info(err)
+			return
+		}
+
+		line := []string{strconv.FormatUint(i, 10), timestamp, strconv.FormatUint(addressCount, 10),
+			strconv.FormatUint(clusterCount, 10),
+			strconv.FormatUint(addressesWithClusterCount, 10)}
+
+		if err := w.Write(line); err != nil {
+			info("error writing record to file", err)
+			return
+		}
+
+		if i%1000 == 0 {
+			info("processed", i, "blocks")
+			w.Flush()
 		}
 	}
 }
