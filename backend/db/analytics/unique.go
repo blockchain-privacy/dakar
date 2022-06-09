@@ -11,12 +11,12 @@ import (
 	"time"
 )
 
-// GetUniqueAddressCountsPerBlock returns the number of unique addresses contained in the given block
+// GetUniqueAddressCountsPerBlock returns the number of unique addresses and clusters for the given day
 // option == 1: count only output addresses and clusters
 // option == 2: count only input addresses and clusters
 // option == 3: count both input and output addresses and clusters
-func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option int) (addressCount uint64,
-	clusterCount uint64, addressesWithClusterCount uint64, timestamp string, err error) {
+func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option int) (addressCount uint64,
+	clusterCount uint64, addressesWithClusterCount uint64, err error) {
 	const outputAddressQuery = "tx_outputs { oa as ~addr_outputs}"
 	const outputAddressVariable = "oa"
 	const outputClusterVariable = "oc"
@@ -66,15 +66,17 @@ func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option 
 		return
 	}
 
-	var query = fmt.Sprintf(`query Q($block:string) {
-					var(func: eq(id,$block)){
-						t as ts 
+	toDate := time.Date(date.Year(), date.Month(), date.Day(), 23, 59, 59, 999, date.Location())
+	var query = fmt.Sprintf(`query Q($from:string,$to:string) {
+					blocks as var(func: between(ts, $from, $to))@filter(type(Block))
+
+					var(func: uid(blocks)){
 						transactions {
 							%s
 						}
 					}
 
-					var(func: eq(id,$block)){
+					var(func: uid(blocks)){
 						transactions {
 							%s
 						}
@@ -91,15 +93,11 @@ func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option 
 					addresses_with_clusters(func: uid(%s)){
 						count(uid)
 					}
-					
-					ts(func: uid(t)){
-						ts:val(t)
-					}
 				  }`, addressSelector, clusterSelector, addressCountVariables,
 		clusterCountVariables, addressesWithClusterVariables)
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
-		map[string]string{"$block": strconv.FormatUint(blockID, 10)})
+		map[string]string{"$to": toDate.Format(time.RFC3339), "$from": date.Format(time.RFC3339)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -115,9 +113,6 @@ func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option 
 		AddressesWithCluster []struct {
 			Count uint64 `json:"count,omitempty"`
 		} `json:"addresses_with_clusters,omitempty"`
-		Timestamp []struct {
-			TS string `json:"ts,omitempty"`
-		} `json:"ts,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -125,7 +120,7 @@ func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option 
 		return
 	}
 
-	if len(r.AddressCount) != 1 || len(r.ClusterCount) != 1 || len(r.AddressesWithCluster) != 1 || len(r.Timestamp) != 1 {
+	if len(r.AddressCount) != 1 || len(r.ClusterCount) != 1 || len(r.AddressesWithCluster) != 1 {
 		err = errors.New("invalid response from database")
 		return
 	}
@@ -133,7 +128,41 @@ func GetUniqueAddressCountsPerBlock(c external.Database, blockID uint64, option 
 	addressCount = r.AddressCount[0].Count
 	clusterCount = r.ClusterCount[0].Count
 	addressesWithClusterCount = r.AddressesWithCluster[0].Count
-	timestamp = r.Timestamp[0].TS
+
+	return
+}
+
+func BlockHeightToTimestamp(c external.Database, blockHeight uint64) (timestamp string, err error) {
+	const query = `query Q($height:string) {
+					q(func: eq(id, $height)){
+						ts
+					}
+				  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+		map[string]string{"$height": strconv.FormatUint(blockHeight, 10)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Query []struct {
+			Timestamp string `json:"ts,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Query) != 1 {
+		err = errors.New("invalid response from database")
+		return
+	}
+
+	timestamp = r.Query[0].Timestamp
 
 	return
 }

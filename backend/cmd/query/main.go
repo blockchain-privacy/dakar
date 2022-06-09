@@ -177,7 +177,36 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 		info(err)
 		return
 	}
-	lastBlock := *fmiStatus.LastClusteredBlockID
+
+	// get start date
+	startDateStr, err := dban.BlockHeightToTimestamp(database, 1)
+	if err != nil {
+		return
+	}
+
+	startDate, err := time.Parse(time.RFC3339, startDateStr)
+	if err != nil {
+		info(err)
+		return
+	}
+
+	fromDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(),
+		0, 0, 0, 0, startDate.Location())
+
+	// get end date
+	endDateStr, err := dban.BlockHeightToTimestamp(database, *fmiStatus.LastClusteredBlockID)
+	if err != nil {
+		return
+	}
+
+	endDate, err := time.Parse(time.RFC3339, endDateStr)
+	if err != nil {
+		info(err)
+		return
+	}
+
+	toDate := time.Date(endDate.Year(), endDate.Month(), endDate.Day(),
+		0, 0, 0, 0, endDate.Location())
 
 	f, err := os.Create(fileName + "_option" + strconv.Itoa(option) + ".csv")
 	defer func(f *os.File) {
@@ -196,22 +225,22 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 	defer w.Flush()
 
 	// write header
-	header := []string{"Block ID", "Timestamp", "Addresses", "Clusters", "Addresses Without Cluster"}
+	header := []string{"Timestamp", "Addresses", "Clusters", "Addresses Without Cluster"}
 	if err := w.Write(header); err != nil {
 		info("error writing header to file", err)
 		return
 	}
 
 	// write data
-	for i := uint64(1); i <= lastBlock; i++ {
-		addressCount, clusterCount, addressesWithClusterCount, timestamp, err :=
+	for i := fromDate.UTC(); toDate.UTC().After(i); i = i.Add(time.Hour * 24) {
+		addressCount, clusterCount, addressesWithClusterCount, err :=
 			dban.GetUniqueAddressCountsPerBlock(database, i, option)
 		if err != nil {
 			info(err)
 			return
 		}
 
-		line := []string{strconv.FormatUint(i, 10), timestamp, strconv.FormatUint(addressCount, 10),
+		line := []string{i.Format(time.RFC3339), strconv.FormatUint(addressCount, 10),
 			strconv.FormatUint(clusterCount, 10),
 			strconv.FormatUint(addressesWithClusterCount, 10)}
 
@@ -220,10 +249,8 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 			return
 		}
 
-		if i%1000 == 0 {
-			info("processed", i, "blocks")
-			w.Flush()
-		}
+		info("processed", i)
+		w.Flush()
 	}
 }
 
