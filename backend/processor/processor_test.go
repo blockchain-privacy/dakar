@@ -285,29 +285,3 @@ func TestGetRPCNumberOfBlocks(t *testing.T) {
 	require.Nil(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
 }
-
-//func TestCreateTransactionHashmap(t *testing.T) {
-//	var rpcClient mocks.BatchRPCClient
-//	for _, v := range mocks.RPCVal.TxStore {
-//		rpcClient.On("GetRawTransactionVerboseAsync", mock.AnythingOfType("*chainhash.Hash")).
-//			Return(&v, nil).Once()
-//	}
-//
-//	hashmap, err := createTransactionHashmap(&rpcClient, mocks.RPCVal.TxHashes)
-//	require.Nil(t, err)
-//	require.NotNil(t, hashmap)
-//	require.NotEmpty(t, hashmap)
-//
-//	txsWithInValidHashes := []string{"invalid_hash"}
-//	hashmap, err = createTransactionHashmap(&rpcClient, txsWithInValidHashes)
-//	require.NotNil(t, err)
-//	require.Empty(t, hashmap)
-//
-//	rpcClient.On("GetRawTransactionVerbose", mock.AnythingOfType("*chainhash.Hash")).
-//		Return(nil, errors.New("some_error"))
-//
-//	txsWithValidHashes := []string{"1fa6e94", "91646a615c"}
-//	hashmap, err = createTransactionHashmap(&rpcClient, txsWithValidHashes)
-//	require.NotNil(t, err)
-//	require.Empty(t, hashmap)
-//}
