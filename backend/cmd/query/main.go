@@ -164,7 +164,8 @@ func main() {
 		config.TimestampAnalytics.ExportDestinationTransactions ||
 		config.TimestampAnalytics.ExportReverseLookup.Active ||
 		config.ExclusionSimulations.Active {
-		g, err = graph.LoadTransactionGraph(dgraph)
+		// todo set to zero
+		g, err = graph.LoadTransactionGraph(dgraph, 100000)
 		if err != nil {
 			info(err)
 			return
@@ -176,7 +177,7 @@ func main() {
 	}
 
 	if config.TimestampAnalytics.ExportMixingTransactions {
-		exportMixingTimestamps(g)
+		exportMixingTimestamps(g, true)
 	}
 
 	if config.TimestampAnalytics.ExportReverseLookup.Active {

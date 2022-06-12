@@ -28,10 +28,10 @@ func doDestinationTimestampAnalysis(g *mgraph.ReversibleGraph) {
 }
 
 // doDestinationTimestampAnalysis writes all mixing transactions to a CSV file
-func exportMixingTimestamps(g *mgraph.ReversibleGraph) {
+func exportMixingTimestamps(g *mgraph.ReversibleGraph, getInputs bool) {
 	info("export of mixing transactions starting")
 
-	mixingTransactions := getMixingTransactions(g, false)
+	mixingTransactions := getMixingTransactions(g, getInputs)
 	info("number of mixing transactions in graph", len(mixingTransactions))
 
 	writeTxToCSV("mixing_transactions", mixingTransactions)
@@ -74,10 +74,9 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 func getDestinationTransactions(g *mgraph.ReversibleGraph) []exportTransaction {
 	var destinations []exportTransaction
 
-	var node graph.Node
 	nodes := g.Nodes()
 	for nodes.Next() {
-		node = nodes.Node()
+		node := nodes.Node()
 		if g.To(node.ID()).Len() == 0 {
 			txNode, ok := node.(mgraph.TransactionNode)
 			if !ok {
@@ -112,20 +111,19 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 		return nil
 	}
 
-	var node graph.Node
 	nodes := g.Nodes()
 	mixingTransactions := make([]exportTransaction, 0, nodes.Len())
 	for nodes.Next() {
-		txNode, ok := node.(mgraph.TransactionNode)
+		txNode, ok := nodes.Node().(mgraph.TransactionNode)
 		if !ok || !txNode.PrivacyType.IsMixing() || txNode.TS.Before(year2016) {
 			continue
 		}
 
 		var reachableNodes graph.Nodes
 		if getInputs {
-			reachableNodes = g.From(node.ID())
+			reachableNodes = g.From(txNode.ID())
 		} else {
-			reachableNodes = g.To(node.ID())
+			reachableNodes = g.To(txNode.ID())
 		}
 
 		var timestamps []time.Time
@@ -136,7 +134,7 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 
 		mixingTransactions = append(mixingTransactions, exportTransaction{
 			outputTimestamps: timestamps,
-			id:               node.ID(),
+			id:               txNode.ID(),
 			ts:               txNode.TS,
 		})
 	}
