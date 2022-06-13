@@ -11,7 +11,7 @@ import (
 )
 
 func doUniqueAddressAnalysis(database external.Database, option int, fileName string) {
-
+	info("Starting unique address analysis")
 	// get the highest clustered block ID
 	fmiStatus, err := status.GetClusteringFMIStatus(database)
 	if err != nil {
