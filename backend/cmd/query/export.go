@@ -121,9 +121,9 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 
 		var reachableNodes graph.Nodes
 		if getInputs {
-			reachableNodes = g.From(txNode.ID())
-		} else {
 			reachableNodes = g.To(txNode.ID())
+		} else {
+			reachableNodes = g.From(txNode.ID())
 		}
 
 		var timestamps []time.Time

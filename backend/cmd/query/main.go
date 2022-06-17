@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 )
 
 var thisLogger *log.Logger
@@ -47,6 +48,12 @@ type TimestampAnalyticsModule struct {
 	ExportReverseLookup           ExportReverseLookupModule `yaml:"exportReverseLookup"`
 }
 
+type OriginGapModule struct {
+	Active      bool   `yaml:"active"`
+	Filename    string `yaml:"filename"`
+	MinGapHours int    `yaml:"minGapHours"`
+}
+
 type Config struct {
 	Logfile              string                    `yaml:"logfile"`
 	DBHost               string                    `yaml:"host"`
@@ -55,6 +62,7 @@ type Config struct {
 	UniqueAddresses      UniqueAddressesModule     `yaml:"uniqueAddresses"`
 	TimestampAnalytics   TimestampAnalyticsModule  `yaml:"timestampAnalytics"`
 	ExclusionSimulations ExclusionSimulationModule `yaml:"exclusionSimulations"`
+	OriginGap            OriginGapModule           `yaml:"originGap"`
 }
 
 var defaultConfig = Config{
@@ -83,6 +91,11 @@ var defaultConfig = Config{
 		UserUID:           "",
 		LookBackTimeHours: 0,
 		NodeID:            "",
+	},
+	OriginGap: OriginGapModule{
+		Active:      false,
+		Filename:    "",
+		MinGapHours: 0,
 	},
 }
 
@@ -148,13 +161,10 @@ func main() {
 	}()
 
 	if config.PrivacyCharts.Active {
-		info("Creating privacy transaction charts")
-		// createPrivacyCharts(dgraph, config.PrivacyCharts.Directory)
 		exportTransactionData(dgraph, config.PrivacyCharts.Directory)
 	}
 
 	if config.UniqueAddresses.Active {
-		info("Starting unique address analysis")
 		doUniqueAddressAnalysis(dgraph, config.UniqueAddresses.Option, "uniqueAddresses")
 	}
 
@@ -163,9 +173,10 @@ func main() {
 	if config.TimestampAnalytics.ExportMixingTransactions ||
 		config.TimestampAnalytics.ExportDestinationTransactions ||
 		config.TimestampAnalytics.ExportReverseLookup.Active ||
-		config.ExclusionSimulations.Active {
+		config.ExclusionSimulations.Active ||
+		config.OriginGap.Active {
 		// todo set to zero
-		g, err = graph.LoadTransactionGraph(dgraph, 100000)
+		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
 			info(err)
 			return
@@ -188,5 +199,9 @@ func main() {
 	if config.ExclusionSimulations.Active {
 		doSimulation(dgraph, g, config.ExclusionSimulations.NodeID,
 			config.ExclusionSimulations.UserUID, config.ExclusionSimulations.LookBackTimeHours)
+	}
+
+	if config.OriginGap.Active {
+		doOriginGapAnalysis(g, time.Hour*time.Duration(config.OriginGap.MinGapHours), config.OriginGap.Filename)
 	}
 }

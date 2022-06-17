@@ -18,6 +18,7 @@ type privacyTypePair struct {
 
 // exportTransactionData exports all transaction timestamps in a CSV-file per privacy type (mixing, destination, ...)
 func exportTransactionData(database external.Database, directory string) {
+	info("Creating privacy transaction charts")
 	if len(directory) == 0 {
 		info("invalid directory:", directory)
 		return
