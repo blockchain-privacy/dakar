@@ -1,21 +1,12 @@
 package main
 
 import (
+	"backend/analytics/graph"
 	cli "backend/cmd/cliutil"
-	"backend/constants"
 	"backend/db"
-	dban "backend/db/analytics"
 	"flag"
-
-	"errors"
 	"fmt"
 	"log"
-	"os"
-	"sort"
-	"time"
-
-	"github.com/wcharczuk/go-chart/v2"
-	"github.com/wcharczuk/go-chart/v2/drawing"
 )
 
 var thisLogger *log.Logger
@@ -27,30 +18,72 @@ func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
 
-type dur struct {
-	label string
-	d     time.Duration
-	sma   bool
+type UniqueAddressesModule struct {
+	Active bool `yaml:"active"`
+	Option int  `yaml:"option"`
 }
 
-type privacyTypePair struct {
-	label string
-	start string
-	stop  string
+type PrivacyChartModule struct {
+	Active    bool   `yaml:"active"`
+	Directory string `yaml:"directory"`
+}
+
+type ExclusionSimulationModule struct {
+	Active            bool   `yaml:"active"`
+	UserUID           string `yaml:"userUID"`
+	LookBackTimeHours int    `yaml:"lookBackTimeHours"`
+	NodeID            string `yaml:"nodeID"`
+}
+
+type ExportReverseLookupModule struct {
+	Active            bool   `yaml:"active"`
+	LookBackTimeHours int    `yaml:"lookBackTimeHours"`
+	NodeID            string `yaml:"nodeID"`
+}
+
+type TimestampAnalyticsModule struct {
+	ExportDestinationTransactions bool                      `yaml:"exportDestinationTransactions"`
+	ExportMixingTransactions      bool                      `yaml:"exportMixingTransactions"`
+	ExportReverseLookup           ExportReverseLookupModule `yaml:"exportReverseLookup"`
 }
 
 type Config struct {
-	Logfile  string `yaml:"logfile"`
-	ChartDir string `yaml:"chartDir"`
-	DBHost   string `yaml:"host"`
-	DBPort   uint   `yaml:"port"`
+	Logfile              string                    `yaml:"logfile"`
+	DBHost               string                    `yaml:"host"`
+	DBPort               uint                      `yaml:"port"`
+	PrivacyCharts        PrivacyChartModule        `yaml:"privacyCharts"`
+	UniqueAddresses      UniqueAddressesModule     `yaml:"uniqueAddresses"`
+	TimestampAnalytics   TimestampAnalyticsModule  `yaml:"timestampAnalytics"`
+	ExclusionSimulations ExclusionSimulationModule `yaml:"exclusionSimulations"`
 }
 
 var defaultConfig = Config{
-	Logfile:  "",
-	ChartDir: "",
-	DBHost:   "0.0.0.0",
-	DBPort:   9080,
+	Logfile: "",
+	DBHost:  "0.0.0.0",
+	DBPort:  9080,
+	PrivacyCharts: PrivacyChartModule{
+		Active:    false,
+		Directory: "",
+	},
+	UniqueAddresses: UniqueAddressesModule{
+		Active: false,
+		Option: 0,
+	},
+	TimestampAnalytics: TimestampAnalyticsModule{
+		ExportDestinationTransactions: false,
+		ExportMixingTransactions:      false,
+		ExportReverseLookup: ExportReverseLookupModule{
+			Active:            false,
+			LookBackTimeHours: 0,
+			NodeID:            "",
+		},
+	},
+	ExclusionSimulations: ExclusionSimulationModule{
+		Active:            false,
+		UserUID:           "",
+		LookBackTimeHours: 0,
+		NodeID:            "",
+	},
 }
 
 func main() {
@@ -113,139 +146,47 @@ func main() {
 			info(err)
 		}
 	}()
-	if len(config.ChartDir) > 0 {
 
-		privacyTypes := []privacyTypePair{
-			{label: "mixing", start: "0", stop: constants.StrPrivacyMixingLast},
-			// {label: "mixing 0", start: constants.StrPrivacyMixing0, stop: constants.StrPrivacyMixing0},
-			// {label: "mixing 1", start: constants.StrPrivacyMixing1, stop: constants.StrPrivacyMixing1},
-			// {label: "mixing 2", start: constants.StrPrivacyMixing2, stop: constants.StrPrivacyMixing2},
-			// {label: "mixing 3", start: constants.StrPrivacyMixing3, stop: constants.StrPrivacyMixing3},
-			// {label: "mixing 4", start: constants.StrPrivacyMixing4, stop: constants.StrPrivacyMixing4},
-			{label: "origin", start: constants.StrPrivacyOriginFirst, stop: constants.StrPrivacyOriginLast},
-			{label: "destination", start: constants.StrPrivacyDestinationFirst,
-				stop: constants.StrPrivacyDestinationLast},
-			{label: "collateral creation", start: constants.StrPrivacyCollateralCreationFirst,
-				stop: constants.StrPrivacyCollateralCreationLast},
-			{label: "collateral payment", start: constants.StrPrivacyCollateralPaymentFirst,
-				stop: constants.StrPrivacyCollateralPaymentLast},
-			{label: "all", start: "0", stop: "500"},
-		}
-
-		durations := []dur{
-			// {label: "block", d: 1},
-			{label: "day", d: time.Hour * 24, sma: true},
-			{label: "7 days", d: time.Hour * 24 * 7},
-		}
-
-		for _, privacyType := range privacyTypes {
-			ts, dbErr := dban.GetPrivacyTypeData(dgraph, privacyType.start, privacyType.stop)
-			if dbErr != nil {
-				info(err)
-				return
-			}
-
-			createCharts(durations, ts, config.ChartDir, privacyType.label)
-		}
-	}
-}
-
-func findMaximum(data map[time.Time]int) (ts time.Time, maxVal int) {
-	for k, v := range data {
-		if v > maxVal {
-			ts = k
-			maxVal = v
-		}
+	if config.PrivacyCharts.Active {
+		info("Creating privacy transaction charts")
+		// createPrivacyCharts(dgraph, config.PrivacyCharts.Directory)
+		exportTransactionData(dgraph, config.PrivacyCharts.Directory)
 	}
 
-	return
-}
-
-func createCharts(durations []dur, ts []time.Time, dir string, privacyType string) {
-	if len(ts) == 0 {
-		return
+	if config.UniqueAddresses.Active {
+		info("Starting unique address analysis")
+		doUniqueAddressAnalysis(dgraph, config.UniqueAddresses.Option, "uniqueAddresses")
 	}
 
-	for _, d := range durations {
-		timeMap := make(map[time.Time]int)
-		for _, t := range ts {
-			timeMap[t.Truncate(d.d)] = timeMap[t.Truncate(d.d)] + 1
-		}
-		maxTS, maxVal := findMaximum(timeMap)
-		info(privacyType, "maximum count:", maxTS, maxVal)
+	var g *graph.ReversibleGraph
 
-		chartErr := drawChart(dir, timeMap, privacyType, d.label, d.sma)
-		if chartErr != nil {
-			info(chartErr)
+	if config.TimestampAnalytics.ExportMixingTransactions ||
+		config.TimestampAnalytics.ExportDestinationTransactions ||
+		config.TimestampAnalytics.ExportReverseLookup.Active ||
+		config.ExclusionSimulations.Active {
+		// todo set to zero
+		g, err = graph.LoadTransactionGraph(dgraph, 100000)
+		if err != nil {
+			info(err)
 			return
 		}
 	}
-}
 
-func drawChart(dir string, data map[time.Time]int, chartName string, durationLabel string, sma bool) error {
-	if len(dir) == 0 {
-		return errors.New("chart directory is empty")
+	if config.TimestampAnalytics.ExportDestinationTransactions {
+		doDestinationTimestampAnalysis(g)
 	}
 
-	if len(chartName) == 0 {
-		return errors.New("chart name is empty")
+	if config.TimestampAnalytics.ExportMixingTransactions {
+		exportMixingTimestamps(g, true)
 	}
 
-	file, err := os.Create(dir + "/" + chartName + "_" + durationLabel + ".png")
-	if err != nil {
-		return err
+	if config.TimestampAnalytics.ExportReverseLookup.Active {
+		exportReverseLookup(g, config.TimestampAnalytics.ExportReverseLookup.NodeID,
+			config.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours, nil)
 	}
 
-	defer func() {
-		err = file.Close()
-		if err != nil {
-			panic(err)
-		}
-	}()
-
-	type dataPoint struct {
-		ts    time.Time
-		count int
+	if config.ExclusionSimulations.Active {
+		doSimulation(dgraph, g, config.ExclusionSimulations.NodeID,
+			config.ExclusionSimulations.UserUID, config.ExclusionSimulations.LookBackTimeHours)
 	}
-
-	timeData := make([]dataPoint, 0, len(data))
-
-	for k, v := range data {
-		timeData = append(timeData, dataPoint{
-			ts:    k,
-			count: v,
-		})
-	}
-
-	sort.Slice(timeData, func(i, j int) bool {
-		return timeData[i].ts.Before(timeData[j].ts)
-	})
-
-	var series chart.TimeSeries
-
-	for _, t := range timeData {
-		series.XValues = append(series.XValues, t.ts)
-		series.YValues = append(series.YValues, float64(t.count))
-	}
-
-	allSeries := []chart.Series{series}
-
-	if sma {
-		allSeries = append(allSeries, chart.SMASeries{
-			Style: chart.Style{
-				StrokeColor: drawing.ColorRed,
-				StrokeWidth: 2.0,
-			},
-			InnerSeries: series,
-		})
-	}
-
-	graph := chart.Chart{
-		Title:  "Number of '" + chartName + "' privacy transactions per " + durationLabel,
-		Height: 1080,
-		Width:  1920,
-		Series: allSeries,
-	}
-
-	return graph.Render(chart.PNG, file)
 }

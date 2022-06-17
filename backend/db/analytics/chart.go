@@ -41,7 +41,7 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	}
 
 	for _, q := range r.Query {
-		ts = append(ts, q.Timestamp)
+		ts = append(ts, q.Timestamp.UTC())
 	}
 
 	return

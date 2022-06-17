@@ -111,8 +111,10 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 	return nil
 }
 
-// LoadTransactionGraph loads and constructs a transaction graph from the database
-func LoadTransactionGraph(c external.Database) (*ReversibleGraph, error) {
+// LoadTransactionGraph loads and constructs a transaction graph from the database.
+// numTxToLoad == 0: load all transactions
+// numTxToLoad > 0: load numTxToLoad transactions of each privacy type
+func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGraph, error) {
 	mixingCount, originCount, ccCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
@@ -128,8 +130,6 @@ func LoadTransactionGraph(c external.Database) (*ReversibleGraph, error) {
 		"destination count:", destinationCount, "cc count:", ccCount)
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
-
-	const numTxToLoad = 0
 
 	// load all origin transactions from the database
 	info("Loading origin nodes")
@@ -174,12 +174,12 @@ func LoadTransactionGraph(c external.Database) (*ReversibleGraph, error) {
 // addSingleNodes adds the given nodes to g. Edges will not be set.
 func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
-		nodeUID, err := toInteger(node.UID)
+		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.AddNode(transactionNode{id: nodeUID, ts: node.Block[0].TS, privacyType: node.PrivacyType})
+		g.AddNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
 	}
 
 	return nil
@@ -188,12 +188,12 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 // upsertSingleNodes adds the given nodes to g or updates existing ones. Edges will not be set.
 func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
-		nodeUID, err := toInteger(node.UID)
+		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{id: nodeUID, ts: node.Block[0].TS, privacyType: node.PrivacyType})
+		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
 	}
 
 	return nil
@@ -202,20 +202,20 @@ func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 // addEdges adds the edges defined in nodes to g.
 func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {
-		nodeUID, err := toInteger(node.UID)
+		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
 			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		g.UpdateNode(transactionNode{id: nodeUID, ts: node.TS, privacyType: node.PrivacyType})
+		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, PrivacyType: node.PrivacyType})
 
 		for _, input := range node.Inputs {
-			inputUID, parseErr := toInteger(input.InputTransaction)
+			inputUID, parseErr := ToInteger(input.InputTransaction)
 			if parseErr != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
 			}
 
-			addressUID, parseErr := toInteger(input.Address)
+			addressUID, parseErr := ToInteger(input.Address)
 			if parseErr != nil {
 				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
 			}
@@ -231,7 +231,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 func pruneNodes(g *ReversibleGraph) error {
 	var node graph.Node
 	var nodeID int64
-	var txNode transactionNode
+	var txNode TransactionNode
 	var ok bool
 
 	nodes := g.Nodes()
@@ -239,11 +239,11 @@ func pruneNodes(g *ReversibleGraph) error {
 		node = nodes.Node()
 		nodeID = node.ID()
 
-		txNode, ok = node.(transactionNode)
+		txNode, ok = node.(TransactionNode)
 
 		if !ok {
 			g.RemoveNode(nodeID)
-		} else if txNode.ts.IsZero() {
+		} else if txNode.TS.IsZero() {
 			return errors.New("error node timestamp is zero")
 		}
 	}
@@ -264,7 +264,7 @@ func pruneNodes(g *ReversibleGraph) error {
 func verifyTransactionGraph(g *ReversibleGraph) error {
 	var node graph.Node
 	var nodeID int64
-	var txNode transactionNode
+	var txNode TransactionNode
 	var ok bool
 
 	nodes := g.Nodes()
@@ -276,12 +276,12 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 			return errors.New("error node exists with no edges")
 		}
 
-		txNode, ok = node.(transactionNode)
+		txNode, ok = node.(TransactionNode)
 		if !ok {
 			return fmt.Errorf("error node has wrong type: %T", node)
 		}
 
-		if txNode.ts.IsZero() {
+		if txNode.TS.IsZero() {
 			return errors.New("error node has invalid timestamp")
 		}
 	}

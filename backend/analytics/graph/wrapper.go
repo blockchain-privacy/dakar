@@ -173,7 +173,7 @@ func (w *Wrapper) LoadGraphs() error {
 	// state.ID - 1 because the ID is the next block
 	w.blockHeight.Set(float64(w.state.ID - 1))
 
-	txGraph, err := LoadTransactionGraph(w.db)
+	txGraph, err := LoadTransactionGraph(w.db, 0)
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
