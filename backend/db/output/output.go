@@ -25,14 +25,14 @@ var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100
 
 // CountOutputDenominations returns for each denomination how often it occurred in the given outputs
 func CountOutputDenominations(outputs []Output) [NumDenominations]int {
-	var amounts []int64
+	amounts := make([]int64, len(outputs))
 
-	for _, o := range outputs {
+	for i, o := range outputs {
 		if o.Amount == nil {
 			log.Println("error amount not set")
 			return [NumDenominations]int{}
 		}
-		amounts = append(amounts, *o.Amount)
+		amounts[i] = *o.Amount
 	}
 
 	return CountAmountDenominations(amounts)

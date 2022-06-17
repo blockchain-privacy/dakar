@@ -208,7 +208,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 			Inputs      []FrontendOutput `json:"inputs,omitempty"`
 			Block       []struct {
 				Hash string `json:"blockhash,omitempty"`
-				Ts   string `json:"ts,omitempty"`
+				TS   string `json:"ts,omitempty"`
 				ID   uint64 `json:"id,omitempty"`
 			} `json:"block,omitempty"`
 		} `json:"q,omitempty"`
@@ -248,7 +248,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 			Fee:            fee,
 			BlockHash:      t.Block[0].Hash,
 			BlockID:        t.Block[0].ID,
-			BlockTimestamp: t.Block[0].Ts,
+			BlockTimestamp: t.Block[0].TS,
 			Outputs:        t.Outputs,
 			Inputs:         t.Inputs,
 		})

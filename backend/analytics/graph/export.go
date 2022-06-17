@@ -101,12 +101,13 @@ func getDestinationTransactions(g *ReversibleGraph) []exportTransaction {
 // Depending on the getInputs flag, either the input or
 // output timestamps are included
 func getMixingTransactions(g *ReversibleGraph, getInputs bool) []exportTransaction {
-	var mixingTransactions []exportTransaction
 	year2016, err := time.Parse("2006-01-02", "2016-01-01")
 	if err != nil {
 		info("error while creating date", err)
 		return nil
 	}
+
+	mixingTransactions := make([]exportTransaction, 0, len(g.nodes))
 	for _, node := range g.nodes {
 		txNode, ok := node.(transactionNode)
 		if !ok || !txNode.privacyType.IsMixing() || txNode.ts.Before(year2016) {
@@ -131,7 +132,6 @@ func getMixingTransactions(g *ReversibleGraph, getInputs bool) []exportTransacti
 			id:               node.ID(),
 			ts:               txNode.ts,
 		})
-
 	}
 	return mixingTransactions
 }

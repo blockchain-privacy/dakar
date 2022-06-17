@@ -157,9 +157,9 @@ func (c *Classifier) CalculateInitialState() error {
 
 // getUids return uid slice
 func getUids(txs []dbtx.Transaction) []string {
-	var uids []string
-	for _, t := range txs {
-		uids = append(uids, t.UID)
+	uids := make([]string, len(txs))
+	for i, t := range txs {
+		uids[i] = t.UID
 	}
 	return uids
 }

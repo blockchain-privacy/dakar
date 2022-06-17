@@ -35,7 +35,7 @@ type CrawlerStatus struct {
 	// Step 3: Set LastBlockID to the id of the processed block.
 	// LastBlockID is the ID of the last block where both steps have been successful.
 	// Thus, it is possible to have a block inside the database with a higher ID
-	//than LastBlockID, if the crawling was aborted between step 1 and 2.
+	// than LastBlockID, if the crawling was aborted between step 1 and 2.
 	LastBlockID *uint64 `json:"lastblockid,omitempty"`
 
 	DType []string `json:"dgraph.type,omitempty"`

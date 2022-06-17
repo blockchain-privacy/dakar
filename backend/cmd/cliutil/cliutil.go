@@ -49,7 +49,7 @@ func WriteConfig(filePath string, config interface{}) error {
 		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
 	}
 
-	if err := os.WriteFile(filePath, marshalledConfig, 0666); err != nil {
+	if err := os.WriteFile(filePath, marshalledConfig, 0600); err != nil {
 		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
 	}
 

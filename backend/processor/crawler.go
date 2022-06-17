@@ -18,7 +18,7 @@ type Crawler struct {
 	config       Config
 	db           external.Database
 	rpc          external.RPCClient
-	batchRpc     external.BatchRPCClient
+	batchRPC     external.BatchRPCClient
 	ctx          context.Context
 	state        crawlerState
 	blocks       prometheus.Counter
@@ -33,12 +33,12 @@ type Crawler struct {
 
 // NewCrawler creates a new Crawler object
 func NewCrawler(ctx context.Context, database external.Database, rpc external.RPCClient,
-	batchRpc external.BatchRPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
+	batchRPC external.BatchRPCClient, initialBlockCacheSize int64, cfg Config) *Crawler {
 	return &Crawler{
 		config:                cfg,
 		db:                    database,
 		rpc:                   rpc,
-		batchRpc:              batchRpc,
+		batchRPC:              batchRPC,
 		ctx:                   ctx,
 		initialBlockCacheSize: initialBlockCacheSize,
 		blocks: promauto.NewCounter(prometheus.CounterOpts{
@@ -71,8 +71,8 @@ func (c *Crawler) Context() context.Context {
 	return c.ctx
 }
 
-// Db returns the database access
-func (c *Crawler) Db() external.Database {
+// DB returns the database access
+func (c *Crawler) DB() external.Database {
 	return c.db
 }
 
@@ -181,7 +181,7 @@ func (c *Crawler) Iterate() (bool, error) {
 	}
 
 	// do the actual processing and aggregate the resulting metrics
-	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRpc, c.state, c.currentBlock,
+	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRPC, c.state, c.currentBlock,
 		c.config, c.cache); processErr == nil {
 
 		c.blocks.Add(float64(rBlockCounter))

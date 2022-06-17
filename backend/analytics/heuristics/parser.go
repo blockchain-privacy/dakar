@@ -74,7 +74,6 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 		if modelHeuristic, ok := hMap[h.Type]; ok {
 			newHeuristic := modelHeuristic.clone()
 
-			//newHeuristic := *modelHeuristic
 			// check if heuristic was already built
 			if _, ok := builtHeuristics[h.UID]; ok {
 				err = errHeuristicDuplicateUID
@@ -276,10 +275,9 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 	return
 }
 
-// ConstructExecutors creates executors based on heuristics
-func ConstructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristicRequest,
-	userUID string) (
-	executors []heuristicExecutor, err error) {
+// constructExecutors creates executors based on heuristics
+func constructExecutors(dgraph external.Database, txhash string, results []heuristics.FrontendHeuristicRequest,
+	userUID string) (executors []heuristicExecutor, err error) {
 	// only set values for global type map once
 	if len(typeMap) == 0 {
 		for _, h := range ValidHeuristicTypes {
@@ -397,7 +395,7 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 
 	if len(changed) > 0 {
 		// create heuristicExecutor trees
-		w.executors, err = ConstructExecutors(dgraph, transactionHash, changed, userUID)
+		w.executors, err = constructExecutors(dgraph, transactionHash, changed, userUID)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return

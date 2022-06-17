@@ -128,7 +128,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	txHash string, parentHeuristicUID string) (
 	[]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
-	//or the destination transaction specified by txHash
+	// or the destination transaction specified by txHash
 	origins := make(map[string]heuristics.HeuristicTransaction)
 	// maps a cluster to its origin transactions
 	clusterOrigins := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
@@ -178,8 +178,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		txs     map[string]heuristics.HeuristicTransaction
 	}
 
-	var clusterDestinations []clusterDestination
-
+	clusterDestinations := make([]clusterDestination, 0, len(clusterOrigins))
 	for c, txMap := range clusterOrigins {
 		var txUIDs []string
 

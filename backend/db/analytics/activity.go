@@ -87,8 +87,8 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 	}
 
 	// filter duplicate transaction hashes (due to one hash per output)
-	var activities []MixingActivity
-	for _, ma := range r.Q {
+	activities := make([]MixingActivity, len(r.Q))
+	for i, ma := range r.Q {
 		newActivity := MixingActivity{
 			TransactionHash: ma.TransactionHash,
 			PrivacyType:     ma.PrivacyType,
@@ -107,7 +107,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 			}{TransactionHash: k})
 		}
 
-		activities = append(activities, newActivity)
+		activities[i] = newActivity
 	}
 
 	return activities, nil

@@ -63,7 +63,7 @@ var (
 		constants.GetRouteDeleteCluster():     true,
 		constants.GetRouteDeleteAllClusters(): true,
 		constants.GetRouteClusterOverview():   true,
-		//constants.GetRouteHMILookup():     true,
+		// constants.GetRouteHMILookup():     true,
 		// Attribution
 		constants.GetRouteAddPrivateAttribution():        true,
 		constants.GetRouteAttributionOverview():          true,

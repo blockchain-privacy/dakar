@@ -28,7 +28,7 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 		return errors.New("attribution list is empty")
 	}
 
-	err, addrToUID := validateAddresses(dgraph, attributions)
+	addrToUID, err := validateAddresses(dgraph, attributions)
 	if err != nil {
 		return err
 	}
@@ -45,10 +45,11 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 	isPublic bool) []attribution.Attribution {
 	attributionTimestamp := time.Now().UTC().Format(time.RFC3339)
 
-	var dbAttributions []attribution.Attribution
-	for _, a := range attributions {
+	dbAttributions := make([]attribution.Attribution, len(attributions))
+
+	for i, a := range attributions {
 		attr := attribution.Attribution{
-			Address:     &attribution.HollowAddress{Uid: hashToUID[a.AddressHash]},
+			Address:     &attribution.HollowAddress{UID: hashToUID[a.AddressHash]},
 			Tag:         a.Tag,
 			Description: a.Description,
 			Source:      a.Source,
@@ -58,12 +59,12 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 		}
 
 		if !isPublic {
-			attr.User = &attribution.HollowUser{Uid: userID}
+			attr.User = &attribution.HollowUser{UID: userID}
 		}
 
 		attr.SetDType()
 
-		dbAttributions = append(dbAttributions, attr)
+		dbAttributions[i] = attr
 	}
 
 	return dbAttributions
@@ -73,10 +74,10 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 // Returns ErrTooManyAddresses if there are more than 1000 items.
 // If an address does not exist on the db, an error containing the address hash is returned.
 // Returns a mapping from address hash to db UID.
-func validateAddresses(dgraph external.Database, attributions []Attribution) (error, map[string]string) {
+func validateAddresses(dgraph external.Database, attributions []Attribution) (map[string]string, error) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
-		return ErrTooManyAddresses, nil
+		return nil, ErrTooManyAddresses
 	}
 
 	addresses := map[string]bool{}
@@ -84,7 +85,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (er
 		addresses[c.AddressHash] = true
 	}
 
-	var uniqueAddresses []string
+	uniqueAddresses := make([]string, 0, len(addresses))
 	for k := range addresses {
 		uniqueAddresses = append(uniqueAddresses, k)
 	}
@@ -92,7 +93,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (er
 	// check if all addresses exist
 	dbAddresses, err := address.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err), nil
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	// check if there is some mismatch
@@ -108,17 +109,17 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (er
 			break
 		}
 
-		return fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress), nil
+		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
-	hashToUid := map[string]string{}
+	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return fmt.Errorf("address invalid: %v", dbAddress), nil
+			return nil, fmt.Errorf("address invalid: %v", dbAddress)
 		}
-		hashToUid[dbAddress.Hash] = dbAddress.UID
+		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}
 
-	return nil, hashToUid
+	return hashToUID, nil
 }

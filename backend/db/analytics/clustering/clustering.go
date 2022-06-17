@@ -73,19 +73,19 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	// create address to cluster lookup map
 	addressToCluster := make(map[string][]ClusterWithParent)
 	for _, ac := range r.AddressToClusters {
-		addressToCluster[ac.Uid] = ac.Clusters
+		addressToCluster[ac.UID] = ac.Clusters
 	}
 
 	// merge the two returned arrays
 	for _, t := range r.TransactionToAddresses {
 		// new transaction
-		tx := ClusterTransaction{Uid: t.Uid}
+		tx := ClusterTransaction{UID: t.UID}
 
 		for _, a := range t.Addresses {
-			ca := ClusterAddress{Uid: a.Uid}
+			ca := ClusterAddress{UID: a.UID}
 
-			if _, ok := addressToCluster[a.Uid]; ok {
-				ca.Clusters = append(ca.Clusters, addressToCluster[a.Uid]...)
+			if _, ok := addressToCluster[a.UID]; ok {
+				ca.Clusters = append(ca.Clusters, addressToCluster[a.UID]...)
 			}
 
 			tx.Addresses = append(tx.Addresses, ca)
@@ -138,7 +138,7 @@ func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 			return errors.New("cluster type is not set")
 		}
 
-		if checkTx && cluster.Transaction.Uid == "" {
+		if checkTx && cluster.Transaction.UID == "" {
 			return errors.New("cluster transaction is not set")
 		}
 
@@ -185,9 +185,9 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 	defer cancelFunc()
 
 	// step 1: set new clusters and add new addresses to existing clusters
-	var clusters []Cluster
-	for _, o := range operations {
-		clusters = append(clusters, o.NewCluster)
+	clusters := make([]Cluster, len(operations))
+	for i, o := range operations {
+		clusters[i] = o.NewCluster
 	}
 
 	pb, err := json.Marshal(clusters)
@@ -208,7 +208,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 		}
 		index := strconv.Itoa(i)
 		query += "var(func:uid(" + db.CreateCommaList(o.OldClusters) + ")){a" + index + " as Cluster.addresses}\n"
-		setNquads += "<" + o.NewCluster.Uid + "> <Cluster.addresses> uid(a" + index + ") .\n"
+		setNquads += "<" + o.NewCluster.UID + "> <Cluster.addresses> uid(a" + index + ") .\n"
 
 		for _, oc := range o.OldClusters {
 			delNquads += "<" + oc + "> * * .\n"
@@ -337,7 +337,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 	tagMap := make(map[string][]Attribution)
 
 	for _, c := range clusterTags {
-		tagMap[c.Uid] = c.Attributions
+		tagMap[c.UID] = c.Attributions
 	}
 
 	for _, cluster := range clusters {
@@ -350,12 +350,12 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 			Type:         cluster.Type,
 			AddressCount: cluster.AddressCount,
 			Addresses:    cluster.Addresses,
-			Attributions: tagMap[cluster.Uid],
+			Attributions: tagMap[cluster.UID],
 		}
 
 		// uid is only needed for deleting custom clusters
 		if cluster.Type == "custom" {
-			frontendCluster.Uid = cluster.Uid
+			frontendCluster.UID = cluster.UID
 		}
 
 		// Transaction can be not set if the cluster was created by a user
@@ -445,7 +445,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 	var r struct {
 		Clusters []struct {
-			Uid          string `json:"uid,omitempty"`
+			UID          string `json:"uid,omitempty"`
 			AddressCount int    `json:"Cluster.addressCount,omitempty"`
 			Transaction  struct {
 				TxHash string `json:"txhash,omitempty"`
@@ -454,7 +454,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 			Parent   []SubCluster `json:"~Cluster.children,omitempty"`
 		} `json:"q,omitempty"`
 		AddressCluster []struct {
-			Uid string `json:"uid,omitempty"`
+			UID string `json:"uid,omitempty"`
 		} `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -472,26 +472,26 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 		return
 	}
 
-	addressCluster = r.AddressCluster[0].Uid
+	addressCluster = r.AddressCluster[0].UID
 
 	for _, cluster := range r.Clusters {
 		if len(cluster.Parent) > 1 {
-			err = fmt.Errorf("cluster %s has multiple parents: %v", cluster.Uid, cluster.Parent)
+			err = fmt.Errorf("cluster %s has multiple parents: %v", cluster.UID, cluster.Parent)
 			return
 		}
 
 		var parentUID string
 		if len(cluster.Parent) == 1 {
-			parentUID = cluster.Parent[0].Uid
+			parentUID = cluster.Parent[0].UID
 		}
 
 		var childClusters []string
 		for _, child := range cluster.Children {
-			childClusters = append(childClusters, child.Uid)
+			childClusters = append(childClusters, child.UID)
 		}
 
 		clusters = append(clusters, FrontendHMICluster{
-			Uid:             cluster.Uid,
+			UID:             cluster.UID,
 			AddressCount:    cluster.AddressCount,
 			TransactionHash: cluster.Transaction.TxHash,
 			Parent:          parentUID,
@@ -527,7 +527,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	var r struct {
 		Clusters []struct {
-			Uid          string `json:"uid,omitempty"`
+			UID          string `json:"uid,omitempty"`
 			Timestamp    string `json:"Cluster.ts,omitempty"`
 			AddressCount int64  `json:"Cluster.addressCount,omitempty"`
 			Addresses    []struct {
@@ -546,7 +546,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 			addresses = append(addresses, a.Hash)
 		}
 		clusters = append(clusters, FrontendUserCluster{
-			Uid:          cluster.Uid,
+			UID:          cluster.UID,
 			Timestamp:    cluster.Timestamp,
 			AddressCount: cluster.AddressCount,
 			Addresses:    addresses,
@@ -589,7 +589,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 
 	var r struct {
 		Clusters []struct {
-			Uid string `json:"uid,omitempty"`
+			UID string `json:"uid,omitempty"`
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -598,7 +598,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 	}
 
 	for _, cluster := range r.Clusters {
-		clusters = append(clusters, cluster.Uid)
+		clusters = append(clusters, cluster.UID)
 	}
 
 	return
@@ -694,7 +694,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 
 	var r struct {
 		Clusters []struct {
-			Uid string `json:"uid,omitempty"`
+			UID string `json:"uid,omitempty"`
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -703,7 +703,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 	}
 
 	for _, cluster := range r.Clusters {
-		clusters = append(clusters, cluster.Uid)
+		clusters = append(clusters, cluster.UID)
 	}
 
 	return

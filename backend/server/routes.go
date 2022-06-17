@@ -354,13 +354,13 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 
 		var reply deleteClusterReply
 
-		clusterUid := path.Base(r.URL.Path)
+		clusterUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUid)
+			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
 		}
 
 		// encoding
@@ -474,13 +474,13 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := path.Base(r.URL.Path)
+		attributionUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUid, false)
+			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
 		}
 
 		// encoding
@@ -498,13 +498,13 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 
 		var reply deleteAttributionReply
 
-		attributionUid := path.Base(r.URL.Path)
+		attributionUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "User not found"
 			info(cliutil.ShowCallInfo(), err)
 		} else {
-			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUid, true)
+			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
 		}
 
 		// encoding

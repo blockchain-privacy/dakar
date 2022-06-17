@@ -15,7 +15,7 @@ import (
 // DefaultPasswordConfig is the default password hashing configuration
 var DefaultPasswordConfig = &PasswordHashConfig{
 	time:    1,
-	memory:  65536, //64 * 1024
+	memory:  65536, // 64 * 1024
 	threads: 4,
 	keyLen:  32,
 }

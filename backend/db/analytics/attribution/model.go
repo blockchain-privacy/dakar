@@ -3,15 +3,15 @@ package attribution
 const DType = "Attribution"
 
 type HollowUser struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type HollowAddress struct {
-	Uid string `json:"uid,omitempty"`
+	UID string `json:"uid,omitempty"`
 }
 
 type Attribution struct {
-	Uid         string         `json:"uid,omitempty"`
+	UID         string         `json:"uid,omitempty"`
 	Timestamp   string         `json:"Attribution.ts,omitempty"`
 	Address     *HollowAddress `json:"Attribution.address,omitempty"`
 	Tag         string         `json:"Attribution.tag,omitempty"`
@@ -29,7 +29,7 @@ func (a *Attribution) SetDType() {
 }
 
 type FrontendAttribution struct {
-	Uid         string `json:"uid,omitempty"`
+	UID         string `json:"uid,omitempty"`
 	Address     string `json:"address,omitempty"`
 	Tag         string `json:"tag,omitempty"`
 	Timestamp   string `json:"ts,omitempty"`
@@ -40,7 +40,7 @@ type FrontendAttribution struct {
 }
 
 type RequestAttribution struct {
-	Uid         string `json:"uid,omitempty"`
+	UID         string `json:"uid,omitempty"`
 	Timestamp   string `json:"Attribution.ts,omitempty"`
 	Tag         string `json:"Attribution.tag,omitempty"`
 	Description string `json:"Attribution.description,omitempty"`
@@ -54,7 +54,7 @@ type RequestAttribution struct {
 
 func (r RequestAttribution) toFrontendAttribution() FrontendAttribution {
 	return FrontendAttribution{
-		Uid:         r.Uid,
+		UID:         r.UID,
 		Timestamp:   r.Timestamp,
 		Address:     r.Address.Hash,
 		Tag:         r.Tag,

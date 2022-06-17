@@ -17,7 +17,7 @@ import (
 func AddAttributions(c external.Database, attributions []Attribution) error {
 	// validate data
 	for _, a := range attributions {
-		if a.Address.Uid == "" || a.Tag == "" || a.Timestamp == "" ||
+		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
 			return fmt.Errorf("attribution invalid: %v", a)
 		}
@@ -257,11 +257,11 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 
 	var r struct {
 		Attributions []struct {
-			Uid     string `json:"uid,omitempty"`
+			UID     string `json:"uid,omitempty"`
 			Address struct {
 				Hash    string `json:"addresshash,omitempty"`
 				Cluster []struct {
-					Uid string `json:"uid,omitempty"`
+					UID string `json:"uid,omitempty"`
 				} `json:"~Cluster.addresses,omitempty"`
 			} `json:"Attribution.address,omitempty"`
 		} `json:"q,omitempty"`
@@ -280,9 +280,9 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 	for _, a := range r.Attributions {
 		// if address does not have a cluster use address hash as cluster identifier
 		if a.Address.Cluster == nil {
-			attributions[a.Address.Hash] = append(attributions[a.Address.Hash], a.Uid)
+			attributions[a.Address.Hash] = append(attributions[a.Address.Hash], a.UID)
 		} else {
-			attributions[a.Address.Cluster[0].Uid] = append(attributions[a.Address.Cluster[0].Uid], a.Uid)
+			attributions[a.Address.Cluster[0].UID] = append(attributions[a.Address.Cluster[0].UID], a.UID)
 		}
 	}
 

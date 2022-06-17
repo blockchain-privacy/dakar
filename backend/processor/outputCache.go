@@ -91,7 +91,6 @@ func (u *outputCache) setOutputs(txHash string, outputs []dbop.Output) error {
 
 	if _, ok := u.c[txHash]; ok {
 		return nil
-		//return fmt.Errorf("transaction %s does already exist in cache", txHash)
 	}
 	outputMap := make(map[uint32]dbop.Output)
 	for _, o := range outputs {

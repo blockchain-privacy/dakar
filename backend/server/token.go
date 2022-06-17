@@ -74,12 +74,12 @@ func invalidateToken(w http.ResponseWriter) {
 // issueToken creates a token from user
 func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string,
 	expirationTime time.Time, err error) {
-	var roles []dbus.Role
+	roles := make([]dbus.Role, len(user.Roles))
 
-	for _, r := range user.Roles {
+	for i, r := range user.Roles {
 		convertedRole := dbus.Role{UID: r.UID, Name: r.Name}
 		convertedRole.SetDType()
-		roles = append(roles, convertedRole)
+		roles[i] = convertedRole
 	}
 
 	newTokenUser := tokenUser{

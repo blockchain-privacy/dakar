@@ -91,7 +91,7 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 		state.Top = *clusteringStatus.LastClusteredBlockID
 	} else {
 		// this is the usual case: Set Top to the current last classified block height
-		state.Top = *clusteringStatus.LastClusteredBlockID
+		state.Top = *classifierStatus.LastClassifiedBlockID
 	}
 
 	m.state = state
@@ -145,20 +145,20 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 					}
 					transactionCluster := addr.Clusters[0]
 
-					existingClusters[transactionCluster.Uid] = true
+					existingClusters[transactionCluster.UID] = true
 
-					clusterStore[transactionCluster.Uid] = clustering.Cluster{
-						Uid:          transactionCluster.Uid,
+					clusterStore[transactionCluster.UID] = clustering.Cluster{
+						UID:          transactionCluster.UID,
 						AddressCount: &transactionCluster.AddressCount,
 					}
 				} else {
-					addressesWithoutCluster[addr.Uid] = true
+					addressesWithoutCluster[addr.UID] = true
 				}
 			}
 
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
-				return false, errors.New("Transaction " + tx.Uid +
+				return false, errors.New("Transaction " + tx.UID +
 					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
 			}
 
@@ -170,25 +170,26 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 			}
 
 			addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore,
-				tx.Uid, existingClusters, addressesWithoutCluster)
+				tx.UID, existingClusters, addressesWithoutCluster)
 		}
 
 		processedClusters := make(map[*newCluster]bool)
 		var operations []clustering.DBOperation
 		var clusterIndex int
 
-		operations, err = buildDbOperation(processedClusters, addressMergeMap, clusterIndex)
+		operations, err = buildDBOperation(processedClusters, addressMergeMap, clusterIndex)
 		if err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
+
 		// increase index
 		clusterIndex += len(operations)
 
-		if clusters, clusterErr := buildDbOperation(processedClusters, clusterMergeMap, clusterIndex); err != nil {
+		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
+		if err != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
-		} else {
-			operations = append(operations, clusters...)
 		}
+		operations = append(operations, clusters...)
 
 		// insert new clusters
 		if len(operations) > 0 {
@@ -372,7 +373,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	// new addresses to newCluster
 	for a := range newAddresses {
 		mergeListPtr.addresses[a] = true
-		//clusterMergeMap[a] = mergeListPtr
+		// clusterMergeMap[a] = mergeListPtr
 	}
 
 	// find new clusters by querying the clusterMergeMap and append them to the mergeList
@@ -386,7 +387,7 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	// otherwise only for the new items
 	if createdNewList {
 		for _, cluster := range mergeListPtr.mergeList {
-			clusterMergeMap[cluster.Uid] = mergeListPtr
+			clusterMergeMap[cluster.UID] = mergeListPtr
 		}
 
 		for a := range mergeListPtr.addresses {
@@ -403,9 +404,9 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	}
 }
 
-func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
+func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
 	clusterIndex int) ([]clustering.DBOperation, error) {
-	var operations []clustering.DBOperation
+	var operations []clustering.DBOperation //nolint:prealloc
 
 	for _, i := range items {
 		if processedClusters[i] {
@@ -424,24 +425,23 @@ func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*
 		var oldClusters []string
 
 		if len(i.mergeList) > 0 {
-
 			// find the largest cluster, so we have to move the least amount of addresses
 			var largestClusterUID string
 			var largestAddressesCount int
 			for _, c := range i.mergeList {
 				if c.AddressCount == nil {
-					return nil, fmt.Errorf("address count is not set for cluster %s", c.Uid)
+					return nil, fmt.Errorf("address count is not set for cluster %s", c.UID)
 				}
 				addressCount += *c.AddressCount
 				if *c.AddressCount > largestAddressesCount {
-					largestClusterUID = c.Uid
+					largestClusterUID = c.UID
 					largestAddressesCount = *c.AddressCount
 				}
 			}
 
 			for _, c := range i.mergeList {
-				if c.Uid != largestClusterUID {
-					oldClusters = append(oldClusters, c.Uid)
+				if c.UID != largestClusterUID {
+					oldClusters = append(oldClusters, c.UID)
 				}
 			}
 
@@ -450,13 +450,13 @@ func buildDbOperation(processedClusters map[*newCluster]bool, items map[string]*
 			cluster = clustering.NewFMICluster(clusterIndex)
 		}
 
-		cluster.Transaction.Uid = i.changeTransaction
+		cluster.Transaction.UID = i.changeTransaction
 
 		// add addresses
 		addressCount += len(i.addresses)
 		cluster.AddressCount = &addressCount
 		for address := range i.addresses {
-			cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{Uid: address})
+			cluster.Addresses = append(cluster.Addresses, clustering.HollowAddress{UID: address})
 		}
 		operations = append(operations, clustering.DBOperation{
 			NewCluster:  cluster,

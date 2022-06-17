@@ -36,19 +36,19 @@ func TestAddClustersToMergeList(t *testing.T) {
 	one := 1
 
 	clusterStore["C1"] = clustering.Cluster{
-		Uid:          "C1",
+		UID:          "C1",
 		Type:         "fmi",
 		AddressCount: &one,
 	}
 
 	clusterStore["C2"] = clustering.Cluster{
-		Uid:          "C2",
+		UID:          "C2",
 		Type:         "fmi",
 		AddressCount: &one,
 	}
 
 	clusterStore["C3"] = clustering.Cluster{
-		Uid:          "C3",
+		UID:          "C3",
 		Type:         "fmi",
 		AddressCount: &one,
 	}
