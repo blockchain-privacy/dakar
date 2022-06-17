@@ -11,10 +11,25 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
+// SchemaVersion is the identifier for the schema defined in SetupSchema.
+// If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
+// then a database upgrade is required
+const SchemaVersion uint64 = 1
+
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
+			Meta.creationTime: dateTime . # The time when this database was initialized
+			Meta.blockchainMode: string . # The blockchain mode of this database.
+			Meta.schemaVersion: int . # The schema version of this database. 
+
+			type Meta {
+				Meta.creationTime
+				Meta.blockchainMode
+				Meta.schemaVersion
+			}
+
 			blockhash: string @index(hash) @upsert .
 			id: int @index(int) .
 			ts: dateTime @index(day) .

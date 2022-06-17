@@ -8,6 +8,7 @@ import (
 	"backend/blockiterator"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/status"
 	dbus "backend/db/user"
 	"backend/processor"
 	"backend/server"
@@ -136,19 +137,20 @@ func main() {
 	initAllLoggers()
 
 	// select blockchain config
-	// ignore IDE warnings regarding blockchainMode, it is set at compile time
 	var processorConfig processor.Config
 	var analyserConfig analytics.Config
-	if blockchainMode == "Dash" {
+
+	switch blockchainMode {
+	case "Dash":
 		processorConfig = processor.NewDashConfig()
 		analyserConfig = analytics.NewDashConfig()
-	} else if blockchainMode == "Bitcoin" {
+	case "Bitcoin":
 		processorConfig = processor.NewBitcoinConfig()
 		analyserConfig = analytics.NewBitcoinConfig()
-	} else if blockchainMode == "Doge" {
+	case "Doge":
 		processorConfig = processor.NewDogecoinConfig()
 		analyserConfig = analytics.NewDogecoinConfig()
-	} else {
+	default:
 		fmt.Println("invalid blockchain mode selected: '" + blockchainMode + "'")
 		fmt.Println("the blockchain mode has to be set at compile time via the ldflags option.")
 		fmt.Println("example: go build -ldflags \"-X main.blockchainMode=Dash\" .")
@@ -175,7 +177,7 @@ func main() {
 		config.Modules.Clustering.FMI = false
 	}
 
-	info(processorConfig.BlockchainName, "mode")
+	info("Blockchain mode:", processorConfig.BlockchainName)
 
 	////// CONNECT TO DATABASE //////
 
@@ -212,7 +214,7 @@ func main() {
 		}
 
 		if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
-			info("Exiting program. Database has not been changed.")
+			info("Exiting program. Database was not modified.")
 			return
 		}
 
@@ -222,12 +224,20 @@ func main() {
 			return
 		}
 		info("Dropped all data.")
+
 		err = db.SetupSchema(graphDB)
 		if err != nil {
 			info(err)
 			return
 		}
 		info("Successfully set up new schema.")
+
+		err = status.InitializeMeta(graphDB, blockchainMode)
+		if err != nil {
+			info(err)
+			return
+		}
+		info("Successfully initialized database")
 	}
 
 	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
@@ -243,6 +253,10 @@ func main() {
 		return
 	} else if !isSet {
 		info("Schema is not set. Use -reset to create a new schema.")
+		return
+	}
+
+	if !checkMeta(graphDB) {
 		return
 	}
 
