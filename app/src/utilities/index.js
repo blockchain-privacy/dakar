@@ -276,7 +276,7 @@ export function isValidQueryInput(str) {
     return Number.isInteger(Number(str));
   }
 
-  return str.match(/^[0-9a-zA-Z]+$/) !== null;
+  return str.match(/^[\da-zA-Z]+$/) !== null;
 }
 
 // isValidQuery returns true if the input query is valid. This function should

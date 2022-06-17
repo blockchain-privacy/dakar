@@ -108,7 +108,7 @@ export default {
             break;
         }
       } else if (origin === 'route') {
-        // do nothing -> route is already up to date
+        // do nothing -> route is already up-to-date
       }
     },
     execQuery(route, action, parameter) {

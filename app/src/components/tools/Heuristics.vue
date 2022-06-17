@@ -222,7 +222,7 @@ export default {
       if (!this.heuristicList) return;
 
       this.heuristicList.items = this.heuristicList.items.map((d) => {
-        // convert date to unix time so it can be sorted in data table
+        // convert date to unix time, so it can be sorted in data table
         d.mod_time = new Date(d.mod_time).getTime();
         return d;
       });

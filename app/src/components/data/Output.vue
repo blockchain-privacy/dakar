@@ -70,13 +70,13 @@ import { mdiChevronUp, mdiChevronDown, mdiFormatColorText } from '@mdi/js';
 import { convertAmount, getPrivacyTypeLabel } from '../../utilities';
 import { COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 
-const isHex = (str) => /^[A-F0-9]+$/i.test(str);
+const isHex = (str) => /^[A-F\d]+$/i.test(str);
 
 function hex2Ascii(hex) {
   const hexString = hex.toString();// force conversion
   let str = '';
   for (let i = 0; i < hexString.length; i += 2) {
-    str += String.fromCharCode(parseInt(hexString.substr(i, 2), 16));
+    str += String.fromCharCode(parseInt(hexString.substring(i, i + 2), 16));
   }
   return str;
 }

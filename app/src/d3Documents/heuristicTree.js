@@ -174,7 +174,7 @@ export class HeuristicTree extends Tree {
       HeuristicTree.moveNode(context, classContext.activeMouseOverNode, classContext.dragNode);
     }
 
-    // house keeping
+    // housekeeping
     classContext.activeMouseOverNode = null;
     classContext.lastMouseOverNode = null;
     classContext.dragLayoutData = null;

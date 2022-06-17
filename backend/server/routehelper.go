@@ -22,7 +22,7 @@ import (
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
-var isValidInput = regexp.MustCompile(`^[a-zA-Z0-9]*$`).MatchString
+var isValidInput = regexp.MustCompile(`^[a-zA-Z\d]*$`).MatchString
 
 // isValid checks if user input is valid.
 // Should be used to check address, transaction and block hashes, as well as block ids.
