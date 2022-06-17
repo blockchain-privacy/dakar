@@ -92,6 +92,9 @@ export default {
       // template string in case it is a number
       const query = `${q}`.trim();
 
+      // ignore whitespace and empty queries
+      if (query.length === 0) return;
+
       if (!isValidQueryInput(query)) {
         this.setWarningMessage('Input was not valid');
         return;
