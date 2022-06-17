@@ -96,7 +96,7 @@ export default {
       if (query.length === 0) return;
 
       if (!isValidQueryInput(query)) {
-        this.setWarningMessage('Input was not valid');
+        this.setWarningMessage('Query is invalid');
         return;
       }
 
