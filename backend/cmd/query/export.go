@@ -143,7 +143,7 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 
 // exportReverseLookup writes the mixing transactions including their timestamps to a CSV-file
 func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
-	maxLookBackTime int, addressExclusions []string) {
+	maxLookBackTime int, addressExclusions []string, getInputs bool, checkSpendingGaps bool) {
 
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
@@ -180,11 +180,10 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 				return false
 			}
 
-			// todo enable
-			// if !mgraph.CheckSpendingGap(g, e.(mgraph.AddressEdge)) {
-			//	spendingGapCounter++
-			//	return false
-			// }
+			if checkSpendingGaps && !mgraph.CheckSpendingGap(g, e.(mgraph.AddressEdge)) {
+				spendingGapCounter++
+				return false
+			}
 
 			// get node to which the edge leads
 			toNode := g.Node(e.To().ID()).(mgraph.TransactionNode)
@@ -216,7 +215,12 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	var exportTransactions []exportTransaction
 
 	w.Walk(g, node, func(n graph.Node, d int) bool {
-		from := g.From(n.ID())
+		var reachableNodes graph.Nodes
+		if getInputs {
+			reachableNodes = g.To(n.ID())
+		} else {
+			reachableNodes = g.From(n.ID())
+		}
 
 		// collect mixing nodes start
 		txNode, ok := n.(mgraph.TransactionNode)
@@ -225,9 +229,8 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 		}
 
 		var timestamps []time.Time
-		// todo use to or from depending if inputs or outputs are wanted
-		for from.Next() {
-			timestamps = append(timestamps, from.Node().(mgraph.TransactionNode).TS)
+		for reachableNodes.Next() {
+			timestamps = append(timestamps, reachableNodes.Node().(mgraph.TransactionNode).TS)
 		}
 
 		exportTransactions = append(exportTransactions, exportTransaction{
