@@ -394,7 +394,7 @@ export class HeuristicTree extends Tree {
     if (startUID === '') return;
 
     const touchEvent = event.targetTouches[0];
-    const elements = document.elementsFromPoint(touchEvent.screenX, touchEvent.screenY);
+    const elements = document.elementsFromPoint(touchEvent.pageX, touchEvent.pageY);
     if (elements === null) return;
 
     let heuristicWasHovered = false;
