@@ -419,7 +419,7 @@ export class HeuristicTree extends Tree {
 
     // nothing hovered -> remove 'selected' class from last rect
     if (!heuristicWasHovered) {
-      this.setNodeNotSelected(classContext);
+      HeuristicTree.setNodeNotSelected(classContext);
     }
   }
 
