@@ -29,6 +29,11 @@ import (
 	"time"
 )
 
+const msgCouldNotDecodeRequest = "could not decode request data"
+const msgCouldNotDecodeUser = "could not decode user data"
+const msgInvalidRequest = "invalid request"
+const msgUserNotFound = "User not found"
+
 // getLoginReply reads the data from body and constructs a backendUserReply
 func getLoginReply(dgraph external.Database, body io.Reader) (reply backendUserReply) {
 	const invalidUserData = "email and password combination does not match"
@@ -36,7 +41,7 @@ func getLoginReply(dgraph external.Database, body io.Reader) (reply backendUserR
 	var loginData dbus.FrontendUserLogin
 
 	if err := json.NewDecoder(body).Decode(&loginData); err != nil {
-		reply.Msg = "could not decode user data"
+		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
@@ -78,7 +83,7 @@ func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userRep
 	var frontEndUser dbus.FrontendUserRoles
 
 	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
-		reply.Msg = "could not decode user data"
+		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
@@ -155,20 +160,20 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 	decoder := json.NewDecoder(body)
 	err := decoder.Decode(&heuristicRequest)
 	if err != nil {
-		reply.Msg = "could not decode request data"
+		reply.Msg = msgCouldNotDecodeRequest
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
-		reply.Msg = "invalid request"
+		reply.Msg = msgInvalidRequest
 		return
 	}
 
 	work, err := heuristics.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
 		heuristicRequest.Deleted, userUID)
 	if err != nil {
-		reply.Msg = "invalid request"
+		reply.Msg = msgInvalidRequest
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -191,7 +196,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 	// get clients user state
 	var modRequest dbus.ModifyUserRequest
 	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
-		reply.Msg = "could not decode user data"
+		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
@@ -224,6 +229,8 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 		return
 	}
 
+	const msgErrModifyingUser = "error modifying user"
+
 	// check current password if user is not an admin
 	if !isAdmin {
 		if len(modRequest.CurrentPassword) == 0 {
@@ -233,7 +240,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 
 		dbUser, err := dbus.GetUser(dgraph, modRequest.UID)
 		if err != nil {
-			reply.Msg = "error modifying user"
+			reply.Msg = msgErrModifyingUser
 			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
@@ -276,7 +283,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 		var generatePwErr error
 		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
 			modRequest.NewPassword); generatePwErr != nil {
-			reply.Msg = "error modifying user"
+			reply.Msg = msgErrModifyingUser
 			return
 		}
 	}
@@ -298,7 +305,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 		}
 		// delete existing roles if new roles are set
 		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.UID); err != nil {
-			reply.Msg = "error modifying user"
+			reply.Msg = msgErrModifyingUser
 			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
 		}
@@ -306,7 +313,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 
 	// modify user
 	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
-		reply.Msg = "error modifying user"
+		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
@@ -314,7 +321,7 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 	// get new user information
 	newUserInfo, err := dbus.GetUser(dgraph, modRequest.UID)
 	if err != nil {
-		reply.Msg = "error modifying user"
+		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
@@ -358,10 +365,12 @@ func getDeleteUserReply(dgraph external.Database, delUID string, tUser tokenUser
 
 // getShortestTransactionPathReply searches for the shortest path between two transactions
 func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply) {
+	const msgErrorPathSearch = "error while searching for paths"
+
 	// parse request
 	var req dbHeuristic.ShortestTransactionPathRequest
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = "could not decode request data"
+		reply.Msg = msgCouldNotDecodeRequest
 		return
 	}
 
@@ -379,7 +388,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 			return
 		}
 
-		reply.Msg = "error while searching for paths"
+		reply.Msg = msgErrorPathSearch
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -391,7 +400,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 			return
 		}
 
-		reply.Msg = "error while searching for paths"
+		reply.Msg = msgErrorPathSearch
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -415,11 +424,11 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		}
 	}
 
-	// do shortest transaction path lookup
+	// do 'shortest transaction path' lookup
 	txs, err := dbHeuristic.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
 		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
-		reply.Msg = "error while searching for paths"
+		reply.Msg = msgErrorPathSearch
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -440,13 +449,13 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 	var req dbHeuristic.DeleteHeuristicRequest
 
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = "could not decode request data"
+		reply.Msg = msgCouldNotDecodeRequest
 		return
 	}
 
 	if (req.DeleteAll && len(req.TransactionHash) > 0) ||
 		(!req.DeleteAll && len(req.TransactionHash) == 0) {
-		reply.Msg = "invalid request"
+		reply.Msg = msgInvalidRequest
 		return
 	}
 
@@ -536,19 +545,21 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
 
+	const msgLookupNotSuccessful = "Lookup not successful"
+
 	var endpoints map[string]bool
 	rLookupTime := time.Now()
 	if isLookupForward {
 		endpoints, err = worker.ForwardLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
-			reply.Msg = "Lookup not successful"
+			reply.Msg = msgLookupNotSuccessful
 			info(cliutil.ShowCallInfo(), err)
 			return
 		}
 	} else {
 		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
-			reply.Msg = "Lookup not successful"
+			reply.Msg = msgLookupNotSuccessful
 			info(cliutil.ShowCallInfo(), err)
 			return
 		}
@@ -570,7 +581,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	frontendTransactions, err := dbtx.GetFrontendTransactionsByUID(dgraph, transactionUids)
 	if err != nil {
-		reply.Msg = "Lookup not successful"
+		reply.Msg = msgLookupNotSuccessful
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -589,7 +600,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 	// parse request
 	var req clustering.ClusterLookupRequest
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
-		msg = "could not decode request data"
+		msg = msgCouldNotDecodeRequest
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
 		return
 	}
@@ -816,7 +827,7 @@ const (
 func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClusterReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "User not found"
+		reply.Msg = msgUserNotFound
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -902,13 +913,14 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	}
 
 	if err := analyticsClustering.ImportCluster(dgraph, addresses, tUser.ID); err != nil {
-		if errors.Is(err, analyticsClustering.ErrTooManyAddresses) {
+		switch {
+		case errors.Is(err, analyticsClustering.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
-		} else if errors.Is(err, analyticsClustering.ErrShallowCluster) {
+		case errors.Is(err, analyticsClustering.ErrShallowCluster):
 			reply.Msg = CsvShallowCluster
-		} else if errors.Is(err, analyticsClustering.ErrNonExistentAddress) {
+		case errors.Is(err, analyticsClustering.ErrNonExistentAddress):
 			reply.Msg = err.Error()
-		} else {
+		default:
 			reply.Msg = CsvErrorImporting
 			info(err)
 		}
@@ -923,7 +935,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply addAttributionReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "User not found"
+		reply.Msg = msgUserNotFound
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -1012,11 +1024,12 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	}
 
 	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
-		if errors.Is(err, analytics.ErrTooManyAddresses) {
+		switch {
+		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
-		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
+		case errors.Is(err, analytics.ErrNonExistentAddress):
 			reply.Msg = err.Error()
-		} else {
+		default:
 			reply.Msg = CsvErrorImporting
 			info(err)
 		}
@@ -1157,7 +1170,7 @@ func getAttributionSearchReply(dgraph external.Database, userUID string,
 func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply addAddressExclusionsReply) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "User not found"
+		reply.Msg = msgUserNotFound
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -1216,11 +1229,12 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	}
 
 	if err := analytics.ImportAddressExclusions(dgraph, addresses, tUser.ID); err != nil {
-		if errors.Is(err, analytics.ErrTooManyAddresses) {
+		switch {
+		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
-		} else if errors.Is(err, analytics.ErrNonExistentAddress) {
+		case errors.Is(err, analytics.ErrNonExistentAddress):
 			reply.Msg = err.Error()
-		} else {
+		default:
 			reply.Msg = CsvErrorImporting
 			info(err)
 		}
@@ -1286,7 +1300,7 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "user not found"
+		reply.Msg = msgUserNotFound
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
