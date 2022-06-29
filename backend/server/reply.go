@@ -174,9 +174,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		return
 	}
 
-	addedWork := worker.AddWork(txHashString, userUID, work)
-
-	if addedWork {
+	if worker.AddWork(txHashString, userUID, work) {
 		reply.Status = heuristics.StatusHeuristicAdded
 	} else {
 		reply.Status = heuristics.StatusHeuristicDuplicate

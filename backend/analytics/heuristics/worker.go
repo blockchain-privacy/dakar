@@ -138,7 +138,7 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-// AddWork adds a Work item
+// AddWork adds a Work item. Returns false if the transactionHash and userUID combination already exists in the queue.
 func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool {
 	key := workKey{
 		txhash:  transactionHash,
