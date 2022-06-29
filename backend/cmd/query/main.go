@@ -175,7 +175,6 @@ func main() {
 		config.TimestampAnalytics.ExportReverseLookup.Active ||
 		config.ExclusionSimulations.Active ||
 		config.OriginGap.Active {
-		// todo set to zero
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
 			info(err)
@@ -193,7 +192,8 @@ func main() {
 
 	if config.TimestampAnalytics.ExportReverseLookup.Active {
 		exportReverseLookup(g, config.TimestampAnalytics.ExportReverseLookup.NodeID,
-			config.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours, nil)
+			config.TimestampAnalytics.ExportReverseLookup.LookBackTimeHours,
+			nil, false, false)
 	}
 
 	if config.ExclusionSimulations.Active {

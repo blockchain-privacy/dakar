@@ -361,25 +361,66 @@ export class HeuristicTree extends Tree {
       });
   }
 
+  static setNodeSelected(classContext, dataNode, selectionNode) {
+    if (HeuristicTree.isValidMoveTarget(classContext.dragNode, selectionNode)) {
+      classContext.lastMouseOverNode = dataNode;
+      classContext.activeMouseOverNode = selectionNode;
+      classContext.activeMouseOverNode.select('.rect').classed('selected', true);
+    }
+  }
+
+  static setNodeNotSelected(classContext) {
+    if (classContext.dragActive && classContext.activeMouseOverNode !== null) {
+      classContext.activeMouseOverNode.select('.rect').classed('selected', false);
+    }
+    classContext.lastMouseOverNode = null;
+    classContext.activeMouseOverNode = null;
+  }
+
   static mouseOverNode(d, classContext, d3This) {
     if (classContext.dragActive && d !== classContext.dragLayoutData) {
       if (d !== classContext.lastMouseOverNode) {
-        const tmpMouseOverNode = d3.select(d3This);
-        if (HeuristicTree.isValidMoveTarget(classContext.dragNode, tmpMouseOverNode)) {
-          classContext.lastMouseOverNode = d;
-          classContext.activeMouseOverNode = tmpMouseOverNode;
-          classContext.activeMouseOverNode.select('.rect').classed('selected', true);
-        }
+        HeuristicTree.setNodeSelected(classContext, d, d3.select(d3This));
       }
     }
   }
 
-  static mouseOutNode(classContext, d3This) {
-    if (classContext.dragActive) {
-      d3.select(d3This).select('.rect').classed('selected', false);
+  // touchMove the selection state of a heuristic rect.
+  // It is a combination of the mouseover and mouseout events but for touch controls.
+  static touchMove(classContext, event) {
+    if (!classContext.dragActive) return;
+
+    const startUID = classContext.dragLayoutData.data.data.uid;
+    if (startUID === '') return;
+
+    const touchEvent = event.targetTouches[0];
+    const elements = document.elementsFromPoint(touchEvent.pageX, touchEvent.pageY);
+    if (elements === null) return;
+
+    let heuristicWasHovered = false;
+    elements.forEach((element) => {
+      // eslint-disable-next-line no-underscore-dangle
+      const elementData = element.__data__;
+
+      if (elementData !== undefined
+            && element.tagName === 'rect'
+            && elementData.data.data.uid !== startUID) {
+        // detect if a heuristic is currently hovered
+        heuristicWasHovered = true;
+      }
+
+      if (elementData !== undefined
+            && element.tagName === 'rect'
+            && classContext.lastMouseOverNode !== elementData
+            && elementData.data.data.uid !== startUID) {
+        HeuristicTree.setNodeSelected(classContext, elementData, d3.select(element.parentElement));
+      }
+    });
+
+    // nothing hovered -> remove 'selected' class from last rect
+    if (!heuristicWasHovered) {
+      HeuristicTree.setNodeNotSelected(classContext);
     }
-    classContext.lastMouseOverNode = null;
-    classContext.activeMouseOverNode = null;
   }
 
   // contextMenuHandler is called when a context menu event for a node occurs
@@ -416,7 +457,8 @@ export class HeuristicTree extends Tree {
       .join((enter) => {
         const g = enter.append('g')
           .on('mouseover', function mouseOver(e, d) { HeuristicTree.mouseOverNode(d, self, this); })
-          .on('mouseout', function mouseOut() { HeuristicTree.mouseOutNode(self, this); })
+          .on('touchmove', (e) => { HeuristicTree.touchMove(self, e); })
+          .on('mouseout', () => { HeuristicTree.setNodeNotSelected(self); })
         // set click handler
           .on('click', function click(e) { Tree.nodeClicked(e, self, this); })
         // set context menu handler
