@@ -150,16 +150,12 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		return
 	}
 
-	type request struct {
+	var heuristicRequest struct {
 		Changed []dbHeuristic.FrontendHeuristicRequest `json:"changed,omitempty"`
 		Deleted []string                               `json:"deleted,omitempty"`
 	}
 
-	var heuristicRequest request
-
-	decoder := json.NewDecoder(body)
-	err := decoder.Decode(&heuristicRequest)
-	if err != nil {
+	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeRequest
 		info(cliutil.ShowCallInfo(), err)
 		return
