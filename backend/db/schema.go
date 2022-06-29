@@ -14,7 +14,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required
-const SchemaVersion uint64 = 1
+const SchemaVersion uint64 = 2
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -131,6 +131,7 @@ func SetupSchema(c external.Database) error {
 			Heuristic.ts: dateTime @index(day) .
 			Heuristic.clusterTypes: [string] .
 			Heuristic.excludeAddresses: bool .
+			Heuristic.excludeSpendingGaps: bool .
 
 			type Heuristic {
 				Heuristic.type
@@ -141,6 +142,7 @@ func SetupSchema(c external.Database) error {
 				Heuristic.parent
 				Heuristic.clusterTypes
 				Heuristic.excludeAddresses
+				Heuristic.excludeSpendingGaps
 			}
 
 			HeuristicResult.origin: uid @reverse .

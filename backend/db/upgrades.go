@@ -6,18 +6,22 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// AlterSchemaAddMeta adds the new meta type
-func AlterSchemaAddMeta(c external.Database) error {
+// AlterSchemaAddSpendingGaps adds the spending gap predicate
+func AlterSchemaAddSpendingGaps(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			Meta.creationTime: dateTime . # The time when this database was initialized
-			Meta.blockchainMode: string . # The blockchain mode of this database.
-			Meta.schemaVersion: int . # The schema version of this database. 
+			Heuristic.excludeSpendingGaps: bool .
 
-			type Meta {
-				Meta.creationTime
-				Meta.blockchainMode
-				Meta.schemaVersion
+			type Heuristic {
+				Heuristic.type
+				Heuristic.parameter
+				Heuristic.transaction
+				Heuristic.clusters
+				Heuristic.ts
+				Heuristic.parent
+				Heuristic.clusterTypes
+				Heuristic.excludeAddresses
+				Heuristic.excludeSpendingGaps
 			}
 		`,
 	})
