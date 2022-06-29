@@ -70,8 +70,11 @@ export default {
       const query = `${q}`.trim();
       // update route only when input is from user and query is different
       if (origin === 'user' && query !== this.lastQuery) {
+        // ignore whitespace and empty queries
+        if (query.length === 0) return;
+
         if (!isValidQueryInput(query)) {
-          this.setWarningMessage('Input was not valid');
+          this.setWarningMessage('Query is invalid');
           return;
         }
 
