@@ -1,6 +1,8 @@
 /* eslint-disable no-constant-condition */
 import * as d3 from 'd3';
-import { mdiMerge, mdiPlaylistRemove, mdiTune } from '@mdi/js';
+import {
+  mdiMerge, mdiPlaylistRemove, mdiTune, mdiClockAlertOutline,
+} from '@mdi/js';
 import Tree from './tree';
 import { isFunction, abbreviateNumber } from './util';
 
@@ -282,6 +284,20 @@ export class HeuristicTree extends Tree {
         }
         if (d.data.data.clusterTypes
             && d.data.data.clusterTypes.length > 0) return mdiMerge;
+        return '';
+      });
+
+    // spending gap icon
+    rootElement
+      .append('g')
+      .attr('transform', `translate(${this.rectWidth / 2 - 3 * iconWidth - 3 * 4},${iconY}) ${iconScale}`)
+      .append('path')
+      .attr('fill', 'currentColor')
+      .attr('d', (d) => {
+        if (d.data.data.uid === rootIdentifier) {
+          return '';
+        }
+        if (d.data.data.excludeSpendingGaps) return mdiClockAlertOutline;
         return '';
       });
 
