@@ -78,8 +78,7 @@
           v-model="isAddHeuristicSheetOpen"
           :tab-items="heuristicTabItems"
           :descriptors="heuristicDescriptors"
-          v-on:add-heuristic="addNewHeuristic"
-      />
+          v-on:add-heuristic="addNewHeuristic"/>
       <Details
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
@@ -170,6 +169,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parent: d.parent,
       useAddressExclusionList: d.excludeAddresses,
       clusterTypes: d.clusterTypes,
+      excludeSpendingGaps: d.excludeSpendingGaps,
     });
   });
 
@@ -322,6 +322,7 @@ export default {
         type: heuristic.type,
         clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
         excludeAddresses: heuristic.useAddressExclusionList,
+        excludeSpendingGaps: heuristic.excludeSpendingGaps,
       };
 
       if (heuristic.parameter) {
@@ -357,6 +358,7 @@ export default {
 
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
+      sheet.heuristicExcludeSpendingGaps = heuristic.excludeSpendingGaps;
       sheet.heuristicCustomClusters = heuristic.clusterTypes
           && heuristic.clusterTypes.length > 0;
       sheet.heuristicTypeTitle = displayType;
