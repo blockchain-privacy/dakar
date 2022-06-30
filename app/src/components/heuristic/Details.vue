@@ -43,8 +43,15 @@
                         </IconItem>
                       </v-col>
                       <v-col>
-                        <IconItem title="Exclude Addresses" :icon="icon.mdiPlaylistRemove">
+                        <IconItem title="Exclude addresses" :icon="icon.mdiPlaylistRemove">
                           {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
+                        </IconItem>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <IconItem title="Exclude spending gaps" :icon="icon.mdiClockAlertOutline">
+                          {{ heuristicData.heuristicExcludeSpendingGaps ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
                     </v-row>
@@ -125,7 +132,7 @@
 <script>
 import {
   mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
-  mdiFileDownloadOutline,
+  mdiFileDownloadOutline, mdiClockAlertOutline,
 } from '@mdi/js';
 import IconItem from '../common/IconItem.vue';
 import Histogram from '../../d3Documents/histogram';
@@ -152,6 +159,7 @@ export default {
         mdiMerge,
         mdiPlaylistRemove,
         mdiFileDownloadOutline,
+        mdiClockAlertOutline,
       },
       chart: null,
       svgHistogram: null,
