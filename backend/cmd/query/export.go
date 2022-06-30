@@ -180,7 +180,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 				return false
 			}
 
-			if checkSpendingGaps && !mgraph.CheckSpendingGap(g, e.(mgraph.AddressEdge)) {
+			if checkSpendingGaps && !mgraph.HasSpendingGap(g, e.(mgraph.AddressEdge)) {
 				spendingGapCounter++
 				return false
 			}

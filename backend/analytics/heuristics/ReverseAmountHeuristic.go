@@ -17,6 +17,7 @@ type reverseAmountHeuristic struct {
 	parameterDescription string
 	userUID              string
 	excludeAddresses     bool
+	excludeSpendingGaps  bool
 	clusterTypes         []clustering.ClusterType
 }
 
@@ -72,6 +73,16 @@ func (h *reverseAmountHeuristic) getExcludeAddresses() bool {
 	return h.excludeAddresses
 }
 
+// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
+func (h *reverseAmountHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
+	h.excludeSpendingGaps = excludeSpendingGaps
+}
+
+// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
+func (h *reverseAmountHeuristic) getExcludeSpendingGaps() bool {
+	return h.excludeSpendingGaps
+}
+
 // setUserUID sets the UID of the user who created this heuristic
 func (h *reverseAmountHeuristic) setUserUID(uid string) {
 	h.userUID = uid
@@ -121,7 +132,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
-				h.clusterTypes, h.excludeAddresses)
+				h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}

@@ -65,6 +65,10 @@ type heuristic interface {
 	setExcludeAddresses(bool)
 	// getExcludeAddresses returns whether certain addresses should be excluded from the lookups
 	getExcludeAddresses() bool
+	// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
+	setExcludeSpendingGaps(bool)
+	// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
+	getExcludeSpendingGaps() bool
 	// setUserUID sets the UID of the user who created this heuristic
 	setUserUID(string)
 	// String returns the heuristic in string format
@@ -192,11 +196,12 @@ func getKeySlice(m map[string]bool) (keys []string) {
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
 func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuristics.HeuristicTransaction,
-	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, exclusions []string) (
+	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, exclusions []string,
+	excludeSpendingGaps bool) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 
 	// do reverse lookup
-	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions)
+	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, excludeSpendingGaps)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -214,10 +219,11 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 // getDestinationTxOrigins returns all origins of the given
 // transaction, limited to a look back time of 90 days.
 func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash string, userUID string,
-	requestedClusterTypes []clustering.ClusterType, excludeAddresses bool) ([]heuristics.HeuristicTransaction,
+	requestedClusterTypes []clustering.ClusterType, excludeAddresses bool,
+	excludeSpendingGaps bool) ([]heuristics.HeuristicTransaction,
 	map[heuristics.ClusterUID][]string, error) {
 	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90,
-		userUID, requestedClusterTypes, excludeAddresses)
+		userUID, requestedClusterTypes, excludeAddresses, excludeSpendingGaps)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -227,7 +233,7 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash 
 // getDestinationTxOriginsTimeLimited returns all origins of the given
 // transaction, for the given time limit.
 func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapper, txHash string, dur time.Duration,
-	userUID string, requestedClusterTypes []clustering.ClusterType, excludeAddresses bool) (
+	userUID string, requestedClusterTypes []clustering.ClusterType, excludeAddresses bool, excludeSpendingGaps bool) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
 	uid, err := transaction.GetTransactionUID(dgraph, txHash)
@@ -251,7 +257,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	uidMap := make(map[string]bool)
 	// do reverse lookup for all input transactions
 	for _, it := range inputTransactions {
-		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions)
+		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
 			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
@@ -273,11 +279,11 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 
 // getOriginDestinationTimeLimited returns UID map of all destinations of the given origin UIDs
 func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
-	dur time.Duration, exclusions []string) (map[string]bool, error) {
+	dur time.Duration, exclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	uidMap := make(map[string]bool)
 	// do forward lookup for all origin transactions
 	for _, it := range originUIDs {
-		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions)
+		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
 		}
@@ -293,8 +299,9 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 // getOriginDestinationsWithInputs returns all destinations
 // of the given transactions limited by time. Each transaction contains its inputs.
 func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
-	originUIDs []string, dur time.Duration, exclusions []string) (origins []heuristics.HeuristicTransaction, err error) {
-	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions)
+	originUIDs []string, dur time.Duration, exclusions []string,
+	excludeSpendingGaps bool) (origins []heuristics.HeuristicTransaction, err error) {
+	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions, excludeSpendingGaps)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -388,15 +395,17 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	}
 
 	shouldExcludeAddresses := h.getExcludeAddresses()
+	shouldExcludeSpendingGaps := h.getExcludeSpendingGaps()
 
 	thisUID, err = heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
-		HeuristicType:    h.getType(),
-		ClusterTypes:     clusterTypes,
-		ExcludeAddresses: &shouldExcludeAddresses,
-		Clusters:         heuristicClusters,
-		Parameter:        h.getParameterString(),
-		ParentHeuristic:  pHeuristic,
-		TxHash:           txHash,
+		HeuristicType:       h.getType(),
+		ClusterTypes:        clusterTypes,
+		ExcludeAddresses:    &shouldExcludeAddresses,
+		ExcludeSpendingGaps: &shouldExcludeSpendingGaps,
+		Clusters:            heuristicClusters,
+		Parameter:           h.getParameterString(),
+		ParentHeuristic:     pHeuristic,
+		TxHash:              txHash,
 	}, userUID)
 
 	if err != nil {

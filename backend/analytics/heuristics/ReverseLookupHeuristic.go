@@ -19,6 +19,7 @@ type reverseLookupHeuristic struct {
 	parameterDescription string
 	userUID              string
 	excludeAddresses     bool
+	excludeSpendingGaps  bool
 	lookBackTime         time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -84,6 +85,16 @@ func (h *reverseLookupHeuristic) setExcludeAddresses(excludeAddresses bool) {
 // getExcludeAddresses returns whether certain addresses should be excluded from the lookups
 func (h *reverseLookupHeuristic) getExcludeAddresses() bool {
 	return h.excludeAddresses
+}
+
+// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
+func (h *reverseLookupHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
+	h.excludeSpendingGaps = excludeSpendingGaps
+}
+
+// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
+func (h *reverseLookupHeuristic) getExcludeSpendingGaps() bool {
+	return h.excludeSpendingGaps
 }
 
 // setUserUID sets the UID of the user who created this heuristic
@@ -165,7 +176,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 	for _, it := range inputTransactions {
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
-			h.clusterTypes, exclusions)
+			h.clusterTypes, exclusions, h.excludeSpendingGaps)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
