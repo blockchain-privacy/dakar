@@ -322,9 +322,9 @@ func checkMeta(db external.Database) bool {
 	// check if the database schema version matches the schema version of the executable
 	if *meta.SchemaVersion != database.SchemaVersion {
 		info("Database is using a different schema version than executable")
-		info("Database blockchain mode:", *meta.SchemaVersion)
-		info("Executable blockchain mode:", database.SchemaVersion)
-		info("You likely used the wrong executable or connected to the wrong database")
+		info("Database schema version:", *meta.SchemaVersion)
+		info("Executable schema version:", database.SchemaVersion)
+		info("You may have to upgrade the database schema or use a different version of the executable")
 		return false
 	}
 
