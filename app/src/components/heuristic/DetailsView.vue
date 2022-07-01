@@ -206,15 +206,21 @@ export default {
       this.durationInMinutes = this.svgHistogram.getDurationInMinutes;
     },
     downloadSummary() {
-      doGetBlob(ROUTE_HEURISTICS_SUMMARY, this.$router, this.$store,
-        this.heuristicData.heuristicUid)
+      doGetBlob(
+        ROUTE_HEURISTICS_SUMMARY,
+        this.$router,
+        this.$store,
+        this.heuristicData.heuristicUid,
+      )
         .then((blob) => {
           // looks hacky, but it is the only way with good UX
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
 
-          a.setAttribute('download',
-            `heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`);
+          a.setAttribute(
+            'download',
+            `heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`,
+          );
           a.click();
           a.remove();
         })

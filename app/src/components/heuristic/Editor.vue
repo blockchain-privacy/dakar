@@ -401,9 +401,13 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
+      doPost(
+        ROUTE_EXECUTE_HEURISTICS,
+        this.$router,
+        this.$store,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
-        this.transactionHash)
+        this.transactionHash,
+      )
         .then((data) => {
           if (data.success === false) {
             if (data.msg) throw new Error(data.msg);

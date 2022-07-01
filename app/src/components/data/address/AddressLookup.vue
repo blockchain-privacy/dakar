@@ -280,12 +280,17 @@ export default {
     getTableData() {
       if (!this.data || this.addressHash === '') return;
       this.isLoading = true;
-      doPost(ROUTE_ADDRESS_OUTPUT_RANGE, this.$router, this.$store,
+      doPost(
+        ROUTE_ADDRESS_OUTPUT_RANGE,
+        this.$router,
+        this.$store,
         {
           offset: this.offset,
           order: this.sortAndFilter.order,
           filter: this.sortAndFilter.filter,
-        }, this.addressHash)
+        },
+        this.addressHash,
+      )
         .then((data) => {
           if (!this.isResponseValid(data)) {
             this.emptyResponse = true;
