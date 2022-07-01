@@ -79,7 +79,7 @@
           :tab-items="heuristicTabItems"
           :descriptors="heuristicDescriptors"
           v-on:add-heuristic="addNewHeuristic"/>
-      <Details
+      <DetailsView
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
           :new-heuristic-prefix="this.newUidPrefix"/>
@@ -121,7 +121,7 @@ import {
   mdiAlertOctagon,
 } from '@mdi/js';
 import TypeSelection from './TypeSelection.vue';
-import Details from './Details.vue';
+import DetailsView from './DetailsView.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE,
@@ -199,7 +199,7 @@ function areDataElementsEqual(a, b) {
 
 export default {
   name: 'Editor',
-  components: { TypeSelection, Details, NestedMenu },
+  components: { TypeSelection, DetailsView, NestedMenu },
   data() {
     return {
       icon: {

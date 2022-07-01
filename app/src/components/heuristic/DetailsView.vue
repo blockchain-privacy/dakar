@@ -141,7 +141,7 @@ import { doGetBlob, getCurrentDate } from '../../utilities';
 import { ROUTE_HEURISTICS_SUMMARY } from '../../constants';
 
 export default {
-  name: 'Details',
+  name: 'DetailsView',
   components: { Results, IconItem },
   props: {
     // v-model

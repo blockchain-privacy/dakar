@@ -82,7 +82,7 @@ function hex2Ascii(hex) {
 }
 
 export default {
-  name: 'Output',
+  name: 'OutputItem',
   props: {
     isInput: { type: Boolean, required: true },
     addressHash: { type: String, required: true },
