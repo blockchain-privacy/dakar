@@ -36,7 +36,7 @@
               truncate-length="15"/>
           <v-row>
             <v-col>
-              <v-switch v-model="csv.firstRowContainsHeader"
+              <v-checkbox v-model="csv.firstRowContainsHeader"
                         label="First row of file contains headers" :disabled="isLoading"/>
             </v-col>
             <v-col>

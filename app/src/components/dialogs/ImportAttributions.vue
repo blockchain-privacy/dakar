@@ -40,11 +40,11 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
               truncate-length="15"/>
           <v-row>
             <v-col>
-              <v-switch v-model="csv.firstRowContainsHeader"
+              <v-checkbox v-model="csv.firstRowContainsHeader"
                         label="First row of file contains headers" :disabled="isLoading"/>
             </v-col>
             <v-col v-if="isAdminUser(userData)">
-              <v-switch v-model="areAttributionsPublic"
+              <v-checkbox v-model="areAttributionsPublic"
                         label="Public attributions" :disabled="isLoading"/>
             </v-col>
             <v-col>
