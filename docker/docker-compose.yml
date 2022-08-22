@@ -39,7 +39,7 @@ services:
     command: dgraph-ratel
 
   dashd:
-    image: dashpay/dashd:0.17
+    image: dashpay/dashd:18.0
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/dash
@@ -53,7 +53,7 @@ services:
     restart: ${RESTART_POLICY}
 
 #  bitcoind:
-#    image: ruimarinho/bitcoin-core:0.21-alpine
+#    image: ruimarinho/bitcoin-core:23.0-alpine
 #    container_name: bitcoind
 #    volumes:
 #      - ${BITCOIN_PATH}:/home/bitcoin/.bitcoin
