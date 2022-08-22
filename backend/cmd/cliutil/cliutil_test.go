@@ -2,7 +2,7 @@ package cliutil
 
 import (
 	"github.com/stretchr/testify/require"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
@@ -45,7 +45,7 @@ func TestGetLogfile(t *testing.T) {
 	// this should work
 
 	// getting the name for a temporary file
-	file, err := ioutil.TempFile("", "go_test_logfile")
+	file, err := os.CreateTemp("", "go_test_logfile")
 	require.Nil(t, err)
 	fName := file.Name()
 	err = file.Close()

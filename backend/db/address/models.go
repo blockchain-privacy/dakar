@@ -65,7 +65,7 @@ type Address struct {
 	DType   []string    `json:"dgraph.type,omitempty"`
 }
 
-func (a Address) String() string {
+func (a *Address) String() string {
 	output := fmt.Sprintf("UID: %s, Hash: %s", a.UID, a.Hash)
 
 	if a.Outputs != nil {
