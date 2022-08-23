@@ -353,8 +353,12 @@ export default {
     },
     getMixingActivity() {
       this.lastQuery = this.addressHash;
-      return doPost(ROUTE_MIXING_ACTIVITY, this.$router, this.$store,
-        { addressHash: this.addressHash, isClusterLookup: this.includeCusterAddresses })
+      return doPost(
+        ROUTE_MIXING_ACTIVITY,
+        this.$router,
+        this.$store,
+        { addressHash: this.addressHash, isClusterLookup: this.includeCusterAddresses },
+      )
         .then((data) => data)
         .catch((e) => {
           handleError(this.$store, e);
@@ -524,8 +528,11 @@ export default {
         }
       } else {
         this.svgHistogram.reset();
-        this.svgHistogram.drawStacked(filtered.items,
-          this.getCategories(filtered.items), this.colorMap);
+        this.svgHistogram.drawStacked(
+          filtered.items,
+          this.getCategories(filtered.items),
+          this.colorMap,
+        );
         this.showHistogram = !this.svgHistogram.empty;
         this.showNotEnoughDataMsg = this.svgHistogram.empty;
       }
@@ -541,8 +548,12 @@ export default {
     this.colorMap.set('origin', '#D55E00');
     this.colorMap.set('mixing', '#56B4E9');
 
-    this.svgHistogram = new Histogram('mixing_activity_histogram',
-      1200, 300, 'Privacy transactions');
+    this.svgHistogram = new Histogram(
+      'mixing_activity_histogram',
+      1200,
+      300,
+      'Privacy transactions',
+    );
     this.svgHistogram.setClickHandler(this.onBarClick);
   },
   mounted() {

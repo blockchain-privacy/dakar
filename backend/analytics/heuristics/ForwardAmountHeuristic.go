@@ -20,6 +20,7 @@ type forwardAmountHeuristic struct {
 	userUID              string
 	lookForwardTime      time.Duration
 	excludeAddresses     bool
+	excludeSpendingGaps  bool
 	clusterTypes         []clustering.ClusterType
 }
 
@@ -86,6 +87,16 @@ func (h *forwardAmountHeuristic) getExcludeAddresses() bool {
 	return h.excludeAddresses
 }
 
+// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
+func (h *forwardAmountHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
+	h.excludeSpendingGaps = excludeSpendingGaps
+}
+
+// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
+func (h *forwardAmountHeuristic) getExcludeSpendingGaps() bool {
+	return h.excludeSpendingGaps
+}
+
 // setUserUID sets the UID of the user who created this heuristic
 func (h *forwardAmountHeuristic) setUserUID(uid string) {
 	h.userUID = uid
@@ -146,7 +157,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime,
-				h.userUID, h.clusterTypes, h.excludeAddresses)
+				h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -185,7 +196,8 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		for k := range txMap {
 			txUIDs = append(txUIDs, k)
 		}
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime, exclusions)
+		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime,
+			exclusions, h.excludeSpendingGaps)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

@@ -138,7 +138,7 @@ func (w *Worker) Stop() {
 	w.active = false
 }
 
-// AddWork adds a Work item
+// AddWork adds a Work item. Returns false if the transactionHash and userUID combination already exists in the queue.
 func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool {
 	key := workKey{
 		txhash:  transactionHash,
@@ -271,11 +271,11 @@ mainLoop:
 // ReverseLookup performs a reverse lookup for the given uid. It looks back at most maxLookBackTime
 func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[string]bool, error) {
 	w.reverseLookups.Inc()
-	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime, nil)
+	return w.graphWrapper.ReverseLookup(uid, maxLookBackTime, nil, false)
 }
 
 // ForwardLookup performs a forward lookup for the given uid. It looks forward at most maxLookForwardTime
 func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
 	w.forwardLookups.Inc()
-	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime, nil)
+	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime, nil, false)
 }

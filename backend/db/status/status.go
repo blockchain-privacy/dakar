@@ -437,10 +437,14 @@ func SetLastClusteredFMIBlockID(c external.Database, id uint64) error {
 func IsConnectionEstablished(c external.Database) bool {
 	ctx, cancel := db.GetBackendContext()
 	defer cancel()
-	// todo: switch from checking presence of blocks to presence of meta
-	_, err := c.Query(ctx, "{q(func: has(blockhash),first:1){uid}}", nil)
+	_, err := c.Query(ctx, "{q(func: has(Meta.schemaVersion),first:1){uid}}", nil)
 
 	return err == nil
+}
+
+// SetSchemaVersion sets the database schema version
+func SetSchemaVersion(c external.Database, version uint64) error {
+	return SetMeta(c, Meta{SchemaVersion: &version})
 }
 
 // SetMeta sets the database metadata

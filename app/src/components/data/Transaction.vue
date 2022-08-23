@@ -87,7 +87,7 @@
       <v-row>
         <v-col v-if="tx.inputs">
           <p class="ml-2">{{ getLabel(tx.inputs.length, 'Input') }}</p>
-          <Output
+          <OutputItem
               v-for="i in getInputs"
               v-bind:key="i.addresshash + i.inputindex"
               :is-input="true"
@@ -103,7 +103,7 @@
           <!-- split in two for nicer transition -->
           <v-expand-transition>
             <div v-if="showAllOutputs">
-              <Output
+              <OutputItem
                   v-for="i in getResidualInputs"
                   v-bind:key="i.addresshash + i.inputindex"
                   :is-input="true"
@@ -123,7 +123,7 @@
         <v-col v-else></v-col>
         <v-col v-if="tx.outputs">
           <p class="ml-2">{{ getLabel(tx.outputs.length, 'Output') }}</p>
-          <Output v-for="i in getOutputs"
+          <OutputItem v-for="i in getOutputs"
                   v-bind:key="i.addresshash + i.outputindex"
                   :is-input="false"
                   :amount="i.amount"
@@ -138,7 +138,7 @@
           <!-- split in two for nicer transition -->
           <v-expand-transition>
             <div v-if="showAllOutputs">
-              <Output v-for="i in getResidualOutputs"
+              <OutputItem v-for="i in getResidualOutputs"
                       v-bind:key="i.addresshash + i.outputindex"
                       :is-input="false"
                       :amount="i.amount"
@@ -170,7 +170,7 @@ import {
   mdiCash, mdiFormatHeaderPound, mdiIncognito, mdiCircleMultipleOutline,
   mdiChevronDown, mdiChevronUp, mdiPickaxe,
 } from '@mdi/js';
-import Output from './Output.vue';
+import OutputItem from './OutputItem.vue';
 import {
   shortenHash, convertAmount, isDestination, getPrivacyTypeLabel, isMixing,
   getMixingLabel,
@@ -180,7 +180,7 @@ import IconItem from '../common/IconItem.vue';
 
 export default {
   name: 'Transaction',
-  components: { Output, IconItem },
+  components: { OutputItem, IconItem },
   props: {
     tx: { type: Object, required: true },
     showHeuristicEditorLink: { type: Boolean, required: true },

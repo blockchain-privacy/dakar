@@ -96,6 +96,7 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 
 			newHeuristic.setUserUID(userUID)
 			newHeuristic.setExcludeAddresses(h.ExcludeAddresses)
+			newHeuristic.setExcludeSpendingGaps(h.ExcludeSpendingGaps)
 
 			var childHeuristicUids []string
 

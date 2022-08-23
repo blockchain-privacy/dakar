@@ -164,8 +164,12 @@ export default {
       this.isSubmittingForm = true;
       this.loginFailed = false;
 
-      doPost(ROUTE_USER_LOGIN, this.$router, this.$store,
-        { pw: this.password.value, email: this.email.value })
+      doPost(
+        ROUTE_USER_LOGIN,
+        this.$router,
+        this.$store,
+        { pw: this.password.value, email: this.email.value },
+      )
         .then((data) => {
           if (data.success === undefined
                 || data.user === undefined) throw Error('error logging in.');

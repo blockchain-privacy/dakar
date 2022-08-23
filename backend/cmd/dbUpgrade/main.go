@@ -104,18 +104,18 @@ func main() {
 		return
 	}
 
-	info("AlterSchemaAddMeta starting ...")
-	if err := db.AlterSchemaAddMeta(dgraph); err != nil {
+	info("AlterSchemaAddSpendingGaps starting ...")
+	if err := db.AlterSchemaAddSpendingGaps(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("AlterSchemaAddMeta done")
+	info("AlterSchemaAddSpendingGaps done")
 
-	info("init database metadata starting ...")
-	err = status.InitializeMeta(dgraph, "Dash")
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 2)
 	if err != nil {
 		info(err)
 		return
 	}
-	info("init database metadata done")
+	info("increased schema version")
 }

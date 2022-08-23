@@ -680,6 +680,7 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 					parameter:Heuristic.parameter
 					clusterTypes:Heuristic.clusterTypes
 					excludeAddresses:Heuristic.excludeAddresses
+					excludeSpendingGaps:Heuristic.excludeSpendingGaps
 					parent:Heuristic.parent{
 						uid
 					}

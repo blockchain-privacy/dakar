@@ -1,6 +1,8 @@
 /* eslint-disable no-constant-condition */
 import * as d3 from 'd3';
-import { mdiMerge, mdiPlaylistRemove, mdiTune } from '@mdi/js';
+import {
+  mdiMerge, mdiPlaylistRemove, mdiTune, mdiClockAlertOutline,
+} from '@mdi/js';
 import Tree from './tree';
 import { isFunction, abbreviateNumber } from './util';
 
@@ -96,16 +98,20 @@ export class HeuristicTree extends Tree {
     // raise() causes bug in chrome: click is only
     // recognized on second time. moved here from dragStart
       .raise()
-      .attr('transform',
-        `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
+      .attr(
+        'transform',
+        `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`,
+      );
 
     // Move hidden nodes to the same position as the parent node,
     // so when they get displayed they have a nice transition animation
     if (classContext.dragLayoutHiddenNodes !== null) {
       classContext.rootSvg.selectAll('.node')
         .data(classContext.dragLayoutHiddenNodes, (d) => d.data.data.uid)
-        .attr('transform',
-          `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`);
+        .attr(
+          'transform',
+          `translate(${transformationMatrix.e + event.dx},${transformationMatrix.f + event.dy})`,
+        );
     }
   }
 
@@ -169,8 +175,10 @@ export class HeuristicTree extends Tree {
     // only move node if drag was active before --> not clicked and activeMouseOverNode is set
     if (classContext.activeMouseOverNode !== null && classContext.setPointer
             && classContext.activeMouseOverNode.attr('opacity') > 0
-            && HeuristicTree.isValidMoveTarget(classContext.dragNode,
-              classContext.activeMouseOverNode)) {
+            && HeuristicTree.isValidMoveTarget(
+              classContext.dragNode,
+              classContext.activeMouseOverNode,
+            )) {
       HeuristicTree.moveNode(context, classContext.activeMouseOverNode, classContext.dragNode);
     }
 
@@ -285,6 +293,20 @@ export class HeuristicTree extends Tree {
         return '';
       });
 
+    // spending gap icon
+    rootElement
+      .append('g')
+      .attr('transform', `translate(${this.rectWidth / 2 - 3 * iconWidth - 3 * 4},${iconY}) ${iconScale}`)
+      .append('path')
+      .attr('fill', 'currentColor')
+      .attr('d', (d) => {
+        if (d.data.data.uid === rootIdentifier) {
+          return '';
+        }
+        if (d.data.data.excludeSpendingGaps) return mdiClockAlertOutline;
+        return '';
+      });
+
     // parameter icon
     rootElement
       .append('g')
@@ -350,9 +372,11 @@ export class HeuristicTree extends Tree {
     // result box text
     rootElement.append('text')
       .attr('fill', 'currentColor')
-      .attr('transform',
+      .attr(
+        'transform',
         `translate(${(this.rectWidth / 2 - resultWidth / offset + resultWidth / 2)} ,
-        ${-rectHeight / 2 - resultHeight / 2 + textHeight + 3})`)
+        ${-rectHeight / 2 - resultHeight / 2 + textHeight + 3})`,
+      )
       .style('text-anchor', 'middle')
       .text((d) => {
         if (d.data.data.uid === rootIdentifier

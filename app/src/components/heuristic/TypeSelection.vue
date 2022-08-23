@@ -47,10 +47,12 @@
                         required>
                     </v-text-field>
                   </v-form>
-                  <v-switch label="Use custom clusters"
-                      v-model="item.useCustomClusters"/>
-                  <v-switch label="Use address exclusion list"
-                            v-model="item.useAddressExclusionList"/>
+                  <v-checkbox label="Use custom clusters" hide-details
+                              v-model="item.useCustomClusters"/>
+                  <v-checkbox label="Use address exclusion list" hide-details
+                              v-model="item.useAddressExclusionList"/>
+                  <v-checkbox label="Exclude spending gaps" hide-details
+                              v-model="item.excludeSpendingGaps"/>
                 </v-card-subtitle>
                 <v-card-actions class="pt-0">
                   <v-btn class="ml-auto" outlined color="primary"
@@ -79,9 +81,7 @@ export default {
   },
   data() {
     return {
-      icon: {
-        mdiShapeSquareRoundedPlus,
-      },
+      icon: { mdiShapeSquareRoundedPlus },
       isHeuristicSheetFixed: false,
       heuristicTabs: null,
       parameterRules: new Map([
@@ -97,8 +97,10 @@ export default {
   computed: {
     heuristicTypes() {
       return this.descriptors.map((descriptor) => {
+        // extend descriptor objects with default values for the switches
         descriptor.useCustomClusters = false;
         descriptor.useAddressExclusionList = false;
+        descriptor.excludeSpendingGaps = false;
         return descriptor;
       });
     },

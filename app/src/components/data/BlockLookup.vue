@@ -153,8 +153,13 @@ export default {
       if (this.offset >= this.data.txcount) return;
       this.isLoadingMore = true;
 
-      doPost(ROUTE_BLOCK_RANGE, this.$router, this.$store,
-        { offset: this.offset }, this.data.blockhash)
+      doPost(
+        ROUTE_BLOCK_RANGE,
+        this.$router,
+        this.$store,
+        { offset: this.offset },
+        this.data.blockhash,
+      )
         .then((data) => {
           if (!this.isResponseValid(data)) {
             this.emptyResponse = true;

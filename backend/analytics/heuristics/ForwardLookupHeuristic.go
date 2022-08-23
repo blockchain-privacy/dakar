@@ -18,6 +18,7 @@ type forwardLookupHeuristic struct {
 	parameterDescription string
 	userUID              string
 	excludeAddresses     bool
+	excludeSpendingGaps  bool
 	lookForwardTime      time.Duration
 	clusterTypes         []clustering.ClusterType
 }
@@ -85,6 +86,16 @@ func (h *forwardLookupHeuristic) getExcludeAddresses() bool {
 	return h.excludeAddresses
 }
 
+// setExcludeSpendingGaps sets whether mixing outputs with a spending gap should be traversed
+func (h *forwardLookupHeuristic) setExcludeSpendingGaps(excludeSpendingGaps bool) {
+	h.excludeSpendingGaps = excludeSpendingGaps
+}
+
+// getExcludeSpendingGaps returns whether mixing outputs with a spending gap should be traversed
+func (h *forwardLookupHeuristic) getExcludeSpendingGaps() bool {
+	return h.excludeSpendingGaps
+}
+
 // setUserUID sets the UID of the user who created this heuristic
 func (h *forwardLookupHeuristic) setUserUID(uid string) {
 	h.userUID = uid
@@ -140,7 +151,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		} else {
 			var err error
 			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash,
-				h.lookForwardTime, h.userUID, h.clusterTypes, h.excludeAddresses)
+				h.lookForwardTime, h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
 				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			}
@@ -162,7 +173,8 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 	resultClusters := make(map[heuristics.ClusterUID][]heuristics.HeuristicResult)
 	for _, o := range results {
-		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime, exclusions)
+		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime,
+			exclusions, h.excludeSpendingGaps)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}

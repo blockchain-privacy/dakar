@@ -78,9 +78,8 @@
           v-model="isAddHeuristicSheetOpen"
           :tab-items="heuristicTabItems"
           :descriptors="heuristicDescriptors"
-          v-on:add-heuristic="addNewHeuristic"
-      />
-      <Details
+          v-on:add-heuristic="addNewHeuristic"/>
+      <DetailsView
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
           :new-heuristic-prefix="this.newUidPrefix"/>
@@ -122,7 +121,7 @@ import {
   mdiAlertOctagon,
 } from '@mdi/js';
 import TypeSelection from './TypeSelection.vue';
-import Details from './Details.vue';
+import DetailsView from './DetailsView.vue';
 import {
   ROUTE_NAME_TRANSACTION_PAGE, ROUTE_EXECUTE_HEURISTICS,
   ROUTE_NAME_HEURISTIC_PAGE,
@@ -170,6 +169,7 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
       parent: d.parent,
       useAddressExclusionList: d.excludeAddresses,
       clusterTypes: d.clusterTypes,
+      excludeSpendingGaps: d.excludeSpendingGaps,
     });
   });
 
@@ -199,7 +199,7 @@ function areDataElementsEqual(a, b) {
 
 export default {
   name: 'Editor',
-  components: { TypeSelection, Details, NestedMenu },
+  components: { TypeSelection, DetailsView, NestedMenu },
   data() {
     return {
       icon: {
@@ -322,6 +322,7 @@ export default {
         type: heuristic.type,
         clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
         excludeAddresses: heuristic.useAddressExclusionList,
+        excludeSpendingGaps: heuristic.excludeSpendingGaps,
       };
 
       if (heuristic.parameter) {
@@ -357,6 +358,7 @@ export default {
 
       sheet.heuristicParameter = heuristic.parameter;
       sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
+      sheet.heuristicExcludeSpendingGaps = heuristic.excludeSpendingGaps;
       sheet.heuristicCustomClusters = heuristic.clusterTypes
           && heuristic.clusterTypes.length > 0;
       sheet.heuristicTypeTitle = displayType;
@@ -399,9 +401,13 @@ export default {
         return;
       }
 
-      doPost(ROUTE_EXECUTE_HEURISTICS, this.$router, this.$store,
+      doPost(
+        ROUTE_EXECUTE_HEURISTICS,
+        this.$router,
+        this.$store,
         prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
-        this.transactionHash)
+        this.transactionHash,
+      )
         .then((data) => {
           if (data.success === false) {
             if (data.msg) throw new Error(data.msg);

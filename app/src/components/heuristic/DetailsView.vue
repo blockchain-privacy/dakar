@@ -43,8 +43,15 @@
                         </IconItem>
                       </v-col>
                       <v-col>
-                        <IconItem title="Exclude Addresses" :icon="icon.mdiPlaylistRemove">
+                        <IconItem title="Exclude addresses" :icon="icon.mdiPlaylistRemove">
                           {{ heuristicData.heuristicExcludeAddresses ? 'yes' : 'no' }}
+                        </IconItem>
+                      </v-col>
+                    </v-row>
+                    <v-row>
+                      <v-col>
+                        <IconItem title="Exclude spending gaps" :icon="icon.mdiClockAlertOutline">
+                          {{ heuristicData.heuristicExcludeSpendingGaps ? 'yes' : 'no' }}
                         </IconItem>
                       </v-col>
                     </v-row>
@@ -125,7 +132,7 @@
 <script>
 import {
   mdiIframeVariableOutline, mdiTune, mdiPoundBoxOutline, mdiChartBar, mdiMerge, mdiPlaylistRemove,
-  mdiFileDownloadOutline,
+  mdiFileDownloadOutline, mdiClockAlertOutline,
 } from '@mdi/js';
 import IconItem from '../common/IconItem.vue';
 import Histogram from '../../d3Documents/histogram';
@@ -134,7 +141,7 @@ import { doGetBlob, getCurrentDate } from '../../utilities';
 import { ROUTE_HEURISTICS_SUMMARY } from '../../constants';
 
 export default {
-  name: 'Details',
+  name: 'DetailsView',
   components: { Results, IconItem },
   props: {
     // v-model
@@ -152,6 +159,7 @@ export default {
         mdiMerge,
         mdiPlaylistRemove,
         mdiFileDownloadOutline,
+        mdiClockAlertOutline,
       },
       chart: null,
       svgHistogram: null,
@@ -198,15 +206,21 @@ export default {
       this.durationInMinutes = this.svgHistogram.getDurationInMinutes;
     },
     downloadSummary() {
-      doGetBlob(ROUTE_HEURISTICS_SUMMARY, this.$router, this.$store,
-        this.heuristicData.heuristicUid)
+      doGetBlob(
+        ROUTE_HEURISTICS_SUMMARY,
+        this.$router,
+        this.$store,
+        this.heuristicData.heuristicUid,
+      )
         .then((blob) => {
           // looks hacky, but it is the only way with good UX
           const a = document.createElement('a');
           a.href = URL.createObjectURL(blob);
 
-          a.setAttribute('download',
-            `heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`);
+          a.setAttribute(
+            'download',
+            `heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`,
+          );
           a.click();
           a.remove();
         })

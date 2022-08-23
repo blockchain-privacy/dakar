@@ -200,9 +200,11 @@ export default class Histogram {
       .attr('fill', 'currentColor')
       .attr('font-family', 'sans-serif')
       .attr('font-size', '1em')
-      .attr('transform',
+      .attr(
+        'transform',
         `translate(${(width / 2)} ,${
-          height + margin.top + 20})`)
+          height + margin.top + 20})`,
+      )
       .style('text-anchor', 'middle')
       .text(`${lowestDate.toLocaleString()} - ${highestDate.toLocaleString()}`);
 
