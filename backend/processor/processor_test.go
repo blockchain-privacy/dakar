@@ -146,35 +146,6 @@ func TestCreateOutputUid(t *testing.T) {
 	require.EqualValues(t, "_:", outputUID[:2])
 }
 
-func TestDecodeAddress(t *testing.T) {
-	cfgDash := NewDashConfig()
-	cases := []struct {
-		works bool
-		asm   string
-	}{
-		{true, "02e5a489b4fb934af831a9553c6521b3bf1f155bfa5a6c72d13461039ebc594cff"},
-		{true, "036fc4628db906187d44ab325f8f8977c3686bc29ca76e1905b3afe82119bc5a7f"},
-		{true, "0204d9dc3bd0f5e83901fcec9410c4a28907405b783200d47bbc3e5c7e9414acca"},
-		{true, "029e2c658a15d18f7d4f44bbcdd80a18069b49ee2636b5937e28a2490536612b84"},
-		{true, "0226baf8c8c3707d6062e754e10ee46fa13dcd71aa64cc1a1c6d433fd53de45c07"},
-		{true, "02636234f12e46575b95e0c5a1251a211368dc0ec28abdf02986dc249be28f4eda"},
-		{false, "02636234f12e46575b95e0c5a1251a211368dc0ec28abdf02986dc249be28f4eda1"},
-		{false, ""},
-		{false, "asdfafdssafd.123,"},
-		{false, "  "},
-	}
-
-	for _, c := range cases {
-		address, err := decodeAddress(c.asm, cfgDash.PubKeyHashAddrID)
-		if c.works {
-			require.Nil(t, err)
-			require.NotEmpty(t, address)
-		} else {
-			require.NotNil(t, err)
-		}
-	}
-}
-
 func TestProcessAddresses(t *testing.T) {
 	const (
 		fistAddress   = "XsAptUZUmtL8onHcuJSvGM8MyvR7QCpw9u"

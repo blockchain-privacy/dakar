@@ -8,31 +8,26 @@ import (
 	dbstat "backend/db/status"
 	dbtx "backend/db/transaction"
 	"backend/external"
-	"github.com/btcsuite/btcd/rpcclient"
-
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
+	"github.com/btcsuite/btcd/rpcclient"
+	"github.com/btcsuite/btcd/txscript"
 )
 
 const (
 	// loggerPrefix is the prefix which is printed for each log message
 	loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
-
-	// addressInvalidPubkey is the string which gets used as an address hash
-	// if its public key can not be decoded
-	addressInvalidPubkey = "error_decode_pubkey"
 )
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
@@ -45,11 +40,6 @@ func InitLogger(out io.Writer, flag int) {
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
 }
-
-var (
-	errAddressDecoding = errors.New("error while decoding address")
-	errNoAddresses     = errors.New("error output has no addresses")
-)
 
 // holds the current state of the crawling processing loop
 type crawlerState struct {
@@ -65,7 +55,7 @@ type crawlerState struct {
 	incremented bool
 }
 
-func (p crawlerState) String() string {
+func (p *crawlerState) String() string {
 	return fmt.Sprintf("ID: %d, Hash: %s", p.id, p.hash)
 }
 
@@ -142,11 +132,9 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 
 func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
 	addrMap map[string]dbaddr.Address) (err error) {
-
 	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
-
 			output := cache.getOutput(txHash, idx)
 
 			if output == nil {
@@ -205,40 +193,6 @@ func createOutputUID(transaction string, outputID uint32) string {
 	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
 }
 
-// decodeAddress tries to decode the address in asm
-func decodeAddress(asm string, pubkeyPrefix byte) (address string, err error) {
-	if len(asm) == 0 {
-		err = errAddressDecoding
-		return
-	}
-
-	// Alternatively use btcutil's ExtractPkScriptAddrs(); This has a lot of overhead as it
-	// tries to detect the transaction type based on the script. At this point we already know
-	// that it is pay-to-pubkey. Thus, parsing is done manually
-
-	amsParts := strings.Split(asm, " ")
-	if len(amsParts[0]) == 0 {
-		return "", errors.New("error received invalid asm: " + asm)
-	}
-
-	decodeString, decodeErr := hex.DecodeString(amsParts[0])
-	if decodeErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
-		return
-	}
-	cfg := chaincfg.MainNetParams
-
-	cfg.PubKeyHashAddrID = pubkeyPrefix
-
-	addr, addressConversionErr := btcutil.NewAddressPubKey(decodeString, &cfg)
-	if addressConversionErr != nil {
-		return addressInvalidPubkey, nil
-	}
-	address = addr.EncodeAddress()
-
-	return
-}
-
 // buildTransactionMapping processes the transaction specified by 'txHashString'
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
@@ -285,34 +239,29 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		}
 		index := d.N
 
-		if d.ScriptPubKey.Type == "pubkey" {
-			if d.ScriptPubKey.Addresses == nil {
-				pubkeyAddress, decodeErr := decodeAddress(d.ScriptPubKey.Asm, config.PubKeyHashAddrID)
-				if decodeErr != nil {
-					err = fmt.Errorf("%s: %s", cliutil.ShowCallInfo(),
-						fmt.Sprint(decodeErr, "hash", txDetails.Hash))
-					return
-				}
-
-				// log if we get an invalid address; this can happen if an invalid public key has been provided
-				if pubkeyAddress == addressInvalidPubkey {
-					info("could not decode public key for tx", txDetails.Hash)
-				}
-
-				outputMappings = addOutputToMapping(outputMappings, pubkeyAddress, index)
-			} else {
-				for _, e := range d.ScriptPubKey.Addresses {
-					outputMappings = addOutputToMapping(outputMappings, e, index)
-				}
+		// check if addresses can be extracted
+		if d.ScriptPubKey.Addresses == nil && d.ScriptPubKey.Type != "nulldata" && d.ScriptPubKey.Type != "nonstandard" {
+			decodeString, decodingErr := hex.DecodeString(d.ScriptPubKey.Hex)
+			if decodingErr != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodingErr)
+				return
 			}
-		} else if d.ScriptPubKey.Addresses == nil &&
-			d.ScriptPubKey.Type != "nulldata" && d.ScriptPubKey.Type != "nonstandard" {
-			err = errNoAddresses
-			return
-		} else {
-			for _, e := range d.ScriptPubKey.Addresses {
-				outputMappings = addOutputToMapping(outputMappings, e, index)
+
+			cfg := chaincfg.MainNetParams
+			cfg.PubKeyHashAddrID = config.PubKeyHashAddrID
+			_, addresses, _, extractionError := txscript.ExtractPkScriptAddrs(decodeString, &cfg)
+			if extractionError != nil {
+				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), extractionError)
+				return
 			}
+
+			for _, e := range addresses {
+				d.ScriptPubKey.Addresses = append(d.ScriptPubKey.Addresses, e.EncodeAddress())
+			}
+		}
+
+		for _, e := range d.ScriptPubKey.Addresses {
+			outputMappings = addOutputToMapping(outputMappings, e, index)
 		}
 
 		// create new output
@@ -742,7 +691,6 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), setErr)
 			return
 		}
-
 	}
 
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
