@@ -22,7 +22,7 @@ type Output struct {
 	DType       []string `json:"dgraph.type,omitempty"`
 }
 
-func (o Output) String() string {
+func (o *Output) String() string {
 	output := fmt.Sprintf("UID: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
 		o.UID, *o.Amount, o.KeyAsm, o.SigAsm)
 

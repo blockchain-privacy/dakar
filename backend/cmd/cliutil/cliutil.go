@@ -58,8 +58,7 @@ func WriteConfig(filePath string, config interface{}) error {
 
 // SetConfigFlags sets the CLI flags for accessing and generating the configuration file
 func SetConfigFlags(defaultConfigName string, filePath *string, createConfigFile *bool) {
-	flag.StringVar(filePath, "config", defaultConfigName,
-		"config file path (default:"+defaultConfigName+")")
+	flag.StringVar(filePath, "config", defaultConfigName, "config file path")
 	flag.BoolVar(createConfigFile, "createConfig", false,
 		"creates a default config file '"+defaultConfigName+"' (default: false)")
 }
