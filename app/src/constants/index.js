@@ -58,6 +58,7 @@ export const ROUTE_NAME_STATUS_PAGE = 'Status Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
 export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
+export const ROUTE_NAME_ACCOUNT_RECOVERY = 'Account Recovery Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
 export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
 export const ROUTE_NAME_USER_MISC_PAGE = 'User Misc Page';
@@ -73,12 +74,16 @@ export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 
+// ory
+export const ORY_KRATOS_BASE_URL = 'http://localhost:4433';
+
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const APPLICATION_SUBTITLE = 'Dash Blockchain Analytics';
 export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
+export const LOCALSTORAGE_FIELD_SESSION = 'session';
 export const DEFAULT_SETTINGS = { dark: false };
 
 // blockchain
