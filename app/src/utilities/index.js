@@ -5,7 +5,7 @@ import {
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
   ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
-  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM,
+  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM, LOCALSTORAGE_FIELD_SESSION,
 } from '../constants';
 
 export function resetData(context) {
@@ -24,6 +24,22 @@ export function setActionDate(userData) {
 
 export function setLocalUser(userData) {
   localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(userData));
+}
+
+export function setLocalSession(sessionData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
+}
+
+export function removeLocalSession() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_SESSION);
+}
+
+export function getLocalSession() {
+  let localStorageSessionData = localStorage.getItem(LOCALSTORAGE_FIELD_SESSION);
+  if (localStorageSessionData !== null) {
+    localStorageSessionData = JSON.parse(localStorageSessionData);
+  }
+  return localStorageSessionData;
 }
 
 export function getLocalUser() {
@@ -96,6 +112,12 @@ function isInvalidTokenMsg(msg, router, store) {
 export function isTokenTimedOut(userData) {
   return !userData || !userData.lastAction
       || new Date() - new Date(userData.lastAction) >= TOKEN_TIMEOUT;
+}
+
+// isSessionExpired returns true if the session has expired
+export function isSessionExpired(session) {
+  return !session || !session.expires_at
+      || new Date() > new Date(session.expires_at);
 }
 
 export function doPost(route, router, store, body, parameter) {

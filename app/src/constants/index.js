@@ -61,7 +61,6 @@ export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
 export const ROUTE_NAME_ACCOUNT_RECOVERY = 'Account Recovery Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
 export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
-export const ROUTE_NAME_USER_MISC_PAGE = 'User Misc Page';
 export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
