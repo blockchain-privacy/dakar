@@ -4,6 +4,8 @@ import (
 	heuristic "backend/analytics/heuristics"
 	"backend/external"
 	"github.com/dgraph-io/ristretto"
+	ory "github.com/ory/kratos-client-go"
+	"net/http/cookiejar"
 
 	"encoding/hex"
 	"errors"
@@ -42,11 +44,27 @@ type Server struct {
 	client          external.RPCClient
 	worker          *heuristic.Worker
 	cache           *ristretto.Cache
+	auth            *ory.APIClient
 	basicAuthUser   string
 	basicAuthHash   string
 	tokenPublicKey  []byte
 	tokenPrivateKey []byte
 	handler         *http.ServeMux
+}
+
+func newOryClient(endpoint string) (*ory.APIClient, error) {
+
+	cj, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := ory.NewConfiguration()
+	conf.Servers = ory.ServerConfigurations{{URL: endpoint}}
+
+	conf.HTTPClient = &http.Client{Jar: cj}
+
+	return ory.NewAPIClient(conf), nil
 }
 
 func NewServer(db external.Database, client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
@@ -78,6 +96,13 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 		return nil, err
 	}
 
+	a, err := newOryClient("http://localhost:4434")
+	if err != nil {
+		return nil, err
+	} else if a == nil {
+		return nil, errors.New("authentication client is null")
+	}
+
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
@@ -93,6 +118,7 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 		client:          client,
 		worker:          worker,
 		cache:           cache,
+		auth:            a,
 		basicAuthUser:   basicAuthUser,
 		basicAuthHash:   basicAuthHash,
 		tokenPublicKey:  publicKey,
