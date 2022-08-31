@@ -27,6 +27,7 @@
         <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
       </v-btn>
     </PageMenu>
+<!--    todo remove -->
     <v-menu offset-y style="z-index: 99" v-if="this.userData">
       <template v-slot:activator="{ on, attrs }">
         <v-btn
@@ -65,7 +66,50 @@
         </v-list-item>
       </v-list>
     </v-menu>
-    <v-btn depressed color="primary" :to="{ name: route.userLoginPage }" v-if="!this.userData">
+    <v-menu offset-y style="z-index: 99" v-if="this.session">
+      <template v-slot:activator="{ on, attrs }">
+        <v-btn
+            icon
+            v-bind="attrs"
+            v-on="on">
+          <v-icon>{{ icon.mdiAccount }}</v-icon>
+        </v-btn>
+      </template>
+      <v-list nav dense>
+        <v-list-item>
+          <v-list-item-icon>
+            <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title> {{ this.session.identity.traits.email }}</v-list-item-title>
+        </v-list-item>
+        <v-divider/>
+        <v-list-item :to="{name: route.userProfilePage}">
+          <v-list-item-icon>
+            <v-icon>{{ icon.mdiCog }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Settings</v-list-item-title>
+        </v-list-item>
+        <v-list-item>
+          <v-list-item-icon>
+            <v-icon>{{ icon.mdiWeatherNight }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Dark Mode</v-list-item-title>
+          <DarkModeSwitch class="mt-0 ml-2"/>
+        </v-list-item>
+        <v-list-item @click="logout">
+          <v-list-item-icon>
+            <v-icon color="red">{{ icon.mdiLogout }}</v-icon>
+          </v-list-item-icon>
+          <v-list-item-title>Logout</v-list-item-title>
+        </v-list-item>
+      </v-list>
+    </v-menu>
+<!--    todo remove userdata check-->
+    <v-btn
+        v-if="!this.userData && !this.session"
+        depressed
+        color="primary"
+        :to="{ name: route.userLoginPage }">
       <v-icon>{{ icon.mdiLogin }}</v-icon>
       Login
     </v-btn>
@@ -135,6 +179,14 @@ export default {
         this.$store.dispatch('setSettings', value);
       },
     },
+    session: {
+      get() {
+        return this.$store.getters.getSession;
+      },
+      set(value) {
+        this.$store.dispatch('setSession', value);
+      },
+    },
     showUserAdmin() {
       return isAdminUser(this.userData);
     },
@@ -161,6 +213,7 @@ export default {
           resetLocal();
           this.userData = null;
           this.settings = null;
+          this.session = null;
           this.goToPage(this.route.rootPage);
         })
         .catch((error) => {
