@@ -7,24 +7,28 @@
   />
   <v-text-field
       v-else-if="attributes.type === 'password'"
-      :label="meta.label?meta.label.text?meta.label.text:'':''"
+      :label="metaLabel"
       :value="attributes.value"
       :name="attributes.name"
-      type="password"
       :prepend-inner-icon="icons.mdiLockOutline"
+      :type="password.show ? 'text' : 'password'"
+      :append-icon="password.show ?  icons.mdiEye : icons.mdiEyeOff"
+      @click:append="password.show = !password.show"
   />
   <v-text-field
       v-else-if="attributes.type === 'text'"
-      :label="meta.label?meta.label.text?meta.label.text:'':''"
+      :label="metaLabel"
       :value="attributes.value"
       :name="attributes.name"
+      :prepend-inner-icon="metaLabel === 'ID'?icons.mdiAccount:null"
   />
   <v-text-field
       v-else-if="attributes.type === 'email'"
-      :label="meta.label?meta.label.text?meta.label.text:'':''"
+      :label="metaLabel"
       :value="attributes.value"
       :name="attributes.name"
       type="email"
+      :prepend-inner-icon="icons.mdiEmail"
   />
   <div v-else-if="attributes.type === 'submit'">
     <input
@@ -37,16 +41,13 @@
         block
         class="font-weight-bold" color="primary darken-1"
         :id="id"
-        type="submit">
-      {{ meta.label ? meta.label.text ? meta.label.text : '' : '' }}
-    </v-btn>
+        type="submit">{{ metaLabel }}</v-btn>
   </div>
-
 </template>
 
 <script>
 import {
-  mdiLockOutline,
+  mdiLockOutline, mdiEmail, mdiAccount, mdiEye, mdiEyeOff,
 } from '@mdi/js';
 
 export default {
@@ -56,9 +57,22 @@ export default {
     attributes: { type: Object, required: true },
     id: { type: String, required: true },
   },
+  computed: {
+    metaLabel() {
+      if (this.meta.label && this.meta.label.text) {
+        return this.meta.label.text;
+      }
+      return '';
+    },
+  },
   data() {
     return {
-      icons: { mdiLockOutline },
+      icons: {
+        mdiLockOutline, mdiEmail, mdiAccount, mdiEye, mdiEyeOff,
+      },
+      password: {
+        show: false,
+      },
     };
   },
   methods: {
