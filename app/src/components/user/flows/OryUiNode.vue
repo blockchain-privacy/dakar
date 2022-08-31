@@ -17,13 +17,12 @@
     <script
         v-else-if="isUiNodeScriptAttributes(node.attributes)"
         :src="node.attributes.src"
-        :type="node.attributes.type"
+        type="application/javascript"
         :integrity="node.attributes.integrity"
         :referrerpolicy="node.attributes.referrerpolicy"
         :crossorigin="node.attributes.crossorigin"
     ></script>
     <p v-else-if="isUiNodeTextAttributes(node.attributes)">{{ node.attributes.text.text }}</p>
-
     <v-btn v-else-if="node.type === 'submit'"></v-btn>
     <template v-if="node.messages">
       <ory-ui-message v-for="(msg,i) in node.messages" :key="i" :message="msg"/>
