@@ -7,7 +7,6 @@ import (
 	dbaddr "backend/db/address"
 	dbtxh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
-	dbus "backend/db/user"
 	"backend/external"
 	"encoding/json"
 	"errors"
@@ -884,14 +883,10 @@ func (s *Server) handlerGetUsers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		users, err := dbus.GetUsers(s.db)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
+		reply := getUserReply(s.db, s.auth)
 
 		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(users); encodingErr != nil {
+		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
 			info(cliutil.ShowCallInfo(), encodingErr)
 		}

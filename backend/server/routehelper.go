@@ -13,6 +13,7 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
+	client "github.com/ory/kratos-client-go"
 
 	"context"
 	"errors"
@@ -301,4 +302,10 @@ type addressExclusionStatusReply struct {
 	Success     bool   `json:"success"`
 	IsExclusion bool   `json:"isExclusion"`
 	Msg         string `json:"msg,omitempty"`
+}
+
+type usersReply struct {
+	Success    bool                            `json:"success"`
+	Users      []dbus.FrontendUserBackendState `json:"users"`
+	Identities []client.Identity               `json:"identities"`
 }

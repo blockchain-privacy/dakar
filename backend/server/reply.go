@@ -15,18 +15,20 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
+	"context"
+	"io"
 	"strings"
+	"time"
 
 	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	ory "github.com/ory/kratos-client-go"
 	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 const msgCouldNotDecodeRequest = "could not decode request data"
@@ -113,6 +115,29 @@ func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userRep
 	}
 
 	info("Generated password(", u.Email, "):", pw)
+	reply.Success = true
+
+	return
+}
+
+func getUserReply(dgraph external.Database, auth *ory.APIClient) (reply usersReply) {
+	users, err := dbus.GetUsers(dgraph)
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancelFunc()
+
+	identities, resp, err := auth.V0alpha2Api.AdminListIdentities(timeout).Execute()
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err, resp)
+		return
+	}
+
+	reply.Users = users
+	reply.Identities = identities
 	reply.Success = true
 
 	return
