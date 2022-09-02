@@ -2,144 +2,35 @@
   <v-card class="mx-auto elevation-4" max-width="700">
     <v-toolbar color="primary" dark flat>
       <v-toolbar-title>
-        <v-icon>{{ icon.mdiAccountDetails }}</v-icon>
+        <v-icon>{{ icons.mdiAccountDetails }}</v-icon>
         Profile
       </v-toolbar-title>
     </v-toolbar>
-    <ProfileItem v-for="(item, index) in listItems"
-                 :key="index"
-                 :title="item.title"
-                 :icon="item.icon"
-                 :item-value="item.val"
-                 :action-function="item.actionFunction"/>
-    <v-dialog v-model="showModifyEmailDialog" max-width="500px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Change E-mail</span>
-        </v-card-title>
-        <v-card-text>
-          <v-container>
-            <v-row>
-              <v-form ref="modifyEmailForm">
-                <v-text-field
-                    v-model="editedEmailItem.email"
-                    label="E-mail"
-                    type="email"
-                    :rules="rules.emailRules">
-                </v-text-field>
-                <v-text-field
-                    v-model="editedEmailItem.current_password"
-                    label="Current password"
-                    type="password"
-                    :rules="rules.pwRequired">
-                </v-text-field>
-              </v-form>
-            </v-row>
-          </v-container>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="closeEmailForm">Cancel</v-btn>
-          <v-btn color="blue darken-1" text @click="saveEmailForm">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-    <v-dialog v-model="showModifyPasswordDialog" max-width="500px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5">Change Password</span>
-        </v-card-title>
-        <v-card-text>
-          <v-container>
-            <v-row>
-              <v-form ref="modifyPasswordForm">
-                <v-row>
-                  <v-col cols="6">
-                    <v-text-field
-                        v-model="editedPasswordItem.new_password"
-                        label="New password"
-                        type="password"
-                        :rules="rules.passwordRules">
-                    </v-text-field>
-                  </v-col>
-                  <v-col cols="6">
-                    <v-text-field
-                        v-model="editedPasswordItem.new_password_confirm"
-                        label="Confirm new password"
-                        type="password"
-                        :rules="[(editedPasswordItem.new_password
-                    === editedPasswordItem.new_password_confirm) || 'Password must match']">
-                    </v-text-field>
-                  </v-col>
-                </v-row>
-                <v-row>
-                  <v-col cols="6">
-                    <v-text-field
-                        v-model="editedPasswordItem.current_password"
-                        label="Current password"
-                        type="password"
-                        :rules="rules.pwRequired">
-                    </v-text-field>
-                  </v-col>
-                </v-row>
-
-              </v-form>
-            </v-row>
-          </v-container>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="closePasswordForm">Cancel</v-btn>
-          <v-btn color="blue darken-1" text @click="savePasswordForm">Save</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <v-card>
+      <v-card-text>
+        <ory-flow v-if="settingsFlow" class="mt-4"
+                  :flow="settingsFlow"
+                  :form-id="formID"
+                  @submit="handleOrySubmitSettings"/>
+      </v-card-text>
+    </v-card>
   </v-card>
 </template>
 
 <script>
-import {
-  mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
-} from '@mdi/js';
-import { PAGE_TITLE, ROUTE_USER_MODIFY } from '../../constants';
-import ProfileItem from './ProfileItem.vue';
-import {
-  doPost, emailRules, handleError, passwordRules, setActionDate,
-} from '../../utilities';
+import { mdiAccountDetails } from '@mdi/js';
+import { PAGE_TITLE } from '../../constants';
+import OryFlow from './flows/OryFlow.vue';
+import handleGetFlowError from '../../kratos';
 
 export default {
   name: 'Profile',
-  components: { ProfileItem },
+  components: { OryFlow },
   data() {
     return {
-      icon: {
-        mdiLock, mdiEmail, mdiCalendar, mdiCalendarEdit, mdiAccountDetails,
-      },
-      showModifyEmailDialog: false,
-      showModifyPasswordDialog: false,
-      rules: {
-        emailRules,
-        passwordRules,
-        pwRequired: [(v) => !!v || 'Password is required'],
-      },
-      editedEmailItem: {
-        email: '',
-        current_password: '',
-      },
-      defaultEmailItem: {
-        email: '',
-        current_password: '',
-      },
-      editedPasswordItem: {
-        new_password: '',
-        new_password_confirm: '',
-        current_password: '',
-      },
-      defaultPasswordItem: {
-        new_password: '',
-        new_password_confirm: '',
-        current_password: '',
-      },
+      icons: { mdiAccountDetails },
+      formID: 'settings-form',
+      settingsFlow: null,
     };
   },
   computed: {
@@ -151,126 +42,108 @@ export default {
         this.$store.dispatch('setActiveUser', value);
       },
     },
-    modifiedDate() {
-      return new Date(this.userData.modified).toLocaleString();
-    },
-    createdDate() {
-      return new Date(this.userData.created).toLocaleString();
-    },
-    listItems() {
-      return [
-        {
-          title: 'Email:',
-          val: this.userData.email,
-          icon: this.icon.mdiEmail,
-          actionFunction: this.openEmailForm,
-        },
-        {
-          title: 'Change Password:',
-          val: '••••••••••••••••••',
-          icon: this.icon.mdiLock,
-          actionFunction: this.openPasswordForm,
-        },
-        {
-          title: 'Account last modified:',
-          val: this.modifiedDate,
-          icon: this.icon.mdiCalendarEdit,
-        },
-        {
-          title: 'Account created:',
-          val: this.createdDate,
-          icon: this.icon.mdiCalendar,
-        },
-      ];
+    session: {
+      get() {
+        return this.$store.getters.getSession;
+      },
+      set(value) {
+        this.$store.dispatch('setSession', value);
+      },
     },
   },
   methods: {
     setSuccessMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
     },
-    /** Email methods * */
-    closeEmailForm() {
-      this.showModifyEmailDialog = false;
-      this.$nextTick(() => {
-        this.editedEmailItem = { ...this.defaultEmailItem };
-      });
+    setErrorMessage(msg) {
+      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
-    openEmailForm() {
-      this.showModifyEmailDialog = true;
-    },
-    validateEmailForm() {
-      return this.$refs.modifyEmailForm.validate();
-    },
-    saveEmailForm() {
-      if (!this.validateEmailForm()) return;
-      this.$store.dispatch('resetMessages');
-
-      doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
-        uid: this.userData.uid,
-        email: this.editedEmailItem.email,
-        current_password: this.editedEmailItem.current_password,
-      })
-        .then((data) => {
-          if (data.success === undefined) throw Error('error modifying e-mail');
-          if (data.success === false) {
-            throw new Error(data.msg);
-          }
-
-          if (data.user) {
-            this.userData = setActionDate(data.user);
-            this.setSuccessMessage('Successfully changed E-mail');
-          }
-        })
-        .catch((e) => {
-          handleError(this.$store, e);
-        })
-        .finally(() => {
-          this.closeEmailForm();
+    initSettingsFlow() {
+      this.ory.initializeSelfServiceSettingsFlowForBrowsers()
+        .then((d) => this.setFlowData(d.data))
+        .catch((err) => {
+          if (err.ui) this.setFlowData(err);
+          else handleGetFlowError(this.$router, this.$store, err);
         });
     },
-    /** Password methods * */
-    closePasswordForm() {
-      this.showModifyPasswordDialog = false;
-      this.$nextTick(() => {
-        this.editedPasswordItem = { ...this.defaultPasswordItem };
-      });
+    setFlowData(d) {
+      this.settingsFlow = d;
+      if (!this.$route.query.flow || this.$route.query.flow !== d.id) {
+        this.$router.replace({ query: { flow: d.id } });
+      }
     },
-    openPasswordForm() {
-      this.showModifyPasswordDialog = true;
-    },
-    validatePasswordForm() {
-      return this.$refs.modifyPasswordForm.validate();
-    },
-    savePasswordForm() {
-      if (!this.validatePasswordForm()) return;
-      this.$store.dispatch('resetMessages');
+    handleOrySubmitSettings(formID) {
+      const form = document.getElementById(formID);
+      if (!form || !this.settingsFlow.ui.action) return;
 
-      doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
-        uid: this.userData.uid,
-        new_password: this.editedPasswordItem.new_password,
-        current_password: this.editedPasswordItem.current_password,
-      })
-        .then((data) => {
-          if (data.success === undefined) throw Error('error modifying password');
-          if (data.success === false) {
-            throw new Error(data.msg);
+      const body = Object.fromEntries(new FormData(form));
+      const { flow } = this.$route.query;
+      this.ory.submitSelfServiceSettingsFlow(flow, JSON.stringify(body))
+        .then((response) => {
+          // something went wrong and we need to display some data
+          if (response.data && response.data.ui) {
+            this.setFlowData(response.data);
           }
 
-          if (data.user) {
-            this.userData = data.user;
-            this.setSuccessMessage('Successfully changed password');
+          // if an account is being recovered the session is empty,
+          // therefore it has to be refreshed.
+          this.refreshSession();
+
+          if (response.error && response.error.reason) this.setErrorMessage(response.error.reason);
+        })
+        .catch((err) => {
+          if (err.response && err.response.data && err.response.data.ui) {
+            this.setFlowData(err.response.data);
+          } else {
+            handleGetFlowError(this.$router, this.$store, err).catch((e) => {
+              this.setErrorMessage(e);
+            });
           }
-        })
-        .catch((e) => {
-          handleError(this.$store, e);
-        })
-        .finally(() => {
-          this.closePasswordForm();
         });
+    },
+    refreshSession() {
+      this.ory.toSession()
+        .then((d) => {
+          if (d.status && d.status === 200) {
+            this.session = d.data;
+          }
+        })
+        .catch();
+    },
+    initFlow() {
+      const { flow } = this.$route.query;
+
+      if (typeof flow !== 'string') {
+        // if there's no flow in our route,
+        // we need to initialize our login flow
+        this.initSettingsFlow();
+      } else {
+        this.ory.getSelfServiceSettingsFlow(flow)
+          .then((d) => {
+            this.setFlowData(d.data);
+            // if an account is being recovered the session is empty,
+            // therefore it has to be refreshed.
+            this.refreshSession();
+          })
+          .catch((err) => {
+            if (err.ui) this.setFlowData(err);
+            else handleGetFlowError(this.$router, this.$store, err);
+          });
+      }
     },
   },
   mounted() {
     document.title = `Profile - ${PAGE_TITLE}`;
+    this.initFlow();
+  },
+  watch: {
+    $route(to) {
+      if (!to.query.flow) {
+        // this happens if the users manually navigates to the route of this page,
+        // in this case flow is not set and needs to be reinitialized
+        this.initFlow();
+      }
+    },
   },
 };
 </script>
