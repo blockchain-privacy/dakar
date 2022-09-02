@@ -19,11 +19,14 @@ const (
 	routeAddressOutputRange           string = "addressOutputRange"
 	routeBlockRange                   string = "blkRange"
 	routeCreateUser                   string = "createUser"
+	routeCreateIdentity               string = "createIdentity"
 	routeGetUsers                     string = "getUsers"
 	routeDeleteUser                   string = "deleteUser"
+	routeDeleteIdentity               string = "deleteIdentity"
 	routeLogin                        string = "login"
 	routeLogout                       string = "logout"
 	routeModifyUser                   string = "modifyUser"
+	routeModifyIdentity               string = "modifyIdentity"
 	routeShortestTxPath               string = "shortestTransactionPath"
 	routeConnectionLookup             string = "connectionLookup"
 	routeClusterLookup                string = "clusterLookup"
@@ -133,6 +136,11 @@ func GetRouteCreateUser() string {
 	return getRoute(routeCreateUser)
 }
 
+// GetRouteCreateIdentity returns a route
+func GetRouteCreateIdentity() string {
+	return getRoute(routeCreateIdentity)
+}
+
 // GetRouteGetUsers returns a route
 func GetRouteGetUsers() string {
 	return getRoute(routeGetUsers)
@@ -141,6 +149,11 @@ func GetRouteGetUsers() string {
 // GetRouteDeleteUser returns a route
 func GetRouteDeleteUser() string {
 	return getRoute(routeDeleteUser)
+}
+
+// GetRouteDeleteIdentity returns a route
+func GetRouteDeleteIdentity() string {
+	return getRoute(routeDeleteIdentity)
 }
 
 // GetRouteLogin returns a route
@@ -156,6 +169,11 @@ func GetRouteLogout() string {
 // GetRouteModifyUser returns a route
 func GetRouteModifyUser() string {
 	return getRoute(routeModifyUser)
+}
+
+// GetRouteModifyIdentity returns a route
+func GetRouteModifyIdentity() string {
+	return getRoute(routeModifyIdentity)
 }
 
 // GetRouteShortestTransactionPath returns a route
