@@ -104,15 +104,15 @@ func main() {
 		return
 	}
 
-	info("AlterSchemaAddKratosID starting ...")
-	if err := db.AlterSchemaAddKratosID(dgraph); err != nil {
+	info("AlterSchemaAddSpendingGaps starting ...")
+	if err := db.AlterSchemaAddSpendingGaps(dgraph); err != nil {
 		info(err)
 		return
 	}
-	info("AlterSchemaAddKratosID done")
+	info("AlterSchemaAddSpendingGaps done")
 
 	info("increasing schema version ...")
-	err = status.SetSchemaVersion(dgraph, 3)
+	err = status.SetSchemaVersion(dgraph, 2)
 	if err != nil {
 		info(err)
 		return
