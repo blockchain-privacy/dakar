@@ -879,6 +879,7 @@ func (s *Server) handlerCreateUser() http.Handler {
 }
 
 // API pattern: "/api/v1/createIdentity/"
+// handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -894,6 +895,7 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 }
 
 // API pattern: "/api/v1/deleteIdentity/<identityUID>"
+// handlerDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -911,6 +913,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 }
 
 // API pattern: "/api/v1/modifyIdentity/"
+// handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
