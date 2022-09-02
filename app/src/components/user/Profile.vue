@@ -12,6 +12,7 @@
                   :flow="settingsFlow"
                   :form-id="formID"
                   @submit="handleOrySubmitSettings"/>
+        <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
       </v-card-text>
     </v-card>
   </v-card>
