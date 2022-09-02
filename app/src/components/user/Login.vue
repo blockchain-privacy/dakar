@@ -23,50 +23,21 @@
                 <h3 class="text-h3 font-weight-bold text-center">
                   Welcome!
                 </h3>
-                <v-form ref="loginForm" class="mt-4">
-                  <v-text-field
-                      autocomplete="username"
-                      name="username"
-                      v-model="email.value"
-                      label="E-mail"
-                      :prepend-inner-icon="icon.mdiEmail"
-                      type="email"
-                      :disabled="isSubmittingForm"
-                      :rules="rules.emailRules"
-                      @keydown.enter="submitForm"/>
-                  <v-text-field
-                      label="Password"
-                      name="password"
-                      autocomplete="current-password"
-                      :prepend-inner-icon="icon.mdiLockOutline"
-                      v-model="password.value"
-                      :disabled="isSubmittingForm"
-                      :type="password.show ? 'text' : 'password'"
-                      :append-icon="password.show ?  icon.mdiEye : icon.mdiEyeOff"
-                      @click:append="password.show = !password.show"
-                      :hint="`At least ${passwordMinCharacters} characters`"
-                      :rules="rules.passwordRules"
-                      @keydown.enter="submitForm"/>
-                  <v-alert type="error" v-if="loginFailed" dense>
-                    Login failed!
-                  </v-alert>
-                  <v-btn
-                      :loading="isSubmittingForm"
-                      :disabled="isSubmittingForm"
-                      block
-                      class="font-weight-bold" color="primary darken-1"
-                      @click="submitForm">
-                    Login
-                  </v-btn>
-                </v-form>
+                <ory-flow v-if="loginFlow"
+                          :flow="loginFlow"
+                          :form-id="formID"
+                          @submit="handleOrySubmitLogin"/>
+                <v-skeleton-loader
+                    v-else
+                    class="mx-auto"
+                    type="article, actions"/>
                 <NamedDivider title="Or"/>
-                <div class="text-center">
-                  <v-btn disabled
-                         block
-                         class="font-weight-bold" color="primary darken-1" large to="/">
-                    Register
-                  </v-btn>
-                </div>
+                <v-btn
+                    :to="{name: routeAccountRecovery}"
+                    block
+                    class="font-weight-bold" color="primary darken-1">
+                  Recover Account
+                </v-btn>
               </div>
             </v-card>
           </v-col>
@@ -83,11 +54,11 @@ import {
 import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
-  PASSWORD_MAX_CHARACTERS, ROUTE_USER_LOGIN, DEFAULT_SETTINGS, APPLICATION_SUBTITLE,
+  PASSWORD_MAX_CHARACTERS, APPLICATION_SUBTITLE, ROUTE_NAME_ACCOUNT_RECOVERY,
 } from '../../constants';
-import {
-  doPost, emailRules, getLocalSettings, passwordRules, setActionDate,
-} from '../../utilities';
+import { emailRules, passwordRules } from '../../utilities';
+import handleGetFlowError from '../../kratos';
+import OryFlow from './flows/OryFlow.vue';
 
 function goToPage(context, pageObj) {
   context.$router.push(pageObj);
@@ -99,7 +70,7 @@ function goToRoot(context) {
 
 export default {
   name: 'Login',
-  components: { NamedDivider },
+  components: { OryFlow, NamedDivider },
   data() {
     return {
       icon: {
@@ -111,6 +82,7 @@ export default {
       applicationSubtitle: APPLICATION_SUBTITLE,
       passwordMinCharacters: PASSWORD_MIN_CHARACTERS,
       passwordMaxCharacters: PASSWORD_MAX_CHARACTERS,
+      routeAccountRecovery: ROUTE_NAME_ACCOUNT_RECOVERY,
       rules: { passwordRules, emailRules },
       email: {
         value: '',
@@ -119,15 +91,18 @@ export default {
         value: '',
         show: false,
       },
+      loginFlow: null,
+      formID: 'login-form',
+      orySession: null,
     };
   },
   computed: {
-    userData: {
+    session: {
       get() {
-        return this.$store.getters.getActiveUser;
+        return this.$store.getters.getSession;
       },
       set(value) {
-        this.$store.dispatch('setActiveUser', value);
+        this.$store.dispatch('setSession', value);
       },
     },
     failedRoute: {
@@ -138,85 +113,96 @@ export default {
         this.$store.dispatch('setFailedRoute', value);
       },
     },
-    settings: {
-      get() {
-        return this.$store.getters.getSettings;
-      },
-      set(value) {
-        this.$store.dispatch('setSettings', value);
-      },
-    },
   },
   methods: {
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
-    validateLoginForm() {
-      return this.$refs.loginForm.validate();
-    },
     leave() {
-      if (this.failedRoute) {
+      if (this.loginFlow.return_to) {
+        window.location.href = this.loginFlow.return_to;
+      } else if (this.failedRoute) {
         goToPage(this, this.failedRoute);
         this.failedRoute = null;
       } else goToRoot(this);
     },
-    sendLoginRequest() {
-      this.isSubmittingForm = true;
-      this.loginFailed = false;
+    handleOrySubmitLogin(formID) {
+      const form = document.getElementById(formID);
+      if (!form || !this.loginFlow.ui.action) return;
 
-      doPost(
-        ROUTE_USER_LOGIN,
-        this.$router,
-        this.$store,
-        { pw: this.password.value, email: this.email.value },
-      )
-        .then((data) => {
-          if (data.success === undefined
-                || data.user === undefined) throw Error('error logging in.');
-          if (data.success === false) {
-            throw Error(data.msg);
+      const body = Object.fromEntries(new FormData(form));
+      const { flow } = this.$route.query;
+      this.ory.submitSelfServiceLoginFlow(flow, JSON.stringify(body))
+        .then((response) => {
+          if (response.status === 200 && response.data && response.data.session) {
+            this.session = response.data.session;
+            this.leave();
+            return;
           }
 
-          // set user data
-          this.userData = setActionDate(data.user);
+          // something went wrong and we need to display some data
+          if (response.data && response.data.ui) {
+            this.setFlowData(response.data);
+          }
 
-          // load settings from localStorage
-          const localStorageSettingsData = getLocalSettings();
-          if (localStorageSettingsData !== null) {
-            this.settings = localStorageSettingsData;
-            // dark mode according to settings
-            this.$vuetify.theme.dark = this.settings.dark;
+          if (response.error && response.error.reason) this.setErrorMessage(response.error.reason);
+        })
+        .catch((err) => {
+          if (err.response && err.response.data && err.response.data.ui) {
+            this.setFlowData(err.response.data);
           } else {
-            const defaultSettings = DEFAULT_SETTINGS;
-            defaultSettings.dark = this.$vuetify.theme.dark;
-            this.settings = defaultSettings;
+            handleGetFlowError(this.$router, this.$store, err).catch((e) => {
+              this.setErrorMessage(e);
+            });
           }
-
-          // user is logged in -> leave login page
-          this.leave();
-        })
-        .catch((error) => {
-          this.setErrorMessage(error);
-          this.loginFailed = true;
-        })
-        .finally(() => {
-          this.isSubmittingForm = false;
         });
     },
-    submitForm() {
-      // already submitting
-      if (this.isSubmittingForm) return;
-      this.loginFailed = false;
-      if (!this.validateLoginForm()) {
-        this.isSubmittingForm = false;
-        return;
-      }
+    initFlow() {
+      const { flow } = this.$route.query;
 
-      this.sendLoginRequest();
+      if (typeof flow !== 'string') {
+        // if there's no flow in our route,
+        // we need to initialize our login flow
+        this.initLoginFlow();
+      } else {
+        this.ory.getSelfServiceLoginFlow(flow)
+          .then((d) => this.setFlowData(d.data))
+          .catch((err) => {
+            if (err.ui) this.setFlowData(err);
+            else handleGetFlowError(this.$router, this.$store, err);
+          });
+      }
+    },
+    initLoginFlow() {
+      const { refresh, aal, returnTo } = this.$route.query;
+
+      this.ory.initializeSelfServiceLoginFlowForBrowsers(refresh, aal, returnTo)
+        .then((d) => this.setFlowData(d.data))
+        .catch((err) => {
+          if (err.ui) this.setFlowData(err);
+          else handleGetFlowError(this.$router, this.$store, err);
+        });
+    },
+    setFlowData(d) {
+      this.loginFlow = d;
+      if (!this.$route.query.flow || this.$route.query.flow !== d.id) {
+        this.$router.replace({ query: { flow: d.id } });
+      }
     },
   },
   mounted() {
     document.title = `Login - ${PAGE_TITLE}`;
+
+    this.initFlow();
+  },
+  watch: {
+    $route(to) {
+      if (!to.query.flow) {
+        // this happens if the users manually navigates to the route of this page,
+        // in this case flow is not set and needs to be reinitialized
+        this.initFlow();
+      }
+    },
   },
 };
 </script>
