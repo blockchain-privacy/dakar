@@ -18,7 +18,7 @@
             <v-toolbar flat class="hidden-sm-and-up">
               <v-text-field
                   v-model="search"
-                  :append-icon="icon.mdiMagnify"
+                  :append-icon="icons.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -26,14 +26,7 @@
               ></v-text-field>
               <v-spacer></v-spacer>
               <v-btn outlined @click="refreshUsers" :disabled="isLoading">
-                <v-icon>{{ icon.mdiRefresh }}</v-icon>
-              </v-btn>
-              <v-btn
-                  outlined
-                  class="ml-1"
-                  @click="showCreateDialog">
-                <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
-                <div class="ml-2 hidden-sm-and-down">Create User</div>
+                <v-icon>{{ icons.mdiRefresh }}</v-icon>
               </v-btn>
             </v-toolbar>
             <v-toolbar flat class="hidden-xs-only">
@@ -41,7 +34,7 @@
               <v-spacer></v-spacer>
               <v-text-field
                   v-model="search"
-                  :append-icon="icon.mdiMagnify"
+                  :append-icon="icons.mdiMagnify"
                   label="Filter users"
                   single-line
                   hide-details
@@ -49,32 +42,10 @@
               ></v-text-field>
               <v-spacer></v-spacer>
               <v-btn outlined @click="refreshUsers" :disabled="isLoading">
-                <v-icon>{{ icon.mdiRefresh }}</v-icon>
+                <v-icon>{{ icons.mdiRefresh }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">Refresh</div>
               </v-btn>
-              <v-btn
-                  outlined
-                  class="ml-1"
-                  @click="showCreateDialog">
-                <v-icon>{{ icon.mdiAccountPlus }}</v-icon>
-                <div class="ml-2 hidden-sm-and-down">Create User</div>
-              </v-btn>
             </v-toolbar>
-          </template>
-          <template v-slot:[`item.actions`]="{ item }">
-            <v-icon
-                small
-                class="mr-2"
-                :disabled="isLoading"
-                @click="editItem(item)">
-              {{ icon.mdiPencil }}
-            </v-icon>
-            <v-icon
-                small
-                :disabled="isLoading"
-                @click="showDeleteDialog(item)">
-              {{ icon.mdiDelete }}
-            </v-icon>
           </template>
           <template v-slot:[`item.created`]="{ item }">
             <span>{{ new Date(item.created).toLocaleString() }}</span>
@@ -83,7 +54,95 @@
             <span>{{ new Date(item.modified).toLocaleString() }}</span>
           </template>
         </v-data-table>
-        <v-dialog v-model="showCreateUserDialog" max-width="500px">
+        <v-data-table
+            :headers="identityHeaders"
+            :items="this.identities?this.identities:[]"
+            :search="search"
+            :loading="this.isLoading || !this.identities"
+            item-key="id"
+            sort-by="modified"
+            sort-desc
+            class="elevation-4 mt-2">
+          <template v-slot:top>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-toolbar-title>Identities</v-toolbar-title>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-text-field
+                  v-model="search"
+                  :append-icon="icons.mdiMagnify"
+                  label="Filter users"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+              <v-spacer></v-spacer>
+              <v-btn outlined @click="refreshUsers" :disabled="isLoading">
+                <v-icon>{{ icons.mdiRefresh }}</v-icon>
+              </v-btn>
+              <v-btn
+                  outlined
+                  class="ml-1"
+                  @click="showCreateDialog">
+                <v-icon>{{ icons.mdiAccountPlus }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Create Identity</div>
+              </v-btn>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-xs-only">
+              <v-toolbar-title>User Administration</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-text-field
+                  v-model="search"
+                  :append-icon="icons.mdiMagnify"
+                  label="Filter users"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+              <v-spacer></v-spacer>
+              <v-btn outlined @click="refreshUsers" :disabled="isLoading">
+                <v-icon>{{ icons.mdiRefresh }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Refresh</div>
+              </v-btn>
+              <v-btn
+                  outlined
+                  class="ml-1"
+                  @click="showCreateDialog">
+                <v-icon>{{ icons.mdiAccountPlus }}</v-icon>
+                <div class="ml-2 hidden-sm-and-down">Create Identity</div>
+              </v-btn>
+            </v-toolbar>
+          </template>
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-icon
+                small
+                class="mr-2"
+                :disabled="isLoading"
+                @click="editIdentity(item)">
+              {{ icons.mdiPencil }}
+            </v-icon>
+            <v-icon
+                small
+                class="mr-2"
+                :disabled="isLoading"
+                @click="showDeleteDialog(item)">
+              {{ icons.mdiDelete }}
+            </v-icon>
+            <v-icon
+                small
+                :disabled="isLoading"
+                @click="showPropertyDialog(item)">
+              {{ icons.mdiUnfoldMoreVertical }}
+            </v-icon>
+          </template>
+          <template v-slot:[`item.created_at`]="{ item }">
+            <span>{{ new Date(item.created_at).toLocaleString() }}</span>
+          </template>
+          <template v-slot:[`item.updated_at`]="{ item }">
+            <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+          </template>
+        </v-data-table>
+        <v-dialog v-model="showCreateIdentityDialog" max-width="500px">
           <v-card>
             <v-card-title>
               <span class="text-h5">{{ formTitle }}</span>
@@ -91,7 +150,7 @@
             <v-card-text>
               <v-container>
                 <v-row>
-                  <v-form ref="modifyUserForm">
+                  <v-form ref="modifyIdentityForm">
                     <v-text-field
                         v-model="editedItem.email"
                         label="E-mail"
@@ -111,25 +170,25 @@
             <v-card-actions>
               <v-spacer></v-spacer>
               <v-btn color="blue darken-1" text @click="close">Cancel</v-btn>
-              <v-btn color="blue darken-1" text @click="save">Save</v-btn>
+              <v-btn color="blue darken-1" text @click="saveIdentity">Save</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
         <v-dialog
-            v-model="showDeleteUserDialog"
+            v-model="showDeleteIdentityDialog"
             max-width="500px"
-            v-if="this.userToDelete">
+            v-if="this.identityToDelete">
           <v-card>
             <v-card-title>
-              <span class="text-h5">Delete User</span>
+              <span class="text-h5">Delete Identity</span>
             </v-card-title>
             <v-card-text>
               <p class="font-weight-black text-body-1 my-0">
-                Do you really want to delete the user?</p>
+                Do you really want to delete the identity?</p>
               <p class="font-weight-black text-body-1 my-0">
-                Uid: {{ this.userToDelete.uid }} </p>
+                ID: {{ this.identityToDelete.id }} </p>
               <p class="font-weight-black text-body-1">
-                E-mail: {{ this.userToDelete.email }} </p>
+                E-mail: {{ this.identityToDelete.email }} </p>
             </v-card-text>
             <v-card-actions>
               <v-spacer></v-spacer>
@@ -137,9 +196,19 @@
               <v-btn
                   color="blue darken-1"
                   text
-                  @click="deleteItem(userToDelete)">Yes, delete user
+                  @click="deleteIdentity(identityToDelete)">Yes, delete identity
               </v-btn>
             </v-card-actions>
+          </v-card>
+        </v-dialog>
+        <v-dialog
+            v-model="showIdentityPropertyDialog"
+            max-width="700px">
+          <v-card>
+            <v-card-title>Identity Properties</v-card-title>
+            <v-card-text>
+              <v-textarea :value="identityPropertyDialogData" auto-grow readonly outlined/>
+            </v-card-text>
           </v-card>
         </v-dialog>
       </v-col>
@@ -149,13 +218,10 @@
 
 <script>
 import {
-  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
+  mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify, mdiUnfoldMoreVertical,
 } from '@mdi/js';
 import {
-  PAGE_TITLE, ROUTE_USER_LIST,
-  ROUTE_USER_CREATE,
-  ROUTE_USER_DELETE,
-  ROUTE_USER_MODIFY,
+  PAGE_TITLE, ROUTE_USER_LIST, ROUTE_IDENTITY_CREATE, ROUTE_IDENTITY_MODIFY, ROUTE_IDENTITY_DELETE,
 } from '../../constants';
 import {
   emailRules, doGet, doPost, handleError,
@@ -164,13 +230,14 @@ import {
 export default {
   name: 'Administration',
   data: () => ({
-    icon: {
-      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify,
+    icons: {
+      mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify, mdiUnfoldMoreVertical,
     },
     isLoading: false,
-    showCreateUserDialog: false,
-    showDeleteUserDialog: false,
-    userToDelete: null,
+    showCreateIdentityDialog: false,
+    showDeleteIdentityDialog: false,
+    showIdentityPropertyDialog: false,
+    identityToDelete: null,
     search: '',
     headers: [
       {
@@ -187,6 +254,29 @@ export default {
       },
       {
         text: 'Modified', value: 'modified',
+      },
+    ],
+    identityHeaders: [
+      {
+        text: 'ID', value: 'id', align: 'start', sortable: false,
+      },
+      {
+        text: 'E-Mail', value: 'email',
+      },
+      {
+        text: 'State', value: 'state',
+      },
+      {
+        text: 'Schema ID', value: 'schema_id',
+      },
+      {
+        text: 'Roles', value: 'roles',
+      },
+      {
+        text: 'Created', value: 'created_at',
+      },
+      {
+        text: 'Updated', value: 'updated_at',
       },
       {
         text: 'Actions', value: 'actions', sortable: false, align: 'end',
@@ -211,10 +301,12 @@ export default {
       roles: [],
     },
     users: null,
+    identities: null,
+    identityPropertyDialogData: null,
   }),
   computed: {
     formTitle() {
-      return this.editedIndex === -1 ? 'Create User' : 'Edit User';
+      return this.editedIndex === -1 ? 'Create Identity' : 'Edit Identity';
     },
   },
   watch: {
@@ -228,7 +320,9 @@ export default {
     },
     loadUserList() {
       return doGet(ROUTE_USER_LIST, this.$router, this.$store).then((data) => {
-        this.users = data;
+        if (!data.success) throw Error('error getting user data');
+        this.users = data.users;
+        this.identities = data.identities;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
         handleError(this.$store, e);
@@ -240,38 +334,53 @@ export default {
       await this.loadUserList();
       this.isLoading = false;
       this.search = '';
-      if (!this.users) return;
+      if (!this.users || !this.identities) return;
 
       this.users = this.users.map((d) => {
         // convert dates to unix time so, they can be sorted in data table
         d.modified = new Date(d.modified).getTime();
         d.created = new Date(d.created).getTime();
-
         d.roles = d.roles.map((f) => f.name);
         return d;
       });
+
+      this.identities = this.identities.map((d) => {
+        // convert dates to unix time so, they can be sorted in data table
+        d.updated_at = new Date(d.updated_at).getTime();
+        d.created_at = new Date(d.created_at).getTime();
+        d.email = d.traits.email;
+
+        if (d.metadata_public && d.metadata_public.roles) {
+          d.roles = d.metadata_public.roles.map((f) => f);
+        }
+
+        return d;
+      });
     },
-    editItem(item) {
-      this.editedIndex = this.users.indexOf(item);
+    editIdentity(item) {
+      this.editedIndex = this.identities.indexOf(item);
       this.editedItem = { ...item };
-      this.showCreateUserDialog = true;
+      this.showCreateIdentityDialog = true;
     },
     showCreateDialog() {
-      this.showCreateUserDialog = true;
       this.editedIndex = -1;
       this.editedItem = { ...this.defaultItem };
-      this.showCreateUserDialog = true;
+      this.showCreateIdentityDialog = true;
     },
-    showDeleteDialog(user) {
-      this.showDeleteUserDialog = true;
-      this.userToDelete = user;
+    showDeleteDialog(identity) {
+      this.showDeleteIdentityDialog = true;
+      this.identityToDelete = identity;
     },
-    deleteItem(user) {
+    showPropertyDialog(identity) {
+      this.showIdentityPropertyDialog = true;
+      this.identityPropertyDialogData = JSON.stringify(identity, null, '\t');
+    },
+    deleteIdentity(identity) {
       this.isLoading = true;
 
-      doGet(ROUTE_USER_DELETE, this.$router, this.$store, user.uid)
+      doGet(ROUTE_IDENTITY_DELETE, this.$router, this.$store, identity.id)
         .then((data) => {
-          if (data.success === undefined) throw Error('error deleting user');
+          if (data.success === undefined) throw Error('error deleting identity');
           if (data.success === false) {
             throw Error(data.msg);
           }
@@ -286,26 +395,28 @@ export default {
         });
     },
     close() {
-      this.showCreateUserDialog = false;
+      this.showCreateIdentityDialog = false;
       this.$nextTick(() => {
         this.editedItem = { ...this.defaultItem };
         this.editedIndex = -1;
       });
     },
     closeDeletionDialog() {
-      this.showDeleteUserDialog = false;
-      this.userToDelete = null;
+      this.showDeleteIdentityDialog = false;
+      this.identityToDelete = null;
     },
     validateForm() {
-      return this.$refs.modifyUserForm.validate();
+      if (this.$refs.modifyUserForm) return this.$refs.modifyUserForm.validate();
+
+      return this.$refs.modifyIdentityForm.validate();
     },
-    save() {
+    saveIdentity() {
       if (!this.validateForm()) return;
 
       if (this.editedIndex > -1) {
         this.isLoading = true;
-        doPost(ROUTE_USER_MODIFY, this.$router, this.$store, {
-          uid: this.editedItem.uid,
+        doPost(ROUTE_IDENTITY_MODIFY, this.$router, this.$store, {
+          uid: this.editedItem.id,
           email: this.editedItem.email,
           roles: this.editedItem.roles.map((d) => ({ name: d })),
         })
@@ -325,9 +436,9 @@ export default {
       } else {
         this.isLoading = true;
 
-        doPost(ROUTE_USER_CREATE, this.$router, this.$store, this.editedItem)
+        doPost(ROUTE_IDENTITY_CREATE, this.$router, this.$store, this.editedItem)
           .then((data) => {
-            if (data.success === undefined) throw Error('error creating user');
+            if (data.success === undefined) throw Error('error creating identity');
             if (data.success === false) {
               throw Error(data.msg);
             }
