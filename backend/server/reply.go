@@ -15,7 +15,6 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"backend/user"
-	"context"
 	"io"
 	"strings"
 	"time"
@@ -120,19 +119,16 @@ func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userRep
 	return
 }
 
-func getUserReply(dgraph external.Database, auth *ory.APIClient) (reply usersReply) {
+func getUserReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply usersReply) {
 	users, err := dbus.GetUsers(dgraph)
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
-	timeout, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancelFunc()
-
-	identities, resp, err := auth.V0alpha2Api.AdminListIdentities(timeout).Execute()
+	identities, _, err := adminAuth.V0alpha2Api.AdminListIdentities(r.Context()).Execute()
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err, resp)
+		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -285,6 +281,9 @@ func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUse
 				return
 			}
 		} else if emailUser.UID != modRequest.UID {
+			// duplicate email because the UID of
+			// the tokenUser and the UID identified
+			// by the email address from the db are not equal
 			reply.Msg = "duplicate email"
 			info(cliutil.ShowCallInfo(), err, modRequest)
 			return
@@ -1333,6 +1332,151 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 	reply.Success = true
 	reply.IsExclusion = status
+
+	return
+}
+
+// getCreateIdentityReply reads the data from body and constructs a identityReply
+func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
+	var frontEndUser dbus.FrontendUserRoles
+
+	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
+		reply.Msg = msgCouldNotDecodeUser
+		return
+	}
+
+	if !frontEndUser.IsValid() {
+		reply.Msg = "user not valid"
+		return
+	}
+
+	identityRequest := adminAuth.V0alpha2Api.AdminCreateIdentity(r.Context())
+
+	_, _, err := identityRequest.AdminCreateIdentityBody(ory.AdminCreateIdentityBody{
+		SchemaId:       "default_v0",
+		Traits:         map[string]interface{}{"email": frontEndUser.Email},
+		MetadataPublic: map[string][]string{"roles": frontEndUser.Roles},
+	}).Execute()
+	if err != nil {
+		reply.Msg = "could not create identity"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// getDeleteIdentityReply deletes the given user
+func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request, delUID string) (reply identityReply) {
+	_, err := adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute()
+	if err != nil {
+		reply.Msg = "could not delete identity"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	reply.Success = true
+
+	return
+}
+
+// setRoles adds the given roles to the metadata
+func setRoles(metaDataPublic any, roles []string) error {
+	metadata, ok := metaDataPublic.(map[string]any)
+	if !ok {
+		return errors.New("identity has no public metadata")
+	}
+
+	metadata["roles"] = roles
+
+	return nil
+}
+
+// setEmail sets the given email to the traits
+func setEmail(traits any, email string) error {
+	metadata, ok := traits.(map[string]any)
+	if !ok {
+		return errors.New("identity has no traits")
+	}
+
+	metadata["email"] = email
+
+	return nil
+}
+
+// getModifyIdentityReply modifies an identity with the given values in the request body
+func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
+	// get clients user state
+	var modRequest dbus.ModifyUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
+		reply.Msg = msgCouldNotDecodeUser
+		return
+	}
+
+	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0) {
+		reply.Msg = "nothing to change"
+		return
+	}
+
+	const msgErrModifyingUser = "error modifying user"
+
+	initialIdentity, _, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), modRequest.UID).Execute()
+	if err != nil {
+		reply.Msg = msgErrModifyingUser
+		info(cliutil.ShowCallInfo(), err, modRequest)
+	}
+
+	// check email
+	if len(modRequest.Email) > 0 {
+		if !dbus.IsValidEmail(modRequest.Email) {
+			reply.Msg = "invalid email"
+			return
+		}
+
+		// replace roles
+		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
+			reply.Msg = "invalid role"
+			info(cliutil.ShowCallInfo(), "could not set", modRequest.Email, "for user", modRequest.UID)
+			return
+		}
+	}
+
+	// handle role change
+	if len(modRequest.Roles) > 0 {
+		var roles []string
+		// check if all roles exists
+		for _, role := range modRequest.Roles {
+			if _, err := user.GetRoleByName(role.Name); err != nil {
+				reply.Msg = "invalid role"
+				info(cliutil.ShowCallInfo(), "invalid role", role.Name, "for identity", modRequest.UID)
+				return
+			}
+			roles = append(roles, role.Name)
+		}
+
+		// replace roles
+		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
+			reply.Msg = "invalid role"
+			info(cliutil.ShowCallInfo(), "could not add", roles, "to user", modRequest.UID)
+			return
+		}
+	}
+
+	if _, _, err = adminAuth.V0alpha2Api.AdminUpdateIdentity(r.Context(), modRequest.UID).AdminUpdateIdentityBody(ory.AdminUpdateIdentityBody{
+		MetadataAdmin:  initialIdentity.MetadataAdmin,
+		MetadataPublic: initialIdentity.MetadataPublic,
+		SchemaId:       initialIdentity.SchemaId,
+		State:          *initialIdentity.State,
+		Traits:         initialIdentity.Traits.(map[string]any),
+	}).Execute(); err != nil {
+		reply.Msg = msgErrModifyingUser
+		info(cliutil.ShowCallInfo(), err, modRequest)
+		return
+	}
+
+	reply.Success = true
 
 	return
 }

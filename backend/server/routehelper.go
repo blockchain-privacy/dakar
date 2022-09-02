@@ -85,6 +85,11 @@ type userReply struct {
 	Msg     string `json:"msg,omitempty"`
 }
 
+type identityReply struct {
+	Success bool   `json:"success"`
+	Msg     string `json:"msg,omitempty"`
+}
+
 type backendUserReply struct {
 	Success bool                           `json:"success"`
 	Msg     string                         `json:"msg,omitempty"`
