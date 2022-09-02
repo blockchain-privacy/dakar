@@ -51,8 +51,7 @@ export default {
       this.ory.initializeSelfServiceRecoveryFlowForBrowsers()
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
-          if (err.ui) this.setFlowData(err);
-          else handleGetFlowError(this.$router, this.$store, err);
+          handleGetFlowError(this.$router, this.$store, err);
         });
     },
     setFlowData(d) {
@@ -100,8 +99,7 @@ export default {
       this.ory.getSelfServiceRecoveryFlow(flow)
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
-          if (err.ui) this.setFlowData(err);
-          else handleGetFlowError(this.$router, this.$store, err);
+          handleGetFlowError(this.$router, this.$store, err);
         });
     }
   },

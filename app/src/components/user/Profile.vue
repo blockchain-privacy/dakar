@@ -55,8 +55,7 @@ export default {
       this.ory.initializeSelfServiceSettingsFlowForBrowsers()
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
-          if (err.ui) this.setFlowData(err);
-          else handleGetFlowError(this.$router, this.$store, err);
+          handleGetFlowError(this.$router, this.$store, err);
         });
     },
     setFlowData(d) {
@@ -119,8 +118,7 @@ export default {
             this.refreshSession();
           })
           .catch((err) => {
-            if (err.ui) this.setFlowData(err);
-            else handleGetFlowError(this.$router, this.$store, err);
+            handleGetFlowError(this.$router, this.$store, err);
           });
       }
     },

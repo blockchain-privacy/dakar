@@ -168,19 +168,17 @@ export default {
         this.ory.getSelfServiceLoginFlow(flow)
           .then((d) => this.setFlowData(d.data))
           .catch((err) => {
-            if (err.ui) this.setFlowData(err);
-            else handleGetFlowError(this.$router, this.$store, err);
+            handleGetFlowError(this.$router, this.$store, err);
           });
       }
     },
     initLoginFlow() {
-      const { refresh, aal, returnTo } = this.$route.query;
-
-      this.ory.initializeSelfServiceLoginFlowForBrowsers(refresh, aal, returnTo)
+      // set refresh to true, for the case when the local
+      // session data was deleted but the user is still logged in
+      this.ory.initializeSelfServiceLoginFlowForBrowsers(true)
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
-          if (err.ui) this.setFlowData(err);
-          else handleGetFlowError(this.$router, this.$store, err);
+          handleGetFlowError(this.$router, this.$store, err);
         });
     },
     setFlowData(d) {
