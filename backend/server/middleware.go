@@ -2,7 +2,9 @@ package server
 
 import (
 	"backend/cmd/cliutil"
+	dbus "backend/db/user"
 	"backend/user"
+	"errors"
 
 	"bytes"
 	"context"
@@ -114,6 +116,101 @@ func (s *Server) authorization() adapter {
 			}
 			// call next handler and add to the request context the user information
 			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), middlewareContextUser, newUser)))
+		})
+	}
+}
+
+// extractRoles tries to extract roles from the given metadata
+func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
+	metadata, ok := metaDataPublic.(map[string]any)
+	if !ok {
+		return nil, errors.New("identity has no public metadata")
+	}
+
+	rolesInterface, ok := metadata["roles"]
+	if !ok {
+		return nil, errors.New("identity has no roles")
+	}
+
+	roleInterfaces, ok := rolesInterface.([]any)
+	if !ok {
+		return nil, errors.New("roles could not be cast from interface")
+	}
+
+	var roles []dbus.Role
+
+	for _, r := range roleInterfaces {
+		roleString, ok := r.(string)
+		if ok {
+			roles = append(roles, dbus.Role{
+				Name: roleString,
+			})
+		}
+	}
+
+	return roles, nil
+}
+
+func (s *Server) authorization2() adapter {
+	return func(h http.Handler, route string) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session, _, err := s.auth.V0alpha2Api.ToSession(r.Context()).Cookie(r.Header.Get("Cookie")).Execute()
+			if err != nil {
+				sendRedirectMessage(w)
+				info(cliutil.ShowCallInfo(), err)
+				return
+			}
+
+			// check if session active and not expired
+			if session.Active == nil || session.ExpiresAt == nil ||
+				!*session.Active || time.Until(*session.ExpiresAt) <= 0 {
+				sendRedirectMessage(w)
+				return
+			}
+
+			if time.Until(*session.ExpiresAt) <= reissueDuration {
+				if _, _, extensionErr := s.adminAuth.V0alpha2Api.AdminExtendSession(r.Context(), session.Id).Execute(); extensionErr != nil {
+					sendRedirectMessage(w)
+					info(cliutil.ShowCallInfo(), extensionErr)
+					return
+				}
+			}
+
+			roles, err := extractRoles(session.Identity.MetadataPublic)
+			if err != nil {
+				sendRedirectMessage(w)
+				info(cliutil.ShowCallInfo(), err)
+				return
+			}
+
+			// check if route is allowed and get typed role
+			routeAllowed := false
+			for _, role := range roles {
+				routeRole, roleErr := user.GetRoleByName(role.Name)
+				if roleErr != nil {
+					writeUnauthorized(w, "")
+					info(cliutil.ShowCallInfo(), roleErr)
+					return
+				}
+
+				if routeRole.IsRouteAllowed(route) {
+					routeAllowed = true
+					break
+				}
+			}
+
+			if !routeAllowed {
+				writeUnauthorized(w, "route not allowed")
+				info(cliutil.ShowCallInfo(), session, "tried to access", route)
+				return
+			}
+
+			// call next handler and add to the request context the identity information
+			h.ServeHTTP(w,
+				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
+					ID:    session.Identity.Id,
+					Roles: roles,
+				})))
 		})
 	}
 }
