@@ -26,12 +26,6 @@ export default {
       },
     };
   },
-  computed: {
-    userData() {
-      // todo remove
-      return this.$store.getters.getActiveUser;
-    },
-  },
 };
 </script>
 

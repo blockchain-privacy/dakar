@@ -13,7 +13,7 @@
 <script>
 import Transaction from './Transaction.vue';
 import { PAGE_TITLE } from '../../constants';
-import { isPrivilegedUser, isAdminUser } from '../../utilities';
+import { isAdminIdentity, isPrivilegedIdentity } from '../../utilities';
 
 export default {
   name: 'TxLookup',
@@ -22,11 +22,11 @@ export default {
     data() {
       return this.$store.getters.getTransactionData;
     },
-    userData() {
-      return this.$store.getters.getActiveUser;
+    session() {
+      return this.$store.getters.getSession;
     },
     showHeuristicEditor() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+      return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
     },
   },
   methods: {

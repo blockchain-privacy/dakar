@@ -7,7 +7,7 @@
         {{ attribution.ts.toLocaleDateString() }}
       </div>
       <v-menu bottom left v-if="!attribution.isPublic ||
-       (attribution.isPublic && isAdminUser(userData))">
+       (attribution.isPublic && isAdminIdentity(session))">
         <template v-slot:activator="{ on, attrs }">
           <v-btn icon v-bind="attrs" v-on="on">
             <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
@@ -56,7 +56,7 @@ import { mdiDelete, mdiDotsVertical } from '@mdi/js';
 import { ROUTE_NAME_ADDRESS_PAGE } from '../../../constants';
 import DeleteAttribution from '../../dialogs/DeleteAttribution.vue';
 import AttributionTag from './AttributionTag.vue';
-import { isAdminUser } from '../../../utilities';
+import { isAdminIdentity } from '../../../utilities';
 
 // credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144
 function isValidHttpUrl(string) {
@@ -91,17 +91,12 @@ export default {
     };
   },
   computed: {
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
+    session() {
+      return this.$store.getters.getSession;
     },
   },
   methods: {
-    isAdminUser,
+    isAdminIdentity,
     isValidHttpUrl,
     deleteItem(clusterUid, tag, isPublic) {
       this.deleteAttributionUid = clusterUid;

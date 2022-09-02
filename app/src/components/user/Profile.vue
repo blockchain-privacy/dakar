@@ -34,14 +34,6 @@ export default {
     };
   },
   computed: {
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
-    },
     session: {
       get() {
         return this.$store.getters.getSession;
