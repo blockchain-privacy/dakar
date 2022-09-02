@@ -27,45 +27,6 @@
         <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
       </v-btn>
     </PageMenu>
-<!--    todo remove -->
-    <v-menu offset-y style="z-index: 99" v-if="this.userData">
-      <template v-slot:activator="{ on, attrs }">
-        <v-btn
-            icon
-            v-bind="attrs"
-            v-on="on">
-          <v-icon>{{ icon.mdiAccount }}</v-icon>
-        </v-btn>
-      </template>
-      <v-list nav dense>
-        <v-list-item>
-          <v-list-item-icon>
-            <v-icon>{{ icon.mdiAccountCircle }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title> {{ this.userData.email }}</v-list-item-title>
-        </v-list-item>
-        <v-divider/>
-        <v-list-item :to="{name: route.userProfilePage}">
-          <v-list-item-icon>
-            <v-icon>{{ icon.mdiCog }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Settings</v-list-item-title>
-        </v-list-item>
-        <v-list-item>
-          <v-list-item-icon>
-            <v-icon>{{ icon.mdiWeatherNight }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Dark Mode</v-list-item-title>
-          <DarkModeSwitch class="mt-0 ml-2"/>
-        </v-list-item>
-        <v-list-item @click="logout">
-          <v-list-item-icon>
-            <v-icon color="red">{{ icon.mdiLogout }}</v-icon>
-          </v-list-item-icon>
-          <v-list-item-title>Logout</v-list-item-title>
-        </v-list-item>
-      </v-list>
-    </v-menu>
     <v-menu offset-y style="z-index: 99" v-if="this.session">
       <template v-slot:activator="{ on, attrs }">
         <v-btn
@@ -96,7 +57,7 @@
           <v-list-item-title>Dark Mode</v-list-item-title>
           <DarkModeSwitch class="mt-0 ml-2"/>
         </v-list-item>
-        <v-list-item @click="logout">
+        <v-list-item @click="initLogoutFlow">
           <v-list-item-icon>
             <v-icon color="red">{{ icon.mdiLogout }}</v-icon>
           </v-list-item-icon>
@@ -104,9 +65,8 @@
         </v-list-item>
       </v-list>
     </v-menu>
-<!--    todo remove userdata check-->
     <v-btn
-        v-if="!this.userData && !this.session"
+        v-if="!this.session"
         depressed
         color="primary"
         :to="{ name: route.userLoginPage }">
@@ -126,11 +86,10 @@ import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
   APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
-  ROUTE_NAME_USER_PROFILE_PAGE, ROUTE_USER_LOGOUT,
+  ROUTE_NAME_USER_PROFILE_PAGE,
 } from '../constants';
-import {
-  doGet, isAdminUser, resetLocal, isPrivilegedUser,
-} from '../utilities';
+import { resetLocal, isAdminIdentity, isPrivilegedIdentity } from '../utilities';
+import handleGetFlowError from '../kratos';
 
 export default {
   name: 'AppBar',
@@ -163,14 +122,6 @@ export default {
     };
   },
   computed: {
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
-    },
     settings: {
       get() {
         return this.$store.getters.getSettings;
@@ -188,10 +139,10 @@ export default {
       },
     },
     showUserAdmin() {
-      return isAdminUser(this.userData);
+      return isAdminIdentity(this.session);
     },
     isPrivilegedOrHigher() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+      return isPrivilegedIdentity(this.session) || this.showUserAdmin;
     },
   },
   methods: {
@@ -203,21 +154,24 @@ export default {
       // only change route if not already on page
       if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
-    logout() {
-      doGet(ROUTE_USER_LOGOUT, this.$router, this.$store)
-        .then((data) => {
-          if (data.success === undefined) throw Error('error logging out');
-          if (data.success === false) {
-            throw Error(data.msg);
+    initLogoutFlow() {
+      this.ory.createSelfServiceLogoutFlowUrlForBrowsers()
+        .then((d) => {
+          if (d.status === 200 && d.data.logout_token) {
+            return this.ory.submitSelfServiceLogoutFlow(d.data.logout_token);
           }
-          resetLocal();
-          this.userData = null;
-          this.settings = null;
-          this.session = null;
-          this.goToPage(this.route.rootPage);
+          return Promise.resolve();
         })
-        .catch((error) => {
-          this.setErrorMessage(error);
+        .then((d) => {
+          if (d.status === 204) {
+            resetLocal();
+            this.settings = null;
+            this.session = null;
+            this.goToPage(this.route.rootPage);
+          }
+        })
+        .catch((err) => {
+          handleGetFlowError(this.$router, this.$store, err);
         });
     },
   },
