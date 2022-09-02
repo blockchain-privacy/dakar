@@ -1142,7 +1142,7 @@ func (s *Server) setupHandlers() {
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
-		limitMethod("GET"), s.authorization2(), s.useCache(time.Second*10), maxBody()))
+		limitMethod("GET"), s.kratosAuth(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(constants.GetRouteHeuristics(),
@@ -1173,13 +1173,13 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
-			limitMethod("POST"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteConnectionLookup(),
 		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
-			limitMethod("GET"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("GET"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
-			limitMethod("POST"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(constants.GetRouteClusterLookup(),
@@ -1255,14 +1255,14 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(constants.GetRouteDeleteUser(), adapt(s.handlerDeleteUser(), constants.GetRouteDeleteUser(),
 		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteGetUsers(), adapt(s.handlerGetUsers(), constants.GetRouteGetUsers(),
-		limitMethod("GET"), s.authorization2(), maxBody()))
+		limitMethod("GET"), s.kratosAuth(), maxBody()))
 	s.handler.Handle(constants.GetRouteModifyUser(), adapt(s.handlerModifyUser(), constants.GetRouteModifyUser(),
 		limitMethod("POST"), s.authorization(), maxBody()))
 
 	s.handler.Handle(constants.GetRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), constants.GetRouteCreateIdentity(),
-		limitMethod("POST"), s.authorization2(), maxBody()))
+		limitMethod("POST"), s.kratosAuth(), maxBody()))
 	s.handler.Handle(constants.GetRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), constants.GetRouteDeleteIdentity(),
-		limitMethod("GET"), s.authorization2(), maxBody()))
+		limitMethod("GET"), s.kratosAuth(), maxBody()))
 	s.handler.Handle(constants.GetRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), constants.GetRouteModifyIdentity(),
-		limitMethod("POST"), s.authorization2(), maxBody()))
+		limitMethod("POST"), s.kratosAuth(), maxBody()))
 }

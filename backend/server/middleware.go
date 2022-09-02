@@ -151,7 +151,7 @@ func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
 	return roles, nil
 }
 
-func (s *Server) authorization2() adapter {
+func (s *Server) kratosAuth() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, _, err := s.auth.V0alpha2Api.ToSession(r.Context()).Cookie(r.Header.Get("Cookie")).Execute()
