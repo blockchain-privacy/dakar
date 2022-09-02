@@ -863,7 +863,7 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/createUser"
+// API pattern: "/api/v1/createUser/"
 func (s *Server) handlerCreateUser() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -878,12 +878,59 @@ func (s *Server) handlerCreateUser() http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/createIdentity/"
+func (s *Server) handlerCreateIdentity() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getCreateIdentityReply(s.db, s.adminAuth, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteIdentity/<identityUID>"
+func (s *Server) handlerDeleteIdentity() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		identityUID := path.Base(r.URL.Path)
+
+		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, identityUID)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/modifyIdentity/"
+func (s *Server) handlerModifyIdentity() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		reply := getModifyIdentityReply(s.adminAuth, r)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // API pattern: "/api/v1/getUsers/"
 func (s *Server) handlerGetUsers() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getUserReply(s.db, s.auth)
+		reply := getUserReply(s.db, s.adminAuth, r)
 
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
@@ -1095,7 +1142,7 @@ func (s *Server) setupHandlers() {
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
-		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
+		limitMethod("GET"), s.authorization2(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(constants.GetRouteHeuristics(),
@@ -1126,13 +1173,13 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
-			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteConnectionLookup(),
 		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
-			limitMethod("GET"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("GET"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
-			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization2(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(constants.GetRouteClusterLookup(),
@@ -1208,7 +1255,14 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(constants.GetRouteDeleteUser(), adapt(s.handlerDeleteUser(), constants.GetRouteDeleteUser(),
 		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteGetUsers(), adapt(s.handlerGetUsers(), constants.GetRouteGetUsers(),
-		limitMethod("GET"), s.authorization(), maxBody()))
+		limitMethod("GET"), s.authorization2(), maxBody()))
 	s.handler.Handle(constants.GetRouteModifyUser(), adapt(s.handlerModifyUser(), constants.GetRouteModifyUser(),
 		limitMethod("POST"), s.authorization(), maxBody()))
+
+	s.handler.Handle(constants.GetRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), constants.GetRouteCreateIdentity(),
+		limitMethod("POST"), s.authorization2(), maxBody()))
+	s.handler.Handle(constants.GetRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), constants.GetRouteDeleteIdentity(),
+		limitMethod("GET"), s.authorization2(), maxBody()))
+	s.handler.Handle(constants.GetRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), constants.GetRouteModifyIdentity(),
+		limitMethod("POST"), s.authorization2(), maxBody()))
 }
