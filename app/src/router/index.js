@@ -1,7 +1,8 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import {
-  isAdminUser, isPrivilegedUser, isSessionExpired, isTokenTimedOut,
+  isAdminIdentity,
+  isAdminUser, isPrivilegedIdentity, isPrivilegedUser, isSessionExpired, isTokenTimedOut,
 } from '../utilities';
 import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
@@ -39,20 +40,17 @@ function getSessionData() {
 
 function isPrivileged() {
   const userData = getUserData();
-  if (!userData || !userData.roles || userData.roles.length === 0) {
-    return false;
-  }
+  const sessionData = getSessionData();
 
-  return isPrivilegedUser(userData) || isAdminUser(userData);
+  return isPrivilegedUser(userData) || isAdminUser(userData)
+      || isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
 }
 
 function isAdmin() {
   const userData = getUserData();
-  if (!userData || !userData.roles || userData.roles.length === 0) {
-    return false;
-  }
+  const sessionData = getSessionData();
 
-  return isAdminUser(userData);
+  return isAdminUser(userData) || isAdminIdentity(sessionData);
 }
 // todo remove userData checks
 function checkUserData(to, next, fn) {
