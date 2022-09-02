@@ -929,7 +929,7 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 }
 
 // API pattern: "/api/v1/getUsers/"
-func (s *Server) handlerGetUsers() http.Handler {
+func (s *Server) handlerGetIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -1253,15 +1253,8 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(constants.GetRouteLogout(), adapt(s.handlerLogout(),
 		constants.GetRouteLogout(), limitMethod("GET"), maxBody()))
 
-	s.handler.Handle(constants.GetRouteCreateUser(), adapt(s.handlerCreateUser(), constants.GetRouteCreateUser(),
-		limitMethod("POST"), s.authorization(), maxBody()))
-	s.handler.Handle(constants.GetRouteDeleteUser(), adapt(s.handlerDeleteUser(), constants.GetRouteDeleteUser(),
-		limitMethod("GET"), s.authorization(), maxBody()))
-	s.handler.Handle(constants.GetRouteGetUsers(), adapt(s.handlerGetUsers(), constants.GetRouteGetUsers(),
+	s.handler.Handle(constants.GetRouteGetIdentities(), adapt(s.handlerGetIdentity(), constants.GetRouteGetIdentities(),
 		limitMethod("GET"), s.kratosAuth(), maxBody()))
-	s.handler.Handle(constants.GetRouteModifyUser(), adapt(s.handlerModifyUser(), constants.GetRouteModifyUser(),
-		limitMethod("POST"), s.authorization(), maxBody()))
-
 	s.handler.Handle(constants.GetRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), constants.GetRouteCreateIdentity(),
 		limitMethod("POST"), s.kratosAuth(), maxBody()))
 	s.handler.Handle(constants.GetRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), constants.GetRouteDeleteIdentity(),

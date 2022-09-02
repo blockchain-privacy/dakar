@@ -221,7 +221,8 @@ import {
   mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus, mdiMagnify, mdiUnfoldMoreVertical,
 } from '@mdi/js';
 import {
-  PAGE_TITLE, ROUTE_USER_LIST, ROUTE_IDENTITY_CREATE, ROUTE_IDENTITY_MODIFY, ROUTE_IDENTITY_DELETE,
+  PAGE_TITLE, ROUTE_IDENTITY_LIST, ROUTE_IDENTITY_CREATE,
+  ROUTE_IDENTITY_MODIFY, ROUTE_IDENTITY_DELETE,
 } from '../../constants';
 import {
   emailRules, doGet, doPost, handleError,
@@ -319,7 +320,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     loadUserList() {
-      return doGet(ROUTE_USER_LIST, this.$router, this.$store).then((data) => {
+      return doGet(ROUTE_IDENTITY_LIST, this.$router, this.$store).then((data) => {
         if (!data.success) throw Error('error getting user data');
         this.users = data.users;
         this.identities = data.identities;
