@@ -1,8 +1,5 @@
 <template>
   <div>
-    <template v-if="flow.ui.messages" >
-      <ory-ui-message v-for="(msg,i) in flow.ui.messages" :key="i" :message="msg"/>
-    </template>
     <v-form v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`"
             :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
       <ory-ui-node
@@ -19,11 +16,10 @@
 <script>
 import { getNodeId } from '@ory/integrations/ui';
 import OryUiNode from './OryUiNode.vue';
-import OryUiMessage from './OryUiMessage.vue';
 
 export default {
   name: 'OryFlow',
-  components: { OryUiMessage, OryUiNode },
+  components: { OryUiNode },
   props: {
     flow: { type: Object, required: true },
     formId: { type: String, required: true },
@@ -53,9 +49,22 @@ export default {
   },
   methods: {
     getNodeId,
+    setMessage(msg, msgType) {
+      this.$store.dispatch('addMessage', { text: msg, type: msgType, temporary: true });
+    },
     propagateSubmitEvent(formID) {
       this.$emit('submit', formID);
     },
+    displayMessages() {
+      if (!this.flow.ui || !this.flow.ui.messages) return;
+      this.flow.ui.messages.forEach((msg) => this.setMessage(msg.text, msg.type));
+    },
+  },
+  updated() {
+    this.displayMessages();
+  },
+  mounted() {
+    this.displayMessages();
   },
 };
 </script>
