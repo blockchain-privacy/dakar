@@ -78,7 +78,6 @@ export const ORY_KRATOS_BASE_URL = 'http://localhost:4433';
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const APPLICATION_SUBTITLE = 'Dash Blockchain Analytics';
-export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
 export const LOCALSTORAGE_FIELD_SESSION = 'session';
 export const DEFAULT_SETTINGS = { dark: false };
@@ -94,9 +93,6 @@ export const COIN_UNIT = COIN_UNIT_DASH;
 export const PASSWORD_MIN_CHARACTERS = 10;
 // PASSWORD_MAX_CHARACTERS is the number of characters a password can have at most
 export const PASSWORD_MAX_CHARACTERS = 250;
-// TOKEN_TIMEOUT is the number of milliseconds a token is valid for
-// time is 48 hours:  1000 * 60 * 60 * 48 = 172800000
-export const TOKEN_TIMEOUT = 172800000;
 
 // cluster
 export const CLUSTER_TYPE_HMI = 'hmi';

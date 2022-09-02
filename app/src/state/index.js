@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  setLocalUser, setLocalSettings, getLocalUser, getLocalSettings, getLocalSession, setLocalSession,
+  setLocalSettings, getLocalSettings, getLocalSession, setLocalSession,
 } from '../utilities';
 import {
   RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
@@ -18,7 +18,6 @@ function getInitialState() {
     searchResultType: null,
     address: null,
     block: null,
-    activeUser: null,
     // ory kratos session
     session: null,
     settings: null,
@@ -73,9 +72,6 @@ const mutations = {
     state.searchResultType = payload.type;
     state.address = payload.payload;
   },
-  SET_ACTIVE_USER(state, payload) {
-    state.activeUser = payload;
-  },
   // ory kratos session
   SET_SESSION(state, payload) {
     state.session = payload;
@@ -118,10 +114,6 @@ const actions = {
   updateSearchResult(context, payload) {
     context.commit('UPDATE_SEARCH_RESULT', payload);
   },
-  setActiveUser(context, payload) {
-    setLocalUser(payload);
-    context.commit('SET_ACTIVE_USER', payload);
-  },
   setSession(context, payload) {
     setLocalSession(payload);
     context.commit('SET_SESSION', payload);
@@ -141,23 +133,11 @@ const getters = {
   getAddressData: (state) => state.address,
   getBlockData: (state) => state.block,
   getSearchResultType: (state) => state.searchResultType,
-  getActiveUser: (state) => state.activeUser,
   getSession: (state) => state.session,
   getSettings: (state) => state.settings,
   getFailedRoute: (state) => state.failedRoute,
 };
 
-// insertLocalUserData inserts user data, which is
-// stored in LocalStorage, into the store. This is not done
-// in App.vue on purpose so user data is available in the
-// route guards even on page load.
-function insertLocalUserData(state) {
-  const localStorageUserData = getLocalUser();
-  if (localStorageUserData !== null) {
-    state.activeUser = localStorageUserData;
-  }
-  return state;
-}
 // insertLocalSettingsData inserts settings data, which is
 // stored in LocalStorage, into the store. This is not done
 // in App.vue on purpose so settings data is available in the
@@ -185,7 +165,6 @@ function insertLocalSessionData(state) {
 }
 
 let state = getInitialState();
-state = insertLocalUserData(state);
 state = insertLocalSettingsData(state);
 state = insertLocalSessionData(state);
 

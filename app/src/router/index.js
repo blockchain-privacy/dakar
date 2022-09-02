@@ -1,8 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
 import {
-  isAdminIdentity,
-  isAdminUser, isPrivilegedIdentity, isPrivilegedUser, isSessionExpired, isTokenTimedOut,
+  isAdminIdentity, isPrivilegedIdentity, isSessionExpired,
 } from '../utilities';
 import EntryView from '../components/EntryView.vue';
 import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
@@ -30,43 +29,33 @@ import Recovery from '../components/user/Recovery.vue';
 
 Vue.use(Router);
 
-function getUserData() {
-  return Store.getters.getActiveUser;
-}
-
 function getSessionData() {
   return Store.getters.getSession;
 }
 
 function isPrivileged() {
-  const userData = getUserData();
   const sessionData = getSessionData();
 
-  return isPrivilegedUser(userData) || isAdminUser(userData)
-      || isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
+  return isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
 }
 
 function isAdmin() {
-  const userData = getUserData();
-  const sessionData = getSessionData();
-
-  return isAdminUser(userData) || isAdminIdentity(sessionData);
+  return isAdminIdentity(getSessionData());
 }
-// todo remove userData checks
-function checkUserData(to, next, fn) {
-  const userData = getUserData();
+
+function checkSession(to, next, fn) {
   const sessionData = getSessionData();
 
-  if (!userData && !sessionData) {
+  if (!sessionData) {
     Store.dispatch('setFailedRoute', to);
     next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
     return;
   }
 
   // check if token timeout has been reached
-  if (isTokenTimedOut(userData) && isSessionExpired(sessionData)) {
+  if (isSessionExpired(sessionData)) {
     Store.dispatch('setFailedRoute', to);
-    Store.dispatch('setActiveUser', null);
+    Store.dispatch('setSession', null);
     Store.dispatch('addMessage', { type: 'info', text: 'Your session timed out', temporary: true });
     next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
     return;
@@ -95,7 +84,7 @@ export default new Router({
       component: StatusView,
       meta: { title: 'Status' },
       beforeEnter: (to, from, next) => {
-        checkUserData(to, next, isPrivileged);
+        checkSession(to, next, isPrivileged);
       },
     },
     {
@@ -122,7 +111,7 @@ export default new Router({
       component: Editor,
       meta: { title: 'Heuristic' },
       beforeEnter: (to, from, next) => {
-        checkUserData(to, next, isPrivileged);
+        checkSession(to, next, isPrivileged);
       },
     },
     {
@@ -131,7 +120,7 @@ export default new Router({
       component: HMIView,
       meta: { title: 'Cluster View' },
       beforeEnter: (to, from, next) => {
-        checkUserData(to, next, isPrivileged);
+        checkSession(to, next, isPrivileged);
       },
     },
     {
@@ -150,9 +139,6 @@ export default new Router({
       path: '/settings',
       component: Settings,
       meta: { title: 'Settings' },
-      // beforeEnter: (to, from, next) => {
-      //   checkUserData(to, next, null);
-      // },
       children: [
         {
           path: 'profile',
@@ -166,7 +152,7 @@ export default new Router({
       component: Tools,
       meta: { title: 'Tools' },
       beforeEnter: (to, from, next) => {
-        checkUserData(to, next, isPrivileged);
+        checkSession(to, next, isPrivileged);
       },
       children: [
         {
@@ -207,7 +193,7 @@ export default new Router({
       component: Administration,
       meta: { title: 'User Administration' },
       beforeEnter: (to, from, next) => {
-        checkUserData(to, next, isAdmin);
+        checkSession(to, next, isAdmin);
       },
     },
     {

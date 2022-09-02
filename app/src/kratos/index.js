@@ -32,7 +32,7 @@ export default function handleGetFlowError(router, store, error) {
         return Promise.resolve();
       case 'session_inactive':
         store.dispatch('setFailedRoute', router.history.current);
-        store.dispatch('setActiveUser', null);
+        store.dispatch('setSession', null);
         router.push({ name: ROUTE_NAME_LOGIN_PAGE });
         return Promise.resolve();
       default:
