@@ -313,12 +313,26 @@ function isRole(userData, roleName) {
   return userData && userData.roles && userData.roles.some((d) => d.name === roleName);
 }
 
+function isRole2(session, roleName) {
+  return session && session.identity && session.identity.metadata_public
+      && session.identity.metadata_public.roles
+      && session.identity.metadata_public.roles.some((d) => d === roleName);
+}
+
 export function isPrivilegedUser(userData) {
   return isRole(userData, 'privileged');
 }
 
+export function isPrivilegedIdentity(session) {
+  return isRole2(session, 'privileged');
+}
+
 export function isAdminUser(userData) {
   return isRole(userData, 'admin');
+}
+
+export function isAdminIdentity(session) {
+  return isRole2(session, 'admin');
 }
 
 // getPrivacyTypeLabel translates the integer representation of privacy types to string
