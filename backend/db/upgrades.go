@@ -6,22 +6,21 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
-// AlterSchemaAddSpendingGaps adds the spending gap predicate
-func AlterSchemaAddSpendingGaps(c external.Database) error {
+// AlterSchemaAddKratosID adds the kratosID predicate
+func AlterSchemaAddKratosID(c external.Database) error {
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			Heuristic.excludeSpendingGaps: bool .
-
-			type Heuristic {
-				Heuristic.type
-				Heuristic.parameter
-				Heuristic.transaction
-				Heuristic.clusters
-				Heuristic.ts
-				Heuristic.parent
-				Heuristic.clusterTypes
-				Heuristic.excludeAddresses
-				Heuristic.excludeSpendingGaps
+			User.kratosID: string @index(hash) .
+	
+			type User {
+				User.email
+				User.pwhash
+				User.roles
+				User.created
+				User.modified
+				User.heuristics
+				User.addressExclusions
+				User.kratosID
 			}
 		`,
 	})

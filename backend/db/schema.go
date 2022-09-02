@@ -14,7 +14,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required
-const SchemaVersion uint64 = 2
+const SchemaVersion uint64 = 3
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -174,6 +174,7 @@ func SetupSchema(c external.Database) error {
 			User.modified: dateTime @index(day) .
 			User.heuristics: [uid] @reverse .
 			User.addressExclusions: [uid] @count @reverse .
+			User.kratosID: string @index(hash) .
 	
 			type User {
 				User.email
@@ -183,6 +184,7 @@ func SetupSchema(c external.Database) error {
 				User.modified
 				User.heuristics
 				User.addressExclusions
+				User.kratosID
 			}
 
 			Cluster.type: string @index(hash) . # the cluster type
