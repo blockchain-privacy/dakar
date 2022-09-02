@@ -45,6 +45,7 @@ type Server struct {
 	worker          *heuristic.Worker
 	cache           *ristretto.Cache
 	auth            *ory.APIClient
+	adminAuth       *ory.APIClient
 	basicAuthUser   string
 	basicAuthHash   string
 	tokenPublicKey  []byte
@@ -96,10 +97,17 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 		return nil, err
 	}
 
-	a, err := newOryClient("http://localhost:4434")
+	auth, err := newOryClient("http://localhost:4433")
 	if err != nil {
 		return nil, err
-	} else if a == nil {
+	} else if auth == nil {
+		return nil, errors.New("authentication client is null")
+	}
+
+	adminAuth, err := newOryClient("http://localhost:4434")
+	if err != nil {
+		return nil, err
+	} else if adminAuth == nil {
 		return nil, errors.New("authentication client is null")
 	}
 
@@ -118,7 +126,8 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 		client:          client,
 		worker:          worker,
 		cache:           cache,
-		auth:            a,
+		auth:            auth,
+		adminAuth:       adminAuth,
 		basicAuthUser:   basicAuthUser,
 		basicAuthHash:   basicAuthHash,
 		tokenPublicKey:  publicKey,
