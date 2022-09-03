@@ -12,6 +12,8 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
+const uidV = "uid(v)"
+
 // GetCrawlerStatus gets the crawler status from the database
 func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 	query := `{
@@ -303,7 +305,7 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 
 // SetCrawlerStatus sets the new crawler status
 func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
-	status.UID = "uid(v)"
+	status.UID = uidV
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -322,7 +324,7 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 
 // SetClassifierStatus sets the new classifier status
 func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
-	status.UID = "uid(v)"
+	status.UID = uidV
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -341,7 +343,7 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 
 // SetClusteringHMIStatus sets the new hierarchical multi-input clustering status
 func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMultiInputStatus) error {
-	status.UID = "uid(v)"
+	status.UID = uidV
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -360,7 +362,7 @@ func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMu
 
 // SetClusteringFMIStatus sets the new flat multi-input clustering status
 func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInputStatus) error {
-	status.UID = "uid(v)"
+	status.UID = uidV
 	status.SetDType()
 
 	pb, err := json.Marshal(status)
@@ -449,7 +451,7 @@ func SetSchemaVersion(c external.Database, version uint64) error {
 
 // SetMeta sets the database metadata
 func SetMeta(c external.Database, meta Meta) error {
-	meta.UID = "uid(v)"
+	meta.UID = uidV
 	meta.SetDType()
 
 	pb, err := json.Marshal(meta)
