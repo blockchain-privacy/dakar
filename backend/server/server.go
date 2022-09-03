@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // loggerPrefix is the prefix which is printed for each log message
@@ -54,7 +55,6 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient,
 	client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
 	basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) (*Server, error) {
-
 	if tokenPublicKey == "" || tokenPrivateKey == "" {
 		return nil, errors.New("keys are not set")
 	}
@@ -113,8 +113,10 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	// create server
 	srv := &http.Server{
-		Addr:    ":" + strconv.FormatUint(uint64(port), 10),
-		Handler: s.handler,
+		Addr:              ":" + strconv.FormatUint(uint64(port), 10),
+		Handler:           s.handler,
+		ReadTimeout:       time.Minute,
+		ReadHeaderTimeout: time.Second * 5,
 	}
 
 	go func() {
