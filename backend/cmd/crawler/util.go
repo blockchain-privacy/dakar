@@ -42,10 +42,12 @@ type ClusterModule struct {
 }
 
 type HTTPModule struct {
-	Active          bool   `yaml:"active"`
-	Port            uint   `yaml:"port"`
-	BasicAuthUser   string `yaml:"basicAuthUser"`
-	BasicAuthPWHash string `yaml:"basicAuthPWHash"`
+	Active               bool   `yaml:"active"`
+	Port                 uint   `yaml:"port"`
+	BasicAuthUser        string `yaml:"basicAuthUser"`
+	BasicAuthPWHash      string `yaml:"basicAuthPWHash"`
+	KratosPublicEndpoint string `yaml:"kratosPublicEndpoint"`
+	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
 }
 
 type ModulesConfig struct {
@@ -77,10 +79,12 @@ var defaultConfig = Config{
 	},
 	Modules: ModulesConfig{
 		HTTP: HTTPModule{
-			Active:          true,
-			Port:            8081,
-			BasicAuthUser:   "dakar",
-			BasicAuthPWHash: "",
+			Active:               true,
+			Port:                 8081,
+			BasicAuthUser:        "dakar",
+			BasicAuthPWHash:      "",
+			KratosPublicEndpoint: "http://localhost:4433",
+			KratosAdminEndpoint:  "http://localhost:4434",
 		},
 		Classifier: false,
 		Heuristics: false,
@@ -110,7 +114,8 @@ func getDefaultConfig() (Config, error) {
 
 // checkHTTPModuleConfig returns an error if the given http module has invalid values
 func checkHTTPModuleConfig(c HTTPModule) error {
-	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" {
+	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" ||
+		c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
 		return errors.New("http module config invalid, not all fields are filled")
 	}
 
@@ -332,4 +337,39 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	conf.HTTPClient = &http.Client{Jar: cj}
 
 	return ory.NewAPIClient(conf), nil
+}
+
+// getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance
+func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClient, *ory.APIClient, error) {
+	auth, err := newKratosClient(publicEndpoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	adminAuth, err := newKratosClient(adminEndpoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// check if public endpoint is alive
+	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancelFunc()
+
+	_, resp1, err := auth.MetadataApi.IsAlive(ctx1).Execute()
+	if err != nil {
+		return nil, nil, fmt.Errorf("kratos public endpoint is not alive: %w", err)
+	}
+	defer resp1.Body.Close()
+
+	// check if admin endpoint is alive
+	ctx2, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancelFunc()
+
+	_, resp2, err := adminAuth.MetadataApi.IsAlive(ctx2).Execute()
+	if err != nil {
+		return nil, nil, fmt.Errorf("kratos admin endpoint is not alive: %w", err)
+	}
+	defer resp2.Body.Close()
+
+	return auth, adminAuth, nil
 }

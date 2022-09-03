@@ -272,13 +272,8 @@ func main() {
 
 	////// CONNECT TO KRATOS //////
 
-	auth, err := newKratosClient("http://localhost:4433")
-	if err != nil {
-		info(err)
-		return
-	}
-
-	adminAuth, err := newKratosClient("http://localhost:4434")
+	auth, adminAuth, err := getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
+		config.Modules.HTTP.KratosAdminEndpoint)
 	if err != nil {
 		info(err)
 		return
