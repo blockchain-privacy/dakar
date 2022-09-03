@@ -5,7 +5,6 @@ import (
 	analyticsClustering "backend/analytics/clustering"
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
-	"backend/constants"
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
@@ -15,6 +14,7 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"io"
+	"path"
 	"strings"
 	"time"
 
@@ -249,13 +249,14 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker, urlValues url.Values,
-	urlPath string) (reply connectionLookupReply) {
+func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker, urlHandle *url.URL) (reply connectionLookupReply) {
 	if !worker.IsReady() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
 		reply.Warning = true
 		return
 	}
+
+	urlValues := urlHandle.Query()
 
 	// get time parameter
 	fLockBackTime := urlValues.Get("t")
@@ -286,7 +287,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		isLookupForward = n == 1
 	}
 
-	txhash := urlPath[len(constants.GetRouteConnectionLookup()):]
+	txhash := path.Base(urlHandle.Path)
 
 	uid, err := dbtx.GetTransactionUID(dgraph, txhash)
 	if err != nil {
