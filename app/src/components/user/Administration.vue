@@ -262,6 +262,9 @@ export default {
         text: 'ID', value: 'id', align: 'start', sortable: false,
       },
       {
+        text: 'Dgraph UID', value: 'dgraph_uid',
+      },
+      {
         text: 'E-Mail', value: 'email',
       },
       {
@@ -341,7 +344,10 @@ export default {
         // convert dates to unix time so, they can be sorted in data table
         d.modified = new Date(d.modified).getTime();
         d.created = new Date(d.created).getTime();
-        d.roles = d.roles.map((f) => f.name);
+        if (d.roles) {
+          d.roles = d.roles.map((f) => f.name);
+        }
+
         return d;
       });
 
@@ -351,8 +357,16 @@ export default {
         d.created_at = new Date(d.created_at).getTime();
         d.email = d.traits.email;
 
-        if (d.metadata_public && d.metadata_public.roles) {
-          d.roles = d.metadata_public.roles.map((f) => f);
+        if (d.metadata_public) {
+          // extract roles
+          if (d.metadata_public.roles) {
+            d.roles = d.metadata_public.roles.map((f) => f);
+          }
+
+          // extract dgraph uid
+          if (d.metadata_public.dgraph_uid) {
+            d.dgraph_uid = d.metadata_public.dgraph_uid;
+          }
         }
 
         return d;
