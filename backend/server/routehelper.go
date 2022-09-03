@@ -80,20 +80,9 @@ type heuristicExecutionReply struct {
 	Status  heuristics.HeuristicQueueStatus `json:"status"`
 }
 
-type userReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type identityReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
-}
-
-type backendUserReply struct {
-	Success bool                           `json:"success"`
-	Msg     string                         `json:"msg,omitempty"`
-	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
@@ -309,7 +298,7 @@ type addressExclusionStatusReply struct {
 	Msg         string `json:"msg,omitempty"`
 }
 
-type usersReply struct {
+type identitiesReply struct {
 	Success    bool                            `json:"success"`
 	Users      []dbus.FrontendUserBackendState `json:"users"`
 	Identities []client.Identity               `json:"identities"`

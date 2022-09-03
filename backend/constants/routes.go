@@ -18,13 +18,10 @@ const (
 	routeDeleteHeuristic              string = "deleteHeuristic"
 	routeAddressOutputRange           string = "addressOutputRange"
 	routeBlockRange                   string = "blkRange"
-	routeCreateUser                   string = "createUser"
 	routeCreateIdentity               string = "createIdentity"
 	routeGetIdentities                string = "getIdentities"
 	routeDeleteUser                   string = "deleteUser"
 	routeDeleteIdentity               string = "deleteIdentity"
-	routeLogin                        string = "login"
-	routeLogout                       string = "logout"
 	routeModifyUser                   string = "modifyUser"
 	routeModifyIdentity               string = "modifyIdentity"
 	routeShortestTxPath               string = "shortestTransactionPath"
@@ -131,11 +128,6 @@ func GetRouteBlockRange() string {
 	return getRoute(routeBlockRange)
 }
 
-// GetRouteCreateUser returns a route
-func GetRouteCreateUser() string {
-	return getRoute(routeCreateUser)
-}
-
 // GetRouteCreateIdentity returns a route
 func GetRouteCreateIdentity() string {
 	return getRoute(routeCreateIdentity)
@@ -154,16 +146,6 @@ func GetRouteDeleteUser() string {
 // GetRouteDeleteIdentity returns a route
 func GetRouteDeleteIdentity() string {
 	return getRoute(routeDeleteIdentity)
-}
-
-// GetRouteLogin returns a route
-func GetRouteLogin() string {
-	return getRoute(routeLogin)
-}
-
-// GetRouteLogout returns a route
-func GetRouteLogout() string {
-	return getRoute(routeLogout)
 }
 
 // GetRouteModifyUser returns a route

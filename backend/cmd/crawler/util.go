@@ -8,6 +8,8 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
+	ory "github.com/ory/kratos-client-go"
+	"net/http/cookiejar"
 	"runtime"
 	"runtime/debug"
 
@@ -329,4 +331,20 @@ func checkMeta(db external.Database) bool {
 	}
 
 	return true
+}
+
+// newKratosClient creates a new kratos client
+func newKratosClient(endpoint string) (*ory.APIClient, error) {
+
+	cj, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := ory.NewConfiguration()
+	conf.Servers = ory.ServerConfigurations{{URL: endpoint}}
+
+	conf.HTTPClient = &http.Client{Jar: cj}
+
+	return ory.NewAPIClient(conf), nil
 }

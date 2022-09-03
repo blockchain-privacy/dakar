@@ -35,97 +35,14 @@ const msgCouldNotDecodeUser = "could not decode user data"
 const msgInvalidRequest = "invalid request"
 const msgUserNotFound = "User not found"
 
-// getLoginReply reads the data from body and constructs a backendUserReply
-func getLoginReply(dgraph external.Database, body io.Reader) (reply backendUserReply) {
-	const invalidUserData = "email and password combination does not match"
-
-	var loginData dbus.FrontendUserLogin
-
-	if err := json.NewDecoder(body).Decode(&loginData); err != nil {
-		reply.Msg = msgCouldNotDecodeUser
-		return
-	}
-
-	if !loginData.IsValid() {
-		reply.Msg = "user not valid"
-		return
-	}
-
-	u, getErr := dbus.GetUserByEmail(dgraph, loginData.Email)
-	if getErr != nil {
-		reply.Msg = invalidUserData
-
-		// only log error if not expected
-		if !errors.Is(dbus.ErrorUsersNotFound, getErr) {
-			info(cliutil.ShowCallInfo(), getErr)
-		}
-		return
-	}
-
-	passwordValid, pwErr := user.ComparePassword(loginData.Password, u.PasswordHash)
-	if pwErr != nil || !passwordValid {
-		reply.Msg = invalidUserData
-		return
-	}
-
-	u.PasswordHash = ""
-
-	loginReplyUser := u.ToFrontendUserBackendState()
-
-	reply.Success = true
-
-	reply.User = &loginReplyUser
-
-	return
-}
-
-// getCreateUserReply reads the data from body and constructs a userReply
-func getCreateUserReply(dgraph external.Database, body io.Reader) (reply userReply) {
-	var frontEndUser dbus.FrontendUserRoles
-
-	if err := json.NewDecoder(body).Decode(&frontEndUser); err != nil {
-		reply.Msg = msgCouldNotDecodeUser
-		return
-	}
-
-	if !frontEndUser.IsValid() {
-		reply.Msg = "user not valid"
-		return
-	}
-
-	pw, pwHash, pwErr := user.GetRandomPasswordAndHash()
-	if pwErr != nil {
-		reply.Msg = "could not create password"
-		return
-	}
-
-	u := frontEndUser.ToUser()
-	u.PasswordHash = pwHash
-	if err := dbus.CreateUser(dgraph, u); err != nil {
-		reply.Success = false
-		// check if special error
-		if errors.Is(err, dbus.ErrorEmailExists) {
-			reply.Msg = "duplicate e-mail"
-		} else {
-			reply.Msg = "could not create user"
-			info(cliutil.ShowCallInfo(), err)
-		}
-		return
-	}
-
-	info("Generated password(", u.Email, "):", pw)
-	reply.Success = true
-
-	return
-}
-
-func getUserReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply usersReply) {
+func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {
 	users, err := dbus.GetUsers(dgraph)
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
+	// get identity list
 	identities, _, err := adminAuth.V0alpha2Api.AdminListIdentities(r.Context()).Execute()
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
@@ -199,181 +116,6 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		reply.Status = heuristics.StatusHeuristicAdded
 	} else {
 		reply.Status = heuristics.StatusHeuristicDuplicate
-	}
-
-	reply.Success = true
-
-	return
-}
-
-// getModifyUserReply parses the input and creates a corresponding userReply
-func getModifyUserReply(dgraph external.Database, body io.Reader, tUser tokenUser) (reply backendUserReply) {
-	// get clients user state
-	var modRequest dbus.ModifyUserRequest
-	if err := json.NewDecoder(body).Decode(&modRequest); err != nil {
-		reply.Msg = msgCouldNotDecodeUser
-		return
-	}
-
-	if len(modRequest.UID) == 0 ||
-		(len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.NewPassword) == 0) {
-		reply.Msg = "nothing to change"
-		return
-	}
-
-	// check if passwords are equal
-	if len(modRequest.CurrentPassword) > 0 && len(modRequest.NewPassword) > 0 &&
-		modRequest.NewPassword == modRequest.CurrentPassword {
-		reply.Msg = "passwords are equal"
-		return
-	}
-
-	// is user an admin
-	isAdmin := false
-	for _, r := range tUser.Roles {
-		if r.Name == user.AdminRoleName {
-			isAdmin = true
-			break
-		}
-	}
-
-	// if user ids does not match, check if this is a request from an admin user
-	if modRequest.UID != tUser.ID && !isAdmin {
-		reply.Msg = "user ids do not match"
-		info(cliutil.ShowCallInfo(), "user", tUser.ID, "tried to modify user", modRequest.UID)
-		return
-	}
-
-	const msgErrModifyingUser = "error modifying user"
-
-	// check current password if user is not an admin
-	if !isAdmin {
-		if len(modRequest.CurrentPassword) == 0 {
-			reply.Msg = "current password must also be supplied"
-			return
-		}
-
-		dbUser, err := dbus.GetUser(dgraph, modRequest.UID)
-		if err != nil {
-			reply.Msg = msgErrModifyingUser
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-
-		if ok, err := user.ComparePassword(modRequest.CurrentPassword, dbUser.PasswordHash); !ok || err != nil {
-			reply.Msg = "wrong current password"
-			return
-		}
-	}
-
-	// check email
-	if len(modRequest.Email) > 0 {
-		if !dbus.IsValidEmail(modRequest.Email) {
-			reply.Msg = "invalid email"
-			return
-		}
-
-		emailUser, err := dbus.GetUserByEmail(dgraph, modRequest.Email)
-		if err != nil {
-			if !errors.Is(dbus.ErrorUsersNotFound, err) {
-				reply.Msg = "invalid email"
-				info(cliutil.ShowCallInfo(), err, modRequest)
-				return
-			}
-		} else if emailUser.UID != modRequest.UID {
-			// duplicate email because the UID of
-			// the tokenUser and the UID identified
-			// by the email address from the db are not equal
-			reply.Msg = "duplicate email"
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-	}
-
-	var newPwHash string
-	// check if password matches
-	if len(modRequest.NewPassword) > 0 {
-		if len(modRequest.NewPassword) < 10 {
-			reply.Msg = "new password must be at least 10 characters long"
-			return
-		}
-
-		var generatePwErr error
-		if newPwHash, generatePwErr = user.GeneratePasswordHash(user.DefaultPasswordConfig,
-			modRequest.NewPassword); generatePwErr != nil {
-			reply.Msg = msgErrModifyingUser
-			return
-		}
-	}
-
-	// handle role change
-	if len(modRequest.Roles) > 0 {
-		if !isAdmin {
-			reply.Msg = "user can not change its roles"
-			info(cliutil.ShowCallInfo(), "user", tUser.ID, "tried to change its roles", modRequest.Roles)
-			return
-		}
-		// check if all roles exists
-		for _, r := range modRequest.Roles {
-			if _, err := user.GetRoleByName(r.Name); err != nil {
-				reply.Msg = "invalid role"
-				info(cliutil.ShowCallInfo(), "user", tUser.ID, "provided invalid role", r.Name)
-				return
-			}
-		}
-		// delete existing roles if new roles are set
-		if err := dbus.RemoveRolesFromUser(dgraph, modRequest.UID); err != nil {
-			reply.Msg = msgErrModifyingUser
-			info(cliutil.ShowCallInfo(), err, modRequest)
-			return
-		}
-	}
-
-	// modify user
-	if err := dbus.ModifyUser(dgraph, modRequest.ToUser(newPwHash)); err != nil {
-		reply.Msg = msgErrModifyingUser
-		info(cliutil.ShowCallInfo(), err, modRequest)
-		return
-	}
-
-	// get new user information
-	newUserInfo, err := dbus.GetUser(dgraph, modRequest.UID)
-	if err != nil {
-		reply.Msg = msgErrModifyingUser
-		info(cliutil.ShowCallInfo(), err, modRequest)
-		return
-	}
-
-	// set new user info
-	newUserState := newUserInfo.ToFrontendUserBackendState()
-	reply.User = &newUserState
-	reply.Success = true
-
-	return
-}
-
-// getDeleteUserReply deletes delUid if is the same uid as tUser.ID or if tUser is an admin
-func getDeleteUserReply(dgraph external.Database, delUID string, tUser tokenUser) (reply userReply) {
-	if delUID != tUser.ID {
-		// is user an admin
-		isAdmin := false
-		for _, r := range tUser.Roles {
-			if r.Name == user.AdminRoleName {
-				isAdmin = true
-				break
-			}
-		}
-
-		if !isAdmin {
-			reply.Msg = "user can only delete his own account"
-			info(tUser.ID, "tried to delete", delUID)
-			return
-		}
-	}
-
-	if err := dbus.DeleteUser(dgraph, delUID); err != nil {
-		reply.Msg = "could not delete user"
-		info(cliutil.ShowCallInfo(), err)
 	}
 
 	reply.Success = true
@@ -1350,17 +1092,11 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 		return
 	}
 
-	identityRequest := adminAuth.V0alpha2Api.AdminCreateIdentity(r.Context())
-
-	_, _, err := identityRequest.AdminCreateIdentityBody(ory.AdminCreateIdentityBody{
-		SchemaId:       "default_v0",
-		Traits:         map[string]interface{}{"email": frontEndUser.Email},
-		MetadataPublic: map[string][]string{"roles": frontEndUser.Roles},
-	}).Execute()
+	err := dbus.CreateDgraphAndKratosUser(r.Context(), dgraph, adminAuth,
+		frontEndUser.Email, nil, frontEndUser.Roles)
 	if err != nil {
 		reply.Msg = "could not create identity"
 		info(cliutil.ShowCallInfo(), err)
-		return
 	}
 
 	reply.Success = true
@@ -1370,8 +1106,47 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 
 // getDeleteIdentityReply deletes the given user
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request, delUID string) (reply identityReply) {
-	_, err := adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute()
+	// get identity data
+	identity, _, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), delUID).Execute()
 	if err != nil {
+		reply.Msg = "could not delete identity"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	uid, err := extractDgraphUID(identity.MetadataPublic)
+	if err != nil {
+		reply.Msg = "could not extract dgraph uid"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := attribution.DeleteAllAttributions(dgraph, uid); err != nil {
+		reply.Msg = "could not delete users " + uid + " attributions"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
+		reply.Msg = "could not delete users " + uid + "clusters"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, uid); err != nil {
+		reply.Msg = "could not delete users " + uid + " heuristics"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	err = dbus.DeleteUser(dgraph, uid)
+	if err != nil {
+		reply.Msg = "could not delete dgraph user"
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if _, err := adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute(); err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
 		return
@@ -1408,8 +1183,13 @@ func setEmail(traits any, email string) error {
 
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	// get clients user state
-	var modRequest dbus.ModifyUserRequest
+	var modRequest struct {
+		UID             string              `json:"uid,omitempty"`
+		Email           string              `json:"email,omitempty"`
+		CurrentPassword string              `json:"current_password,omitempty"`
+		NewPassword     string              `json:"new_password,omitempty"`
+		Roles           []dbus.FrontendRole `json:"roles,omitempty"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return

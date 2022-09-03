@@ -863,21 +863,6 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/createUser/"
-func (s *Server) handlerCreateUser() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		reply := getCreateUserReply(s.db, r.Body)
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), err)
-		}
-	})
-}
-
 // API pattern: "/api/v1/createIdentity/"
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
@@ -928,102 +913,12 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/getUsers/"
-func (s *Server) handlerGetIdentity() http.Handler {
+// API pattern: "/api/v1/getIdentities/"
+func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getUserReply(s.db, s.adminAuth, r)
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
-		}
-	})
-}
-
-// API pattern: "/api/v1/logout/"
-func (s *Server) handlerLogout() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-		invalidateToken(w)
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(userReply{Success: true}); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
-		}
-	})
-}
-
-// API pattern: "/api/v1/deleteUser/<userUid>"
-func (s *Server) handlerDeleteUser() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		userUID := path.Base(r.URL.Path)
-
-		var reply userReply
-
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			reply.Msg = "error modifying user"
-			info(cliutil.ShowCallInfo(), err)
-		} else {
-			reply = getDeleteUserReply(s.db, userUID, tUser)
-		}
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
-		}
-	})
-}
-
-// API pattern: "/api/v1/login/"
-func (s *Server) handlerLogin() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		reply := getLoginReply(s.db, r.Body)
-
-		// set token if login is successful
-		if reply.Success {
-			token, expirationTime, err := issueToken(reply.User.ToFrontendUserClientState(), s.tokenPrivateKey)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				info(cliutil.ShowCallInfo(), err)
-				return
-			}
-			setTokenAsCookie(w, token, expirationTime)
-		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-		}
-
-		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(cliutil.ShowCallInfo(), encodingErr)
-		}
-	})
-}
-
-// API pattern: "/api/v1/modifyUser/"
-func (s *Server) handlerModifyUser() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
-		var reply backendUserReply
-
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			reply.Msg = "error modifying user"
-			info(cliutil.ShowCallInfo(), err)
-		} else {
-			reply = getModifyUserReply(s.db, r.Body, tUser)
-		}
+		reply := getIdentitiesReply(s.db, s.adminAuth, r)
 
 		// encoding
 		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
@@ -1145,7 +1040,7 @@ func (s *Server) setupHandlers() {
 
 	// Meta
 	s.handler.Handle(constants.GetRouteMeta(), adapt(s.handlerMeta(), constants.GetRouteMeta(),
-		limitMethod("GET"), s.kratosAuth(), s.useCache(time.Second*10), maxBody()))
+		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(constants.GetRouteHeuristics(),
@@ -1176,13 +1071,13 @@ func (s *Server) setupHandlers() {
 	// Analytics
 	s.handler.Handle(constants.GetRouteShortestTransactionPath(),
 		adapt(s.handlerShortestTransactionPath(), constants.GetRouteShortestTransactionPath(),
-			limitMethod("POST"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteConnectionLookup(),
 		adapt(s.handlerConnectionLookup(), constants.GetRouteConnectionLookup(),
-			limitMethod("GET"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("GET"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(constants.GetRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), constants.GetRouteMixingActivity(),
-			limitMethod("POST"), s.kratosAuth(), s.useCache(time.Minute*10), maxBody()))
+			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(constants.GetRouteClusterLookup(),
@@ -1248,17 +1143,12 @@ func (s *Server) setupHandlers() {
 			limitMethod("GET"), s.authorization(), maxBody()))
 
 	// User
-	s.handler.Handle(constants.GetRouteLogin(), adapt(s.handlerLogin(),
-		constants.GetRouteLogin(), limitMethod("POST"), maxBody()))
-	s.handler.Handle(constants.GetRouteLogout(), adapt(s.handlerLogout(),
-		constants.GetRouteLogout(), limitMethod("GET"), maxBody()))
-
-	s.handler.Handle(constants.GetRouteGetIdentities(), adapt(s.handlerGetIdentity(), constants.GetRouteGetIdentities(),
-		limitMethod("GET"), s.kratosAuth(), maxBody()))
+	s.handler.Handle(constants.GetRouteGetIdentities(), adapt(s.handlerGetIdentities(), constants.GetRouteGetIdentities(),
+		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), constants.GetRouteCreateIdentity(),
-		limitMethod("POST"), s.kratosAuth(), maxBody()))
+		limitMethod("POST"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), constants.GetRouteDeleteIdentity(),
-		limitMethod("GET"), s.kratosAuth(), maxBody()))
+		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(constants.GetRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), constants.GetRouteModifyIdentity(),
-		limitMethod("POST"), s.kratosAuth(), maxBody()))
+		limitMethod("POST"), s.authorization(), maxBody()))
 }

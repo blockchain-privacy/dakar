@@ -3,13 +3,11 @@ package server
 import (
 	heuristic "backend/analytics/heuristics"
 	"backend/external"
-	"github.com/dgraph-io/ristretto"
-	ory "github.com/ory/kratos-client-go"
-	"net/http/cookiejar"
-
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/dgraph-io/ristretto"
+	ory "github.com/ory/kratos-client-go"
 	"io"
 	"log"
 	"net/http"
@@ -53,22 +51,8 @@ type Server struct {
 	handler         *http.ServeMux
 }
 
-func newOryClient(endpoint string) (*ory.APIClient, error) {
-
-	cj, err := cookiejar.New(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	conf := ory.NewConfiguration()
-	conf.Servers = ory.ServerConfigurations{{URL: endpoint}}
-
-	conf.HTTPClient = &http.Client{Jar: cj}
-
-	return ory.NewAPIClient(conf), nil
-}
-
-func NewServer(db external.Database, client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
+func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient,
+	client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
 	basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) (*Server, error) {
 
 	if tokenPublicKey == "" || tokenPrivateKey == "" {
@@ -95,20 +79,6 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 	publicKey, err := hex.DecodeString(tokenPublicKey)
 	if err != nil {
 		return nil, err
-	}
-
-	auth, err := newOryClient("http://localhost:4433")
-	if err != nil {
-		return nil, err
-	} else if auth == nil {
-		return nil, errors.New("authentication client is null")
-	}
-
-	adminAuth, err := newOryClient("http://localhost:4434")
-	if err != nil {
-		return nil, err
-	} else if adminAuth == nil {
-		return nil, errors.New("authentication client is null")
 	}
 
 	// init cache

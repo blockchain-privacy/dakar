@@ -270,6 +270,20 @@ func main() {
 		}
 	}
 
+	////// CONNECT TO KRATOS //////
+
+	auth, err := newKratosClient("http://localhost:4433")
+	if err != nil {
+		info(err)
+		return
+	}
+
+	adminAuth, err := newKratosClient("http://localhost:4434")
+	if err != nil {
+		info(err)
+		return
+	}
+
 	////// CREATE ADMIN USER //////
 
 	// create admin account if none is set
@@ -280,9 +294,9 @@ func main() {
 			// no users exists -> create admin user
 			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
 				adminEmail := "admin@dakar.null"
-				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminEmail)
+				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminAuth, adminEmail)
 				if userCreationError != nil {
-					info(err)
+					info(userCreationError)
 					return
 				}
 				// do not log
@@ -472,7 +486,7 @@ func main() {
 	// start server
 	var srv *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, client, worker, config.Modules.HTTP.BasicAuthUser,
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker, config.Modules.HTTP.BasicAuthUser,
 			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey)
 		if serverErr != nil {
 			info(serverErr)
