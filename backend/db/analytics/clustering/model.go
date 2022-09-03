@@ -77,9 +77,9 @@ func NewFMICluster(index int) Cluster {
 	}
 }
 
-func NewFMIClusterByUID(UID string) Cluster {
+func NewFMIClusterByUID(uid string) Cluster {
 	return Cluster{
-		UID:   UID,
+		UID:   uid,
 		Type:  TypeFMI,
 		DType: []string{DType},
 	}

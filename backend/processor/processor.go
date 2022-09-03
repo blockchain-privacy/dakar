@@ -143,6 +143,7 @@ func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, output
 
 			uids = append(uids, output.UID)
 		}
+
 		mutex.Lock()
 		addOutputsToAddresses(addrMap, mapping.hash, uids)
 		mutex.Unlock()
@@ -361,7 +362,6 @@ func processTxVin(details *dbtx.Transaction, externalOutputs map[string]map[uint
 // processBlock builds a block with the provided arguments and inserts it in the database
 func processBlock(dgraph external.Database, transactions []dbtx.Transaction, currentHash string,
 	blockID uint64, timestamp string, prevBlockHash string) (err error) {
-
 	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,

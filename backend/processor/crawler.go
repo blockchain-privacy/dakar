@@ -183,7 +183,6 @@ func (c *Crawler) Iterate() (bool, error) {
 	// do the actual processing and aggregate the resulting metrics
 	if rBlockCounter, rTransactionCounter, processErr := processRound(c.db, c.batchRPC, c.state, c.currentBlock,
 		c.config, c.cache); processErr == nil {
-
 		c.blocks.Add(float64(rBlockCounter))
 		c.transactions.Add(float64(rTransactionCounter))
 		c.blockHeight.Set(float64(c.state.id))

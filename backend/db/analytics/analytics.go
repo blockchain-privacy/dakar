@@ -150,7 +150,6 @@ func GetCollateralCreationTransactions(c external.Database, numNodes int, offset
 // GetPrivacyTransactionCount gets the number of transaction per privacy type
 func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCount int, ccCount int,
 	destinationCount int, err error) {
-
 	const query = `{
 				mixing(func: between(privacytype,0,` + constants.StrPrivacyMixingLast + `)){
 					count(uid)

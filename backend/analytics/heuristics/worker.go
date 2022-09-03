@@ -209,7 +209,6 @@ func stoppingWork() {
 
 // Work periodically checks for new Work to be executed
 func (w *Worker) work(ctx context.Context, dgraph external.Database) {
-
 	var work Work
 	ticker := time.NewTicker(time.Second * 5)
 	defer ticker.Stop()

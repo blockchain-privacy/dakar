@@ -335,7 +335,6 @@ func checkMeta(db external.Database) bool {
 
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
-
 	cj, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err

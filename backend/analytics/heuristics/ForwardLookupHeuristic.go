@@ -140,7 +140,6 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	// resultAttributionMap maps a clusterUID to a slice of attribution UIDs
 	var resultAttributionMap map[heuristics.ClusterUID][]string
 	{ // separate enclosure so the results slice can be garbage collected
-
 		if isParentHeuristicSet(parentHeuristicUID) {
 			// get origins from parent heuristic
 			var err error

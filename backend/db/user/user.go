@@ -214,7 +214,6 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	newUserUID, userCreationError := CreateNewUser(c)
 	if userCreationError != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), userCreationError)
-
 	}
 
 	// create kratos identity
