@@ -103,12 +103,14 @@ func extractDgraphUID(metadataPublic any) (string, error) {
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, _, err := s.auth.V0alpha2Api.ToSession(r.Context()).Cookie(r.Header.Get("Cookie")).Execute()
+			session, sessionResponse, err := s.auth.V0alpha2Api.ToSession(r.Context()).
+				Cookie(r.Header.Get("Cookie")).Execute()
 			if err != nil {
 				sendRedirectMessage(w)
 				info(cliutil.ShowCallInfo(), err)
 				return
 			}
+			defer sessionResponse.Body.Close()
 
 			// check if session active and not expired
 			if session.Active == nil || session.ExpiresAt == nil ||
@@ -118,11 +120,14 @@ func (s *Server) authorization() adapter {
 			}
 
 			if time.Until(*session.ExpiresAt) <= reissueDuration {
-				if _, _, extensionErr := s.adminAuth.V0alpha2Api.AdminExtendSession(r.Context(), session.Id).Execute(); extensionErr != nil {
+				_, extensionResponse, extensionErr := s.adminAuth.V0alpha2Api.
+					AdminExtendSession(r.Context(), session.Id).Execute()
+				if extensionErr != nil {
 					sendRedirectMessage(w)
 					info(cliutil.ShowCallInfo(), extensionErr)
 					return
 				}
+				defer extensionResponse.Body.Close()
 			}
 
 			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
@@ -203,7 +208,6 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 				httpStatusCode = foundCache.statusCode
 				buf = foundCache.buffer
-
 			} else {
 				// record the writes of the next handler, so the response can be saved in the cache.
 				recorder := httptest.NewRecorder()
@@ -212,12 +216,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 				// get recorded values
 				resp := recorder.Result()
-				defer func(Body io.ReadCloser) {
-					err := Body.Close()
-					if err != nil {
-						info("response body could not be closed")
-					}
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				httpStatusCode = resp.StatusCode
 				buf = recorder.Body.Bytes()
