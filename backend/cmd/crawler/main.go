@@ -76,7 +76,7 @@ func main() {
 	var commands Commands
 	setCommandFlags(&commands)
 
-	defaultConfigName := "config.yml"
+	const defaultConfigName = "config.yml"
 	var filePath string
 	var createConfigFile bool
 	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
@@ -486,8 +486,8 @@ func main() {
 	// start server
 	var srv *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker, config.Modules.HTTP.BasicAuthUser,
-			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker,
+			config.Modules.HTTP.BasicAuthUser, config.Modules.HTTP.BasicAuthPWHash)
 		if serverErr != nil {
 			info(serverErr)
 		}

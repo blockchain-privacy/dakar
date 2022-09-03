@@ -5,8 +5,6 @@ import (
 	"backend/db/status"
 	"backend/external"
 	"backend/password"
-	"crypto/ed25519"
-	"encoding/hex"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
 	"net/http/cookiejar"
@@ -48,8 +46,6 @@ type HTTPModule struct {
 	Port            uint   `yaml:"port"`
 	BasicAuthUser   string `yaml:"basicAuthUser"`
 	BasicAuthPWHash string `yaml:"basicAuthPWHash"`
-	TokenPrivateKey string `yaml:"tokenPrivateKey"`
-	TokenPublicKey  string `yaml:"tokenPublicKey"`
 }
 
 type ModulesConfig struct {
@@ -85,8 +81,6 @@ var defaultConfig = Config{
 			Port:            8081,
 			BasicAuthUser:   "dakar",
 			BasicAuthPWHash: "",
-			TokenPrivateKey: "",
-			TokenPublicKey:  "",
 		},
 		Classifier: false,
 		Heuristics: false,
@@ -96,14 +90,6 @@ var defaultConfig = Config{
 }
 
 func getDefaultConfig() (Config, error) {
-	publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
-	if genErr != nil {
-		return Config{}, genErr
-	}
-
-	defaultConfig.Modules.HTTP.TokenPublicKey = hex.EncodeToString(publicKey)
-	defaultConfig.Modules.HTTP.TokenPrivateKey = hex.EncodeToString(privateKey)
-
 	passwd, pwErr := password.GenerateRandomPassword()
 	if pwErr != nil {
 		return Config{}, pwErr
@@ -124,7 +110,7 @@ func getDefaultConfig() (Config, error) {
 
 // checkHTTPModuleConfig returns an error if the given http module has invalid values
 func checkHTTPModuleConfig(c HTTPModule) error {
-	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" || c.TokenPrivateKey == "" || c.TokenPublicKey == "" {
+	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" {
 		return errors.New("http module config invalid, not all fields are filled")
 	}
 
