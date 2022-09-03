@@ -355,7 +355,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 		clusterUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
@@ -377,7 +377,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 		var reply deleteClusterReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAllClustersReply(s.db, tUser.ID)
@@ -399,7 +399,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 		var reply clusterOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getClusterOverviewReply(s.db, tUser.ID)
@@ -421,7 +421,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 		var reply attributionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getAttributionOverviewReply(s.db, tUser.ID)
@@ -475,7 +475,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 		attributionUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
@@ -499,7 +499,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 		attributionUID := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
@@ -521,7 +521,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 		var reply deleteAttributionReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
@@ -543,7 +543,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 		var reply attributionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
@@ -582,7 +582,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 		addressHash := path.Base(r.URL.Path)
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
@@ -604,7 +604,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 		var reply deleteAddressExclusionReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
@@ -626,7 +626,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 		var reply addressExclusionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
@@ -655,7 +655,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 		var reply heuristicReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
@@ -706,7 +706,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 		var reply heuristicReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply.Success = true
@@ -778,7 +778,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 		var reply heuristicExecutionReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "User not found"
+			reply.Msg = msgUserNotFound
 			info(cliutil.ShowCallInfo(), err)
 		} else {
 			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
