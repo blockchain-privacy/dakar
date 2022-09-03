@@ -4,7 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
-	"backend/user"
+	"backend/password"
 	"context"
 	"encoding/json"
 	"errors"
@@ -253,7 +253,7 @@ func CreateKratosUser(ctx context.Context, dgraphUID string, adminAuth *ory.APIC
 
 // CreateAdminUser creates a new admin account with a random password
 func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string) (string, error) {
-	pw, err := user.GenerateRandomPassword()
+	pw, err := password.GenerateRandomPassword()
 	if err != nil {
 		return "", nil
 	}

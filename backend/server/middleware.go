@@ -3,7 +3,7 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
-	"backend/user"
+	"backend/password"
 	"errors"
 
 	"bytes"
@@ -265,7 +265,7 @@ func (s *Server) basicAuth() adapter {
 			}
 
 			// constant time compare and sleep to avoid timing attacks
-			if equal, err := user.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
+			if equal, err := password.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
 				info(cliutil.ShowCallInfo(), err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return

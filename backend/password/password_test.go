@@ -1,4 +1,4 @@
-package user
+package password
 
 import (
 	"github.com/stretchr/testify/require"

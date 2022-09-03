@@ -4,7 +4,7 @@ import (
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
-	"backend/user"
+	"backend/password"
 	"crypto/ed25519"
 	"encoding/hex"
 	"fmt"
@@ -104,19 +104,19 @@ func getDefaultConfig() (Config, error) {
 	defaultConfig.Modules.HTTP.TokenPublicKey = hex.EncodeToString(publicKey)
 	defaultConfig.Modules.HTTP.TokenPrivateKey = hex.EncodeToString(privateKey)
 
-	password, pwErr := user.GenerateRandomPassword()
+	passwd, pwErr := password.GenerateRandomPassword()
 	if pwErr != nil {
 		return Config{}, pwErr
 	}
 
-	pwHash, pwErr := user.GeneratePasswordHash(user.DefaultPasswordConfig, password)
+	pwHash, pwErr := password.GeneratePasswordHash(password.DefaultPasswordConfig, passwd)
 	if pwErr != nil {
 		return Config{}, pwErr
 	}
 
 	defaultConfig.Modules.HTTP.BasicAuthPWHash = pwHash
 
-	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", password)
+	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", passwd)
 	fmt.Println("Save the password, it will not be written in the config file.")
 
 	return defaultConfig, nil

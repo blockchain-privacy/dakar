@@ -1,4 +1,4 @@
-package user
+package password
 
 import (
 	"backend/cmd/cliutil"
