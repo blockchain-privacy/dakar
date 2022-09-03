@@ -645,14 +645,10 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
-	}
-
-	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
 	}
 
 	return
