@@ -339,7 +339,8 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	return ory.NewAPIClient(conf), nil
 }
 
-// getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance
+// getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance.
+// Also checks if the connections are alive.
 func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClient, *ory.APIClient, error) {
 	auth, err := newKratosClient(publicEndpoint)
 	if err != nil {
