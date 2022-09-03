@@ -2,9 +2,7 @@ package user
 
 import (
 	"backend/db/analytics/heuristics"
-	"backend/user"
 	"fmt"
-	"regexp"
 	"time"
 )
 
@@ -100,55 +98,6 @@ type FrontendUserClientStateWithCredentials struct {
 	Email  string         `json:"email,omitempty"`
 	Pwhash string         `json:"pwhash,omitempty"`
 	Roles  []FrontendRole `json:"roles,omitempty"`
-}
-
-// FrontendUserRoles is the role representation for the frontend
-type FrontendUserRoles struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
-}
-
-func (f FrontendUserRoles) String() string {
-	return fmt.Sprintf("email %s, roles: %v", f.Email, f.Roles)
-}
-
-// ToUser returns a User object
-func (f FrontendUserRoles) ToUser() User {
-	roles := make([]Role, len(f.Roles))
-
-	for i, r := range f.Roles {
-		roles[i] = Role{Name: r}
-	}
-
-	if len(roles) == 0 {
-		roles = nil
-	}
-
-	return User{
-		Email: f.Email,
-		Roles: roles,
-	}
-}
-
-// IsValidEmail is a regex filter which checks if the input conforms to an email string
-var IsValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
-	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
-
-// IsValid does a sanity check for the given FrontendUserRoles
-func (f FrontendUserRoles) IsValid() bool {
-	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || !IsValidEmail(f.Email) {
-		return false
-	}
-
-	// check if all roles have valid values
-	for _, ur := range f.Roles {
-		if _, err := user.GetRoleByName(ur); err != nil {
-			return false
-		}
-	}
-
-	return true
 }
 
 // FrontendUserBackendState represents the state of the user in the backend

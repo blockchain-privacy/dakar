@@ -142,7 +142,7 @@ func (s *Server) authorization() adapter {
 			// check if route is allowed and get typed role
 			routeAllowed := false
 			for _, role := range roles {
-				routeRole, roleErr := user.GetRoleByName(role.Name)
+				routeRole, roleErr := getRoleByName(role.Name)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
 					info(cliutil.ShowCallInfo(), roleErr)

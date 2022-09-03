@@ -14,7 +14,6 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
-	"backend/user"
 	"io"
 	"strings"
 	"time"
@@ -43,11 +42,12 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}
 
 	// get identity list
-	identities, _, err := adminAuth.V0alpha2Api.AdminListIdentities(r.Context()).Execute()
+	identities, response, err := adminAuth.V0alpha2Api.AdminListIdentities(r.Context()).Execute()
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
+	defer response.Body.Close()
 
 	reply.Users = users
 	reply.Identities = identities
@@ -58,7 +58,6 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 
 func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 	txHashString string, userUID string) (reply heuristicReply) {
-
 	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
@@ -252,7 +251,6 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 // getConnectionLookupReply returns the result of a reverse lookup
 func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker, urlValues url.Values,
 	urlPath string) (reply connectionLookupReply) {
-
 	if !worker.IsReady() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
 		reply.Warning = true
@@ -896,7 +894,7 @@ func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (re
 }
 
 func getAttributionSearchReply(dgraph external.Database, userUID string,
-	body io.ReadCloser) (reply attributionOverviewReply) {
+	body io.Reader) (reply attributionOverviewReply) {
 	var searchRequest struct {
 		Query string `json:"q,omitempty"`
 	}
@@ -1080,7 +1078,7 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
 func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var frontEndUser dbus.FrontendUserRoles
+	var frontEndUser frontendUserRoles
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
@@ -1105,14 +1103,16 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 }
 
 // getDeleteIdentityReply deletes the given user
-func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request, delUID string) (reply identityReply) {
+func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
+	r *http.Request, delUID string) (reply identityReply) {
 	// get identity data
-	identity, _, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), delUID).Execute()
+	identity, response, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), delUID).Execute()
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
+	defer response.Body.Close()
 
 	uid, err := extractDgraphUID(identity.MetadataPublic)
 	if err != nil {
@@ -1145,12 +1145,13 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-
-	if _, err := adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute(); err != nil {
+	response, err = adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute()
+	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
+	defer response.Body.Close()
 
 	reply.Success = true
 
@@ -1202,22 +1203,26 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	const msgErrModifyingUser = "error modifying user"
 
-	initialIdentity, _, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), modRequest.UID).Execute()
+	initialIdentity, getIdentityResponse, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(),
+		modRequest.UID).Execute()
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
 	}
+	defer getIdentityResponse.Body.Close()
+
+	const msgInvalidRole = "invalid role"
 
 	// check email
 	if len(modRequest.Email) > 0 {
-		if !dbus.IsValidEmail(modRequest.Email) {
+		if !isValidEmail(modRequest.Email) {
 			reply.Msg = "invalid email"
 			return
 		}
 
 		// replace roles
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
-			reply.Msg = "invalid role"
+			reply.Msg = msgInvalidRole
 			info(cliutil.ShowCallInfo(), "could not set", modRequest.Email, "for user", modRequest.UID)
 			return
 		}
@@ -1228,9 +1233,9 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		var roles []string
 		// check if all roles exists
 		for _, role := range modRequest.Roles {
-			if _, err := user.GetRoleByName(role.Name); err != nil {
-				reply.Msg = "invalid role"
-				info(cliutil.ShowCallInfo(), "invalid role", role.Name, "for identity", modRequest.UID)
+			if _, err := getRoleByName(role.Name); err != nil {
+				reply.Msg = msgInvalidRole
+				info(cliutil.ShowCallInfo(), msgInvalidRole, role.Name, "for identity", modRequest.UID)
 				return
 			}
 			roles = append(roles, role.Name)
@@ -1244,17 +1249,19 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		}
 	}
 
-	if _, _, err = adminAuth.V0alpha2Api.AdminUpdateIdentity(r.Context(), modRequest.UID).AdminUpdateIdentityBody(ory.AdminUpdateIdentityBody{
+	_, response, err := adminAuth.V0alpha2Api.AdminUpdateIdentity(r.Context(), modRequest.UID).AdminUpdateIdentityBody(ory.AdminUpdateIdentityBody{
 		MetadataAdmin:  initialIdentity.MetadataAdmin,
 		MetadataPublic: initialIdentity.MetadataPublic,
 		SchemaId:       initialIdentity.SchemaId,
 		State:          *initialIdentity.State,
 		Traits:         initialIdentity.Traits.(map[string]any),
-	}).Execute(); err != nil {
+	}).Execute()
+	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
+	defer response.Body.Close()
 
 	reply.Success = true
 

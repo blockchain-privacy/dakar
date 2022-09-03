@@ -1,4 +1,4 @@
-package user
+package server
 
 import (
 	"github.com/stretchr/testify/require"
@@ -65,19 +65,19 @@ func TestNewPrivilegedRole(t *testing.T) {
 }
 
 func TestGetRoleByName(t *testing.T) {
-	adminRole, err := GetRoleByName(AdminRoleName)
+	adminRole, err := getRoleByName(AdminRoleName)
 	require.Nil(t, err)
 	require.NotNil(t, adminRole)
 
-	userRole, err := GetRoleByName("user")
+	userRole, err := getRoleByName("user")
 	require.Nil(t, err)
 	require.NotNil(t, userRole)
 
-	privRole, err := GetRoleByName("privileged")
+	privRole, err := getRoleByName("privileged")
 	require.Nil(t, err)
 	require.NotNil(t, privRole)
 
-	invRole, err := GetRoleByName("some_invalid_role_string")
+	invRole, err := getRoleByName("some_invalid_role_string")
 	require.NotNil(t, err)
 	require.Nil(t, invRole)
 }

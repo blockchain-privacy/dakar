@@ -1,4 +1,4 @@
-package user
+package server
 
 import (
 	"backend/constants"
@@ -210,8 +210,8 @@ func (p PrivilegedRole) String() string {
 	return fmt.Sprintf("Name: %s, Allowed routes: [%s]", p.name, routeMapToString(p.allowedRoutes))
 }
 
-// GetRoleByName returns for a given role name the Role object
-func GetRoleByName(name string) (Role, error) {
+// getRoleByName returns for a given role name the Role object
+func getRoleByName(name string) (Role, error) {
 	returnedRole, ok := roleMap[name]
 	if !ok {
 		return nil, errRoleDoesNotExist
