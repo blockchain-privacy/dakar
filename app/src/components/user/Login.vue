@@ -19,7 +19,7 @@
         <v-row justify="center">
           <v-col cols="12" lg="8" md="8" xl="5">
             <v-card class="elevation-4">
-              <div class="pa-5">
+              <div class="pa-5 pb-8">
                 <h3 class="text-h3 font-weight-bold text-center">
                   Welcome!
                 </h3>
@@ -31,13 +31,9 @@
                     v-else
                     class="mx-auto"
                     type="article, actions"/>
-                <NamedDivider title="Or"/>
-                <v-btn
-                    :to="{name: routeAccountRecovery}"
-                    block
-                    class="font-weight-bold" color="primary darken-1">
-                  Recover Account
-                </v-btn>
+                <router-link  class="float-right" :to="{name: this.routeAccountRecovery}">
+                  Recover account
+                </router-link>
               </div>
             </v-card>
           </v-col>
@@ -51,7 +47,6 @@
 import {
   mdiLockOutline, mdiEye, mdiEyeOff, mdiEmail,
 } from '@mdi/js';
-import NamedDivider from '../common/NamedDivider.vue';
 import {
   APPLICATION_NAME, PAGE_TITLE, PASSWORD_MIN_CHARACTERS, ROUTE_NAME_ENTRY_PAGE,
   PASSWORD_MAX_CHARACTERS, APPLICATION_SUBTITLE, ROUTE_NAME_ACCOUNT_RECOVERY,
@@ -70,7 +65,7 @@ function goToRoot(context) {
 
 export default {
   name: 'Login',
-  components: { OryFlow, NamedDivider },
+  components: { OryFlow },
   data() {
     return {
       icon: {
