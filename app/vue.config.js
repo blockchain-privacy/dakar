@@ -17,10 +17,10 @@ module.exports = {
         // remove '/auth' prefix
         pathRewrite: { '^/auth': '' },
       },
-      '/wiki': {
+      '/wikiapi': {
         target: 'http://localhost:4567',
         // remove '/wiki' prefix
-        pathRewrite: { '^/wiki': '' },
+        pathRewrite: { '^/wikiapi': '' },
       },
     },
   },
