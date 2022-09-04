@@ -72,7 +72,7 @@ export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 
 // ory
-export const ORY_KRATOS_BASE_URL = 'http://localhost:4433';
+export const ORY_KRATOS_BASE_URL = '/auth';
 
 // application
 export const PAGE_TITLE = 'Dakar';
