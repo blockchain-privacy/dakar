@@ -38,6 +38,7 @@
     />
     <v-btn
         @click="emitSubmitEvent"
+        depressed
         block
         class="font-weight-bold" color="primary darken-1"
         :id="id"
