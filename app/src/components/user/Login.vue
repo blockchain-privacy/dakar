@@ -114,7 +114,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     leave() {
-      if (this.loginFlow.return_to) {
+      if (this.loginFlow && this.loginFlow.return_to) {
         window.location.href = this.loginFlow.return_to;
       } else if (this.failedRoute) {
         goToPage(this, this.failedRoute);
@@ -192,7 +192,22 @@ export default {
   mounted() {
     document.title = `Login - ${PAGE_TITLE}`;
 
-    this.initFlow();
+    // if session is not set, user might be logged in already -> get session
+    if (!this.session) {
+      this.ory.toSession()
+        .then((d) => {
+          if (d.status && d.status === 200) {
+            this.session = d.data;
+            this.leave();
+          }
+        })
+        .catch(() => {
+          // this request fails if the user is not logged in -> init login form
+          this.initFlow();
+        });
+    } else {
+      this.leave();
+    }
   },
   watch: {
     $route(to) {
