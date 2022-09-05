@@ -15,7 +15,7 @@ import {
 } from '@mdi/js';
 import * as Constants from '../constants';
 import {
-  doGet, handleError, isValidQuery, isValidQueryInput, resetData,
+  doGet, handleError, isValidQuery, isValidQueryInput,
 } from '../utilities';
 
 function newRouting(context) {
@@ -132,7 +132,11 @@ export default {
 
       this.lastQuery = query;
 
-      resetData(this);
+      // reset data
+      await this.$store.dispatch('resetMessages');
+      await this.$store.dispatch('setBlockData', null);
+      await this.$store.dispatch('setTransactionData', null);
+      await this.$store.dispatch('setAddressData', null);
 
       if (!isValidQueryInput(query)) {
         this.setWarningMessage('Input was not valid');

@@ -7,13 +7,6 @@ import {
   CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM, LOCALSTORAGE_FIELD_SESSION,
 } from '../constants';
 
-export function resetData(context) {
-  context.$store.dispatch('resetMessages');
-  context.$store.dispatch('setBlockData', null);
-  context.$store.dispatch('setTransactionData', null);
-  context.$store.dispatch('setAddressData', null);
-}
-
 export function setLocalSession(sessionData) {
   localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
 }
