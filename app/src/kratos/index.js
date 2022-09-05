@@ -1,4 +1,4 @@
-import { ROUTE_NAME_LOGIN_PAGE } from '../constants';
+import { ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE } from '../constants';
 
 function refreshFlow(router) {
   router.push({
@@ -16,7 +16,7 @@ export default function handleGetFlowError(router, store, error) {
   if (error.response && error.response.data && error.response.data.error) {
     switch (error.response.data.error.id) {
       case 'session_already_available': // User is already signed in, let's redirect them home!
-        // todo check if this is okay
+        router.push({ name: ROUTE_NAME_ENTRY_PAGE });
         router.push('/'); // let the router decide how to redirect them
         return Promise.resolve();
       case 'session_aal2_required': // 2FA is enabled and enforced, but user did not perform 2fa yet!
