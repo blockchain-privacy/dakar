@@ -28,7 +28,7 @@
     ></script>
     <template v-else-if="isUiNodeTextAttributes(node.attributes)">
       <p v-if="node.meta && node.meta.label && node.meta.label.text">
-        {{ `${node.meta.label.text}:` }}
+        {{ `${node.meta.label.text}` }}
       </p>
       <p v-if="node.attributes && node.attributes.text && node.attributes.text.text">
         {{ node.attributes.text.text }}
