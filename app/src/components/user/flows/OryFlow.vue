@@ -1,6 +1,33 @@
 <template>
-  <div>
+  <div v-if="embed">
+    <v-card class="mx-auto elevation-4 my-5" max-width="700"
+            v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`">
+      <v-toolbar color="primary" dark flat>
+        <v-toolbar-title>
+          {{ groupTitles.get(getFormGroupName(formNodes)) }}
+        </v-toolbar-title>
+      </v-toolbar>
+      <v-card>
+        <v-card-text>
+          <v-form
+              :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
+            <ory-ui-node
+                v-for="node in formNodes"
+                :key="getNodeId(node)"
+                :id="getNodeId(node)"
+                :node="node"
+                @submit="propagateSubmitEvent(`${formId}_${i}`)"
+            />
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-card>
+  </div>
+  <div v-else>
     <div v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`">
+      <p  class="text-h5">
+        {{ groupTitles.get(getFormGroupName(formNodes)) }}
+      </p>
       <v-form
           :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
         <ory-ui-node
@@ -26,6 +53,7 @@ export default {
   props: {
     flow: { type: Object, required: true },
     formId: { type: String, required: true },
+    embed: { type: Boolean, required: false, default: false },
   },
   computed: {
     // getForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).
@@ -50,6 +78,15 @@ export default {
       return forms;
     },
   },
+  data() {
+    return {
+      groupTitles: new Map([
+        ['totp', 'Two-Factor Authentication'],
+        ['password', 'Change Password'],
+        ['profile', 'Change Profile'],
+      ]),
+    };
+  },
   methods: {
     getNodeId,
     setMessage(msg, msgType) {
@@ -57,6 +94,14 @@ export default {
     },
     propagateSubmitEvent(formID) {
       this.$emit('submit', formID);
+    },
+    getFormGroupName(formNodes) {
+      const nodes = formNodes.filter((d) => d.group !== 'default');
+      if (nodes) {
+        return nodes[0].group;
+      }
+
+      return '';
     },
     displayMessages() {
       if (!this.flow.ui || !this.flow.ui.messages) return;

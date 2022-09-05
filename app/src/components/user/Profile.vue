@@ -1,21 +1,11 @@
 <template>
-  <v-card class="mx-auto elevation-4" max-width="700">
-    <v-toolbar color="primary" dark flat>
-      <v-toolbar-title>
-        <v-icon>{{ icons.mdiAccountDetails }}</v-icon>
-        Profile
-      </v-toolbar-title>
-    </v-toolbar>
-    <v-card>
-      <v-card-text>
-        <ory-flow v-if="settingsFlow" class="mt-4"
-                  :flow="settingsFlow"
-                  :form-id="formID"
-                  @submit="handleOrySubmitSettings"/>
-        <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
-      </v-card-text>
-    </v-card>
-  </v-card>
+    <ory-flow v-if="settingsFlow" class="mt-4"
+              :flow="settingsFlow"
+              :form-id="formID"
+              @submit="handleOrySubmitSettings"
+              embed
+              />
+    <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
 </template>
 
 <script>
