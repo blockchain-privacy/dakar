@@ -13,7 +13,6 @@ Vue.use(Vuex);
 function getInitialState() {
   return {
     messages: [],
-    msg: null,
     transaction: null,
     searchResultType: null,
     address: null,
