@@ -1,6 +1,8 @@
 <template>
   <div class="msgBox">
     <transition-group name="component-fade" mode="out-in">
+      <!-- todo Vue3 supports iterating over Maps with v-for
+https://github.com/vuejs/vue/issues/6644 -->
       <Messages
           v-for="(msg, i) in messages" :key="msg.text + i"
           :type="msg.type" :temporary="msg.temporary">
