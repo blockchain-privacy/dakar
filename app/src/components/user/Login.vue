@@ -130,6 +130,12 @@ export default {
       this.ory.submitSelfServiceLoginFlow(flow, JSON.stringify(body))
         .then((response) => {
           if (response.status === 200 && response.data && response.data.session) {
+            if (!response.data.session.identity) {
+              // aal2 not done yet
+              this.initLoginFlow('aal2');
+              return;
+            }
+
             this.session = response.data.session;
             this.leave();
             return;
@@ -158,7 +164,7 @@ export default {
       if (typeof flow !== 'string') {
         // if there's no flow in our route,
         // we need to initialize our login flow
-        this.initLoginFlow();
+        this.initLoginFlow('aal1');
       } else {
         this.ory.getSelfServiceLoginFlow(flow)
           .then((d) => this.setFlowData(d.data))
@@ -167,10 +173,10 @@ export default {
           });
       }
     },
-    initLoginFlow() {
+    initLoginFlow(aal) {
       // set refresh to true, for the case when the local
       // session data was deleted but the user is still logged in
-      this.ory.initializeSelfServiceLoginFlowForBrowsers(true)
+      this.ory.initializeSelfServiceLoginFlowForBrowsers(false, aal)
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
           handleGetFlowError(this.$router, this.$store, err);
