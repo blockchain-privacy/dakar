@@ -100,7 +100,7 @@ export default {
             this.session = d.data;
           }
         })
-        .catch();
+        .catch((err) => { handleGetFlowError(this.$router, this.$store, err); });
     },
     initFlow() {
       const { flow } = this.$route.query;
