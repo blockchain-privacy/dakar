@@ -1,15 +1,18 @@
 <template>
   <div>
-    <v-form v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`"
-            :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
-      <ory-ui-node
-          v-for="node in formNodes"
-          :key="getNodeId(node)"
-          :id="getNodeId(node)"
-          :node="node"
-          @submit="propagateSubmitEvent(`${formId}_${i}`)"
-      />
-    </v-form>
+    <div v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`">
+      <v-form
+          :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
+        <ory-ui-node
+            v-for="node in formNodes"
+            :key="getNodeId(node)"
+            :id="getNodeId(node)"
+            :node="node"
+            @submit="propagateSubmitEvent(`${formId}_${i}`)"
+        />
+      </v-form>
+      <v-divider v-if="getForms.length > 1 && i +1 < getForms.length" class="my-5"></v-divider>
+    </div>
   </div>
 </template>
 
