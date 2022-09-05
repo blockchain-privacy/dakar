@@ -88,7 +88,7 @@ import {
   APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
   ROUTE_NAME_USER_PROFILE_PAGE,
 } from '../constants';
-import { resetLocal, isAdminIdentity, isPrivilegedIdentity } from '../utilities';
+import { isAdminIdentity, isPrivilegedIdentity } from '../utilities';
 import handleGetFlowError from '../kratos';
 
 export default {
@@ -122,14 +122,6 @@ export default {
     };
   },
   computed: {
-    settings: {
-      get() {
-        return this.$store.getters.getSettings;
-      },
-      set(value) {
-        this.$store.dispatch('setSettings', value);
-      },
-    },
     session: {
       get() {
         return this.$store.getters.getSession;
@@ -164,8 +156,6 @@ export default {
         })
         .then((d) => {
           if (d.status === 204) {
-            resetLocal();
-            this.settings = null;
             this.session = null;
             this.goToPage(this.route.rootPage);
           }
