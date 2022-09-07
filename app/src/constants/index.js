@@ -72,7 +72,10 @@ export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 
 // ory
-export const ORY_KRATOS_BASE_URL = '/auth';
+export const ORY_KRATOS_PATH_PREFIX = '/auth';
+
+// wikiapi
+export const WIKIAPI_PATH_PREFIX = '/wikiapi';
 
 // application
 export const PAGE_TITLE = 'Dakar';

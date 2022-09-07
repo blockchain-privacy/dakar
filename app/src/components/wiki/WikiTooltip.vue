@@ -21,6 +21,7 @@
 
 <script>
 import { doGet } from '../../utilities';
+import { WIKIAPI_PATH_PREFIX } from '../../constants';
 
 export default {
   name: 'WikiTooltip',
@@ -40,7 +41,7 @@ export default {
       // check if already tried to request description
       if (!this.requestedDescription) {
         this.requestedDescription = true;
-        doGet(`/wikiapi/blurb/${this.descriptionUrl}`, this.$router, this.$store)
+        doGet(`${WIKIAPI_PATH_PREFIX}/blurb/${this.descriptionUrl}`, this.$router, this.$store)
           .then((d) => {
             if (!d.success) return;
             if (d.data && d.data.blurb) this.description = d.data.blurb;
