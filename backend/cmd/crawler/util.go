@@ -339,6 +339,49 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	return ory.NewAPIClient(conf), nil
 }
 
+// isKratosAlive returns true if a successful connection to kratos has been established
+func isKratosAlive(auth *ory.APIClient) bool {
+	// check if endpoint is alive
+	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancelFunc()
+
+	_, resp1, err := auth.MetadataApi.IsAlive(ctx1).Execute()
+	if err != nil {
+		return false
+	}
+	defer resp1.Body.Close()
+
+	return true
+}
+
+// waitForKratos waits until kratos is ready to receive requests
+func waitForKratos(auth *ory.APIClient) bool {
+	const maxRetries = 20
+	const retrySleepDuration = time.Second * 5
+
+	var printedErrMessage bool
+
+	for i := 0; i < maxRetries; i++ {
+		if isKratosAlive(auth) {
+			if printedErrMessage {
+				fmt.Println("Successfully established connection to kratos")
+			}
+			return true
+		}
+
+		if !printedErrMessage {
+			fmt.Println("Waiting for kratos")
+			printedErrMessage = true
+		}
+
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return false
+}
+
 // getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance.
 // Also checks if the connections are alive.
 func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClient, *ory.APIClient, error) {
@@ -353,24 +396,14 @@ func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClien
 	}
 
 	// check if public endpoint is alive
-	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
-	defer cancelFunc()
-
-	_, resp1, err := auth.MetadataApi.IsAlive(ctx1).Execute()
-	if err != nil {
-		return nil, nil, fmt.Errorf("kratos public endpoint is not alive: %w", err)
+	if !waitForKratos(auth) {
+		return nil, nil, errors.New("kratos public endpoint is not ready to receive requests")
 	}
-	defer resp1.Body.Close()
 
-	// check if admin endpoint is alive
-	ctx2, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
-	defer cancelFunc()
-
-	_, resp2, err := adminAuth.MetadataApi.IsAlive(ctx2).Execute()
-	if err != nil {
-		return nil, nil, fmt.Errorf("kratos admin endpoint is not alive: %w", err)
+	// check if public endpoint is alive
+	if !waitForKratos(adminAuth) {
+		return nil, nil, errors.New("kratos admin endpoint is not ready to receive requests")
 	}
-	defer resp2.Body.Close()
 
 	return auth, adminAuth, nil
 }
