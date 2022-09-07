@@ -131,7 +131,7 @@ export default new Router({
       meta: { title: 'Login' },
     },
     {
-      path: '/wiki',
+      path: '/wiki/:file',
       name: Constants.ROUTE_NAME_WIKI,
       component: Wiki,
       meta: { title: 'Wiki' },

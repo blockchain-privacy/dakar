@@ -1,7 +1,7 @@
 <template>
   <v-hover v-slot:default="{ hover }" open-delay="300" close-delay="300">
         <span class="anchor">
-          <router-link :to="{name: routeWiki, query: { file: descriptionUrl }}">
+          <router-link :to="{name: routeWiki, params: { file: descriptionUrl }}">
             {{ text }}
           </router-link>
           <!-- call this function when hovered -->
