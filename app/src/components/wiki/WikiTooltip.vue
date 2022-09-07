@@ -10,7 +10,7 @@
                     max-width="350px"
                     min-width="300px">
               <v-card-text class="text-center">
-                <div v-if="requestedDescription" v-html="description"/>
+                <div v-if="requestedDescription" v-html="description" class="description"/>
                 <v-skeleton-loader v-else type="article"/>
               </v-card-text>
             </v-card>
@@ -66,4 +66,9 @@ export default {
   right: 0;
   z-index: 50;
 }
+
+.description >>> h1 {
+  margin-bottom: 10px;
+}
+
 </style>
