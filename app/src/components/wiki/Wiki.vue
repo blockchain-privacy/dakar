@@ -3,7 +3,7 @@
     <v-row class="fill-height">
       <v-col cols="2" class="hidden-md-and-down pa-0">
         <v-navigation-drawer permanent>
-          <v-list-item>
+          <v-list-item :to="{name: routeWikiRoot}" exact-path>
             <v-list-item-icon>
               <v-icon>{{ icons.mdiBookOpen }}</v-icon>
             </v-list-item-icon>
@@ -47,13 +47,21 @@
           </v-list>
           <v-skeleton-loader
               v-else
-              type="list-item-three-line,list-item-three-line,list-item-three-line" />
+              type="list-item-three-line,list-item-three-line,list-item-three-line"/>
         </v-navigation-drawer>
       </v-col>
       <v-col class="fill-height">
         <transition name="component-fade" mode="out-in">
-          <div v-if="fileHTML" v-html="fileHTML"></div>
-          <v-skeleton-loader v-else type="article" />
+          <v-card v-if="isRoot" flat>
+            <v-card-text>
+              <!--         todo do autocomplete     -->
+              <v-text-field label="Search for wiki pages"/>
+            </v-card-text>
+          </v-card>
+          <template v-else>
+            <div v-if="fileHTML" v-html="fileHTML"></div>
+            <v-skeleton-loader v-else type="article"/>
+          </template>
         </transition>
       </v-col>
     </v-row>
@@ -62,7 +70,9 @@
 
 <script>
 import { mdiBookOpen, mdiBook } from '@mdi/js';
-import { PAGE_TITLE, WIKIAPI_PATH_PREFIX, ROUTE_NAME_WIKI } from '../../constants';
+import {
+  PAGE_TITLE, WIKIAPI_PATH_PREFIX, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
+} from '../../constants';
 import { doGet } from '../../utilities';
 
 // separateWords adds a space before each capitalized letter
@@ -80,6 +90,75 @@ function cleanName(fileName) {
   return capitalize(separateWords(fileName)).replace('.md', '').replace('-', ' ');
 }
 
+// getFileHierarchy returns a file hierarchy based on the given directories.
+// convert map to array of objects
+// result:
+// [
+//   {
+//     "name": "Index",
+//     "items": null,
+//     "path": "index.md"
+//   },
+//   {
+//     "name": "TransactionTypes",
+//     "items": [
+//       {
+//         "name": "Destination",
+//         "path": "transactionTypes/destination.md"
+//       },
+//       {
+//         "name": "Mixing",
+//         "path": "transactionTypes/mixing.md"
+//       },
+//     ],
+//     "path": "transactionTypes/destination.md"
+//   }
+// ]
+function getFileHierarchy(fileSet) {
+  if (fileSet === null) {
+    return [];
+  }
+
+  const hierarchy = new Map();
+
+  fileSet.forEach((d) => {
+    const pathParts = d.split('/');
+
+    if (pathParts.length > 2) {
+      // only a depth of 2 is supported
+      return;
+    }
+
+    let [directory, fileName] = pathParts;
+
+    directory = cleanName(directory);
+
+    const itemProps = { items: null, path: d };
+
+    if (fileName) {
+      fileName = cleanName(fileName);
+      let props = itemProps;
+
+      if (hierarchy.has(directory)) {
+        props = hierarchy.get(directory);
+      }
+
+      if (!props.items) props.items = [];
+
+      props.items.push({ name: fileName, path: d });
+      hierarchy.set(directory, props);
+    } else hierarchy.set(directory, itemProps);
+  });
+
+  const hierarchyArray = [];
+  hierarchy.forEach((props, directory) => {
+    const item = { name: directory, ...props };
+    hierarchyArray.push(item);
+  });
+
+  return hierarchyArray;
+}
+
 export default {
   name: 'Wiki',
   data() {
@@ -88,78 +167,17 @@ export default {
         mdiBookOpen, mdiBook,
       },
       routeWiki: ROUTE_NAME_WIKI,
+      routeWikiRoot: ROUTE_NAME_WIKI_ROOT,
       fileHTML: '',
       // fileSet will hold a set with all possible file paths
       fileSet: null,
+      // isRoot determines of the root page of the wiki is shown
+      isRoot: true,
     };
   },
   computed: {
     fileHierarchy() {
-      if (this.fileSet === null) {
-        return [];
-      }
-
-      const hierarchy = new Map();
-
-      this.fileSet.forEach((d) => {
-        const pathParts = d.split('/');
-
-        if (pathParts.length > 2) {
-          // only a depth of 2 is supported
-          return;
-        }
-
-        let [directory, fileName] = pathParts;
-
-        directory = cleanName(directory);
-
-        const itemProps = { items: null, path: d };
-
-        if (fileName) {
-          fileName = cleanName(fileName);
-          let props = itemProps;
-
-          if (hierarchy.has(directory)) {
-            props = hierarchy.get(directory);
-          }
-
-          if (!props.items) props.items = [];
-
-          props.items.push({ name: fileName, path: d });
-          hierarchy.set(directory, props);
-        } else hierarchy.set(directory, itemProps);
-      });
-
-      // convert map to array of objects
-      // result:
-      // [
-      //   {
-      //     "name": "Index",
-      //     "items": null,
-      //     "path": "index.md"
-      //   },
-      //   {
-      //     "name": "TransactionTypes",
-      //     "items": [
-      //       {
-      //         "name": "Destination",
-      //         "path": "transactionTypes/destination.md"
-      //       },
-      //       {
-      //         "name": "Mixing",
-      //         "path": "transactionTypes/mixing.md"
-      //       },
-      //     ],
-      //     "path": "transactionTypes/destination.md"
-      //   }
-      // ]
-      const hierarchyArray = [];
-      hierarchy.forEach((props, directory) => {
-        const item = { name: directory, ...props };
-        hierarchyArray.push(item);
-      });
-
-      return hierarchyArray;
+      return getFileHierarchy(this.fileSet);
     },
   },
   methods: {
@@ -192,16 +210,23 @@ export default {
   async mounted() {
     document.title = `Wiki - ${PAGE_TITLE}`;
 
+    if (this.$route.params.file) {
+      this.isRoot = false;
+    }
+
     await this.getFileIndex();
 
-    if (this.$route.params.file) {
+    if (!this.isRoot) {
       this.getFile(this.$route.params.file);
     }
   },
   watch: {
     $route() {
       if (this.$route.params.file) {
+        this.isRoot = false;
         this.getFile(this.$route.params.file);
+      } else {
+        this.isRoot = true;
       }
     },
   },

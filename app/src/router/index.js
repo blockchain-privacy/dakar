@@ -131,6 +131,17 @@ export default new Router({
       meta: { title: 'Login' },
     },
     {
+      // wiki root page
+      path: '/wiki',
+      name: Constants.ROUTE_NAME_WIKI_ROOT,
+      component: Wiki,
+      meta: { title: 'Wiki' },
+      beforeEnter: (to, from, next) => {
+        checkSession(to, next, isPrivileged);
+      },
+    },
+    {
+      // wiki content page
       // allow additional slashes in path
       path: '/wiki/:file(.*)',
       name: Constants.ROUTE_NAME_WIKI,
