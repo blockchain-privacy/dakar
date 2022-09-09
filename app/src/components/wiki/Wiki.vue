@@ -1,7 +1,7 @@
 <template>
   <div class="fill-height" style="padding: 12px 10px 0 10px">
     <v-row class="fill-height">
-      <v-col cols="2" class="hidden-md-and-down pa-0">
+      <v-col cols="auto" class="hidden-sm-and-down pa-0">
         <v-navigation-drawer permanent>
           <v-list-item :to="{name: routeWikiRoot}" exact-path>
             <v-list-item-icon>
@@ -50,7 +50,7 @@
               type="list-item-three-line,list-item-three-line,list-item-three-line"/>
         </v-navigation-drawer>
       </v-col>
-      <v-col class="fill-height">
+      <v-col class="fill-height mx-lg-16">
         <transition name="component-fade" mode="out-in">
           <v-card v-if="showRootPage" flat>
             <v-card-text>
