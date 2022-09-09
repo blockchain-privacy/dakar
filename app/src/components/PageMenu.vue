@@ -61,6 +61,13 @@
               :color="iconColor.default"
               :to="{ name: routes.serverStatusPage }"/>
         </v-col>
+        <v-col>
+          <LinkCard
+              title="Wiki"
+              :icon="icons.mdiBookOpen"
+              :color="iconColor.default"
+              :to="{ name: routes.wikiRootPage }"/>
+        </v-col>
         <v-col v-if="showUserAdmin">
           <LinkCard
               title="User Admin"
@@ -76,12 +83,12 @@
 <script>
 import {
   mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
-  mdiMerge, mdiTag, mdiPlaylistRemove,
+  mdiMerge, mdiTag, mdiPlaylistRemove, mdiBookOpen,
 } from '@mdi/js';
 import {
   ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
   ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-  ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS,
+  ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
 import { isAdminIdentity, isPrivilegedIdentity } from '../utilities';
@@ -104,6 +111,7 @@ export default {
         mdiMerge,
         mdiTag,
         mdiPlaylistRemove,
+        mdiBookOpen,
       },
       iconColor: {
         default: 'primary',
@@ -118,6 +126,7 @@ export default {
         clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
         attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
         addressExclusionPage: ROUTE_NAME_ADDRESS_EXCLUSIONS,
+        wikiRootPage: ROUTE_NAME_WIKI_ROOT,
       },
     };
   },
