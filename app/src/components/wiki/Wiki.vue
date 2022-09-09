@@ -226,6 +226,8 @@ export default {
         return;
       }
 
+      document.title = `Wiki - ${cleanName(filePath)} - ${PAGE_TITLE}`;
+
       doGet(`${WIKIAPI_PATH_PREFIX}/file/${filePath}`, this.$router, this.$store)
         .then((d) => {
           if (!d.success) return;
@@ -259,6 +261,7 @@ export default {
         this.getFile(this.$route.params.file);
       } else {
         this.showRootPage = true;
+        document.title = `Wiki - ${PAGE_TITLE}`;
       }
     },
   },
