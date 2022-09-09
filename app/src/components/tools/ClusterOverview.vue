@@ -33,7 +33,10 @@
         <v-row>
           <v-col v-if="items.length > 0">
             <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-            These clusters have been created by you.
+            These <WikiTooltip
+              text="clusters"
+              description-url="addressCluster.md"
+          /> have been created by you.
           </v-col>
           <v-col v-else>
             <div class="d-flex justify-center">
@@ -107,10 +110,13 @@ import { doGet, handleError } from '../../utilities';
 import ImportCluster from '../dialogs/ImportClusters.vue';
 import DeleteCluster from '../dialogs/DeleteCluster.vue';
 import DeleteAllClusters from '../dialogs/DeleteAllClusters.vue';
+import WikiTooltip from '../wiki/WikiTooltip.vue';
 
 export default {
   name: 'ClusterOverview',
-  components: { DeleteAllClusters, DeleteCluster, ImportCluster },
+  components: {
+    WikiTooltip, DeleteAllClusters, DeleteCluster, ImportCluster,
+  },
   data() {
     return {
       icon: {
