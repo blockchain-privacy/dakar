@@ -75,4 +75,8 @@ export default {
   margin-bottom: 10px;
 }
 
+.wikiBlurbDescription >>> img {
+  max-width: 100%
+}
+
 </style>
