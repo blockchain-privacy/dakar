@@ -25,9 +25,6 @@
   </div>
   <div v-else>
     <div v-for="(formNodes,i) in getForms" :key="`${formId}_${i}`">
-      <p  class="text-h5">
-        {{ groupTitles.get(getFormGroupName(formNodes)) }}
-      </p>
       <v-form
           :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
         <ory-ui-node
