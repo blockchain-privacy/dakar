@@ -52,10 +52,20 @@
       </v-col>
       <v-col class="fill-height">
         <transition name="component-fade" mode="out-in">
-          <v-card v-if="isRoot" flat>
+          <v-card v-if="showRootPage" flat>
             <v-card-text>
-              <!--         todo do autocomplete     -->
-              <v-text-field label="Search for wiki pages"/>
+              <v-autocomplete
+                  v-model="query"
+                  :items="namePathPairs"
+                  item-text="name"
+                  item-value="path"
+                  label="Search for wiki pages"
+                  outlined
+                  @change="navigateToWikiPage"
+                  @keydown.enter="navigateToWikiPage"
+                  @click:append-outer="navigateToWikiPage"
+                  :append-outer-icon="icons.mdiMagnify">
+              </v-autocomplete>
             </v-card-text>
           </v-card>
           <template v-else>
@@ -69,7 +79,7 @@
 </template>
 
 <script>
-import { mdiBookOpen, mdiBook } from '@mdi/js';
+import { mdiBookOpen, mdiBook, mdiMagnify } from '@mdi/js';
 import {
   PAGE_TITLE, WIKIAPI_PATH_PREFIX, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
 } from '../../constants';
@@ -164,7 +174,7 @@ export default {
   data() {
     return {
       icons: {
-        mdiBookOpen, mdiBook,
+        mdiBookOpen, mdiBook, mdiMagnify,
       },
       routeWiki: ROUTE_NAME_WIKI,
       routeWikiRoot: ROUTE_NAME_WIKI_ROOT,
@@ -172,12 +182,30 @@ export default {
       // fileSet will hold a set with all possible file paths
       fileSet: null,
       // isRoot determines of the root page of the wiki is shown
-      isRoot: true,
+      showRootPage: true,
+      query: null,
     };
   },
   computed: {
     fileHierarchy() {
       return getFileHierarchy(this.fileSet);
+    },
+    // namePathPairs returns an array of name and
+    // path pairs [{name: filename, path: filename.md}, ...]
+    namePathPairs() {
+      const pairs = [];
+
+      this.fileHierarchy.forEach((d) => {
+        if (d.items) {
+          d.items.forEach((l) => {
+            pairs.push(l);
+          });
+        } else {
+          pairs.push(d);
+        }
+      });
+
+      return pairs;
     },
   },
   methods: {
@@ -206,27 +234,31 @@ export default {
         })
         .catch((e) => this.setErrorMessage(e));
     },
+    navigateToWikiPage() {
+      if (!this.query) return;
+      this.$router.push({ name: this.routeWiki, params: { file: this.query } });
+    },
   },
   async mounted() {
     document.title = `Wiki - ${PAGE_TITLE}`;
 
     if (this.$route.params.file) {
-      this.isRoot = false;
+      this.showRootPage = false;
     }
 
     await this.getFileIndex();
 
-    if (!this.isRoot) {
+    if (!this.showRootPage) {
       this.getFile(this.$route.params.file);
     }
   },
   watch: {
     $route() {
       if (this.$route.params.file) {
-        this.isRoot = false;
+        this.showRootPage = false;
         this.getFile(this.$route.params.file);
       } else {
-        this.isRoot = true;
+        this.showRootPage = true;
       }
     },
   },
