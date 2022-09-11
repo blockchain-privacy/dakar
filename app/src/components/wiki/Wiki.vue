@@ -69,7 +69,9 @@
             </v-card-text>
           </v-card>
           <template v-else>
-            <div v-if="fileHTML" v-html="fileHTML" class="wikiFileContent"></div>
+            <div v-if="fileHTML" v-html="fileHTML"
+                 :class="{'wikiFileContentFullSize': $vuetify.breakpoint.smAndDown,
+                 'wikiFileContent': !$vuetify.breakpoint.smAndDown}" />
             <v-skeleton-loader v-else type="article"/>
           </template>
         </transition>
@@ -272,6 +274,10 @@ export default {
 
 .wikiFileContent >>> img {
   max-width: 40%;
+}
+
+.wikiFileContentFullSize >>> img {
+  max-width: 100%;
 }
 
 </style>
