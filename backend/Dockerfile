@@ -1,10 +1,9 @@
 # build stage
-FROM golang:1.16-alpine as build-stage
-RUN mkdir /build
-ADD . /build/
-WORKDIR /build
+FROM golang:1.19-alpine as build-stage
 
-# RUN go build -o crawler ./cmd/crawler/
+WORKDIR /build
+COPY . /build/
+
 RUN go build -o crawler ./cmd/crawler/
 
 # production stage
