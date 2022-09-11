@@ -71,6 +71,7 @@ crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
 server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
 process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
 ```
+
 ### Setup Frontend
 
 * Switch to frontend folder `cd <project_dir>/app`
@@ -83,3 +84,7 @@ App running at:
 - Local:   http://localhost:8082/ 
 - Network: http://<your-private-ip>:8082/
 ```
+
+### Metrics
+
+Metrics are exposed via `/metrics` on a separate port, which is configurable via the config file.1
