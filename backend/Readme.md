@@ -8,7 +8,6 @@ This is the backend of Dakar. It crawls the Dash blockchain and exposes its data
 * `Dgraph` - data storage and processed blockchain data
 * `grpc` - network communication
 * `ristretto` - in-memory cache for API requests
-* `paseto` - API authentication
 * `gonum` - graph algorithms
 * `prometheus client` - metrics
 

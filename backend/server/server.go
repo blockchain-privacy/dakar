@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"io"
 	"log"
 	"net/http"
@@ -38,29 +39,19 @@ func fatal(v ...interface{}) {
 }
 
 type Server struct {
-	db            external.Database
-	client        external.RPCClient
-	worker        *heuristic.Worker
-	cache         *ristretto.Cache
-	auth          *ory.APIClient
-	adminAuth     *ory.APIClient
-	basicAuthUser string
-	basicAuthHash string
-	handler       *http.ServeMux
+	db        external.Database
+	client    external.RPCClient
+	worker    *heuristic.Worker
+	cache     *ristretto.Cache
+	auth      *ory.APIClient
+	adminAuth *ory.APIClient
+	handler   *http.ServeMux
 }
 
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
-	worker *heuristic.Worker, basicAuthUser string, basicAuthHash string) (*Server, error) {
+	worker *heuristic.Worker) (*Server, error) {
 	if adminAuth == nil || auth == nil {
 		return nil, errors.New("authentication handles are not set")
-	}
-
-	if basicAuthUser == "" {
-		return nil, errors.New("basic authentication user is not set")
-	}
-
-	if basicAuthHash == "" {
-		return nil, errors.New("basic authentication hash is not set")
 	}
 
 	if worker == nil {
@@ -78,19 +69,17 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 	}
 
 	return &Server{
-		db:            db,
-		client:        client,
-		worker:        worker,
-		cache:         cache,
-		auth:          auth,
-		adminAuth:     adminAuth,
-		basicAuthUser: basicAuthUser,
-		basicAuthHash: basicAuthHash,
-		handler:       http.NewServeMux(),
+		db:        db,
+		client:    client,
+		worker:    worker,
+		cache:     cache,
+		auth:      auth,
+		adminAuth: adminAuth,
+		handler:   http.NewServeMux(),
 	}, nil
 }
 
-// StartServer creates a http server on the given port
+// StartServer creates an api server on the given port
 func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	// setup REST API
 	s.setupHandlers()
@@ -110,7 +99,33 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 		wg.Done()
 	}()
 
-	info(fmt.Sprintf("Started server at endpoint http://localhost%s", srv.Addr))
+	info(fmt.Sprintf("Started API server at endpoint http://localhost%s", srv.Addr))
+
+	return srv
+}
+
+// StartMetrics creates a metrics server on the given port
+func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
+	handler := http.NewServeMux()
+	handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(),
+		limitMethod("GET"), maxBody()))
+
+	// create server
+	srv := &http.Server{
+		Addr:              ":" + strconv.FormatUint(uint64(port), 10),
+		Handler:           handler,
+		ReadTimeout:       time.Minute,
+		ReadHeaderTimeout: time.Second * 5,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			fatal("server error:", err)
+		}
+		wg.Done()
+	}()
+
+	info(fmt.Sprintf("Started metrics server at endpoint http://localhost%s", srv.Addr))
 
 	return srv
 }
