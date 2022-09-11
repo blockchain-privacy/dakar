@@ -16,6 +16,9 @@ const vuetify = new Vuetify({
         primary: '#1976d2',
       },
     },
+    options: {
+      customProperties: true,
+    },
   },
   icons: {
     iconfont: 'mdiSvg',
