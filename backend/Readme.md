@@ -87,4 +87,4 @@ App running at:
 
 ### Metrics
 
-Metrics are exposed via `/metrics` on a separate port, which is configurable via the config file.1
+Metrics are exposed via `/metrics` on a separate port, which is configurable via the config file.
