@@ -1,6 +1,6 @@
 <template>
-  <v-menu bottom offset-y nudge-bottom="5"
-          :close-on-content-click="false" transition="slide-y-transition">
+  <v-menu bottom :close-on-content-click="false"
+          transition="slide-y-transition" content-class="mt-7">
     <template v-slot:activator="{ on, attrs }">
       <span v-bind="attrs" v-on="on" class="anchor" @click="requestBlurb"><slot/></span>
     </template>
