@@ -71,7 +71,7 @@
           <template v-else>
             <div v-if="fileHTML" v-html="fileHTML"
                  :class="{'wikiFileContentFullSize': $vuetify.breakpoint.smAndDown,
-                 'wikiFileContent': !$vuetify.breakpoint.smAndDown}" />
+                 'wikiFileContent': !$vuetify.breakpoint.smAndDown}"/>
             <v-skeleton-loader v-else type="article"/>
           </template>
         </transition>
@@ -227,6 +227,8 @@ export default {
       if (this.fileSet === null || !this.fileSet.has(filePath)) {
         return;
       }
+
+      this.fileHTML = '';
 
       document.title = `Wiki - ${cleanName(filePath)} - ${PAGE_TITLE}`;
 
