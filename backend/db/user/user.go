@@ -4,8 +4,9 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
-	"backend/password"
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -251,11 +252,22 @@ func CreateKratosUser(ctx context.Context, dgraphUID string, adminAuth *ory.APIC
 	return nil
 }
 
+// generateRandomPassword returns a random string if fixed length of 22
+func generateRandomPassword() (string, error) {
+	// Generate a Salt
+	pwByte := make([]byte, 16)
+	if _, err := rand.Read(pwByte); err != nil {
+		return "", err
+	}
+
+	return base64.RawStdEncoding.EncodeToString(pwByte), nil
+}
+
 // CreateAdminUser creates a new admin account with a random password
 func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string) (string, error) {
-	pw, err := password.GenerateRandomPassword()
+	pw, err := generateRandomPassword()
 	if err != nil {
-		return "", nil
+		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
@@ -267,7 +279,7 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 			Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"admin"})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return pw, nil
