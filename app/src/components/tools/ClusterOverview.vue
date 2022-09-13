@@ -33,10 +33,8 @@
         <v-row>
           <v-col v-if="items.length > 0">
             <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-            These <WikiTooltip
-              text="clusters"
-              description-url="addressCluster.md"
-          /> have been created by you.
+            These <WikiTooltip description-url="addressCluster.md">clusters</WikiTooltip>
+            have been created by you.
           </v-col>
           <v-col v-else>
             <div class="d-flex justify-center">
