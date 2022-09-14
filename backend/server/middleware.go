@@ -3,12 +3,10 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
-	"backend/password"
 	"errors"
 
 	"bytes"
 	"context"
-	"crypto/subtle"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -240,40 +238,6 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			if err != nil {
 				handleError(w, err)
 			}
-		})
-	}
-}
-
-func (s *Server) basicAuth() adapter {
-	return func(h http.Handler, route string) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// set headers
-			setDefaultHeader(w)
-			w.Header().Set("WWW-Authenticate", `Basic realm="Dakar Metrics"`)
-
-			requestUser, requestPassword, ok := r.BasicAuth()
-			if !ok {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			// constant time compare and sleep to avoid timing attacks
-			if subtle.ConstantTimeCompare([]byte(s.basicAuthUser), []byte(requestUser)) != 1 {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			// constant time compare and sleep to avoid timing attacks
-			if equal, err := password.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
-				info(cliutil.ShowCallInfo(), err)
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			} else if !equal {
-				w.WriteHeader(http.StatusUnauthorized)
-				return
-			}
-
-			h.ServeHTTP(w, r)
 		})
 	}
 }

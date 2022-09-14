@@ -16,8 +16,6 @@ import (
 	"path"
 	"strconv"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -1011,10 +1009,6 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
-	// Metrics
-	s.handler.Handle(getRouteMetrics(), adapt(promhttp.Handler(), getRouteMetrics(),
-		limitMethod("GET"), s.basicAuth(), maxBody()))
-
 	// Search
 	s.handler.Handle(getRouteSearch(), adapt(s.handlerSearch(), getRouteSearch(),
 		limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))

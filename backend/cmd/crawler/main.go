@@ -93,13 +93,7 @@ func main() {
 
 	if createConfigFile {
 		fmt.Println("Generating configuration file ...")
-		defConfig, configErr := getDefaultConfig()
-		if configErr != nil {
-			fmt.Println(configErr)
-			return
-		}
-
-		err := cli.WriteConfig(defaultConfigName, defConfig)
+		err := cli.WriteConfig(defaultConfigName, defaultConfig)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -240,6 +234,7 @@ func main() {
 		info("Successfully initialized database")
 	}
 
+	// exit if not module is active (excluding the metrics module)
 	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
 		!config.Modules.Clustering.HMI && !config.Modules.Clustering.FMI &&
 		!config.Modules.HTTP.Active {
@@ -478,18 +473,24 @@ func main() {
 		}()
 	}
 
-	// start server
-	var srv *http.Server
+	// start api endpoint
+	var apiHTTPServer *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker,
-			config.Modules.HTTP.BasicAuthUser, config.Modules.HTTP.BasicAuthPWHash)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker)
 		if serverErr != nil {
 			info(serverErr)
 		}
 
 		wg.Add(1)
 
-		srv = apiServer.StartServer(&wg, config.Modules.HTTP.Port)
+		apiHTTPServer = apiServer.StartServer(&wg, config.Modules.HTTP.Port)
+	}
+
+	// start metrics endpoint
+	var metricsHTTPServer *http.Server
+	if config.Modules.Metrics.Active {
+		wg.Add(1)
+		metricsHTTPServer = server.StartMetrics(&wg, config.Modules.Metrics.Port)
 	}
 
 	////// HANDLE SHUTDOWN //////
@@ -505,7 +506,8 @@ func main() {
 		case <-chSignal:
 			interrupted = true
 			terminateApp()
-			shutdownServer(srv)
+			shutdownServer(apiHTTPServer)
+			shutdownServer(metricsHTTPServer)
 		case <-chCrawlingStopped:
 			terminateApp()
 			crawlerStopped = true
@@ -527,7 +529,8 @@ func main() {
 		// the server is still active at this point
 
 		<-chSignal
-		shutdownServer(srv)
+		shutdownServer(apiHTTPServer)
+		shutdownServer(metricsHTTPServer)
 	}
 
 	wg.Wait()

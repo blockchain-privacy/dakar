@@ -201,7 +201,13 @@ export default {
             this.leave();
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          if (error.response && error.response.data && error.response.data.error
+              && error.response.data.error.id && error.response.data.error.id === 'session_aal2_required') {
+            this.initLoginFlow('aal2');
+            return;
+          }
+
           // this request fails if the user is not logged in -> init login form
           this.initFlow();
         });

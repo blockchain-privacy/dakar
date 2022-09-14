@@ -4,19 +4,19 @@ import (
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
-	"backend/password"
-	"fmt"
-	ory "github.com/ory/kratos-client-go"
-	"net/http/cookiejar"
-	"runtime"
-	"runtime/debug"
 
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
+	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
+
+	ory "github.com/ory/kratos-client-go"
 )
 
 type RPCConfig struct {
@@ -41,17 +41,21 @@ type ClusterModule struct {
 	FMI bool `yaml:"fmi"`
 }
 
-type HTTPModule struct {
+type APIModule struct {
 	Active               bool   `yaml:"active"`
 	Port                 uint   `yaml:"port"`
-	BasicAuthUser        string `yaml:"basicAuthUser"`
-	BasicAuthPWHash      string `yaml:"basicAuthPWHash"`
 	KratosPublicEndpoint string `yaml:"kratosPublicEndpoint"`
 	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
 }
 
+type MetricsModule struct {
+	Active bool `yaml:"active"`
+	Port   uint `yaml:"port"`
+}
+
 type ModulesConfig struct {
-	HTTP       HTTPModule    `yaml:"http"`
+	HTTP       APIModule     `yaml:"api"`
+	Metrics    MetricsModule `yaml:"metrics"`
 	Crawler    CrawlerModule `yaml:"crawler"`
 	Clustering ClusterModule `yaml:"clustering"`
 	Classifier bool          `yaml:"classifier"`
@@ -78,13 +82,15 @@ var defaultConfig = Config{
 		Port: 9080,
 	},
 	Modules: ModulesConfig{
-		HTTP: HTTPModule{
+		HTTP: APIModule{
 			Active:               true,
 			Port:                 8081,
-			BasicAuthUser:        "dakar",
-			BasicAuthPWHash:      "",
 			KratosPublicEndpoint: "http://localhost:4433",
 			KratosAdminEndpoint:  "http://localhost:4434",
+		},
+		Metrics: MetricsModule{
+			Active: true,
+			Port:   8481,
 		},
 		Classifier: false,
 		Heuristics: false,
@@ -93,35 +99,10 @@ var defaultConfig = Config{
 	},
 }
 
-func getDefaultConfig() (Config, error) {
-	passwd, pwErr := password.GenerateRandomPassword()
-	if pwErr != nil {
-		return Config{}, pwErr
-	}
-
-	pwHash, pwErr := password.GeneratePasswordHash(password.DefaultPasswordConfig, passwd)
-	if pwErr != nil {
-		return Config{}, pwErr
-	}
-
-	defaultConfig.Modules.HTTP.BasicAuthPWHash = pwHash
-
-	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", passwd)
-	fmt.Println("Save the password, it will not be written in the config file.")
-
-	return defaultConfig, nil
-}
-
 // checkHTTPModuleConfig returns an error if the given http module has invalid values
-func checkHTTPModuleConfig(c HTTPModule) error {
-	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" ||
-		c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
+func checkHTTPModuleConfig(c APIModule) error {
+	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
 		return errors.New("http module config invalid, not all fields are filled")
-	}
-
-	parts := strings.Split(c.BasicAuthPWHash, "$")
-	if len(parts) != 6 {
-		return errors.New("basic auth password hash is invalid")
 	}
 
 	return nil
@@ -259,7 +240,7 @@ func shutdownServer(srv *http.Server) {
 	if srv == nil {
 		return
 	}
-	info("### Shutting down server###")
+	info("### Shutting down server ###")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {

@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- show custom nav bar on entry page -->
-    <AppBar :minimize="[route.rootPage].includes($route.name)"/>
+    <AppBar :minimize="route.rootPage === $route.name"/>
     <v-main>
       <MsgBox/>
       <transition name="component-fade" mode="out-in">
