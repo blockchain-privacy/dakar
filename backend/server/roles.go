@@ -1,7 +1,6 @@
-package user
+package server
 
 import (
-	"backend/constants"
 	"errors"
 	"fmt"
 )
@@ -23,59 +22,59 @@ var (
 	adminRoleMap       = map[string]bool{allRoutes: true}
 	defaultUserRoleMap = map[string]bool{
 		// data
-		constants.GetRouteTransaction():        true,
-		constants.GetRouteBlock():              true,
-		constants.GetRouteAddress():            true,
-		constants.GetRouteSearch():             true,
-		constants.GetRouteAddressOutputRange(): true,
+		getRouteTransaction():        true,
+		getRouteBlock():              true,
+		getRouteAddress():            true,
+		getRouteSearch():             true,
+		getRouteAddressOutputRange(): true,
 		// user
-		constants.GetRouteModifyUser(): true,
-		constants.GetRouteDeleteUser(): true,
+		getRouteModifyUser(): true,
+		getRouteDeleteUser(): true,
 	}
 	privilegedRoleMap = map[string]bool{
 		// data
-		constants.GetRouteTransaction():        true,
-		constants.GetRouteBlock():              true,
-		constants.GetRouteAddress():            true,
-		constants.GetRouteMeta():               true,
-		constants.GetRouteSearch():             true,
-		constants.GetRouteAddressOutputRange(): true,
+		getRouteTransaction():        true,
+		getRouteBlock():              true,
+		getRouteAddress():            true,
+		getRouteMeta():               true,
+		getRouteSearch():             true,
+		getRouteAddressOutputRange(): true,
 		// user
-		constants.GetRouteModifyUser(): true,
-		constants.GetRouteDeleteUser(): true,
+		getRouteModifyUser(): true,
+		getRouteDeleteUser(): true,
 		// heuristics
-		constants.GetRouteHeuristicStatus():      true,
-		constants.GetRouteHeuristicDetails():     true,
-		constants.GetRouteHeuristicsExecution():  true,
-		constants.GetRouteHeuristics():           true,
-		constants.GetRouteHeuristicsSummary():    true,
-		constants.GetRouteHeuristicList():        true,
-		constants.GetRouteDeleteHeuristic():      true,
-		constants.GetRouteHeuristicDescriptors(): true,
+		getRouteHeuristicStatus():      true,
+		getRouteHeuristicDetails():     true,
+		getRouteHeuristicsExecution():  true,
+		getRouteHeuristics():           true,
+		getRouteHeuristicsSummary():    true,
+		getRouteHeuristicList():        true,
+		getRouteDeleteHeuristic():      true,
+		getRouteHeuristicDescriptors(): true,
 		// analytics
-		constants.GetRouteShortestTransactionPath(): true,
-		constants.GetRouteConnectionLookup():        true,
-		constants.GetRouteMixingActivity():          true,
+		getRouteShortestTransactionPath(): true,
+		getRouteConnectionLookup():        true,
+		getRouteMixingActivity():          true,
 		// clusters
-		constants.GetRouteClusterLookup():     true,
-		constants.GetRouteClusterSummary():    true,
-		constants.GetRouteAddCluster():        true,
-		constants.GetRouteDeleteCluster():     true,
-		constants.GetRouteDeleteAllClusters(): true,
-		constants.GetRouteClusterOverview():   true,
-		// constants.GetRouteHMILookup():     true,
+		getRouteClusterLookup():     true,
+		getRouteClusterSummary():    true,
+		getRouteAddCluster():        true,
+		getRouteDeleteCluster():     true,
+		getRouteDeleteAllClusters(): true,
+		getRouteClusterOverview():   true,
+		// getRouteHMILookup():     true,
 		// Attribution
-		constants.GetRouteAddPrivateAttribution():        true,
-		constants.GetRouteAttributionOverview():          true,
-		constants.GetRouteDeletePrivateAttribution():     true,
-		constants.GetRouteDeleteAllPrivateAttributions(): true,
-		constants.GetRouteSearchAttributions():           true,
+		getRouteAddPrivateAttribution():        true,
+		getRouteAttributionOverview():          true,
+		getRouteDeletePrivateAttribution():     true,
+		getRouteDeleteAllPrivateAttributions(): true,
+		getRouteSearchAttributions():           true,
 		// Address exclusion
-		constants.GetRouteAddressExclusionOverview():   true,
-		constants.GetRouteAddressExclusionStatus():     true,
-		constants.GetRouteDeleteAddressExclusion():     true,
-		constants.GetRouteAddAddressExclusions():       true,
-		constants.GetRouteDeleteAllAddressExclusions(): true,
+		getRouteAddressExclusionOverview():   true,
+		getRouteAddressExclusionStatus():     true,
+		getRouteDeleteAddressExclusion():     true,
+		getRouteAddAddressExclusions():       true,
+		getRouteDeleteAllAddressExclusions(): true,
 	}
 
 	errRoleDoesNotExist = errors.New("error role does not exist")
@@ -210,8 +209,8 @@ func (p PrivilegedRole) String() string {
 	return fmt.Sprintf("Name: %s, Allowed routes: [%s]", p.name, routeMapToString(p.allowedRoutes))
 }
 
-// GetRoleByName returns for a given role name the Role object
-func GetRoleByName(name string) (Role, error) {
+// getRoleByName returns for a given role name the Role object
+func getRoleByName(name string) (Role, error) {
 	returnedRole, ok := roleMap[name]
 	if !ok {
 		return nil, errRoleDoesNotExist

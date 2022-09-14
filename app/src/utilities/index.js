@@ -1,39 +1,26 @@
 /* eslint-disable no-mixed-operators */
 import {
-  LOCALSTORAGE_FIELD_USER,
   LOCALSTORAGE_FIELD_SETTINGS,
   PASSWORD_MAX_CHARACTERS,
   PASSWORD_MIN_CHARACTERS,
-  ROUTE_NAME_LOGIN_PAGE, TOKEN_TIMEOUT,
-  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM,
+  ROUTE_NAME_LOGIN_PAGE,
+  CLUSTER_TYPE_FMI, CLUSTER_TYPE_CUSTOM, LOCALSTORAGE_FIELD_SESSION,
 } from '../constants';
 
-export function resetData(context) {
-  context.$store.dispatch('resetMessages');
-  context.$store.dispatch('setBlockData', null);
-  context.$store.dispatch('setTransactionData', null);
-  context.$store.dispatch('setAddressData', null);
+export function setLocalSession(sessionData) {
+  localStorage.setItem(LOCALSTORAGE_FIELD_SESSION, JSON.stringify(sessionData));
 }
 
-// setActionDate sets the current time as the last action timestamp of the user data.
-// This method should be used each time the frontend interacts with the backend.
-export function setActionDate(userData) {
-  userData.lastAction = new Date();
-  return userData;
+export function removeLocalSession() {
+  return localStorage.removeItem(LOCALSTORAGE_FIELD_SESSION);
 }
 
-export function setLocalUser(userData) {
-  localStorage.setItem(LOCALSTORAGE_FIELD_USER, JSON.stringify(userData));
-}
-
-export function getLocalUser() {
-  let localStorageUserData = localStorage.getItem(LOCALSTORAGE_FIELD_USER);
-  if (localStorageUserData !== null) localStorageUserData = JSON.parse(localStorageUserData);
-  return localStorageUserData;
-}
-
-export function removeLocalUser() {
-  return localStorage.removeItem(LOCALSTORAGE_FIELD_USER);
+export function getLocalSession() {
+  let localStorageSessionData = localStorage.getItem(LOCALSTORAGE_FIELD_SESSION);
+  if (localStorageSessionData !== null) {
+    localStorageSessionData = JSON.parse(localStorageSessionData);
+  }
+  return localStorageSessionData;
 }
 
 export function setLocalSettings(settingsData) {
@@ -53,7 +40,7 @@ export function removeLocalSettings() {
 }
 
 export function resetLocal() {
-  removeLocalUser();
+  removeLocalSession();
   removeLocalSettings();
 }
 
@@ -85,17 +72,17 @@ function isInvalidTokenMsg(msg, router, store) {
   if (msg.invalidToken !== undefined && msg.invalidToken === true) {
     // set failed route so we can reroute to it later
     store.dispatch('setFailedRoute', router.history.current);
-    store.dispatch('setActiveUser', null);
+    store.dispatch('setSession', null);
     router.push({ name: ROUTE_NAME_LOGIN_PAGE });
     return true;
   }
   return false;
 }
 
-// isTokenTimedOut returns true if the user session has timed out
-export function isTokenTimedOut(userData) {
-  return !userData || !userData.lastAction
-      || new Date() - new Date(userData.lastAction) >= TOKEN_TIMEOUT;
+// isSessionExpired returns true if the session has expired
+export function isSessionExpired(session) {
+  return !session || !session.expires_at
+      || new Date() > new Date(session.expires_at);
 }
 
 export function doPost(route, router, store, body, parameter) {
@@ -116,11 +103,6 @@ export function doPost(route, router, store, body, parameter) {
   }).then((response) => response.json())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
-      // update last action time stamp
-      const userData = store.getters.getActiveUser;
-      if (userData) {
-        store.dispatch('setActiveUser', setActionDate(userData));
-      }
 
       return data;
     });
@@ -141,11 +123,6 @@ export function doPostUpload(route, router, store, body, parameter) {
   }).then((response) => response.json())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
-      // update last action time stamp
-      const userData = store.getters.getActiveUser;
-      if (userData) {
-        store.dispatch('setActiveUser', setActionDate(userData));
-      }
 
       return data;
     });
@@ -169,11 +146,6 @@ export function doPostBlob(route, router, store, body, parameter) {
   }).then((response) => response.blob())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
-      // update last action time stamp
-      const userData = store.getters.getActiveUser;
-      if (userData) {
-        store.dispatch('setActiveUser', setActionDate(userData));
-      }
 
       return data;
     });
@@ -192,11 +164,6 @@ export function doGet(route, router, store, parameter) {
     .then((response) => response.json())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
-      // update last action time stamp
-      const userData = store.getters.getActiveUser;
-      if (userData) {
-        store.dispatch('setActiveUser', setActionDate(userData));
-      }
 
       return data;
     });
@@ -215,11 +182,6 @@ export function doGetBlob(route, router, store, parameter) {
     .then((response) => response.blob())
     .then((data) => {
       if (isInvalidTokenMsg(data, router, store)) throw Error('Please login again.');
-      // update last action time stamp
-      const userData = store.getters.getActiveUser;
-      if (userData) {
-        store.dispatch('setActiveUser', setActionDate(userData));
-      }
 
       return data;
     });
@@ -287,16 +249,18 @@ export function isValidQuery(str) {
   return trimmed.length === 0 ? true : isValidQueryInput(trimmed);
 }
 
-function isRole(userData, roleName) {
-  return userData && userData.roles && userData.roles.some((d) => d.name === roleName);
+function isRole(session, roleName) {
+  return session && session.identity && session.identity.metadata_public
+      && session.identity.metadata_public.roles
+      && session.identity.metadata_public.roles.some((d) => d === roleName);
 }
 
-export function isPrivilegedUser(userData) {
-  return isRole(userData, 'privileged');
+export function isPrivilegedIdentity(session) {
+  return isRole(session, 'privileged');
 }
 
-export function isAdminUser(userData) {
-  return isRole(userData, 'admin');
+export function isAdminIdentity(session) {
+  return isRole(session, 'admin');
 }
 
 // getPrivacyTypeLabel translates the integer representation of privacy types to string

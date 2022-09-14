@@ -1,12 +1,12 @@
 <template>
-  <v-container fluid v-if="this.data">
+  <v-container fluid v-if="this.addressData">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <v-card class="elevation-4">
           <v-toolbar color="primary" dark flat>
-            <v-toolbar-title v-if="this.data">
+            <v-toolbar-title v-if="this.addressData">
               <v-icon>{{ icon.mdiCardBulletedOutline }}</v-icon>
-              Address {{ this.data.addresshash }}
+              Address {{ this.addressData.addresshash }}
             </v-toolbar-title>
             <v-spacer></v-spacer>
             <v-tooltip bottom activator="#btn_show_mixing_activity">
@@ -58,19 +58,19 @@
               <v-row>
                 <v-col>
                   <IconItem :icon="icon.mdiScaleBalance" title="Balance">
-                    {{ convertAmount(this.data.output_sum - this.data.input_sum) }}
+                    {{ convertAmount(this.addressData.output_sum - this.addressData.input_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem :icon="icon.mdiBankTransferIn" title="Total amount received">
-                    {{ convertAmount(this.data.output_sum) }}
+                    {{ convertAmount(this.addressData.output_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem :icon="icon.mdiBankTransferOut" title="Total amount spent">
-                    {{ convertAmount(this.data.input_sum) }}
+                    {{ convertAmount(this.addressData.input_sum) }}
                     {{ this.coinUnit }}
                   </IconItem>
                 </v-col>
@@ -78,17 +78,17 @@
               <v-row>
                 <v-col>
                   <IconItem :icon="icon.mdiPound" title="Outputs">
-                    {{ this.data.output_count }}
+                    {{ this.addressData.output_count }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem :icon="icon.mdiPound" title="Unspent outputs">
-                    {{ this.data.output_count - this.data.input_count }}
+                    {{ this.addressData.output_count - this.addressData.input_count }}
                   </IconItem>
                 </v-col>
                 <v-col>
                   <IconItem :icon="icon.mdiPound" title="Coinbase outputs">
-                    {{ this.data.coinbase_count }}
+                    {{ this.addressData.coinbase_count }}
                   </IconItem>
                 </v-col>
               </v-row>
@@ -113,12 +113,12 @@
                 <v-card-text>
                   <sort-and-filter
                       v-model="sortAndFilter"
-                      v-if="this.data.output_count > 1"
+                      v-if="this.addressData.output_count > 1"
                       :loading="isLoading"
-                      :output-count="this.data.output_count"
-                      :input-count="this.data.input_count"
-                      :coinbase-count="this.data.coinbase_count"
-                      :data-available="this.data !== undefined"
+                      :output-count="this.addressData.output_count"
+                      :input-count="this.addressData.input_count"
+                      :coinbase-count="this.addressData.coinbase_count"
+                      :data-available="this.addressData !== null"
                       @change="handleFilterOrSortChange"
                   />
                   <v-sheet
@@ -128,8 +128,8 @@
                       color="transparent">
                     <v-data-table
                         :headers="table.headers"
-                        :items="this.data.addr_outputs"
-                        :server-items-length="data.query_max_count"
+                        :items="this.addressData.addr_outputs"
+                        :server-items-length="addressData.query_max_count"
                         :options.sync="table.options"
                         disable-sort
                         :items-per-page="itemsPerPage"
@@ -190,7 +190,13 @@ import {
   mdiBankTransferOut, mdiPound, mdiMerge, mdiDotsVertical, mdiDelete,
 } from '@mdi/js';
 import {
-  convertAmount, doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash, doGet,
+  convertAmount,
+  doPost,
+  handleError,
+  shortenHash,
+  doGet,
+  isPrivilegedIdentity,
+  isAdminIdentity,
 } from '../../../utilities';
 import {
   PAGE_TITLE, ROUTE_NAME_TRANSACTION_PAGE, ROUTE_NAME_ADDRESS_EXCLUSIONS,
@@ -249,7 +255,7 @@ export default {
     };
   },
   computed: {
-    data: {
+    addressData: {
       get() {
         return this.$store.getters.getAddressData;
       },
@@ -257,11 +263,11 @@ export default {
         this.$store.dispatch('setAddressData', value);
       },
     },
-    userData() {
-      return this.$store.getters.getActiveUser;
+    session() {
+      return this.$store.getters.getSession;
     },
     showAdvanced() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+      return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
     },
     offset() {
       return this.table.options.page * this.itemsPerPage - this.itemsPerPage;
@@ -278,7 +284,7 @@ export default {
           || data.payload.addr_outputs.length === 0);
     },
     getTableData() {
-      if (!this.data || this.addressHash === '') return;
+      if (!this.addressData || this.addressHash === '') return;
       this.isLoading = true;
       doPost(
         ROUTE_ADDRESS_OUTPUT_RANGE,
@@ -297,7 +303,7 @@ export default {
             return;
           }
 
-          this.data = data.payload;
+          this.addressData = data.payload;
 
           this.$store.dispatch('resetMessages');
           this.emptyResponse = false;
@@ -333,8 +339,9 @@ export default {
     },
     setAddressHash() {
       let h = ' ';
-      if (this.data && this.data.addresshash && this.data.addresshash !== this.addressHash) {
-        this.addressHash = this.data.addresshash;
+      if (this.addressData && this.addressData.addresshash
+          && this.addressData.addresshash !== this.addressHash) {
+        this.addressHash = this.addressData.addresshash;
         h = ` ${this.addressHash} `;
       } else if (this.addressHash) {
         h = ` ${this.addressHash} `;

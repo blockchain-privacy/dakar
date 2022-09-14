@@ -135,10 +135,11 @@ type txAndOrigins struct {
 }
 
 // oneSourceHeuristic applies the following heuristics:
-// - filter all origins, which are not created in the time span defined by lookBackTime
-// - filter all origins of sources, which do not have enough denominations to fund all of their respective
-//		outputs of input transaction which are used as inputs in the destination transaction
-// - filter all origins of sources, which do not occur in all sets of input transaction origins
+//   - filter all origins, which are not created in the time span defined by lookBackTime
+//   - filter all origins of sources, which do not have enough denominations to fund all of their respective
+//     outputs of input transaction which are used as inputs in the destination transaction
+//   - filter all origins of sources, which do not occur in all sets of input transaction origins
+//
 // This heuristic does not use the results from its parent heuristic
 func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string, _ string) (
 	[]heuristics.HeuristicCluster, error) {
@@ -232,8 +233,8 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 
 	// save all addresses (sources) which are not part of all input transactions
 	var omniSources []heuristics.ClusterUID
-	for k := range sources {
 
+	for k := range sources {
 		found := true
 		// check for each input transaction if the source k exists. If not set the flag to false
 		for _, inputTransactionSource := range inputSources {

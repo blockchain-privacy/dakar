@@ -19,8 +19,8 @@ plugins:
 rules: {
   no-param-reassign: [ error , { "props": false } ],
   no-mixed-operators: off,
-  'vue/valid-v-slot': [ 'error', {
-    'allowModifiers': true
+  vue/valid-v-slot: [ error, {
+    "allowModifiers": true
   } ],
   "vue/multi-word-component-names": off,
 }

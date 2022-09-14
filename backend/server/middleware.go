@@ -2,12 +2,13 @@ package server
 
 import (
 	"backend/cmd/cliutil"
-	"backend/user"
+	dbus "backend/db/user"
+	"backend/password"
+	"errors"
 
 	"bytes"
 	"context"
 	"crypto/subtle"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -48,45 +49,105 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	}
 }
 
+// extractRoles tries to extract roles from the given metadata
+func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
+	metadata, ok := metaDataPublic.(map[string]any)
+	if !ok {
+		return nil, errors.New("identity has no public metadata")
+	}
+
+	rolesInterface, ok := metadata["roles"]
+	if !ok {
+		return nil, errors.New("identity has no field 'roles'")
+	}
+
+	roleInterfaces, ok := rolesInterface.([]any)
+	if !ok {
+		return nil, errors.New("roles could not be cast from interface")
+	}
+
+	var roles []dbus.Role
+
+	for _, r := range roleInterfaces {
+		roleString, ok := r.(string)
+		if ok {
+			roles = append(roles, dbus.Role{
+				Name: roleString,
+			})
+		}
+	}
+
+	return roles, nil
+}
+
+// extractDgraphUID tries to extract dgraph UID from the given metadata
+func extractDgraphUID(metadataPublic any) (string, error) {
+	metadata, ok := metadataPublic.(map[string]any)
+	if !ok {
+		return "", errors.New("identity has no admin metadata")
+	}
+
+	dgraphUIDInterface, ok := metadata["dgraph_uid"]
+	if !ok {
+		return "", errors.New("identity has no field 'dgraph_uid'")
+	}
+
+	dgraphUID, ok := dgraphUIDInterface.(string)
+	if !ok {
+		return "", errors.New("dgraph UID could not be cast from interface")
+	}
+
+	return dgraphUID, nil
+}
+
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(cookieTokenName)
+			session, sessionResponse, err := s.auth.V0alpha2Api.ToSession(r.Context()).
+				Cookie(r.Header.Get("Cookie")).Execute()
 			if err != nil {
 				sendRedirectMessage(w)
+				info(cliutil.ShowCallInfo(), err)
 				return
 			}
+			defer sessionResponse.Body.Close()
 
-			token, _, verifyErr := verifyToken(cookie.Value, s.tokenPublicKey)
-			if verifyErr != nil {
+			// check if session active and not expired
+			if session.Active == nil || session.ExpiresAt == nil ||
+				!*session.Active || time.Until(*session.ExpiresAt) <= 0 {
 				sendRedirectMessage(w)
 				return
 			}
 
-			timeUntilTokenExpires := time.Until(token.Expiration)
-			if timeUntilTokenExpires <= 0 {
+			if time.Until(*session.ExpiresAt) <= reissueDuration {
+				_, extensionResponse, extensionErr := s.adminAuth.V0alpha2Api.
+					AdminExtendSession(r.Context(), session.Id).Execute()
+				if extensionErr != nil {
+					sendRedirectMessage(w)
+					info(cliutil.ShowCallInfo(), extensionErr)
+					return
+				}
+				defer extensionResponse.Body.Close()
+			}
+
+			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
+			if err != nil {
 				sendRedirectMessage(w)
+				info(cliutil.ShowCallInfo(), err)
 				return
 			}
 
-			userFromToken := token.Get(tokenFieldUser)
-			if len(userFromToken) == 0 {
+			roles, err := extractRoles(session.Identity.MetadataPublic)
+			if err != nil {
 				sendRedirectMessage(w)
-				info(cliutil.ShowCallInfo(), "user id field not found in token")
+				info(cliutil.ShowCallInfo(), err)
 				return
 			}
 
-			var newUser tokenUser
-			if jsonErr := json.Unmarshal([]byte(userFromToken), &newUser); jsonErr != nil {
-				writeUnauthorized(w, "")
-				info(cliutil.ShowCallInfo(), "user id field not found in token")
-				return
-			}
-
-			// check if route is allowed
+			// check if route is allowed and get typed role
 			routeAllowed := false
-			for _, uRole := range newUser.Roles {
-				routeRole, roleErr := user.GetRoleByName(uRole.Name)
+			for _, role := range roles {
+				routeRole, roleErr := getRoleByName(role.Name)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
 					info(cliutil.ShowCallInfo(), roleErr)
@@ -101,19 +162,17 @@ func (s *Server) authorization() adapter {
 
 			if !routeAllowed {
 				writeUnauthorized(w, "route not allowed")
-				info(cliutil.ShowCallInfo(), newUser.ID, "tried to access", route)
+				info(cliutil.ShowCallInfo(), session, "tried to access", route)
 				return
 			}
 
-			if timeUntilTokenExpires <= reissueDuration {
-				if tokenErr := writeNewToken(w, newUser.toUser().ToFrontendUserState(), s.tokenPrivateKey); tokenErr != nil {
-					sendRedirectMessage(w)
-					info(cliutil.ShowCallInfo(), tokenErr)
-					return
-				}
-			}
-			// call next handler and add to the request context the user information
-			h.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), middlewareContextUser, newUser)))
+			// call next handler and add to the request context the identity information
+			h.ServeHTTP(w,
+				r.WithContext(context.WithValue(r.Context(), middlewareContextUser, tokenUser{
+					ID:       dgraphUID,
+					KratosID: session.Identity.Id,
+					Roles:    roles,
+				})))
 		})
 	}
 }
@@ -149,7 +208,6 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 				httpStatusCode = foundCache.statusCode
 				buf = foundCache.buffer
-
 			} else {
 				// record the writes of the next handler, so the response can be saved in the cache.
 				recorder := httptest.NewRecorder()
@@ -158,12 +216,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 				// get recorded values
 				resp := recorder.Result()
-				defer func(Body io.ReadCloser) {
-					err := Body.Close()
-					if err != nil {
-						info("response body could not be closed")
-					}
-				}(resp.Body)
+				defer resp.Body.Close()
 
 				httpStatusCode = resp.StatusCode
 				buf = recorder.Body.Bytes()
@@ -211,7 +264,7 @@ func (s *Server) basicAuth() adapter {
 			}
 
 			// constant time compare and sleep to avoid timing attacks
-			if equal, err := user.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
+			if equal, err := password.ComparePassword(requestPassword, s.basicAuthHash); err != nil {
 				info(cliutil.ShowCallInfo(), err)
 				w.WriteHeader(http.StatusUnauthorized)
 				return

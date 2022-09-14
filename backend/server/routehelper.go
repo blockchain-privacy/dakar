@@ -13,6 +13,7 @@ import (
 	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
+	client "github.com/ory/kratos-client-go"
 
 	"context"
 	"errors"
@@ -79,15 +80,9 @@ type heuristicExecutionReply struct {
 	Status  heuristics.HeuristicQueueStatus `json:"status"`
 }
 
-type userReply struct {
+type identityReply struct {
 	Success bool   `json:"success"`
 	Msg     string `json:"msg,omitempty"`
-}
-
-type backendUserReply struct {
-	Success bool                           `json:"success"`
-	Msg     string                         `json:"msg,omitempty"`
-	User    *dbus.FrontendUserBackendState `json:"user,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
@@ -301,4 +296,37 @@ type addressExclusionStatusReply struct {
 	Success     bool   `json:"success"`
 	IsExclusion bool   `json:"isExclusion"`
 	Msg         string `json:"msg,omitempty"`
+}
+
+type identitiesReply struct {
+	Success    bool                            `json:"success"`
+	Users      []dbus.FrontendUserBackendState `json:"users"`
+	Identities []client.Identity               `json:"identities"`
+}
+
+// frontendUserRoles is the role representation for the frontend
+type frontendUserRoles struct {
+	Email string   `json:"email"`
+	Roles []string `json:"roles"`
+}
+
+// isValidEmail is a regex filter which checks if the input conforms to an email string
+var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
+	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
+
+// IsValid does a sanity check for the given frontendUserRoles
+func (f frontendUserRoles) IsValid() bool {
+	// check if values are set
+	if len(f.Email) == 0 || len(f.Roles) == 0 || !isValidEmail(f.Email) {
+		return false
+	}
+
+	// check if all roles have valid values
+	for _, ur := range f.Roles {
+		if _, err := getRoleByName(ur); err != nil {
+			return false
+		}
+	}
+
+	return true
 }

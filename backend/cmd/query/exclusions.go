@@ -204,8 +204,8 @@ func getSimulatedSemiRandomExclusionSet(transactionAddresses [][]int64, particip
 		for _, input := range t {
 			allAddresses[input] = true
 		}
-
 	}
+
 	numAddresses := len(allAddresses)
 	numTransactions := len(transactionAddresses)
 	usedTransactionIndex := make(map[int]bool)
@@ -312,7 +312,6 @@ func getSimulatedSemiRandomExclusionSetV2(transactionAddresses [][]int64, partic
 		for s := range selectedAddresses {
 			exclusionsMap[s] = true
 		}
-
 	}
 
 	return exclusionsMap
@@ -326,7 +325,6 @@ func doRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime
 	}
 
 	if len(usedAddresses) > 0 {
-
 		info("Node numbers without real filter: addresses", len(usedAddresses),
 			"endpoints:", len(endpoints), "mixing txs:", len(mixingTxs),
 			"endpoint reduction:", 1-float64(len(endpoints))/float64(len(endpoints)))

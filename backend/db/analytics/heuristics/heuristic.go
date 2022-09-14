@@ -132,14 +132,10 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 		CommitNow: true,
 	}
 
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if txErr != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
 		return
-	}
-
-	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return ErrNoMutationHappened
 	}
 
 	return

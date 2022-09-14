@@ -144,7 +144,6 @@ func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTr
 // exportReverseLookup writes the mixing transactions including their timestamps to a CSV-file
 func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	maxLookBackTime int, addressExclusions []string, getInputs bool, checkSpendingGaps bool) {
-
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
 		info(err)

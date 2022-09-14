@@ -116,7 +116,6 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 				heuristic:          newHeuristic,
 				childHeuristicUID:  childHeuristicUids,
 			}
-
 		} else {
 			err = errHeuristicTypeNotFound
 			return
@@ -137,7 +136,6 @@ func traverseHeuristicTree(nodes map[string]heuristicTreeElement, rootUID string
 	level int) (l []treeLeaf, err error) {
 	for _, uid := range root.childHeuristicUID {
 		if h, ok := nodes[uid]; ok {
-
 			leafs, traverseErr := traverseHeuristicTree(nodes, uid, h, level+1)
 			if traverseErr != nil {
 				err = traverseErr

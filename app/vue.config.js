@@ -8,11 +8,20 @@ const gitBranch = childProcess.execSync('git branch --show-current').toString();
 
 module.exports = {
   devServer: {
-    proxy: 'http://localhost:8081',
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST',
-      'Access-Control-Allow-Headers': 'Origin, Content-Type, X-Auth-Token',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8081',
+      },
+      '/auth': {
+        target: 'http://localhost:4433',
+        // remove '/auth' prefix
+        pathRewrite: { '^/auth': '' },
+      },
+      '/wikiapi': {
+        target: 'http://localhost:4567',
+        // remove '/wiki' prefix
+        pathRewrite: { '^/wikiapi': '' },
+      },
     },
   },
   chainWebpack: (config) => {

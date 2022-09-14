@@ -84,7 +84,7 @@ import {
   ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS,
 } from '../constants';
 import LinkCard from './common/LinkCard.vue';
-import { isAdminUser, isPrivilegedUser } from '../utilities';
+import { isAdminIdentity, isPrivilegedIdentity } from '../utilities';
 
 export default {
   name: 'PageMenu',
@@ -130,14 +130,14 @@ export default {
         this.$emit('input', val);
       },
     },
-    userData() {
-      return this.$store.getters.getActiveUser;
+    session() {
+      return this.$store.getters.getSession;
     },
     showUserAdmin() {
-      return isAdminUser(this.userData);
+      return isAdminIdentity(this.session);
     },
     showTools() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+      return isPrivilegedIdentity(this.session) || this.showUserAdmin;
     },
   },
 };

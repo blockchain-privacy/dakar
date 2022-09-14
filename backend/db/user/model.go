@@ -2,9 +2,7 @@ package user
 
 import (
 	"backend/db/analytics/heuristics"
-	"backend/user"
 	"fmt"
-	"regexp"
 	"time"
 )
 
@@ -22,7 +20,7 @@ type Role struct {
 	DType []string `json:"dgraph.type,omitempty"`
 }
 
-func (r Role) String() string {
+func (r *Role) String() string {
 	return fmt.Sprintf("uid: %s, name: %s", r.UID, r.Name)
 }
 
@@ -46,12 +44,13 @@ type User struct {
 	Created      *time.Time             `json:"User.created,omitempty"`
 	Modified     *time.Time             `json:"User.modified,omitempty"`
 	Heuristics   []heuristics.Heuristic `json:"User.heuristics,omitempty"`
+	KratosID     string                 `json:"User.kratosID,omitempty"`
 	DType        []string               `json:"dgraph.type,omitempty"`
 }
 
-func (u User) String() string {
-	return fmt.Sprintf("uid: %s, email %s, roles: %v, created: %s, modified: %s, heuristic count: %d",
-		u.UID, u.Email, u.Roles, u.Created, u.Modified, len(u.Heuristics))
+func (u *User) String() string {
+	return fmt.Sprintf("uid: %s, kratosID: %s, email %s, roles: %v, created: %s, modified: %s, heuristic count: %d",
+		u.UID, u.KratosID, u.Email, u.Roles, u.Created, u.Modified, len(u.Heuristics))
 }
 
 // SetDType sets the DType for dgraph type recognition
@@ -59,23 +58,24 @@ func (u *User) SetDType() {
 	u.DType = []string{DTypeUser}
 }
 
-// ToFrontendUserState returns user data for the frontend
-func (u User) ToFrontendUserState() FrontendUserClientState {
+// ToFrontendUserStateWithCredentials returns user data for the frontend
+func (u *User) ToFrontendUserStateWithCredentials() FrontendUserClientStateWithCredentials {
 	roles := make([]FrontendRole, len(u.Roles))
 
 	for i, r := range u.Roles {
 		roles[i] = FrontendRole{UID: r.UID, Name: r.Name}
 	}
 
-	return FrontendUserClientState{
-		UID:   u.UID,
-		Email: u.Email,
-		Roles: roles,
+	return FrontendUserClientStateWithCredentials{
+		UID:    u.UID,
+		Email:  u.Email,
+		Roles:  roles,
+		Pwhash: u.PasswordHash,
 	}
 }
 
 // ToFrontendUserBackendState converts frontend user data to the user backend representation
-func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
+func (u *User) ToFrontendUserBackendState() FrontendUserBackendState {
 	roles := make([]FrontendRole, len(u.Roles))
 
 	for i, r := range u.Roles {
@@ -88,155 +88,24 @@ func (u User) ToFrontendUserBackendState() FrontendUserBackendState {
 		Roles:    roles,
 		Modified: u.Modified,
 		Created:  u.Created,
+		KratosID: u.KratosID,
 	}
 }
 
-// ModifyUserRequest holds the configuration data for a user modification request
-type ModifyUserRequest struct {
-	UID             string         `json:"uid,omitempty"`
-	Email           string         `json:"email,omitempty"`
-	CurrentPassword string         `json:"current_password,omitempty"`
-	NewPassword     string         `json:"new_password,omitempty"`
-	Roles           []FrontendRole `json:"roles,omitempty"`
-}
-
-// ToUser returns a User object with the given password hash
-func (m ModifyUserRequest) ToUser(pwHash string) User {
-	roles := make([]Role, len(m.Roles))
-
-	for i, r := range m.Roles {
-		convertedRole := Role{UID: r.UID, Name: r.Name}
-		convertedRole.SetDType()
-		roles[i] = convertedRole
-	}
-
-	return User{
-		UID:          m.UID,
-		Email:        m.Email,
-		Roles:        roles,
-		PasswordHash: pwHash,
-	}
-}
-
-// FrontendUserClientState represents the client side state of the user
-type FrontendUserClientState struct {
-	UID   string         `json:"uid,omitempty"`
-	Email string         `json:"email,omitempty"`
-	Roles []FrontendRole `json:"roles,omitempty"`
-}
-
-// ToUser returns a User object
-func (f FrontendUserClientState) ToUser() User {
-	roles := make([]Role, len(f.Roles))
-
-	for i, r := range f.Roles {
-		convertedRole := Role{UID: r.UID, Name: r.Name}
-		convertedRole.SetDType()
-		roles[i] = convertedRole
-	}
-
-	return User{
-		UID:   f.UID,
-		Email: f.Email,
-		Roles: roles,
-	}
-}
-
-// IsValid does a sanity check for the given FrontendUserClientState
-func (f FrontendUserClientState) IsValid() bool {
-	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || !IsValidEmail(f.Email) {
-		return false
-	}
-
-	// check if all roles have valid values
-	for _, ur := range f.Roles {
-		if _, err := user.GetRoleByName(ur.Name); err != nil {
-			return false
-		}
-	}
-
-	return true
-}
-
-// FrontendUserRoles is the role representation for the frontend
-type FrontendUserRoles struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
-}
-
-func (f FrontendUserRoles) String() string {
-	return fmt.Sprintf("email %s, roles: %v", f.Email, f.Roles)
-}
-
-// ToUser returns a User object
-func (f FrontendUserRoles) ToUser() User {
-	roles := make([]Role, len(f.Roles))
-
-	for i, r := range f.Roles {
-		roles[i] = Role{Name: r}
-	}
-
-	if len(roles) == 0 {
-		roles = nil
-	}
-
-	return User{
-		Email: f.Email,
-		Roles: roles,
-	}
-}
-
-// IsValidEmail is a regex filter which checks if the input conforms to an email string
-var IsValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
-	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
-
-// IsValid does a sanity check for the given FrontendUserRoles
-func (f FrontendUserRoles) IsValid() bool {
-	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || !IsValidEmail(f.Email) {
-		return false
-	}
-
-	// check if all roles have valid values
-	for _, ur := range f.Roles {
-		if _, err := user.GetRoleByName(ur); err != nil {
-			return false
-		}
-	}
-
-	return true
-}
-
-// FrontendUserLogin holds data of a user login
-type FrontendUserLogin struct {
-	Email    string `json:"email"`
-	Password string `json:"pw"`
-}
-
-func (f FrontendUserLogin) String() string {
-	return fmt.Sprintf("email %s, pw: %s", f.Email, f.Password)
-}
-
-// IsValid does a sanity check for the given FrontendUserLogin
-func (f FrontendUserLogin) IsValid() bool {
-	return len(f.Email) > 0 || len(f.Password) > 0
+// FrontendUserClientStateWithCredentials represents the client side state of the user
+type FrontendUserClientStateWithCredentials struct {
+	UID    string         `json:"uid,omitempty"`
+	Email  string         `json:"email,omitempty"`
+	Pwhash string         `json:"pwhash,omitempty"`
+	Roles  []FrontendRole `json:"roles,omitempty"`
 }
 
 // FrontendUserBackendState represents the state of the user in the backend
 type FrontendUserBackendState struct {
 	UID      string         `json:"uid,omitempty"`
 	Email    string         `json:"email,omitempty"`
+	KratosID string         `json:"kratosID,omitempty"`
 	Roles    []FrontendRole `json:"roles,omitempty"`
 	Created  *time.Time     `json:"created,omitempty"`
 	Modified *time.Time     `json:"modified,omitempty"`
-}
-
-// ToFrontendUserClientState converts the backend user state to a frontend user state
-func (l FrontendUserBackendState) ToFrontendUserClientState() FrontendUserClientState {
-	return FrontendUserClientState{
-		UID:   l.UID,
-		Email: l.Email,
-		Roles: l.Roles,
-	}
 }

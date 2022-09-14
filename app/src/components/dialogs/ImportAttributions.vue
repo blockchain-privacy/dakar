@@ -43,7 +43,7 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
               <v-checkbox v-model="csv.firstRowContainsHeader"
                         label="First row of file contains headers" :disabled="isLoading"/>
             </v-col>
-            <v-col v-if="isAdminUser(userData)">
+            <v-col v-if="isAdminIdentity(session)">
               <v-checkbox v-model="areAttributionsPublic"
                         label="Public attributions" :disabled="isLoading"/>
             </v-col>
@@ -73,7 +73,7 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 
 <script>
 import { ROUTE_ADD_PRIVATE_ATTRIBUTION, ROUTE_ADD_PUBLIC_ATTRIBUTION } from '../../constants';
-import { doPostUpload, isAdminUser } from '../../utilities';
+import { doPostUpload, isAdminIdentity } from '../../utilities';
 
 // codeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
@@ -136,17 +136,12 @@ export default {
         this.$emit('input', value);
       },
     },
-    userData: {
-      get() {
-        return this.$store.getters.getActiveUser;
-      },
-      set(value) {
-        this.$store.dispatch('setActiveUser', value);
-      },
+    session() {
+      return this.$store.getters.getSession;
     },
   },
   methods: {
-    isAdminUser,
+    isAdminIdentity,
     setSuccessMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'success', temporary: true });
     },

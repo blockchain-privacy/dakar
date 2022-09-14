@@ -1,112 +1,20 @@
 package server
 
 import (
-	"backend/cmd/cliutil"
 	dbus "backend/db/user"
 
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"time"
-
-	"github.com/o1egl/paseto"
-	"golang.org/x/crypto/ed25519"
 )
 
 const (
 	// tokenExpirationTime is the time a token is valid
-	tokenExpirationTime = time.Hour * 192
-	// cookieTokenName is the name of the cookie where the token is saved
-	cookieTokenName = "token"
-	// secureCookie controls whether the secure attribute in cookies is set
-	secureCookie = false
+	tokenExpirationTime = time.Hour * 24
 	// if only reissueDuration is left of the token lifetime it gets reissued
 	reissueDuration = tokenExpirationTime / 4
-	// tokenFieldUser is the name of the user field in the token
-	tokenFieldUser = "user_id"
 )
 
 type tokenUser struct {
-	ID    string      `json:"uid,omitempty"`
-	Roles []dbus.Role `json:"roles,omitempty"`
-}
-
-// toUser creates a new dbus.User and fill it with data from t
-func (t tokenUser) toUser() dbus.User {
-	return dbus.User{
-		UID:   t.ID,
-		Roles: t.Roles,
-	}
-}
-
-// setTokenAsCookie writes the given token into w as a cookie
-func setTokenAsCookie(w http.ResponseWriter, token string, expirationTime time.Time) {
-	newCookie := &http.Cookie{
-		Name:     cookieTokenName,
-		Value:    token,
-		Expires:  expirationTime,
-		HttpOnly: true,
-		Secure:   secureCookie,
-		// cookie should be able to be sent by request originating form all directories
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	http.SetCookie(w, newCookie)
-}
-
-// writeNewToken create a new token and writes it into w as a cookie
-func writeNewToken(w http.ResponseWriter, user dbus.FrontendUserClientState, privkey ed25519.PrivateKey) error {
-	newToken, expirationTime, err := issueToken(user, privkey)
-	if err != nil {
-		return err
-	}
-
-	setTokenAsCookie(w, newToken, expirationTime)
-	return nil
-}
-
-// invalidateToken invalidates the token
-func invalidateToken(w http.ResponseWriter) {
-	setTokenAsCookie(w, "", time.Now().Add(-100*time.Hour))
-}
-
-// issueToken creates a token from user
-func issueToken(user dbus.FrontendUserClientState, privateKey ed25519.PrivateKey) (token string,
-	expirationTime time.Time, err error) {
-	roles := make([]dbus.Role, len(user.Roles))
-
-	for i, r := range user.Roles {
-		convertedRole := dbus.Role{UID: r.UID, Name: r.Name}
-		convertedRole.SetDType()
-		roles[i] = convertedRole
-	}
-
-	newTokenUser := tokenUser{
-		ID:    user.UID,
-		Roles: roles,
-	}
-
-	jsonUser, jsonErr := json.Marshal(&newTokenUser)
-	if jsonErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), jsonErr)
-		return
-	}
-	expirationTime = time.Now().Add(tokenExpirationTime).UTC()
-	jsonToken := paseto.JSONToken{
-		Expiration: expirationTime,
-	}
-	jsonToken.Set(tokenFieldUser, string(jsonUser))
-
-	// Sign data
-	token, err = paseto.NewV2().Sign(privateKey, jsonToken, nil)
-	return
-}
-
-// verifyToken checks if token is valid
-func verifyToken(token string, publicKey ed25519.PublicKey) (newJSONToken paseto.JSONToken,
-	newFooter string, err error) {
-	// Verify data
-	err = paseto.NewV2().Verify(token, publicKey, &newJSONToken, &newFooter)
-	return
+	ID       string      `json:"uid,omitempty"`
+	KratosID string      `json:"kratos_id,omitempty"`
+	Roles    []dbus.Role `json:"roles,omitempty"`
 }

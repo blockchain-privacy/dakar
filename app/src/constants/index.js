@@ -17,12 +17,10 @@ export const ROUTE_HEURISTIC_STATUS = `${routePrefix}heuristicStatus/`;
 export const ROUTE_HEURISTIC_LIST = `${routePrefix}heuristicList/`;
 export const ROUTE_HEURISTIC_DESCRIPTORS = `${routePrefix}heuristicDescriptors/`;
 export const ROUTE_DELETE_HEURISTIC = `${routePrefix}deleteHeuristic/`;
-export const ROUTE_USER_LIST = `${routePrefix}getUsers/`;
-export const ROUTE_USER_CREATE = `${routePrefix}createUser/`;
-export const ROUTE_USER_DELETE = `${routePrefix}deleteUser/`;
-export const ROUTE_USER_LOGIN = `${routePrefix}login/`;
-export const ROUTE_USER_LOGOUT = `${routePrefix}logout/`;
-export const ROUTE_USER_MODIFY = `${routePrefix}modifyUser/`;
+export const ROUTE_IDENTITY_LIST = `${routePrefix}getIdentities/`;
+export const ROUTE_IDENTITY_CREATE = `${routePrefix}createIdentity/`;
+export const ROUTE_IDENTITY_DELETE = `${routePrefix}deleteIdentity/`;
+export const ROUTE_IDENTITY_MODIFY = `${routePrefix}modifyIdentity/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;
 export const ROUTE_CONNECTION_LOOKUP = `${routePrefix}connectionLookup/`;
 export const ROUTE_CLUSTER_LOOKUP = `${routePrefix}clusterLookup/`;
@@ -58,9 +56,9 @@ export const ROUTE_NAME_STATUS_PAGE = 'Status Page';
 export const ROUTE_NAME_404_PAGE = 'Page not found';
 export const ROUTE_NAME_NO_RESULTS = 'No results found';
 export const ROUTE_NAME_LOGIN_PAGE = 'Login Page';
+export const ROUTE_NAME_ACCOUNT_RECOVERY = 'Account Recovery Page';
 export const ROUTE_NAME_USER_ADMIN_PAGE = 'User Administration Page';
 export const ROUTE_NAME_USER_PROFILE_PAGE = 'User Profile Page';
-export const ROUTE_NAME_USER_MISC_PAGE = 'User Misc Page';
 export const ROUTE_NAME_HEURISTIC_PAGE = 'Heuristic Editor';
 export const ROUTE_NAME_BLOCK_PAGE = 'Block Page';
 export const ROUTE_NAME_TRANSACTION_PAGE = 'Transaction Page';
@@ -73,12 +71,15 @@ export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 
+// ory
+export const ORY_KRATOS_BASE_URL = '/auth';
+
 // application
 export const PAGE_TITLE = 'Dakar';
 export const APPLICATION_NAME = 'Dakar';
 export const APPLICATION_SUBTITLE = 'Dash Blockchain Analytics';
-export const LOCALSTORAGE_FIELD_USER = 'user';
 export const LOCALSTORAGE_FIELD_SETTINGS = 'settings';
+export const LOCALSTORAGE_FIELD_SESSION = 'session';
 export const DEFAULT_SETTINGS = { dark: false };
 
 // blockchain
@@ -92,9 +93,6 @@ export const COIN_UNIT = COIN_UNIT_DASH;
 export const PASSWORD_MIN_CHARACTERS = 10;
 // PASSWORD_MAX_CHARACTERS is the number of characters a password can have at most
 export const PASSWORD_MAX_CHARACTERS = 250;
-// TOKEN_TIMEOUT is the number of milliseconds a token is valid for
-// time is 48 hours:  1000 * 60 * 60 * 48 = 172800000
-export const TOKEN_TIMEOUT = 172800000;
 
 // cluster
 export const CLUSTER_TYPE_HMI = 'hmi';

@@ -1,4 +1,4 @@
-package user
+package password
 
 import (
 	"backend/cmd/cliutil"
@@ -61,7 +61,6 @@ type PasswordHashConfig struct {
 // GeneratePasswordHash is used to generate a new password hash for storing and
 // comparing at a later date.
 func GeneratePasswordHash(c *PasswordHashConfig, password string) (string, error) {
-
 	// Generate a Salt
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
@@ -82,7 +81,6 @@ func GeneratePasswordHash(c *PasswordHashConfig, password string) (string, error
 // ComparePassword is used to compare a user-inputted password to a hash to see
 // if the password matches or not.
 func ComparePassword(password, hash string) (bool, error) {
-
 	parts := strings.Split(hash, "$")
 	if len(parts) != 6 {
 		return false, errors.New("password hash is too short")

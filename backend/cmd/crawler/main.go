@@ -76,7 +76,7 @@ func main() {
 	var commands Commands
 	setCommandFlags(&commands)
 
-	defaultConfigName := "config.yml"
+	const defaultConfigName = "config.yml"
 	var filePath string
 	var createConfigFile bool
 	cli.SetConfigFlags(defaultConfigName, &filePath, &createConfigFile)
@@ -270,6 +270,15 @@ func main() {
 		}
 	}
 
+	////// CONNECT TO KRATOS //////
+
+	auth, adminAuth, err := getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
+		config.Modules.HTTP.KratosAdminEndpoint)
+	if err != nil {
+		info(err)
+		return
+	}
+
 	////// CREATE ADMIN USER //////
 
 	// create admin account if none is set
@@ -280,9 +289,9 @@ func main() {
 			// no users exists -> create admin user
 			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
 				adminEmail := "admin@dakar.null"
-				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminEmail)
+				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminAuth, adminEmail)
 				if userCreationError != nil {
-					info(err)
+					info(userCreationError)
 					return
 				}
 				// do not log
@@ -472,8 +481,8 @@ func main() {
 	// start server
 	var srv *http.Server
 	if config.Modules.HTTP.Active {
-		apiServer, serverErr := server.NewServer(graphDB, client, worker, config.Modules.HTTP.BasicAuthUser,
-			config.Modules.HTTP.BasicAuthPWHash, config.Modules.HTTP.TokenPublicKey, config.Modules.HTTP.TokenPrivateKey)
+		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker,
+			config.Modules.HTTP.BasicAuthUser, config.Modules.HTTP.BasicAuthPWHash)
 		if serverErr != nil {
 			info(serverErr)
 		}

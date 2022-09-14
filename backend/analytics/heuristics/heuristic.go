@@ -19,7 +19,6 @@ import (
 // errNoOriginsAtStart defines an error which should be used when no origins are available
 var errNoOriginsAtStart = errors.New("no origins can be fetched")
 
-//
 var errInvalidClusterTypes = errors.New("cluster types are not valid")
 
 const (
@@ -138,9 +137,7 @@ type clusterDenominations struct {
 // The returned map contains the provided origins
 func addOriginsToMap(sourceTransactionMap map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction,
 	origins []heuristics.HeuristicTransaction) map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction {
-
 	for _, o := range origins {
-
 		// add transaction to sourceTransactionMap
 		transactions := sourceTransactionMap[o.Cluster]
 
@@ -199,7 +196,6 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	lookBackTime time.Duration, userUID string, clusterTypes []clustering.ClusterType, exclusions []string,
 	excludeSpendingGaps bool) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
-
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, excludeSpendingGaps)
 	if err != nil {

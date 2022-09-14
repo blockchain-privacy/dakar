@@ -87,7 +87,7 @@ import {
   mdiFormatHeaderPound, mdiTransfer, mdiPound,
 } from '@mdi/js';
 import {
-  doPost, handleError, isAdminUser, isPrivilegedUser, shortenHash,
+  doPost, handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
 } from '../../utilities';
 import {
   PAGE_TITLE,
@@ -124,11 +124,11 @@ export default {
     data() {
       return this.$store.getters.getBlockData;
     },
-    userData() {
-      return this.$store.getters.getActiveUser;
+    session() {
+      return this.$store.getters.getSession;
     },
     showHeuristicEditor() {
-      return isPrivilegedUser(this.userData) || isAdminUser(this.userData);
+      return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
     },
   },
   methods: {

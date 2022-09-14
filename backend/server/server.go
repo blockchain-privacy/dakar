@@ -3,16 +3,16 @@ package server
 import (
 	heuristic "backend/analytics/heuristics"
 	"backend/external"
-	"github.com/dgraph-io/ristretto"
-
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/dgraph-io/ristretto"
+	ory "github.com/ory/kratos-client-go"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // loggerPrefix is the prefix which is printed for each log message
@@ -38,22 +38,21 @@ func fatal(v ...interface{}) {
 }
 
 type Server struct {
-	db              external.Database
-	client          external.RPCClient
-	worker          *heuristic.Worker
-	cache           *ristretto.Cache
-	basicAuthUser   string
-	basicAuthHash   string
-	tokenPublicKey  []byte
-	tokenPrivateKey []byte
-	handler         *http.ServeMux
+	db            external.Database
+	client        external.RPCClient
+	worker        *heuristic.Worker
+	cache         *ristretto.Cache
+	auth          *ory.APIClient
+	adminAuth     *ory.APIClient
+	basicAuthUser string
+	basicAuthHash string
+	handler       *http.ServeMux
 }
 
-func NewServer(db external.Database, client external.RPCClient, worker *heuristic.Worker, basicAuthUser string,
-	basicAuthHash string, tokenPublicKey string, tokenPrivateKey string) (*Server, error) {
-
-	if tokenPublicKey == "" || tokenPrivateKey == "" {
-		return nil, errors.New("keys are not set")
+func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
+	worker *heuristic.Worker, basicAuthUser string, basicAuthHash string) (*Server, error) {
+	if adminAuth == nil || auth == nil {
+		return nil, errors.New("authentication handles are not set")
 	}
 
 	if basicAuthUser == "" {
@@ -68,16 +67,6 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 		return nil, errors.New("worker pointer is nil")
 	}
 
-	privateKey, err := hex.DecodeString(tokenPrivateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	publicKey, err := hex.DecodeString(tokenPublicKey)
-	if err != nil {
-		return nil, err
-	}
-
 	// init cache
 	cache, err := ristretto.NewCache(&ristretto.Config{
 		NumCounters: 1e7,     // number of keys to track frequency of (10 M).
@@ -89,15 +78,15 @@ func NewServer(db external.Database, client external.RPCClient, worker *heuristi
 	}
 
 	return &Server{
-		db:              db,
-		client:          client,
-		worker:          worker,
-		cache:           cache,
-		basicAuthUser:   basicAuthUser,
-		basicAuthHash:   basicAuthHash,
-		tokenPublicKey:  publicKey,
-		tokenPrivateKey: privateKey,
-		handler:         http.NewServeMux(),
+		db:            db,
+		client:        client,
+		worker:        worker,
+		cache:         cache,
+		auth:          auth,
+		adminAuth:     adminAuth,
+		basicAuthUser: basicAuthUser,
+		basicAuthHash: basicAuthHash,
+		handler:       http.NewServeMux(),
 	}, nil
 }
 
@@ -108,8 +97,10 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	// create server
 	srv := &http.Server{
-		Addr:    ":" + strconv.FormatUint(uint64(port), 10),
-		Handler: s.handler,
+		Addr:              ":" + strconv.FormatUint(uint64(port), 10),
+		Handler:           s.handler,
+		ReadTimeout:       time.Minute,
+		ReadHeaderTimeout: time.Second * 5,
 	}
 
 	go func() {

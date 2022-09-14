@@ -4,10 +4,10 @@ import (
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
-	"backend/user"
-	"crypto/ed25519"
-	"encoding/hex"
+	"backend/password"
 	"fmt"
+	ory "github.com/ory/kratos-client-go"
+	"net/http/cookiejar"
 	"runtime"
 	"runtime/debug"
 
@@ -42,12 +42,12 @@ type ClusterModule struct {
 }
 
 type HTTPModule struct {
-	Active          bool   `yaml:"active"`
-	Port            uint   `yaml:"port"`
-	BasicAuthUser   string `yaml:"basicAuthUser"`
-	BasicAuthPWHash string `yaml:"basicAuthPWHash"`
-	TokenPrivateKey string `yaml:"tokenPrivateKey"`
-	TokenPublicKey  string `yaml:"tokenPublicKey"`
+	Active               bool   `yaml:"active"`
+	Port                 uint   `yaml:"port"`
+	BasicAuthUser        string `yaml:"basicAuthUser"`
+	BasicAuthPWHash      string `yaml:"basicAuthPWHash"`
+	KratosPublicEndpoint string `yaml:"kratosPublicEndpoint"`
+	KratosAdminEndpoint  string `yaml:"kratosAdminEndpoint"`
 }
 
 type ModulesConfig struct {
@@ -79,12 +79,12 @@ var defaultConfig = Config{
 	},
 	Modules: ModulesConfig{
 		HTTP: HTTPModule{
-			Active:          true,
-			Port:            8081,
-			BasicAuthUser:   "dakar",
-			BasicAuthPWHash: "",
-			TokenPrivateKey: "",
-			TokenPublicKey:  "",
+			Active:               true,
+			Port:                 8081,
+			BasicAuthUser:        "dakar",
+			BasicAuthPWHash:      "",
+			KratosPublicEndpoint: "http://localhost:4433",
+			KratosAdminEndpoint:  "http://localhost:4434",
 		},
 		Classifier: false,
 		Heuristics: false,
@@ -94,27 +94,19 @@ var defaultConfig = Config{
 }
 
 func getDefaultConfig() (Config, error) {
-	publicKey, privateKey, genErr := ed25519.GenerateKey(nil)
-	if genErr != nil {
-		return Config{}, genErr
-	}
-
-	defaultConfig.Modules.HTTP.TokenPublicKey = hex.EncodeToString(publicKey)
-	defaultConfig.Modules.HTTP.TokenPrivateKey = hex.EncodeToString(privateKey)
-
-	password, pwErr := user.GenerateRandomPassword()
+	passwd, pwErr := password.GenerateRandomPassword()
 	if pwErr != nil {
 		return Config{}, pwErr
 	}
 
-	pwHash, pwErr := user.GeneratePasswordHash(user.DefaultPasswordConfig, password)
+	pwHash, pwErr := password.GeneratePasswordHash(password.DefaultPasswordConfig, passwd)
 	if pwErr != nil {
 		return Config{}, pwErr
 	}
 
 	defaultConfig.Modules.HTTP.BasicAuthPWHash = pwHash
 
-	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", password)
+	fmt.Println("Generated new basic auth pair:\nuser: dakar", "\npassword:", passwd)
 	fmt.Println("Save the password, it will not be written in the config file.")
 
 	return defaultConfig, nil
@@ -122,7 +114,8 @@ func getDefaultConfig() (Config, error) {
 
 // checkHTTPModuleConfig returns an error if the given http module has invalid values
 func checkHTTPModuleConfig(c HTTPModule) error {
-	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" || c.TokenPrivateKey == "" || c.TokenPublicKey == "" {
+	if c.BasicAuthUser == "" || c.BasicAuthPWHash == "" ||
+		c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
 		return errors.New("http module config invalid, not all fields are filled")
 	}
 
@@ -329,4 +322,88 @@ func checkMeta(db external.Database) bool {
 	}
 
 	return true
+}
+
+// newKratosClient creates a new kratos client
+func newKratosClient(endpoint string) (*ory.APIClient, error) {
+	cj, err := cookiejar.New(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := ory.NewConfiguration()
+	conf.Servers = ory.ServerConfigurations{{URL: endpoint}}
+
+	conf.HTTPClient = &http.Client{Jar: cj}
+
+	return ory.NewAPIClient(conf), nil
+}
+
+// isKratosAlive returns true if a successful connection to kratos has been established
+func isKratosAlive(auth *ory.APIClient) bool {
+	// check if endpoint is alive
+	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancelFunc()
+
+	_, resp1, err := auth.MetadataApi.IsAlive(ctx1).Execute()
+	if err != nil {
+		return false
+	}
+	defer resp1.Body.Close()
+
+	return true
+}
+
+// waitForKratos waits until kratos is ready to receive requests
+func waitForKratos(auth *ory.APIClient) bool {
+	const maxRetries = 20
+	const retrySleepDuration = time.Second * 5
+
+	var printedErrMessage bool
+
+	for i := 0; i < maxRetries; i++ {
+		if isKratosAlive(auth) {
+			if printedErrMessage {
+				fmt.Println("Successfully established connection to kratos")
+			}
+			return true
+		}
+
+		if !printedErrMessage {
+			fmt.Println("Waiting for kratos")
+			printedErrMessage = true
+		}
+
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	return false
+}
+
+// getKratosClient returns a public (first) and admin (second) handle to an ory kratos instance.
+// Also checks if the connections are alive.
+func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClient, *ory.APIClient, error) {
+	auth, err := newKratosClient(publicEndpoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	adminAuth, err := newKratosClient(adminEndpoint)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// check if public endpoint is alive
+	if !waitForKratos(auth) {
+		return nil, nil, errors.New("kratos public endpoint is not ready to receive requests")
+	}
+
+	// check if public endpoint is alive
+	if !waitForKratos(adminAuth) {
+		return nil, nil, errors.New("kratos admin endpoint is not ready to receive requests")
+	}
+
+	return auth, adminAuth, nil
 }
