@@ -70,9 +70,14 @@ export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Cluster Overview Page';
 export const ROUTE_NAME_CLUSTER_VIEW_PAGE = 'Cluster View Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
+export const ROUTE_NAME_WIKI_ROOT = 'Wiki Root Page';
+export const ROUTE_NAME_WIKI = 'Wiki Page';
 
 // ory
-export const ORY_KRATOS_BASE_URL = '/auth';
+export const ORY_KRATOS_PATH_PREFIX = '/auth';
+
+// wikiapi
+export const WIKIAPI_PATH_PREFIX = '/wikiapi';
 
 // application
 export const PAGE_TITLE = 'Dakar';

@@ -26,6 +26,7 @@ import ClusterOverview from '../components/tools/ClusterOverview.vue';
 import Attributions from '../components/tools/attributions/Attributions.vue';
 import AddressExclusions from '../components/tools/AddressExclusions.vue';
 import Recovery from '../components/user/Recovery.vue';
+import Wiki from '../components/wiki/Wiki.vue';
 
 Vue.use(Router);
 
@@ -128,6 +129,27 @@ export default new Router({
       name: Constants.ROUTE_NAME_LOGIN_PAGE,
       component: Login,
       meta: { title: 'Login' },
+    },
+    {
+      // wiki root page
+      path: '/wiki',
+      name: Constants.ROUTE_NAME_WIKI_ROOT,
+      component: Wiki,
+      meta: { title: 'Wiki' },
+      beforeEnter: (to, from, next) => {
+        checkSession(to, next, isPrivileged);
+      },
+    },
+    {
+      // wiki content page
+      // allow additional slashes in path
+      path: '/wiki/:file(.*)',
+      name: Constants.ROUTE_NAME_WIKI,
+      component: Wiki,
+      meta: { title: 'Wiki' },
+      beforeEnter: (to, from, next) => {
+        checkSession(to, next, isPrivileged);
+      },
     },
     {
       path: '/recovery',
