@@ -18,7 +18,7 @@ module.exports = {
         pathRewrite: { '^/auth': '' },
       },
       '/wikiapi': {
-        target: 'http://localhost:4567',
+        target: 'http://localhost:4455',
         // remove '/wiki' prefix
         pathRewrite: { '^/wikiapi': '' },
       },
