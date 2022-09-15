@@ -102,6 +102,7 @@ services:
     image: oryd/oathkeeper:v0.40
     depends_on:
       - kratos
+    container_name: oathkeeper
     ports:
       - "4455:4455"
       - "4456:4456"
