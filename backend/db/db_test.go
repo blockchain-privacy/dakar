@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
 	}
-	hostName, _ := os.LookupEnv("YOUR_APP_DB_HOST")
+	hostName := os.Getenv("YOUR_APP_DB_HOST")
 	// create dgraph client
 	graphDB, c, err := CreateClient(hostName + ":" + alphaPort)
 	if err != nil {

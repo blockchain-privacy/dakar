@@ -29,6 +29,9 @@ stages:
   - build
 
 before_script:
+  - df
+  - cat /etc/resolv.conf
+  - cat /etc/hosts
   - cd backend/cmd/crawler
 
 unit_tests:
