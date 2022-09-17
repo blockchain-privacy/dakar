@@ -1,7 +1,6 @@
-package user
+package db
 
 import (
-	"backend/db"
 	"backend/external"
 	"errors"
 	"fmt"
@@ -15,8 +14,8 @@ import (
 
 var dbHandle external.Database
 
-const dockerName = "dgraphtest_user"
-const alphaPort = "20001"
+const dockerName = "dgraphtest_db"
+const alphaPort = "20000"
 
 func TestMain(m *testing.M) {
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
@@ -38,12 +37,11 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Could not start resource: %s", err)
 	}
-
 	hostName, _ := os.LookupEnv("YOUR_APP_DB_HOST")
 	// create dgraph client
-	graphDB, c, err := db.CreateClient(hostName + ":" + alphaPort)
+	graphDB, c, err := CreateClient(hostName + ":" + alphaPort)
 	if err != nil {
-		fmt.Println(err)
+		info(err)
 		return
 	}
 
@@ -51,7 +49,7 @@ func TestMain(m *testing.M) {
 
 	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 	if err := pool.Retry(func() error {
-		if db.IsConnectionEstablished(graphDB) {
+		if IsConnectionEstablished(graphDB) {
 			return nil
 		}
 
@@ -71,7 +69,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	if err = c.Close(); err != nil {
-		fmt.Println(err)
+		info(err)
 	}
 
 	// You can't defer this because os.Exit doesn't care for defer
@@ -82,45 +80,66 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestGenerateRandomPassword(t *testing.T) {
-	pw, err := generateRandomPassword()
-	require.Nil(t, err)
-	require.NotEmpty(t, pw, "password is empty")
-	require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
+func TestCreateCommaList(t *testing.T) {
+	type testCase struct {
+		uids   []string
+		result string
+	}
 
-	pw2, err := generateRandomPassword()
-	require.Nil(t, err)
-	require.NotEmpty(t, pw, "password is empty")
+	var cases = []testCase{
+		{
+			uids:   []string{},
+			result: "",
+		},
+		{
+			uids:   nil,
+			result: "",
+		},
+		{
+			uids:   []string{"123", "456"},
+			result: "123,456",
+		},
+		{
+			uids:   []string{"123", ""},
+			result: "123,",
+		},
+	}
 
-	require.NotEqual(t, pw, pw2)
+	for _, c := range cases {
+		require.Equal(t, CreateCommaList(c.uids), c.result)
+	}
 }
 
-func TestCreateNewUser(t *testing.T) {
-	user, err := CreateNewUser(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, user)
+func TestCreateCommaArray(t *testing.T) {
+	type testCase struct {
+		uids   []string
+		result string
+	}
+
+	var cases = []testCase{
+		{
+			uids:   []string{},
+			result: "[]",
+		},
+		{
+			uids:   nil,
+			result: "[]",
+		},
+		{
+			uids:   []string{"123", "456"},
+			result: "[123,456]",
+		},
+		{
+			uids:   []string{"123", ""},
+			result: "[123,]",
+		},
+	}
+
+	for _, c := range cases {
+		require.Equal(t, CreateCommaArray(c.uids), c.result)
+	}
 }
 
-func TestGetUsers(t *testing.T) {
-	users, err := GetUsers(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, users)
-}
-
-func TestGetUsersWithCredentials(t *testing.T) {
-	users, err := GetUsersWithCredentials(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, users)
-}
-
-func TestDeleteUser(t *testing.T) {
-	// create user
-	user, err := CreateNewUser(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, user)
-	// delete user
-	require.NoError(t, DeleteUser(dbHandle, user))
-
-	// try to delete user which does not exist
-	require.Error(t, DeleteUser(dbHandle, "some_random_uid_which_does_not_exist"))
+func TestDropAll(t *testing.T) {
+	require.NoError(t, DropAll(dbHandle))
 }

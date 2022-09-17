@@ -183,3 +183,12 @@ func CreateCommaList(uids []string) string {
 func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
 }
+
+// IsConnectionEstablished test the database connection
+func IsConnectionEstablished(c external.Database) bool {
+	ctx, cancel := GetBackendContext()
+	defer cancel()
+	response, err := c.Query(ctx, "{q(func: has(Meta.schemaVersion),first:1){uid}}", nil)
+	_ = response
+	return err == nil
+}

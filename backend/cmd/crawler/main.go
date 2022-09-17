@@ -109,7 +109,7 @@ func main() {
 		return
 	}
 
-	if moduleErr := checkHTTPModuleConfig(config.Modules.HTTP); moduleErr != nil {
+	if moduleErr := checkAPIModuleConfig(config.Modules.HTTP); moduleErr != nil {
 		fmt.Println(moduleErr)
 		return
 	}

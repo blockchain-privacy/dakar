@@ -99,8 +99,8 @@ var defaultConfig = Config{
 	},
 }
 
-// checkHTTPModuleConfig returns an error if the given http module has invalid values
-func checkHTTPModuleConfig(c APIModule) error {
+// checkAPIModuleConfig returns an error if the given http module has invalid values
+func checkAPIModuleConfig(c APIModule) error {
 	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
 		return errors.New("http module config invalid, not all fields are filled")
 	}
@@ -213,7 +213,7 @@ func waitForDatabase(db external.Database) bool {
 	var printedErrMessage bool
 
 	for i := 0; i < maxRetries; i++ {
-		if status.IsConnectionEstablished(db) {
+		if database.IsConnectionEstablished(db) {
 			if printedErrMessage {
 				info("Successfully established connection to database.")
 			}
@@ -307,6 +307,10 @@ func checkMeta(db external.Database) bool {
 
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
+	if endpoint == "" {
+		return nil, fmt.Errorf("endpoint is invalid: '%s'", endpoint)
+	}
+
 	cj, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
@@ -322,6 +326,10 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 
 // isKratosAlive returns true if a successful connection to kratos has been established
 func isKratosAlive(auth *ory.APIClient) bool {
+	if auth == nil || auth.MetadataApi == nil {
+		return false
+	}
+
 	// check if endpoint is alive
 	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()

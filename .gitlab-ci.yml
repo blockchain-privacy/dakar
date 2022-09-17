@@ -33,11 +33,14 @@ before_script:
 
 unit_tests:
   stage: test
-  needs: ["dependencies"]
-  script: make test
-  cache:
-    <<: *modcache
-    policy: pull
+  services:
+    - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_DRIVER: overlay2
+    YOUR_APP_DB_HOST: docker
+  script:
+    - go test -race ./...
 
 lint_code:
   stage: test
