@@ -3,6 +3,7 @@ package db
 import (
 	"backend/external"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
@@ -18,6 +19,11 @@ const dockerName = "dgraphtest_db"
 const alphaPort = "20000"
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+	if testing.Short() {
+		return
+	}
+
 	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
 	pool, err := dockertest.NewPool("")
 	if err != nil {
