@@ -108,7 +108,12 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 // GetOutputAddressCounts returns the number of distinct addresses associated
 // with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
-	query := `query Q($uid: string){
+	if uid == "" {
+		err = errors.New("uid not set")
+		return
+	}
+
+	const query = `query Q($uid: string){
 				var(func: uid($uid)){
 					tx_inputs {
 						~addr_outputs{
