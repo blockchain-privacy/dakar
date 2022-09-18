@@ -3,7 +3,15 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
+	"errors"
+	"flag"
+	"github.com/ory/dockertest/v3"
+	"github.com/ory/dockertest/v3/docker"
 	"google.golang.org/grpc/credentials/insecure"
+	"math/rand"
+	"os"
+	"strconv"
+	"testing"
 
 	"context"
 	"fmt"
@@ -191,4 +199,88 @@ func IsConnectionEstablished(c external.Database) bool {
 	response, err := c.Query(ctx, "{q(func: has(Meta.schemaVersion),first:1){uid}}", nil)
 	_ = response
 	return err == nil
+}
+
+// RunDgraphTests creates a dgraph docker container, runs all tests of the calling
+// package and removes the container afterwards.
+// packageDBHandle should be set to the global db interface handle of the package module.
+// The spawned container is removed after the tests are done or after 3 minutes.
+func RunDgraphTests(m *testing.M, packageDBHandle *external.Database) {
+	// getRandomPortOffset returns a cryptographically UNSAFE integer between 1 and 50.
+	getRandomPortOffset := func() int {
+		rand.Seed(time.Now().UnixNano())
+		return rand.Intn(50-1) + 1 //nolint:gosec
+	}
+
+	flag.Parse()
+	if testing.Short() {
+		return
+	}
+
+	var offset = 0
+	const anchorPort = 20000
+
+	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		log.Fatalf("Could not connect to docker: %s", err)
+	}
+
+	// try to create container; several tries might be needed because chosen port is already in use
+	var resource *dockertest.Resource
+	if err := pool.Retry(func() error {
+		// generate random port offset
+		offset += getRandomPortOffset()
+		// pulls an image, creates a container based on it and runs it
+		resource, err = pool.RunWithOptions(&dockertest.RunOptions{
+			Repository:   "dgraph/standalone",
+			Tag:          "v21.03.2",
+			ExposedPorts: []string{"9080"},
+			PortBindings: map[docker.Port][]docker.PortBinding{
+				"9080": {{HostIP: "0.0.0.0", HostPort: strconv.Itoa(anchorPort + offset)}},
+			},
+		})
+		return err
+	}); err != nil {
+		log.Panicf("Could not start resource: %s", err)
+	}
+
+	// try to set container to expire after 3 minutes
+	_ = resource.Expire(180)
+
+	// You can't defer this because os.Exit doesn't care for defer
+	defer func(pool *dockertest.Pool, r *dockertest.Resource) {
+		err := pool.Purge(r)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(pool, resource)
+
+	hostName := os.Getenv("YOUR_APP_DB_HOST")
+	// create dgraph client
+	graphDB, c, err := CreateClient(hostName + ":" + strconv.Itoa(anchorPort+offset))
+	if err != nil {
+		info(err)
+		return
+	}
+	defer func(c *grpc.ClientConn) {
+		err := c.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(c)
+
+	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+	if err := pool.Retry(func() error {
+		if IsConnectionEstablished(graphDB) {
+			return nil
+		}
+
+		return errors.New("database not ready yet")
+	}); err != nil {
+		log.Panicf("Could not connect to database: %s", err)
+	}
+
+	*packageDBHandle = graphDB
+	m.Run()
 }
