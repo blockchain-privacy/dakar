@@ -132,7 +132,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	block = r.Blocks[0]
 
 	for _, t := range r.Transactions {
-		// t.Fee can be nil in case we do -start to -stop crawling
+		// t.Fee should never be nil, but just in case
 		fee := int64(-1)
 		if t.Fee != nil {
 			fee = *t.Fee

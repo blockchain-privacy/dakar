@@ -17,6 +17,10 @@ import (
 // GetTransactionsOutputs returns all outputs of each given transaction
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
+	if len(transactionHashes) == 0 {
+		return nil, errors.New("no transaction hashes provided")
+	}
+
 	query := `{
 				q(func: eq(txhash,` + db.CreateCommaArray(transactionHashes) + `)){
 					txhash
@@ -44,7 +48,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	}
 
 	if len(transactionHashes) != len(r.Transactions) {
-		err = errors.New("number of returned transaction does not match number of requested transactions")
+		err = errors.New("number of returned transactions does not match number of requested transactions")
 		return
 	}
 
@@ -230,7 +234,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 			return
 		}
 
-		// t.Fee can be nil in case we do -start to -stop crawling
+		// t.Fee should never be nil, but just in case
 		fee := int64(-1)
 		if t.Fee != nil {
 			fee = *t.Fee

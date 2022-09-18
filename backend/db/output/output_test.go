@@ -59,8 +59,7 @@ func TestCountOutputDenominations(t *testing.T) {
 		},
 		{
 			outputs: []Output{{Amount: &denom0}, {Amount: &denom0}, {Amount: &denom0}},
-
-			result: [NumDenominations]int{3, 0, 0, 0, 0},
+			result:  [NumDenominations]int{3, 0, 0, 0, 0},
 		},
 		{
 			outputs: []Output{{Amount: &denom1}, {Amount: &denom1}, {Amount: &denom1},
