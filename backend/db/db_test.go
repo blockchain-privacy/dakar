@@ -68,7 +68,7 @@ func TestCreateCommaArray(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		require.Equal(t, CreateCommaArray(c.uids), c.result)
+		require.Equal(t, c.result, CreateCommaArray(c.uids))
 	}
 }
 
