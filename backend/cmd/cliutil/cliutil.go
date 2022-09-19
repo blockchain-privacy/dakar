@@ -67,7 +67,7 @@ func SetConfigFlags(defaultConfigName string, filePath *string, createConfigFile
 func ShowCallInfo() string {
 	pc, file, line, ok := runtime.Caller(1)
 	if !ok {
-		log.Fatal("not ok")
+		return ""
 	}
 
 	_, fileName := path.Split(file)
