@@ -3,9 +3,9 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
-	dbop "backend/db/output"
 	"backend/external"
 
 	"fmt"
@@ -110,8 +110,8 @@ func (h perfectMatchHeuristic) clone() heuristic {
 }
 
 // perfectMatchHeuristic applies the following heuristic:
-// - filter all origins of sources, which have denominations without a perfect match for the
-//		denominations of the destination transaction
+//   - filter all origins of sources, which have denominations without a perfect match for the
+//     denominations of the destination transaction
 func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
@@ -177,7 +177,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 }
 
 // returns true if all denominations with the same amount of denom1 are contained in denom2
-func isEqualDenomination(denom1 [dbop.NumDenominations]int, denom2 [dbop.NumDenominations]int) bool {
+func isEqualDenomination(denom1 [db.NumDenominations]int, denom2 [db.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] != d {
 			return false

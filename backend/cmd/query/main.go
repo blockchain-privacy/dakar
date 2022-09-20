@@ -4,9 +4,12 @@ import (
 	"backend/analytics/graph"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/external"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
@@ -54,6 +57,11 @@ type OriginGapModule struct {
 	MinGapHours int    `yaml:"minGapHours"`
 }
 
+type ExportBlocksModule struct {
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
+}
+
 type Config struct {
 	Logfile              string                    `yaml:"logfile"`
 	DBHost               string                    `yaml:"host"`
@@ -63,6 +71,7 @@ type Config struct {
 	TimestampAnalytics   TimestampAnalyticsModule  `yaml:"timestampAnalytics"`
 	ExclusionSimulations ExclusionSimulationModule `yaml:"exclusionSimulations"`
 	OriginGap            OriginGapModule           `yaml:"originGap"`
+	ExportBlocks         ExportBlocksModule        `yaml:"exportBlocks"`
 }
 
 var defaultConfig = Config{
@@ -204,4 +213,51 @@ func main() {
 	if config.OriginGap.Active {
 		doOriginGapAnalysis(g, time.Hour*time.Duration(config.OriginGap.MinGapHours), config.OriginGap.Filename)
 	}
+
+	if config.ExportBlocks.Active {
+		file, err := os.OpenFile(config.ExportBlocks.Filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+		if err != nil {
+			info("error creating file", err)
+			return
+		}
+		defer func(file *os.File) {
+			_ = file.Close()
+		}(file)
+
+		blockRange, err := getBlockRange(dgraph, 60000, 60020)
+		if err != nil {
+			info("error getting blocks", err)
+			return
+		}
+
+		if len(blockRange) == 0 {
+			info("no blocks to write")
+			return
+		}
+
+		err = json.NewEncoder(file).Encode(blockRange)
+		if err != nil {
+			info("error encoding blocks", err)
+			return
+		}
+	}
+}
+
+func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]db.Block, error) {
+	numBlocks := lastBlock - firstBlock
+	if numBlocks <= 0 {
+		return nil, nil
+	}
+
+	blocks := make([]db.Block, numBlocks+1)
+
+	for i := firstBlock; i <= lastBlock; i++ {
+		block, err := db.GetFullBlock(dgraph, i)
+		if err != nil {
+			return nil, err
+		}
+		blocks[i-firstBlock] = block
+	}
+
+	return blocks, nil
 }

@@ -1,7 +1,6 @@
-package transaction
+package db
 
 import (
-	"backend/db"
 	"backend/external"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -9,16 +8,12 @@ import (
 
 var dbHandle external.Database
 
-func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle)
-}
-
 func setupDB(t *testing.T) {
 	// reset db
-	require.NoError(t, db.DropAll(dbHandle))
+	require.NoError(t, DropAll(dbHandle))
 
 	// set up schema
-	require.NoError(t, db.SetupSchema(dbHandle))
+	require.NoError(t, SetupSchema(dbHandle))
 }
 
 func TestGetTransactionsOutputs(t *testing.T) {

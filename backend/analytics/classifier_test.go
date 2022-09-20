@@ -1,8 +1,7 @@
 package analytics
 
 import (
-	dbop "backend/db/output"
-	dbtx "backend/db/transaction"
+	"backend/db"
 	"backend/mocks"
 	"context"
 	"github.com/stretchr/testify/require"
@@ -12,15 +11,15 @@ import (
 var denominations = [5]int64{1000010000, 100001000, 10000100, 1000010, 100001}
 
 type transactionTest struct {
-	tx         dbtx.Transaction
+	tx         db.Transaction
 	shouldFail bool
 }
 
 func TestIsMixing(t *testing.T) {
-	shouldWork1 := dbtx.Transaction{
+	shouldWork1 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
@@ -30,7 +29,7 @@ func TestIsMixing(t *testing.T) {
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
@@ -42,60 +41,60 @@ func TestIsMixing(t *testing.T) {
 		},
 	}
 
-	shouldWork2 := dbtx.Transaction{
+	shouldWork2 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[1]},
 			{Amount: &denominations[1]},
 			{Amount: &denominations[1]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[1]},
 			{Amount: &denominations[1]},
 			{Amount: &denominations[1]},
 		},
 	}
 
-	shouldWork3 := dbtx.Transaction{
+	shouldWork3 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[2]},
 			{Amount: &denominations[2]},
 			{Amount: &denominations[2]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[2]},
 			{Amount: &denominations[2]},
 			{Amount: &denominations[2]},
 		},
 	}
 
-	shouldWork4 := dbtx.Transaction{
+	shouldWork4 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[3]},
 			{Amount: &denominations[3]},
 			{Amount: &denominations[3]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[3]},
 			{Amount: &denominations[3]},
 			{Amount: &denominations[3]},
 		},
 	}
 
-	shouldWork5 := dbtx.Transaction{
+	shouldWork5 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[4]},
 			{Amount: &denominations[4]},
 			{Amount: &denominations[4]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[4]},
 			{Amount: &denominations[4]},
 			{Amount: &denominations[4]},
@@ -103,59 +102,59 @@ func TestIsMixing(t *testing.T) {
 	}
 
 	fee := int64(5)
-	hasFee := dbtx.Transaction{
+	hasFee := db.Transaction{
 		Fee:  &fee,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-		},
-	}
-
-	notEqualAmountsOfInputsAndOutputs := dbtx.Transaction{
-		Fee:  new(int64),
-		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-		},
-		Inputs: []dbop.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 		},
 	}
 
-	mixedDenominations := dbtx.Transaction{
+	notEqualAmountsOfInputsAndOutputs := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
+			{Amount: &denominations[0]},
+			{Amount: &denominations[0]},
+			{Amount: &denominations[0]},
+		},
+		Inputs: []db.Output{
+			{Amount: &denominations[0]},
+			{Amount: &denominations[0]},
+		},
+	}
+
+	mixedDenominations := db.Transaction{
+		Fee:  new(int64),
+		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
+		Outputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[1]},
 			{Amount: &denominations[0]},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &denominations[1]},
 		},
 	}
 	one := int64(1)
-	notOnlyDenominations := dbtx.Transaction{
+	notOnlyDenominations := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &one},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &denominations[0]},
 			{Amount: &denominations[0]},
 			{Amount: &one},
@@ -180,62 +179,62 @@ func TestIsMixing(t *testing.T) {
 }
 
 func TestIsCollateralPayment(t *testing.T) {
-	minCollateral := int64(dbop.MinCollateral)
-	shouldWork1 := dbtx.Transaction{
+	minCollateral := int64(db.MinCollateral)
+	shouldWork1 := db.Transaction{
 		Fee:  &minCollateral,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &minCollateral},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &minCollateral},
 		},
 	}
 
-	noFee := dbtx.Transaction{
+	noFee := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &minCollateral},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &minCollateral},
 		},
 	}
 
-	multipleInputs := dbtx.Transaction{
+	multipleInputs := db.Transaction{
 		Fee:  &minCollateral,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &minCollateral},
 			{Amount: &minCollateral},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &minCollateral},
 			{Amount: &minCollateral},
 		},
 	}
 
 	bigAmount := int64(500000000000)
-	bigInput := dbtx.Transaction{
+	bigInput := db.Transaction{
 		Fee:  &minCollateral,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &bigAmount},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &bigAmount},
 		},
 	}
 
 	one := int64(1)
-	smallInput := dbtx.Transaction{
+	smallInput := db.Transaction{
 		Fee:  &minCollateral,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
-		Outputs: []dbop.Output{
+		Outputs: []db.Output{
 			{Amount: &one},
 		},
-		Inputs: []dbop.Output{
+		Inputs: []db.Output{
 			{Amount: &one},
 		},
 	}
@@ -254,15 +253,15 @@ func TestIsCollateralPayment(t *testing.T) {
 }
 
 func TestNewClassifier(t *testing.T) {
-	db := new(mocks.Database)
-	classifier := NewClassifier(context.Background(), db, NewDashConfig())
+	mockDB := new(mocks.Database)
+	classifier := NewClassifier(context.Background(), mockDB, NewDashConfig())
 	require.NotEmpty(t, classifier.Name())
 	require.NotNil(t, classifier.Logger())
 	require.NoError(t, classifier.IncrementState())
 
-	mocks.MapSetClassifying(db)
-	mocks.MapGetClassifierStatus(db)
-	mocks.MapGetCrawlerStatus(db)
+	mocks.MapSetClassifying(mockDB)
+	mocks.MapGetClassifierStatus(mockDB)
+	mocks.MapGetCrawlerStatus(mockDB)
 
 	require.NoError(t, classifier.CalculateInitialState())
 }

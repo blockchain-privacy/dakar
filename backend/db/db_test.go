@@ -1,15 +1,12 @@
 package db
 
 import (
-	"backend/external"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var h external.Database
-
 func TestMain(m *testing.M) {
-	RunDgraphTests(m, &h)
+	RunDgraphTests(m, &dbHandle)
 }
 
 func TestCreateCommaList(t *testing.T) {
@@ -73,5 +70,5 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestDropAll(t *testing.T) {
-	require.NoError(t, DropAll(h))
+	require.NoError(t, DropAll(dbHandle))
 }

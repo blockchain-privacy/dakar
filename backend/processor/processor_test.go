@@ -1,8 +1,8 @@
 package processor
 
 import (
+	"backend/db"
 	dbaddr "backend/db/address"
-	dbop "backend/db/output"
 	"backend/mocks"
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -173,7 +173,7 @@ func TestProcessAddresses(t *testing.T) {
 	one64 := int64(1)
 	fourNines := int64(9999)
 	wrong := false
-	output1 := dbop.Output{
+	output1 := db.Output{
 		UID:         "0x59b84",
 		OutputIndex: &zero,
 		InputIndex:  nil,
@@ -183,7 +183,7 @@ func TestProcessAddresses(t *testing.T) {
 		DType:       nil,
 	}
 
-	output2 := dbop.Output{
+	output2 := db.Output{
 		UID:         "0x59b85",
 		OutputIndex: &one,
 		InputIndex:  nil,
@@ -193,16 +193,16 @@ func TestProcessAddresses(t *testing.T) {
 		DType:       nil,
 	}
 
-	outputArr := []dbop.Output{
+	outputArr := []db.Output{
 		output1, output2,
 	}
 
 	cache := newOutputCache()
 	require.Nil(t, cache.setOutputs(txHash, outputArr))
 
-	db := new(mocks.Database)
-	mocks.MapUpsertAddresses(db)
-	require.Nil(t, processAddresses(db, cache, []transactionMapping{txMap}))
+	mockDB := new(mocks.Database)
+	mocks.MapUpsertAddresses(mockDB)
+	require.Nil(t, processAddresses(mockDB, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {

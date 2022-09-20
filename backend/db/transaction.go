@@ -1,8 +1,8 @@
-package transaction
+package db
 
 import (
 	"backend/cmd/cliutil"
-	"backend/db"
+	"backend/constants"
 	"backend/external"
 
 	"encoding/json"
@@ -14,6 +14,144 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
 
+// transactionDType is the dgraph database type for the Transaction type
+const transactionDType = "Transaction"
+
+var (
+	// ErrTransactionNotFound is returned if a requested transaction has not been found
+	ErrTransactionNotFound = errors.New("no transaction found")
+	errInvalidResult       = errors.New("invalid result")
+)
+
+// Transaction is the database representation of a transaction
+type Transaction struct {
+	UID         string                 `json:"uid,omitempty"`
+	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
+	Fee         *int64                 `json:"fee,omitempty"`
+	Outputs     []Output               `json:"tx_outputs,omitempty"`
+	Inputs      []Output               `json:"tx_inputs,omitempty"`
+	Hash        string                 `json:"txhash,omitempty"`
+	DType       []string               `json:"dgraph.type,omitempty"`
+}
+
+func (t *Transaction) String() string {
+	output := fmt.Sprintf("UID: %s, Hash: %s, Privacy type: %d, Fee: %d",
+		t.UID, t.Hash, t.PrivacyType, *t.Fee)
+
+	if t.Outputs != nil {
+		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
+	}
+
+	if t.Inputs != nil {
+		output += fmt.Sprintf(", Input count: %d", len(t.Inputs))
+	}
+
+	return output
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (t *Transaction) SetDType() {
+	t.DType = []string{transactionDType}
+}
+
+// CalculateTransactionFee checks if the cumulative amount of inputs and outputs matches
+func (t *Transaction) CalculateTransactionFee() (err error) {
+	var amountInputs int64
+	var amountOutputs int64
+
+	for _, e := range t.Inputs {
+		if e.Amount == nil {
+			return errors.New("error amount is not set")
+		}
+		amountInputs += *e.Amount
+	}
+
+	for _, e := range t.Outputs {
+		if e.Amount == nil {
+			return errors.New("error amount is not set")
+		}
+		amountOutputs += *e.Amount
+	}
+
+	fee := amountInputs - amountOutputs
+	t.Fee = &fee
+
+	return
+}
+
+// IsMixingTransaction returns true if the transaction is a mixing transaction
+func (t *Transaction) IsMixingTransaction() bool {
+	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
+}
+
+// IsDestinationTransaction returns true if the transaction is a destination transaction
+func (t *Transaction) IsDestinationTransaction() bool {
+	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
+}
+
+type transactionQuery struct {
+	Q []Transaction `json:"q"`
+}
+
+// FrontendOutput holds the output data which is exposed to the frontend
+type FrontendOutput struct {
+	Amount      *int64  `json:"amount"`
+	InputIndex  *uint32 `json:"inputindex,omitempty"`
+	OutputIndex *uint32 `json:"outputindex,omitempty"`
+	IsCoinbase  bool    `json:"iscoinbase"`
+	AddressHash string  `json:"addresshash"`
+	SigAsm      string  `json:"sigasm,omitempty"`
+	KeyAsm      string  `json:"keyasm,omitempty"`
+
+	// This is data from either the transaction where this output is generated or spent
+	PrivacyType    int64  `json:"privacytype,omitempty"`
+	Hash           string `json:"txhash,omitempty"`
+	BlockTimestamp string `json:"ts,omitempty"`
+}
+
+// FrontendTransaction holds the transaction data which is exposed to the frontend
+type FrontendTransaction struct {
+	Hash           string           `json:"txhash,omitempty"`
+	BlockHash      string           `json:"bhash,omitempty"`
+	Fee            int64            `json:"fee"`
+	PrivacyType    int64            `json:"privacytype,omitempty"`
+	BlockID        uint64           `json:"bid"`
+	BlockTimestamp string           `json:"bts,omitempty"`
+	Outputs        []FrontendOutput `json:"outputs,omitempty"`
+	Inputs         []FrontendOutput `json:"inputs,omitempty"`
+}
+
+func (f FrontendTransaction) String() string {
+	return fmt.Sprintf("Hash: %s, BlockHash: %s, BlockID: %d, "+
+		"Fee: %d, Privacy type: %d, BlockTimestamp: %s, Output Count: %d, Input Count: %d",
+		f.Hash, f.BlockHash, f.BlockID, f.Fee, f.PrivacyType, f.BlockTimestamp, len(f.Outputs), len(f.Inputs))
+}
+
+const FrontendTransactionFragments = `
+				fragment fOutputTransaction {
+					txhash:txhash
+					privacytype:privacytype
+					~transactions{
+						ts:ts
+					}
+				}
+				
+				fragment fOutput {
+					amount: amount
+					inputindex: inputindex
+					iscoinbase: iscoinbase
+					keyasm: keyasm
+					sigasm: sigasm
+					~addr_outputs{
+						addresshash: addresshash
+					}
+				}`
+
+type OutputTransactionMapping struct {
+	Hash    string   `json:"txhash,omitempty"`
+	Outputs []Output `json:"tx_outputs,omitempty"`
+}
+
 // GetTransactionsOutputs returns all outputs of each given transaction
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
@@ -22,7 +160,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	}
 
 	query := `{
-				q(func: eq(txhash,` + db.CreateCommaArray(transactionHashes) + `)){
+				q(func: eq(txhash,` + CreateCommaArray(transactionHashes) + `)){
 					txhash
 					tx_outputs{
 						uid
@@ -32,7 +170,7 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*10, query)
+	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -82,7 +220,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$block": strconv.FormatUint(blockID, 10)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -134,7 +272,7 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 				}
 			   }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*1, query, map[string]string{"$uid": uid})
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*1, query, map[string]string{"$uid": uid})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -199,7 +337,7 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 				}
 			  }` + FrontendTransactionFragments
 
-	ctx, cancel := db.GetFrontendContext()
+	ctx, cancel := GetFrontendContext()
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
@@ -282,9 +420,9 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 			  }`
 
 	// without retry, as this request can easily time out
-	ctx, cancel := db.GetFrontendContext()
+	ctx, cancel := GetFrontendContext()
 	defer cancel()
-	resp, err := c.Query(ctx, query, map[string]string{"$uids": db.CreateCommaArray(txUids)})
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -316,7 +454,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 			  	}
 			   }`
 
-	ctx, cancel := db.GetFrontendContext()
+	ctx, cancel := GetFrontendContext()
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash})
 	if err != nil {
@@ -372,7 +510,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 		CommitNow: true,
 	}
 
-	if err = db.TxWithRetry(c, time.Minute*5, req); err != nil {
+	if err = TxWithRetry(c, time.Minute*5, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
@@ -387,7 +525,7 @@ func GetTransactionUID(c external.Database, txHash string) (uid string, err erro
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Second*20, query,
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Second*20, query,
 		map[string]string{"$tx": txHash})
 
 	if err != nil {
@@ -434,7 +572,7 @@ func GetOutputs(c external.Database, fromBlockID int64, toBlockID int64) (transa
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
 		map[string]string{"$id1": strconv.FormatInt(fromBlockID, 10),
 			"$id2": strconv.FormatInt(toBlockID, 10)})
 	if err != nil {

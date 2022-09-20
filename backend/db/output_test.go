@@ -1,4 +1,4 @@
-package output
+package db
 
 import (
 	"github.com/stretchr/testify/require"

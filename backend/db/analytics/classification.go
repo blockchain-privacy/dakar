@@ -4,7 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/constants"
 	"backend/db"
-	dbtx "backend/db/transaction"
 	"backend/external"
 
 	"encoding/json"
@@ -23,8 +22,8 @@ import (
 // Destination transactions are transactions which are connected to outputs of mixing transactions and at the
 // same time are not mixing transactions themselves. Origin transactions are transactions which are connected to
 // inputs of mixing transactions and at the same time are not mixing transactions themselves.
-func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []dbtx.Transaction,
-	origins []dbtx.Transaction, err error) {
+func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (toClassify []db.Transaction,
+	origins []db.Transaction, err error) {
 	const query = `query Q($bid: string) {
 				b as var(func: eq(id,$bid)){t as ts}
 				var(func: uid(b))@cascade{
@@ -113,8 +112,8 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 
 	// json struct
 	var r struct {
-		Collaterals []dbtx.Transaction `json:"q,omitempty"`
-		Origins     []dbtx.Transaction `json:"o,omitempty"`
+		Collaterals []db.Transaction `json:"q,omitempty"`
+		Origins     []db.Transaction `json:"o,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -246,7 +245,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 // GetCollateralInputTransactions returns the input transactions of
 // the provided transactions until the given block height
 func GetCollateralInputTransactions(c external.Database, txUids []string,
-	blockHeight uint64) (outputTransactions []dbtx.Transaction, err error) {
+	blockHeight uint64) (outputTransactions []db.Transaction, err error) {
 	uidList := db.CreateCommaArray(txUids)
 
 	query := `query Q($uids: string, $bid: string){
@@ -287,7 +286,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	}
 
 	var r struct {
-		Q []dbtx.Transaction `json:"q"`
+		Q []db.Transaction `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {

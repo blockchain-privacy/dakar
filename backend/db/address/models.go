@@ -1,7 +1,7 @@
 package address
 
 import (
-	op "backend/db/output"
+	"backend/db"
 	"errors"
 
 	"fmt"
@@ -61,7 +61,7 @@ func IsValidFilter(filters []int) bool {
 type Address struct {
 	UID     string      `json:"uid,omitempty"`
 	Hash    string      `json:"addresshash,omitempty"`
-	Outputs []op.Output `json:"addr_outputs,omitempty"`
+	Outputs []db.Output `json:"addr_outputs,omitempty"`
 	DType   []string    `json:"dgraph.type,omitempty"`
 }
 

@@ -2,7 +2,6 @@ package processor
 
 import (
 	"backend/db"
-	"backend/db/output"
 	"backend/external"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -33,17 +32,17 @@ func TestOutputCacheOffline(t *testing.T) {
 
 	// try to set zero elements for key
 	require.Error(t, cache.setOutputs("txhash1", nil))
-	require.Error(t, cache.setOutputs("txhash1", []output.Output{}))
+	require.Error(t, cache.setOutputs("txhash1", []db.Output{}))
 
 	// try to set empty key
-	require.Error(t, cache.setOutputs("", []output.Output{{}, {}}))
+	require.Error(t, cache.setOutputs("", []db.Output{{}, {}}))
 
 	// valid key, but invalid elements
-	require.Error(t, cache.setOutputs("txhash1", []output.Output{{}, {}}))
+	require.Error(t, cache.setOutputs("txhash1", []db.Output{{}, {}}))
 
 	one := uint32(1)
 	const key = "txhash1"
-	outputs := []output.Output{{OutputIndex: &one}}
+	outputs := []db.Output{{OutputIndex: &one}}
 	require.NoError(t, cache.setOutputs(key, outputs))
 	// duplicate key is fine
 	require.NoError(t, cache.setOutputs(key, outputs))

@@ -2,11 +2,9 @@ package processor
 
 import (
 	"backend/cmd/cliutil"
+	"backend/db"
 	dbaddr "backend/db/address"
-	dbblk "backend/db/block"
-	dbop "backend/db/output"
 	dbstat "backend/db/status"
-	dbtx "backend/db/transaction"
 	"backend/external"
 	"encoding/hex"
 	"errors"
@@ -123,7 +121,7 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 
 	// add new outputs
 	for _, uid := range uids {
-		editAddress.Outputs = append(editAddress.Outputs, dbop.Output{UID: uid})
+		editAddress.Outputs = append(editAddress.Outputs, db.Output{UID: uid})
 	}
 
 	// save in map
@@ -198,8 +196,8 @@ func createOutputUID(transaction string, outputID uint32) string {
 // 'txDetails' is the created transaction
 // 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
 func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
-	txHashMap map[string]btcjson.TxRawResult, externalOutputs map[string]map[uint32]dbop.Output,
-	config Config, cache *outputCache) (txDetails dbtx.Transaction, tMap transactionMapping, err error) {
+	txHashMap map[string]btcjson.TxRawResult, externalOutputs map[string]map[uint32]db.Output,
+	config Config, cache *outputCache) (txDetails db.Transaction, tMap transactionMapping, err error) {
 	txDetails.Hash = rawTransaction.Txid
 
 	var isCoinbaseTransaction bool
@@ -266,7 +264,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		}
 
 		// create new output
-		txDetails.Outputs = append(txDetails.Outputs, dbop.Output{
+		txDetails.Outputs = append(txDetails.Outputs, db.Output{
 			UID:         createOutputUID(rawTransaction.Txid, index),
 			IsCoinbase:  &isCoinbaseTransaction,
 			Amount:      &intAmount,
@@ -315,7 +313,7 @@ func filterExternalOutputs(txHashMap map[string]btcjson.TxRawResult, cache *outp
 }
 
 // processTxVin maps the input information to the output if it exists already in the database
-func processTxVin(details *dbtx.Transaction, externalOutputs map[string]map[uint32]dbop.Output,
+func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32]db.Output,
 	vin btcjson.Vin, index uint32, txHashMap map[string]btcjson.TxRawResult, cache *outputCache) error {
 	if vin.IsCoinBase() {
 		// coin base >>input<< does not hold any valuable information, therefore we do not include it in the database
@@ -323,7 +321,7 @@ func processTxVin(details *dbtx.Transaction, externalOutputs map[string]map[uint
 		return nil
 	}
 
-	refOutput := dbop.Output{
+	refOutput := db.Output{
 		InputIndex: &index,
 		SigAsm:     vin.ScriptSig.Asm,
 		SigHex:     vin.ScriptSig.Hex,
@@ -360,13 +358,13 @@ func processTxVin(details *dbtx.Transaction, externalOutputs map[string]map[uint
 }
 
 // processBlock builds a block with the provided arguments and inserts it in the database
-func processBlock(dgraph external.Database, transactions []dbtx.Transaction, currentHash string,
+func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
 	blockID uint64, timestamp string, prevBlockHash string) (err error) {
-	if err = dbblk.UpsertBlock(dgraph, dbblk.Block{
+	if err = db.UpsertBlock(dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		ID:        &blockID,
-		PrevBlock: &dbblk.Block{
+		PrevBlock: &db.Block{
 			Hash: prevBlockHash,
 		},
 		Transactions: transactions,
@@ -552,7 +550,7 @@ func createTransactionHashmap(client external.BatchRPCClient,
 }
 
 func getExternalOutputs(dgraph external.Database,
-	outputs map[string][]uint32) (map[string]map[uint32]dbop.Output, error) {
+	outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
 	if len(outputs) == 0 {
 		return nil, nil
 	}
@@ -562,12 +560,12 @@ func getExternalOutputs(dgraph external.Database,
 		transactionHashes = append(transactionHashes, k)
 	}
 
-	transactionsOutputs, err := dbtx.GetTransactionsOutputs(dgraph, transactionHashes)
+	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, transactionHashes)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	returnMap := make(map[string]map[uint32]dbop.Output)
+	returnMap := make(map[string]map[uint32]db.Output)
 
 	for _, t := range transactionsOutputs {
 		indexes := outputs[t.Hash]
@@ -581,7 +579,7 @@ func getExternalOutputs(dgraph external.Database,
 					// add index mapping
 					indexMap := returnMap[t.Hash]
 					if indexMap == nil {
-						indexMap = make(map[uint32]dbop.Output)
+						indexMap = make(map[uint32]db.Output)
 					}
 
 					indexMap[i] = o
@@ -612,7 +610,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 		return 0, 0, err
 	}
 
-	transactions := make([]dbtx.Transaction, 0, len(txHashMap))
+	transactions := make([]db.Transaction, 0, len(txHashMap))
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
@@ -642,8 +640,8 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	// creation the crawling process is aborted. So the address mapping must be created either way.
 	// Address mappings are upserted in the worst case with same mappings as already included in the database,
 	// so there is no damage done if we upsert the same mapping twice.
-	var b dbblk.Block
-	if b, err = dbblk.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
+	var b db.Block
+	if b, err = db.GetBlock(dgraph, state.hash); err != nil || !b.IsComplete() {
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
@@ -658,7 +656,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	}
 
 	blockID := int64(state.id)
-	transactionOutputs, err := dbtx.GetOutputs(dgraph, blockID, blockID)
+	transactionOutputs, err := db.GetOutputs(dgraph, blockID, blockID)
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
@@ -670,7 +668,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 			continue
 		}
 
-		var utxos []dbop.Output
+		var utxos []db.Output
 
 		for _, o := range t.Outputs {
 			if o.InputIndex == nil {

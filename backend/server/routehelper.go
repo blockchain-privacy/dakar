@@ -3,14 +3,13 @@ package server
 import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
+	"backend/db"
 	dbaddr "backend/db/address"
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics"
-	dbblk "backend/db/block"
 	dbstat "backend/db/status"
-	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 	client "github.com/ory/kratos-client-go"
@@ -86,9 +85,9 @@ type identityReply struct {
 }
 
 type shortestTransactionPathReply struct {
-	Success      bool                       `json:"success"`
-	Msg          string                     `json:"msg,omitempty"`
-	Transactions []dbtx.FrontendTransaction `json:"transactions"`
+	Success      bool                     `json:"success"`
+	Msg          string                   `json:"msg,omitempty"`
+	Transactions []db.FrontendTransaction `json:"transactions"`
 }
 
 type heuristicListReply struct {
@@ -149,10 +148,10 @@ func GetBlock(dgraph external.Database, query string) (SearchResult, bool, error
 // GetBlockWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
 // It supports an offset. A maximum of 5 transactions is returned.
 func GetBlockWithOptions(dgraph external.Database, query string, offset int) (SearchResult, bool, error) {
-	block, err := dbblk.GetFrontendBlock(dgraph, query, offset)
+	block, err := db.GetFrontendBlock(dgraph, query, offset)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbblk.ErrBlockNotFound) {
+		if !errors.Is(err, db.ErrBlockNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil
@@ -163,10 +162,10 @@ func GetBlockWithOptions(dgraph external.Database, query string, offset int) (Se
 
 // GetTransaction searches for the hash specified in query. If a transaction is found the returned bool is true
 func GetTransaction(dgraph external.Database, query string) (SearchResult, bool, error) {
-	tx, err := dbtx.GetFrontendTransaction(dgraph, query)
+	tx, err := db.GetFrontendTransaction(dgraph, query)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbtx.ErrTransactionNotFound) {
+		if !errors.Is(err, db.ErrTransactionNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil
@@ -218,11 +217,11 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 }
 
 type connectionLookupReply struct {
-	Success          bool                       `json:"success"`
-	Warning          bool                       `json:"warning,omitempty"`
-	Msg              string                     `json:"msg,omitempty"`
-	Transactions     []dbtx.FrontendTransaction `json:"transactions"`
-	TransactionCount *int                       `json:"count,omitempty"`
+	Success          bool                     `json:"success"`
+	Warning          bool                     `json:"warning,omitempty"`
+	Msg              string                   `json:"msg,omitempty"`
+	Transactions     []db.FrontendTransaction `json:"transactions"`
+	TransactionCount *int                     `json:"count,omitempty"`
 }
 
 type clusterLookupReply struct {

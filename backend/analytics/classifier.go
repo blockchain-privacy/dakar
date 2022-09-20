@@ -4,10 +4,9 @@ import (
 	"backend/blockiterator"
 	"backend/cmd/cliutil"
 	"backend/constants"
+	"backend/db"
 	"backend/db/analytics"
-	op "backend/db/output"
 	dbstat "backend/db/status"
-	dbtx "backend/db/transaction"
 	"backend/external"
 
 	"context"
@@ -156,7 +155,7 @@ func (c *Classifier) CalculateInitialState() error {
 }
 
 // getUids return uid slice
-func getUids(txs []dbtx.Transaction) []string {
+func getUids(txs []db.Transaction) []string {
 	uids := make([]string, len(txs))
 	for i, t := range txs {
 		uids[i] = t.UID
@@ -165,8 +164,8 @@ func getUids(txs []dbtx.Transaction) []string {
 }
 
 // getConnectedCollaterals returns two sets of collateral transactions which are connected to the given transaction set.
-func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransactions []dbtx.Transaction,
-	blockHeight uint64) (originCC []dbtx.Transaction, originCP []dbtx.Transaction, err error) {
+func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransactions []db.Transaction,
+	blockHeight uint64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
 		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
 		if getErr != nil {
@@ -234,7 +233,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	}
 
 	// get the transaction of the current block height
-	transactions, err := dbtx.GetTransactionByBlock(c.db, c.state.ID)
+	transactions, err := db.GetTransactionByBlock(c.db, c.state.ID)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -251,7 +250,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// step 2.1: set the privacy type of mixing transactions.
 	if len(mixingTransactions) > 0 {
-		if updateErr := dbtx.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
+		if updateErr := db.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 		}
 	}
@@ -277,7 +276,7 @@ func (c *Classifier) Iterate() (bool, error) {
 			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
 
-		var updatedTransactions []dbtx.Transaction
+		var updatedTransactions []db.Transaction
 
 		for _, o := range foundOrigins {
 			updatedTransactions = append(updatedTransactions, newOriginTransaction(o.UID))
@@ -287,7 +286,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		updatedTransactions = append(updatedTransactions, originCP...)
 
 		if len(updatedTransactions) > 0 {
-			if updateErr := dbtx.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {
+			if updateErr := db.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {
 				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), updateErr)
 			}
 		}
@@ -378,22 +377,22 @@ func setInitialClassifierID(dgraph external.Database, startBlockClassifier uint6
 }
 
 // isCollateralCreation checks if the transactions is a collateral creation transaction
-func isCollateralCreation(dgraph external.Database, t dbtx.Transaction) (bool, error) {
+func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, error) {
 	if *t.Fee == 0 || len(t.Inputs) < 1 || len(t.Outputs) != 2 {
 		return false, nil
 	}
 
 	// must have at least enough to pay MaxCollateral
-	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < op.MaxCollateral {
+	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < db.MaxCollateral {
 		return false, nil
 	}
 
 	// check if both outputs do not fulfill the minimum collateral amount
-	if *t.Outputs[0].Amount < op.MinCollateral && *t.Outputs[1].Amount < op.MinCollateral {
+	if *t.Outputs[0].Amount < db.MinCollateral && *t.Outputs[1].Amount < db.MinCollateral {
 		return false, nil
 	}
 
-	inputCount, outputCount, err := dbtx.GetOutputAddressCounts(dgraph, t.UID)
+	inputCount, outputCount, err := db.GetOutputAddressCounts(dgraph, t.UID)
 	if err != nil {
 		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -407,24 +406,24 @@ func isCollateralCreation(dgraph external.Database, t dbtx.Transaction) (bool, e
 }
 
 // newCollateralPaymentTransaction returns a new collateral creation transaction with the given uid
-func newCollateralCreationTransaction(uid string) dbtx.Transaction {
+func newCollateralCreationTransaction(uid string) db.Transaction {
 	pt := constants.PrivacyCollateralCreation
-	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // isCollateralPayment checks if the transactions is a collateral payment transaction
-func isCollateralPayment(t dbtx.Transaction) bool {
+func isCollateralPayment(t db.Transaction) bool {
 	if *t.Fee == 0 || len(t.Inputs) != 1 || len(t.Outputs) != 1 {
 		return false
 	}
 
 	// must be able to pay at least the minimum fee
-	if *t.Inputs[0].Amount < op.MinCollateral || *t.Fee < op.MinCollateral {
+	if *t.Inputs[0].Amount < db.MinCollateral || *t.Fee < db.MinCollateral {
 		return false
 	}
 
 	// if the fee or amount is too big it is not a collateral payment
-	if *t.Fee > op.OldMaxCollateral*2 || *t.Inputs[0].Amount > op.OldMaxCollateral*2 {
+	if *t.Fee > db.OldMaxCollateral*2 || *t.Inputs[0].Amount > db.OldMaxCollateral*2 {
 		return false
 	}
 
@@ -432,23 +431,23 @@ func isCollateralPayment(t dbtx.Transaction) bool {
 }
 
 // newCollateralPaymentTransaction returns a new collateral payment transaction with the given uid
-func newCollateralPaymentTransaction(uid string) dbtx.Transaction {
+func newCollateralPaymentTransaction(uid string) db.Transaction {
 	pt := constants.PrivacyCollateralPayment
-	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // isMixing checks if the transactions is a mixing transaction
 // -1: not a mixing transaction
 // 0-4: denomination type
-func isMixing(t dbtx.Transaction) int {
+func isMixing(t db.Transaction) int {
 	// At least 3 clients per mixing transaction -> more than 2 inputs/outputs
 	// Maximal 9 inputs per client and a maximum of 20 clients in one mixing transaction -> 180 inputs/outputs
 	if *t.Fee != 0 || len(t.Inputs) < 3 || len(t.Inputs) != len(t.Outputs) || len(t.Inputs) > 180 {
 		return -1
 	}
 
-	denominationIn := op.CountOutputDenominations(t.Inputs)
-	denominationOut := op.CountOutputDenominations(t.Outputs)
+	denominationIn := db.CountOutputDenominations(t.Inputs)
+	denominationOut := db.CountOutputDenominations(t.Outputs)
 	denominationIndex := -1
 	for i := range denominationIn {
 		// inputs and outputs should have the same amount of each denomination type
@@ -474,27 +473,27 @@ func isMixing(t dbtx.Transaction) int {
 
 // newMixingTransaction returns a new mixing transaction with the given type and uid.
 // bit must be a value between 0 and 4
-func newMixingTransaction(uid string, bit int) dbtx.Transaction {
+func newMixingTransaction(uid string, bit int) db.Transaction {
 	pt := constants.MixingTypes[bit]
-	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // newOriginTransaction returns a new origin transaction with the given uid
-func newOriginTransaction(uid string) dbtx.Transaction {
+func newOriginTransaction(uid string) db.Transaction {
 	pt := constants.PrivacyOrigin
-	return dbtx.Transaction{UID: uid, PrivacyType: &pt}
+	return db.Transaction{UID: uid, PrivacyType: &pt}
 }
 
 // hasValidPrivacyType check is the transaction has a valid privacy type
-func hasValidPrivacyType(tx dbtx.Transaction) bool {
+func hasValidPrivacyType(tx db.Transaction) bool {
 	t := tx.PrivacyType
 	return t != nil && *t <= constants.PrivacyCollateralPaymentLast
 }
 
 // classifyTransactions detects mixing and collateral creation transactions and sets the privacy type appropriately
 // The returned slice contains all classified transactions or nil if no privacy transactions have been found.
-func classifyTransactions(dgraph external.Database, transactions []dbtx.Transaction) (mixing []dbtx.Transaction,
-	cc []dbtx.Transaction, cp []dbtx.Transaction, err error) {
+func classifyTransactions(dgraph external.Database, transactions []db.Transaction) (mixing []db.Transaction,
+	cc []db.Transaction, cp []db.Transaction, err error) {
 	for _, transaction := range transactions {
 		// only do classification for non-classified transactions
 		if hasValidPrivacyType(transaction) {
