@@ -178,13 +178,11 @@ func (s *Server) authorization() adapter {
 func (s *Server) useCache(ttl time.Duration) adapter {
 	type cacheElement struct {
 		buffer     []byte
+		header     http.Header
 		statusCode int
 	}
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// set headers
-			setDefaultHeader(w)
-
 			// extract body
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -194,18 +192,13 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			// reset body, so it can be read by the next handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-			query := r.URL.Path[len(route):]
-			cacheKey := buildKey(route, query, body)
+			cacheKey := buildKey(route, r.URL.Path[len(route):], body)
 
 			// try to get request from cache
 			value, found := s.cache.Get(cacheKey)
-			var buf []byte
-			var httpStatusCode int
+			var response cacheElement
 			if found {
-				foundCache := value.(cacheElement)
-
-				httpStatusCode = foundCache.statusCode
-				buf = foundCache.buffer
+				response = value.(cacheElement)
 			} else {
 				// record the writes of the next handler, so the response can be saved in the cache.
 				recorder := httptest.NewRecorder()
@@ -216,26 +209,28 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 				resp := recorder.Result()
 				defer resp.Body.Close()
 
-				httpStatusCode = resp.StatusCode
-				buf = recorder.Body.Bytes()
-
-				// create new cache element
-				ce := cacheElement{
-					buffer:     buf,
-					statusCode: httpStatusCode,
-				}
+				response.statusCode = resp.StatusCode
+				response.buffer = recorder.Body.Bytes()
+				response.header = resp.Header.Clone()
 
 				// only insert in cache if no error occurred
-				if httpStatusCode < http.StatusBadRequest {
-					s.cache.SetWithTTL(cacheKey, ce, 1, ttl)
+				if response.statusCode < http.StatusBadRequest {
+					s.cache.SetWithTTL(cacheKey, response, 1, ttl)
 				}
 			}
 
+			// write original header
+			for k := range response.header {
+				for _, v := range response.header.Values(k) {
+					w.Header().Add(k, v)
+				}
+			}
+			// write cache header
 			setCacheHeader(w, ttl)
+			// write status code
+			w.WriteHeader(response.statusCode)
 
-			w.WriteHeader(httpStatusCode)
-			_, err = w.Write(buf)
-			if err != nil {
+			if _, err = w.Write(response.buffer); err != nil {
 				handleError(w, err)
 			}
 		})

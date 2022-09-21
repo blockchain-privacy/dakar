@@ -1,0 +1,18 @@
+- id: "ory:kratos_protected_wikiapi"
+  upstream:
+    preserve_host: true
+    url: "http://wikiapi:4567"
+  match:
+    url: "http://localhost:4455/<**>"
+    methods:
+      - GET
+  authenticators:
+    - handler: cookie_session
+  authorizer:
+    handler: allow
+  mutators:
+    - handler: id_token
+  errors: # see https://www.ory.sh/docs/oathkeeper/pipeline/error
+    - handler: json
+      config:
+        verbose: false
