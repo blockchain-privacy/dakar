@@ -188,8 +188,13 @@ export default {
   },
   mounted() {
     this.setPageTitle();
+    // register scroll handler
     window.onscroll = this.handleScroll;
     this.offset = 0;
+  },
+  beforeDestroy() {
+    // unregister scroll handler
+    window.onscroll = null;
   },
   updated() {
     this.setPageTitle();
