@@ -205,36 +205,6 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 	return false
 }
 
-// waitForDatabase waits until the database is ready to receive requests
-func waitForDatabase(db external.Database) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		if database.IsConnectionEstablished(db) {
-			if printedErrMessage {
-				info("Successfully established connection to database.")
-			}
-			return true
-		}
-
-		if !printedErrMessage {
-			info("Waiting for database")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	info("Database is not ready to receive requests.")
-
-	return false
-}
-
 // shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
 func shutdownServer(srv *http.Server) {
 	if srv == nil {

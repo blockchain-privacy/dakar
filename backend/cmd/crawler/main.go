@@ -194,7 +194,7 @@ func main() {
 	}()
 
 	// test if database is active
-	if !waitForDatabase(graphDB) {
+	if !db.WaitForDatabase(graphDB) {
 		return
 	}
 

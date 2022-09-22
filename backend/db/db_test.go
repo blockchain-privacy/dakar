@@ -6,7 +6,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	RunDgraphTests2(m, &dbHandle, "dgraph_db")
+	RunDgraphTests(m, &dbHandle, "dgraph_db")
 }
 
 func TestCreateCommaList(t *testing.T) {
