@@ -261,8 +261,10 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 		return
 	}
 
-	// working dir is backend/cmd/crawler
-	const fileName = "backend/db/testdata/blocks_60000_60020.json"
+	getwd, _ := os.Getwd()
+	log.Println("working directory:", getwd)
+
+	const fileName = "testdata/blocks_60000_60020.json"
 	fileBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Panicf("Could not read file: %s, err: %s", fileName, err)

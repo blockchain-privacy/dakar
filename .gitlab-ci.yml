@@ -37,7 +37,7 @@ unit_tests:
   needs: ["dependencies"]
   script:
     - echo $PWD
-    - echo ls -la
+    - ls -la
     - make test
   services:
     - name: dgraph/standalone:v21.03.2
