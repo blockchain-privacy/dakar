@@ -38,6 +38,10 @@ unit_tests:
   stage: test
   needs: ["dependencies"]
   script: make test
+  services:
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_empty
+
   cache:
     <<: *modcache
     policy: pull

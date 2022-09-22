@@ -286,6 +286,59 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database) {
 	m.Run()
 }
 
+func waitForDatabase(db external.Database) bool {
+	const maxRetries = 20
+	const retrySleepDuration = time.Second * 5
+
+	var printedErrMessage bool
+
+	for i := 0; i < maxRetries; i++ {
+		if IsConnectionEstablished(db) {
+			if printedErrMessage {
+				info("Successfully established connection to database.")
+			}
+			return true
+		}
+
+		if !printedErrMessage {
+			info("Waiting for database")
+			printedErrMessage = true
+		}
+
+		if i+1 < maxRetries {
+			time.Sleep(retrySleepDuration)
+		}
+	}
+
+	info("Database is not ready to receive requests.")
+
+	return false
+}
+
+// RunDgraphTests2
+// packageDBHandle should be set to the global db interface handle of the package module.
+func RunDgraphTests2(m *testing.M, packageDBHandle *external.Database) {
+	// create dgraph client
+	graphDB, c, err := CreateClient("dgraph_empty:9080")
+	if err != nil {
+		info(err)
+		return
+	}
+	defer func(c *grpc.ClientConn) {
+		err := c.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(c)
+
+	if !waitForDatabase(graphDB) {
+		log.Panicf("Could not connect to database: %s", err)
+	}
+
+	*packageDBHandle = graphDB
+	m.Run()
+}
+
 func RunDgraphTestsWithFilledDatabase(m *testing.M, packageDBHandle *external.Database) {
 	// getRandomPortOffset returns a cryptographically UNSAFE integer between 1 and 50.
 	getRandomPortOffset := func() int {

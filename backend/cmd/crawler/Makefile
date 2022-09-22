@@ -1,7 +1,7 @@
 PROJECT_NAME := "dakar"
 PKG_LIST := $(shell go list ../../... | grep -v /vendor/)
 
-.PHONY: all dep build clean test lint #coverage coverhtml
+.PHONY: all dep build clean test lint
 
 all: build
 
@@ -10,8 +10,8 @@ lint: # Lint the files
 	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
 
 test: ## Run unittests
-	@go test -short ${PKG_LIST}
-	@go test -race -short ${PKG_LIST}
+	@go test -p 1 ${PKG_LIST}
+#	@go test -race -short ${PKG_LIST}
 
 vet: ## Run vet
 	@go vet ${PKG_LIST}

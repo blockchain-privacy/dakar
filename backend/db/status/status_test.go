@@ -10,7 +10,7 @@ import (
 var dbHandle external.Database
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle)
+	db.RunDgraphTests2(m, &dbHandle)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
