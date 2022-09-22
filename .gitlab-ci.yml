@@ -35,10 +35,7 @@ before_script:
 unit_tests:
   stage: test
   needs: ["dependencies"]
-  script:
-    - echo $PWD
-    - ls -la
-    - make test
+  script: make test
   services:
     - name: dgraph/standalone:v21.03.2
       alias: dgraph_db # database for db module
