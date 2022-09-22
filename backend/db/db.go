@@ -317,9 +317,9 @@ func waitForDatabase(db external.Database) bool {
 
 // RunDgraphTests2
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests2(m *testing.M, packageDBHandle *external.Database) {
+func RunDgraphTests2(m *testing.M, packageDBHandle *external.Database, containerName string) {
 	// create dgraph client
-	graphDB, c, err := CreateClient("dgraph_empty:9080")
+	graphDB, c, err := CreateClient(containerName + ":9080")
 	if err != nil {
 		info(err)
 		return

@@ -29,8 +29,6 @@ stages:
   - build
 
 before_script:
-  - df
-  - cat /etc/resolv.conf
   - cat /etc/hosts
   - cd backend/cmd/crawler
 
@@ -40,7 +38,13 @@ unit_tests:
   script: make test
   services:
     - name: dgraph/standalone:v21.03.2
-      alias: dgraph_empty
+      alias: dgraph_db # database for db module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_status # database for status module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_user # database for user module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_processor # database for processor module
 
   cache:
     <<: *modcache
