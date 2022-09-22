@@ -226,11 +226,20 @@ func WaitForDatabase(db external.Database) bool {
 	return false
 }
 
+type ContainerName string
+
+const (
+	ContainerNameDB        = "dgraph_db"
+	ContainerNameStatus    = "dgraph_status"
+	ContainerNameUser      = "dgraph_user"
+	ContainerNameProcessor = "dgraph_processor"
+)
+
 // RunDgraphTests
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName string) {
+func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
 	// create dgraph client
-	graphDB, c, err := CreateClient(containerName + ":9080")
+	graphDB, c, err := CreateClient(string(containerName) + ":9080")
 	if err != nil {
 		info(err)
 		return
