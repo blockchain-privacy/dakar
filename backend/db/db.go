@@ -235,9 +235,9 @@ const (
 	ContainerNameProcessor = "dgraph_processor"
 )
 
-// RunDgraphTests
+// RunDgraphTests connects to the given dgraph container, inserts all blocks from the block file and runs all tests
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
+func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName, blockFileName string) {
 	// create dgraph client
 	graphDB, c, err := CreateClient(string(containerName) + ":9080")
 	if err != nil {
@@ -261,13 +261,9 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 		return
 	}
 
-	getwd, _ := os.Getwd()
-	log.Println("working directory:", getwd)
-
-	const fileName = "testdata/blocks_60000_60020.json"
-	fileBytes, err := os.ReadFile(fileName)
+	fileBytes, err := os.ReadFile(blockFileName)
 	if err != nil {
-		log.Panicf("Could not read file: %s, err: %s", fileName, err)
+		log.Panicf("Could not read file: %s, err: %s", blockFileName, err)
 	}
 	var blocks []Block
 

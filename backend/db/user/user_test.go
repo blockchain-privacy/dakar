@@ -10,7 +10,7 @@ import (
 var dbHandle external.Database
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameUser)
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameUser, "../testdata/blocks_60000_60020.json")
 }
 
 func TestGenerateRandomPassword(t *testing.T) {

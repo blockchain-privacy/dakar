@@ -10,7 +10,7 @@ import (
 var dbHandle external.Database
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameStatus)
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameStatus, "../testdata/blocks_60000_60020.json")
 }
 
 func TestGetCrawlerStatus(t *testing.T) {

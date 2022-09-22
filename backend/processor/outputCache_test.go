@@ -10,7 +10,7 @@ import (
 var dbHandle external.Database
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor)
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor, "../db/testdata/blocks_60000_60020.json")
 }
 
 func TestLoadUTXOCache(t *testing.T) {
