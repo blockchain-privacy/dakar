@@ -106,9 +106,8 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
-	// nothing set yet -> should fail
 	_, err := GetHighestBlockID(dbHandle)
-	require.Error(t, err)
+	require.NoError(t, err)
 }
 
 func TestGetFrontendStatus(t *testing.T) {
