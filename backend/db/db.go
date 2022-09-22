@@ -241,7 +241,7 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 	// create dgraph client
 	graphDB, c, err := CreateClient(string(containerName) + ":9080")
 	if err != nil {
-		info(err)
+		log.Panic(err)
 		return
 	}
 	defer func(c *grpc.ClientConn) {
@@ -252,15 +252,17 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 	}(c)
 
 	if !WaitForDatabase(graphDB) {
-		log.Panicf("Could not connect to database: %s", err)
-	}
-
-	if err := SetupSchema(graphDB); err != nil {
-		log.Panicf("Could not set schema: %s", err)
+		log.Panic("Could not connect to database", err)
 		return
 	}
 
-	const fileName = "testdata/blocks_60000_60020.json"
+	if err := SetupSchema(graphDB); err != nil {
+		log.Panic("Could not set schema", err)
+		return
+	}
+
+	// working dir is backend/cmd/crawler
+	const fileName = "../db/testdata/blocks_60000_60020.json"
 	fileBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Panicf("Could not read file: %s, err: %s", fileName, err)
@@ -268,12 +270,14 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 	var blocks []Block
 
 	if err := json.Unmarshal(fileBytes, &blocks); err != nil {
-		log.Panicf("Could not unmarshal block data: %s", err)
+		log.Panic("Could not unmarshal block data", err)
+		return
 	}
 
 	for _, b := range blocks {
 		if err := UpsertBlock(graphDB, b); err != nil {
-			log.Panicf("Could not upsert block data: %s", err)
+			log.Panic("Could not upsert block data", err)
+			return
 		}
 	}
 
