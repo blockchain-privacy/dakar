@@ -54,21 +54,21 @@ func (t *Transaction) SetDType() {
 	t.DType = []string{transactionDType}
 }
 
-// CalculateTransactionFee checks if the cumulative amount of inputs and outputs matches
+// CalculateTransactionFee sets the transaction fee based
+// on the cumulative amount of inputs and outputs
 func (t *Transaction) CalculateTransactionFee() (err error) {
 	var amountInputs int64
-	var amountOutputs int64
-
 	for _, e := range t.Inputs {
 		if e.Amount == nil {
-			return errors.New("error amount is not set")
+			return errors.New("amount is not set")
 		}
 		amountInputs += *e.Amount
 	}
 
+	var amountOutputs int64
 	for _, e := range t.Outputs {
 		if e.Amount == nil {
-			return errors.New("error amount is not set")
+			return errors.New("amount is not set")
 		}
 		amountOutputs += *e.Amount
 	}
@@ -493,7 +493,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	for _, tx := range transactions {
 		if len(tx.UID) == 0 {
-			return errors.New("error uid is not set for transaction")
+			return errors.New("uid is not set for transaction")
 		}
 	}
 
