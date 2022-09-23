@@ -28,7 +28,7 @@ func TestLoadUTXOCache(t *testing.T) {
 	cache, err = newUTXOCache(dbHandle, 60020, 20)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
-	require.Equal(t, 1, cache.getOutputCounts())
+	require.Equal(t, 2, cache.getOutputCounts())
 }
 
 func TestOutputCacheOffline(t *testing.T) {
