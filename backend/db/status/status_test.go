@@ -112,7 +112,7 @@ func TestGetHighestBlockID(t *testing.T) {
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
 	require.NoError(t, err)
-	require.Equal(t, 60020, blockHeight)
+	require.Equal(t, uint64(60020), blockHeight)
 }
 
 func TestGetFrontendStatus(t *testing.T) {
