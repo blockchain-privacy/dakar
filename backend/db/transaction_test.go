@@ -25,7 +25,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 		"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb",
 		"0cfd028caf97751603255b1467085c3ccc5d476d79810ba9608d63587c7986f8",
 	})
-	require.Error(t, err)
+	require.NoError(t, err)
 	require.Equal(t, 2, len(outputs))
 
 	var outputCount int
@@ -37,17 +37,10 @@ func TestGetTransactionsOutputs(t *testing.T) {
 }
 
 func TestGetTransactionByBlock(t *testing.T) {
-	require.NoError(t, DropAll(dbHandle))
-
-	// nothing in DB yet, so it should fail
-	transactions, err := GetTransactionByBlock(dbHandle, 1)
-	require.Error(t, err)
-	require.Nil(t, transactions)
-
 	SetupDB(t, dbHandle, blockFileName)
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
-	transactions, err = GetTransactionByBlock(dbHandle, 1)
+	transactions, err := GetTransactionByBlock(dbHandle, 1)
 	require.Error(t, err)
 	require.Nil(t, transactions)
 
@@ -122,8 +115,8 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	for _, c := range cases {
 		inputCount, outputCount, err = GetOutputAddressCounts(dbHandle, c.uid)
 		require.NoError(t, err)
-		require.Equal(t, c.numInputs, inputCount)
-		require.Equal(t, c.numOutputs, outputCount)
+		require.Equal(t, c.numInputs, inputCount, c.txhash)
+		require.Equal(t, c.numOutputs, outputCount, c.txhash)
 	}
 }
 
@@ -193,7 +186,7 @@ func TestGetOutputs(t *testing.T) {
 	SetupDB(t, dbHandle, blockFileName)
 	transactions, err := GetOutputs(dbHandle, 60000, 60020)
 	require.NoError(t, err)
-	require.Equal(t, 50, len(transactions))
+	require.Equal(t, 56, len(transactions))
 
 	transactions, err = GetOutputs(dbHandle, 60007, 60007)
 	require.NoError(t, err)
