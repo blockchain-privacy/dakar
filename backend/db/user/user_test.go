@@ -10,7 +10,7 @@ import (
 var dbHandle external.Database
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameUser, "../testdata/blocks_60000_60020.json")
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameUser)
 }
 
 func TestGenerateRandomPassword(t *testing.T) {
@@ -33,18 +33,31 @@ func TestCreateNewUser(t *testing.T) {
 }
 
 func TestGetUsers(t *testing.T) {
+	db.SetupDBWithoutData(t, dbHandle)
+
+	user, err := CreateNewUser(dbHandle)
+	require.NoError(t, err)
+	require.NotEmpty(t, user)
+
 	users, err := GetUsers(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, users)
 }
 
 func TestGetUsersWithCredentials(t *testing.T) {
+	db.SetupDBWithoutData(t, dbHandle)
+
+	user, err := CreateNewUser(dbHandle)
+	require.NoError(t, err)
+	require.NotEmpty(t, user)
+
 	users, err := GetUsersWithCredentials(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, users)
 }
 
 func TestDeleteUser(t *testing.T) {
+	db.SetupDBWithoutData(t, dbHandle)
 	// create user
 	user, err := CreateNewUser(dbHandle)
 	require.NoError(t, err)

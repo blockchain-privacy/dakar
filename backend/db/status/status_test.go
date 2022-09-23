@@ -9,8 +9,10 @@ import (
 
 var dbHandle external.Database
 
+const blockFileName = "../testdata/blocks_60000_60020.json"
+
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameStatus, "../testdata/blocks_60000_60020.json")
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameStatus)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
@@ -106,8 +108,11 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
-	_, err := GetHighestBlockID(dbHandle)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	blockHeight, err := GetHighestBlockID(dbHandle)
 	require.NoError(t, err)
+	require.Equal(t, 60020, blockHeight)
 }
 
 func TestGetFrontendStatus(t *testing.T) {
@@ -131,6 +136,8 @@ func TestGetFrontendStatus(t *testing.T) {
 }
 
 func TestGetMeta(t *testing.T) {
+	require.NoError(t, db.DropAll(dbHandle))
+
 	// nothing set yet -> should fail
 	_, err := GetMeta(dbHandle)
 	require.Error(t, err)

@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"encoding/json"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/credentials/insecure"
 	"os"
 	"testing"
@@ -235,9 +236,9 @@ const (
 	ContainerNameProcessor = "dgraph_processor"
 )
 
-// RunDgraphTests connects to the given dgraph container, inserts all blocks from the block file and runs all tests
+// RunDgraphTests connects to the given dgraph container and runs all tests
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName, blockFileName string) {
+func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
 	// create dgraph client
 	graphDB, c, err := CreateClient(string(containerName) + ":9080")
 	if err != nil {
@@ -256,29 +257,43 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 		return
 	}
 
-	if err := SetupSchema(graphDB); err != nil {
-		log.Panic("Could not set schema", err)
-		return
-	}
+	*packageDBHandle = graphDB
+	m.Run()
+}
+
+// SetupDB returns the database to its initial state: drops ALL data,
+// sets up the schema and inserts data from the provided file
+func SetupDB(t *testing.T, database external.Database, blockFileName string) {
+	// reset db
+	require.NoError(t, DropAll(database))
+
+	// set up schema
+	require.NoError(t, SetupSchema(database))
 
 	fileBytes, err := os.ReadFile(blockFileName)
-	if err != nil {
-		log.Panicf("Could not read file: %s, err: %s", blockFileName, err)
-	}
-	var blocks []Block
+	require.NoError(t, err)
 
+	var blocks []Block
 	if err := json.Unmarshal(fileBytes, &blocks); err != nil {
 		log.Panic("Could not unmarshal block data", err)
 		return
 	}
 
+	// add blocks
 	for _, b := range blocks {
-		if err := UpsertBlock(graphDB, b); err != nil {
+		if err := UpsertBlock(database, b); err != nil {
 			log.Panic("Could not upsert block data", err)
 			return
 		}
 	}
+}
 
-	*packageDBHandle = graphDB
-	m.Run()
+// SetupDBWithoutData returns the database to its initial state:
+// drops ALL data and sets up the schema
+func SetupDBWithoutData(t *testing.T, database external.Database) {
+	// reset db
+	require.NoError(t, DropAll(database))
+
+	// set up schema
+	require.NoError(t, SetupSchema(database))
 }

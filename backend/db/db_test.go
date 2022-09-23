@@ -5,8 +5,10 @@ import (
 	"testing"
 )
 
+const blockFileName = "testdata/blocks_60000_60020.json"
+
 func TestMain(m *testing.M) {
-	RunDgraphTests(m, &dbHandle, ContainerNameDB, "testdata/blocks_60000_60020.json")
+	RunDgraphTests(m, &dbHandle, ContainerNameDB)
 }
 
 func TestCreateCommaList(t *testing.T) {

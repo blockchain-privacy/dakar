@@ -9,16 +9,26 @@ import (
 
 var dbHandle external.Database
 
+const blockFileName = "../db/testdata/blocks_60000_60020.json"
+
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor, "../db/testdata/blocks_60000_60020.json")
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor)
 }
 
 func TestLoadUTXOCache(t *testing.T) {
+	db.SetupDBWithoutData(t, dbHandle)
 	// nothing in DB so should not return anything
 	cache, err := newUTXOCache(dbHandle, 0, 0)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
 	require.Zero(t, cache.getOutputCounts())
+
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	cache, err = newUTXOCache(dbHandle, 60020, 10)
+	require.NoError(t, err)
+	require.NotNil(t, cache)
+	require.Equal(t, 10, cache.getOutputCounts())
 }
 
 func TestOutputCacheOffline(t *testing.T) {

@@ -8,16 +8,8 @@ import (
 
 var dbHandle external.Database
 
-func setupDB(t *testing.T) {
-	// reset db
-	require.NoError(t, DropAll(dbHandle))
-
-	// set up schema
-	require.NoError(t, SetupSchema(dbHandle))
-}
-
 func TestGetTransactionsOutputs(t *testing.T) {
-	setupDB(t)
+	SetupDB(t, dbHandle, blockFileName)
 	// test null input
 	outputs, err := GetTransactionsOutputs(dbHandle, nil)
 	require.Error(t, err)
@@ -30,18 +22,27 @@ func TestGetTransactionsOutputs(t *testing.T) {
 }
 
 func TestGetTransactionByBlock(t *testing.T) {
-	setupDB(t)
+	require.NoError(t, DropAll(dbHandle))
 
 	// nothing in DB yet, so it should fail
 	transactions, err := GetTransactionByBlock(dbHandle, 1)
 	require.Error(t, err)
 	require.Nil(t, transactions)
+
+	SetupDB(t, dbHandle, blockFileName)
+
+	// only blocks beginning from height 60000 are in the DB, so it should fail
+	transactions, err = GetTransactionByBlock(dbHandle, 1)
+	require.Error(t, err)
+	require.Nil(t, transactions)
+
+	transactions, err = GetTransactionByBlock(dbHandle, 60001)
+	require.NoError(t, err)
+	require.NotEmpty(t, transactions)
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
-	setupDB(t)
-
-	// nothing in DB yet, so it should fail
+	// invalid input
 	inputCount, outputCount, err := GetOutputAddressCounts(dbHandle, "")
 	require.Error(t, err)
 	require.Zero(t, inputCount)
