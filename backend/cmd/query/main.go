@@ -4,6 +4,7 @@ import (
 	"backend/analytics/graph"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/address"
 	"backend/external"
 	"encoding/json"
 	"flag"
@@ -235,9 +236,30 @@ func main() {
 			return
 		}
 
-		err = json.NewEncoder(file).Encode(blockRange)
+		addressRange, err := getAddressRange(dgraph, 60000, 60020)
 		if err != nil {
-			info("error encoding blocks", err)
+			info("error getting addresses", err)
+			return
+		}
+
+		if len(addressRange) == 0 {
+			info("no addresses to write")
+			return
+		}
+
+		// merge addresses and blocks
+		var toEncode []any
+		for _, b := range blockRange {
+			toEncode = append(toEncode, b)
+		}
+
+		for _, a := range addressRange {
+			toEncode = append(toEncode, a)
+		}
+
+		err = json.NewEncoder(file).Encode(toEncode)
+		if err != nil {
+			info("error encoding data", err)
 			return
 		}
 	}
@@ -260,4 +282,13 @@ func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]d
 	}
 
 	return blocks, nil
+}
+
+func getAddressRange(dgraph external.Database, firstBlock int, lastBlock int) ([]address.Address, error) {
+	numBlocks := lastBlock - firstBlock
+	if numBlocks <= 0 {
+		return nil, nil
+	}
+
+	return address.GetAddressesByBlockRange(dgraph, firstBlock, lastBlock, true)
 }

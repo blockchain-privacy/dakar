@@ -266,3 +266,59 @@ func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Ad
 
 	return
 }
+
+// GetAddressesByBlockRange returns all address-output mappings of the given block range
+func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHeightEnd int,
+	convertUIDs bool) (addresses []Address, err error) {
+	const query = `query Q($start: string,$end: string) {
+				var(func: between(id,$start,$end)) {
+					transactions {
+						o as tx_outputs
+						i as tx_inputs
+					}
+				}
+				
+				var(func: uid(o,i)){
+					a as ~addr_outputs
+				}
+				
+				q(func: uid(a)){
+					uid 
+					addresshash
+					dgraph.type
+					addr_outputs@filter(uid(o,i)){
+						uid
+					}
+				}
+			  }`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
+		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r struct {
+		Addresses []Address `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if convertUIDs {
+		for i := range r.Addresses {
+			r.Addresses[i].UID = "_:" + r.Addresses[i].UID
+
+			for y := range r.Addresses[i].Outputs {
+				r.Addresses[i].Outputs[y].UID = "_:" + r.Addresses[i].Outputs[y].UID
+			}
+		}
+	}
+
+	addresses = r.Addresses
+
+	return
+}
