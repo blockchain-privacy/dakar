@@ -3,6 +3,7 @@ package user
 import (
 	"backend/db"
 	"backend/external"
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -27,12 +28,14 @@ func TestGenerateRandomPassword(t *testing.T) {
 }
 
 func TestCreateNewUser(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	user, err := CreateNewUser(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 }
 
 func TestGetUsers(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	user, err := CreateNewUser(dbHandle)
@@ -45,6 +48,7 @@ func TestGetUsers(t *testing.T) {
 }
 
 func TestGetUsersWithCredentials(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	user, err := CreateNewUser(dbHandle)
@@ -57,6 +61,7 @@ func TestGetUsersWithCredentials(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	db.SetupDBWithoutData(t, dbHandle)
 	// create user
 	user, err := CreateNewUser(dbHandle)

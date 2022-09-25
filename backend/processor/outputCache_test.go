@@ -3,6 +3,7 @@ package processor
 import (
 	"backend/db"
 	"backend/external"
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -16,6 +17,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestLoadUTXOCache(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	db.SetupDBWithoutData(t, dbHandle)
 	// nothing in DB so should not return anything
 	cache, err := newUTXOCache(dbHandle, 0, 0)

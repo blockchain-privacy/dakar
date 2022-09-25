@@ -1,6 +1,7 @@
 package db
 
 import (
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -72,5 +73,6 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestDropAll(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	require.NoError(t, DropAll(dbHandle))
 }

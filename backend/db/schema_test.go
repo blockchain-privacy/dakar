@@ -1,15 +1,18 @@
 package db
 
 import (
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
 func TestSetupSchema(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	require.NoError(t, SetupSchema(dbHandle))
 }
 
 func TestIsSchemaSet(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	// first drop schema
 	require.NoError(t, DropAll(dbHandle))
 

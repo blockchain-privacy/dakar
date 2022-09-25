@@ -3,22 +3,22 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
-	"encoding/json"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/credentials/insecure"
-	"os"
-	"testing"
+	"backend/testhelper"
 
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"testing"
 	"time"
-
-	"google.golang.org/grpc"
 
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -239,25 +239,28 @@ const (
 // RunDgraphTests connects to the given dgraph container and runs all tests
 // packageDBHandle should be set to the global db interface handle of the package module.
 func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
-	// create dgraph client
-	graphDB, c, err := CreateClient(string(containerName) + ":9080")
-	if err != nil {
-		log.Panic(err)
-		return
-	}
-	defer func(c *grpc.ClientConn) {
-		err := c.Close()
+	if testhelper.IsCIActive() {
+		// create dgraph client
+		graphDB, c, err := CreateClient(string(containerName) + ":9080")
 		if err != nil {
-			log.Fatal(err)
+			log.Panic(err)
+			return
 		}
-	}(c)
+		defer func(c *grpc.ClientConn) {
+			err := c.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(c)
 
-	if !WaitForDatabase(graphDB) {
-		log.Panic("Could not connect to database", err)
-		return
+		if !WaitForDatabase(graphDB) {
+			log.Panic("Could not connect to database", err)
+			return
+		}
+
+		*packageDBHandle = graphDB
 	}
 
-	*packageDBHandle = graphDB
 	m.Run()
 }
 

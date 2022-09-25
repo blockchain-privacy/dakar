@@ -3,6 +3,7 @@ package status
 import (
 	"backend/db"
 	"backend/external"
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -16,6 +17,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	// crawler status not yet set
 	_, err := GetCrawlerStatus(dbHandle)
 	require.Error(t, err)
@@ -39,6 +41,7 @@ func TestGetCrawlerStatus(t *testing.T) {
 }
 
 func TestGetClassifierStatus(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	// classifier status not yet set
 	_, err := GetClassifierStatus(dbHandle)
 	require.Error(t, err)
@@ -62,6 +65,7 @@ func TestGetClassifierStatus(t *testing.T) {
 }
 
 func TestGetClusteringHMIStatus(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	// clustering status not yet set
 	_, err := GetClusteringHMIStatus(dbHandle)
 	require.Error(t, err)
@@ -85,6 +89,7 @@ func TestGetClusteringHMIStatus(t *testing.T) {
 }
 
 func TestGetClusteringFMIStatus(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	// clustering status not yet set
 	_, err := GetClusteringFMIStatus(dbHandle)
 	require.Error(t, err)
@@ -108,6 +113,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	db.SetupDB(t, dbHandle, blockFileName)
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
@@ -116,6 +122,7 @@ func TestGetHighestBlockID(t *testing.T) {
 }
 
 func TestGetFrontendStatus(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
 	// nothing set yet -> should fail
@@ -136,6 +143,7 @@ func TestGetFrontendStatus(t *testing.T) {
 }
 
 func TestGetMeta(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
 	// nothing set yet -> should fail
