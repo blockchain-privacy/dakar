@@ -138,18 +138,21 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 }
 
 // GetFullBlock gets a full block from the database
-func GetFullBlock(c external.Database, id int) (blk Block, err error) {
+func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err error) {
 	const query = `query Q($blockID: string) {
 				q(func: eq(id, $blockID)){
+					uid
 					id
 					ts
 					blockhash
 					dgraph.type
 					prevblock {
+						uid
 						blockhash
 						dgraph.type
 					}
 					transactions{
+						uid
 						txhash
 						privacytype
 						fee
@@ -157,11 +160,15 @@ func GetFullBlock(c external.Database, id int) (blk Block, err error) {
 						tx_outputs {
 							...fOutput
 						}
+						tx_inputs {
+							...fOutput
+						}
 					}
 				}
 			  }
 
 				fragment fOutput {
+					uid
 					amount
 					inputindex
 					outputindex
@@ -188,7 +195,31 @@ func GetFullBlock(c external.Database, id int) (blk Block, err error) {
 		return
 	}
 
-	return r.payload()
+	block, err := r.payload()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if convertUIDs {
+		block.UID = "_:" + block.UID
+		block.PrevBlock.UID = "_:" + block.PrevBlock.UID
+
+		for i := range block.Transactions {
+			block.Transactions[i].UID = "_:" + block.Transactions[i].UID
+
+			for y := range block.Transactions[i].Outputs {
+				block.Transactions[i].Outputs[y].UID = "_:" + block.Transactions[i].Outputs[y].UID
+			}
+
+			for y := range block.Transactions[i].Inputs {
+				block.Transactions[i].Inputs[y].UID = "_:" + block.Transactions[i].Inputs[y].UID
+			}
+		}
+	}
+	blk = block
+
+	return
 }
 
 // isBlockIdentifier returns true if field contains a number (block id)
@@ -246,7 +277,6 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	}
 
 	// json struct
-
 	var r struct {
 		Blocks       []FrontendBlock `json:"q,omitempty"`
 		Transactions []struct {
@@ -338,6 +368,31 @@ func UpsertBlock(c external.Database, block Block) error {
 	req := &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$currentHash": block.Hash, "$prevHash": block.PrevBlock.Hash},
+		Mutations: []*api.Mutation{{
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	}
+	if err = TxWithRetry(c, time.Minute*15, req); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return err
+}
+
+// InsertBlockData insert the given block data. No checks are performed.
+func InsertBlockData(c external.Database, blocks []Block) error {
+	if len(blocks) == 0 {
+		return errors.New("can not insert empty block slice")
+	}
+
+	pb, err := json.Marshal(blocks)
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
+	}
+
+	req := &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},

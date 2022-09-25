@@ -252,7 +252,7 @@ func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]d
 	blocks := make([]db.Block, numBlocks+1)
 
 	for i := firstBlock; i <= lastBlock; i++ {
-		block, err := db.GetFullBlock(dgraph, i)
+		block, err := db.GetFullBlock(dgraph, i, true)
 		if err != nil {
 			return nil, err
 		}
