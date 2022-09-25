@@ -380,27 +380,20 @@ func UpsertBlock(c external.Database, block Block) error {
 	return err
 }
 
-// InsertBlockData insert the given block data. No checks are performed.
-func InsertBlockData(c external.Database, blocks []Block) error {
-	if len(blocks) == 0 {
-		return errors.New("can not insert empty block slice")
+// InsertArbitrary insert the given data. No checks are performed.
+func InsertArbitrary(c external.Database, data []byte) error {
+	if len(data) == 0 {
+		return errors.New("can not insert empty data slice")
 	}
 
-	pb, err := json.Marshal(blocks)
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return err
-	}
-
-	req := &api.Request{
+	if err := TxWithRetry(c, time.Minute*15, &api.Request{
 		Mutations: []*api.Mutation{{
-			SetJson: pb,
+			SetJson: data,
 		}},
 		CommitNow: true,
-	}
-	if err = TxWithRetry(c, time.Minute*15, req); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
-	return err
+	return nil
 }

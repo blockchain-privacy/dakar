@@ -6,7 +6,6 @@ import (
 	"backend/testhelper"
 
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -276,13 +275,7 @@ func SetupDB(t *testing.T, database external.Database, blockFileName string) {
 	fileBytes, err := os.ReadFile(blockFileName)
 	require.NoError(t, err)
 
-	var blocks []Block
-	if err := json.Unmarshal(fileBytes, &blocks); err != nil {
-		log.Panic("Could not unmarshal block data", err)
-		return
-	}
-
-	if err := InsertBlockData(database, blocks); err != nil {
+	if err := InsertArbitrary(database, fileBytes); err != nil {
 		log.Panic("Could not upsert block data", err)
 		return
 	}
