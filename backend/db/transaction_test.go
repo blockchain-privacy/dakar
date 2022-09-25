@@ -66,63 +66,62 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
-	// todo: addresses are not yet inserted into the test db, so the tests below fail
-	//testhelper.SetupDB(t, dbHandle, blockFileName)
-	//
-	//transactions, err := GetTransactionByBlock(dbHandle, 60001)
-	//require.NoError(t, err)
-	//require.Equal(t, 4, len(transactions))
-	//
-	//type testCase struct {
-	//	txhash     string
-	//	uid        string
-	//	numInputs  uint32
-	//	numOutputs uint32
-	//}
-	//
-	//cases := []testCase{
-	//	{
-	//		txhash:     "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13",
-	//		numInputs:  3,
-	//		numOutputs: 9,
-	//	},
-	//	{
-	//		txhash:     "38c54271cb439357f1c02d4db06c6a2715d77b68e920f6ccb9f13d66fe233384",
-	//		numInputs:  0,
-	//		numOutputs: 1,
-	//	},
-	//	{
-	//		txhash:     "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638",
-	//		numInputs:  1,
-	//		numOutputs: 2,
-	//	},
-	//	{
-	//		txhash:     "1f22cdab5f3543a49f2b0ab8a0ea7858fd4459e94f3074c58c39044bd63a8aff",
-	//		numInputs:  1,
-	//		numOutputs: 1,
-	//	},
-	//}
-	//var found int
-	//for _, tx := range transactions {
-	//	for i, c := range cases {
-	//		if c.txhash == tx.Hash {
-	//			cases[i].uid = tx.UID
-	//			found++
-	//			break
-	//		}
-	//	}
-	//}
-	//
-	//if len(cases) != found {
-	//	t.Error(len(cases), "cases, but", found, "found")
-	//}
-	//
-	//for _, c := range cases {
-	//	inputCount, outputCount, err = GetOutputAddressCounts(dbHandle, c.uid)
-	//	require.NoError(t, err)
-	//	require.Equal(t, c.numInputs, inputCount, c.txhash)
-	//	require.Equal(t, c.numOutputs, outputCount, c.txhash)
-	//}
+	SetupDB(t, dbHandle, blockFileName)
+
+	transactions, err := GetTransactionByBlock(dbHandle, 60001)
+	require.NoError(t, err)
+	require.Equal(t, 4, len(transactions))
+
+	type testCase struct {
+		txhash     string
+		uid        string
+		numInputs  uint32
+		numOutputs uint32
+	}
+
+	cases := []testCase{
+		{
+			txhash:     "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13",
+			numInputs:  3,
+			numOutputs: 9,
+		},
+		{
+			txhash:     "38c54271cb439357f1c02d4db06c6a2715d77b68e920f6ccb9f13d66fe233384",
+			numInputs:  0,
+			numOutputs: 1,
+		},
+		{
+			txhash:     "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638",
+			numInputs:  1,
+			numOutputs: 2,
+		},
+		{
+			txhash:     "1f22cdab5f3543a49f2b0ab8a0ea7858fd4459e94f3074c58c39044bd63a8aff",
+			numInputs:  1,
+			numOutputs: 1,
+		},
+	}
+	var found int
+	for _, tx := range transactions {
+		for i, c := range cases {
+			if c.txhash == tx.Hash {
+				cases[i].uid = tx.UID
+				found++
+				break
+			}
+		}
+	}
+
+	if len(cases) != found {
+		t.Error(len(cases), "cases, but", found, "found")
+	}
+
+	for _, c := range cases {
+		inputCount, outputCount, err = GetOutputAddressCounts(dbHandle, c.uid)
+		require.NoError(t, err)
+		require.Equal(t, c.numInputs, inputCount, c.txhash)
+		require.Equal(t, c.numOutputs, outputCount, c.txhash)
+	}
 }
 
 func TestGetFrontendTransaction(t *testing.T) {
