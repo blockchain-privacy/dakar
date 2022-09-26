@@ -73,6 +73,14 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errors.New("timeout to small: " + timeoutPerRequest.String())
+	}
+
+	if req == nil {
+		return nil, errors.New("received nil request")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 	return tx.Do(ctx, req)

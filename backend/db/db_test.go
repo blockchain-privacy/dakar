@@ -56,6 +56,25 @@ func TestExecTx(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestExecExistingTx(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := execExistingTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.Error(t, err)
+
+	_, err = execExistingTx(dbHandle.NewTxn(), time.Minute, nil)
+	require.Error(t, err)
+
+	_, err = execExistingTx(dbHandle.NewTxn(), time.Minute, &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.NoError(t, err)
+}
+
 func TestCreateCommaList(t *testing.T) {
 	type testCase struct {
 		uids   []string
