@@ -244,3 +244,10 @@ func TestDropAll(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	require.NoError(t, DropAll(dbHandle))
 }
+
+func TestCreateClient(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	_, c, err := CreateClient(ContainerNameDB + ":9080")
+	require.NoError(t, err)
+	require.NoError(t, c.Close())
+}
