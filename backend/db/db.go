@@ -314,14 +314,6 @@ func SetupDB(t *testing.T, database external.Database, blockFileName string) {
 		log.Panic("Could not upsert block data", err)
 		return
 	}
-
-	//// add blocks
-	//for _, b := range blocks {
-	//	if err := UpsertBlock(database, b); err != nil {
-	//		log.Panic("Could not upsert block data", err)
-	//		return
-	//	}
-	//}
 }
 
 // SetupDBWithoutData returns the database to its initial state:
