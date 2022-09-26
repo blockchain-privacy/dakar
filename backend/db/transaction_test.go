@@ -1,6 +1,7 @@
 package db
 
 import (
+	"backend/constants"
 	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
@@ -11,13 +12,100 @@ var dbHandle external.Database
 
 func TestTransaction_String(t *testing.T) {
 	tx := Transaction{
-		UID:         "some_uid",
-		PrivacyType: nil,
-		Fee:         nil,
-		Outputs:     nil,
-		Inputs:      nil,
-		Hash:        "some_long_hex_hash",
-		DType:       nil,
+		UID:  "some_uid",
+		Hash: "some_long_hex_hash",
+	}
+	require.NotEmpty(t, tx.String())
+}
+
+func TestTransaction_SetDType(t *testing.T) {
+	tx := Transaction{
+		UID:  "some_uid",
+		Hash: "some_long_hex_hash",
+	}
+
+	tx.SetDType()
+
+	require.Equal(t, []string{transactionDType}, tx.DType)
+}
+
+func getInt64Pointer(n int64) *int64 {
+	return &n
+}
+
+func TestTransaction_CalculateTransactionFee(t *testing.T) {
+	tx := Transaction{
+		UID:  "some_uid",
+		Hash: "some_long_hex_hash",
+	}
+
+	require.NoError(t, tx.CalculateTransactionFee())
+	require.Zero(t, *tx.Fee)
+
+	// input amount = 40
+	tx.Inputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)},
+		{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}}
+	// output amount = 30
+	tx.Outputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}}
+
+	require.NoError(t, tx.CalculateTransactionFee())
+	require.Equal(t, int64(10), *tx.Fee)
+
+	// output amount = 40
+	tx.Outputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)},
+		{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}}
+
+	require.NoError(t, tx.CalculateTransactionFee())
+	require.Zero(t, *tx.Fee)
+
+	// output amount = 50
+	tx.Outputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)},
+		{Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}, {Amount: getInt64Pointer(10)}}
+	require.NoError(t, tx.CalculateTransactionFee())
+	require.Equal(t, int64(-10), *tx.Fee)
+
+	tx.Outputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: nil}}
+	require.Error(t, tx.CalculateTransactionFee())
+
+	tx.Outputs = []Output{{Amount: getInt64Pointer(10)}}
+	tx.Inputs = []Output{{Amount: getInt64Pointer(10)}, {Amount: nil}}
+	require.Error(t, tx.CalculateTransactionFee())
+}
+
+func TestTransaction_IsMixingTransaction(t *testing.T) {
+	tx := Transaction{
+		UID:  "some_uid",
+		Hash: "some_long_hex_hash",
+	}
+	require.False(t, tx.IsMixingTransaction())
+
+	tx.PrivacyType = &constants.MixingTypes[0]
+	require.True(t, tx.IsMixingTransaction())
+
+	collateralType := constants.PrivacyCollateralCreation
+	tx.PrivacyType = &collateralType
+	require.False(t, tx.IsMixingTransaction())
+}
+
+func TestTransaction_IsDestinationTransaction(t *testing.T) {
+	tx := Transaction{
+		UID:  "some_uid",
+		Hash: "some_long_hex_hash",
+	}
+	require.False(t, tx.IsDestinationTransaction())
+
+	tx.PrivacyType = &constants.MixingTypes[0]
+	require.False(t, tx.IsDestinationTransaction())
+
+	destinationType := constants.PrivacyDestination
+	tx.PrivacyType = &destinationType
+	require.True(t, tx.IsDestinationTransaction())
+}
+
+func TestFrontendTransaction_String(t *testing.T) {
+	tx := FrontendTransaction{
+		BlockHash: "some_long_hex_hash",
+		Hash:      "some_long_hex_hash",
 	}
 	require.NotEmpty(t, tx.String())
 }
