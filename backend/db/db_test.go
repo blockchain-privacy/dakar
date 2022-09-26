@@ -75,6 +75,40 @@ func TestExecExistingTx(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestTxWithRetry(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	require.Error(t, TxWithRetry(dbHandle, time.Duration(0), &api.Request{
+		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
+
+	require.Error(t, TxWithRetry(dbHandle, time.Minute, nil))
+
+	require.NoError(t, TxWithRetry(dbHandle, time.Minute, &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	}))
+
+}
+
+func TestTxWithRetryAndResponse(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := TxWithRetryAndResponse(dbHandle, time.Duration(0), &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.Error(t, err)
+
+	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, nil)
+	require.Error(t, err)
+
+	_, err = TxWithRetryAndResponse(dbHandle, time.Minute, &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.NoError(t, err)
+}
+
 func TestCreateCommaList(t *testing.T) {
 	type testCase struct {
 		uids   []string
