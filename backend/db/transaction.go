@@ -86,12 +86,14 @@ func (t *Transaction) CalculateTransactionFee() (err error) {
 	return
 }
 
-// IsMixingTransaction returns true if the transaction is a mixing transaction
+// IsMixingTransaction evaluates the privacy type of the transaction and
+// returns true if the transaction is a mixing transaction. Inputs and Outputs are not checked
 func (t *Transaction) IsMixingTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsMixing()
 }
 
-// IsDestinationTransaction returns true if the transaction is a destination transaction
+// IsDestinationTransaction evaluates the privacy type of the transaction and
+// returns true if the transaction is a destination transaction. Inputs and Outputs are not checked
 func (t *Transaction) IsDestinationTransaction() bool {
 	return t.PrivacyType != nil && t.PrivacyType.IsDestination()
 }
