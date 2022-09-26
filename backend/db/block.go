@@ -3,12 +3,12 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
-	"errors"
-	"time"
 
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
@@ -19,8 +19,6 @@ const blockDType = "Block"
 var (
 	// ErrBlockNotFound is returned if no block was found
 	ErrBlockNotFound = errors.New("no block found")
-	// ErrInvalidResult is returned if an invalid result was returned from the database
-	ErrInvalidResult = errors.New("invalid result")
 )
 
 // Block is the database representation of a block
@@ -103,6 +101,11 @@ func (bq blockQuery) payload() (blk Block, err error) {
 
 // GetBlock gets block information from the database
 func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
+	if blockHash == "" {
+		err = errors.New("received empty input")
+		return
+	}
+
 	const query = `query Q($hash: string) {
 				q(func: eq(blockhash, $hash)){
 					uid
@@ -296,7 +299,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrBlockNotFound)
 		return
 	} else if len(r.Blocks) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrInvalidResult)
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidResult)
 		return
 	}
 
