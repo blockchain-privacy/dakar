@@ -282,6 +282,38 @@ func TestGetTransactionBlockID(t *testing.T) {
 	require.EqualValues(t, 60007, id)
 }
 
+func TestUpdateTransactions(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	// empty slice should fail
+	require.Error(t, UpdateTransactions(dbHandle, nil))
+	require.Error(t, UpdateTransactions(dbHandle, []Transaction{}))
+
+	transactions, err := GetTransactionByBlock(dbHandle, 60001)
+	require.NoError(t, err)
+
+	// no mixing transactions should be in this block
+	for _, tx := range transactions {
+		require.False(t, tx.IsMixingTransaction())
+	}
+
+	// set all transactions to be a mixing transaction
+	for i := range transactions {
+		transactions[i].PrivacyType = &constants.MixingTypes[0]
+	}
+
+	require.NoError(t, UpdateTransactions(dbHandle, transactions))
+
+	transactions, err = GetTransactionByBlock(dbHandle, 60001)
+	require.NoError(t, err)
+
+	// all transactions should now have the privacy type set to 'mixing'
+	for _, tx := range transactions {
+		require.True(t, tx.IsMixingTransaction())
+	}
+}
+
 func TestGetTransactionUID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	SetupDB(t, dbHandle, blockFileName)
