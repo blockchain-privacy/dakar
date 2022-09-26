@@ -9,6 +9,19 @@ import (
 
 var dbHandle external.Database
 
+func TestTransaction_String(t *testing.T) {
+	tx := Transaction{
+		UID:         "some_uid",
+		PrivacyType: nil,
+		Fee:         nil,
+		Outputs:     nil,
+		Inputs:      nil,
+		Hash:        "some_long_hex_hash",
+		DType:       nil,
+	}
+	require.NotEmpty(t, tx.String())
+}
+
 func TestGetTransactionsOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	SetupDB(t, dbHandle, blockFileName)

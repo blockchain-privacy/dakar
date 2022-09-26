@@ -23,7 +23,7 @@ var (
 	errInvalidResult       = errors.New("invalid result")
 )
 
-// Transaction is the database representation of a transaction
+// Transaction is the database representation of a blockchain transaction
 type Transaction struct {
 	UID         string                 `json:"uid,omitempty"`
 	PrivacyType *constants.PrivacyType `json:"privacytype,omitempty"`
@@ -35,8 +35,15 @@ type Transaction struct {
 }
 
 func (t *Transaction) String() string {
-	output := fmt.Sprintf("UID: %s, Hash: %s, Privacy type: %d, Fee: %d",
-		t.UID, t.Hash, t.PrivacyType, *t.Fee)
+	output := fmt.Sprintf("UID: %s, Hash: %s", t.UID, t.Hash)
+
+	if t.PrivacyType != nil {
+		output += fmt.Sprintf(", Privacy type: %d", *t.PrivacyType)
+	}
+
+	if t.Fee != nil {
+		output += fmt.Sprintf(", Fee: %d", *t.Fee)
+	}
 
 	if t.Outputs != nil {
 		output += fmt.Sprintf(", Output count: %d", len(t.Outputs))
