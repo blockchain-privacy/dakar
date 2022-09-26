@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/testhelper"
+	"errors"
 
 	"context"
 	"fmt"
@@ -57,6 +58,14 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errors.New("timeout to small: " + timeoutPerRequest.String())
+	}
+
+	if req == nil {
+		return nil, errors.New("received nil request")
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 	return db.Mutate(ctx, req)
