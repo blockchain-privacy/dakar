@@ -340,4 +340,9 @@ func TestGetOutputs(t *testing.T) {
 	transactions, err = GetOutputs(dbHandle, 60007, 60007)
 	require.NoError(t, err)
 	require.Equal(t, 7, len(transactions))
+
+	// should return an empty transaction slice, because this block range is not included in the database
+	transactions, err = GetOutputs(dbHandle, 1, 10)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(transactions))
 }
