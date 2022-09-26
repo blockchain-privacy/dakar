@@ -317,6 +317,13 @@ func TestUpdateTransactions(t *testing.T) {
 func TestGetTransactionUID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	SetupDB(t, dbHandle, blockFileName)
+
+	_, err := GetTransactionUID(dbHandle, "")
+	require.Error(t, err)
+
+	_, err = GetTransactionUID(dbHandle, "transaction_hash_which_does_not_exist")
+	require.Error(t, err)
+
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	uid, err := GetTransactionUID(dbHandle, txHash1)
 	require.NoError(t, err)
