@@ -500,9 +500,13 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 // UpdateTransactions sends the given transaction updates to the database.
 // The transaction uids must be set.
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
+	if len(transactions) == 0 {
+		return errors.New("received empty transaction slice")
+	}
+
 	for _, tx := range transactions {
-		if len(tx.UID) == 0 {
-			return errors.New("uid is not set for transaction")
+		if tx.UID == "" {
+			return errors.New("uid is not set for transaction " + tx.String())
 		}
 	}
 
@@ -512,12 +516,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 		return err
 	}
 
-	req := &api.Request{
-		Mutations: []*api.Mutation{{
-			SetJson: pb,
-		}},
-		CommitNow: true,
-	}
+	req := &api.Request{Mutations: []*api.Mutation{{SetJson: pb}}, CommitNow: true}
 
 	if err = TxWithRetry(c, time.Minute*5, req); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
