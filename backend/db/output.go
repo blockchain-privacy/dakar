@@ -24,8 +24,11 @@ type Output struct {
 }
 
 func (o *Output) String() string {
-	output := fmt.Sprintf("UID: %s, Amount: %d, KeyAsm: %s, SigAsm: %s",
-		o.UID, *o.Amount, o.KeyAsm, o.SigAsm)
+	output := fmt.Sprintf("UID: %s, KeyAsm: %s, SigAsm: %s", o.UID, o.KeyAsm, o.SigAsm)
+
+	if o.Amount != nil {
+		output += fmt.Sprintf(", Amount: %d", *o.Amount)
+	}
 
 	if o.OutputIndex != nil {
 		output += fmt.Sprintf(", OutputIndex: %d", *o.OutputIndex)
