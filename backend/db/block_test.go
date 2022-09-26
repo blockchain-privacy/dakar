@@ -82,3 +82,38 @@ func TestGetBlock(t *testing.T) {
 	_, err = GetBlock(dbHandle, "")
 	require.Error(t, err)
 }
+
+func TestGetFullBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	block, err := GetFullBlock(dbHandle, 60003, true)
+	require.NoError(t, err)
+	require.Len(t, block.Transactions, 2)
+
+	block, err = GetFullBlock(dbHandle, 60004, true)
+	require.NoError(t, err)
+	require.Len(t, block.Transactions, 1)
+
+	_, err = GetFullBlock(dbHandle, 3, true)
+	require.Error(t, err)
+}
+
+func TestGetFrontendBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
+	const blockHash2 = "000000000020ef46c4026cb77aee959224b9bb0a23b24bc46c429d8c9cab498b"
+
+	block, err := GetFrontendBlock(dbHandle, blockHash, 0)
+	require.NoError(t, err)
+	require.Len(t, block.Transactions, 2)
+
+	block, err = GetFrontendBlock(dbHandle, blockHash2, 0)
+	require.NoError(t, err)
+	require.Len(t, block.Transactions, 1)
+
+	_, err = GetFrontendBlock(dbHandle, "", 0)
+	require.Error(t, err)
+}
