@@ -527,14 +527,17 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 
 // GetTransactionUID returns the uid of the given transaction
 func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
-	query := `query Q($tx:string) {
+	if txHash == "" {
+		return "", errors.New("received empty transaction hash")
+	}
+
+	const query = `query Q($tx:string) {
 				q(func: eq(txhash, $tx)){
 					uid
 				}
 			  }`
 
-	resp, err := ReadOnlyTxVarWithRetry(c, time.Second*20, query,
-		map[string]string{"$tx": txHash})
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Second*20, query, map[string]string{"$tx": txHash})
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
