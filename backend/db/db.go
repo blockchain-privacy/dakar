@@ -37,6 +37,9 @@ const (
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
+var errNilRequest = errors.New("received nil request")
+var errInvalidTimeout = errors.New("invalid timeout")
+
 // InitLogger creates new loggers with the given parameters.
 func InitLogger(out io.Writer, flag int) {
 	thisLogger = log.New(out, loggerPrefix, flag)
@@ -59,11 +62,11 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errors.New("timeout to small: " + timeoutPerRequest.String())
+		return nil, errInvalidTimeout
 	}
 
 	if req == nil {
-		return nil, errors.New("received nil request")
+		return nil, errNilRequest
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -74,11 +77,11 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errors.New("timeout to small: " + timeoutPerRequest.String())
+		return nil, errInvalidTimeout
 	}
 
 	if req == nil {
-		return nil, errors.New("received nil request")
+		return nil, errNilRequest
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -96,7 +99,8 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if resp, err = execTx(db, timeoutPerRequest, req); err == nil {
+		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -118,7 +122,8 @@ func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.
 func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil {
+		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
