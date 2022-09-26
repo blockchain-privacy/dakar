@@ -310,7 +310,7 @@ func SetupDB(t *testing.T, database external.Database, blockFileName string) {
 	fileBytes, err := os.ReadFile(blockFileName)
 	require.NoError(t, err)
 
-	if err := InsertArbitrary(database, fileBytes); err != nil {
+	if err := InsertArbitraryJSON(database, fileBytes); err != nil {
 		log.Panic("Could not upsert block data", err)
 		return
 	}

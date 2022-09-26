@@ -222,7 +222,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 	return
 }
 
-// isBlockIdentifier returns true if field contains a number (block id)
+// isBlockIdentifier returns true if field is an integer (block id)
 func isBlockIdentifier(field string) bool {
 	_, err := strconv.Atoi(field)
 	return err == nil
@@ -380,8 +380,8 @@ func UpsertBlock(c external.Database, block Block) error {
 	return err
 }
 
-// InsertArbitrary insert the given data. No checks are performed.
-func InsertArbitrary(c external.Database, data []byte) error {
+// InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
+func InsertArbitraryJSON(c external.Database, data []byte) error {
 	if len(data) == 0 {
 		return errors.New("can not insert empty data slice")
 	}
