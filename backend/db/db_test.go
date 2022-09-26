@@ -87,7 +87,6 @@ func TestTxWithRetry(t *testing.T) {
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	}))
-
 }
 
 func TestTxWithRetryAndResponse(t *testing.T) {
@@ -106,6 +105,78 @@ func TestTxWithRetryAndResponse(t *testing.T) {
 		Query:     `{q(func:uid(0x1)){uid}}`,
 		CommitNow: true,
 	})
+	require.NoError(t, err)
+}
+
+func TestExistingTxWithRetry(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	require.Error(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
+
+	require.Error(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Minute, nil))
+
+	require.NoError(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Minute, &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	}))
+}
+
+func TestExistingTxWithRetryAndResponse(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Duration(0), &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.Error(t, err)
+
+	_, err = ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Minute, nil)
+	require.Error(t, err)
+
+	_, err = ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Minute, &api.Request{
+		Query:     `{q(func:uid(0x1)){uid}}`,
+		CommitNow: true,
+	})
+	require.NoError(t, err)
+}
+
+func TestExecReadOnlyTx(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := execReadOnlyTx(dbHandle, time.Minute, "", nil)
+	require.Error(t, err)
+
+	_, err = execReadOnlyTx(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
+	require.Error(t, err)
+
+	_, err = execReadOnlyTx(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
+	require.NoError(t, err)
+}
+
+func TestReadOnlyTxVarWithRetry(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "", nil)
+	require.Error(t, err)
+
+	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}", nil)
+	require.Error(t, err)
+
+	_, err = ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}", nil)
+	require.NoError(t, err)
+}
+
+func TestReadOnlyTxWithRetry(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	_, err := ReadOnlyTxWithRetry(dbHandle, time.Minute, "")
+	require.Error(t, err)
+
+	_, err = ReadOnlyTxWithRetry(dbHandle, time.Duration(0), "{q(func:uid(0x1)){uid}}")
+	require.Error(t, err)
+
+	_, err = ReadOnlyTxWithRetry(dbHandle, time.Minute, "{q(func:uid(0x1)){uid}}")
 	require.NoError(t, err)
 }
 
