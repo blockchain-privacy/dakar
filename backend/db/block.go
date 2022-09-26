@@ -225,14 +225,19 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 	return
 }
 
-// isBlockIdentifier returns true if field is an integer (block id)
-func isBlockIdentifier(field string) bool {
-	_, err := strconv.Atoi(field)
-	return err == nil
-}
-
 // GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
+	if blockHash == "" {
+		err = errors.New("received empty block hash")
+		return
+	}
+
+	// isBlockIdentifier returns true if field is an integer (block id)
+	isBlockIdentifier := func(field string) bool {
+		_, err := strconv.Atoi(field)
+		return err == nil
+	}
+
 	searchProperty := "blockhash"
 	if isBlockIdentifier(blockHash) {
 		searchProperty = "id"
