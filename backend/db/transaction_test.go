@@ -33,6 +33,10 @@ func getInt64Pointer(n int64) *int64 {
 	return &n
 }
 
+func getUInt64Pointer(n uint64) *uint64 {
+	return &n
+}
+
 func TestTransaction_CalculateTransactionFee(t *testing.T) {
 	tx := Transaction{
 		UID:  "some_uid",
