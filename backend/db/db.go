@@ -138,6 +138,14 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 // execReadOnlyTx executes the given request, vars is allowed to be nil
 func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errInvalidTimeout
+	}
+
+	if q == "" {
+		return nil, errNilRequest
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 
@@ -154,6 +162,11 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return resp, nil
 		}
 		err = txErr
+
+		if errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
+			return nil, err
+		}
+
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
