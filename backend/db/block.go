@@ -16,11 +16,6 @@ import (
 // blockDType is the dgraph database type for the Block type
 const blockDType = "Block"
 
-var (
-	// ErrBlockNotFound is returned if no block was found
-	ErrBlockNotFound = errors.New("no block found")
-)
-
 // Block is the database representation of a block
 type Block struct {
 	UID          string        `json:"uid,omitempty"`
@@ -102,7 +97,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 // GetBlock gets block information from the database
 func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	if blockHash == "" {
-		err = errors.New("received empty input")
+		err = errEmptyRequestArgument
 		return
 	}
 
@@ -228,7 +223,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 // GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
 	if blockHash == "" {
-		err = errors.New("received empty block hash")
+		err = errEmptyRequestArgument
 		return
 	}
 
@@ -391,7 +386,7 @@ func UpsertBlock(c external.Database, block Block) error {
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
 func InsertArbitraryJSON(c external.Database, data []byte) error {
 	if len(data) == 0 {
-		return errors.New("can not insert empty data slice")
+		return errEmptyRequestArgument
 	}
 
 	if err := TxWithRetry(c, time.Minute*15, &api.Request{

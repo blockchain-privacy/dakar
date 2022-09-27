@@ -17,12 +17,6 @@ import (
 // transactionDType is the dgraph database type for the Transaction type
 const transactionDType = "Transaction"
 
-var (
-	// ErrTransactionNotFound is returned if a requested transaction has not been found
-	ErrTransactionNotFound = errors.New("no transaction found")
-	errInvalidResult       = errors.New("invalid result")
-)
-
 // Transaction is the database representation of a blockchain transaction
 type Transaction struct {
 	UID         string                 `json:"uid,omitempty"`
@@ -165,7 +159,7 @@ type OutputTransactionMapping struct {
 func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 	transaction []OutputTransactionMapping, err error) {
 	if len(transactionHashes) == 0 {
-		return nil, errors.New("no transaction hashes provided")
+		return nil, errEmptyRequestArgument
 	}
 
 	query := `{
@@ -256,7 +250,7 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 // with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {
 	if uid == "" {
-		err = errors.New("uid not set")
+		err = errEmptyRequestArgument
 		return
 	}
 
@@ -320,6 +314,10 @@ func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32,
 
 // GetFrontendTransaction gets transaction information for the frontend
 func GetFrontendTransaction(c external.Database, txHash string) (transactions []FrontendTransaction, err error) {
+	if txHash == "" {
+		err = errEmptyRequestArgument
+		return
+	}
 	const query = `query Q($hash: string){
 				q(func: eq(txhash,$hash)){
 					txhash
@@ -415,6 +413,11 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 
 // GetFrontendTransactionsByUID returns the FrontendTransaction's specified by uid
 func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []FrontendTransaction, err error) {
+	if len(txUids) == 0 {
+		err = errEmptyRequestArgument
+		return
+	}
+
 	const query = `query Q($uids:string){
 				txs as var(func: uid($uids))
 				q(func: uid(txs))@normalize{
@@ -455,6 +458,11 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 // GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
+	if txHash == "" {
+		err = errEmptyRequestArgument
+		return
+	}
+
 	query := `query Q($hash: string){
 				q(func: eq(txhash, $hash))@normalize{
 					~transactions {
@@ -501,7 +509,7 @@ func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, 
 // The transaction uids must be set.
 func UpdateTransactions(c external.Database, transactions []Transaction) error {
 	if len(transactions) == 0 {
-		return errors.New("received empty transaction slice")
+		return errEmptyRequestArgument
 	}
 
 	for _, tx := range transactions {
@@ -528,7 +536,7 @@ func UpdateTransactions(c external.Database, transactions []Transaction) error {
 // GetTransactionUID returns the uid of the given transaction
 func GetTransactionUID(c external.Database, txHash string) (uid string, err error) {
 	if txHash == "" {
-		return "", errors.New("received empty transaction hash")
+		return "", errEmptyRequestArgument
 	}
 
 	const query = `query Q($tx:string) {

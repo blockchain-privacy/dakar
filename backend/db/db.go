@@ -37,8 +37,24 @@ const (
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
 
-var errNilRequest = errors.New("received nil request")
-var errInvalidTimeout = errors.New("invalid timeout")
+var (
+	// ErrBlockNotFound is returned if no block was found
+	ErrBlockNotFound = errors.New("no block found")
+	// ErrTransactionNotFound is returned if a requested transaction has not been found
+	ErrTransactionNotFound  = errors.New("no transaction found")
+	errEmptyRequestArgument = errors.New("received empty argument")
+	errInvalidTimeout       = errors.New("invalid timeout")
+	errInvalidResult        = errors.New("invalid result")
+)
+
+type ContainerName string
+
+const (
+	ContainerNameDB        = "dgraph_db"
+	ContainerNameStatus    = "dgraph_status"
+	ContainerNameUser      = "dgraph_user"
+	ContainerNameProcessor = "dgraph_processor"
+)
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger(out io.Writer, flag int) {
@@ -66,7 +82,7 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	}
 
 	if req == nil {
-		return nil, errNilRequest
+		return nil, errEmptyRequestArgument
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -81,7 +97,7 @@ func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Reque
 	}
 
 	if req == nil {
-		return nil, errNilRequest
+		return nil, errEmptyRequestArgument
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -100,7 +116,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -123,7 +139,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -143,7 +159,7 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 	}
 
 	if q == "" {
-		return nil, errNilRequest
+		return nil, errEmptyRequestArgument
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -163,7 +179,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 		}
 		err = txErr
 
-		if errors.Is(err, errInvalidTimeout) || errors.Is(err, errNilRequest) {
+		if errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return nil, err
 		}
 
@@ -260,15 +276,6 @@ func WaitForDatabase(db external.Database) bool {
 
 	return false
 }
-
-type ContainerName string
-
-const (
-	ContainerNameDB        = "dgraph_db"
-	ContainerNameStatus    = "dgraph_status"
-	ContainerNameUser      = "dgraph_user"
-	ContainerNameProcessor = "dgraph_processor"
-)
 
 // RunDgraphTests connects to the given dgraph container and runs all tests
 // packageDBHandle should be set to the global db interface handle of the package module.
