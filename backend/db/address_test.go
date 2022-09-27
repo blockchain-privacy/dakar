@@ -1,6 +1,7 @@
 package db
 
 import (
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -53,4 +54,22 @@ func TestFrontendAddress_String(t *testing.T) {
 	}
 
 	require.NotEmpty(t, address.String())
+}
+
+func TestGetFrontendAddress(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	_, err := GetFrontendAddress(dbHandle, "", 1, 1, nil)
+	require.Error(t, err)
+
+	const addrHash = "XsE93qsgqTkzumVTaeanYRXqVz3uXjWpkc"
+
+	addr, err := GetFrontendAddress(dbHandle, addrHash, SortAscendingByAmount, 1, nil)
+	require.NoError(t, err)
+	require.NotEmpty(t, addr.Outputs)
+
+	addr, err = GetFrontendAddress(dbHandle, addrHash, SortAscendingByAmount, 1, []int{FilterByUnspent})
+	require.NoError(t, err)
+	require.Empty(t, addr.Outputs)
 }
