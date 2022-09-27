@@ -98,3 +98,16 @@ func TestUpsertAddresses(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, newAddressHash, frontendAddress.Hash)
 }
+
+func TestGetAddressesByBlockRange(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	blockRange, err := GetAddressesByBlockRange(dbHandle, 60000, 60020, true)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockRange)
+
+	blockRange, err = GetAddressesByBlockRange(dbHandle, 1, 500, true)
+	require.NoError(t, err)
+	require.Empty(t, blockRange)
+}
