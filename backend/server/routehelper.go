@@ -4,7 +4,6 @@ import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/db"
-	dbaddr "backend/db/address"
 	"backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
@@ -177,7 +176,7 @@ func GetTransaction(dgraph external.Database, query string) (SearchResult, bool,
 // GetAddress searches for the hash specified in query. If an address is found the returned bool is true.
 // A maximum of 20 elements is returned.
 func GetAddress(dgraph external.Database, query string) (SearchResult, bool, error) {
-	return GetAddressWithOptions(dgraph, query, dbaddr.SortAscendingByOutputTime, 0, nil)
+	return GetAddressWithOptions(dgraph, query, db.SortAscendingByOutputTime, 0, nil)
 }
 
 // GetAddressWithOptions searches for the hash specified in query. If an address is found the returned bool is true.
@@ -185,10 +184,10 @@ func GetAddress(dgraph external.Database, query string) (SearchResult, bool, err
 // A maximum of 20 elements is returned.
 func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int,
 	offset int, filters []int) (SearchResult, bool, error) {
-	addr, err := dbaddr.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
+	addr, err := db.GetFrontendAddress(dgraph, query, sortOrder, offset, filters)
 	if err != nil {
 		// only print error if it is not expected
-		if !errors.Is(err, dbaddr.ErrAddressNotFound) {
+		if !errors.Is(err, db.ErrAddressNotFound) {
 			return SearchResult{}, false, err
 		}
 		return SearchResult{}, false, nil

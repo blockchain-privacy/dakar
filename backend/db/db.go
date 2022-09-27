@@ -41,7 +41,9 @@ var (
 	// ErrBlockNotFound is returned if no block was found
 	ErrBlockNotFound = errors.New("no block found")
 	// ErrTransactionNotFound is returned if a requested transaction has not been found
-	ErrTransactionNotFound  = errors.New("no transaction found")
+	ErrTransactionNotFound = errors.New("no transaction found")
+	// ErrAddressNotFound is returned if no address has been found
+	ErrAddressNotFound      = errors.New("no address found")
 	errEmptyRequestArgument = errors.New("received empty argument")
 	errInvalidTimeout       = errors.New("invalid timeout")
 	errInvalidResult        = errors.New("invalid result")

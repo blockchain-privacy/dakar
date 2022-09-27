@@ -96,8 +96,8 @@ type transactionQuery struct {
 	Q []Transaction `json:"q"`
 }
 
-// FrontendOutput holds the output data which is exposed to the frontend
-type FrontendOutput struct {
+// FrontendTransactionOutput holds the output data which is exposed to the frontend
+type FrontendTransactionOutput struct {
 	Amount      *int64  `json:"amount"`
 	InputIndex  *uint32 `json:"inputindex,omitempty"`
 	OutputIndex *uint32 `json:"outputindex,omitempty"`
@@ -114,14 +114,14 @@ type FrontendOutput struct {
 
 // FrontendTransaction holds the transaction data which is exposed to the frontend
 type FrontendTransaction struct {
-	Hash           string           `json:"txhash,omitempty"`
-	BlockHash      string           `json:"bhash,omitempty"`
-	Fee            int64            `json:"fee"`
-	PrivacyType    int64            `json:"privacytype,omitempty"`
-	BlockID        uint64           `json:"bid"`
-	BlockTimestamp string           `json:"bts,omitempty"`
-	Outputs        []FrontendOutput `json:"outputs,omitempty"`
-	Inputs         []FrontendOutput `json:"inputs,omitempty"`
+	Hash           string                      `json:"txhash,omitempty"`
+	BlockHash      string                      `json:"bhash,omitempty"`
+	Fee            int64                       `json:"fee"`
+	PrivacyType    int64                       `json:"privacytype,omitempty"`
+	BlockID        uint64                      `json:"bid"`
+	BlockTimestamp string                      `json:"bts,omitempty"`
+	Outputs        []FrontendTransactionOutput `json:"outputs,omitempty"`
+	Inputs         []FrontendTransactionOutput `json:"inputs,omitempty"`
 }
 
 func (f FrontendTransaction) String() string {
@@ -355,11 +355,11 @@ func GetFrontendTransaction(c external.Database, txHash string) (transactions []
 	// json struct
 	var r struct {
 		Transaction []struct {
-			Hash        string           `json:"txhash,omitempty"`
-			PrivacyType *int64           `json:"privacytype,omitempty"`
-			Fee         *int64           `json:"fee,omitempty"`
-			Outputs     []FrontendOutput `json:"outputs,omitempty"`
-			Inputs      []FrontendOutput `json:"inputs,omitempty"`
+			Hash        string                      `json:"txhash,omitempty"`
+			PrivacyType *int64                      `json:"privacytype,omitempty"`
+			Fee         *int64                      `json:"fee,omitempty"`
+			Outputs     []FrontendTransactionOutput `json:"outputs,omitempty"`
+			Inputs      []FrontendTransactionOutput `json:"inputs,omitempty"`
 			Block       []struct {
 				Hash string `json:"blockhash,omitempty"`
 				TS   string `json:"ts,omitempty"`

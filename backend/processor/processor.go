@@ -3,7 +3,6 @@ package processor
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	dbaddr "backend/db/address"
 	dbstat "backend/db/status"
 	"backend/external"
 	"encoding/hex"
@@ -108,9 +107,9 @@ func addOutputToMapping(mapping map[string]outputMapping, addr string, indexOutp
 
 // addOutputsToAddresses adds the given uids of outputs to the address specified by addr in addresses
 // addr is inserted into addresses if it does not yet exist
-func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uids []string) {
+func addOutputsToAddresses(addresses map[string]db.Address, addr string, uids []string) {
 	var (
-		editAddress dbaddr.Address
+		editAddress db.Address
 		ok          bool
 	)
 
@@ -129,7 +128,7 @@ func addOutputsToAddresses(addresses map[string]dbaddr.Address, addr string, uid
 }
 
 func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
-	addrMap map[string]dbaddr.Address) (err error) {
+	addrMap map[string]db.Address) (err error) {
 	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
@@ -157,7 +156,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		return
 	}
 
-	addrMap := make(map[string]dbaddr.Address)
+	addrMap := make(map[string]db.Address)
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
 	for _, mapping := range transactionMappings {
@@ -174,12 +173,12 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 	wg.Wait()
 
 	// map to slice
-	addrSlice := make([]dbaddr.Address, 0, len(addrMap))
+	addrSlice := make([]db.Address, 0, len(addrMap))
 	for _, a := range addrMap {
 		addrSlice = append(addrSlice, a)
 	}
 
-	if err = dbaddr.UpsertAddresses(dgraph, addrSlice); err != nil {
+	if err = db.UpsertAddresses(dgraph, addrSlice); err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}

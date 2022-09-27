@@ -4,7 +4,6 @@ import (
 	"backend/analytics/graph"
 	cli "backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/address"
 	"backend/external"
 	"encoding/json"
 	"flag"
@@ -284,11 +283,11 @@ func getBlockRange(dgraph external.Database, firstBlock int, lastBlock int) ([]d
 	return blocks, nil
 }
 
-func getAddressRange(dgraph external.Database, firstBlock int, lastBlock int) ([]address.Address, error) {
+func getAddressRange(dgraph external.Database, firstBlock int, lastBlock int) ([]db.Address, error) {
 	numBlocks := lastBlock - firstBlock
 	if numBlocks <= 0 {
 		return nil, nil
 	}
 
-	return address.GetAddressesByBlockRange(dgraph, firstBlock, lastBlock, true)
+	return db.GetAddressesByBlockRange(dgraph, firstBlock, lastBlock, true)
 }

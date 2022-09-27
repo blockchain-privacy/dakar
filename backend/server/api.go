@@ -3,7 +3,7 @@ package server
 import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
-	dbaddr "backend/db/address"
+	"backend/db"
 	dbtxh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -167,12 +167,12 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 				return
 			}
 
-			if !dbaddr.IsValidSortOrder(addressRequest.Order) {
+			if !db.IsValidSortOrder(addressRequest.Order) {
 				handleError(w, errors.New(errorInvalidSortOrder))
 				return
 			}
 
-			if !dbaddr.IsValidFilter(addressRequest.Filter) {
+			if !db.IsValidFilter(addressRequest.Filter) {
 				handleError(w, errors.New(errorInvalidFilter))
 				return
 			}

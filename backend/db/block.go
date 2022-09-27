@@ -283,11 +283,11 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	var r struct {
 		Blocks       []FrontendBlock `json:"q,omitempty"`
 		Transactions []struct {
-			Hash        string           `json:"txhash,omitempty"`
-			PrivacyType *int64           `json:"privacytype,omitempty"`
-			Fee         *int64           `json:"fee,omitempty"`
-			Outputs     []FrontendOutput `json:"outputs,omitempty"`
-			Inputs      []FrontendOutput `json:"inputs,omitempty"`
+			Hash        string                      `json:"txhash,omitempty"`
+			PrivacyType *int64                      `json:"privacytype,omitempty"`
+			Fee         *int64                      `json:"fee,omitempty"`
+			Outputs     []FrontendTransactionOutput `json:"outputs,omitempty"`
+			Inputs      []FrontendTransactionOutput `json:"inputs,omitempty"`
 		} `json:"x,omitempty"`
 	}
 

@@ -2,7 +2,6 @@ package processor
 
 import (
 	"backend/db"
-	dbaddr "backend/db/address"
 	"backend/mocks"
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -103,7 +102,7 @@ func TestAddOutputToMapping(t *testing.T) {
 }
 
 func TestAddOutputsToAddresses(t *testing.T) {
-	addresses := make(map[string]dbaddr.Address)
+	addresses := make(map[string]db.Address)
 	cases := []struct {
 		address        string
 		uids           []string

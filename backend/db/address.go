@@ -1,8 +1,7 @@
-package address
+package db
 
 import (
 	"backend/cmd/cliutil"
-	"backend/db"
 	"backend/external"
 
 	"encoding/json"
@@ -13,6 +12,104 @@ import (
 
 	"github.com/dgraph-io/dgo/v210/protos/api"
 )
+
+// AddressDType is the dgraph database type for the Address type
+const AddressDType = "Address"
+
+const (
+	// SortAscendingByOutputTime sort outputs ascending by the output transaction timestamp
+	SortAscendingByOutputTime int = iota
+	// SortDescendingByOutputTime sort outputs descending by the output transaction timestamp
+	SortDescendingByOutputTime
+	// SortAscendingByInputTime sort outputs ascending by the input transaction timestamp
+	SortAscendingByInputTime
+	// SortDescendingByInputTime sort outputs descending by the input transaction timestamp
+	SortDescendingByInputTime
+	// SortAscendingByAmount sort outputs ascending by the output amount
+	SortAscendingByAmount
+	// SortDescendingByAmount sort outputs ascending by the output amount
+	SortDescendingByAmount
+)
+
+const (
+	// FilterByCoinbase filters outputs if they are a coinbase output
+	FilterByCoinbase int = iota
+	// FilterByUnspent filters outputs if they are unspent
+	FilterByUnspent
+)
+
+// IsValidSortOrder returns true if sortOrder has a valid sort order value
+func IsValidSortOrder(sortOrder int) bool {
+	return sortOrder == SortAscendingByInputTime || sortOrder == SortDescendingByInputTime ||
+		sortOrder == SortAscendingByOutputTime || sortOrder == SortDescendingByOutputTime ||
+		sortOrder == SortAscendingByAmount || sortOrder == SortDescendingByAmount
+}
+
+// IsValidFilter returns true if filters had a valid value
+func IsValidFilter(filters []int) bool {
+	for _, f := range filters {
+		if f != FilterByUnspent && f != FilterByCoinbase {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Address holds data for the database address type
+type Address struct {
+	UID     string   `json:"uid,omitempty"`
+	Hash    string   `json:"addresshash,omitempty"`
+	Outputs []Output `json:"addr_outputs,omitempty"`
+	DType   []string `json:"dgraph.type,omitempty"`
+}
+
+func (a *Address) String() string {
+	output := fmt.Sprintf("UID: %s, Hash: %s", a.UID, a.Hash)
+
+	if a.Outputs != nil {
+		output += fmt.Sprintf(", OutputCount: %d", len(a.Outputs))
+	}
+
+	return output
+}
+
+// SetDType sets the DType for dgraph type recognition
+func (a *Address) SetDType() {
+	a.DType = []string{AddressDType}
+}
+
+// FrontendOutput is the representation for the frontend of an output
+type FrontendOutput struct {
+	Amount                uint64 `json:"amount"`
+	IsCoinbase            bool   `json:"is_coinbase"`
+	InputIndex            int    `json:"input_index"`
+	InputTransactionHash  string `json:"input_transaction"`
+	InputTimestamp        string `json:"input_ts"`
+	OutputIndex           int    `json:"output_index"`
+	OutputTransactionHash string `json:"output_transaction"`
+	OutputTimestamp       string `json:"output_ts"`
+}
+
+func (o FrontendOutput) String() string {
+	return fmt.Sprintf("Amount: %d", o.Amount)
+}
+
+// FrontendAddress is the representation for the frontend of an address
+type FrontendAddress struct {
+	Hash          string           `json:"addresshash"`
+	QueryMaxCount int64            `json:"query_max_count"`
+	CoinbaseCount int64            `json:"coinbase_count"`
+	OutputCount   int64            `json:"output_count"`
+	InputCount    int64            `json:"input_count"`
+	InputSum      int64            `json:"input_sum"`
+	OutputSum     int64            `json:"output_sum"`
+	Outputs       []FrontendOutput `json:"addr_outputs"`
+}
+
+func (f FrontendAddress) String() string {
+	return fmt.Sprintf("Hash: %s, OutputCount: %d", f.Hash, len(f.Outputs))
+}
 
 // GetFrontendAddress returns address information for the frontend sorted as specified by sortOrder.
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
@@ -124,7 +221,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 
 	vars := make(map[string]string)
 	vars["$hash"] = addrHash
-	ctx, cancel := db.GetFrontendContext()
+	ctx, cancel := GetFrontendContext()
 	defer cancel()
 	resp, err := c.Query(ctx, query, vars)
 	if err != nil {
@@ -162,7 +259,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
 		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
 		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
-		err = ErrInvalidResult
+		err = errInvalidResult
 		return
 	}
 
@@ -235,19 +332,19 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 		}},
 		CommitNow: true,
 	}
-	return db.TxWithRetry(c, time.Minute*15, req)
+	return TxWithRetry(c, time.Minute*15, req)
 }
 
 // GetAddressUIDs returns all requested address nodes
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	query := `{
-				q(func: eq(addresshash,` + db.CreateCommaArray(addressHashes) + `)){
+				q(func: eq(addresshash,` + CreateCommaArray(addressHashes) + `)){
 					uid
 					addresshash
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*10, query)
+	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
 
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -292,7 +389,7 @@ func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHe
 				}
 			  }`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
 		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
