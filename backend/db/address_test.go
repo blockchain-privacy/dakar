@@ -73,3 +73,22 @@ func TestGetFrontendAddress(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, addr.Outputs)
 }
+
+func TestUpsertAddresses(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDBWithoutData(t, dbHandle)
+
+	const newAddressHash = "some_address_hash"
+
+	_, err := GetFrontendAddress(dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	require.Error(t, err)
+
+	newAddress := Address{Hash: newAddressHash}
+	newAddress.SetDType()
+
+	require.NoError(t, UpsertAddresses(dbHandle, []Address{newAddress}))
+
+	frontendAddress, err := GetFrontendAddress(dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
+	require.NoError(t, err)
+	require.Equal(t, newAddressHash, frontendAddress.Hash)
+}
