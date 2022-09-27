@@ -115,6 +115,11 @@ func (f FrontendAddress) String() string {
 // Use one of the constants like SortAscendingByInputTime to set the sortOrder
 func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	offset int, filters []int) (addr FrontendAddress, err error) {
+	if addrHash == "" {
+		err = errEmptyRequestArgument
+		return
+	}
+
 	const maxOutputsPerQuery = 20
 	sortDirection := "asc"
 	sortBy := "val(ots)"
