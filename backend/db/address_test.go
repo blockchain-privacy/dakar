@@ -83,7 +83,13 @@ func TestUpsertAddresses(t *testing.T) {
 	_, err := GetFrontendAddress(dbHandle, newAddressHash, SortAscendingByAmount, 0, nil)
 	require.Error(t, err)
 
-	newAddress := Address{Hash: newAddressHash}
+	newAddress := Address{Hash: newAddressHash, Outputs: []Output{{
+		OutputIndex: getNumPointer[uint32](1),
+		InputIndex:  getNumPointer[uint32](3),
+		TxType:      "",
+		Amount:      getNumPointer[int64](500),
+		DType:       []string{outputDType},
+	}}}
 	newAddress.SetDType()
 
 	require.NoError(t, UpsertAddresses(dbHandle, []Address{newAddress}))

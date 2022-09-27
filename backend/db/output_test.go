@@ -8,7 +8,7 @@ import (
 func TestOutput_String(t *testing.T) {
 	output := Output{}
 	require.NotEmpty(t, output.String())
-	output.Amount = getInt64Pointer(500)
+	output.Amount = getNumPointer[int64](500)
 	require.NotEmpty(t, output.String())
 }
 

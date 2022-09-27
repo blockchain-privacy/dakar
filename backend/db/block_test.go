@@ -34,7 +34,7 @@ func TestBlock_IsComplete(t *testing.T) {
 
 	require.False(t, blk.IsComplete())
 
-	blk.ID = getUInt64Pointer(100)
+	blk.ID = getNumPointer[uint64](100)
 	blk.Timestamp = time.Now().Format(time.RFC3339)
 	blk.SetDType()
 	blk.Transactions = []Transaction{{}}
