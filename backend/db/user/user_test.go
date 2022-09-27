@@ -15,16 +15,18 @@ func TestMain(m *testing.M) {
 }
 
 func TestGenerateRandomPassword(t *testing.T) {
-	pw, err := generateRandomPassword()
-	require.Nil(t, err)
-	require.NotEmpty(t, pw, "password is empty")
-	require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
+	const numPasswords = 10000
+	pwMap := make(map[string]bool, numPasswords)
+	for i := 0; i < numPasswords; i++ {
+		pw, err := generateRandomPassword()
+		require.Nil(t, err)
+		require.NotEmpty(t, pw, "password is empty")
+		require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
+		pwMap[pw] = true
+	}
 
-	pw2, err := generateRandomPassword()
-	require.Nil(t, err)
-	require.NotEmpty(t, pw, "password is empty")
-
-	require.NotEqual(t, pw, pw2)
+	// all generated password should be unique
+	require.Len(t, pwMap, numPasswords)
 }
 
 func TestCreateNewUser(t *testing.T) {
