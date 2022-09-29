@@ -8,12 +8,12 @@ import (
 	"testing"
 )
 
-type transactionTest struct {
-	tx         db.Transaction
-	shouldFail bool
-}
-
 func TestIsMixing(t *testing.T) {
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
 	shouldWork1 := db.Transaction{
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
@@ -177,6 +177,11 @@ func TestIsMixing(t *testing.T) {
 }
 
 func TestIsCollateralPayment(t *testing.T) {
+	type transactionTest struct {
+		tx         db.Transaction
+		shouldFail bool
+	}
+
 	minCollateral := int64(minCollateral)
 	shouldWork1 := db.Transaction{
 		Fee:  &minCollateral,
