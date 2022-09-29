@@ -8,6 +8,10 @@ import (
 	"testing"
 )
 
+func getNumPointer[number int64 | uint64 | uint32](n number) *number {
+	return &n
+}
+
 func TestIsMixing(t *testing.T) {
 	type transactionTest struct {
 		tx         db.Transaction
@@ -182,15 +186,14 @@ func TestIsCollateralPayment(t *testing.T) {
 		shouldFail bool
 	}
 
-	minCollateral := int64(minCollateral)
 	shouldWork1 := db.Transaction{
-		Fee:  &minCollateral,
+		Fee:  getNumPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 	}
 
@@ -198,47 +201,45 @@ func TestIsCollateralPayment(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 	}
 
 	multipleInputs := db.Transaction{
-		Fee:  &minCollateral,
+		Fee:  getNumPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &minCollateral},
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: &minCollateral},
-			{Amount: &minCollateral},
+			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getNumPointer[int64](minCollateral)},
 		},
 	}
 
-	bigAmount := int64(500000000000)
 	bigInput := db.Transaction{
-		Fee:  &minCollateral,
+		Fee:  getNumPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &bigAmount},
+			{Amount: getNumPointer[int64](500000000000)},
 		},
 		Inputs: []db.Output{
-			{Amount: &bigAmount},
+			{Amount: getNumPointer[int64](500000000000)},
 		},
 	}
 
-	one := int64(1)
 	smallInput := db.Transaction{
-		Fee:  &minCollateral,
+		Fee:  getNumPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &one},
+			{Amount: getNumPointer[int64](1)},
 		},
 		Inputs: []db.Output{
-			{Amount: &one},
+			{Amount: getNumPointer[int64](1)},
 		},
 	}
 
