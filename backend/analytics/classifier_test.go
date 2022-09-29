@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-var denominations = [5]int64{1000010000, 100001000, 10000100, 1000010, 100001}
-
 type transactionTest struct {
 	tx         db.Transaction
 	shouldFail bool
@@ -20,24 +18,24 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 	}
 
@@ -45,14 +43,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[1]},
-			{Amount: &denominations[1]},
-			{Amount: &denominations[1]},
+			{Amount: &denominationsTypes[1]},
+			{Amount: &denominationsTypes[1]},
+			{Amount: &denominationsTypes[1]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[1]},
-			{Amount: &denominations[1]},
-			{Amount: &denominations[1]},
+			{Amount: &denominationsTypes[1]},
+			{Amount: &denominationsTypes[1]},
+			{Amount: &denominationsTypes[1]},
 		},
 	}
 
@@ -60,14 +58,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[2]},
-			{Amount: &denominations[2]},
-			{Amount: &denominations[2]},
+			{Amount: &denominationsTypes[2]},
+			{Amount: &denominationsTypes[2]},
+			{Amount: &denominationsTypes[2]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[2]},
-			{Amount: &denominations[2]},
-			{Amount: &denominations[2]},
+			{Amount: &denominationsTypes[2]},
+			{Amount: &denominationsTypes[2]},
+			{Amount: &denominationsTypes[2]},
 		},
 	}
 
@@ -75,14 +73,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[3]},
-			{Amount: &denominations[3]},
-			{Amount: &denominations[3]},
+			{Amount: &denominationsTypes[3]},
+			{Amount: &denominationsTypes[3]},
+			{Amount: &denominationsTypes[3]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[3]},
-			{Amount: &denominations[3]},
-			{Amount: &denominations[3]},
+			{Amount: &denominationsTypes[3]},
+			{Amount: &denominationsTypes[3]},
+			{Amount: &denominationsTypes[3]},
 		},
 	}
 
@@ -90,14 +88,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[4]},
-			{Amount: &denominations[4]},
-			{Amount: &denominations[4]},
+			{Amount: &denominationsTypes[4]},
+			{Amount: &denominationsTypes[4]},
+			{Amount: &denominationsTypes[4]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[4]},
-			{Amount: &denominations[4]},
-			{Amount: &denominations[4]},
+			{Amount: &denominationsTypes[4]},
+			{Amount: &denominationsTypes[4]},
+			{Amount: &denominationsTypes[4]},
 		},
 	}
 
@@ -106,14 +104,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  &fee,
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 	}
 
@@ -121,13 +119,13 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 		},
 	}
 
@@ -135,14 +133,14 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[1]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[1]},
+			{Amount: &denominationsTypes[0]},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
-			{Amount: &denominations[1]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[1]},
 		},
 	}
 	one := int64(1)
@@ -150,13 +148,13 @@ func TestIsMixing(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 			{Amount: &one},
 		},
 		Inputs: []db.Output{
-			{Amount: &denominations[0]},
-			{Amount: &denominations[0]},
+			{Amount: &denominationsTypes[0]},
+			{Amount: &denominationsTypes[0]},
 			{Amount: &one},
 		},
 	}
