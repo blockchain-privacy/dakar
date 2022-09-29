@@ -2,14 +2,23 @@ package analytics
 
 import (
 	"backend/db"
-	"backend/mocks"
+	"backend/db/status"
+	"backend/external"
+	"backend/testhelper"
 	"context"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
+var dbHandle external.Database
+
 func getNumPointer[number int64 | uint64 | uint32](n number) *number {
 	return &n
+}
+
+func TestMain(m *testing.M) {
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameClassifier)
 }
 
 func TestIsMixing(t *testing.T) {
@@ -256,20 +265,6 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 }
 
-func TestNewClassifier(t *testing.T) {
-	mockDB := new(mocks.Database)
-	classifier := NewClassifier(context.Background(), mockDB, NewDashConfig())
-	require.NotEmpty(t, classifier.Name())
-	require.NotNil(t, classifier.Logger())
-	require.NoError(t, classifier.IncrementState())
-
-	mocks.MapSetClassifying(mockDB)
-	mocks.MapGetClassifierStatus(mockDB)
-	mocks.MapGetCrawlerStatus(mockDB)
-
-	require.NoError(t, classifier.CalculateInitialState())
-}
-
 func TestCountAmountDenominations(t *testing.T) {
 	type testCase struct {
 		amounts []int64
@@ -346,4 +341,99 @@ func TestCountOutputDenominations(t *testing.T) {
 	for _, c := range cases {
 		require.Equal(t, c.result, countOutputDenominations(c.outputs))
 	}
+}
+
+// unregisterCollectors unregisters all collectors of the classifier.
+// This is needed because collectors can not be registered twice with the same default config.
+func unregisterCollectors(c *Classifier) {
+	if c == nil {
+		return
+	}
+
+	prometheus.Unregister(c.blocks)
+	prometheus.Unregister(c.transactions)
+	prometheus.Unregister(c.blockHeight)
+}
+
+func TestNewClassifier(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{
+		ClassifierStartAfterBlock: 0,
+		BlockchainName:            "Dash",
+		IsHeuristicWorkerEnabled:  false,
+		IsClassifyingEnabled:      false,
+		IsHMIClusteringEnabled:    false,
+		IsFMIClusteringEnabled:    false,
+	})
+	unregisterCollectors(classifier)
+	require.NotNil(t, classifier)
+}
+
+func TestClassifier_Name(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+	require.NotEmpty(t, classifier.Name())
+}
+
+func TestClassifier_Logger(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+	require.NotNil(t, classifier.Logger())
+}
+
+func TestClassifier_Context(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+	require.NotNil(t, classifier.Context())
+}
+
+func TestClassifier_IncrementState(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+
+	for i := 0; i < 100; i++ {
+		require.NoError(t, classifier.IncrementState())
+	}
+
+	require.EqualValues(t, 100, classifier.state.ID)
+}
+
+func TestClassifier_Empty(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+
+	require.False(t, classifier.Empty())
+	require.NoError(t, classifier.IncrementState())
+	require.True(t, classifier.Empty())
+}
+
+func TestClassifier_CalculateInitialState(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	classifier := NewClassifier(context.Background(), nil, Config{})
+	unregisterCollectors(classifier)
+
+	require.Error(t, classifier.CalculateInitialState())
+
+	classifier.config.IsClassifyingEnabled = true
+
+	// panics because database is nil
+	require.Panics(t, func() {
+		_ = classifier.CalculateInitialState()
+	})
+
+	classifier.db = dbHandle
+
+	// status not set yet
+	require.Error(t, classifier.CalculateInitialState())
+
+	yes := true
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling:  &yes,
+		LastBlockID: getNumPointer[uint64](5),
+	}))
+
+	require.NoError(t, classifier.CalculateInitialState())
+	require.EqualValues(t, 5, classifier.state.Top)
+	require.EqualValues(t, 1, classifier.state.ID)
 }
