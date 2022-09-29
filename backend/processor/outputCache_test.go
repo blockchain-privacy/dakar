@@ -2,19 +2,10 @@ package processor
 
 import (
 	"backend/db"
-	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
-
-var dbHandle external.Database
-
-const blockFileName = "../db/testdata/blocks_60000_60020.json"
-
-func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor)
-}
 
 func TestLoadUTXOCache(t *testing.T) {
 	testhelper.SkipIfNotCI(t)

@@ -2,13 +2,23 @@ package processor
 
 import (
 	"backend/db"
+	"backend/external"
 	"backend/mocks"
+	"backend/testhelper"
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
+
+var dbHandle external.Database
+
+const blockFileName = "../db/testdata/blocks_60000_60020.json"
+
+func TestMain(m *testing.M) {
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor)
+}
 
 func TestIncrementProcessingState(t *testing.T) {
 	const (
@@ -146,6 +156,15 @@ func TestCreateOutputUid(t *testing.T) {
 }
 
 func TestProcessAddresses(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	// calling with empty mapping is allowed
+	require.NoError(t, processAddresses(dbHandle, nil, nil))
+
+	// cache is necessary if mapping is not empty
+	require.Error(t, processAddresses(dbHandle, nil, []transactionMapping{{}}))
+
 	const (
 		fistAddress   = "XsAptUZUmtL8onHcuJSvGM8MyvR7QCpw9u"
 		secondAddress = "Xoi9jutn8qbtxvd2V3xqqSQnpdqPrCzP1K"
@@ -197,11 +216,9 @@ func TestProcessAddresses(t *testing.T) {
 	}
 
 	cache := newOutputCache()
-	require.Nil(t, cache.setOutputs(txHash, outputArr))
+	require.NoError(t, cache.setOutputs(txHash, outputArr))
 
-	mockDB := new(mocks.Database)
-	mocks.MapUpsertAddresses(mockDB)
-	require.Nil(t, processAddresses(mockDB, cache, []transactionMapping{txMap}))
+	require.NoError(t, processAddresses(dbHandle, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
