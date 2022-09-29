@@ -127,7 +127,7 @@ func addOutputsToAddresses(addresses map[string]db.Address, addr string, uids []
 	addresses[addr] = editAddress
 }
 
-func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
+func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, outputs map[string]outputMapping,
 	addrMap map[string]db.Address) error {
 	if cache == nil {
 		return errors.New("cache is not set")
