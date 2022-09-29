@@ -18,7 +18,7 @@ func getNumPointer[number int64 | uint64 | uint32](n number) *number {
 }
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameClassifier)
+	db.RunDgraphTests(m, &dbHandle, db.ContainerNameAnalytics)
 }
 
 func TestIsMixing(t *testing.T) {
