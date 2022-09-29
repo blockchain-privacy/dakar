@@ -157,7 +157,7 @@ func TestCreateOutputUid(t *testing.T) {
 
 func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDBWithoutData(t, dbHandle)
+	db.SetupDB(t, dbHandle, blockFileName)
 
 	// calling with empty mapping is allowed
 	require.NoError(t, processAddresses(dbHandle, nil, nil))
@@ -166,57 +166,36 @@ func TestProcessAddresses(t *testing.T) {
 	require.Error(t, processAddresses(dbHandle, nil, []transactionMapping{{}}))
 
 	const (
-		fistAddress   = "XsAptUZUmtL8onHcuJSvGM8MyvR7QCpw9u"
-		secondAddress = "Xoi9jutn8qbtxvd2V3xqqSQnpdqPrCzP1K"
-		txHash        = "123456"
+		fistAddress   = "XonqFxADHJxSwZCuka5h46HXAdFfBMQc21"
+		secondAddress = "XvdH1vasQtDv7LvQuD2u124ibKFwNsPFv9"
+		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b"
 	)
 
-	oMap := make(map[string]outputMapping)
-	oMap[fistAddress] = outputMapping{
-		hash:    fistAddress,
-		indexes: []uint32{0},
-	}
-	oMap[secondAddress] = outputMapping{
-		hash:    secondAddress,
-		indexes: []uint32{1},
-	}
+	mapping, err := db.GetTransactionsOutputs(dbHandle, []string{txHash})
+	require.NoError(t, err)
+	require.Len(t, mapping, 1)
+	require.Len(t, mapping[0].Outputs, 2)
 
 	txMap := transactionMapping{
-		hash:    txHash,
-		outputs: oMap,
+		hash: txHash,
+		outputs: map[string]outputMapping{
+			fistAddress: {
+				hash:    fistAddress,
+				indexes: []uint32{0},
+			},
+			secondAddress: {
+				hash:    secondAddress,
+				indexes: []uint32{1},
+			},
+		},
 	}
 
-	zero := uint32(0)
-	one := uint32(1)
-	one64 := int64(1)
-	fourNines := int64(9999)
-	wrong := false
-	output1 := db.Output{
-		UID:         "0x59b84",
-		OutputIndex: &zero,
-		InputIndex:  nil,
-		TxType:      "pubkeyhash",
-		Amount:      &one64,
-		IsCoinbase:  &wrong,
-		DType:       nil,
-	}
-
-	output2 := db.Output{
-		UID:         "0x59b85",
-		OutputIndex: &one,
-		InputIndex:  nil,
-		TxType:      "pubkeyhash",
-		Amount:      &fourNines,
-		IsCoinbase:  &wrong,
-		DType:       nil,
-	}
-
-	outputArr := []db.Output{
-		output1, output2,
-	}
+	var outputs [2]db.Output
+	outputs[0] = mapping[0].Outputs[0]
+	outputs[1] = mapping[0].Outputs[1]
 
 	cache := newOutputCache()
-	require.NoError(t, cache.setOutputs(txHash, outputArr))
+	require.NoError(t, cache.setOutputs(txHash, outputs[:]))
 
 	require.NoError(t, processAddresses(dbHandle, cache, []transactionMapping{txMap}))
 }
