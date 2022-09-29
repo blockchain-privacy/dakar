@@ -1,6 +1,7 @@
 package heuristics
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db"
@@ -104,7 +105,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 
 // getDenominationCountsWithFilter gets the counts of each denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
-func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [db.NumDenominations]int {
+func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [analytics.NumDenominations]int {
 	var denominations []int64 //nolint:prealloc
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
@@ -113,17 +114,17 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 		denominations = append(denominations, output.Amount)
 	}
 
-	return db.CountAmountDenominations(denominations)
+	return analytics.CountAmountDenominations(denominations)
 }
 
 // gets the counts of each denomination type
-func getDenominationCounts(it heuristics.HeuristicTransaction) [db.NumDenominations]int {
+func getDenominationCounts(it heuristics.HeuristicTransaction) [analytics.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
-	return db.CountAmountDenominations(denominations)
+	return analytics.CountAmountDenominations(denominations)
 }
 
 type clusterDenominations struct {
@@ -165,8 +166,8 @@ func countClusterDenominations(origins []heuristics.HeuristicTransaction,
 	return
 }
 
-func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][db.NumDenominations]int {
-	sourceAmounts := make(map[heuristics.ClusterUID][db.NumDenominations]int)
+func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][analytics.NumDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][analytics.NumDenominations]int)
 
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)

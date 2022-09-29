@@ -52,10 +52,11 @@ var (
 type ContainerName string
 
 const (
-	ContainerNameDB        = "dgraph_db"
-	ContainerNameStatus    = "dgraph_status"
-	ContainerNameUser      = "dgraph_user"
-	ContainerNameProcessor = "dgraph_processor"
+	ContainerNameDB         = "dgraph_db"
+	ContainerNameStatus     = "dgraph_status"
+	ContainerNameUser       = "dgraph_user"
+	ContainerNameProcessor  = "dgraph_processor"
+	ContainerNameClassifier = "dgraph_classifier"
 )
 
 // InitLogger creates new loggers with the given parameters.

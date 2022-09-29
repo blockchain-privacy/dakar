@@ -1,9 +1,9 @@
 package heuristics
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -179,8 +179,8 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 }
 
 // returns true if both destinationDenominations and originDenominations have the exact same types
-func hasSameDenominationTypes(destinationDenominations [db.NumDenominations]int,
-	originDenominations [db.NumDenominations]int) bool {
+func hasSameDenominationTypes(destinationDenominations [analytics.NumDenominations]int,
+	originDenominations [analytics.NumDenominations]int) bool {
 	for i, destinationDenomination := range destinationDenominations {
 		if originDenominations[i] == destinationDenomination && destinationDenomination == 0 {
 			continue

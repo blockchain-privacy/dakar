@@ -48,6 +48,55 @@ import (
 //   │C Payment├─┤C Payment│          └─┤C Creation├─┤C Payment│
 //   └─────────┘ └─────────┘            └──────────┘ └─────────┘
 
+// NumDenominations is the number of Dash PrivateSend denominations existing
+const NumDenominations = 5
+
+const (
+	// minCollateral is 1/10 of the smallest denomination: round(100001/10).
+	minCollateral = 10000
+
+	// OldMinCollateral is the minimum collateral before the 5th denomination
+	// was added in protocol version 70213 it was round(1000010/10): 100000
+	// OldMinCollateral = 100000
+
+	// maxCollateral is the maximum allowed collateral
+	maxCollateral = 40000 // 4*minCollateral
+	// oldMaxCollateral is to old collateral
+	oldMaxCollateral = 400000 // 4*OldMinCollateral
+)
+
+var denominationsTypes = [NumDenominations]int64{1000010000, 100001000, 10000100, 1000010, 100001}
+
+// countOutputDenominations returns for each denomination how often it occurred in the given outputs
+func countOutputDenominations(outputs []db.Output) [NumDenominations]int {
+	amounts := make([]int64, len(outputs))
+
+	for i, o := range outputs {
+		if o.Amount == nil {
+			log.Println("error amount not set")
+			return [NumDenominations]int{}
+		}
+		amounts[i] = *o.Amount
+	}
+
+	return CountAmountDenominations(amounts)
+}
+
+// CountAmountDenominations returns the number of occurrences of each denomination in the given amounts
+func CountAmountDenominations(amounts []int64) (denominations [NumDenominations]int) {
+	for _, amt := range amounts {
+	inner:
+		for i, v := range denominationsTypes {
+			if amt == v {
+				denominations[i]++
+				break inner
+			}
+		}
+	}
+
+	return
+}
+
 // Classifier implements BlockIterator which classifies the transactions of each traversed block
 type Classifier struct {
 	config       Config
@@ -382,13 +431,13 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 		return false, nil
 	}
 
-	// must have at least enough to pay MaxCollateral
-	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < db.MaxCollateral {
+	// must have at least enough to pay maxCollateral
+	if *t.Outputs[0].Amount+*t.Outputs[1].Amount < maxCollateral {
 		return false, nil
 	}
 
 	// check if both outputs do not fulfill the minimum collateral amount
-	if *t.Outputs[0].Amount < db.MinCollateral && *t.Outputs[1].Amount < db.MinCollateral {
+	if *t.Outputs[0].Amount < minCollateral && *t.Outputs[1].Amount < minCollateral {
 		return false, nil
 	}
 
@@ -418,12 +467,12 @@ func isCollateralPayment(t db.Transaction) bool {
 	}
 
 	// must be able to pay at least the minimum fee
-	if *t.Inputs[0].Amount < db.MinCollateral || *t.Fee < db.MinCollateral {
+	if *t.Inputs[0].Amount < minCollateral || *t.Fee < minCollateral {
 		return false
 	}
 
 	// if the fee or amount is too big it is not a collateral payment
-	if *t.Fee > db.OldMaxCollateral*2 || *t.Inputs[0].Amount > db.OldMaxCollateral*2 {
+	if *t.Fee > oldMaxCollateral*2 || *t.Inputs[0].Amount > oldMaxCollateral*2 {
 		return false
 	}
 
@@ -446,8 +495,8 @@ func isMixing(t db.Transaction) int {
 		return -1
 	}
 
-	denominationIn := db.CountOutputDenominations(t.Inputs)
-	denominationOut := db.CountOutputDenominations(t.Outputs)
+	denominationIn := countOutputDenominations(t.Inputs)
+	denominationOut := countOutputDenominations(t.Outputs)
 	denominationIndex := -1
 	for i := range denominationIn {
 		// inputs and outputs should have the same amount of each denomination type

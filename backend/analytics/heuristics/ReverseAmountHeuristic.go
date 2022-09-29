@@ -1,9 +1,9 @@
 package heuristics
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	"backend/db"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
@@ -176,7 +176,7 @@ func (h reverseAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 
 // containsDenomination returns true if all denominations with at
 // least the same amount of denom1 are contained in denom2
-func containsDenomination(denom1 [db.NumDenominations]int, denom2 [db.NumDenominations]int) bool {
+func containsDenomination(denom1 [analytics.NumDenominations]int, denom2 [analytics.NumDenominations]int) bool {
 	for i, d := range denom1 {
 		if denom2[i] < d {
 			return false

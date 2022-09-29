@@ -47,6 +47,8 @@ unit_tests:
       alias: dgraph_user # database for user module
     - name: dgraph/standalone:v21.03.2
       alias: dgraph_processor # database for processor module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_classifier # database for classifier module
 
   cache:
     <<: *modcache
