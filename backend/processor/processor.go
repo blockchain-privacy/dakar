@@ -128,7 +128,11 @@ func addOutputsToAddresses(addresses map[string]db.Address, addr string, uids []
 }
 
 func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, outputs map[string]outputMapping,
-	addrMap map[string]db.Address) (err error) {
+	addrMap map[string]db.Address) error {
+	if cache == nil {
+		return errors.New("cache is not set")
+	}
+
 	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
@@ -146,19 +150,24 @@ func buildAddresses(mutex *sync.Mutex, cache *outputCache, txHash string, output
 		mutex.Unlock()
 	}
 
-	return
+	return nil
 }
 
 // processAddresses inserts mappings between addresses and outputs in database
 func processAddresses(dgraph external.Database, cache *outputCache,
-	transactionMappings []transactionMapping) (err error) {
+	transactionMappings []transactionMapping) error {
 	if len(transactionMappings) == 0 {
-		return
+		return nil
+	}
+
+	if cache == nil {
+		return errors.New("cache is not set")
 	}
 
 	addrMap := make(map[string]db.Address)
 	var mutex sync.Mutex
 	var wg sync.WaitGroup
+	var err error
 	for _, mapping := range transactionMappings {
 		wg.Add(1)
 		go func(hash string, outputs map[string]outputMapping) {
@@ -172,15 +181,19 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 
 	wg.Wait()
 
+	// check error from wait group
+	if err != nil {
+		return err
+	}
+
 	// map to slice
 	addrSlice := make([]db.Address, 0, len(addrMap))
 	for _, a := range addrMap {
 		addrSlice = append(addrSlice, a)
 	}
 
-	if err = db.UpsertAddresses(dgraph, addrSlice); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+	if err := db.UpsertAddresses(dgraph, addrSlice); err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	return nil
