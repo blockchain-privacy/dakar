@@ -114,7 +114,7 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := buildDatabaseAddressExclusions(tt.args.exclusions, tt.args.userID)
-		require.Equal(t, got, tt.want)
+		require.Equal(t, tt.want, got)
 	}
 }
 

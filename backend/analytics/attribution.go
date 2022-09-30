@@ -80,6 +80,10 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 		return nil, ErrTooManyAddresses
 	}
 
+	if len(attributions) == 0 {
+		return nil, errors.New("attribution list is empty")
+	}
+
 	addresses := map[string]bool{}
 	for _, c := range attributions {
 		addresses[c.AddressHash] = true
