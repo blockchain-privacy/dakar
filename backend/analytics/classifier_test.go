@@ -13,6 +13,8 @@ import (
 
 var dbHandle external.Database
 
+const blockFileName = "../db/testdata/blocks_60000_60020.json"
+
 func getNumPointer[number int64 | uint64 | uint32](n number) *number {
 	return &n
 }

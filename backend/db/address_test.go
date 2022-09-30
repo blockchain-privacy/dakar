@@ -1,6 +1,7 @@
 package db
 
 import (
+	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -110,4 +111,42 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 	blockRange, err = GetAddressesByBlockRange(dbHandle, 1, 500, true)
 	require.NoError(t, err)
 	require.Empty(t, blockRange)
+}
+
+func TestGetAddressUIDs(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+	type args struct {
+		c             external.Database
+		addressHashes []string
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args:    args{c: nil, addressHashes: nil},
+			wantErr: true,
+		},
+		{
+			args: args{
+				c: dbHandle,
+				addressHashes: []string{
+					"XgiLmHQ4czfkGvoqLAQJ8SVMNeho1EiFRv",
+					"Xe5GhnraNWanA3fY1XrjC1RnKQZfWmWygh",
+					"Xrwhr9kHpnk5CmKLitCcm3aeMv5zNYFZcw",
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		gotAddresses, err := GetAddressUIDs(tt.args.c, tt.args.addressHashes)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.NotEmpty(t, gotAddresses)
+		}
+	}
 }
