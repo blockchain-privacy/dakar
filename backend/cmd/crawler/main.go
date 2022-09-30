@@ -10,8 +10,10 @@ import (
 	"backend/db"
 	"backend/db/status"
 	dbus "backend/db/user"
+	"backend/external"
 	"backend/processor"
 	"backend/server"
+	ory "github.com/ory/kratos-client-go"
 
 	"context"
 	"errors"
@@ -65,11 +67,153 @@ func setCommandFlags(c *Commands) {
 	flag.BoolVar(&c.ShowVersion, "version", false, "Show version information")
 }
 
+// selectConfig returns processor and analytics configurations based on the given blockchain mode.
+func selectConfig(blockchainMode string) (processor.Config, analytics.Config, error) {
+	switch blockchainMode {
+	case "Dash":
+		return processor.NewDashConfig(), analytics.NewDashConfig(), nil
+	case "Bitcoin":
+		return processor.NewBitcoinConfig(), analytics.NewBitcoinConfig(), nil
+	case "Doge":
+		return processor.NewDogecoinConfig(), analytics.NewDogecoinConfig(), nil
+	default:
+		return processor.Config{}, analytics.Config{}, errors.New("invalid blockchain mode")
+	}
+}
+
+// disableModules disables modules in config based on analyserConfig
+func disableModules(analyserConfig analytics.Config, config *Config) {
+	if !analyserConfig.IsHeuristicWorkerEnabled {
+		config.Modules.Heuristics = false
+	}
+
+	// disable classifying if it is disabled per configuration
+	if !analyserConfig.IsClassifyingEnabled {
+		config.Modules.Classifier = false
+	}
+
+	// disable HMI clustering if it is disabled per configuration
+	if !analyserConfig.IsHMIClusteringEnabled {
+		config.Modules.Clustering.HMI = false
+	}
+
+	// disable FMI clustering if it is disabled per configuration
+	if !analyserConfig.IsFMIClusteringEnabled {
+		config.Modules.Clustering.FMI = false
+	}
+}
+
+// resetDatabaseDialog asks the user if the database should be reset and performs the reset if necessary.
+// Returns false if the program should be shutdown.
+func resetDatabaseDialog(database external.Database) bool {
+	// get confirmation for database deletion
+	var userAnswer string
+	info("All data in the database will we deleted! Do you want to continue (yes/no)?")
+	if _, err := fmt.Scanln(&userAnswer); err != nil {
+		info(err)
+		return false
+	}
+
+	if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
+		info("Exiting program. Database was not modified.")
+		return false
+	}
+
+	if err := db.DropAll(database); err != nil {
+		info(err)
+		return false
+	}
+	info("Dropped all data.")
+
+	if err := db.SetupSchema(database); err != nil {
+		info(err)
+		return false
+	}
+	info("Successfully set up new schema.")
+
+	if err := status.InitializeMeta(database, blockchainMode); err != nil {
+		info(err)
+		return false
+	}
+	info("Successfully initialized database")
+
+	return true
+}
+
+// createAdminUser creates an admin user if no user exist in the database and
+// prints the credentials to stdout
+func createAdminUser(database external.Database, adminAuth *ory.APIClient) error {
+	// check if users already exist
+	_, userErr := dbus.GetUsers(database)
+	if userErr == nil {
+		return nil
+	}
+
+	// no users exists -> create admin user
+	if errors.Is(userErr, dbus.ErrorUsersNotFound) {
+		adminEmail := "admin@dakar.null"
+		pw, userCreationError := dbus.CreateAdminUser(database, adminAuth, adminEmail)
+		if userCreationError != nil {
+			return userCreationError
+		}
+		// do not log
+		fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
+		fmt.Println("Write the credentials down.")
+	} else {
+		return userErr
+	}
+
+	return nil
+}
+
+// connectBlockchainRPCClient connects to blockchain RPC client specified in the given configuration.
+func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpcclient.Client, error) {
+	rpcEndpoint, err := cli.BuildEndpoint(rpcConfig.Host, rpcConfig.Port)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	connection := rpcclient.ConnConfig{
+		Host:                rpcEndpoint,
+		User:                rpcConfig.User,
+		Pass:                rpcConfig.Password,
+		DisableConnectOnNew: true,
+		DisableTLS:          true,
+		HTTPPostMode:        true,
+	}
+
+	client, err := rpcclient.New(&connection, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	batchClient, err := rpcclient.NewBatch(&connection)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// test if rpc client is active
+	if !waitForRPCClient(client) {
+		// no error text, was already handled in function above
+		return nil, nil, errors.New("")
+	}
+
+	// test if batch rpc client is active
+	if !waitForBatchRPCClient(batchClient) {
+		// no error text, was already handled in function above
+		return nil, nil, errors.New("")
+	}
+
+	return client, batchClient, nil
+}
+
 // The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //
 // The crawler traverses the Dash blockchain and creates a Dgraph database entry for each transaction
 // starting from a given block, and, working backwards, until a given stop block.
+//
+// nolint:gocyclo
 func main() {
 	////// SET FLAGS //////
 
@@ -130,46 +274,15 @@ func main() {
 
 	initAllLoggers()
 
-	// select blockchain config
-	var processorConfig processor.Config
-	var analyserConfig analytics.Config
-
-	switch blockchainMode {
-	case "Dash":
-		processorConfig = processor.NewDashConfig()
-		analyserConfig = analytics.NewDashConfig()
-	case "Bitcoin":
-		processorConfig = processor.NewBitcoinConfig()
-		analyserConfig = analytics.NewBitcoinConfig()
-	case "Doge":
-		processorConfig = processor.NewDogecoinConfig()
-		analyserConfig = analytics.NewDogecoinConfig()
-	default:
+	processorConfig, analyserConfig, err := selectConfig(blockchainMode)
+	if err != nil {
 		fmt.Println("invalid blockchain mode selected: '" + blockchainMode + "'")
 		fmt.Println("the blockchain mode has to be set at compile time via the ldflags option.")
 		fmt.Println("example: go build -ldflags \"-X main.blockchainMode=Dash\" .")
 		return
 	}
 
-	// disable the heuristic worker if it is disabled per configuration
-	if !analyserConfig.IsHeuristicWorkerEnabled {
-		config.Modules.Heuristics = false
-	}
-
-	// disable classifying if it is disabled per configuration
-	if !analyserConfig.IsClassifyingEnabled {
-		config.Modules.Classifier = false
-	}
-
-	// disable HMI clustering if it is disabled per configuration
-	if !analyserConfig.IsHMIClusteringEnabled {
-		config.Modules.Clustering.HMI = false
-	}
-
-	// disable FMI clustering if it is disabled per configuration
-	if !analyserConfig.IsFMIClusteringEnabled {
-		config.Modules.Clustering.FMI = false
-	}
+	disableModules(analyserConfig, &config)
 
 	info("Blockchain mode:", processorConfig.BlockchainName)
 
@@ -199,42 +312,12 @@ func main() {
 	}
 
 	if commands.ResetDB {
-		// get confirmation for database deletion
-		var userAnswer string
-		info("All data in the database will we deleted! Do you want to continue (yes/no)?")
-		if _, err := fmt.Scanln(&userAnswer); err != nil {
-			info(err)
+		if !resetDatabaseDialog(graphDB) {
 			return
 		}
-
-		if strings.TrimSpace(strings.ToLower(userAnswer)) != "yes" {
-			info("Exiting program. Database was not modified.")
-			return
-		}
-
-		err = db.DropAll(graphDB)
-		if err != nil {
-			info(err)
-			return
-		}
-		info("Dropped all data.")
-
-		err = db.SetupSchema(graphDB)
-		if err != nil {
-			info(err)
-			return
-		}
-		info("Successfully set up new schema.")
-
-		err = status.InitializeMeta(graphDB, blockchainMode)
-		if err != nil {
-			info(err)
-			return
-		}
-		info("Successfully initialized database")
 	}
 
-	// exit if not module is active (excluding the metrics module)
+	// exit if no module is active (excluding the metrics module)
 	if !config.Modules.Classifier && !config.Modules.Crawler.Active &&
 		!config.Modules.Clustering.HMI && !config.Modules.Clustering.FMI &&
 		!config.Modules.HTTP.Active {
@@ -278,28 +361,9 @@ func main() {
 
 	// create admin account if none is set
 	if config.Modules.HTTP.Active {
-		// check if users already exist
-		_, userErr := dbus.GetUsers(graphDB)
-		if userErr != nil {
-			// no users exists -> create admin user
-			if errors.Is(userErr, dbus.ErrorUsersNotFound) {
-				adminEmail := "admin@dakar.null"
-				pw, userCreationError := dbus.CreateAdminUser(graphDB, adminAuth, adminEmail)
-				if userCreationError != nil {
-					info(userCreationError)
-					return
-				}
-				// do not log
-				fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-				if len(config.Logfile) > 0 {
-					fmt.Println("Write the credentials down, they will not be written to the log file.")
-				} else {
-					fmt.Println("Write the credentials down.")
-				}
-			} else {
-				info(userErr)
-				return
-			}
+		if err := createAdminUser(graphDB, adminAuth); err != nil {
+			info(err)
+			return
 		}
 	}
 
@@ -309,40 +373,9 @@ func main() {
 	var client *rpcclient.Client
 	var batchClient *rpcclient.Client
 	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
-		rpcEndpoint, err := cli.BuildEndpoint(config.RPC.Host, config.RPC.Port)
+		client, batchClient, err = connectBlockchainRPCClient(config.RPC)
 		if err != nil {
 			info(err)
-			return
-		}
-
-		connection := rpcclient.ConnConfig{
-			Host:                rpcEndpoint,
-			User:                config.RPC.User,
-			Pass:                config.RPC.Password,
-			DisableConnectOnNew: true,
-			DisableTLS:          true,
-			HTTPPostMode:        true,
-		}
-
-		client, err = rpcclient.New(&connection, nil)
-		if err != nil {
-			info(err)
-			return
-		}
-
-		batchClient, err = rpcclient.NewBatch(&connection)
-		if err != nil {
-			info(err)
-			return
-		}
-
-		// test if rpc client is active
-		if !waitForRPCClient(client) {
-			return
-		}
-
-		// test if batch rpc client is active
-		if !waitForBatchRPCClient(batchClient) {
 			return
 		}
 	}
