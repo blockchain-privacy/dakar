@@ -56,6 +56,10 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		return nil, ErrTooManyAddresses
 	}
 
+	if len(exclusions) == 0 {
+		return nil, errors.New("empty argument")
+	}
+
 	addresses := map[string]bool{}
 	for _, c := range exclusions {
 		addresses[c] = true
