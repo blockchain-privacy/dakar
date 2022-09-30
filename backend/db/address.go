@@ -342,6 +342,10 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 
 // GetAddressUIDs returns all requested address nodes
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
+	if len(addressHashes) == 0 {
+		return nil, errEmptyRequestArgument
+	}
+
 	query := `{
 				q(func: eq(addresshash,` + CreateCommaArray(addressHashes) + `)){
 					uid
