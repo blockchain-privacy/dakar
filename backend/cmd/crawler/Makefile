@@ -10,7 +10,7 @@ lint: # Lint the files
 	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
 
 test: ## Run unittests
-	@go test -cover ${PKG_LIST}
+	@go test -cover -v ${PKG_LIST}
 #	@go test -race -short ${PKG_LIST}
 
 vet: ## Run vet
