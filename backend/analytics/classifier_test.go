@@ -474,20 +474,21 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	transactions, err := db.GetTransactionByBlock(dbHandle, 1650016)
 	require.NoError(t, err)
 
-	const ccTxHash = "8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b"
-	var ccTx db.Transaction
-	for _, tx := range transactions {
-		if tx.Hash == ccTxHash {
-			ccTx = tx
-			break
+	var wantedTx = map[string]bool{
+		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b": true,
+		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e": true,
+		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0": true,
+	}
+	var txs = make([]db.Transaction, 0, len(wantedTx))
+	for i, tx := range transactions {
+		if wantedTx[tx.Hash] {
+			tx.PrivacyType = nil
+			txs[i] = tx
 		}
 	}
 
 	// transaction must be in returned set
-	require.True(t, ccTx.Hash != "")
-
-	// reset privacy type
-	ccTx.PrivacyType = nil
+	require.Len(t, txs, len(wantedTx))
 
 	type args struct {
 		dgraph                          external.Database
@@ -495,10 +496,10 @@ func Test_getConnectedCollaterals(t *testing.T) {
 		blockHeight                     uint64
 	}
 	tests := []struct {
-		args         args
-		wantOriginCC map[string]bool // key: transaction hash
-		wantOriginCP map[string]bool // key: transaction hash
-		wantErr      bool
+		args            args
+		wantOriginCCLen int
+		wantOriginCPLen int
+		wantErr         bool
 	}{
 		{
 			args: args{
@@ -506,41 +507,31 @@ func Test_getConnectedCollaterals(t *testing.T) {
 				potentialCollateralTransactions: nil,
 				blockHeight:                     0,
 			},
-			wantOriginCC: nil,
-			wantOriginCP: nil,
-			wantErr:      false,
+			wantOriginCCLen: 0,
+			wantOriginCPLen: 0,
+			wantErr:         false,
 		},
 		{
 			args: args{
 				dgraph:                          dbHandle,
-				potentialCollateralTransactions: []db.Transaction{ccTx},
+				potentialCollateralTransactions: txs,
 				blockHeight:                     1650044,
 			},
-			wantOriginCC: nil,
-			wantOriginCP: nil,
-			wantErr:      false,
+			wantOriginCCLen: 1,
+			wantOriginCPLen: 2,
+			wantErr:         false,
 		},
 	}
 	for _, tt := range tests {
-		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(tt.args.dgraph, tt.args.potentialCollateralTransactions, tt.args.blockHeight)
+		gotOriginCC, gotOriginCP, err := getConnectedCollaterals(tt.args.dgraph,
+			tt.args.potentialCollateralTransactions, tt.args.blockHeight)
 
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			t.Log(gotOriginCP)
-			t.Log(gotOriginCC)
-			// each cc transaction must be in the expected set
-			require.Len(t, gotOriginCC, len(tt.wantOriginCC))
-			for _, cc := range gotOriginCC {
-				require.True(t, tt.wantOriginCC[cc.Hash])
-			}
-
-			// each cp transaction must be in the expected set
-			require.Len(t, gotOriginCP, len(tt.wantOriginCP))
-			for _, cp := range gotOriginCP {
-				require.True(t, tt.wantOriginCP[cp.Hash])
-			}
+			require.Len(t, gotOriginCC, tt.wantOriginCCLen)
+			require.Len(t, gotOriginCP, tt.wantOriginCPLen)
 		}
 	}
 }
