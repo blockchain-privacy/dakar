@@ -212,7 +212,8 @@ func getUids(txs []db.Transaction) []string {
 	return uids
 }
 
-// getConnectedCollaterals returns two sets of collateral transactions which are connected to the given transaction set.
+// getConnectedCollaterals returns a set of collateral creation and a set of
+// collateral payment transactions, which are connected to the given transaction set.
 func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransactions []db.Transaction,
 	blockHeight uint64) (originCC []db.Transaction, originCP []db.Transaction, err error) {
 	for len(potentialCollateralTransactions) > 0 {
