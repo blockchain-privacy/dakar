@@ -479,11 +479,14 @@ func Test_getConnectedCollaterals(t *testing.T) {
 		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e": true,
 		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0": true,
 	}
-	var txs = make([]db.Transaction, 0, len(wantedTx))
-	for i, tx := range transactions {
+
+	i := 0
+	var txs = make([]db.Transaction, len(wantedTx))
+	for _, tx := range transactions {
 		if wantedTx[tx.Hash] {
 			tx.PrivacyType = nil
 			txs[i] = tx
+			i++
 		}
 	}
 
