@@ -145,6 +145,9 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
 	type args struct {
 		dgraph       external.Database
 		attributions []Attribution
