@@ -61,14 +61,6 @@ func TestImportAddressExclusions(t *testing.T) {
 			args: args{
 				dgraph:     dbHandle,
 				exclusions: addresses,
-				userID:     "0xFFFFFF",
-			},
-			wantErr: true,
-		},
-		{
-			args: args{
-				dgraph:     dbHandle,
-				exclusions: addresses,
 				userID:     userUID,
 			},
 			wantErr: false,
