@@ -486,6 +486,9 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	// transaction must be in returned set
 	require.True(t, ccTx.Hash != "")
 
+	// reset privacy type
+	ccTx.PrivacyType = nil
+
 	type args struct {
 		dgraph                          external.Database
 		potentialCollateralTransactions []db.Transaction
