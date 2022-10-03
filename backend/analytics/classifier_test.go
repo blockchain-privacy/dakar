@@ -18,7 +18,7 @@ var dbHandle external.Database
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 const classificationFile = "../db/testdata/blocks_1649985_1650050.json"
 
-func getNumPointer[number int64 | uint64 | uint32](n number) *number {
+func getPointer[number any](n number) *number {
 	return &n
 }
 
@@ -201,13 +201,13 @@ func TestIsCollateralPayment(t *testing.T) {
 	}
 
 	shouldWork1 := db.Transaction{
-		Fee:  getNumPointer[int64](minCollateral),
+		Fee:  getPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 	}
 
@@ -215,45 +215,45 @@ func TestIsCollateralPayment(t *testing.T) {
 		Fee:  new(int64),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 	}
 
 	multipleInputs := db.Transaction{
-		Fee:  getNumPointer[int64](minCollateral),
+		Fee:  getPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 		Inputs: []db.Output{
-			{Amount: getNumPointer[int64](minCollateral)},
-			{Amount: getNumPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
+			{Amount: getPointer[int64](minCollateral)},
 		},
 	}
 
 	bigInput := db.Transaction{
-		Fee:  getNumPointer[int64](minCollateral),
+		Fee:  getPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getNumPointer[int64](500000000000)},
+			{Amount: getPointer[int64](500000000000)},
 		},
 		Inputs: []db.Output{
-			{Amount: getNumPointer[int64](500000000000)},
+			{Amount: getPointer[int64](500000000000)},
 		},
 	}
 
 	smallInput := db.Transaction{
-		Fee:  getNumPointer[int64](minCollateral),
+		Fee:  getPointer[int64](minCollateral),
 		Hash: "9b6306c63f6f57d23a41a904f2a5d8e41d41623a37bbc03da57813a325c342b2",
 		Outputs: []db.Output{
-			{Amount: getNumPointer[int64](1)},
+			{Amount: getPointer[int64](1)},
 		},
 		Inputs: []db.Output{
-			{Amount: getNumPointer[int64](1)},
+			{Amount: getPointer[int64](1)},
 		},
 	}
 
@@ -435,7 +435,7 @@ func TestClassifier_CalculateInitialState(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  &yes,
-		LastBlockID: getNumPointer[uint64](5),
+		LastBlockID: getPointer[uint64](5),
 	}))
 
 	require.NoError(t, classifier.CalculateInitialState())
@@ -539,7 +539,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  &no,
-		LastBlockID: getNumPointer[uint64](60020),
+		LastBlockID: getPointer[uint64](60020),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
@@ -577,7 +577,7 @@ func TestClassifier_Iterate(t *testing.T) {
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: &no,
 		// first block of the file
-		LastBlockID: getNumPointer[uint64](firstBlock),
+		LastBlockID: getPointer[uint64](firstBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
@@ -613,7 +613,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 	yes := true
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
 		IsClassifying:         &yes,
-		LastClassifiedBlockID: getNumPointer[uint64](700),
+		LastClassifiedBlockID: getPointer[uint64](700),
 	}))
 
 	tests := []struct {
@@ -780,5 +780,120 @@ func Test_isMixing(t *testing.T) {
 	}
 	for _, tt := range tests {
 		require.EqualValues(t, tt.want, isMixing(tt.t))
+	}
+}
+
+func Test_newMixingTransaction(t *testing.T) {
+	tests := []struct {
+		uid                   string
+		denominationTypeIndex int
+		want                  db.Transaction
+	}{
+		{
+			uid:                   "some_uid",
+			denominationTypeIndex: 3,
+			want:                  db.Transaction{UID: "some_uid", PrivacyType: getPointer[constants.PrivacyType](constants.MixingTypes[3])},
+		},
+		{
+			uid:                   "some_uid2",
+			denominationTypeIndex: 0,
+			want:                  db.Transaction{UID: "some_uid2", PrivacyType: getPointer[constants.PrivacyType](constants.MixingTypes[0])},
+		},
+	}
+	for _, tt := range tests {
+		tx := newMixingTransaction(tt.uid, tt.denominationTypeIndex)
+		require.Equal(t, tt.want.UID, tx.UID)
+		require.EqualValues(t, *tt.want.PrivacyType, *tx.PrivacyType)
+	}
+}
+
+func Test_newOriginTransaction(t *testing.T) {
+	cp := constants.PrivacyOrigin
+	tests := []struct {
+		uid  string
+		want db.Transaction
+	}{
+		{
+			uid:  "some_uid",
+			want: db.Transaction{UID: "some_uid", PrivacyType: &cp},
+		},
+		{
+			uid:  "some_uid2",
+			want: db.Transaction{UID: "some_uid2", PrivacyType: &cp},
+		},
+	}
+	for _, tt := range tests {
+		tx := newOriginTransaction(tt.uid)
+		require.Equal(t, tt.want.UID, tx.UID)
+		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+	}
+}
+
+func Test_hasValidPrivacyType(t *testing.T) {
+	tests := []struct {
+		tx   db.Transaction
+		want bool
+	}{
+		{tx: db.Transaction{PrivacyType: nil}, want: false},
+		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](0)}, want: true},
+		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](constants.PrivacyCollateralPaymentLast + 1)},
+			want: false},
+		{tx: db.Transaction{PrivacyType: getPointer[constants.PrivacyType](5)}, want: true},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.want, hasValidPrivacyType(tt.tx))
+	}
+}
+
+func Test_classifyTransactions(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+
+	txHashes := []string{
+		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b",
+		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e",
+		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0",
+		"f5c3b60aff1f1f4b2f9c73e5337ae960b3a55a192ccbade90e626699a9922ce3"}
+
+	txs := make([]db.Transaction, len(txHashes))
+	for i, hash := range txHashes {
+		transaction, err := db.GetTransaction(dbHandle, hash)
+		require.NoError(t, err)
+		transaction.PrivacyType = nil
+		txs[i] = transaction
+	}
+
+	tests := []struct {
+		transactions    []db.Transaction
+		wantMixingLen   int
+		wantOriginCCLen int
+		wantOriginCPLen int
+		wantErr         bool
+	}{
+		{
+			transactions:    nil,
+			wantMixingLen:   0,
+			wantOriginCCLen: 0,
+			wantOriginCPLen: 0,
+			wantErr:         false,
+		},
+		{
+			transactions:    txs,
+			wantMixingLen:   1,
+			wantOriginCCLen: 1,
+			wantOriginCPLen: 2,
+			wantErr:         false,
+		},
+	}
+	for _, tt := range tests {
+		mixing, cc, cp, err := classifyTransactions(dbHandle, tt.transactions)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, mixing, tt.wantMixingLen)
+			require.Len(t, cc, tt.wantOriginCCLen)
+			require.Len(t, cp, tt.wantOriginCPLen)
+		}
 	}
 }
