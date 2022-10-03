@@ -730,3 +730,55 @@ func Test_isCollateralPayment(t *testing.T) {
 		require.EqualValues(t, tt.want, isCollateralPayment(tt.t))
 	}
 }
+
+func Test_newCollateralPaymentTransaction(t *testing.T) {
+	cp := constants.PrivacyCollateralPayment
+	tests := []struct {
+		uid  string
+		want db.Transaction
+	}{
+		{
+			uid:  "some_uid",
+			want: db.Transaction{UID: "some_uid", PrivacyType: &cp},
+		},
+		{
+			uid:  "some_uid2",
+			want: db.Transaction{UID: "some_uid2", PrivacyType: &cp},
+		},
+	}
+	for _, tt := range tests {
+		tx := newCollateralPaymentTransaction(tt.uid)
+		require.Equal(t, tt.want.UID, tx.UID)
+		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+	}
+}
+
+func Test_isMixing(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+
+	cp, err := db.GetTransaction(dbHandle, "9ed46089d138decae684f0e18fb387a7a55223f121431c2c279c0ccb85093fdd")
+	require.NoError(t, err)
+	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	require.NoError(t, err)
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	require.NoError(t, err)
+	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	require.NoError(t, err)
+	mixingTx2, err := db.GetTransaction(dbHandle, "26d570199447dbec5fee25443c15d549047cfe5ec825bde89765937283498683")
+	require.NoError(t, err)
+
+	tests := []struct {
+		t    db.Transaction
+		want int
+	}{
+		{t: cp, want: -1},
+		{t: ccTx2, want: -1},
+		{t: mixingTx, want: 3},
+		{t: mixingTx2, want: 3},
+		{t: unclassifiedTx, want: -1},
+	}
+	for _, tt := range tests {
+		require.EqualValues(t, tt.want, isMixing(tt.t))
+	}
+}
