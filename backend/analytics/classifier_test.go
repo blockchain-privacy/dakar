@@ -472,27 +472,18 @@ func Test_getConnectedCollaterals(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	db.SetupDB(t, dbHandle, classificationFile)
 
-	transactions, err := db.GetTransactionByBlock(dbHandle, 1650016)
-	require.NoError(t, err)
+	txHashes := []string{
+		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b",
+		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e",
+		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0"}
 
-	var wantedTx = map[string]bool{
-		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b": true,
-		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e": true,
-		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0": true,
+	txs := make([]db.Transaction, len(txHashes))
+	for i, hash := range txHashes {
+		transaction, err := db.GetTransaction(dbHandle, hash)
+		require.NoError(t, err)
+		transaction.PrivacyType = nil
+		txs[i] = transaction
 	}
-
-	i := 0
-	var txs = make([]db.Transaction, len(wantedTx))
-	for _, tx := range transactions {
-		if wantedTx[tx.Hash] {
-			tx.PrivacyType = nil
-			txs[i] = tx
-			i++
-		}
-	}
-
-	// transaction must be in returned set
-	require.Len(t, txs, len(wantedTx))
 
 	type args struct {
 		dgraph                          external.Database
@@ -652,5 +643,40 @@ func Test_setInitialClassifierID(t *testing.T) {
 		} else {
 			require.NoError(t, err)
 		}
+	}
+}
+
+func Test_isCollateralCreation(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+
+	ccTx, err := db.GetTransaction(dbHandle, "06c58c40b1293720e5f84da7b79648fcbebc610ff1df0075a5fde81238dd88c2")
+	require.NoError(t, err)
+	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	require.NoError(t, err)
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	require.NoError(t, err)
+	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	require.NoError(t, err)
+
+	tests := []struct {
+		t       db.Transaction
+		want    bool
+		wantErr bool
+	}{
+		{t: ccTx, want: true, wantErr: false},
+		{t: ccTx2, want: true, wantErr: false},
+		{t: mixingTx, want: false, wantErr: false},
+		{t: unclassifiedTx, want: false, wantErr: false},
+	}
+	for _, tt := range tests {
+		got, err := isCollateralCreation(dbHandle, tt.t)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.EqualValues(t, tt.want, got)
+		}
+
 	}
 }
