@@ -246,6 +246,56 @@ func GetTransactionByBlock(c external.Database, blockID uint64) (transactions []
 	return
 }
 
+// GetTransaction returns the transaction specified by the transaction hash
+func GetTransaction(c external.Database, txHash string) (transaction Transaction, err error) {
+	if txHash == "" {
+		err = errEmptyRequestArgument
+		return
+	}
+
+	const query = `query Q($txhash:string) {
+				q(func: eq(txhash,$txhash)){
+					uid
+					txhash
+					fee
+					privacytype
+					tx_inputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+					tx_outputs{
+						uid
+						amount
+						inputindex
+						outputindex
+					}
+				}
+			  }`
+
+	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$txhash": txHash})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	var r transactionQuery
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(r.Q) == 0 {
+		err = ErrTransactionNotFound
+		return
+	}
+
+	transaction = r.Q[0]
+
+	return
+}
+
 // GetOutputAddressCounts returns the number of distinct addresses associated
 // with the inputs and outputs of the transaction uid
 func GetOutputAddressCounts(c external.Database, uid string) (inputCount uint32, outputcount uint32, err error) {

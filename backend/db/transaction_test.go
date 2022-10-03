@@ -346,3 +346,35 @@ func TestGetOutputs(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, len(transactions))
 }
+
+func TestGetTransaction(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	tests := []struct {
+		txHash  string
+		wantErr bool
+	}{
+		{
+			txHash:  "",
+			wantErr: true,
+		},
+		{
+			txHash:  "0cfd028caf97751603255b1467085c3ccc5d476d79810ba9608d63587c7986f8",
+			wantErr: false,
+		},
+		{
+			txHash:  "91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		gotTransaction, err := GetTransaction(dbHandle, tt.txHash)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.NotEmpty(t, gotTransaction)
+		}
+	}
+}
