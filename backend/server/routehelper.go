@@ -11,13 +11,14 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
-	client "github.com/ory/kratos-client-go"
 
 	"context"
 	"errors"
 	"net/http"
 	"regexp"
 	"strconv"
+
+	client "github.com/ory/kratos-client-go"
 )
 
 // isValidInput is a regex filter which checks if the input only consists of numbers and letters
@@ -194,6 +195,12 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 	}
 
 	return SearchResult{resultType: typeAddr, result: addr}, true, nil
+}
+
+type tokenUser struct {
+	ID       string      `json:"uid,omitempty"`
+	KratosID string      `json:"kratos_id,omitempty"`
+	Roles    []dbus.Role `json:"roles,omitempty"`
 }
 
 // extractTokenUser extracts the tokenUser from the context.
