@@ -902,8 +902,6 @@ func Test_classifyTransactions(t *testing.T) {
 func TestBlockIterator(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	db.SetupDB(t, dbHandle, classificationFile)
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
-	defer cancelFunc()
 
 	const firstBlock = 1649985
 
@@ -911,13 +909,16 @@ func TestBlockIterator(t *testing.T) {
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: &no,
 		// let's classify 3 blocks
-		LastBlockID: getPointer[uint64](firstBlock + 5),
+		LastBlockID: getPointer[uint64](firstBlock + 2),
 	}))
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
 		IsClassifying: &no,
 		// let's classify 3 blocks
 		LastClassifiedBlockID: getPointer[uint64](firstBlock),
 	}))
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
 
 	require.NoError(t, blockiterator.StartIteration(NewClassifier(ctx, dbHandle, NewDashConfig())))
 }
