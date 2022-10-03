@@ -567,3 +567,36 @@ func TestClassifier_NextBlock(t *testing.T) {
 	require.True(t, got)
 	require.EqualValues(t, lastBlock, classifier.state.Top)
 }
+
+func TestClassifier_CurrentBlock(t *testing.T) {
+	classifier := NewClassifier(context.Background(), nil, NewDashConfig())
+	unregisterCollectors(classifier)
+
+	require.EqualValues(t, 0, classifier.CurrentBlock())
+}
+
+func TestClassifier_Iterate(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+
+	const firstBlock = 1649985
+
+	no := false
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling: &no,
+		// first block of the file
+		LastBlockID: getNumPointer[uint64](firstBlock),
+	}))
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
+	unregisterCollectors(classifier)
+
+	classifier.state.ID = firstBlock
+	classifier.state.Top = firstBlock
+
+	_, err := classifier.Iterate()
+	require.NoError(t, err)
+}
