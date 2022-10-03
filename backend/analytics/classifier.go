@@ -252,7 +252,8 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 	return
 }
 
-// NextBlock tries to increase the internal state to the next block
+// NextBlock tries to increase the internal state to the next block.
+// Returns true if the top block id was changed
 func (c *Classifier) NextBlock() (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(c.db)
 	if err != nil {
