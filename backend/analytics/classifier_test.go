@@ -594,9 +594,13 @@ func TestClassifier_Iterate(t *testing.T) {
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	unregisterCollectors(classifier)
 
+	// state is set to block 0, which does not exist in database
+	_, err := classifier.Iterate()
+	require.Error(t, err)
+
 	classifier.state.ID = firstBlock
 	classifier.state.Top = firstBlock
 
-	_, err := classifier.Iterate()
+	_, err = classifier.Iterate()
 	require.NoError(t, err)
 }
