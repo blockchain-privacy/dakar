@@ -614,3 +614,43 @@ func TestClassifier_PostExecution(t *testing.T) {
 
 	require.NoError(t, classifier.PostExecution())
 }
+
+func Test_setInitialClassifierID(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+	yes := true
+	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+		IsClassifying:         &yes,
+		LastClassifiedBlockID: getNumPointer[uint64](700),
+	}))
+
+	tests := []struct {
+		startBlockClassifier uint64
+		wantErr              bool
+	}{
+		{
+			startBlockClassifier: 0,
+			wantErr:              false,
+		},
+		{
+			startBlockClassifier: 10000,
+			wantErr:              false,
+		},
+		{
+			startBlockClassifier: 500,
+			wantErr:              false,
+		},
+		{
+			startBlockClassifier: 1,
+			wantErr:              false,
+		},
+	}
+	for _, tt := range tests {
+		err := setInitialClassifierID(dbHandle, tt.startBlockClassifier)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
