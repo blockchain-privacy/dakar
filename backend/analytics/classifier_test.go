@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
+	"time"
 )
 
 var dbHandle external.Database
@@ -537,4 +538,32 @@ func Test_getConnectedCollaterals(t *testing.T) {
 			require.Len(t, gotOriginCP, tt.wantOriginCPLen)
 		}
 	}
+}
+
+func TestClassifier_NextBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	no := false
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling:  &no,
+		LastBlockID: getNumPointer[uint64](60020),
+	}))
+
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+
+	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
+	unregisterCollectors(classifier)
+
+	const firstBlock = 60000
+	const lastBlock = 60020
+	// set to first available block
+	classifier.state.ID = firstBlock
+	classifier.state.Top = firstBlock
+
+	got, err := classifier.NextBlock()
+	require.NoError(t, err)
+	require.True(t, got)
+	require.EqualValues(t, lastBlock, classifier.state.Top)
 }
