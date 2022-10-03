@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/blockiterator"
 	"backend/constants"
 	"backend/db"
 	"backend/db/status"
@@ -896,4 +897,27 @@ func Test_classifyTransactions(t *testing.T) {
 			require.Len(t, cp, tt.wantOriginCPLen)
 		}
 	}
+}
+
+func TestBlockIterator(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancelFunc()
+
+	const firstBlock = 1649985
+
+	no := false
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling: &no,
+		// let's classify 3 blocks
+		LastBlockID: getPointer[uint64](firstBlock + 5),
+	}))
+	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
+		IsClassifying: &no,
+		// let's classify 3 blocks
+		LastClassifiedBlockID: getPointer[uint64](firstBlock),
+	}))
+
+	require.NoError(t, blockiterator.StartIteration(NewClassifier(ctx, dbHandle, NewDashConfig())))
 }
