@@ -1,6 +1,7 @@
 package analytics
 
 import (
+	"backend/constants"
 	"backend/db"
 	"backend/db/status"
 	"backend/external"
@@ -678,5 +679,54 @@ func Test_isCollateralCreation(t *testing.T) {
 			require.EqualValues(t, tt.want, got)
 		}
 
+	}
+}
+
+func Test_newCollateralCreationTransaction(t *testing.T) {
+	cc := constants.PrivacyCollateralCreation
+	tests := []struct {
+		uid  string
+		want db.Transaction
+	}{
+		{
+			uid:  "some_uid",
+			want: db.Transaction{UID: "some_uid", PrivacyType: &cc},
+		},
+		{
+			uid:  "some_uid2",
+			want: db.Transaction{UID: "some_uid2", PrivacyType: &cc},
+		},
+	}
+	for _, tt := range tests {
+		tx := newCollateralCreationTransaction(tt.uid)
+		require.Equal(t, tt.want.UID, tx.UID)
+		require.Equal(t, *tt.want.PrivacyType, *tx.PrivacyType)
+	}
+}
+
+func Test_isCollateralPayment(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, classificationFile)
+
+	cp, err := db.GetTransaction(dbHandle, "9ed46089d138decae684f0e18fb387a7a55223f121431c2c279c0ccb85093fdd")
+	require.NoError(t, err)
+	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	require.NoError(t, err)
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	require.NoError(t, err)
+	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	require.NoError(t, err)
+
+	tests := []struct {
+		t    db.Transaction
+		want bool
+	}{
+		{t: cp, want: true},
+		{t: ccTx2, want: false},
+		{t: mixingTx, want: false},
+		{t: unclassifiedTx, want: false},
+	}
+	for _, tt := range tests {
+		require.EqualValues(t, tt.want, isCollateralPayment(tt.t))
 	}
 }
