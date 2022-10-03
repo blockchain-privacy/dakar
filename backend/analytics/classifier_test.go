@@ -604,3 +604,13 @@ func TestClassifier_Iterate(t *testing.T) {
 	_, err = classifier.Iterate()
 	require.NoError(t, err)
 }
+
+func TestClassifier_PostExecution(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	classifier := NewClassifier(context.Background(), dbHandle, NewDashConfig())
+	unregisterCollectors(classifier)
+
+	require.NoError(t, classifier.PostExecution())
+}
