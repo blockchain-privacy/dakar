@@ -91,7 +91,9 @@ func (c *Crawler) IncrementState() error {
 // Empty returns true if the BlockIterator has no more data to iterate on.
 // This happens if State.ID is higher than State.Top
 func (c *Crawler) Empty() bool {
-	return (c.currentBlock != nil && c.currentBlock.NextHash == "") || c.state.top < c.state.id+c.config.ForkRangeLimit
+	return c.currentBlock == nil &&
+		(c.currentBlock != nil && c.currentBlock.NextHash == "") ||
+		c.state.top < c.state.id+c.config.ForkRangeLimit
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing
