@@ -78,6 +78,10 @@ func (c *Crawler) DB() external.Database {
 
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {
+	if c.currentBlock == nil {
+		return errors.New("currentBlock is nil")
+	}
+
 	if err := c.state.increment(c.currentBlock.NextHash); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
