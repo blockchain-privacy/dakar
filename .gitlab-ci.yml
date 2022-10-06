@@ -37,7 +37,16 @@ unit_tests:
   needs: ["dependencies"]
   variables:
     CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
-  script: make test
+  script:
+    - export WORKDIR=$PWD
+    - mkdir -p $GOPATH/src/github.com/btcsuite
+    - cd $GOPATH/src/github.com/btcsuite
+    - git clone https://github.com/btcsuite/btcd
+    - cd btcd
+    - go install -v . ./cmd/...
+    - export PATH=$PATH:$GOPATH/bin
+    - cd $WORKDIR
+    - make test
   services:
     - name: dgraph/standalone:v21.03.2
       alias: dgraph_db # database for db module

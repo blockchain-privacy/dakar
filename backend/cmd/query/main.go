@@ -158,7 +158,7 @@ func main() {
 	}
 
 	// create dgraph client
-	dgraph, c, err := db.CreateClient(endpoint)
+	dgraph, c, err := external.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return

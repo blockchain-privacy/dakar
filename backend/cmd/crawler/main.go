@@ -295,7 +295,7 @@ func main() {
 	}
 
 	// create dgraph client
-	graphDB, c, err := db.CreateClient(endpoint)
+	graphDB, c, err := external.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return
@@ -307,7 +307,7 @@ func main() {
 	}()
 
 	// test if database is active
-	if !db.WaitForDatabase(graphDB) {
+	if !external.WaitForDatabase(graphDB) {
 		return
 	}
 

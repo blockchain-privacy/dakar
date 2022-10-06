@@ -7,17 +7,20 @@ import (
 	"backend/testhelper"
 	"errors"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 )
 
 var dbHandle external.Database
+var client rpcclient.Client
+var batchClient rpcclient.Client
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameProcessor)
+	testhelper.RunDgraphTestsWithRPC(m, &dbHandle, testhelper.ContainerNameProcessor, &client, &batchClient)
 }
 
 func TestIncrementProcessingState(t *testing.T) {

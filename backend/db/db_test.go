@@ -1,6 +1,7 @@
 package db
 
 import (
+	"backend/external"
 	"backend/testhelper"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 	"github.com/stretchr/testify/require"
@@ -11,7 +12,7 @@ import (
 const blockFileName = "testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	RunDgraphTests(m, &dbHandle, ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameDB)
 }
 
 func TestInfo(t *testing.T) {
@@ -247,7 +248,7 @@ func TestDropAll(t *testing.T) {
 
 func TestCreateClient(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	_, c, err := CreateClient(ContainerNameDB + ":9080")
+	_, c, err := external.CreateClient(string(testhelper.ContainerNameDB) + ":9080")
 	require.NoError(t, err)
 	require.NoError(t, c.Close())
 }

@@ -3,11 +3,9 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
-	"backend/testhelper"
 	"errors"
 
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -17,8 +15,6 @@ import (
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const (
@@ -47,16 +43,6 @@ var (
 	errEmptyRequestArgument = errors.New("received empty argument")
 	errInvalidTimeout       = errors.New("invalid timeout")
 	errInvalidResult        = errors.New("invalid result")
-)
-
-type ContainerName string
-
-const (
-	ContainerNameDB        = "dgraph_db"
-	ContainerNameStatus    = "dgraph_status"
-	ContainerNameUser      = "dgraph_user"
-	ContainerNameProcessor = "dgraph_processor"
-	ContainerNameAnalytics = "dgraph_analytics"
 )
 
 // InitLogger creates new loggers with the given parameters.
@@ -209,19 +195,6 @@ func DropAll(db external.Database) error {
 	})
 }
 
-// CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return nil, conn, err
-	}
-
-	return &external.GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
-}
-
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph
 // Example: 0x123,0x1a1d
 func CreateCommaList(uids []string) string {
@@ -239,73 +212,6 @@ func CreateCommaList(uids []string) string {
 // Example: [0x123,0x1a1d]
 func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
-}
-
-// IsConnectionEstablished test the database connection
-func IsConnectionEstablished(c external.Database) bool {
-	ctx, cancel := GetBackendContext()
-	defer cancel()
-	response, err := c.Query(ctx, "{q(func: has(Meta.schemaVersion),first:1){uid}}", nil)
-	_ = response
-	return err == nil
-}
-
-// WaitForDatabase waits until the database is ready to receive requests
-func WaitForDatabase(db external.Database) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		if IsConnectionEstablished(db) {
-			if printedErrMessage {
-				info("Successfully established connection to database.")
-			}
-			return true
-		}
-
-		if !printedErrMessage {
-			info("Waiting for database")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	info("Database is not ready to receive requests.")
-
-	return false
-}
-
-// RunDgraphTests connects to the given dgraph container and runs all tests
-// packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
-	if testhelper.IsCIActive() {
-		// create dgraph client
-		graphDB, c, err := CreateClient(string(containerName) + ":9080")
-		if err != nil {
-			log.Panic(err)
-			return
-		}
-		defer func(c *grpc.ClientConn) {
-			err := c.Close()
-			if err != nil {
-				log.Fatal(err)
-			}
-		}(c)
-
-		if !WaitForDatabase(graphDB) {
-			log.Panic("Could not connect to database", err)
-			return
-		}
-
-		*packageDBHandle = graphDB
-	}
-
-	m.Run()
 }
 
 // SetupDB returns the database to its initial state: drops ALL data,

@@ -13,7 +13,7 @@ var dbHandle external.Database
 const blockFileName = "../testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	db.RunDgraphTests(m, &dbHandle, db.ContainerNameStatus)
+	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameStatus)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
