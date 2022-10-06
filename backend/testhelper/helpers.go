@@ -102,6 +102,8 @@ func RunDgraphTestsWithRPC(m *testing.M, packageDBHandle *external.Database, con
 		}
 
 		*packageDBHandle = graphDB
+
+		// ignore go vet warning. Only the copy is being used.
 		*client = *harness.Client           //nolint:govet
 		*batchClient = *harness.BatchClient //nolint:govet
 	}

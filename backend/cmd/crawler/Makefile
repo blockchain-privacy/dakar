@@ -11,10 +11,6 @@ lint: # Lint the files
 
 test: ## Run unittests
 	@go test -cover ${PKG_LIST}
-#	@go test -race -short ${PKG_LIST}
-
-vet: ## Run vet
-	@go vet ${PKG_LIST}
 
 build: dash bitcoin ## Builds both Dash and Bitcoin
 
