@@ -3,10 +3,7 @@ package processor
 import (
 	"backend/db"
 	"backend/external"
-	"backend/mocks"
 	"backend/testhelper"
-	"errors"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -204,29 +201,27 @@ func TestProcessAddresses(t *testing.T) {
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
-	var rpcClient mocks.RPCClient
-	hash := mocks.RPCVal.HeightMap[1423340]
-	var nilHash *chainhash.Hash
-	expectedBlock := mocks.RPCVal.BlockStore[hash]
+	testhelper.SkipIfNotCI(t)
 	interrupt := make(chan struct{})
-	blkInfo := mocks.RPCVal.BlockchainInfo
 	cfg := NewDashConfig()
-	// for a quick test
+	// for a fast test
 	cfg.NewBlockIntervalTime = 1
 
-	rpcClient.On("GetBlockVerbose", &hash).Return(&expectedBlock, nil)
-	rpcClient.On("GetBlockVerbose", nilHash).Return(nil, errors.New("invalid argument"))
-	rpcClient.On("GetBlockChainInfo").Return(&blkInfo, nil)
+	blkCount, err := client.GetBlockCount()
+	require.NoError(t, err)
+	// add two blocks, so the first block has a reference to the next block
+	hashes, err := client.Generate(2)
+	require.NoError(t, err)
 
 	// normal operation
-	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks-1), cfg)
-	require.Nil(t, err)
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&client, interrupt, hashes[0], uint64(blkCount), cfg)
+	require.NoError(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, uint64(blkInfo.Blocks-1), cfg)
-	require.NotNil(t, err)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&client, interrupt, nil, uint64(blkCount), cfg)
+	require.Error(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
 	var test struct{}
@@ -237,20 +232,16 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 
 	// normal operation but interrupted and higher block
 	// count as available, so it must wait or in this case get interrupted
-	cfg.NewBlockIntervalTime = time.Second
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks+1), cfg)
-	require.Nil(t, err)
+	cfg.NewBlockIntervalTime = time.Minute
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&client, interrupt, hashes[0], uint64(blkCount+2), cfg)
+	require.NoError(t, err)
 	require.True(t, wasInterrupted, "the interrupt flag should have been true")
 	require.Nil(t, currentBlock)
-
-	rpcClient.AssertExpectations(t)
 }
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
-	var rpcClient mocks.RPCClient
-	rpcClient.On("GetBlockChainInfo").Return(&mocks.RPCVal.BlockchainInfo, nil)
-
-	numBlocks, err := getRPCNumberOfBlocks(&rpcClient)
-	require.Nil(t, err)
+	testhelper.SkipIfNotCI(t)
+	numBlocks, err := getRPCNumberOfBlocks(&client)
+	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
 }

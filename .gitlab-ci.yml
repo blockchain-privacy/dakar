@@ -38,13 +38,15 @@ unit_tests:
   variables:
     CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
   script:
+    # create btcd executable
     - export WORKDIR=$PWD
+    - export PATH=$PATH:$GOPATH/bin
     - mkdir -p $GOPATH/src/github.com/btcsuite
     - cd $GOPATH/src/github.com/btcsuite
     - git clone https://github.com/btcsuite/btcd
     - cd btcd
     - go install -v . ./cmd/...
-    - export PATH=$PATH:$GOPATH/bin
+    # start test
     - cd $WORKDIR
     - make test
   services:

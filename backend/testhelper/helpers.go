@@ -102,8 +102,8 @@ func RunDgraphTestsWithRPC(m *testing.M, packageDBHandle *external.Database, con
 		}
 
 		*packageDBHandle = graphDB
-		*client = *harness.Client
-		*batchClient = *harness.BatchClient
+		*client = *harness.Client           //nolint:govet
+		*batchClient = *harness.BatchClient //nolint:govet
 	}
 
 	m.Run()

@@ -426,6 +426,11 @@ func processingInterrupted() {
 // If the next block is available, currentBlock gets updated.
 func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
 	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
+	if hashObj == nil {
+		err = errors.New("blockhash is nil")
+		return
+	}
+
 	ticker := time.NewTicker(config.NewBlockIntervalTime)
 	defer ticker.Stop()
 	for {
