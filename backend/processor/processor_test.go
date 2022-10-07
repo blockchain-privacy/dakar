@@ -715,3 +715,18 @@ func Test_getInitialState(t *testing.T) {
 	_, err = getInitialState(dbHandle, client)
 	require.NoError(t, err)
 }
+
+func Test_createTransactionHashmap(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	blockHashes, err := client.Generate(1)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockHashes)
+
+	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+
+	hashmap, err := createTransactionHashmap(client, verboseBlock.Tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, hashmap)
+}
