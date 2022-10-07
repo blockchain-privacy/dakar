@@ -208,9 +208,14 @@ func createOutputUID(transaction string, outputID uint32) string {
 	return "_:" + transaction + strconv.FormatUint(uint64(outputID), 10)
 }
 
-// buildTransactionMapping processes the transaction specified by 'txHashString'
-// 'txDetails' is the created transaction
-// 'tMap' is the transaction mapping between the transaction and its output, this needed for address processing
+// buildTransactionMapping processes given transaction.
+// arguments:
+// - rawTransaction: the transaction which is being processed
+// - txHashMap: maps transaction hashes to transactions
+// - externalOutputs: mapping between transaction hashes to mapping of indexes to transaction outputs
+// returns:
+// - txDetails: the created transaction
+// - tMap: the transaction mapping between the transaction and its output, this needed for address processing
 func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 	txHashMap map[string]btcjson.TxRawResult, externalOutputs map[string]map[uint32]db.Output,
 	config Config, cache *outputCache) (txDetails db.Transaction, tMap transactionMapping, err error) {
@@ -570,6 +575,7 @@ func createTransactionHashmap(client external.BatchRPCClient,
 	return txs, nil
 }
 
+// getExternalOutputs returns a mapping between transaction hashes and a mapping of indexes to transaction outputs
 func getExternalOutputs(dgraph external.Database,
 	outputs map[string][]uint32) (map[string]map[uint32]db.Output, error) {
 	if len(outputs) == 0 {
