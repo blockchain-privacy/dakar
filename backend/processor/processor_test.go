@@ -2,6 +2,7 @@ package processor
 
 import (
 	"backend/db"
+	"backend/db/status"
 	"backend/external"
 	"backend/testhelper"
 	"github.com/btcsuite/btcd/btcjson"
@@ -665,4 +666,33 @@ func Test_processBlock(t *testing.T) {
 			require.NoError(t, err)
 		}
 	}
+}
+
+func Test_getStartingID(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	require.NoError(t, status.SetCrawling(dbHandle, true))
+
+	gotStartID, err := getStartingID(dbHandle)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, gotStartID)
+
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling: getPointer[bool](true),
+		// make blocks not match
+		LastBlockID: getPointer[uint64](5),
+	}))
+	_, err = getStartingID(dbHandle)
+	require.Error(t, err)
+
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling:  getPointer[bool](true),
+		LastBlockID: getPointer[uint64](60020),
+	}))
+	gotStartID, err = getStartingID(dbHandle)
+	require.NoError(t, err)
+	require.EqualValues(t, 60020, gotStartID)
 }
