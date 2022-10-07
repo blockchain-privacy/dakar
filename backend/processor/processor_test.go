@@ -4,6 +4,7 @@ import (
 	"backend/db"
 	"backend/external"
 	"backend/testhelper"
+	"github.com/btcsuite/btcd/btcjson"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/integration/rpctest"
 	"github.com/btcsuite/btcd/rpcclient"
@@ -49,7 +50,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
-	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd"}, "btcd")
+	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
 	if err != nil {
 		log.Panic("unable to create primary harness: ", err)
 		return
@@ -399,6 +400,58 @@ func Test_buildAddresses(t *testing.T) {
 	}
 	for _, tt := range tests {
 		err := buildAddresses(new(sync.Mutex), tt.args.cache, tt.args.txHash, tt.args.outputs, tt.args.addrMap)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_buildTransactionMapping(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	blockHashes, err := client.Generate(1)
+	require.NoError(t, err)
+	require.Len(t, blockHashes, 1)
+
+	block, err := client.GetBlock(blockHashes[0])
+	require.NoError(t, err)
+	require.NotEmpty(t, block.Transactions)
+
+	txHash := block.Transactions[0].TxHash()
+	rawTxResult, err := client.GetRawTransactionVerbose(&txHash)
+	require.NoError(t, err)
+	require.NotNil(t, rawTxResult)
+
+	type args struct {
+		rawTransaction  btcjson.TxRawResult
+		txHashMap       map[string]btcjson.TxRawResult
+		externalOutputs map[string]map[uint32]db.Output
+		config          Config
+		cache           *outputCache
+	}
+	tests := []struct {
+		args          args
+		wantTxDetails db.Transaction
+		wantTMap      transactionMapping
+		wantErr       bool
+	}{
+		{
+			args: args{
+				rawTransaction:  *rawTxResult,
+				txHashMap:       map[string]btcjson.TxRawResult{},
+				externalOutputs: map[string]map[uint32]db.Output{},
+				config:          NewBitcoinConfig(),
+				cache:           newOutputCache(),
+			},
+			wantTxDetails: db.Transaction{},
+			wantTMap:      transactionMapping{},
+			wantErr:       false,
+		},
+	}
+	for _, tt := range tests {
+		_, _, err := buildTransactionMapping(tt.args.rawTransaction, tt.args.txHashMap, tt.args.externalOutputs, tt.args.config, tt.args.cache)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
