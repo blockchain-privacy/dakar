@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"log"
+	"sync"
 	"testing"
 	"time"
 )
@@ -299,4 +300,109 @@ func TestGetRPCNumberOfBlocks(t *testing.T) {
 	numBlocks, err := getRPCNumberOfBlocks(client)
 	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
+}
+
+func Test_crawlerState_String(t *testing.T) {
+	state := crawlerState{}
+	require.NotEmpty(t, state.String())
+	state.id = 1
+	state.hash = "asdf"
+	require.NotEmpty(t, state.String())
+}
+
+func Test_crawlerState_increment(t *testing.T) {
+	state := crawlerState{}
+	require.NoError(t, state.increment(""))
+	require.EqualValues(t, 0, state.id)
+
+	require.Error(t, state.increment("asdf"))
+	require.EqualValues(t, 0, state.id)
+
+	require.NoError(t, state.increment("000007248b1005ffdcf3f41f3a5630b5cb0078ca5733d931223839821f7f5faa"))
+	require.EqualValues(t, 1, state.id)
+}
+
+func getPointer[number any](n number) *number {
+	return &n
+}
+
+func Test_buildAddresses(t *testing.T) {
+	oCache := newOutputCache()
+	err := oCache.setOutputs("asdf", []db.Output{
+		{OutputIndex: getPointer[uint32](1)},
+		{OutputIndex: getPointer[uint32](2)},
+		{OutputIndex: getPointer[uint32](3)},
+	})
+	require.NoError(t, err)
+
+	type args struct {
+		cache   *outputCache
+		txHash  string
+		outputs map[string]outputMapping
+		addrMap map[string]db.Address
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				cache:   nil,
+				txHash:  "",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:   newOutputCache(),
+				txHash:  "",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:   newOutputCache(),
+				txHash:  "asdf",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				cache:  newOutputCache(),
+				txHash: "asdf",
+				outputs: map[string]outputMapping{"": {
+					hash:    "",
+					indexes: []uint32{1, 2, 3},
+				}},
+				addrMap: map[string]db.Address{},
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:  oCache,
+				txHash: "asdf",
+				outputs: map[string]outputMapping{"": {
+					hash:    "",
+					indexes: []uint32{1, 2, 3},
+				}},
+				addrMap: map[string]db.Address{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := buildAddresses(new(sync.Mutex), tt.args.cache, tt.args.txHash, tt.args.outputs, tt.args.addrMap)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
 }
