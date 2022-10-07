@@ -730,3 +730,40 @@ func Test_createTransactionHashmap(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, hashmap)
 }
+
+func Test_getExternalOutputs(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	tests := []struct {
+		outputs  map[string][]uint32
+		wantSize int
+		wantErr  bool
+	}{
+		{
+			outputs:  nil,
+			wantSize: 0,
+			wantErr:  false,
+		},
+		{
+			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {0, 1}},
+			wantSize: 1,
+			wantErr:  false,
+		},
+		{
+			// wrong indexes -> zero size
+			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {10, 11}},
+			wantSize: 0,
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		outputs, err := getExternalOutputs(dbHandle, tt.outputs)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, outputs, tt.wantSize)
+		}
+	}
+}
