@@ -696,3 +696,22 @@ func Test_getStartingID(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 60020, gotStartID)
 }
+
+func Test_processingInterrupted(t *testing.T) {
+	require.NotPanics(t, func() {
+		processingInterrupted()
+	})
+}
+
+func Test_getInitialState(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	_, err := getInitialState(dbHandle, client)
+	require.Error(t, err)
+
+	require.NoError(t, status.SetCrawling(dbHandle, true))
+
+	_, err = getInitialState(dbHandle, client)
+	require.NoError(t, err)
+}
