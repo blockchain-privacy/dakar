@@ -17,10 +17,9 @@ import (
 )
 
 var (
-	dbHandle external.Database
-	client   *rpcclient.Client
-	// batch client not needed for now
-	// batchClient *rpcclient.Client
+	dbHandle    external.Database
+	client      *rpcclient.Client
+	batchClient *rpcclient.Client
 )
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
@@ -60,10 +59,10 @@ func TestMain(m *testing.M) {
 		_ = harness.TearDown()
 	}(harness)
 
-	// Initialize the primary mining node with a chain of length 125,
-	// providing 25 mature coinbases to allow spending from for testing
+	// Initialize the primary mining node with a chain of length 105,
+	// providing 5 mature coinbases to allow spending from for testing
 	// purposes.
-	if err := harness.SetUp(true, 25); err != nil {
+	if err := harness.SetUp(true, 5); err != nil {
 		log.Panic("unable to setup test chain: ", err)
 		return
 	}
@@ -71,8 +70,7 @@ func TestMain(m *testing.M) {
 	dbHandle = graphDB
 
 	client = harness.Client
-	// batch client not needed for now
-	// batchClient = harness.BatchClient
+	batchClient = harness.BatchClient
 
 	m.Run()
 }
@@ -415,14 +413,27 @@ func Test_buildTransactionMapping(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, blockHashes, 1)
 
-	block, err := client.GetBlock(blockHashes[0])
+	block, err := client.GetBlockVerbose(blockHashes[0])
 	require.NoError(t, err)
-	require.NotEmpty(t, block.Transactions)
+	require.NotEmpty(t, block.Tx)
 
-	txHash := block.Transactions[0].TxHash()
+	basicBlock, err := client.GetBlock(blockHashes[0])
+	require.NoError(t, err)
+	require.NotEmpty(t, basicBlock.Transactions)
+
+	txHash := basicBlock.Transactions[0].TxHash()
 	rawTxResult, err := client.GetRawTransactionVerbose(&txHash)
 	require.NoError(t, err)
 	require.NotNil(t, rawTxResult)
+
+	txHashMap, err := createTransactionHashmap(batchClient, block.Tx)
+	require.NoError(t, err)
+
+	txWithoutAddresses := rawTxResult
+	for i := range txWithoutAddresses.Vout {
+		txWithoutAddresses.Vout[i].ScriptPubKey.Addresses = nil
+		txWithoutAddresses.Vout[i].ScriptPubKey.Type = "pubkeyhash"
+	}
 
 	type args struct {
 		rawTransaction  btcjson.TxRawResult
@@ -440,7 +451,19 @@ func Test_buildTransactionMapping(t *testing.T) {
 		{
 			args: args{
 				rawTransaction:  *rawTxResult,
-				txHashMap:       map[string]btcjson.TxRawResult{},
+				txHashMap:       txHashMap,
+				externalOutputs: map[string]map[uint32]db.Output{},
+				config:          NewBitcoinConfig(),
+				cache:           newOutputCache(),
+			},
+			wantTxDetails: db.Transaction{},
+			wantTMap:      transactionMapping{},
+			wantErr:       false,
+		},
+		{
+			args: args{
+				rawTransaction:  *txWithoutAddresses,
+				txHashMap:       txHashMap,
 				externalOutputs: map[string]map[uint32]db.Output{},
 				config:          NewBitcoinConfig(),
 				cache:           newOutputCache(),
