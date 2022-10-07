@@ -71,6 +71,14 @@ lint_code:
     <<: *modcache
     policy: pull
 
+vet:
+  stage: test
+  needs: ["dependencies"]
+  script: make vet
+  cache:
+    <<: *modcache
+    policy: pull
+
 build:
   stage: build
   script: make

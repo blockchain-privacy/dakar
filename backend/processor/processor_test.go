@@ -14,10 +14,12 @@ import (
 	"time"
 )
 
-var dbHandle external.Database
-var client *rpcclient.Client
-
-// var batchClient *rpcclient.Client
+var (
+	dbHandle external.Database
+	client   *rpcclient.Client
+	// batch client not needed for now
+	// batchClient *rpcclient.Client
+)
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 
@@ -45,7 +47,8 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd"}, "")
+	// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
+	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd"}, "btcd")
 	if err != nil {
 		log.Panic("unable to create primary harness: ", err)
 		return
@@ -60,12 +63,14 @@ func TestMain(m *testing.M) {
 	// purposes.
 	if err := harness.SetUp(true, 25); err != nil {
 		log.Panic("unable to setup test chain: ", err)
+		return
 	}
 
 	dbHandle = graphDB
 
 	client = harness.Client
-	// batchClient = harness.BatchClient //nolint:govet
+	// batch client not needed for now
+	// batchClient = harness.BatchClient
 
 	m.Run()
 }

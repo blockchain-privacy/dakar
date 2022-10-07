@@ -13,17 +13,20 @@ lint: # Lint the files
 test: ## Run unittests
 	@go test -cover ${PKG_LIST}
 
+vet: ## Run vet
+	@go vet ${PKG_LIST}
+
 build: dash bitcoin ## Builds both Dash and Bitcoin
 
 dash: ## Build the Dash binary
-	go build -v -ldflags "-X main.blockchainMode=Dash" -o $(BUILD_DIR)/crawler_dash $(CRAWLER_DIR)
+	@go build -v -ldflags "-X main.blockchainMode=Dash" -o $(BUILD_DIR)/crawler_dash $(CRAWLER_DIR)
 
 bitcoin: ## Build the Bitcoin binary
-	go build -v -ldflags "-X main.blockchainMode=Bitcoin" -modfile $(CRAWLER_DIR)/build/bitcoin_go.mod -o $(BUILD_DIR)/crawler_bitcoin $(CRAWLER_DIR)
+	@go build -v -ldflags "-X main.blockchainMode=Bitcoin" -modfile $(CRAWLER_DIR)/build/bitcoin_go.mod -o $(BUILD_DIR)/crawler_bitcoin $(CRAWLER_DIR)
 
 tidy: ## Run go mod tidy on the default go.mod file and bitcoin go.mod file
-	go mod tidy
-	go mod tidy -modfile ./cmd/crawler/build/bitcoin_go.mod
+	@go mod tidy
+	@go mod tidy -modfile ./cmd/crawler/build/bitcoin_go.mod
 
 clean: ## Remove previous build
 	@rm -rf $(BUILD_DIR)
