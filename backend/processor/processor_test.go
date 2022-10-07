@@ -4,20 +4,70 @@ import (
 	"backend/db"
 	"backend/external"
 	"backend/testhelper"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/integration/rpctest"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"log"
 	"testing"
 	"time"
 )
 
 var dbHandle external.Database
-var client rpcclient.Client
-var batchClient rpcclient.Client
+var client *rpcclient.Client
+
+// var batchClient *rpcclient.Client
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTestsWithRPC(m, &dbHandle, testhelper.ContainerNameProcessor, &client, &batchClient)
+	if !testhelper.IsCIActive() {
+		m.Run()
+		return
+	}
+
+	// create dgraph client
+	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameProcessor) + ":9080")
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+	defer func(c *grpc.ClientConn) {
+		err := c.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(c)
+
+	if !external.WaitForDatabase(graphDB) {
+		log.Panic("Could not connect to database", err)
+		return
+	}
+
+	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd"}, "")
+	if err != nil {
+		log.Panic("unable to create primary harness: ", err)
+		return
+	}
+
+	defer func(harness *rpctest.Harness) {
+		_ = harness.TearDown()
+	}(harness)
+
+	// Initialize the primary mining node with a chain of length 125,
+	// providing 25 mature coinbases to allow spending from for testing
+	// purposes.
+	if err := harness.SetUp(true, 25); err != nil {
+		log.Panic("unable to setup test chain: ", err)
+	}
+
+	dbHandle = graphDB
+
+	client = harness.Client
+	// batchClient = harness.BatchClient //nolint:govet
+
+	m.Run()
 }
 
 func TestIncrementProcessingState(t *testing.T) {
@@ -214,13 +264,13 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// normal operation
-	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&client, interrupt, hashes[0], uint64(blkCount), cfg)
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount), cfg)
 	require.NoError(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&client, interrupt, nil, uint64(blkCount), cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, nil, uint64(blkCount), cfg)
 	require.Error(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
@@ -233,7 +283,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 	// normal operation but interrupted and higher block
 	// count as available, so it must wait or in this case get interrupted
 	cfg.NewBlockIntervalTime = time.Minute
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&client, interrupt, hashes[0], uint64(blkCount+2), cfg)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount+2), cfg)
 	require.NoError(t, err)
 	require.True(t, wasInterrupted, "the interrupt flag should have been true")
 	require.Nil(t, currentBlock)
@@ -241,7 +291,7 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	numBlocks, err := getRPCNumberOfBlocks(&client)
+	numBlocks, err := getRPCNumberOfBlocks(client)
 	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
 }
