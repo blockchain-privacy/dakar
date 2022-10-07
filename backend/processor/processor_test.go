@@ -482,3 +482,57 @@ func Test_buildTransactionMapping(t *testing.T) {
 		}
 	}
 }
+
+func Test_filterExternalOutputs(t *testing.T) {
+	txMap := map[string]btcjson.TxRawResult{"": {
+		Vin: []btcjson.Vin{
+			{Txid: "txhash1", Vout: 0},
+			{Txid: "txhash1", Vout: 1},
+			{Txid: "txhash1", Vout: 2},
+			{Txid: "txhash2", Vout: 3},
+			{Txid: "txhash2", Vout: 4},
+			{Txid: "txhash2", Vout: 5},
+		},
+	},
+	}
+
+	cache := newOutputCache()
+	require.NoError(t, cache.setOutputs("txhash2", []db.Output{
+		{OutputIndex: getPointer[uint32](4)},
+		{OutputIndex: getPointer[uint32](5)},
+	}))
+
+	type args struct {
+		txHashMap map[string]btcjson.TxRawResult
+		cache     *outputCache
+	}
+	tests := []struct {
+		args args
+		want map[string][]uint32
+	}{
+		{
+			args: args{
+				txHashMap: nil,
+				cache:     nil,
+			},
+			want: map[string][]uint32{},
+		},
+		{
+			args: args{
+				txHashMap: txMap,
+				cache:     newOutputCache(),
+			},
+			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3, 4, 5}},
+		},
+		{
+			args: args{
+				txHashMap: txMap,
+				cache:     cache,
+			},
+			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3}},
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.want, filterExternalOutputs(tt.args.txHashMap, tt.args.cache))
+	}
+}
