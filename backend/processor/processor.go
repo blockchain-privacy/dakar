@@ -133,13 +133,17 @@ func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, output
 		return errors.New("cache is not set")
 	}
 
+	if txHash == "" {
+		return errors.New("transaction hash is empty")
+	}
+
 	for _, mapping := range outputs {
 		var uids []string
 		for _, idx := range mapping.indexes {
 			output := cache.getOutput(txHash, idx)
 
 			if output == nil {
-				return errors.New("requested output not found in cache")
+				return fmt.Errorf("requested output not found in cache: hash: %s index: %d", txHash, idx)
 			}
 
 			uids = append(uids, output.UID)
