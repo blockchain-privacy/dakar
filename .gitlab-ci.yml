@@ -17,11 +17,9 @@ variables:
 dependencies:
   stage: dependencies
   script:
-    - cd ../..
     - go mod download
     - go get -v -d ./...
   cache: *modcache
-
 
 stages:
   - dependencies
@@ -30,7 +28,7 @@ stages:
 
 before_script:
   - cat /etc/hosts
-  - cd backend/cmd/crawler
+  - cd backend
 
 unit_tests:
   stage: test
@@ -82,4 +80,4 @@ build:
 
 #  artifacts:
 #    paths:
-#    - backend/cmd/crawler/crawler
+#    - cmd/crawler/crawler
