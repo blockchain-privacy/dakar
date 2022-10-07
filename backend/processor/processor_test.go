@@ -536,3 +536,133 @@ func Test_filterExternalOutputs(t *testing.T) {
 		require.Equal(t, tt.want, filterExternalOutputs(tt.args.txHashMap, tt.args.cache))
 	}
 }
+
+func Test_processTxVin(t *testing.T) {
+	cache := newOutputCache()
+	require.NoError(t, cache.setOutputs("txhash1", []db.Output{
+		{
+			OutputIndex: getPointer[uint32](0),
+			Amount:      getPointer[int64](3),
+		},
+	}))
+	type args struct {
+		details         *db.Transaction
+		externalOutputs map[string]map[uint32]db.Output
+		vin             btcjson.Vin
+		index           uint32
+		txHashMap       map[string]btcjson.TxRawResult
+		cache           *outputCache
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index: 0,
+				txHashMap: map[string]btcjson.TxRawResult{"txhash1": {
+					Hash: "txhash1",
+					Vout: []btcjson.Vout{{Value: 0}},
+				}},
+				cache: newOutputCache(),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index:     0,
+				txHashMap: map[string]btcjson.TxRawResult{},
+				cache:     newOutputCache(),
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index:     0,
+				txHashMap: map[string]btcjson.TxRawResult{},
+				cache:     cache,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := processTxVin(tt.args.details, tt.args.externalOutputs, tt.args.vin,
+			tt.args.index, tt.args.txHashMap, tt.args.cache)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, tt.args.details.Inputs, 1)
+		}
+	}
+}
+
+func Test_processBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	transactions, err := db.GetTransactionByBlock(dbHandle, 60000)
+	require.NoError(t, err)
+
+	type args struct {
+		transactions  []db.Transaction
+		currentHash   string
+		blockID       uint64
+		timestamp     string
+		prevBlockHash string
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				transactions:  transactions,
+				currentHash:   "some_hash",
+				blockID:       5,
+				timestamp:     time.Now().Format(time.RFC3339),
+				prevBlockHash: "some_other_hash",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := processBlock(dbHandle, tt.args.transactions, tt.args.currentHash,
+			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
