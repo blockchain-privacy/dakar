@@ -767,3 +767,44 @@ func Test_getExternalOutputs(t *testing.T) {
 		}
 	}
 }
+
+func Test_processRound(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	blockHashes, err := client.Generate(2)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockHashes)
+
+	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+
+	type args struct {
+		state  crawlerState
+		block  *btcjson.GetBlockVerboseResult
+		config Config
+		cache  *outputCache
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				state:  crawlerState{top: uint64(3), id: uint64(1)},
+				block:  verboseBlock,
+				config: NewBitcoinConfig(),
+				cache:  newOutputCache(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		_, _, err := processRound(dbHandle, batchClient, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
