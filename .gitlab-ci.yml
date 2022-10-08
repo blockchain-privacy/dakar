@@ -86,7 +86,7 @@ build:
     <<: *modcache
     policy: pull
 
-  artifacts:
-    paths:
-    - backend/build/crawler_dash
-    - backend/build/crawler_bitcoin
+#  artifacts:
+#    paths:
+#    - backend/build/crawler_dash
+#    - backend/build/crawler_bitcoin
