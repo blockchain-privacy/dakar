@@ -86,6 +86,7 @@ build:
     <<: *modcache
     policy: pull
 
-#  artifacts:
-#    paths:
-#    - cmd/crawler/crawler
+  artifacts:
+    paths:
+    - build/crawler_dash
+    - build/crawler_bitcoin
