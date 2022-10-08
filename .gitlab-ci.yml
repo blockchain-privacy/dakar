@@ -88,5 +88,5 @@ build:
 
   artifacts:
     paths:
-    - build/crawler_dash
-    - build/crawler_bitcoin
+    - backend/build/crawler_dash
+    - backend/build/crawler_bitcoin
