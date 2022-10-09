@@ -308,6 +308,7 @@ func main() {
 
 	// test if database is active
 	if !external.WaitForDatabase(graphDB) {
+		info("could not connect to database")
 		return
 	}
 

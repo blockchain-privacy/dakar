@@ -8,7 +8,6 @@ import (
 	"github.com/dgraph-io/dgo/v210/protos/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"log"
 	"time"
 )
 
@@ -55,40 +54,23 @@ func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 }
 
 // WaitForDatabase waits until the database is ready to receive requests
-func WaitForDatabase(db Database) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		if IsConnectionEstablished(db) {
-			if printedErrMessage {
-				log.Println("Successfully established connection to database.")
-			}
+func WaitForDatabase(c Database) bool {
+	for i := 0; i < 20; i++ {
+		if IsConnectionEstablished(c) {
 			return true
 		}
 
-		if !printedErrMessage {
-			log.Println("Waiting for database")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
+		time.Sleep(time.Second * 5)
 	}
-
-	log.Println("Database is not ready to receive requests.")
 
 	return false
 }
 
 // IsConnectionEstablished test the database connection
 func IsConnectionEstablished(c Database) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	response, err := c.Query(ctx, "{q(func: has(Meta.schemaVersion),first:1){uid}}", nil)
-	_ = response
+	_, err := c.Query(ctx, "{q(func: uid(0x1)){uid}}", nil)
+
 	return err == nil
 }
