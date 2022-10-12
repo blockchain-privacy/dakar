@@ -2,7 +2,7 @@ BUILD_DIR := "build"
 PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 CRAWLER_DIR := "./cmd/crawler"
 
-.PHONY: all dep build clean test lint tidy
+.PHONY: all dep build clean test lint tidy update_dependencies
 
 all: build
 
@@ -17,6 +17,10 @@ vet: ## Run vet
 	@go vet ${PKG_LIST}
 
 build: dash bitcoin ## Builds both Dash and Bitcoin
+
+update_dependencies:
+	@go get -u ./...
+	@go get -u -modfile $(CRAWLER_DIR)/build/bitcoin_go.mod ./...
 
 dash: ## Build the Dash binary
 	@go build -v -ldflags "-X main.blockchainMode=Dash" -o $(BUILD_DIR)/crawler_dash $(CRAWLER_DIR)
