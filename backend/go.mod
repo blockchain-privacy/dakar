@@ -47,4 +47,4 @@ require (
 	google.golang.org/protobuf v1.28.1 // indirect
 )
 
-replace github.com/btcsuite/btcd => github.com/qrest/btcd v0.23.2-dakar
+replace github.com/btcsuite/btcd => github.com/decfi/btcd v0.23.2-dakar
