@@ -99,8 +99,8 @@ var defaultConfig = Config{
 	},
 }
 
-// checkHTTPModuleConfig returns an error if the given http module has invalid values
-func checkHTTPModuleConfig(c APIModule) error {
+// checkAPIModuleConfig returns an error if the given http module has invalid values
+func checkAPIModuleConfig(c APIModule) error {
 	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
 		return errors.New("http module config invalid, not all fields are filled")
 	}
@@ -205,36 +205,6 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 	return false
 }
 
-// waitForDatabase waits until the database is ready to receive requests
-func waitForDatabase(db external.Database) bool {
-	const maxRetries = 20
-	const retrySleepDuration = time.Second * 5
-
-	var printedErrMessage bool
-
-	for i := 0; i < maxRetries; i++ {
-		if status.IsConnectionEstablished(db) {
-			if printedErrMessage {
-				info("Successfully established connection to database.")
-			}
-			return true
-		}
-
-		if !printedErrMessage {
-			info("Waiting for database")
-			printedErrMessage = true
-		}
-
-		if i+1 < maxRetries {
-			time.Sleep(retrySleepDuration)
-		}
-	}
-
-	info("Database is not ready to receive requests.")
-
-	return false
-}
-
 // shutdownServer sends a shutdown signal to the server with a timout of 10 seconds
 func shutdownServer(srv *http.Server) {
 	if srv == nil {
@@ -307,6 +277,10 @@ func checkMeta(db external.Database) bool {
 
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
+	if endpoint == "" {
+		return nil, fmt.Errorf("endpoint is invalid: '%s'", endpoint)
+	}
+
 	cj, err := cookiejar.New(nil)
 	if err != nil {
 		return nil, err
@@ -322,6 +296,10 @@ func newKratosClient(endpoint string) (*ory.APIClient, error) {
 
 // isKratosAlive returns true if a successful connection to kratos has been established
 func isKratosAlive(auth *ory.APIClient) bool {
+	if auth == nil || auth.MetadataApi == nil {
+		return false
+	}
+
 	// check if endpoint is alive
 	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()

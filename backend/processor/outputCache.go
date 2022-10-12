@@ -2,15 +2,14 @@ package processor
 
 import (
 	"backend/cmd/cliutil"
-	dbop "backend/db/output"
-	dbtx "backend/db/transaction"
+	"backend/db"
 	"backend/external"
 	"errors"
 	"fmt"
 )
 
 type outputCache struct {
-	c map[string]map[uint32]dbop.Output
+	c map[string]map[uint32]db.Output
 }
 
 // newUTXOCache loads the unspent transaction outputs from the last initialLoadSize blocks
@@ -22,7 +21,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 	// load blocks in batches from db
 	const steps = 100
-	var transactions []dbtx.Transaction
+	var transactions []db.Transaction
 	stop := false
 	for i := fromBlock; !stop; i += steps {
 		to := i + steps - 1
@@ -31,7 +30,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 			stop = true
 		}
 
-		stepTransactions, err := dbtx.GetOutputs(dgraph, i, to)
+		stepTransactions, err := db.GetOutputs(dgraph, i, to)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		}
@@ -39,13 +38,13 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 		transactions = append(transactions, stepTransactions...)
 	}
 
-	cache := outputCache{c: make(map[string]map[uint32]dbop.Output)}
+	cache := outputCache{c: make(map[string]map[uint32]db.Output)}
 
 	for _, t := range transactions {
 		if len(t.Outputs) == 0 {
 			continue
 		}
-		var utxos []dbop.Output
+		var utxos []db.Output
 
 		for _, o := range t.Outputs {
 			if o.InputIndex == nil {
@@ -65,7 +64,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 // newOutputCache returns an empty output cache
 func newOutputCache() *outputCache {
-	return &outputCache{c: make(map[string]map[uint32]dbop.Output)}
+	return &outputCache{c: make(map[string]map[uint32]db.Output)}
 }
 
 // getOutputCounts returns the number of outputs in the cache
@@ -80,7 +79,7 @@ func (u *outputCache) getOutputCounts() int {
 }
 
 // setOutputs sets the outputs for the specified transaction hash.
-func (u *outputCache) setOutputs(txHash string, outputs []dbop.Output) error {
+func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	if len(outputs) == 0 {
 		return fmt.Errorf("tried to set zero outputs for transaction %s", txHash)
 	}
@@ -92,7 +91,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []dbop.Output) error {
 	if _, ok := u.c[txHash]; ok {
 		return nil
 	}
-	outputMap := make(map[uint32]dbop.Output)
+	outputMap := make(map[uint32]db.Output)
 	for _, o := range outputs {
 		if o.OutputIndex == nil {
 			return fmt.Errorf("output index is not set for tx %s", txHash)
@@ -105,7 +104,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []dbop.Output) error {
 }
 
 // getOutput returns specified output
-func (u *outputCache) getOutput(txHash string, outputIndex uint32) *dbop.Output {
+func (u *outputCache) getOutput(txHash string, outputIndex uint32) *db.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil
@@ -118,7 +117,7 @@ func (u *outputCache) getOutput(txHash string, outputIndex uint32) *dbop.Output 
 }
 
 // deleteOutput returns the output specified output and deletes it afterwards
-func (u *outputCache) getAndEvictOutput(txHash string, outputIndex uint32) *dbop.Output {
+func (u *outputCache) getAndEvictOutput(txHash string, outputIndex uint32) *db.Output {
 	t, ok := u.c[txHash]
 	if !ok {
 		return nil

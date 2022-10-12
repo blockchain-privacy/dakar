@@ -1,11 +1,11 @@
 package heuristics
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
-	dbop "backend/db/output"
 	"backend/external"
 	"fmt"
 )
@@ -112,8 +112,8 @@ func (h denominationTypeHeuristic) clone() heuristic {
 }
 
 // denominationTypeHeuristic applies the following heuristic:
-// - filter all origins of sources, which have denominations of types which do not occur in the
-//		denominations of the destination transaction
+//   - filter all origins of sources, which have denominations of types which do not occur in the
+//     denominations of the destination transaction
 func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txHash string,
 	parentHeuristicUID string) ([]heuristics.HeuristicCluster, error) {
 	// origins hold all origins found bei either the parent heuristic
@@ -179,8 +179,8 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 }
 
 // returns true if both destinationDenominations and originDenominations have the exact same types
-func hasSameDenominationTypes(destinationDenominations [dbop.NumDenominations]int,
-	originDenominations [dbop.NumDenominations]int) bool {
+func hasSameDenominationTypes(destinationDenominations [analytics.NumDenominations]int,
+	originDenominations [analytics.NumDenominations]int) bool {
 	for i, destinationDenomination := range destinationDenominations {
 		if originDenominations[i] == destinationDenomination && destinationDenomination == 0 {
 			continue

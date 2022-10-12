@@ -1,15 +1,80 @@
 package processor
 
 import (
-	dbaddr "backend/db/address"
-	dbop "backend/db/output"
-	"backend/mocks"
-	"errors"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"backend/db"
+	"backend/db/status"
+	"backend/external"
+	"backend/testhelper"
+	"github.com/btcsuite/btcd/btcjson"
+	"github.com/btcsuite/btcd/chaincfg"
+	"github.com/btcsuite/btcd/integration/rpctest"
+	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc"
+	"log"
+	"sync"
 	"testing"
 	"time"
 )
+
+var (
+	dbHandle    external.Database
+	client      *rpcclient.Client
+	batchClient *rpcclient.Client
+)
+
+const blockFileName = "../db/testdata/blocks_60000_60020.json"
+
+func TestMain(m *testing.M) {
+	if !testhelper.IsCIActive() {
+		m.Run()
+		return
+	}
+
+	// create dgraph client
+	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameProcessor) + ":9080")
+	if err != nil {
+		log.Panic(err)
+		return
+	}
+	defer func(c *grpc.ClientConn) {
+		err := c.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(c)
+
+	if !external.WaitForDatabase(graphDB) {
+		log.Panic("Could not connect to database", err)
+		return
+	}
+
+	// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
+	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
+	if err != nil {
+		log.Panic("unable to create primary harness: ", err)
+		return
+	}
+
+	defer func(harness *rpctest.Harness) {
+		_ = harness.TearDown()
+	}(harness)
+
+	// Initialize the primary mining node with a chain of length 105,
+	// providing 5 mature coinbases to allow spending from for testing
+	// purposes.
+	if err := harness.SetUp(true, 5); err != nil {
+		log.Panic("unable to setup test chain: ", err)
+		return
+	}
+
+	dbHandle = graphDB
+
+	client = harness.Client
+	batchClient = harness.BatchClient
+
+	m.Run()
+}
 
 func TestIncrementProcessingState(t *testing.T) {
 	const (
@@ -103,7 +168,7 @@ func TestAddOutputToMapping(t *testing.T) {
 }
 
 func TestAddOutputsToAddresses(t *testing.T) {
-	addresses := make(map[string]dbaddr.Address)
+	addresses := make(map[string]db.Address)
 	cases := []struct {
 		address        string
 		uids           []string
@@ -147,88 +212,72 @@ func TestCreateOutputUid(t *testing.T) {
 }
 
 func TestProcessAddresses(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	// calling with empty mapping is allowed
+	require.NoError(t, processAddresses(dbHandle, nil, nil))
+
+	// cache is necessary if mapping is not empty
+	require.Error(t, processAddresses(dbHandle, nil, []transactionMapping{{}}))
+
 	const (
-		fistAddress   = "XsAptUZUmtL8onHcuJSvGM8MyvR7QCpw9u"
-		secondAddress = "Xoi9jutn8qbtxvd2V3xqqSQnpdqPrCzP1K"
-		txHash        = "123456"
+		fistAddress   = "XonqFxADHJxSwZCuka5h46HXAdFfBMQc21"
+		secondAddress = "XvdH1vasQtDv7LvQuD2u124ibKFwNsPFv9"
+		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b"
 	)
 
-	oMap := make(map[string]outputMapping)
-	oMap[fistAddress] = outputMapping{
-		hash:    fistAddress,
-		indexes: []uint32{0},
-	}
-	oMap[secondAddress] = outputMapping{
-		hash:    secondAddress,
-		indexes: []uint32{1},
-	}
+	mapping, err := db.GetTransactionsOutputs(dbHandle, []string{txHash})
+	require.NoError(t, err)
+	require.Len(t, mapping, 1)
+	require.Len(t, mapping[0].Outputs, 2)
 
 	txMap := transactionMapping{
-		hash:    txHash,
-		outputs: oMap,
+		hash: txHash,
+		outputs: map[string]outputMapping{
+			fistAddress: {
+				hash:    fistAddress,
+				indexes: []uint32{0},
+			},
+			secondAddress: {
+				hash:    secondAddress,
+				indexes: []uint32{1},
+			},
+		},
 	}
 
-	zero := uint32(0)
-	one := uint32(1)
-	one64 := int64(1)
-	fourNines := int64(9999)
-	wrong := false
-	output1 := dbop.Output{
-		UID:         "0x59b84",
-		OutputIndex: &zero,
-		InputIndex:  nil,
-		TxType:      "pubkeyhash",
-		Amount:      &one64,
-		IsCoinbase:  &wrong,
-		DType:       nil,
-	}
-
-	output2 := dbop.Output{
-		UID:         "0x59b85",
-		OutputIndex: &one,
-		InputIndex:  nil,
-		TxType:      "pubkeyhash",
-		Amount:      &fourNines,
-		IsCoinbase:  &wrong,
-		DType:       nil,
-	}
-
-	outputArr := []dbop.Output{
-		output1, output2,
-	}
+	var outputs [2]db.Output
+	outputs[0] = mapping[0].Outputs[0]
+	outputs[1] = mapping[0].Outputs[1]
 
 	cache := newOutputCache()
-	require.Nil(t, cache.setOutputs(txHash, outputArr))
+	require.NoError(t, cache.setOutputs(txHash, outputs[:]))
 
-	db := new(mocks.Database)
-	mocks.MapUpsertAddresses(db)
-	require.Nil(t, processAddresses(db, cache, []transactionMapping{txMap}))
+	require.NoError(t, processAddresses(dbHandle, cache, []transactionMapping{txMap}))
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
-	var rpcClient mocks.RPCClient
-	hash := mocks.RPCVal.HeightMap[1423340]
-	var nilHash *chainhash.Hash
-	expectedBlock := mocks.RPCVal.BlockStore[hash]
+	testhelper.SkipIfNotCI(t)
 	interrupt := make(chan struct{})
-	blkInfo := mocks.RPCVal.BlockchainInfo
 	cfg := NewDashConfig()
-	// for a quick test
+	// for a fast test
 	cfg.NewBlockIntervalTime = 1
 
-	rpcClient.On("GetBlockVerbose", &hash).Return(&expectedBlock, nil)
-	rpcClient.On("GetBlockVerbose", nilHash).Return(nil, errors.New("invalid argument"))
-	rpcClient.On("GetBlockChainInfo").Return(&blkInfo, nil)
+	blkCount, err := client.GetBlockCount()
+	require.NoError(t, err)
+	// add two blocks, so the first block has a reference to the next block
+	hashes, err := client.Generate(2)
+	require.NoError(t, err)
 
 	// normal operation
-	currentBlock, wasInterrupted, err := waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks-1), cfg)
-	require.Nil(t, err)
+	currentBlock, wasInterrupted, err := waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount), cfg)
+	require.NoError(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.NotNil(t, currentBlock)
 
 	// missing hash
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, nil, uint64(blkInfo.Blocks-1), cfg)
-	require.NotNil(t, err)
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, nil, uint64(blkCount), cfg)
+	require.Error(t, err)
 	require.False(t, wasInterrupted, "the interrupt flag should have been false")
 	require.Nil(t, currentBlock)
 	var test struct{}
@@ -239,20 +288,523 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 
 	// normal operation but interrupted and higher block
 	// count as available, so it must wait or in this case get interrupted
-	cfg.NewBlockIntervalTime = time.Second
-	currentBlock, wasInterrupted, err = waitForNextRPCBlock(&rpcClient, interrupt, &hash, uint64(blkInfo.Blocks+1), cfg)
-	require.Nil(t, err)
+	cfg.NewBlockIntervalTime = time.Minute
+	currentBlock, wasInterrupted, err = waitForNextRPCBlock(client, interrupt, hashes[0], uint64(blkCount+2), cfg)
+	require.NoError(t, err)
 	require.True(t, wasInterrupted, "the interrupt flag should have been true")
 	require.Nil(t, currentBlock)
-
-	rpcClient.AssertExpectations(t)
 }
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
-	var rpcClient mocks.RPCClient
-	rpcClient.On("GetBlockChainInfo").Return(&mocks.RPCVal.BlockchainInfo, nil)
-
-	numBlocks, err := getRPCNumberOfBlocks(&rpcClient)
-	require.Nil(t, err)
+	testhelper.SkipIfNotCI(t)
+	numBlocks, err := getRPCNumberOfBlocks(client)
+	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
+}
+
+func Test_crawlerState_String(t *testing.T) {
+	state := crawlerState{}
+	require.NotEmpty(t, state.String())
+	state.id = 1
+	state.hash = "asdf"
+	require.NotEmpty(t, state.String())
+}
+
+func Test_crawlerState_increment(t *testing.T) {
+	state := crawlerState{}
+	require.NoError(t, state.increment(""))
+	require.EqualValues(t, 0, state.id)
+
+	require.Error(t, state.increment("asdf"))
+	require.EqualValues(t, 0, state.id)
+
+	require.NoError(t, state.increment("000007248b1005ffdcf3f41f3a5630b5cb0078ca5733d931223839821f7f5faa"))
+	require.EqualValues(t, 1, state.id)
+}
+
+func getPointer[number any](n number) *number {
+	return &n
+}
+
+func Test_buildAddresses(t *testing.T) {
+	oCache := newOutputCache()
+	err := oCache.setOutputs("asdf", []db.Output{
+		{OutputIndex: getPointer[uint32](1)},
+		{OutputIndex: getPointer[uint32](2)},
+		{OutputIndex: getPointer[uint32](3)},
+	})
+	require.NoError(t, err)
+
+	type args struct {
+		cache   *outputCache
+		txHash  string
+		outputs map[string]outputMapping
+		addrMap map[string]db.Address
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				cache:   nil,
+				txHash:  "",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:   newOutputCache(),
+				txHash:  "",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:   newOutputCache(),
+				txHash:  "asdf",
+				outputs: nil,
+				addrMap: nil,
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				cache:  newOutputCache(),
+				txHash: "asdf",
+				outputs: map[string]outputMapping{"": {
+					hash:    "",
+					indexes: []uint32{1, 2, 3},
+				}},
+				addrMap: map[string]db.Address{},
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				cache:  oCache,
+				txHash: "asdf",
+				outputs: map[string]outputMapping{"": {
+					hash:    "",
+					indexes: []uint32{1, 2, 3},
+				}},
+				addrMap: map[string]db.Address{},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := buildAddresses(new(sync.Mutex), tt.args.cache, tt.args.txHash, tt.args.outputs, tt.args.addrMap)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_buildTransactionMapping(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	blockHashes, err := client.Generate(1)
+	require.NoError(t, err)
+	require.Len(t, blockHashes, 1)
+
+	block, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+	require.NotEmpty(t, block.Tx)
+
+	basicBlock, err := client.GetBlock(blockHashes[0])
+	require.NoError(t, err)
+	require.NotEmpty(t, basicBlock.Transactions)
+
+	txHash := basicBlock.Transactions[0].TxHash()
+	rawTxResult, err := client.GetRawTransactionVerbose(&txHash)
+	require.NoError(t, err)
+	require.NotNil(t, rawTxResult)
+
+	txHashMap, err := createTransactionHashmap(batchClient, block.Tx)
+	require.NoError(t, err)
+
+	txWithoutAddresses := rawTxResult
+	for i := range txWithoutAddresses.Vout {
+		txWithoutAddresses.Vout[i].ScriptPubKey.Addresses = nil
+		txWithoutAddresses.Vout[i].ScriptPubKey.Type = "pubkeyhash"
+	}
+
+	type args struct {
+		rawTransaction  btcjson.TxRawResult
+		txHashMap       map[string]btcjson.TxRawResult
+		externalOutputs map[string]map[uint32]db.Output
+		config          Config
+		cache           *outputCache
+	}
+	tests := []struct {
+		args          args
+		wantTxDetails db.Transaction
+		wantTMap      transactionMapping
+		wantErr       bool
+	}{
+		{
+			args: args{
+				rawTransaction:  *rawTxResult,
+				txHashMap:       txHashMap,
+				externalOutputs: map[string]map[uint32]db.Output{},
+				config:          NewBitcoinConfig(),
+				cache:           newOutputCache(),
+			},
+			wantTxDetails: db.Transaction{},
+			wantTMap:      transactionMapping{},
+			wantErr:       false,
+		},
+		{
+			args: args{
+				rawTransaction:  *txWithoutAddresses,
+				txHashMap:       txHashMap,
+				externalOutputs: map[string]map[uint32]db.Output{},
+				config:          NewBitcoinConfig(),
+				cache:           newOutputCache(),
+			},
+			wantTxDetails: db.Transaction{},
+			wantTMap:      transactionMapping{},
+			wantErr:       false,
+		},
+	}
+	for _, tt := range tests {
+		_, _, err := buildTransactionMapping(tt.args.rawTransaction, tt.args.txHashMap, tt.args.externalOutputs, tt.args.config, tt.args.cache)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_filterExternalOutputs(t *testing.T) {
+	txMap := map[string]btcjson.TxRawResult{"": {
+		Vin: []btcjson.Vin{
+			{Txid: "txhash1", Vout: 0},
+			{Txid: "txhash1", Vout: 1},
+			{Txid: "txhash1", Vout: 2},
+			{Txid: "txhash2", Vout: 3},
+			{Txid: "txhash2", Vout: 4},
+			{Txid: "txhash2", Vout: 5},
+		},
+	},
+	}
+
+	cache := newOutputCache()
+	require.NoError(t, cache.setOutputs("txhash2", []db.Output{
+		{OutputIndex: getPointer[uint32](4)},
+		{OutputIndex: getPointer[uint32](5)},
+	}))
+
+	type args struct {
+		txHashMap map[string]btcjson.TxRawResult
+		cache     *outputCache
+	}
+	tests := []struct {
+		args args
+		want map[string][]uint32
+	}{
+		{
+			args: args{
+				txHashMap: nil,
+				cache:     nil,
+			},
+			want: map[string][]uint32{},
+		},
+		{
+			args: args{
+				txHashMap: txMap,
+				cache:     newOutputCache(),
+			},
+			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3, 4, 5}},
+		},
+		{
+			args: args{
+				txHashMap: txMap,
+				cache:     cache,
+			},
+			want: map[string][]uint32{"txhash1": {0, 1, 2}, "txhash2": {3}},
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.want, filterExternalOutputs(tt.args.txHashMap, tt.args.cache))
+	}
+}
+
+func Test_processTxVin(t *testing.T) {
+	cache := newOutputCache()
+	require.NoError(t, cache.setOutputs("txhash1", []db.Output{
+		{
+			OutputIndex: getPointer[uint32](0),
+			Amount:      getPointer[int64](3),
+		},
+	}))
+	type args struct {
+		details         *db.Transaction
+		externalOutputs map[string]map[uint32]db.Output
+		vin             btcjson.Vin
+		index           uint32
+		txHashMap       map[string]btcjson.TxRawResult
+		cache           *outputCache
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index: 0,
+				txHashMap: map[string]btcjson.TxRawResult{"txhash1": {
+					Hash: "txhash1",
+					Vout: []btcjson.Vout{{Value: 0}},
+				}},
+				cache: newOutputCache(),
+			},
+			wantErr: false,
+		},
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index:     0,
+				txHashMap: map[string]btcjson.TxRawResult{},
+				cache:     newOutputCache(),
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				details:         &db.Transaction{Inputs: []db.Output{}},
+				externalOutputs: nil,
+				vin: btcjson.Vin{
+					Txid: "txhash1",
+					ScriptSig: &btcjson.ScriptSig{
+						Asm: "some_asm",
+						Hex: "some_hex",
+					},
+					Vout: 0,
+				},
+				index:     0,
+				txHashMap: map[string]btcjson.TxRawResult{},
+				cache:     cache,
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := processTxVin(tt.args.details, tt.args.externalOutputs, tt.args.vin,
+			tt.args.index, tt.args.txHashMap, tt.args.cache)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, tt.args.details.Inputs, 1)
+		}
+	}
+}
+
+func Test_processBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	transactions, err := db.GetTransactionByBlock(dbHandle, 60000)
+	require.NoError(t, err)
+
+	type args struct {
+		transactions  []db.Transaction
+		currentHash   string
+		blockID       uint64
+		timestamp     string
+		prevBlockHash string
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				transactions:  transactions,
+				currentHash:   "some_hash",
+				blockID:       5,
+				timestamp:     time.Now().Format(time.RFC3339),
+				prevBlockHash: "some_other_hash",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		err := processBlock(dbHandle, tt.args.transactions, tt.args.currentHash,
+			tt.args.blockID, tt.args.timestamp, tt.args.prevBlockHash)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
+}
+
+func Test_getStartingID(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	require.NoError(t, status.SetCrawling(dbHandle, true))
+
+	gotStartID, err := getStartingID(dbHandle)
+	require.NoError(t, err)
+	require.EqualValues(t, 1, gotStartID)
+
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling: getPointer[bool](true),
+		// make blocks not match
+		LastBlockID: getPointer[uint64](5),
+	}))
+	_, err = getStartingID(dbHandle)
+	require.Error(t, err)
+
+	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
+		IsCrawling:  getPointer[bool](true),
+		LastBlockID: getPointer[uint64](60020),
+	}))
+	gotStartID, err = getStartingID(dbHandle)
+	require.NoError(t, err)
+	require.EqualValues(t, 60020, gotStartID)
+}
+
+func Test_processingInterrupted(t *testing.T) {
+	require.NotPanics(t, func() {
+		processingInterrupted()
+	})
+}
+
+func Test_getInitialState(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	_, err := getInitialState(dbHandle, client)
+	require.Error(t, err)
+
+	require.NoError(t, status.SetCrawling(dbHandle, true))
+
+	_, err = getInitialState(dbHandle, client)
+	require.NoError(t, err)
+}
+
+func Test_createTransactionHashmap(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	blockHashes, err := client.Generate(1)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockHashes)
+
+	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+
+	hashmap, err := createTransactionHashmap(client, verboseBlock.Tx)
+	require.NoError(t, err)
+	require.NotEmpty(t, hashmap)
+}
+
+func Test_getExternalOutputs(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, blockFileName)
+
+	tests := []struct {
+		outputs  map[string][]uint32
+		wantSize int
+		wantErr  bool
+	}{
+		{
+			outputs:  nil,
+			wantSize: 0,
+			wantErr:  false,
+		},
+		{
+			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {0, 1}},
+			wantSize: 1,
+			wantErr:  false,
+		},
+		{
+			// wrong indexes -> zero size
+			outputs:  map[string][]uint32{"91609034d29949f9e19dc62637f0665bdc1b161e11b7f360ee692d15b46c8cdb": {10, 11}},
+			wantSize: 0,
+			wantErr:  false,
+		},
+	}
+	for _, tt := range tests {
+		outputs, err := getExternalOutputs(dbHandle, tt.outputs)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Len(t, outputs, tt.wantSize)
+		}
+	}
+}
+
+func Test_processRound(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	blockHashes, err := client.Generate(2)
+	require.NoError(t, err)
+	require.NotEmpty(t, blockHashes)
+
+	verboseBlock, err := client.GetBlockVerbose(blockHashes[0])
+	require.NoError(t, err)
+
+	type args struct {
+		state  crawlerState
+		block  *btcjson.GetBlockVerboseResult
+		config Config
+		cache  *outputCache
+	}
+	tests := []struct {
+		args    args
+		wantErr bool
+	}{
+		{
+			args: args{
+				state:  crawlerState{top: uint64(3), id: uint64(1)},
+				block:  verboseBlock,
+				config: NewBitcoinConfig(),
+				cache:  newOutputCache(),
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		_, _, err := processRound(dbHandle, batchClient, tt.args.state, tt.args.block, tt.args.config, tt.args.cache)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+		}
+	}
 }

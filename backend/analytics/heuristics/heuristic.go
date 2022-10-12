@@ -1,14 +1,14 @@
 package heuristics
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
+	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
-	dbop "backend/db/output"
-	"backend/db/transaction"
 	"backend/external"
 
 	"errors"
@@ -105,7 +105,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 
 // getDenominationCountsWithFilter gets the counts of each denomination type.
 // If filterTx is set, it only counts outputs with input transactions equal to filterTx.
-func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [dbop.NumDenominations]int {
+func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterTx string) [analytics.NumDenominations]int {
 	var denominations []int64 //nolint:prealloc
 	for _, output := range it.Outputs {
 		if filterTx != "" && output.InputTransaction != filterTx {
@@ -114,17 +114,17 @@ func getDenominationCountsWithFilter(it heuristics.HeuristicTransaction, filterT
 		denominations = append(denominations, output.Amount)
 	}
 
-	return dbop.CountAmountDenominations(denominations)
+	return analytics.CountAmountDenominations(denominations)
 }
 
 // gets the counts of each denomination type
-func getDenominationCounts(it heuristics.HeuristicTransaction) [dbop.NumDenominations]int {
+func getDenominationCounts(it heuristics.HeuristicTransaction) [analytics.NumDenominations]int {
 	denominations := make([]int64, len(it.Outputs))
 	for i, output := range it.Outputs {
 		denominations[i] = output.Amount
 	}
 
-	return dbop.CountAmountDenominations(denominations)
+	return analytics.CountAmountDenominations(denominations)
 }
 
 type clusterDenominations struct {
@@ -166,8 +166,8 @@ func countClusterDenominations(origins []heuristics.HeuristicTransaction,
 	return
 }
 
-func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][dbop.NumDenominations]int {
-	sourceAmounts := make(map[heuristics.ClusterUID][dbop.NumDenominations]int)
+func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[heuristics.ClusterUID][analytics.NumDenominations]int {
+	sourceAmounts := make(map[heuristics.ClusterUID][analytics.NumDenominations]int)
 
 	for _, o := range origins {
 		denominationSlice := getDenominationCounts(o)
@@ -232,7 +232,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	userUID string, requestedClusterTypes []clustering.ClusterType, excludeAddresses bool, excludeSpendingGaps bool) (
 	origins []heuristics.HeuristicTransaction, attributionMapping map[heuristics.ClusterUID][]string, err error) {
 	// get uid for txhash
-	uid, err := transaction.GetTransactionUID(dgraph, txHash)
+	uid, err := db.GetTransactionUID(dgraph, txHash)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

@@ -1,9 +1,14 @@
 package external
 
 import (
+	"backend/cmd/cliutil"
 	"context"
+	"fmt"
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"time"
 )
 
 // GraphDB is a wrapper for Dgraph
@@ -23,9 +28,9 @@ func (g *GraphDB) Query(ctx context.Context, q string, vars map[string]string) (
 }
 
 // Alter can be used to do the following by setting various fields of api.Operation:
-//   1. Modify the schema.
-//   2. Drop a predicate.
-//   3. Drop the database.
+//  1. Modify the schema.
+//  2. Drop a predicate.
+//  3. Drop the database.
 func (g *GraphDB) Alter(ctx context.Context, op *api.Operation) error {
 	return g.Dgraph.Alter(ctx, op)
 }
@@ -33,4 +38,39 @@ func (g *GraphDB) Alter(ctx context.Context, op *api.Operation) error {
 // NewTxn creates a new transaction.
 func (g *GraphDB) NewTxn() *dgo.Txn {
 	return g.Dgraph.NewTxn()
+}
+
+// CreateClient create a new dgraph client connecting to the specified host and port
+func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
+
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, conn, err
+	}
+
+	return &GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
+}
+
+// WaitForDatabase waits until the database is ready to receive requests
+func WaitForDatabase(c Database) bool {
+	for i := 0; i < 20; i++ {
+		if IsConnectionEstablished(c) {
+			return true
+		}
+
+		time.Sleep(time.Second * 5)
+	}
+
+	return false
+}
+
+// IsConnectionEstablished test the database connection
+func IsConnectionEstablished(c Database) bool {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	_, err := c.Query(ctx, "{q(func: uid(0x1)){uid}}", nil)
+
+	return err == nil
 }

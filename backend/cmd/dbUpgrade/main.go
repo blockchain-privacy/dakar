@@ -4,6 +4,7 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	dbus "backend/db/user"
+	"backend/external"
 	"context"
 	"flag"
 	"fmt"
@@ -101,7 +102,7 @@ func main() {
 	}
 
 	// create dgraph client
-	dgraph, c, err := db.CreateClient(endpoint)
+	dgraph, c, err := external.CreateClient(endpoint)
 	if err != nil {
 		info(err)
 		return

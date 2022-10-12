@@ -78,6 +78,10 @@ func (c *Crawler) DB() external.Database {
 
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {
+	if c.currentBlock == nil {
+		return errors.New("currentBlock is nil")
+	}
+
 	if err := c.state.increment(c.currentBlock.NextHash); err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -87,7 +91,9 @@ func (c *Crawler) IncrementState() error {
 // Empty returns true if the BlockIterator has no more data to iterate on.
 // This happens if State.ID is higher than State.Top
 func (c *Crawler) Empty() bool {
-	return (c.currentBlock != nil && c.currentBlock.NextHash == "") || c.state.top < c.state.id+c.config.ForkRangeLimit
+	return c.currentBlock == nil ||
+		(c.currentBlock != nil && c.currentBlock.NextHash == "") ||
+		c.state.top < c.state.id+c.config.ForkRangeLimit
 }
 
 // CalculateInitialState calculates the state on which the iterator starts processing

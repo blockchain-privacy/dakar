@@ -3,18 +3,18 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
-	"google.golang.org/grpc/credentials/insecure"
+	"errors"
 
 	"context"
-	"fmt"
 	"io"
 	"log"
+	"os"
+	"testing"
 	"time"
-
-	"google.golang.org/grpc"
 
 	"github.com/dgraph-io/dgo/v210"
 	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -32,6 +32,18 @@ const (
 )
 
 var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+
+var (
+	// ErrBlockNotFound is returned if no block was found
+	ErrBlockNotFound = errors.New("no block found")
+	// ErrTransactionNotFound is returned if a requested transaction has not been found
+	ErrTransactionNotFound = errors.New("no transaction found")
+	// ErrAddressNotFound is returned if no address has been found
+	ErrAddressNotFound      = errors.New("no address found")
+	errEmptyRequestArgument = errors.New("received empty argument")
+	errInvalidTimeout       = errors.New("invalid timeout")
+	errInvalidResult        = errors.New("invalid result")
+)
 
 // InitLogger creates new loggers with the given parameters.
 func InitLogger(out io.Writer, flag int) {
@@ -54,6 +66,14 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errInvalidTimeout
+	}
+
+	if req == nil {
+		return nil, errEmptyRequestArgument
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 	return db.Mutate(ctx, req)
@@ -61,6 +81,14 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errInvalidTimeout
+	}
+
+	if req == nil {
+		return nil, errEmptyRequestArgument
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 	return tx.Do(ctx, req)
@@ -76,7 +104,8 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if resp, err = execTx(db, timeoutPerRequest, req); err == nil {
+		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -98,7 +127,8 @@ func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.
 func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
-		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil {
+		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
@@ -113,6 +143,14 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 // execReadOnlyTx executes the given request, vars is allowed to be nil
 func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
+	if timeoutPerRequest <= 0 {
+		return nil, errInvalidTimeout
+	}
+
+	if q == "" {
+		return nil, errEmptyRequestArgument
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 
@@ -129,6 +167,11 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return resp, nil
 		}
 		err = txErr
+
+		if errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
+			return nil, err
+		}
+
 		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
@@ -152,19 +195,6 @@ func DropAll(db external.Database) error {
 	})
 }
 
-// CreateClient create a new dgraph client connecting to the specified host and port
-func CreateClient(endpoint string) (external.Database, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
-
-	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return nil, conn, err
-	}
-
-	return &external.GraphDB{Dgraph: dgo.NewDgraphClient(api.NewDgraphClient(conn))}, conn, nil
-}
-
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph
 // Example: 0x123,0x1a1d
 func CreateCommaList(uids []string) string {
@@ -182,4 +212,32 @@ func CreateCommaList(uids []string) string {
 // Example: [0x123,0x1a1d]
 func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
+}
+
+// SetupDB returns the database to its initial state: drops ALL data,
+// sets up the schema and inserts data from the provided file
+func SetupDB(t *testing.T, database external.Database, blockFileName string) {
+	// reset db
+	require.NoError(t, DropAll(database))
+
+	// set up schema
+	require.NoError(t, SetupSchema(database))
+
+	fileBytes, err := os.ReadFile(blockFileName)
+	require.NoError(t, err)
+
+	if err := InsertArbitraryJSON(database, fileBytes); err != nil {
+		log.Panic("Could not upsert block data", err)
+		return
+	}
+}
+
+// SetupDBWithoutData returns the database to its initial state:
+// drops ALL data and sets up the schema
+func SetupDBWithoutData(t *testing.T, database external.Database) {
+	// reset db
+	require.NoError(t, DropAll(database))
+
+	// set up schema
+	require.NoError(t, SetupSchema(database))
 }

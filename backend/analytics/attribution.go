@@ -2,7 +2,7 @@ package analytics
 
 import (
 	"backend/cmd/cliutil"
-	"backend/db/address"
+	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/external"
 	"errors"
@@ -80,6 +80,10 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 		return nil, ErrTooManyAddresses
 	}
 
+	if len(attributions) == 0 {
+		return nil, errors.New("attribution list is empty")
+	}
+
 	addresses := map[string]bool{}
 	for _, c := range attributions {
 		addresses[c.AddressHash] = true
@@ -91,7 +95,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := address.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}

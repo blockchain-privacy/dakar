@@ -5,12 +5,12 @@ import (
 	analyticsClustering "backend/analytics/clustering"
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
+	"backend/db"
 	dbAnalytics "backend/db/analytics"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
-	dbtx "backend/db/transaction"
 	dbus "backend/db/user"
 	"backend/external"
 	"io"
@@ -139,9 +139,9 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		return
 	}
 
-	fromBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.From)
+	fromBlockID, err := db.GetTransactionBlockID(dgraph, req.From)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrTransactionNotFound) {
+		if errors.Is(err, db.ErrTransactionNotFound) {
 			reply.Success = true
 			reply.Msg = "Transaction " + req.From + " does not exist"
 			return
@@ -152,9 +152,9 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		return
 	}
 
-	toBlockID, err := dbtx.GetTransactionBlockID(dgraph, req.To)
+	toBlockID, err := db.GetTransactionBlockID(dgraph, req.To)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrTransactionNotFound) {
+		if errors.Is(err, db.ErrTransactionNotFound) {
 			reply.Msg = "error transaction" + req.To + " does not exist"
 			return
 		}
@@ -289,9 +289,9 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	txhash := path.Base(urlHandle.Path)
 
-	uid, err := dbtx.GetTransactionUID(dgraph, txhash)
+	uid, err := db.GetTransactionUID(dgraph, txhash)
 	if err != nil {
-		if errors.Is(err, dbtx.ErrTransactionNotFound) {
+		if errors.Is(err, db.ErrTransactionNotFound) {
 			reply.Success = true
 			reply.Msg = "Transaction " + txhash + " does not exist"
 			return
@@ -338,7 +338,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		i++
 	}
 
-	frontendTransactions, err := dbtx.GetFrontendTransactionsByUID(dgraph, transactionUids)
+	frontendTransactions, err := db.GetFrontendTransactionsByUID(dgraph, transactionUids)
 	if err != nil {
 		reply.Msg = msgLookupNotSuccessful
 		info(cliutil.ShowCallInfo(), err)

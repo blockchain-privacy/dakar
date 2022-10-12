@@ -17,11 +17,9 @@ variables:
 dependencies:
   stage: dependencies
   script:
-    - cd ../..
     - go mod download
     - go get -v -d ./...
   cache: *modcache
-
 
 stages:
   - dependencies
@@ -29,12 +27,38 @@ stages:
   - build
 
 before_script:
-  - cd backend/cmd/crawler
+  - cat /etc/hosts
+  - cd backend
 
 unit_tests:
   stage: test
   needs: ["dependencies"]
-  script: make test
+  variables:
+    CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
+  script:
+    # create btcd executable
+    - export WORKDIR=$PWD
+    - export PATH=$PATH:$GOPATH/bin
+    - mkdir -p $GOPATH/src/github.com/btcsuite
+    - cd $GOPATH/src/github.com/btcsuite
+    - git clone https://github.com/btcsuite/btcd
+    - cd btcd
+    - go install -v . ./cmd/...
+    # start test
+    - cd $WORKDIR
+    - make test
+  services:
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_db # database for db module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_status # database for status module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_user # database for user module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_processor # database for processor module
+    - name: dgraph/standalone:v21.03.2
+      alias: dgraph_analytics # database for classifier module
+
   cache:
     <<: *modcache
     policy: pull
@@ -64,4 +88,5 @@ build:
 
 #  artifacts:
 #    paths:
-#    - backend/cmd/crawler/crawler
+#    - backend/build/crawler_dash
+#    - backend/build/crawler_bitcoin

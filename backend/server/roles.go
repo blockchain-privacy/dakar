@@ -76,8 +76,6 @@ var (
 		getRouteAddAddressExclusions():       true,
 		getRouteDeleteAllAddressExclusions(): true,
 	}
-
-	errRoleDoesNotExist = errors.New("error role does not exist")
 )
 
 // Role defines an interface which allows to access the properties of Roles
@@ -213,7 +211,7 @@ func (p PrivilegedRole) String() string {
 func getRoleByName(name string) (Role, error) {
 	returnedRole, ok := roleMap[name]
 	if !ok {
-		return nil, errRoleDoesNotExist
+		return nil, errors.New("role does not exist")
 	}
 
 	return returnedRole, nil

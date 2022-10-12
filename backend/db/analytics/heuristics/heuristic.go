@@ -6,7 +6,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/db/analytics/clustering"
-	dbtx "backend/db/transaction"
 	"backend/external"
 	"context"
 	"crypto/sha256"
@@ -806,7 +805,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 // False: Only inputs are traversed
 // withPrivacyTransactions determines if privacy transactions should be considered when doing the shortest path lookup
 func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, txTo string,
-	withPrivacyTransactions bool, anyDirection bool) (txs []dbtx.FrontendTransaction, err error) {
+	withPrivacyTransactions bool, anyDirection bool) (txs []db.FrontendTransaction, err error) {
 	/* Full query
 	query Q($txFrom:string, $txTo:string){
 					f as var(func: eq(txhash,$txFrom))
@@ -870,7 +869,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 
 	// json struct
 	var r struct {
-		Transactions []dbtx.FrontendTransaction `json:"path,omitempty"`
+		Transactions []db.FrontendTransaction `json:"path,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {

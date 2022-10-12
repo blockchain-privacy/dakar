@@ -3,10 +3,10 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
-	"errors"
 
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -116,6 +116,9 @@ func (s *Server) authorization() adapter {
 				sendRedirectMessage(w)
 				return
 			}
+
+			// if only reissueDuration is left of the token lifetime it gets reissued
+			const reissueDuration = time.Hour * 24 / 4
 
 			if time.Until(*session.ExpiresAt) <= reissueDuration {
 				_, extensionResponse, extensionErr := s.adminAuth.V0alpha2Api.

@@ -2,7 +2,7 @@ package analytics
 
 import (
 	"backend/cmd/cliutil"
-	"backend/db/address"
+	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/external"
 	"errors"
@@ -56,6 +56,10 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		return nil, ErrTooManyAddresses
 	}
 
+	if len(exclusions) == 0 {
+		return nil, errors.New("empty argument")
+	}
+
 	addresses := map[string]bool{}
 	for _, c := range exclusions {
 		addresses[c] = true
@@ -67,7 +71,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	}
 
 	// check if all addresses exist
-	dbAddresses, err := address.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
