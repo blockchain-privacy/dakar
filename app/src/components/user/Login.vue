@@ -192,6 +192,13 @@ export default {
   mounted() {
     document.title = `Login - ${PAGE_TITLE}`;
 
+    // check if flow id is set
+    const { flow } = this.$route.query;
+    if (flow) {
+      this.initFlow();
+      return;
+    }
+
     // if session is not set, user might be logged in already -> get session
     if (!this.session) {
       this.ory.toSession()
