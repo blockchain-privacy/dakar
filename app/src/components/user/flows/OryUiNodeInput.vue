@@ -38,6 +38,7 @@
     />
     <v-btn
         @click="emitSubmitEvent"
+        :loading="!submitEnabled"
         depressed
         block
         class="font-weight-bold" color="primary darken-1"
@@ -57,6 +58,7 @@ export default {
     meta: { type: Object, required: true },
     attributes: { type: Object, required: true },
     id: { type: String, required: true },
+    submitEnabled: { type: Boolean, require: false, default: true },
   },
   computed: {
     metaLabel() {
@@ -74,11 +76,13 @@ export default {
       password: {
         show: false,
       },
+      isLoading: false,
     };
   },
   methods: {
     emitSubmitEvent(event) {
       event.preventDefault();
+      this.isLoading = true;
       this.$emit('submit');
     },
   },
