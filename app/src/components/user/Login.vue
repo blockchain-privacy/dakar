@@ -26,6 +26,7 @@
                 <ory-flow v-if="loginFlow"
                           :flow="loginFlow"
                           :form-id="formID"
+                          :disabled-forms="disabledForms"
                           @submit="handleOrySubmitLogin"/>
                 <v-skeleton-loader
                     v-else
@@ -89,6 +90,7 @@ export default {
       loginFlow: null,
       formID: 'login-form',
       orySession: null,
+      disabledForms: [],
     };
   },
   computed: {
@@ -125,6 +127,9 @@ export default {
       const form = document.getElementById(formID);
       if (!form || !this.loginFlow.ui.action) return;
 
+      // disable submitting from this form
+      this.disabledForms.push(formID);
+
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
       this.ory.submitSelfServiceLoginFlow(flow, JSON.stringify(body))
@@ -156,6 +161,10 @@ export default {
               this.setErrorMessage(e);
             });
           }
+        })
+        .finally(() => {
+          // enable submitting for this form again
+          this.disabledForms = this.disabledForms.filter((d) => d !== formID);
         });
     },
     initFlow() {

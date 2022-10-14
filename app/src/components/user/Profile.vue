@@ -60,6 +60,7 @@ export default {
       const form = document.getElementById(formID);
       if (!form || !this.settingsFlow.ui.action) return;
 
+      // disable submitting from this form
       this.disabledForms.push(formID);
 
       const body = Object.fromEntries(new FormData(form));
@@ -87,6 +88,7 @@ export default {
           }
         })
         .finally(() => {
+          // enable submitting for this form again
           this.disabledForms = this.disabledForms.filter((d) => d !== formID);
         });
     },
