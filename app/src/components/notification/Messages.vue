@@ -25,6 +25,7 @@ export default {
   methods: {
     hideMessage() {
       this.showMessage = false;
+      this.$emit('destructed');
     },
     async startProgressLoop() {
       // 15 seconds and 100 steps: 15000 / 100
