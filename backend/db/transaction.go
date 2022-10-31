@@ -505,6 +505,45 @@ func GetFrontendTransactionsByUID(c external.Database, txUids []string) (txs []F
 	return
 }
 
+// GetTransactionUIDMapping returns for each transaction a mapping between transaction UID and transaction hash
+func GetTransactionUIDMapping(c external.Database, txUids []string) (txs []Transaction, err error) {
+	if len(txUids) == 0 {
+		err = errEmptyRequestArgument
+		return
+	}
+
+	const query = `query Q($uids:string){
+				txs as var(func: uid($uids))
+				q(func: uid(txs)){
+					uid
+					txhash
+				}
+			  }`
+
+	// without retry, as this request can easily time out
+	ctx, cancel := GetFrontendContext()
+	defer cancel()
+	resp, err := c.Query(ctx, query, map[string]string{"$uids": CreateCommaArray(txUids)})
+	if err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []Transaction `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	txs = r.Transactions
+
+	return
+}
+
 // GetTransactionBlockID gets the block id of the transaction. If there exist multiple transactions
 // with the same hash (e.g. in Bitcoin) the highest blockId is returned
 func GetTransactionBlockID(c external.Database, txHash string) (blockID uint64, err error) {
