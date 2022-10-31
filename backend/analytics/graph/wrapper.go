@@ -130,6 +130,22 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	return results, nil
 }
 
+// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
+func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, error) {
+	if !w.IsTransactionGraphLoaded() {
+		return nil, errors.New("transaction graph is not loaded yet")
+	}
+	w.transactionGraphMutex.Lock()
+	defer w.transactionGraphMutex.Unlock()
+
+	results, err := SpendingFingerprint(w.transactionGraph, uid)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return results, nil
+}
+
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
 func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	if !w.IsTransactionGraphLoaded() {

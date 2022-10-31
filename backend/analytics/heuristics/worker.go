@@ -64,10 +64,11 @@ type Work struct {
 
 // Worker works on the data defined in Work
 type Worker struct {
-	jobsAdded      prometheus.Counter
-	jobsCompleted  prometheus.Counter
-	forwardLookups prometheus.Counter
-	reverseLookups prometheus.Counter
+	jobsAdded           prometheus.Counter
+	jobsCompleted       prometheus.Counter
+	forwardLookups      prometheus.Counter
+	reverseLookups      prometheus.Counter
+	spendingFingerprint prometheus.Counter
 
 	// cancel stops the go routine started by Start
 	cancel context.CancelFunc
@@ -103,6 +104,10 @@ func NewWorker(gWrapper *graph.Wrapper) *Worker {
 		forwardLookups: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_heuristic_forward_lookups_total",
 			Help: "The total number of forward lookups executed by the heuristic worker",
+		}),
+		spendingFingerprint: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "dakar_analytics_spending_fingerprint_lookups_total",
+			Help: "The total number of spending fingerprint lookups",
 		}),
 		executionMap: make(map[workKey]Work),
 		mapMutex:     new(sync.RWMutex),
@@ -277,4 +282,10 @@ func (w *Worker) ReverseLookup(uid string, maxLookBackTime time.Duration) (map[s
 func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (map[string]bool, error) {
 	w.forwardLookups.Inc()
 	return w.graphWrapper.ForwardLookupByTime(uid, maxLookForwardTime, nil, false)
+}
+
+// SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
+func (w *Worker) SpendingFingerprint(uid string) ([]graph.FingerPrint, error) {
+	w.spendingFingerprint.Inc()
+	return w.graphWrapper.SpendingFingerprint(uid)
 }
