@@ -55,6 +55,7 @@ var (
 		getRouteShortestTransactionPath(): true,
 		getRouteConnectionLookup():        true,
 		getRouteMixingActivity():          true,
+		getRouteSpendingFingerprint():     true,
 		// clusters
 		getRouteClusterLookup():     true,
 		getRouteClusterSummary():    true,

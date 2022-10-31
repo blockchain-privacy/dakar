@@ -107,6 +107,18 @@ type deleteHeuristicReply struct {
 	Msg     string `json:"msg,omitempty"`
 }
 
+type fingerprintScore struct {
+	Score  float64 `json:"score"`
+	Txhash string  `json:"txhash"`
+}
+
+type spendingFingerprintReply struct {
+	Success           bool               `json:"success"`
+	Warning           bool               `json:"warning,omitempty"`
+	Msg               string             `json:"msg,omitempty"`
+	FingerprintScores []fingerprintScore `json:"fingerprint_scores,omitempty"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"
