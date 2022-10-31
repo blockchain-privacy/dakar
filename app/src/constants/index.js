@@ -43,6 +43,7 @@ export const ROUTE_DELETE_ADDRESS_EXCLUSION = `${routePrefix}deleteAddressExclus
 export const ROUTE_DELETE_ALL_ADDRESS_EXCLUSIONS = `${routePrefix}deleteAllAddressExclusions/`;
 export const ROUTE_ADDRESS_EXCLUSION_OVERVIEW = `${routePrefix}addressExclusionOverview/`;
 export const ROUTE_ADDRESS_EXCLUSION_STATUS = `${routePrefix}addressExclusionStatus/`;
+export const ROUTE_SPENDING_FINGERPRINT = `${routePrefix}spendingFingerprint/`;
 
 // search responses
 export const RESPONSE_EMPTY = 'response_empty';

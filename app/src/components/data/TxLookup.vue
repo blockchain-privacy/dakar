@@ -4,7 +4,10 @@
       <!-- duplicate transaction hashes can exist -> loop through all results
       (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
       <v-col cols="12" sm="12" md="12" lg="10" xl="8" v-for="tx in data" :key="tx.txhash+tx.bid">
-        <Transaction :tx="tx" :show-heuristic-editor-link="showHeuristicEditor" show-details/>
+        <Transaction :tx="tx"
+                     :show-heuristic-editor-link="isAtLeastPrivileged"
+                     :show-fingerprint-link="isAtLeastPrivileged"
+                     show-details/>
       </v-col>
     </v-row>
   </v-container>
@@ -25,7 +28,7 @@ export default {
     session() {
       return this.$store.getters.getSession;
     },
-    showHeuristicEditor() {
+    isAtLeastPrivileged() {
       return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
     },
   },
