@@ -1268,3 +1268,69 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	return
 }
+
+func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Worker,
+	txhash string) (reply spendingFingerprintReply) {
+	if !worker.IsReady() {
+		reply.Msg = "Server is not ready to receive lookups. Please try again later."
+		reply.Warning = true
+		return
+	}
+
+	const frontendError = "An error occurred while analyzing the transaction."
+
+	uid, err := db.GetTransactionUID(dgraph, txhash)
+	if err != nil {
+		if errors.Is(err, db.ErrTransactionNotFound) {
+			reply.Success = true
+			reply.Msg = "Transaction " + txhash + " does not exist."
+			return
+		}
+
+		reply.Msg = frontendError
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	similarTransactions, err := worker.SpendingFingerprint(uid)
+	if err != nil {
+		reply.Msg = frontendError
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	uids := make([]string, len(similarTransactions))
+	uidToScore := make(map[string]float64, len(similarTransactions))
+	for i, tx := range similarTransactions {
+		uids[i] = tx.TransactionUID
+		uidToScore[tx.TransactionUID] = tx.Score
+	}
+
+	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
+	if err != nil {
+		reply.Msg = frontendError
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+
+	if len(transactions) != len(uids) {
+		reply.Msg = frontendError
+		info(cliutil.ShowCallInfo(), "length of uids and hashes is not equal for", txhash)
+		return
+	}
+
+	for _, tx := range transactions {
+		score, ok := uidToScore[tx.UID]
+		if !ok {
+			reply.Msg = frontendError
+			info(cliutil.ShowCallInfo(), "could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
+			return
+		}
+
+		reply.FingerprintScores = append(reply.FingerprintScores, fingerprintScore{Score: score, Txhash: tx.Hash})
+	}
+
+	reply.Success = true
+
+	return
+}

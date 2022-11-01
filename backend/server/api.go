@@ -19,14 +19,15 @@ import (
 )
 
 var (
-	errorClusterSummary     = "error getting cluster summary"
-	errorHeuristicSummary   = "error getting heuristic summary"
-	errorHeuristics         = "error getting heuristics"
-	errorHeuristicExecution = "error executing heuristics"
-	errorHeuristicDetails   = "error getting heuristic details"
-	errorInvalidSortOrder   = "error invalid sort order"
-	errorInvalidFilter      = "error invalid filter"
-	errorInvalidOffset      = "error invalid offset"
+	errorClusterSummary      = "error getting cluster summary"
+	errorHeuristicSummary    = "error getting heuristic summary"
+	errorHeuristics          = "error getting heuristics"
+	errorHeuristicExecution  = "error executing heuristics"
+	errorHeuristicDetails    = "error getting heuristic details"
+	errorSpendingFingerprint = "error getting spending fingerprintScore details"
+	errorInvalidSortOrder    = "error invalid sort order"
+	errorInvalidFilter       = "error invalid filter"
+	errorInvalidOffset       = "error invalid offset"
 )
 
 type searchResponse struct {
@@ -1007,6 +1008,28 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	})
 }
 
+// API pattern: "/api/v1/spendingFingerprint/<hash>"
+func (s *Server) handlerSpendingFingerprint() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		txHashString := path.Base(r.URL.Path)
+
+		if !isValid(txHashString) {
+			http.Error(w, errorSpendingFingerprint, http.StatusNotFound)
+			return
+		}
+
+		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
@@ -1071,6 +1094,9 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(getRouteMixingActivity(),
 		adapt(s.handlerMixingActivity(), getRouteMixingActivity(),
 			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(getRouteSpendingFingerprint(),
+		adapt(s.handlerSpendingFingerprint(), getRouteSpendingFingerprint(), limitMethod("GET"),
+			s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(getRouteClusterLookup(),

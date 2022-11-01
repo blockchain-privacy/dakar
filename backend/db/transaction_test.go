@@ -378,3 +378,43 @@ func TestGetTransaction(t *testing.T) {
 		}
 	}
 }
+
+func TestGetTransactionUIDMapping(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	SetupDB(t, dbHandle, blockFileName)
+
+	transactions, err := GetTransactionByBlock(dbHandle, 60005)
+	require.NoError(t, err)
+	require.Equal(t, 7, len(transactions))
+
+	var uids [7]string
+	for i, tx := range transactions {
+		uids[i] = tx.UID
+	}
+
+	tests := []struct {
+		txUids      []string
+		wantTxCount int
+		wantErr     bool
+	}{
+		{
+			txUids:      nil,
+			wantTxCount: 0,
+			wantErr:     true,
+		},
+		{
+			txUids:      uids[:],
+			wantTxCount: 7,
+			wantErr:     false,
+		},
+	}
+	for _, tt := range tests {
+		gotTxs, err := GetTransactionUIDMapping(dbHandle, tt.txUids)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.EqualValues(t, tt.wantTxCount, len(gotTxs))
+		}
+	}
+}

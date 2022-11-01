@@ -21,7 +21,17 @@
         <v-icon>{{ icons.mdiGraph }}</v-icon>
       </v-btn>
       <v-tooltip bottom activator="#btn_open_heuristic_editor">
-        <span>Open the heuristic editor for this transaction.</span>
+        <span>Open the heuristic editor for this transaction</span>
+      </v-tooltip>
+      <v-btn
+          id="btn_find_similar_transactions"
+          v-if="isDestination(tx.privacytype) && showFingerprintLink"
+          style="margin-right: 0" icon
+          @click="showFingerprintDialog = true">
+        <v-icon>{{ icons.mdiFingerprint }}</v-icon>
+      </v-btn>
+      <v-tooltip bottom activator="#btn_find_similar_transactions">
+        <span>Search for similar destination transactions</span>
       </v-tooltip>
     </v-toolbar>
     <v-card-text>
@@ -124,21 +134,6 @@
         <v-col v-if="tx.outputs">
           <p class="ml-2">{{ getLabel(tx.outputs.length, 'Output') }}</p>
           <OutputItem v-for="i in getOutputs"
-                  v-bind:key="i.addresshash + i.outputindex"
-                  :is-input="false"
-                  :amount="i.amount"
-                  :address-hash="i.addresshash"
-                  :tx-hash="i.txhash"
-                  :sig-asm="i.sigasm"
-                  :key-asm="i.keyasm"
-                  :output-index="i.outputindex"
-                  :input-index="i.inputindex"
-                  :timestamp="i.ts"
-                  :privacy-type="i.privacytype"/>
-          <!-- split in two for nicer transition -->
-          <v-expand-transition>
-            <div v-if="showAllOutputs">
-              <OutputItem v-for="i in getResidualOutputs"
                       v-bind:key="i.addresshash + i.outputindex"
                       :is-input="false"
                       :amount="i.amount"
@@ -150,6 +145,21 @@
                       :input-index="i.inputindex"
                       :timestamp="i.ts"
                       :privacy-type="i.privacytype"/>
+          <!-- split in two for nicer transition -->
+          <v-expand-transition>
+            <div v-if="showAllOutputs">
+              <OutputItem v-for="i in getResidualOutputs"
+                          v-bind:key="i.addresshash + i.outputindex"
+                          :is-input="false"
+                          :amount="i.amount"
+                          :address-hash="i.addresshash"
+                          :tx-hash="i.txhash"
+                          :sig-asm="i.sigasm"
+                          :key-asm="i.keyasm"
+                          :output-index="i.outputindex"
+                          :input-index="i.inputindex"
+                          :timestamp="i.ts"
+                          :privacy-type="i.privacytype"/>
             </div>
           </v-expand-transition>
         </v-col>
@@ -161,6 +171,7 @@
            @click="showAllOutputs = !showAllOutputs">
       <v-icon>{{ showAllOutputs ? icons.mdiChevronUp : icons.mdiChevronDown }}</v-icon>
     </v-btn>
+    <fingerprint-transactions v-model="showFingerprintDialog" :transaction-hash="tx.txhash"/>
   </v-card>
 </template>
 
@@ -168,7 +179,7 @@
 import {
   mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
   mdiCash, mdiFormatHeaderPound, mdiIncognito, mdiCircleMultipleOutline,
-  mdiChevronDown, mdiChevronUp, mdiPickaxe,
+  mdiChevronDown, mdiChevronUp, mdiPickaxe, mdiFingerprint,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {
@@ -177,13 +188,15 @@ import {
 } from '../../utilities';
 import { ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 import IconItem from '../common/IconItem.vue';
+import FingerprintTransactions from '../dialogs/FingerprintTransactions.vue';
 
 export default {
   name: 'Transaction',
-  components: { OutputItem, IconItem },
+  components: { FingerprintTransactions, OutputItem, IconItem },
   props: {
     tx: { type: Object, required: true },
     showHeuristicEditorLink: { type: Boolean, required: true },
+    showFingerprintLink: { type: Boolean, required: true },
     showDetails: { type: Boolean, required: false, default: false },
     showTitleLink: { type: Boolean, required: false, default: false },
   },
@@ -201,6 +214,7 @@ export default {
         mdiChevronDown,
         mdiChevronUp,
         mdiPickaxe,
+        mdiFingerprint,
       },
       routes: {
         ROUTE_NAME_HEURISTIC_PAGE,
@@ -209,6 +223,7 @@ export default {
       },
       showTransactionDetails: this.showDetails,
       showAllOutputs: false,
+      showFingerprintDialog: false,
       maxOutputs: 3,
     };
   },
