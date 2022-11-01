@@ -1272,27 +1272,29 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Worker,
 	txhash string) (reply spendingFingerprintReply) {
 	if !worker.IsReady() {
-		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
+		reply.Msg = "Server is not ready to receive lookups. Please try again later."
 		reply.Warning = true
 		return
 	}
+
+	const frontendError = "An error occurred while analyzing the transaction."
 
 	uid, err := db.GetTransactionUID(dgraph, txhash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			reply.Success = true
-			reply.Msg = "Transaction " + txhash + " does not exist"
+			reply.Msg = "Transaction " + txhash + " does not exist."
 			return
 		}
 
-		reply.Msg = "error while searching for the transaction"
+		reply.Msg = frontendError
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	similarTransactions, err := worker.SpendingFingerprint(uid)
 	if err != nil {
-		reply.Msg = "error while analyzing transaction"
+		reply.Msg = frontendError
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
@@ -1306,13 +1308,13 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 
 	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
 	if err != nil {
-		reply.Msg = "error while analyzing transaction"
+		reply.Msg = frontendError
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	if len(transactions) != len(uids) {
-		reply.Msg = "error while analyzing transaction"
+		reply.Msg = frontendError
 		info(cliutil.ShowCallInfo(), "length of uids and hashes is not equal for", txhash)
 		return
 	}
@@ -1320,7 +1322,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	for _, tx := range transactions {
 		score, ok := uidToScore[tx.UID]
 		if !ok {
-			reply.Msg = "error while analyzing transaction"
+			reply.Msg = frontendError
 			info(cliutil.ShowCallInfo(), "could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
 			return
 		}
