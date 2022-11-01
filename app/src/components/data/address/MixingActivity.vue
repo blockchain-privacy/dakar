@@ -66,7 +66,7 @@
     </v-card>
     <v-card class="my-3" flat v-if="hasLoaded && showEmptyResponseMsg && !isLoading">
       <v-card-text class="text-h6" style="text-align:center">
-        No mixing activity available
+        No mixing activity detected
       </v-card-text>
     </v-card>
     <v-card class="my-3" flat v-if="hasLoaded && showTooManyAddressesMsg && !isLoading">

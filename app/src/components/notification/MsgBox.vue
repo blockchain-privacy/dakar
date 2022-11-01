@@ -2,9 +2,10 @@
   <div class="msgBox">
     <transition-group name="component-fade" mode="out-in">
       <!-- todo Vue3 supports iterating over Maps with v-for
-https://github.com/vuejs/vue/issues/6644 -->
+            https://github.com/vuejs/vue/issues/6644 -->
       <Messages
-          v-for="(msg, i) in messages" :key="msg.text + i"
+          v-for="msg in messages" :key="msg.key"
+          @destructed="removeMessage(msg.key)"
           :type="msg.type" :temporary="msg.temporary">
         {{ msg.text }}
       </Messages>
@@ -19,13 +20,13 @@ export default {
   name: 'MsgBox',
   components: { Messages },
   computed: {
-    messages: {
-      get() {
-        return this.$store.getters.getMessages;
-      },
-      set(value) {
-        this.$store.dispatch('addMessage', value);
-      },
+    messages() {
+      return this.$store.getters.getMessages;
+    },
+  },
+  methods: {
+    removeMessage(key) {
+      this.$store.dispatch('removeMessage', key);
     },
   },
 };

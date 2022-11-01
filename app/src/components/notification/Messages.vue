@@ -3,6 +3,9 @@
       xs6 :type="type" width="300px"
       :class="`msg ${$vuetify.theme.dark?'dark-msg':'light-msg'}`"
       prominent outlined border="left"
+      @mouseenter="stopTimer"
+      @mouseleave="startTimer"
+      @input="hideMessage"
       dismissible v-model="showMessage">
     <v-progress-linear v-if="temporary" absolute bottom :value="progressValue" :color="type"/>
     <slot/>
@@ -20,18 +23,30 @@ export default {
     return {
       showMessage: true,
       progressValue: 100,
+      interval: null,
     };
   },
   methods: {
     hideMessage() {
+      if (this.interval) clearInterval(this.interval);
       this.showMessage = false;
+      this.$emit('destructed');
     },
-    async startProgressLoop() {
-      // 15 seconds and 100 steps: 15000 / 100
+    startTimer() {
+      if (!this.temporary) return;
+      if (this.interval) clearInterval(this.interval);
+      this.startProgressLoop();
+    },
+    stopTimer() {
+      if (!this.temporary || !this.interval) return;
+      this.progressValue = 100;
+      clearInterval(this.interval);
+    },
+    startProgressLoop() {
+      // 15 seconds and 10 steps: 15000 / 10
       const timeout = 150;
-      const interval = setInterval(() => {
+      this.interval = setInterval(() => {
         if (this.progressValue === 0) {
-          clearInterval(interval);
           this.hideMessage();
           return;
         }
@@ -40,9 +55,7 @@ export default {
     },
   },
   mounted() {
-    if (this.temporary) {
-      this.startProgressLoop();
-    }
+    this.startTimer();
   },
 };
 </script>

@@ -12,6 +12,7 @@
                 <ory-flow v-if="recoveryFlow" class="mt-4"
                           :flow="recoveryFlow"
                           :form-id="formID"
+                          :disabled-forms="disabledForms"
                           @submit="handleOrySubmitRecovery"/>
                 <v-skeleton-loader
                     v-else
@@ -41,6 +42,7 @@ export default {
       applicationName: APPLICATION_NAME,
       recoveryFlow: null,
       formID: 'recovery-form',
+      disabledForms: [],
     };
   },
   methods: {
@@ -64,6 +66,9 @@ export default {
       const form = document.getElementById(formID);
       if (!form || !this.recoveryFlow.ui.action) return;
 
+      // disable submitting from this form
+      this.disabledForms.push(formID);
+
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
       this.ory.submitSelfServiceRecoveryFlow(flow, JSON.stringify(body))
@@ -83,6 +88,10 @@ export default {
               this.setErrorMessage(e);
             });
           }
+        })
+        .finally(() => {
+          // enable submitting for this form again
+          this.disabledForms = this.disabledForms.filter((d) => d !== formID);
         });
     },
   },

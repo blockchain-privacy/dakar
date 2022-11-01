@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
 import {
-  setLocalSettings, getLocalSettings, getLocalSession, setLocalSession,
+  setLocalSettings, getLocalSettings, getLocalSession, setLocalSession, uuidv4,
 } from '../utilities';
 import {
   RESPONSE_TYPE_TRANSACTION, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_ADDRESS,
@@ -28,10 +28,14 @@ function getInitialState() {
 
 const mutations = {
   ADD_MESSAGE(state, payload) {
+    payload.key = uuidv4();
     state.messages.push(payload);
   },
   RESET_MESSAGES(state) {
     state.messages = [];
+  },
+  REMOVE_MESSAGE(state, msgKey) {
+    state.messages = state.messages.filter((d) => d.key !== msgKey);
   },
   SET_TRANSACTION_DATA(state, payload) {
     state.transaction = payload;
@@ -86,8 +90,10 @@ const mutations = {
 const actions = {
   addMessage(context, payload) {
     if (!payload.text || payload.text.toString().trim() === '') return;
-
     context.commit('ADD_MESSAGE', payload);
+  },
+  removeMessage(context, payload) {
+    context.commit('REMOVE_MESSAGE', payload);
   },
   resetMessages(context) {
     context.commit('RESET_MESSAGES');

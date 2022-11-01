@@ -3,6 +3,7 @@
               :flow="settingsFlow"
               :form-id="formID"
               @submit="handleOrySubmitSettings"
+              :disabled-forms="disabledForms"
               embed
               />
     <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
@@ -22,6 +23,7 @@ export default {
       icons: { mdiAccountDetails },
       formID: 'settings-form',
       settingsFlow: null,
+      disabledForms: [],
     };
   },
   computed: {
@@ -58,6 +60,9 @@ export default {
       const form = document.getElementById(formID);
       if (!form || !this.settingsFlow.ui.action) return;
 
+      // disable submitting from this form
+      this.disabledForms.push(formID);
+
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
       this.ory.submitSelfServiceSettingsFlow(flow, JSON.stringify(body))
@@ -81,6 +86,10 @@ export default {
               this.setErrorMessage(e);
             });
           }
+        })
+        .finally(() => {
+          // enable submitting for this form again
+          this.disabledForms = this.disabledForms.filter((d) => d !== formID);
         });
     },
     refreshSession() {

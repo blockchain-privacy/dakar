@@ -250,9 +250,9 @@ export function isValidQuery(str) {
 }
 
 function isRole(session, roleName) {
-  return session && session.identity && session.identity.metadata_public
+  return !!(session && session.identity && session.identity.metadata_public
       && session.identity.metadata_public.roles
-      && session.identity.metadata_public.roles.some((d) => d === roleName);
+      && session.identity.metadata_public.roles.some((d) => d === roleName));
 }
 
 export function isPrivilegedIdentity(session) {

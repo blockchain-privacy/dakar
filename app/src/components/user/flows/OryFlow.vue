@@ -16,6 +16,7 @@
                 :key="getNodeId(node)"
                 :id="getNodeId(node)"
                 :node="node"
+                :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
                 @submit="propagateSubmitEvent(`${formId}_${i}`)"
             />
           </v-form>
@@ -32,6 +33,7 @@
             :key="getNodeId(node)"
             :id="getNodeId(node)"
             :node="node"
+            :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
             @submit="propagateSubmitEvent(`${formId}_${i}`)"
         />
       </v-form>
@@ -51,6 +53,8 @@ export default {
     flow: { type: Object, required: true },
     formId: { type: String, required: true },
     embed: { type: Boolean, required: false, default: false },
+    // disabledForms is an array of formIDs for which submitting is disabled
+    disabledForms: { type: Array, require: false, default: () => [] },
   },
   computed: {
     // getForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).
@@ -105,11 +109,13 @@ export default {
       this.flow.ui.messages.forEach((msg) => this.setMessage(msg.text, msg.type));
     },
   },
-  updated() {
-    this.displayMessages();
-  },
   mounted() {
     this.displayMessages();
+  },
+  watch: {
+    flow() {
+      this.displayMessages();
+    },
   },
 };
 </script>

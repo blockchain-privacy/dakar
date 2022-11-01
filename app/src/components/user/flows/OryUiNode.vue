@@ -2,6 +2,7 @@
   <div>
     <ory-ui-node-input
         v-if="isUiNodeInputAttributes(node.attributes)"
+        :submit-enabled="submitEnabled"
         :attributes="node.attributes"
         :meta="node.meta"
         :id="id" @submit="propagateSubmitEvent"/>
@@ -58,6 +59,7 @@ export default {
   props: {
     node: { type: Object, required: true },
     id: { type: String, required: true },
+    submitEnabled: { type: Boolean, require: false, default: true },
   },
   methods: {
     isUiNodeInputAttributes,
