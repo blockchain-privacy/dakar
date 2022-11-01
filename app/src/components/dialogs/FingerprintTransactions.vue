@@ -15,7 +15,8 @@
             as this transaction. Therefore, it is likely that they were created by the same user.
             The larger the score the closer the timeframe(s) are.
           </p>
-          <v-simple-table v-if="fingerprintScores">
+          <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
+          <v-simple-table v-else-if="fingerprintScores && fingerprintScores.length > 0">
             <template v-slot:default>
               <thead>
               <tr>
@@ -25,8 +26,7 @@
               </thead>
               <tbody>
               <tr v-for="item in fingerprintScores" :key="item.txhash">
-                <td style="overflow: hidden; text-overflow: ellipsis;
-              max-width: 200px; white-space: nowrap">
+                <td class="transaction-hash">
                   <router-link :to="{ name: routes.transactionRoute, params: { id: item.txhash }}">
                     {{ item.txhash }}
                   </router-link>
@@ -64,7 +64,9 @@ export default {
     return {
       isLoading: false,
       fingerprintScores: [],
+      // loadedSuccessful controls if a data load request needs to be sent
       loadedSuccessful: false,
+      errorMsg: '',
       routes: {
         transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       },
@@ -81,19 +83,17 @@ export default {
     },
   },
   methods: {
-    setPersistentErrorMessage(msg) {
-      this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: false });
-    },
     searchForSimilarTransactions() {
       // check if data was already loaded
       if (this.loadedSuccessful) return;
 
       this.fingerprintScores = [];
-
+      this.errorMsg = '';
       this.isLoading = true;
+
       doGet(ROUTE_SPENDING_FINGERPRINT, this.$router, this.$store, this.transactionHash)
         .then((d) => {
-          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('error searching for similar transactions');
+          if (d.success === undefined || (!d.success && d.msg === undefined)) throw new Error('Error searching for similar transactions.');
           if (!d.success && d.msg !== undefined) throw new Error(d.msg);
           if (d.success) this.loadedSuccessful = true;
           if (d.fingerprint_scores) {
@@ -101,13 +101,12 @@ export default {
               .sort((item1, item2) => item1.score < item2.score)
               .map((item) => {
                 item.score = item.score.toFixed(3);
-
                 return item;
               });
           }
         })
         .catch((e) => {
-          this.setPersistentErrorMessage(e);
+          this.errorMsg = e.message;
         })
         .finally(() => {
           this.isLoading = false;
@@ -124,5 +123,10 @@ export default {
 </script>
 
 <style scoped>
-
+.transaction-hash {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  white-space: nowrap;
+}
 </style>
