@@ -195,7 +195,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 
 		fingerprints = append(fingerprints, FingerPrint{
 			TransactionUID: txNode.String(),
-			Score:          score,
+			Score:          score / float64(numSessions),
 			SessionCount:   numSessions,
 		})
 		sort.Slice(fingerprints, func(i, j int) bool {
