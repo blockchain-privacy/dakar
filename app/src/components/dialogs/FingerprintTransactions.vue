@@ -13,7 +13,7 @@
           <p class="text-subtitle-1">
             The following transactions spend outputs from the same mixing timeframe(s)
             as this transaction. Therefore, it is likely that they were created by the same user.
-            The larger the score the closer the timeframe(s) are.
+            The smaller the score the closer the timeframe(s) are.
           </p>
           <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
           <v-simple-table v-else-if="fingerprintScores && fingerprintScores.length > 0">
@@ -98,7 +98,7 @@ export default {
           if (d.success) this.loadedSuccessful = true;
           if (d.fingerprint_scores) {
             this.fingerprintScores = d.fingerprint_scores
-              .sort((item1, item2) => item1.score < item2.score)
+              .sort((item1, item2) => item1.score > item2.score)
               .map((item) => {
                 item.score = item.score.toFixed(3);
                 return item;
