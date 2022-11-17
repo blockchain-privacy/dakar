@@ -25,7 +25,7 @@
       </v-tooltip>
       <v-btn
           id="btn_find_similar_transactions"
-          v-if="isDestination(tx.privacytype) && showFingerprintLink"
+          v-if="false && isDestination(tx.privacytype) && showFingerprintLink"
           style="margin-right: 0" icon
           @click="showFingerprintDialog = true">
         <v-icon>{{ icons.mdiFingerprint }}</v-icon>
