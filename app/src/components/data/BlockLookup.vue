@@ -58,7 +58,8 @@
           <template v-if="data.transactions">
             <v-col v-for="tx in data.transactions" :key="tx.txhash+tx.bid">
               <Transaction :tx="tx" show-title-link
-                           :show-heuristic-editor-link="showHeuristicEditor"/>
+                           :show-heuristic-editor-link="showHeuristicEditor"
+                           :show-fingerprint-link="showHeuristicEditor"/>
             </v-col>
           </template>
         </v-row>

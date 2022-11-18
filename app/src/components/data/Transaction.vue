@@ -75,7 +75,9 @@
           <v-row v-if="getPrivacyTypeLabel(tx.privacytype)">
             <v-col>
               <IconItem :icon="icons.mdiIncognito" title="Privacy Type">
-                {{ getPrivacyTypeLabel(tx.privacytype) }}
+                <WikiTooltip :description-url="getPrivacyTypeTooltip(tx.privacytype)">
+                  {{ getPrivacyTypeLabel(tx.privacytype) }}
+                </WikiTooltip>
               </IconItem>
             </v-col>
             <v-col v-if="isMixing(tx.privacytype)">
@@ -184,15 +186,18 @@ import {
 import OutputItem from './OutputItem.vue';
 import {
   shortenHash, convertAmount, isDestination, getPrivacyTypeLabel, isMixing,
-  getMixingLabel,
+  getMixingLabel, getPrivacyTypeTooltip,
 } from '../../utilities';
 import { ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 import IconItem from '../common/IconItem.vue';
 import FingerprintTransactions from '../dialogs/FingerprintTransactions.vue';
+import WikiTooltip from '../wiki/WikiTooltip.vue';
 
 export default {
   name: 'Transaction',
-  components: { FingerprintTransactions, OutputItem, IconItem },
+  components: {
+    WikiTooltip, FingerprintTransactions, OutputItem, IconItem,
+  },
   props: {
     tx: { type: Object, required: true },
     showHeuristicEditorLink: { type: Boolean, required: true },
@@ -251,6 +256,7 @@ export default {
     convertAmount,
     isDestination,
     getPrivacyTypeLabel,
+    getPrivacyTypeTooltip,
     isMixing,
     getMixingLabel,
     getLabel(count, label) {
