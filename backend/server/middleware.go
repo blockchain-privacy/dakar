@@ -195,7 +195,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			// reset body, so it can be read by the next handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-			cacheKey := buildKey(route, r.URL.Path[len(route):], body)
+			cacheKey := buildKey(route, r.URL.Path[len(route):]+r.URL.RawQuery, body)
 
 			// try to get request from cache
 			value, found := s.cache.Get(cacheKey)
