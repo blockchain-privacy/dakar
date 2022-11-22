@@ -166,6 +166,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 	}
 	earliestInputTimestamp := rootMeans[0]
 	numSessions := len(rootMeans)
+	numSessionsFloat := float64(numSessions)
 	const maximumScores = 30
 	var fingerprints []FingerPrint
 	nodes := g.Nodes()
@@ -189,13 +190,13 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 
 		// calculate score and check if score is high enough
 		score, err := scoreMeans(rootMeans, txMeans)
-		if err != nil || score < 0.7 || score/float64(numSessions) < 0.5 {
+		if err != nil || score < 0.7 || score/numSessionsFloat < 0.5 {
 			continue
 		}
 
 		fingerprints = append(fingerprints, FingerPrint{
 			TransactionUID: txNode.String(),
-			Score:          score / float64(numSessions),
+			Score:          score / numSessionsFloat,
 			SessionCount:   numSessions,
 		})
 		sort.Slice(fingerprints, func(i, j int) bool {

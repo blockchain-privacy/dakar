@@ -11,27 +11,31 @@
         </div>
         <div v-if="!isLoading">
           <p class="text-subtitle-1">
-            The following transactions spend outputs from the same mixing timeframe(s)
+            The following transactions spend outputs from similar mixing timeframe(s)
             as this transaction. Therefore, it is likely that they were created by the same user.
-            The larger the score the closer the timeframe(s) are.
           </p>
+          <p class="text-subtitle-1">Scale: green (timeframes are closer)
+            to red (timeframes are more distant)</p>
+          <v-alert :icon="icons.mdiTestTube" color="info" text>
+            This feature is under active development. Results may change.</v-alert>
           <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
           <v-simple-table v-else-if="fingerprintScores && fingerprintScores.length > 0">
             <template v-slot:default>
               <thead>
               <tr>
+                <th></th>
                 <th class="text-left">Transaction</th>
-                <th class="text-left">Score</th>
               </tr>
               </thead>
               <tbody>
               <tr v-for="item in fingerprintScores" :key="item.txhash">
+                <td :style="{background: scoreToColor(item.score),
+                width: '20px', padding: '0px 0px 0px 0px'}"></td>
                 <td class="transaction-hash">
                   <router-link :to="{ name: routes.transactionRoute, params: { id: item.txhash }}">
                     {{ item.txhash }}
                   </router-link>
                 </td>
-                <td>{{ item.score }}</td>
               </tr>
               </tbody>
             </template>
@@ -51,8 +55,23 @@
 </template>
 
 <script>
+import { mdiTestTube } from '@mdi/js';
 import { doGet } from '../../utilities';
 import { ROUTE_SPENDING_FINGERPRINT, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
+
+function scoreToColor(scaleNum) {
+  if (scaleNum <= 0.8) {
+    return '#E53935';
+  }
+
+  if (scaleNum <= 1.0) {
+    return '#EF5350';
+  }
+  if (scaleNum <= 1.2) {
+    return '#66BB6A';
+  }
+  return '#388E3C';
+}
 
 export default {
   name: 'FingerprintTransactions',
@@ -67,6 +86,7 @@ export default {
       // loadedSuccessful controls if a data load request needs to be sent
       loadedSuccessful: false,
       errorMsg: '',
+      icons: { mdiTestTube },
       routes: {
         transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
       },
@@ -83,6 +103,7 @@ export default {
     },
   },
   methods: {
+    scoreToColor,
     searchForSimilarTransactions() {
       // check if data was already loaded
       if (this.loadedSuccessful) return;
