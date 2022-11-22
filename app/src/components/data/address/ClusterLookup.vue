@@ -3,7 +3,8 @@
     <v-card flat v-if="!showEmptyText">
       <v-card-text>
         <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-        The following clusters are attached to this address.
+        The following <WikiTooltip description-url="addressCluster.md">clusters</WikiTooltip>
+        are attached to this address.
         New clusters can be created at the
         <router-link :to="{ name: clusterOverview}">cluster overview</router-link>
         page.
@@ -112,10 +113,13 @@ import {
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteCluster from '../../dialogs/DeleteCluster.vue';
 import AttributionTag from '../../tools/attributions/AttributionTag.vue';
+import WikiTooltip from '../../wiki/WikiTooltip.vue';
 
 export default {
   name: 'ClusterLookup',
-  components: { AttributionTag, ClusterDetails, DeleteCluster },
+  components: {
+    AttributionTag, ClusterDetails, DeleteCluster, WikiTooltip,
+  },
   props: {
     addressHash: { type: String, required: true },
   },

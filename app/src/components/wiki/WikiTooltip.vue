@@ -64,6 +64,7 @@ export default {
 
 .wikiBlurbDescription >>> h1 {
   margin-bottom: 10px;
+  line-height: 1em;
 }
 
 .wikiBlurbDescription >>> img {

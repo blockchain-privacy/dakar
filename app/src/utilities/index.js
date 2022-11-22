@@ -277,6 +277,20 @@ export function getPrivacyTypeLabel(privacyType) {
   return '';
 }
 
+// getPrivacyTypeTooltip returns the corresponding tooltip path
+export function getPrivacyTypeTooltip(privacyType) {
+  const t = parseInt(privacyType, 10);
+  const folder = 'transactionTypes';
+  if (Number.isNaN(t) || t < 0 || t > 499) return '';
+  if (t <= 99) return `${folder}/mixingTransaction.md`;
+  if (t <= 199) return `${folder}/destinationTransaction.md`;
+  if (t <= 299) return `${folder}/originTransaction.md`;
+  if (t <= 399) return `${folder}/collateralCreationTransaction.md`;
+  if (t <= 499) return `${folder}/collateralPaymentTransaction.md`;
+
+  return '';
+}
+
 // getMixingDenomination translates the integer representation of privacy types to string
 export function getMixingLabel(privacyType) {
   const t = parseInt(privacyType, 10);

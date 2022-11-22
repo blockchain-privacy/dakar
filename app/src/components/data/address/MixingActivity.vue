@@ -2,6 +2,12 @@
   <div>
     <v-card flat>
       <v-card-text>
+        <v-icon>{{ icons.mdiInformationOutline }}</v-icon>
+        <WikiTooltip description-url="transactionTypes/privacyTransactions.md"
+        >Privacy transactions</WikiTooltip>
+        which are directly connected to this address show partially the
+        <WikiTooltip description-url="mixingActivity.md">mixing activity</WikiTooltip>
+        .
         <v-row v-if="(activities && activities.length > 0) || showTooManyAddressesMsg">
           <v-col>
             <v-select
@@ -232,7 +238,7 @@
 </template>
 
 <script>
-import { mdiCalendarRange } from '@mdi/js';
+import { mdiCalendarRange, mdiInformationOutline } from '@mdi/js';
 import Histogram from '../../../d3Documents/histogram';
 import ForceGraph from '../../../d3Documents/forceGraph';
 import {
@@ -242,6 +248,7 @@ import {
   ROUTE_MIXING_ACTIVITY,
   ROUTE_NAME_TRANSACTION_PAGE,
 } from '../../../constants';
+import WikiTooltip from '../../wiki/WikiTooltip.vue';
 
 // capitalize returns the first letter of each word (separated by a space) in str capitalized
 function capitalize(str) {
@@ -250,12 +257,13 @@ function capitalize(str) {
 
 export default {
   name: 'MixingActivity',
+  components: { WikiTooltip },
   props: {
     addressHash: { type: String, required: true },
   },
   data() {
     return {
-      icons: { mdiCalendarRange },
+      icons: { mdiCalendarRange, mdiInformationOutline },
       txRoute: ROUTE_NAME_TRANSACTION_PAGE,
       lastQuery: '',
       includeCluster: false,
@@ -522,7 +530,7 @@ export default {
       // draw
       if (this.graphMode) {
         if (!this.showTooManyTransactionsMsg
-              || this.overrideTooManyTransactionsWarning) {
+            || this.overrideTooManyTransactionsWarning) {
           this.svgGraph.draw(filtered.items, filtered.links);
           this.showGraph = true;
         }

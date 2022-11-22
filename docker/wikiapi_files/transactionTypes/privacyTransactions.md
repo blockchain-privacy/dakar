@@ -1,6 +1,6 @@
 # Privacy Transactions
 
-Privacy transactions are blockchain transactions which are created during a mixing process:
+Privacy transactions are blockchain transactions which are created during the [mixing process](dashMixingProcess.md):
 
 - [Origin Transactions](transactionTypes/originTransaction.md)
 - [Mixing Transactions](transactionTypes/mixingTransaction.md)
