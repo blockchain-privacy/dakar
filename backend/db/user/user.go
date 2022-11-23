@@ -284,3 +284,20 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 
 	return pw, nil
 }
+
+// CreatePrivilegedUser creates a new privileged user account with the given password
+func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email string, pw string) error {
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
+	defer cancelFunc()
+
+	// get ory handle and also create password
+	err := CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.AdminIdentityImportCredentials{
+		Password: &ory.AdminCreateIdentityImportCredentialsPassword{
+			Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{Password: &pw}},
+	}, []string{"privileged"})
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
+	return nil
+}

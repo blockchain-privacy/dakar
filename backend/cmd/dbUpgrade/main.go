@@ -5,13 +5,13 @@ import (
 	"backend/db"
 	dbus "backend/db/user"
 	"backend/external"
-	"context"
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
 	"log"
 	"net/http"
 	"net/http/cookiejar"
+	"strconv"
 )
 
 var thisLogger *log.Logger
@@ -129,41 +129,49 @@ func main() {
 		return
 	}
 
-	users, err := dbus.GetUsersWithCredentials(dgraph)
-	if err != nil {
-		info(err)
-		return
-	}
-
-	for _, u := range users {
-		if u.Email == "" || u.Pwhash == "" {
-			info("email or password not set, not processing:", u)
-			continue
-		}
-
-		var roles []string
-
-		for _, r := range u.Roles {
-			roles = append(roles, r.Name)
-		}
-
-		if len(roles) == 0 {
-			info("no roles found, not processing", u)
-			continue
-		}
-
-		createError := dbus.CreateKratosUser(context.Background(), u.UID, kratos,
-			u.Email, &ory.AdminIdentityImportCredentials{
-				Password: &ory.AdminCreateIdentityImportCredentialsPassword{
-					Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{
-						HashedPassword: &u.Pwhash,
-					}},
-			}, roles)
-		if createError != nil {
-			info(createError)
+	for i := 1; i <= 3; i++ {
+		if err := createPrivilegedUser(dgraph, kratos, "workshop"+strconv.Itoa(i)+"@example.null",
+			"cryptoworkshop"+strconv.Itoa(i)); err != nil {
+			info(err)
 			return
 		}
 	}
+
+	//users, err := dbus.GetUsersWithCredentials(dgraph)
+	//if err != nil {
+	//	info(err)
+	//	return
+	//}
+	//
+	//for _, u := range users {
+	//	if u.Email == "" || u.Pwhash == "" {
+	//		info("email or password not set, not processing:", u)
+	//		continue
+	//	}
+	//
+	//	var roles []string
+	//
+	//	for _, r := range u.Roles {
+	//		roles = append(roles, r.Name)
+	//	}
+	//
+	//	if len(roles) == 0 {
+	//		info("no roles found, not processing", u)
+	//		continue
+	//	}
+	//
+	//	createError := dbus.CreateKratosUser(context.Background(), u.UID, kratos,
+	//		u.Email, &ory.AdminIdentityImportCredentials{
+	//			Password: &ory.AdminCreateIdentityImportCredentialsPassword{
+	//				Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{
+	//					HashedPassword: &u.Pwhash,
+	//				}},
+	//		}, roles)
+	//	if createError != nil {
+	//		info(createError)
+	//		return
+	//	}
+	//}
 
 	//info("increasing schema version ...")
 	//err = status.SetSchemaVersion(dgraph, 2)
@@ -172,4 +180,15 @@ func main() {
 	//	return
 	//}
 	//info("increased schema version")
+}
+
+// createPrivilegedUser creates a privileged user and prints the credentials to stdout
+func createPrivilegedUser(database external.Database, adminAuth *ory.APIClient, email string, pw string) error {
+	if err := dbus.CreatePrivilegedUser(database, adminAuth, email, pw); err != nil {
+		return err
+	}
+	// do not log
+	fmt.Println("New privileged user created. Email:", email, "Pw:", pw)
+
+	return nil
 }
