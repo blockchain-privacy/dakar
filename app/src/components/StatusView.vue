@@ -113,7 +113,7 @@
                       <IconItem :icon="icon.mdiCounter" title="Last crawled Block">
                         <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastblockid }}">
-                          {{ data.status.lastblockid }}
+                          {{ data.status.lastblockid.toLocaleString() }}
                         </router-link>
                       </IconItem>
                     </v-col>
@@ -123,7 +123,7 @@
                       <IconItem :icon="icon.mdiCounter" title="Last classified Block">
                         <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastclassifiedid }}">
-                          {{ data.status.lastclassifiedid }}
+                          {{ data.status.lastclassifiedid.toLocaleString() }}
                         </router-link>
                       </IconItem>
                     </v-col>
@@ -133,7 +133,7 @@
                       <IconItem :icon="icon.mdiCounter" title="Last HMI Block">
                         <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastclusteredhmiid }}">
-                          {{ data.status.lastclusteredhmiid }}
+                          {{ data.status.lastclusteredhmiid.toLocaleString() }}
                         </router-link>
                       </IconItem>
                     </v-col>
@@ -143,7 +143,7 @@
                       <IconItem :icon="icon.mdiCounter" title="Last FMI Block">
                         <router-link :to="{ name: blockRoute,
                     params: { id: data.status.lastclusteredfmiid }}">
-                          {{ data.status.lastclusteredfmiid }}
+                          {{ data.status.lastclusteredfmiid.toLocaleString() }}
                         </router-link>
                       </IconItem>
                     </v-col>
@@ -152,7 +152,7 @@
                     <v-col>
                       <IconItem :icon="icon.mdiCounter"
                                 title="RPC Client Block Height">
-                        {{ data.rpcinfo.blocks }}
+                        {{ data.rpcinfo.blocks.toLocaleString() }}
                       </IconItem>
                     </v-col>
                   </v-row>
@@ -173,7 +173,7 @@
                       :icon="icon.mdiWeight"
                       title="Difficulty"
                       :tooltip="tooltips.rpcDifficulty">
-                    {{ data.rpcinfo.difficulty.toFixed() }}
+                    {{ data.rpcinfo.difficulty.toLocaleString() }}
                   </IconItem>
                 </v-col>
                 <v-col v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0">
@@ -181,7 +181,7 @@
                       :icon="icon.mdiHarddisk"
                       title="Blockchain Size"
                       :tooltip="tooltips.rpcBlockchainSize">
-                    {{ (data.rpcinfo.size_on_disk / 1073741824).toFixed(2) }} GiB
+                    {{ (data.rpcinfo.size_on_disk / 1073741824).toLocaleString() }} GiB
                   </IconItem>
                 </v-col>
               </v-row>

@@ -41,7 +41,7 @@
             <v-col>
               <IconItem :icon="icons.mdiFormatListNumbered" title="Block Height">
                 <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
-                  {{ tx.bid }}
+                  {{ tx.bid.toLocaleString() }}
                 </router-link>
               </IconItem>
             </v-col>
