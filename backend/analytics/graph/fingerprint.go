@@ -140,29 +140,30 @@ type FingerPrint struct {
 }
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
-func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) {
+// and the number of mixing sessions of this transactions
+func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, error) {
 	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
 	// of the root transaction and the timestamp of the compared transaction
 	const maximumDistance = 60 * 60 * 24 * 2
 
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
 
 	rootNode := g.Node(nodeUID)
 	if rootNode == nil {
-		return nil, errors.New(uid + " not in graph")
+		return nil, 0, errors.New(uid + " not in graph")
 	}
 
 	rootTx, ok := rootNode.(TransactionNode)
 	if !ok || !rootTx.PrivacyType.IsDestination() {
-		return nil, errors.New(uid + " is not a destination transaction")
+		return nil, 0, errors.New(uid + " is not a destination transaction")
 	}
 
 	rootMeans := getSessionsFromTransaction(g, rootTx)
 	if len(rootMeans) == 0 {
-		return nil, errors.New(uid + " has no session means")
+		return nil, 0, errors.New(uid + " has no session means")
 	}
 	earliestInputTimestamp := rootMeans[0]
 	numSessions := len(rootMeans)
@@ -203,11 +204,11 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, error) 
 			return fingerprints[i].Score < fingerprints[j].Score
 		})
 
-		// remove fist element
+		// remove the first element (which has the lowest score)
 		if len(fingerprints) > maximumScores {
 			fingerprints = fingerprints[1:]
 		}
 	}
 
-	return fingerprints, err
+	return fingerprints, numSessions, err
 }

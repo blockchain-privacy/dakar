@@ -1292,7 +1292,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 		return
 	}
 
-	similarTransactions, err := worker.SpendingFingerprint(uid)
+	similarTransactions, sessionCount, err := worker.SpendingFingerprint(uid)
 	if err != nil {
 		reply.Msg = frontendError
 		info(cliutil.ShowCallInfo(), err)
@@ -1300,10 +1300,10 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	}
 
 	uids := make([]string, len(similarTransactions))
-	uidToScore := make(map[string]float64, len(similarTransactions))
+	uidToFingerprint := make(map[string]fingerprintScore, len(similarTransactions))
 	for i, tx := range similarTransactions {
 		uids[i] = tx.TransactionUID
-		uidToScore[tx.TransactionUID] = tx.Score
+		uidToFingerprint[tx.TransactionUID] = fingerprintScore{Score: tx.Score, SessionCount: tx.SessionCount}
 	}
 
 	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
@@ -1320,16 +1320,18 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	}
 
 	for _, tx := range transactions {
-		score, ok := uidToScore[tx.UID]
+		fingerprint, ok := uidToFingerprint[tx.UID]
 		if !ok {
 			reply.Msg = frontendError
 			info(cliutil.ShowCallInfo(), "could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
 			return
 		}
 
-		reply.FingerprintScores = append(reply.FingerprintScores, fingerprintScore{Score: score, Txhash: tx.Hash})
+		fingerprint.Txhash = tx.Hash
+		reply.FingerprintScores = append(reply.FingerprintScores, fingerprint)
 	}
 
+	reply.SessionCount = sessionCount
 	reply.Success = true
 
 	return
