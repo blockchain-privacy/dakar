@@ -16,8 +16,16 @@
           </p>
           <p class="text-subtitle-1">Scale: green (timeframes are closer)
             to red (timeframes are more distant)</p>
-          <v-alert :icon="icons.mdiTestTube" color="info" text>
-            This feature is under active development. Results may change.</v-alert>
+          <v-alert :icon="icons.mdiTestTube" type="info" text>
+            This feature is under active development. Results may change.
+          </v-alert>
+          <v-alert v-if="sessionCount !== -1 && sessionCount < 2" type="warning" text>
+            This transaction uses outputs from only one mixing session.
+            The results are therefore likely not relevant.
+          </v-alert>
+          <p class="text-subtitle-1" v-if="sessionCount !== -1">
+            Number of mixing sessions: {{ sessionCount.toLocaleString() }}
+          </p>
           <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
           <v-simple-table v-else-if="fingerprintScores && fingerprintScores.length > 0">
             <template v-slot:default>
@@ -60,14 +68,13 @@ import { doGet } from '../../utilities';
 import { ROUTE_SPENDING_FINGERPRINT, ROUTE_NAME_TRANSACTION_PAGE } from '../../constants';
 
 function scoreToColor(scaleNum) {
-  if (scaleNum <= 0.8) {
+  if (scaleNum <= 0.6) {
     return '#E53935';
   }
-
-  if (scaleNum <= 1.0) {
+  if (scaleNum <= 0.8) {
     return '#EF5350';
   }
-  if (scaleNum <= 1.2) {
+  if (scaleNum <= 1.1) {
     return '#66BB6A';
   }
   return '#388E3C';
@@ -83,6 +90,7 @@ export default {
     return {
       isLoading: false,
       fingerprintScores: [],
+      sessionCount: -1,
       // loadedSuccessful controls if a data load request needs to be sent
       loadedSuccessful: false,
       errorMsg: '',
@@ -124,6 +132,9 @@ export default {
                 item.score = item.score.toFixed(3);
                 return item;
               });
+          }
+          if (d.session_count) {
+            this.sessionCount = d.session_count;
           }
         })
         .catch((e) => {
