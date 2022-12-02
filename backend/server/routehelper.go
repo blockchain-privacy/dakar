@@ -108,14 +108,16 @@ type deleteHeuristicReply struct {
 }
 
 type fingerprintScore struct {
-	Score  float64 `json:"score"`
-	Txhash string  `json:"txhash"`
+	Score        float64 `json:"score"`
+	Txhash       string  `json:"txhash"`
+	SessionCount int     `json:"session_count,omitempty"`
 }
 
 type spendingFingerprintReply struct {
 	Success           bool               `json:"success"`
 	Warning           bool               `json:"warning,omitempty"`
 	Msg               string             `json:"msg,omitempty"`
+	SessionCount      int                `json:"session_count,omitempty"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores,omitempty"`
 }
 
