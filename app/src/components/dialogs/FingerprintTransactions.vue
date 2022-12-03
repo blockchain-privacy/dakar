@@ -21,16 +21,22 @@
             This transaction uses outputs from only one mixing session.
             The results are therefore likely not relevant.
           </v-alert>
-          <p class="text-subtitle-1" v-if="sessionCount !== -1">
-            Number of mixing sessions: {{ sessionCount.toLocaleString() }}
-          </p>
           <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
           <div v-else-if="fingerprintScores && fingerprintScores.length > 0">
-            <div class="d-flex align-center justify-center">
-              <div class="text-subtitle-1">Less similar</div>
-              <div class="gradient"></div>
-              <div class="text-subtitle-1">More similar</div>
-            </div>
+            <v-row>
+              <v-col>
+                <p class="text-caption" v-if="sessionCount !== -1">
+                  Number of mixing sessions: {{ sessionCount.toLocaleString() }}
+                </p>
+              </v-col>
+              <v-col>
+                <div class="d-flex align-center">
+                  <div class="ml-auto text-caption">Less similar</div>
+                  <div class="gradient"></div>
+                  <div class="text-caption">More similar</div>
+                </div>
+              </v-col>
+            </v-row>
             <v-simple-table>
               <template v-slot:default>
                 <thead>
@@ -169,8 +175,8 @@ export default {
 }
 
 .gradient {
-  width: 250px;
-  height: 15px;
+  width: 160px;
+  height: 10px;
   margin: 0 5px 0 5px;
   background: linear-gradient(to right, #E53935 0%, #EF5350 33%, #66BB6A 66%, #388E3C 100%);
 }
