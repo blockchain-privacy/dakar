@@ -14,8 +14,6 @@
             The following transactions spend outputs from similar mixing timeframe(s)
             as this transaction. Therefore, it is likely that they were created by the same user.
           </p>
-          <p class="text-subtitle-1">Scale: green (timeframes are closer)
-            to red (timeframes are more distant)</p>
           <v-alert :icon="icons.mdiTestTube" type="info" text>
             This feature is under active development. Results may change.
           </v-alert>
@@ -27,27 +25,35 @@
             Number of mixing sessions: {{ sessionCount.toLocaleString() }}
           </p>
           <v-alert v-if="errorMsg" type="error" outlined>{{ errorMsg }}</v-alert>
-          <v-simple-table v-else-if="fingerprintScores && fingerprintScores.length > 0">
-            <template v-slot:default>
-              <thead>
-              <tr>
-                <th></th>
-                <th class="text-left">Transaction</th>
-              </tr>
-              </thead>
-              <tbody>
-              <tr v-for="item in fingerprintScores" :key="item.txhash">
-                <td :style="{background: scoreToColor(item.score),
+          <div v-else-if="fingerprintScores && fingerprintScores.length > 0">
+            <div class="d-flex align-center justify-center">
+              <div class="text-subtitle-1">Less similar</div>
+              <div class="gradient"></div>
+              <div class="text-subtitle-1">More similar</div>
+            </div>
+            <v-simple-table>
+              <template v-slot:default>
+                <thead>
+                <tr>
+                  <th></th>
+                  <th class="text-left">Transaction</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="item in fingerprintScores" :key="item.txhash">
+                  <td :style="{background: scoreToColor(item.score),
                 width: '20px', padding: '0px 0px 0px 0px'}"></td>
-                <td class="transaction-hash">
-                  <router-link :to="{ name: routes.transactionRoute, params: { id: item.txhash }}">
-                    {{ item.txhash }}
-                  </router-link>
-                </td>
-              </tr>
-              </tbody>
-            </template>
-          </v-simple-table>
+                  <td class="transaction-hash">
+                    <router-link
+                        :to="{ name: routes.transactionRoute, params: { id: item.txhash }}">
+                      {{ item.txhash }}
+                    </router-link>
+                  </td>
+                </tr>
+                </tbody>
+              </template>
+            </v-simple-table>
+          </div>
           <div v-else class="text-body-1">
             No similar transactions found
           </div>
@@ -160,5 +166,12 @@ export default {
   text-overflow: ellipsis;
   max-width: 200px;
   white-space: nowrap;
+}
+
+.gradient {
+  width: 250px;
+  height: 15px;
+  margin: 0 5px 0 5px;
+  background: linear-gradient(to right, #E53935 0%, #EF5350 33%, #66BB6A 66%, #388E3C 100%);
 }
 </style>
