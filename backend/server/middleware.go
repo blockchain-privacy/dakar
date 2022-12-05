@@ -101,7 +101,7 @@ func extractDgraphUID(metadataPublic any) (string, error) {
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, sessionResponse, err := s.auth.V0alpha2Api.ToSession(r.Context()).
+			session, sessionResponse, err := s.auth.FrontendApi.ToSession(r.Context()).
 				Cookie(r.Header.Get("Cookie")).Execute()
 			if err != nil {
 				sendRedirectMessage(w)
@@ -121,8 +121,8 @@ func (s *Server) authorization() adapter {
 			const reissueDuration = time.Hour * 24 / 4
 
 			if time.Until(*session.ExpiresAt) <= reissueDuration {
-				_, extensionResponse, extensionErr := s.adminAuth.V0alpha2Api.
-					AdminExtendSession(r.Context(), session.Id).Execute()
+				_, extensionResponse, extensionErr := s.adminAuth.IdentityApi.
+					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
 					sendRedirectMessage(w)
 					info(cliutil.ShowCallInfo(), extensionErr)
