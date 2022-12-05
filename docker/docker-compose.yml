@@ -40,7 +40,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v0.10.1
+    image: oryd/kratos:v0.11.0
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
