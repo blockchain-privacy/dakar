@@ -14,23 +14,23 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
-          id="btn_open_heuristic_editor"
+          :id="`btn_open_heuristic_editor_${tx.txhash}`"
           v-if="isDestination(tx.privacytype) && showHeuristicEditorLink"
           style="margin-right: 0" icon
-          :to="{ name: routes.ROUTE_NAME_HEURISTIC_PAGE }">
+          :to="{ name: routes.ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }">
         <v-icon>{{ icons.mdiGraph }}</v-icon>
       </v-btn>
-      <v-tooltip bottom activator="#btn_open_heuristic_editor">
+      <v-tooltip bottom :activator="`#btn_open_heuristic_editor_${tx.txhash}`">
         <span>Open the heuristic editor for this transaction</span>
       </v-tooltip>
       <v-btn
-          id="btn_find_similar_transactions"
+          :id="`btn_find_similar_transactions_${tx.txhash}`"
           v-if="isDestination(tx.privacytype) && showFingerprintLink"
           style="margin-right: 0" icon
           @click="showFingerprintDialog = true">
         <v-icon>{{ icons.mdiFingerprint }}</v-icon>
       </v-btn>
-      <v-tooltip bottom activator="#btn_find_similar_transactions">
+      <v-tooltip bottom :activator="`#btn_find_similar_transactions_${tx.txhash}`">
         <span>Search for similar destination transactions</span>
       </v-tooltip>
     </v-toolbar>
@@ -41,7 +41,7 @@
             <v-col>
               <IconItem :icon="icons.mdiFormatListNumbered" title="Block Height">
                 <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
-                  {{ tx.bid }}
+                  {{ tx.bid.toLocaleString() }}
                 </router-link>
               </IconItem>
             </v-col>

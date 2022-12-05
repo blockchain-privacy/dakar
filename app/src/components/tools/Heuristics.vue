@@ -91,6 +91,9 @@
           {{ shortenHash(item.txhash) }}
         </router-link>
       </template>
+      <template v-slot:[`item.h_count`]="{ item }">
+        {{ item.h_count.toLocaleString() }}
+      </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-icon
             :disabled="isLoading"

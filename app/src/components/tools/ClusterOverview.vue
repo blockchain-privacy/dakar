@@ -59,7 +59,7 @@
         <v-card elevation="4">
           <v-list-item two-line>
             <v-list-item-title>
-              {{ item.address_count }} Addresses
+              {{ item.address_count.toLocaleString() }} Addresses
             </v-list-item-title>
             <v-list-item-subtitle class="text-right">
               {{ item.ts.toLocaleDateString() }}

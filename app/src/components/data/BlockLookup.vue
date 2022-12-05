@@ -47,7 +47,7 @@
                   <v-row>
                     <v-col>
                       <IconItem :icon="icon.mdiPound" title="Number of Transactions">
-                        {{ data.txcount }}
+                        {{ data.txcount.toLocaleString() }}
                       </IconItem>
                     </v-col>
                   </v-row>

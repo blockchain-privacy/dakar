@@ -54,8 +54,11 @@ export function shortenHash(hash) {
   return `${hash.substring(0, elementLen)}...${hash.substring(hash.length - elementLen, hash.length)}`;
 }
 
+// convertAmount returns the given integer divided by 100 000 000 and localized
 export function convertAmount(val) {
-  return val / 1e8;
+  return (val / 1e8).toLocaleString(undefined, {
+    maximumFractionDigits: 10,
+  });
 }
 
 // getCurrentDate returns the current date as a string in the form dd-mm-yyyy

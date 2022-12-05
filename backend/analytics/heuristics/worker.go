@@ -285,7 +285,7 @@ func (w *Worker) ForwardLookup(uid string, maxLookForwardTime time.Duration) (ma
 }
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
-func (w *Worker) SpendingFingerprint(uid string) ([]graph.FingerPrint, error) {
+func (w *Worker) SpendingFingerprint(uid string) ([]graph.FingerPrint, int, error) {
 	w.spendingFingerprint.Inc()
 	return w.graphWrapper.SpendingFingerprint(uid)
 }
