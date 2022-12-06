@@ -139,11 +139,7 @@ export default {
           if (d.success) this.loadedSuccessful = true;
           if (d.fingerprint_scores) {
             this.fingerprintScores = d.fingerprint_scores
-              .sort((item1, item2) => item1.score < item2.score)
-              .map((item) => {
-                item.score = item.score.toFixed(3);
-                return item;
-              });
+              .sort((item1, item2) => item2.score - item1.score);
           }
           if (d.session_count) {
             this.sessionCount = d.session_count;
