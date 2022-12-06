@@ -17,7 +17,7 @@
                     <v-col v-if="data.id">
                       <IconItem :icon="icon.mdiFormatListNumbered"
                                 title="Block Height" :subtitle="data.id">
-                        {{ data.id }}
+                        {{ data.id.toLocaleString() }}
                       </IconItem>
                     </v-col>
                     <v-col v-if="data.ts">
