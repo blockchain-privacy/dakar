@@ -158,9 +158,9 @@ func main() {
 			}
 
 			createError := dbus.CreateKratosUser(context.Background(), u.UID, kratos,
-				u.Email, &ory.AdminIdentityImportCredentials{
-					Password: &ory.AdminCreateIdentityImportCredentialsPassword{
-						Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{
+				u.Email, &ory.IdentityWithCredentials{
+					Password: &ory.IdentityWithCredentialsPassword{
+						Config: &ory.IdentityWithCredentialsPasswordConfig{
 							HashedPassword: &u.Pwhash,
 						}},
 				}, roles)
