@@ -1,19 +1,59 @@
 <template>
-    <ory-flow v-if="settingsFlow" class="mt-4"
+  <div v-if="settingsFlow">
+    <ory-flow class="mt-4"
               :flow="settingsFlow"
               :form-id="formID"
               @submit="handleOrySubmitSettings"
               :disabled-forms="disabledForms"
               embed
-              />
-    <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
+    />
+    <v-card class="mx-auto elevation-4 my-5" max-width="700">
+      <v-toolbar color="red" dark flat>
+        <v-toolbar-title>
+          Delete Account
+        </v-toolbar-title>
+      </v-toolbar>
+      <v-card-text>
+        To delete your account and all associated data click below. This action can not be reversed.
+        <v-btn class="mt-2" color="red" dark block
+               @click="showAccountDeletionDialog=true">Delete</v-btn>
+      </v-card-text>
+    </v-card>
+    <v-dialog
+        v-model="showAccountDeletionDialog"
+        max-width="700px">
+      <v-card>
+        <v-card-title>Delete Account</v-card-title>
+        <v-card-text>
+          <p class="font-weight-black text-body-1 my-0">
+            Do you really want to delete your account? This action can not be reversed.</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn color="blue darken-1" text
+                 @click="showAccountDeletionDialog = false">Cancel
+          </v-btn>
+          <v-btn color="red darken-1"
+                 text
+                 @click="deleteIdentity()">Yes, delete my account
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
+  <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
 </template>
 
 <script>
 import { mdiAccountDetails } from '@mdi/js';
-import { PAGE_TITLE } from '../../constants';
+import {
+  PAGE_TITLE,
+  ROUTE_IDENTITY_DELETE,
+  ROUTE_NAME_ENTRY_PAGE,
+} from '../../constants';
 import OryFlow from './flows/OryFlow.vue';
 import handleGetFlowError from '../../kratos';
+import { doGet, handleError } from '../../utilities';
 
 export default {
   name: 'Profile',
@@ -24,6 +64,10 @@ export default {
       formID: 'settings-form',
       settingsFlow: null,
       disabledForms: [],
+      showAccountDeletionDialog: false,
+      route: {
+        rootPage: ROUTE_NAME_ENTRY_PAGE,
+      },
     };
   },
   computed: {
@@ -42,6 +86,20 @@ export default {
     },
     setErrorMessage(msg) {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
+    },
+    deleteIdentity() {
+      return doGet(ROUTE_IDENTITY_DELETE, this.$router, this.$store).then((data) => {
+        if (!data.success) throw Error('error deleting account');
+        this.$store.dispatch('resetMessages');
+        this.setSuccessMessage('Your account was successfully deleted. Goodbye!');
+        this.session = null;
+        this.$router.push({ name: this.route.rootPage });
+      }).catch((e) => {
+        handleError(this.$store, e);
+        return e;
+      }).finally(() => {
+        this.showAccountDeletionDialog = false;
+      });
     },
     initSettingsFlow() {
       this.ory.frontend.createBrowserSettingsFlow()
@@ -100,7 +158,9 @@ export default {
             this.session = d.data;
           }
         })
-        .catch((err) => { handleGetFlowError(this.$router, this.$store, err); });
+        .catch((err) => {
+          handleGetFlowError(this.$router, this.$store, err);
+        });
     },
     initFlow() {
       const { flow } = this.$route.query;
