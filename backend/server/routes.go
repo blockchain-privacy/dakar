@@ -20,8 +20,8 @@ const (
 	routeBlockRange                   string = "blkRange"
 	routeCreateIdentity               string = "createIdentity"
 	routeGetIdentities                string = "getIdentities"
-	routeDeleteUser                   string = "deleteUser"
 	routeDeleteIdentity               string = "deleteIdentity"
+	routeAdminDeleteIdentity          string = "adminDeleteIdentity"
 	routeModifyUser                   string = "modifyUser"
 	routeModifyIdentity               string = "modifyIdentity"
 	routeShortestTxPath               string = "shortestTransactionPath"
@@ -139,14 +139,14 @@ func getRouteGetIdentities() string {
 	return getRoute(routeGetIdentities)
 }
 
-// getRouteDeleteUser returns a route
-func getRouteDeleteUser() string {
-	return getRoute(routeDeleteUser)
-}
-
 // getRouteDeleteIdentity returns a route
 func getRouteDeleteIdentity() string {
 	return getRoute(routeDeleteIdentity)
+}
+
+// getRouteAdminDeleteIdentity returns a route
+func getRouteAdminDeleteIdentity() string {
+	return getRoute(routeAdminDeleteIdentity)
 }
 
 // getRouteModifyUser returns a route
