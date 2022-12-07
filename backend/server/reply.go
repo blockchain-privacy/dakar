@@ -49,8 +49,24 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}
 	defer response.Body.Close()
 
+	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
+		Active(true).Expand([]string{"Identity"}).Execute()
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+	defer response.Body.Close()
+
+	var activeSession []ory.Session
+	for _, session := range sessions {
+		if *session.Active {
+			activeSession = append(activeSession, session)
+		}
+	}
+
 	reply.Users = users
 	reply.Identities = identities
+	reply.Sessions = activeSession
 	reply.Success = true
 
 	return

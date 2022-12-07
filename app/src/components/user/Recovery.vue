@@ -72,6 +72,9 @@ export default {
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
 
+      // the recovery form has two submit buttons:
+      // - submit code (button id: method)
+      // - resend code (button id: email)
       if (btnID !== 'email' && body.code && body.code.length > 0) {
         body.code = body.code.trim();
         delete body.email;

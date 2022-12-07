@@ -89,7 +89,7 @@
               </v-btn>
             </v-toolbar>
             <v-toolbar flat class="hidden-xs-only">
-              <v-toolbar-title>User Administration</v-toolbar-title>
+              <v-toolbar-title>Identities</v-toolbar-title>
               <v-spacer></v-spacer>
               <v-text-field
                   v-model="search"
@@ -140,6 +140,49 @@
           </template>
           <template v-slot:[`item.updated_at`]="{ item }">
             <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+          </template>
+        </v-data-table>
+        <v-data-table
+            :headers="sessionHeaders"
+            :items="this.sessions?this.sessions:[]"
+            :search="searchSessions"
+            :loading="this.isLoading || !this.sessions"
+            item-key="id"
+            sort-by="authenticated_at"
+            sort-desc
+            class="elevation-4 mt-2">
+          <template v-slot:top>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-toolbar-title>Sessions</v-toolbar-title>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-sm-and-up">
+              <v-text-field
+                  v-model="searchSessions"
+                  :append-icon="icons.mdiMagnify"
+                  label="Filter sessions"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+            </v-toolbar>
+            <v-toolbar flat class="hidden-xs-only">
+              <v-toolbar-title>Sessions</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-text-field
+                  v-model="searchSessions"
+                  :append-icon="icons.mdiMagnify"
+                  label="Filter sessions"
+                  single-line
+                  hide-details
+                  style="max-width: 500px"
+              ></v-text-field>
+            </v-toolbar>
+          </template>
+          <template v-slot:[`item.authenticated_at`]="{ item }">
+            <span>{{ new Date(item.authenticated_at).toLocaleString() }}</span>
+          </template>
+          <template v-slot:[`item.expires_at`]="{ item }">
+            <span>{{ new Date(item.expires_at).toLocaleString() }}</span>
           </template>
         </v-data-table>
         <v-dialog v-model="showCreateIdentityDialog" max-width="500px">
@@ -240,6 +283,7 @@ export default {
     showIdentityPropertyDialog: false,
     identityToDelete: null,
     search: '',
+    searchSessions: '',
     headers: [
       {
         text: 'ID', value: 'uid', align: 'start', sortable: false,
@@ -286,6 +330,23 @@ export default {
         text: 'Actions', value: 'actions', sortable: false, align: 'end',
       },
     ],
+    sessionHeaders: [
+      {
+        text: 'ID', value: 'id', align: 'start', sortable: false,
+      },
+      {
+        text: 'E-Mail', value: 'identity.traits.email',
+      },
+      {
+        text: 'Active', value: 'active',
+      },
+      {
+        text: 'Authentication Date', value: 'authenticated_at',
+      },
+      {
+        text: 'Expiry Date', value: 'expires_at',
+      },
+    ],
     rules: {
       roleRules: [
         (v) => v.length > 0 || 'At least one role is required',
@@ -306,6 +367,7 @@ export default {
     },
     users: null,
     identities: null,
+    sessions: null,
     identityPropertyDialogData: null,
   }),
   computed: {
@@ -327,6 +389,7 @@ export default {
         if (!data.success) throw Error('error getting user data');
         this.users = data.users;
         this.identities = data.identities;
+        this.sessions = data.sessions;
         this.$store.dispatch('resetMessages');
       }).catch((e) => {
         handleError(this.$store, e);
