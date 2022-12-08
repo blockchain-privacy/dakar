@@ -27,6 +27,7 @@ import Attributions from '../components/tools/attributions/Attributions.vue';
 import AddressExclusions from '../components/tools/AddressExclusions.vue';
 import Recovery from '../components/user/Recovery.vue';
 import Wiki from '../components/wiki/Wiki.vue';
+import TextLoader from '../components/TextLoader.vue';
 
 Vue.use(Router);
 
@@ -217,6 +218,27 @@ export default new Router({
       beforeEnter: (to, from, next) => {
         checkSession(to, next, isAdmin);
       },
+    },
+    {
+      path: '/about',
+      name: Constants.ROUTE_NAME_ABOUT,
+      component: TextLoader,
+      props: { pageTitle: 'About', url: 'about.html' },
+      meta: { title: 'About' },
+    },
+    {
+      path: '/privacy',
+      name: Constants.ROUTE_NAME_PRIVACY,
+      component: TextLoader,
+      props: { pageTitle: 'Privacy Policy', url: 'privacy_policy.html' },
+      meta: { title: 'Privacy Policy' },
+    },
+    {
+      path: '/termsOfUse',
+      name: Constants.ROUTE_NAME_TERMS_OF_USE,
+      component: TextLoader,
+      props: { pageTitle: 'Terms of Use', url: 'terms_of_use.html' },
+      meta: { title: 'Terms of Use' },
     },
     {
       path: '/noresults',

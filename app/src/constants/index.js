@@ -74,7 +74,9 @@ export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';
 export const ROUTE_NAME_WIKI_ROOT = 'Wiki Root Page';
 export const ROUTE_NAME_WIKI = 'Wiki Page';
-
+export const ROUTE_NAME_ABOUT = 'About Page';
+export const ROUTE_NAME_TERMS_OF_USE = 'Terms of Use Page';
+export const ROUTE_NAME_PRIVACY = 'Privacy Policy Page';
 // ory
 export const ORY_KRATOS_PATH_PREFIX = '/auth';
 
