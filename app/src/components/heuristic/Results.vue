@@ -33,7 +33,8 @@
           <v-col v-for="cluster in props.items" :key="cluster.id" cols="12" sm="12" md="8" lg="6">
             <v-card outlined>
               <v-card-title>
-                <v-expansion-panels flat>
+                <!-- open panel: 0, do nothing: null -->
+                <v-expansion-panels :value="cluster.txs.length > 5?null:0" flat>
                   <v-expansion-panel>
                     <v-expansion-panel-header>
                       {{ cluster.transactionCount }}
@@ -196,5 +197,11 @@ export default {
 </script>
 
 <style scoped>
+
+.tx-overflow {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
 
 </style>
