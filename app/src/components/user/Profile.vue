@@ -41,7 +41,7 @@
       </v-card>
     </v-dialog>
   </div>
-  <v-skeleton-loader v-else class="mx-auto" type="article, actions"/>
+  <v-skeleton-loader v-else class="mx-auto" type="article, actions" max-width="700"/>
 </template>
 
 <script>
