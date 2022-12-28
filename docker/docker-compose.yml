@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   zero:
-    image: dgraph/dgraph:v22.0.0
+    image: dgraph/dgraph:v22.0.2
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -15,7 +15,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v22.0.0
+    image: dgraph/dgraph:v22.0.2
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
