@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid class="fill-height">
+  <v-container fluid class="content">
     <v-row align="center" justify="center">
       <v-col cols="12" sm="12" md="10" lg="9" xl="8">
         <div class="d-flex justify-center mb-2">
@@ -27,6 +27,25 @@
         </div>
       </v-col>
     </v-row>
+    <v-container class="align-self-end">
+      <v-row justify="center">
+        <v-col md="2" class="text-center mx-1">
+          <v-btn :to="{name: route.privacyPage}" plain small>
+            Privacy Policy
+          </v-btn>
+        </v-col>
+        <v-col md="2" class="text-center mx-1">
+          <v-btn :to="{name: route.termsOfUsePage}" plain small>
+            Terms of Use
+          </v-btn>
+        </v-col>
+        <v-col md="2" class="text-center mx-1">
+          <v-btn :to="{name: route.aboutPage}" plain small>
+            About
+          </v-btn>
+        </v-col>
+      </v-row>
+    </v-container>
   </v-container>
 </template>
 
@@ -39,7 +58,7 @@ import {
   ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS,
   RESPONSE_TYPE_ADDRESS, ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE,
   RESPONSE_TYPE_TRANSACTION, ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, ROUTE_SEARCH,
-  APPLICATION_SUBTITLE,
+  APPLICATION_SUBTITLE, ROUTE_NAME_ABOUT, ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '../constants';
 import {
   doGet, handleError, isValidQuery, isValidQueryInput,
@@ -52,6 +71,9 @@ export default {
       query: '',
       route: {
         loginPage: ROUTE_NAME_LOGIN_PAGE,
+        aboutPage: ROUTE_NAME_ABOUT,
+        termsOfUsePage: ROUTE_NAME_TERMS_OF_USE,
+        privacyPage: ROUTE_NAME_PRIVACY,
       },
       icons: {
         mdiMagnify, mdiAccount,
@@ -161,6 +183,12 @@ export default {
 
 >>> .v-input--is-focused {
   transform: none;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  height: 100%
 }
 
 </style>

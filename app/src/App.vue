@@ -8,27 +8,6 @@
         <router-view/>
       </transition>
     </v-main>
-    <!-- show footer only on entry page -->
-    <v-container v-if="isEntryPage"
-                 class="footer">
-      <v-row justify="center">
-        <v-col md="2" class="text-center mx-1">
-          <v-btn :to="{name: route.privacyPage}" plain small>
-            Privacy Policy
-          </v-btn>
-        </v-col>
-        <v-col md="2" class="text-center mx-1">
-          <v-btn :to="{name: route.termsOfUsePage}" plain small>
-            Terms of Use
-          </v-btn>
-        </v-col>
-        <v-col md="2" class="text-center mx-1">
-          <v-btn :to="{name: route.aboutPage}" plain small>
-            About
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-container>
   </v-app>
 </template>
 
@@ -36,8 +15,7 @@
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-  DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_ABOUT,
-  ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
+  DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
 } from './constants';
 import AppBar from './components/AppBar.vue';
 import { isSessionExpired } from './utilities';
@@ -53,9 +31,7 @@ export default {
       applicationName: APPLICATION_NAME,
       route: {
         rootPage: ROUTE_NAME_ENTRY_PAGE,
-        aboutPage: ROUTE_NAME_ABOUT,
-        termsOfUsePage: ROUTE_NAME_TERMS_OF_USE,
-        privacyPage: ROUTE_NAME_PRIVACY,
+
       },
     };
   },
@@ -122,9 +98,4 @@ export default {
   opacity: 0;
 }
 
-.footer {
-  left:0;
-  right:0;
-  bottom:0;
-}
 </style>
