@@ -28,11 +28,11 @@
       </v-col>
     </v-row>
     <!-- footer -->
-    <v-container class="align-self-end" v-if="false">
+    <v-container class="align-self-end" v-if="true">
       <v-row justify="center">
         <v-col md="2" class="text-center mx-1">
-          <v-btn :to="{name: route.privacyPage}" plain small>
-            Privacy Policy
+          <v-btn :to="{name: route.aboutPage}" plain small>
+            About
           </v-btn>
         </v-col>
         <v-col md="2" class="text-center mx-1">
@@ -41,8 +41,8 @@
           </v-btn>
         </v-col>
         <v-col md="2" class="text-center mx-1">
-          <v-btn :to="{name: route.aboutPage}" plain small>
-            About
+          <v-btn :to="{name: route.privacyPage}" plain small>
+            Privacy Policy
           </v-btn>
         </v-col>
       </v-row>
