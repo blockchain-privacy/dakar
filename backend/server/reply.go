@@ -490,7 +490,7 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 	csvWriter.Flush()
 }
 
-// writeClusterSummary writes heuristic data in CSV format
+// writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {

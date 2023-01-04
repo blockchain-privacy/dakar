@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- show custom nav bar on entry page -->
-    <AppBar :minimize="route.rootPage === $route.name"/>
+    <AppBar :minimize="isEntryPage"/>
     <v-main>
       <MsgBox/>
       <transition name="component-fade" mode="out-in">
@@ -31,6 +31,7 @@ export default {
       applicationName: APPLICATION_NAME,
       route: {
         rootPage: ROUTE_NAME_ENTRY_PAGE,
+
       },
     };
   },
@@ -50,6 +51,9 @@ export default {
       set(value) {
         this.$store.dispatch('setSession', value);
       },
+    },
+    isEntryPage() {
+      return this.$route.name === this.route.rootPage;
     },
   },
   methods: {
@@ -93,4 +97,5 @@ export default {
 .component-fade-enter, .component-fade-leave-to {
   opacity: 0;
 }
+
 </style>
