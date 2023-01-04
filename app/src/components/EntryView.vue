@@ -28,7 +28,7 @@
       </v-col>
     </v-row>
     <!-- footer -->
-    <v-container class="align-self-end" v-if="true">
+    <v-container class="align-self-end" v-if="false">
       <v-row justify="center">
         <v-col md="2" class="text-center mx-1">
           <v-btn :to="{name: route.aboutPage}" plain small>
