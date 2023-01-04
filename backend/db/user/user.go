@@ -210,7 +210,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 // The UID of the dgraph user is written the metadata_admin of the new kratos identity.
 // The credentials are set if not nil.
 func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAuth *ory.APIClient,
-	email string, credentials *ory.AdminIdentityImportCredentials, roles []string) error {
+	email string, credentials *ory.IdentityWithCredentials, roles []string) error {
 	// create dgraph user
 	newUserUID, userCreationError := CreateNewUser(c)
 	if userCreationError != nil {
@@ -218,13 +218,12 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	}
 
 	// create kratos identity
-	_, _, err := adminAuth.V0alpha2Api.AdminCreateIdentity(ctx).
-		AdminCreateIdentityBody(ory.AdminCreateIdentityBody{
-			SchemaId:       "default_v0",
-			Traits:         map[string]interface{}{"email": email},
-			MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
-			Credentials:    credentials,
-		}).Execute()
+	_, _, err := adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
+		SchemaId:       "default_v0",
+		Traits:         map[string]interface{}{"email": email},
+		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
+		Credentials:    credentials,
+	}).Execute()
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -236,15 +235,14 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 // The UID of the dgraph user is written the metadata_admin of the new kratos identity.
 // The credentials are set if not nil.
 func CreateKratosUser(ctx context.Context, dgraphUID string, adminAuth *ory.APIClient,
-	email string, credentials *ory.AdminIdentityImportCredentials, roles []string) error {
+	email string, credentials *ory.IdentityWithCredentials, roles []string) error {
 	// create kratos identity
-	_, _, err := adminAuth.V0alpha2Api.AdminCreateIdentity(ctx).
-		AdminCreateIdentityBody(ory.AdminCreateIdentityBody{
-			SchemaId:       "default_v0",
-			Traits:         map[string]interface{}{"email": email},
-			MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": dgraphUID},
-			Credentials:    credentials,
-		}).Execute()
+	_, _, err := adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
+		SchemaId:       "default_v0",
+		Traits:         map[string]interface{}{"email": email},
+		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": dgraphUID},
+		Credentials:    credentials,
+	}).Execute()
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -274,9 +272,9 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 	defer cancelFunc()
 
 	// get ory handle and also create password
-	err = CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.AdminIdentityImportCredentials{
-		Password: &ory.AdminCreateIdentityImportCredentialsPassword{
-			Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{Password: &pw}},
+	err = CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
+		Password: &ory.IdentityWithCredentialsPassword{
+			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"admin"})
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -291,9 +289,9 @@ func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email s
 	defer cancelFunc()
 
 	// get ory handle and also create password
-	err := CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.AdminIdentityImportCredentials{
-		Password: &ory.AdminCreateIdentityImportCredentialsPassword{
-			Config: &ory.AdminCreateIdentityImportCredentialsPasswordConfig{Password: &pw}},
+	err := CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
+		Password: &ory.IdentityWithCredentialsPassword{
+			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"privileged"})
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)

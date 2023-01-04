@@ -147,10 +147,10 @@ export default {
       if (this.$route.name !== pageName) this.$router.push({ name: pageName });
     },
     initLogoutFlow() {
-      this.ory.createSelfServiceLogoutFlowUrlForBrowsers()
+      this.ory.frontend.createBrowserLogoutFlow()
         .then((d) => {
           if (d.status === 200 && d.data.logout_token) {
-            return this.ory.submitSelfServiceLogoutFlow(d.data.logout_token);
+            return this.ory.frontend.updateLogoutFlow({ token: d.data.logout_token });
           }
           return Promise.resolve();
         })

@@ -67,8 +67,8 @@ export default {
     isUiNodeAnchorAttributes,
     isUiNodeScriptAttributes,
     isUiNodeTextAttributes,
-    propagateSubmitEvent() {
-      this.$emit('submit');
+    propagateSubmitEvent(btnID) {
+      this.$emit('submit', btnID);
     },
   },
 };

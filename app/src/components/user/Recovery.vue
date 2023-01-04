@@ -50,7 +50,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     initRecoveryFlow() {
-      this.ory.initializeSelfServiceRecoveryFlowForBrowsers()
+      this.ory.frontend.createBrowserRecoveryFlow()
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
           handleGetFlowError(this.$router, this.$store, err);
@@ -62,7 +62,7 @@ export default {
         this.$router.replace({ query: { flow: d.id } });
       }
     },
-    handleOrySubmitRecovery(formID) {
+    handleOrySubmitRecovery(formID, btnID) {
       const form = document.getElementById(formID);
       if (!form || !this.recoveryFlow.ui.action) return;
 
@@ -71,7 +71,16 @@ export default {
 
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
-      this.ory.submitSelfServiceRecoveryFlow(flow, JSON.stringify(body))
+
+      // the recovery form has two submit buttons:
+      // - submit code (button id: method)
+      // - resend code (button id: email)
+      if (btnID !== 'email' && body.code && body.code.length > 0) {
+        body.code = body.code.trim();
+        delete body.email;
+      }
+
+      this.ory.frontend.updateRecoveryFlow({ flow, updateRecoveryFlowBody: body })
         .then((response) => {
           // something went wrong and we need to display some data
           if (response.data && response.data.ui) {
@@ -105,7 +114,7 @@ export default {
       // we need to initialize our login flow
       this.initRecoveryFlow();
     } else {
-      this.ory.getSelfServiceRecoveryFlow(flow)
+      this.ory.frontend.getRecoveryFlow({ id: flow })
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
           handleGetFlowError(this.$router, this.$store, err);

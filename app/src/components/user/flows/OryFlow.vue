@@ -29,12 +29,12 @@
       <v-form
           :id="`${formId}_${i}`" :action="flow.ui.action" :method="flow.ui.method">
         <ory-ui-node
-            v-for="node in formNodes"
-            :key="getNodeId(node)"
+            v-for="(node, y) in formNodes"
+            :key="y"
             :id="getNodeId(node)"
             :node="node"
             :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
-            @submit="propagateSubmitEvent(`${formId}_${i}`)"
+            @submit="(btnID) => propagateSubmitEvent(`${formId}_${i}`,btnID)"
         />
       </v-form>
       <v-divider v-if="getForms.length > 1 && i +1 < getForms.length" class="my-5"></v-divider>
@@ -93,8 +93,8 @@ export default {
     setMessage(msg, msgType) {
       this.$store.dispatch('addMessage', { text: msg, type: msgType, temporary: true });
     },
-    propagateSubmitEvent(formID) {
-      this.$emit('submit', formID);
+    propagateSubmitEvent(formID, btnID) {
+      this.$emit('submit', formID, btnID);
     },
     getFormGroupName(formNodes) {
       const nodes = formNodes.filter((d) => d.group !== 'default');

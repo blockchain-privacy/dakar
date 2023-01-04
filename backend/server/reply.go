@@ -42,15 +42,31 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}
 
 	// get identity list
-	identities, response, err := adminAuth.V0alpha2Api.AdminListIdentities(r.Context()).Execute()
+	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute()
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
 	defer response.Body.Close()
 
+	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
+		Active(true).Expand([]string{"Identity"}).Execute()
+	if err != nil {
+		info(cliutil.ShowCallInfo(), err)
+		return
+	}
+	defer response.Body.Close()
+
+	var activeSession []ory.Session
+	for _, session := range sessions {
+		if *session.Active {
+			activeSession = append(activeSession, session)
+		}
+	}
+
 	reply.Users = users
 	reply.Identities = identities
+	reply.Sessions = activeSession
 	reply.Success = true
 
 	return
@@ -1107,7 +1123,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	r *http.Request, delUID string) (reply identityReply) {
 	// get identity data
-	identity, response, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(), delUID).Execute()
+	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute()
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
@@ -1146,7 +1162,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	response, err = adminAuth.V0alpha2Api.AdminDeleteIdentity(r.Context(), delUID).Execute()
+	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute()
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
@@ -1204,7 +1220,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	const msgErrModifyingUser = "error modifying user"
 
-	initialIdentity, getIdentityResponse, err := adminAuth.V0alpha2Api.AdminGetIdentity(r.Context(),
+	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
 		modRequest.UID).Execute()
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
@@ -1250,7 +1266,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		}
 	}
 
-	_, response, err := adminAuth.V0alpha2Api.AdminUpdateIdentity(r.Context(), modRequest.UID).AdminUpdateIdentityBody(ory.AdminUpdateIdentityBody{
+	_, response, err := adminAuth.IdentityApi.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
 		MetadataAdmin:  initialIdentity.MetadataAdmin,
 		MetadataPublic: initialIdentity.MetadataPublic,
 		SchemaId:       initialIdentity.SchemaId,

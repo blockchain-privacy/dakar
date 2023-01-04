@@ -321,6 +321,7 @@ type identitiesReply struct {
 	Success    bool                            `json:"success"`
 	Users      []dbus.FrontendUserBackendState `json:"users"`
 	Identities []client.Identity               `json:"identities"`
+	Sessions   []client.Session                `json:"sessions"`
 }
 
 // frontendUserRoles is the role representation for the frontend

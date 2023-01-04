@@ -44,7 +44,7 @@ export default {
       this.$store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
     },
     initSettingsFlow() {
-      this.ory.initializeSelfServiceSettingsFlowForBrowsers()
+      this.ory.frontend.createBrowserSettingsFlow()
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
           handleGetFlowError(this.$router, this.$store, err);
@@ -65,7 +65,8 @@ export default {
 
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
-      this.ory.submitSelfServiceSettingsFlow(flow, JSON.stringify(body))
+
+      this.ory.frontend.updateSettingsFlow({ flow, updateSettingsFlowBody: body })
         .then((response) => {
           // something went wrong and we need to display some data
           if (response.data && response.data.ui) {
@@ -93,7 +94,7 @@ export default {
         });
     },
     refreshSession() {
-      this.ory.toSession()
+      this.ory.frontend.toSession()
         .then((d) => {
           if (d.status && d.status === 200) {
             this.session = d.data;
@@ -109,7 +110,7 @@ export default {
         // we need to initialize our login flow
         this.initSettingsFlow();
       } else {
-        this.ory.getSelfServiceSettingsFlow(flow)
+        this.ory.frontend.getSettingsFlow({ id: flow })
           .then((d) => {
             this.setFlowData(d.data);
             // if an account is being recovered the session is empty,

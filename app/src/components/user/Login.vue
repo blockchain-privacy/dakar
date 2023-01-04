@@ -132,7 +132,7 @@ export default {
 
       const body = Object.fromEntries(new FormData(form));
       const { flow } = this.$route.query;
-      this.ory.submitSelfServiceLoginFlow(flow, JSON.stringify(body))
+      this.ory.frontend.updateLoginFlow({ flow, updateLoginFlowBody: body })
         .then((response) => {
           if (response.status === 200 && response.data && response.data.session) {
             if (!response.data.session.identity) {
@@ -175,7 +175,7 @@ export default {
         // we need to initialize our login flow
         this.initLoginFlow('aal1');
       } else {
-        this.ory.getSelfServiceLoginFlow(flow)
+        this.ory.frontend.getLoginFlow({ id: flow })
           .then((d) => this.setFlowData(d.data))
           .catch((err) => {
             handleGetFlowError(this.$router, this.$store, err);
@@ -185,7 +185,7 @@ export default {
     initLoginFlow(aal) {
       // set refresh to true, for the case when the local
       // session data was deleted but the user is still logged in
-      this.ory.initializeSelfServiceLoginFlowForBrowsers(false, aal)
+      this.ory.frontend.createBrowserLoginFlow({ refresh: false, aal })
         .then((d) => this.setFlowData(d.data))
         .catch((err) => {
           handleGetFlowError(this.$router, this.$store, err);
@@ -210,7 +210,7 @@ export default {
 
     // if session is not set, user might be logged in already -> get session
     if (!this.session) {
-      this.ory.toSession()
+      this.ory.frontend.toSession()
         .then((d) => {
           if (d.status && d.status === 200) {
             this.session = d.data;

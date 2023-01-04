@@ -37,11 +37,11 @@
         type="hidden"
     />
     <v-btn
-        @click="emitSubmitEvent"
+        @click="(event) => emitSubmitEvent(event, id)"
         :loading="!submitEnabled"
         depressed
         block
-        class="font-weight-bold" color="primary darken-1"
+        class="font-weight-bold mt-2" color="primary darken-1"
         :id="id"
         type="submit">{{ metaLabel }}</v-btn>
   </div>
@@ -80,10 +80,10 @@ export default {
     };
   },
   methods: {
-    emitSubmitEvent(event) {
+    emitSubmitEvent(event, btnID) {
       event.preventDefault();
       this.isLoading = true;
-      this.$emit('submit');
+      this.$emit('submit', btnID);
     },
   },
 };

@@ -271,7 +271,7 @@ export default {
 
       return copiedOutputs.sort((a, b) => {
         if (!a.ts || !b.ts) return true;
-        return new Date(a.ts) > new Date(b.ts);
+        return new Date(a.ts) - new Date(b.ts);
       });
     },
     isCoinBaseTx(tx) {
