@@ -50,7 +50,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	defer response.Body.Close()
 
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
-		Active(true).Expand([]string{"Identity"}).Execute()
+		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute()
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return

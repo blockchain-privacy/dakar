@@ -19,6 +19,7 @@ export const ROUTE_HEURISTIC_DESCRIPTORS = `${routePrefix}heuristicDescriptors/`
 export const ROUTE_DELETE_HEURISTIC = `${routePrefix}deleteHeuristic/`;
 export const ROUTE_IDENTITY_LIST = `${routePrefix}getIdentities/`;
 export const ROUTE_IDENTITY_CREATE = `${routePrefix}createIdentity/`;
+export const ROUTE_IDENTITY_ADMIN_DELETE = `${routePrefix}adminDeleteIdentity/`;
 export const ROUTE_IDENTITY_DELETE = `${routePrefix}deleteIdentity/`;
 export const ROUTE_IDENTITY_MODIFY = `${routePrefix}modifyIdentity/`;
 export const ROUTE_SHORTEST_TRANSACTION_PATH = `${routePrefix}shortestTransactionPath/`;

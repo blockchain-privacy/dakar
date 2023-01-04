@@ -877,15 +877,38 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/deleteIdentity/<identityUID>"
-// handlerDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
-func (s *Server) handlerDeleteIdentity() http.Handler {
+// API pattern: "/api/v1/adminDeleteIdentity/<identityUID>"
+// handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
+func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		identityUID := path.Base(r.URL.Path)
 
 		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, identityUID)
+
+		// encoding
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
+			http.Error(w, "encoding error", http.StatusInternalServerError)
+			info(cliutil.ShowCallInfo(), err)
+		}
+	})
+}
+
+// API pattern: "/api/v1/deleteIdentity/"
+// handlerDeleteIdentity deletes the calling users identity.
+func (s *Server) handlerDeleteIdentity() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setDefaultHeader(w)
+
+		var reply identityReply
+
+		if tUser, err := extractTokenUser(r.Context()); err != nil {
+			reply.Msg = "error deleting user"
+			info(cliutil.ShowCallInfo(), err)
+		} else {
+			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
+		}
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
@@ -1166,6 +1189,8 @@ func (s *Server) setupHandlers() {
 		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), getRouteCreateIdentity(),
 		limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteAdminDeleteIdentity(), adapt(s.handlerAdminDeleteIdentity(), getRouteDeleteIdentity(),
+		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), getRouteDeleteIdentity(),
 		limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(),

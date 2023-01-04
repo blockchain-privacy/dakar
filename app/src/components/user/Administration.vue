@@ -265,7 +265,7 @@ import {
 } from '@mdi/js';
 import {
   PAGE_TITLE, ROUTE_IDENTITY_LIST, ROUTE_IDENTITY_CREATE,
-  ROUTE_IDENTITY_MODIFY, ROUTE_IDENTITY_DELETE,
+  ROUTE_IDENTITY_MODIFY, ROUTE_IDENTITY_ADMIN_DELETE,
 } from '../../constants';
 import {
   emailRules, doGet, doPost, handleError,
@@ -456,7 +456,7 @@ export default {
     deleteIdentity(identity) {
       this.isLoading = true;
 
-      doGet(ROUTE_IDENTITY_DELETE, this.$router, this.$store, identity.id)
+      doGet(ROUTE_IDENTITY_ADMIN_DELETE, this.$router, this.$store, identity.id)
         .then((data) => {
           if (data.success === undefined) throw Error('error deleting identity');
           if (data.success === false) {
