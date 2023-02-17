@@ -11,7 +11,7 @@
     "@fontsource/roboto": "^4.1.0",
     "@mdi/js": "^5.9.55",
     "@ory/client": "^1.0.2",
-    "@ory/integrations": "^0.2.7",
+    "@ory/integrations": "^1.1.0",
     "d3": "^7.0.0",
     "vue": "^2.7.0",
     "vue-router": "^3.3.4",
