@@ -82,7 +82,6 @@ export default {
 
       this.ory.frontend.updateRecoveryFlow({ flow, updateRecoveryFlowBody: body })
         .then((response) => {
-          // something went wrong and we need to display some data
           if (response.data && response.data.ui) {
             this.setFlowData(response.data);
           }

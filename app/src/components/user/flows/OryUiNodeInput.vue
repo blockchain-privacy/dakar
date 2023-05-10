@@ -18,7 +18,7 @@
   <v-text-field
       v-else-if="attributes.type === 'text'"
       :label="metaLabel"
-      :value="attributes.value"
+      :value="attributes.value?attributes.value:''"
       :name="attributes.name"
       :prepend-inner-icon="metaLabel === 'ID'?icons.mdiAccount:null"
   />
