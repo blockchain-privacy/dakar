@@ -13,7 +13,7 @@ import (
 	ory "github.com/ory/kratos-client-go"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
 var (

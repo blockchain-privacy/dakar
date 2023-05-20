@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
 // transactionDType is the dgraph database type for the Transaction type

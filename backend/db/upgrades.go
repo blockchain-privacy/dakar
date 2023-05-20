@@ -3,7 +3,7 @@ package db
 import (
 	"backend/external"
 	"context"
-	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
 // AlterSchemaAddSpendingGaps adds the spending gap predicate
