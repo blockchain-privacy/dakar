@@ -82,10 +82,10 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:18.0
+    image: dashpay/dashd:19.1
     container_name: dashd
     volumes:
-      - ${DASH_PATH}:/dash
+      - ${DASH_PATH}:/home/dash
     ports:
       - "${CONTAINER_IP}:9999:9999"
       - "${CONTAINER_IP}:9998:9998"
