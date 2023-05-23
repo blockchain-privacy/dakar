@@ -54,7 +54,7 @@ unit_tests:
       alias: dgraph_status # database for status module
     - name: dgraph/standalone:v23.0.0
       alias: dgraph_user # database for user module
-    - name: dgraph/standalone:v23.0.2
+    - name: dgraph/standalone:v23.0.0
       alias: dgraph_processor # database for processor module
     - name: dgraph/standalone:v23.0.0
       alias: dgraph_analytics # database for classifier module
