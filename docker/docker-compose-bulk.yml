@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   bulk:
-    image: dgraph/dgraph:v21.03.2
+    image: dgraph/dgraph:v23.0.0
     container_name: bulk
     volumes:
       - ${BULK_PATH}:/dgraph
@@ -12,4 +12,3 @@ services:
 
 networks:
   dgraph_default:
-    external: true

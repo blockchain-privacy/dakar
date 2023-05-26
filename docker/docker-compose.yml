@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   zero:
-    image: dgraph/dgraph:v22.0.2
+    image: dgraph/dgraph:v23.0.0
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -15,7 +15,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v22.0.2
+    image: dgraph/dgraph:v23.0.0
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -49,8 +49,8 @@ services:
       - DSN=postgres://${KRATOS_POSTGRES_USER}:${KRATOS_POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
       - LOG_LEVEL=trace
       - SQA_OPT_OUT=true
-    command: serve -c /etc/config/kratos/kratos.yml --watch-courier
-#    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
+    command: serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out
+    #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
     volumes:
@@ -82,10 +82,10 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:18.0
+    image: dashpay/dashd:19.1
     container_name: dashd
     volumes:
-      - ${DASH_PATH}:/dash
+      - ${DASH_PATH}:/home/dash
     ports:
       - "${CONTAINER_IP}:9999:9999"
       - "${CONTAINER_IP}:9998:9998"
@@ -119,7 +119,7 @@ services:
       - "4455:4455"
       - "4456:4456"
     command:
-      serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml"
+      serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out
     environment:
       - LOG_LEVEL=debug
     restart: on-failure

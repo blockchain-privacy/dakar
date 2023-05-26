@@ -3,7 +3,7 @@ package db
 import (
 	"backend/external"
 	"backend/testhelper"
-	"github.com/dgraph-io/dgo/v210/protos/api"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"

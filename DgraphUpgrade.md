@@ -7,9 +7,9 @@ new version.
 
 More information [here](https://dgraph.io/docs/deploy/dgraph-administration/#exporting-database).
 
-1. Stop the crawler to not get an inconsistent database state
+1. Stop all clients accessing Dgraph (including Dakar).
 
-1. With the current version export the database. Issue the following GraphQL request to the admin endpoint of the alpha
+1. With the current Dgraph version, export the database. Issue the following GraphQL request to the admin endpoint of the alpha
    node ``http://localhost:8080/admin``.
 
     ```graphql
