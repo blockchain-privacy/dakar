@@ -47,7 +47,9 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute()
@@ -55,7 +57,9 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	var activeSession []ory.Session
 	for _, session := range sessions {
@@ -1129,7 +1133,9 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	uid, err := extractDgraphUID(identity.MetadataPublic)
 	if err != nil {
@@ -1168,7 +1174,9 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	reply.Success = true
 
@@ -1225,8 +1233,11 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
+		return
 	}
-	defer getIdentityResponse.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(getIdentityResponse.Body)
 
 	const msgInvalidRole = "invalid role"
 
@@ -1278,7 +1289,9 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	reply.Success = true
 
