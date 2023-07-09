@@ -1210,19 +1210,17 @@ func setEmail(traits any, email string) error {
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
 	var modRequest struct {
-		UID             string              `json:"uid,omitempty"`
-		Email           string              `json:"email,omitempty"`
-		CurrentPassword string              `json:"current_password,omitempty"`
-		NewPassword     string              `json:"new_password,omitempty"`
-		State           string              `json:"state,omitempty"`
-		Roles           []dbus.FrontendRole `json:"roles,omitempty"`
+		UID   string              `json:"uid,omitempty"`
+		Email string              `json:"email,omitempty"`
+		State string              `json:"state,omitempty"`
+		Roles []dbus.FrontendRole `json:"roles,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
-	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0) {
+	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.State) == 0) {
 		reply.Msg = "nothing to change"
 		return
 	}
@@ -1240,17 +1238,17 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		_ = Body.Close()
 	}(getIdentityResponse.Body)
 
-	// check email
+	// handle email change
 	if len(modRequest.Email) > 0 {
 		if !isValidEmail(modRequest.Email) {
 			reply.Msg = "invalid email"
 			return
 		}
 
-		// replace roles
+		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
 			reply.Msg = "invalid meta data"
-			info(cliutil.ShowCallInfo(), "could not set <", modRequest.Email, "> for user", modRequest.UID)
+			info(cliutil.ShowCallInfo(), "could not set <", modRequest.Email, "> for identity", modRequest.UID)
 			return
 		}
 	}
@@ -1272,7 +1270,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
 			reply.Msg = "invalid role"
-			info(cliutil.ShowCallInfo(), "could not add <", roles, "> to user", modRequest.UID)
+			info(cliutil.ShowCallInfo(), "could not add <", roles, "> to identity", modRequest.UID)
 			return
 		}
 	}
@@ -1282,7 +1280,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
 		if err != nil {
 			reply.Msg = "invalid state"
-			info(cliutil.ShowCallInfo(), err, "could not change identity state: <", modRequest.State, ">", modRequest.UID)
+			info(cliutil.ShowCallInfo(), err, "could not change state: <", modRequest.State, "> for identity", modRequest.UID)
 			return
 		}
 		initialIdentity.SetState(*newState)
