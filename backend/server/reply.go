@@ -1250,7 +1250,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
 			reply.Msg = "invalid meta data"
-			info(cliutil.ShowCallInfo(), "could not set", modRequest.Email, "for user", modRequest.UID)
+			info(cliutil.ShowCallInfo(), "could not set <", modRequest.Email, "> for user", modRequest.UID)
 			return
 		}
 	}
@@ -1272,7 +1272,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
 			reply.Msg = "invalid role"
-			info(cliutil.ShowCallInfo(), "could not add", roles, "to user", modRequest.UID)
+			info(cliutil.ShowCallInfo(), "could not add <", roles, "> to user", modRequest.UID)
 			return
 		}
 	}
@@ -1282,7 +1282,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
 		if err != nil {
 			reply.Msg = "invalid state"
-			info(cliutil.ShowCallInfo(), err, "could not change identity state", modRequest.UID)
+			info(cliutil.ShowCallInfo(), err, "could not change identity state: <", modRequest.State, ">", modRequest.UID)
 			return
 		}
 		initialIdentity.SetState(*newState)
