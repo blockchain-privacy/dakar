@@ -1214,7 +1214,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		Email           string              `json:"email,omitempty"`
 		CurrentPassword string              `json:"current_password,omitempty"`
 		NewPassword     string              `json:"new_password,omitempty"`
-		Active          *bool               `json:"active,omitempty"`
+		State           string              `json:"state,omitempty"`
 		Roles           []dbus.FrontendRole `json:"roles,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
@@ -1275,6 +1275,17 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 			info(cliutil.ShowCallInfo(), "could not add", roles, "to user", modRequest.UID)
 			return
 		}
+	}
+
+	// handle state
+	if len(modRequest.State) > 0 {
+		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
+		if err != nil {
+			reply.Msg = "invalid state"
+			info(cliutil.ShowCallInfo(), err, "could not change identity state", modRequest.UID)
+			return
+		}
+		initialIdentity.SetState(*newState)
 	}
 
 	_, response, err := adminAuth.IdentityApi.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
