@@ -1240,8 +1240,6 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		_ = Body.Close()
 	}(getIdentityResponse.Body)
 
-	const msgInvalidRole = "invalid role"
-
 	// check email
 	if len(modRequest.Email) > 0 {
 		if !isValidEmail(modRequest.Email) {
@@ -1251,11 +1249,12 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 		// replace roles
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
-			reply.Msg = msgInvalidRole
+			reply.Msg = "invalid meta data"
 			info(cliutil.ShowCallInfo(), "could not set", modRequest.Email, "for user", modRequest.UID)
 			return
 		}
 	}
+	const msgInvalidRole = "invalid role"
 
 	// handle role change
 	if len(modRequest.Roles) > 0 {
