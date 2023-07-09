@@ -1228,8 +1228,9 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	const msgErrModifyingUser = "error modifying user"
 
+	// looks like a linter bug, body is closed afterward.
 	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
-		modRequest.UID).Execute()
+		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
