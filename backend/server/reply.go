@@ -42,7 +42,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}
 
 	// get identity list
-	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute()
+	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
@@ -52,7 +52,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}(response.Body)
 
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
-		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute()
+		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
@@ -1127,7 +1127,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	r *http.Request, delUID string) (reply identityReply) {
 	// get identity data
-	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute()
+	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
@@ -1168,7 +1168,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute()
+	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
@@ -1214,6 +1214,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		Email           string              `json:"email,omitempty"`
 		CurrentPassword string              `json:"current_password,omitempty"`
 		NewPassword     string              `json:"new_password,omitempty"`
+		Active          *bool               `json:"active,omitempty"`
 		Roles           []dbus.FrontendRole `json:"roles,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
@@ -1228,7 +1229,6 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	const msgErrModifyingUser = "error modifying user"
 
-	// looks like a linter bug, body is closed afterward.
 	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
@@ -1284,7 +1284,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		SchemaId:       initialIdentity.SchemaId,
 		State:          *initialIdentity.State,
 		Traits:         initialIdentity.Traits.(map[string]any),
-	}).Execute()
+	}).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
