@@ -206,6 +206,12 @@
                         label="Roles"
                         multiple
                         v-model="editedItem.roles"/>
+                    <v-select
+                        v-model="editedItem.state"
+                        label="State"
+                        :rules="rules.stateRules"
+                        :items="states"
+                    />
                   </v-form>
                 </v-row>
               </v-container>
@@ -351,19 +357,25 @@ export default {
       roleRules: [
         (v) => v.length > 0 || 'At least one role is required',
       ],
+      stateRules: [
+        (v) => v.length > 0 || 'State must be set',
+      ],
       emailRules,
     },
     roles: ['admin', 'user', 'privileged'],
+    states: ['active', 'inactive'],
     editedIndex: -1,
     editedItem: {
       uid: '',
       email: '',
+      state: '',
       roles: [],
     },
     defaultItem: {
       uid: '',
       email: '',
       roles: [],
+      state: '',
     },
     users: null,
     identities: null,
@@ -496,6 +508,7 @@ export default {
         doPost(ROUTE_IDENTITY_MODIFY, this.$router, this.$store, {
           uid: this.editedItem.id,
           email: this.editedItem.email,
+          state: this.editedItem.state,
           roles: this.editedItem.roles.map((d) => ({ name: d })),
         })
           .then((data) => {
