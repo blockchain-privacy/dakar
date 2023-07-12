@@ -42,20 +42,24 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	}
 
 	// get identity list
-	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute()
+	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
-		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute()
+		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	var activeSession []ory.Session
 	for _, session := range sessions {
@@ -1123,13 +1127,15 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	r *http.Request, delUID string) (reply identityReply) {
 	// get identity data
-	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute()
+	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	uid, err := extractDgraphUID(identity.MetadataPublic)
 	if err != nil {
@@ -1162,13 +1168,15 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute()
+	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		info(cliutil.ShowCallInfo(), err)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	reply.Success = true
 
@@ -1202,18 +1210,17 @@ func setEmail(traits any, email string) error {
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
 	var modRequest struct {
-		UID             string              `json:"uid,omitempty"`
-		Email           string              `json:"email,omitempty"`
-		CurrentPassword string              `json:"current_password,omitempty"`
-		NewPassword     string              `json:"new_password,omitempty"`
-		Roles           []dbus.FrontendRole `json:"roles,omitempty"`
+		UID   string              `json:"uid,omitempty"`
+		Email string              `json:"email,omitempty"`
+		State string              `json:"state,omitempty"`
+		Roles []dbus.FrontendRole `json:"roles,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
-	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0) {
+	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.State) == 0) {
 		reply.Msg = "nothing to change"
 		return
 	}
@@ -1221,29 +1228,31 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	const msgErrModifyingUser = "error modifying user"
 
 	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
-		modRequest.UID).Execute()
+		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
+		return
 	}
-	defer getIdentityResponse.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(getIdentityResponse.Body)
 
-	const msgInvalidRole = "invalid role"
-
-	// check email
+	// handle email change
 	if len(modRequest.Email) > 0 {
 		if !isValidEmail(modRequest.Email) {
 			reply.Msg = "invalid email"
 			return
 		}
 
-		// replace roles
+		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
-			reply.Msg = msgInvalidRole
-			info(cliutil.ShowCallInfo(), "could not set", modRequest.Email, "for user", modRequest.UID)
+			reply.Msg = "invalid meta data"
+			info(cliutil.ShowCallInfo(), "could not set <", modRequest.Email, "> for identity", modRequest.UID)
 			return
 		}
 	}
+	const msgInvalidRole = "invalid role"
 
 	// handle role change
 	if len(modRequest.Roles) > 0 {
@@ -1261,9 +1270,20 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
 			reply.Msg = "invalid role"
-			info(cliutil.ShowCallInfo(), "could not add", roles, "to user", modRequest.UID)
+			info(cliutil.ShowCallInfo(), "could not add <", roles, "> to identity", modRequest.UID)
 			return
 		}
+	}
+
+	// handle state
+	if len(modRequest.State) > 0 {
+		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
+		if err != nil {
+			reply.Msg = "invalid state"
+			info(cliutil.ShowCallInfo(), err, "could not change state: <", modRequest.State, "> for identity", modRequest.UID)
+			return
+		}
+		initialIdentity.SetState(*newState)
 	}
 
 	_, response, err := adminAuth.IdentityApi.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
@@ -1272,13 +1292,15 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		SchemaId:       initialIdentity.SchemaId,
 		State:          *initialIdentity.State,
 		Traits:         initialIdentity.Traits.(map[string]any),
-	}).Execute()
+	}).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
 		info(cliutil.ShowCallInfo(), err, modRequest)
 		return
 	}
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(response.Body)
 
 	reply.Success = true
 

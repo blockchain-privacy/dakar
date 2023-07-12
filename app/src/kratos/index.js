@@ -43,9 +43,16 @@ export default function handleGetFlowError(router, store, error) {
       case 410: // The flow expired, let's request a new one.
         refreshFlow(router);
         return Promise.resolve();
-      case 401: // Unauthorized access -> show error
-        store.dispatch('addMessage', { text: error.response.statusText, type: 'error', temporary: true });
+      case 401: { // Unauthorized access -> show error
+        let msg = '';
+        if (error.response.data && error.response.data.error && error.response.data.error.reason) {
+          msg = error.response.data.error.reason;
+        } else {
+          msg = error.response.statusText;
+        }
+        store.dispatch('addMessage', { text: msg, type: 'error', temporary: true });
         return Promise.resolve();
+      }
       default:
     }
   }
