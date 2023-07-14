@@ -1099,7 +1099,7 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
 func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var frontEndUser frontendUserRoles
+	var frontEndUser frontendUser
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
@@ -1112,7 +1112,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 	}
 
 	err := dbus.CreateDgraphAndKratosUser(r.Context(), dgraph, adminAuth,
-		frontEndUser.Email, nil, frontEndUser.Roles)
+		frontEndUser.Email, nil, frontEndUser.Roles, frontEndUser.State)
 	if err != nil {
 		reply.Msg = "could not create identity"
 		info(cliutil.ShowCallInfo(), err)
@@ -1220,7 +1220,8 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		return
 	}
 
-	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.State) == 0) {
+	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 &&
+		len(modRequest.State) == 0) && !isValidEmail(modRequest.Email) {
 		reply.Msg = "nothing to change"
 		return
 	}
