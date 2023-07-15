@@ -324,30 +324,6 @@ type identitiesReply struct {
 	Sessions   []client.Session                `json:"sessions"`
 }
 
-// frontendUser is the role representation for the frontend
-type frontendUser struct {
-	Email string   `json:"email"`
-	Roles []string `json:"roles"`
-	State string   `json:"state"`
-}
-
 // isValidEmail is a regex filter which checks if the input conforms to an email string
 var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
 	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString
-
-// IsValid does a sanity check for the given frontendUser
-func (f frontendUser) IsValid() bool {
-	// check if values are set
-	if len(f.Email) == 0 || len(f.Roles) == 0 || len(f.State) == 0 || !isValidEmail(f.Email) {
-		return false
-	}
-
-	// check if all roles have valid values
-	for _, ur := range f.Roles {
-		if _, err := getRoleByName(ur); err != nil {
-			return false
-		}
-	}
-
-	return true
-}
