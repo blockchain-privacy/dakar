@@ -32,11 +32,8 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 	}
 
 	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID, isPublic)
-	if err := attribution.AddAttributions(dgraph, dbAttributions); err != nil {
-		return err
-	}
 
-	return nil
+	return attribution.AddAttributions(dgraph, dbAttributions)
 }
 
 func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string,

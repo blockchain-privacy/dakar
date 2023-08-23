@@ -679,7 +679,6 @@ func Test_isCollateralCreation(t *testing.T) {
 			require.NoError(t, err)
 			require.EqualValues(t, tt.want, got)
 		}
-
 	}
 }
 

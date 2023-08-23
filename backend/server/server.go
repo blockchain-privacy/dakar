@@ -4,6 +4,7 @@ import (
 	heuristic "backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/external"
+	"errors"
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
@@ -96,7 +97,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
 			fatal("server error:", err)
 		}
 		wg.Done()
@@ -122,7 +123,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
 			fatal("server error:", err)
 		}
 		wg.Done()

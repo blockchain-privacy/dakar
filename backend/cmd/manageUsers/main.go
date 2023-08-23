@@ -142,6 +142,8 @@ func main() {
 		}
 
 		for _, u := range users {
+			// assign to variable to workaround G601
+			u := u
 			if u.Email == "" || u.Pwhash == "" {
 				info("email or password not set, not processing:", u)
 				continue
