@@ -2,8 +2,8 @@ package server
 
 import (
 	heuristic "backend/analytics/heuristics"
+	"backend/cmd/cliutil"
 	"backend/external"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -32,10 +33,12 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 func fatal(v ...interface{}) {
-	thisLogger.Fatalln(v...)
+	info(v...)
+	os.Exit(1)
 }
 
 type Server struct {
@@ -51,11 +54,11 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
 	worker *heuristic.Worker) (*Server, error) {
 	if adminAuth == nil || auth == nil {
-		return nil, errors.New("authentication handles are not set")
+		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
 	}
 
 	if worker == nil {
-		return nil, errors.New("worker pointer is nil")
+		return nil, cliutil.NewStackErrorStr("worker pointer is nil")
 	}
 
 	// init cache

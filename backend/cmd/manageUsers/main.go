@@ -23,6 +23,7 @@ func initLogger() {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cli.PrintStack(thisLogger, v...)
 }
 
 type Config struct {

@@ -51,7 +51,7 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 	pb, err := json.Marshal(dummyUser{UID: userUID, Heuristics: []Heuristic{h}})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -66,12 +66,12 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
 	if !ok {
-		err = errors.New(fmt.Sprintln("no new heuristic created"))
+		err = cliutil.NewStackErrorStr(fmt.Sprintln("no new heuristic created"))
 		return
 	}
 
@@ -103,7 +103,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 	}
 
 	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 	return
@@ -133,7 +133,7 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 
 	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
@@ -169,12 +169,12 @@ func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID strin
 
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
-		return ErrNoMutationHappened
+		return cliutil.NewStackError(ErrNoMutationHappened)
 	}
 
 	return
@@ -205,7 +205,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUID})
 
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -266,7 +266,7 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -276,18 +276,18 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Transaction) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
+		err = cliutil.NewStackError(errInvalidDatabaseResponse)
 		return
 	}
 
 	for _, t := range r.Transaction {
 		if len(t.Block) != 1 || len(t.Outputs) == 0 {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
+			err = cliutil.NewStackError(errInvalidDatabaseResponse)
 			return
 		}
 		inputTransactions = append(inputTransactions, HeuristicTransaction{
@@ -313,7 +313,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 	if !isSimpleClustering {
 		userClusterUIDs, err = clustering.GetUserClustersUIDs(c, userUID, requestedClusterTypes)
 		if err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = cliutil.NewStackError(err)
 			return
 		}
 
@@ -357,7 +357,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -378,7 +378,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -395,7 +395,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 			mergedClusterUIDS, relatedErr := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
 			if relatedErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), relatedErr)
+				err = cliutil.NewStackError(relatedErr)
 				return
 			}
 
@@ -411,7 +411,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	attributions, attributionErr := attribution.GetAttributionsPerCluster(c, userUID, requestedClusterTypes)
 	if attributionErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), attributionErr)
+		err = cliutil.NewStackError(attributionErr)
 		return
 	}
 
@@ -422,7 +422,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	for _, o := range r.Origins {
 		if o.Inputs == nil || o.Inputs[0].Address == nil {
-			err = fmt.Errorf("invalid cluster information for transaction %s", o.UID)
+			err = cliutil.NewStackErrorf("invalid cluster information for transaction %s", o.UID)
 			return
 		}
 
@@ -448,7 +448,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 				var superCluster map[string]bool
 				cUID, superCluster, err = getClusterUIDFromMergedClusters(superClusters, firstClusterUID)
 				if err != nil {
-					err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+					err = cliutil.NewStackError(err)
 					return
 				}
 				allUsedClusters[string(cUID)] = usedCluster{superCluster: superCluster}
@@ -505,7 +505,7 @@ func getClusterUIDFromMergedClusters(mergedClusters []mergedClusterItem,
 		}
 	}
 
-	return "", nil, errors.New("did not find cluster uid in merged cluster list")
+	return "", nil, cliutil.NewStackErrorStr("did not find cluster uid in merged cluster list")
 }
 
 // createKeyHash creates from the keys of the map a unique string.
@@ -547,7 +547,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -557,7 +557,7 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -584,7 +584,7 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -597,12 +597,12 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Transaction) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidDatabaseResponse)
+		err = cliutil.NewStackError(errInvalidDatabaseResponse)
 		return
 	}
 
@@ -631,7 +631,7 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$hash": txhash, "$uids": uidList})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -642,15 +642,15 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Count) == 0 || len(r.Count) > 1 {
-		err = errors.New("error invalid response from database")
+		err = cliutil.NewStackErrorStr("error invalid response from database")
 		return
 	} else if r.Count[0].Number != len(uids) {
-		err = errors.New("error received number of uids does not match")
+		err = cliutil.NewStackErrorStr("error received number of uids does not match")
 		return
 	}
 
@@ -690,7 +690,7 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$hash": txHash, "$user": userUID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -700,7 +700,7 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -741,7 +741,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$user": userUID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -760,12 +760,12 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if heuristicUID == "" {
-		err = errors.New("empty response from database")
+		err = cliutil.NewStackErrorStr("empty response from database")
 		return
 	}
 
@@ -776,7 +776,7 @@ func GetFrontendHeuristicByUID(c external.Database, heuristicUID string, userUID
 		destinationMap := make(map[string]bool)
 		for _, result := range cluster.Results {
 			if len(result.Origin) != 1 {
-				err = errors.New("invalid response from database")
+				err = cliutil.NewStackErrorStr("invalid response from database")
 				return
 			}
 
@@ -860,7 +860,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	resp, err := c.Query(ctx, query, map[string]string{"$txFrom": txFrom, "$txTo": txTo})
 	if err != nil {
 		if !errors.Is(err, context.DeadlineExceeded) {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = cliutil.NewStackError(err)
 			return
 		}
 		err = nil
@@ -873,7 +873,7 @@ func GetShortestTransactionPathAnyDirection(c external.Database, txFrom string, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -912,7 +912,7 @@ func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuris
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uuid": userUID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -921,7 +921,7 @@ func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuris
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

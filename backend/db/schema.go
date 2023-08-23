@@ -6,7 +6,6 @@ import (
 
 	"context"
 	"encoding/json"
-	"fmt"
 
 	"github.com/dgraph-io/dgo/v230/protos/api"
 )
@@ -235,7 +234,7 @@ func IsSchemaSet(c external.Database) (exists bool, err error) {
 	// as this is the most basic type and thus should exist in all schemas
 	resp, err := c.Query(ctx, "schema(type: Block){}", nil)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -248,7 +247,7 @@ func IsSchemaSet(c external.Database) (exists bool, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

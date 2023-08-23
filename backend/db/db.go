@@ -52,6 +52,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 // GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
@@ -67,11 +68,11 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -82,11 +83,11 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -108,7 +109,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		info("encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -131,7 +132,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		info("encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -144,11 +145,11 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if q == "" {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -172,7 +173,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return nil, err
 		}
 
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
+		info("encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}

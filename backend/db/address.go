@@ -5,7 +5,6 @@ import (
 	"backend/external"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -116,7 +115,7 @@ func (f FrontendAddress) String() string {
 func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	offset int, filters []int) (addr FrontendAddress, err error) {
 	if addrHash == "" {
-		err = errEmptyRequestArgument
+		err = cliutil.NewStackError(errEmptyRequestArgument)
 		return
 	}
 
@@ -140,7 +139,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 		sortDirection = "desc"
 		sortBy = "amount"
 	default:
-		err = errors.New("error unrecognized sort order")
+		err = cliutil.NewStackErrorStr("error unrecognized sort order")
 		return
 	}
 	var filter string
@@ -151,7 +150,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 		case FilterByUnspent:
 			filter += " NOT has(~tx_inputs)"
 		default:
-			err = errors.New("error unrecognized filter")
+			err = cliutil.NewStackErrorStr("error unrecognized filter")
 			return
 		}
 
@@ -230,7 +229,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	defer cancel()
 	resp, err := c.Query(ctx, query, vars)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -257,21 +256,21 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return addr, err
 	}
 
 	if len(r.QueryMaxCount) != 1 || len(r.CoinbaseCount) != 1 ||
 		len(r.InputSum) != 1 || len(r.OutputSum) != 1 ||
 		len(r.InputCount) != 1 || len(r.OutputCount) != 1 {
-		err = errInvalidResult
+		err = cliutil.NewStackError(errInvalidResult)
 		return
 	}
 
 	// not checking the length of r.Outputs, as for certain filters the number of outputs can be 0
 	// instead check for the calculated output count
 	if r.OutputCount[0].Count == 0 {
-		err = ErrAddressNotFound
+		err = cliutil.NewStackError(ErrAddressNotFound)
 		return
 	}
 
@@ -292,7 +291,7 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 // UpsertAddresses upserts addresses
 func UpsertAddresses(c external.Database, addresses []Address) error {
 	if addresses == nil {
-		return errors.New("got null pointer for addresses")
+		return cliutil.NewStackErrorStr("got null pointer for addresses")
 	}
 
 	// the following block creates the query for 4 addresses the query looks like this:
@@ -325,7 +324,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 
 	pb, err := json.Marshal(addresses)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return err
 	}
 
@@ -343,7 +342,7 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 // GetAddressUIDs returns all requested address nodes
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	if len(addressHashes) == 0 {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	query := `{
@@ -356,7 +355,7 @@ func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Ad
 	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
 
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 	var r struct {
@@ -364,7 +363,7 @@ func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Ad
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -401,7 +400,7 @@ func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHe
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
 		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -410,7 +409,7 @@ func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHe
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

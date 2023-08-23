@@ -7,8 +7,6 @@ import (
 	"backend/external"
 
 	"encoding/json"
-	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -106,7 +104,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 	}
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -117,7 +115,7 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -158,7 +156,7 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -170,12 +168,12 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = errors.New("wrong number of returned query counts")
+		err = cliutil.NewStackErrorStr("wrong number of returned query counts")
 		return
 	}
 
@@ -216,7 +214,7 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -228,12 +226,12 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = errors.New("wrong number of returned query counts")
+		err = cliutil.NewStackErrorStr("wrong number of returned query counts")
 		return
 	}
 
@@ -281,7 +279,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -290,7 +288,7 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

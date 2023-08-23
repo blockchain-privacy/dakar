@@ -7,7 +7,6 @@ import (
 	"backend/external"
 
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"sync"
@@ -47,6 +46,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 type workKey struct {
@@ -245,7 +245,7 @@ mainLoop:
 
 				// delete changed or removable heuristics
 				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
-					info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+					info(err)
 					// no return/break because we want to keep working even if we are failing
 					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
 				} else {
@@ -253,7 +253,7 @@ mainLoop:
 					for _, e := range work.executors {
 						if err = e.run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
 							w.currentWorkItem.userUID); err != nil {
-							info(fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err))
+							info(err)
 						}
 					}
 				}

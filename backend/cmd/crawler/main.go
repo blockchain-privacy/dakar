@@ -59,6 +59,7 @@ func initAllLoggers() {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cli.PrintStack(thisLogger, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -77,7 +78,7 @@ func selectConfig(blockchainMode string) (processor.Config, analytics.Config, er
 	case "Doge":
 		return processor.NewDogecoinConfig(), analytics.NewDogecoinConfig(), nil
 	default:
-		return processor.Config{}, analytics.Config{}, errors.New("invalid blockchain mode")
+		return processor.Config{}, analytics.Config{}, cli.NewStackErrorStr("invalid blockchain mode")
 	}
 }
 
@@ -195,13 +196,13 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpccli
 	// test if rpc client is active
 	if !waitForRPCClient(client) {
 		// no error text, was already handled in function above
-		return nil, nil, errors.New("")
+		return nil, nil, cli.NewStackErrorStr("")
 	}
 
 	// test if batch rpc client is active
 	if !waitForBatchRPCClient(batchClient) {
 		// no error text, was already handled in function above
-		return nil, nil, errors.New("")
+		return nil, nil, cli.NewStackErrorStr("")
 	}
 
 	return client, batchClient, nil

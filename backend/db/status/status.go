@@ -6,7 +6,6 @@ import (
 	"backend/external"
 
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/dgraph-io/dgo/v230/protos/api"
@@ -26,14 +25,14 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	var r crawlerStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -52,14 +51,14 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	var r classifierStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -78,14 +77,14 @@ func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalM
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	var r clusteringHMIStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -104,14 +103,14 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	var r clusteringFMIStatusQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -131,7 +130,7 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
 
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -146,13 +145,13 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 	}
 
 	if len(r.TopBlock) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errTopBlockNotFound)
+		err = cliutil.NewStackError(errTopBlockNotFound)
 		return
 	} else if len(r.TopBlock) > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	} else if r.TopBlock[0].Max == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errTopBlockNotFound)
+		err = cliutil.NewStackError(errTopBlockNotFound)
 		return
 	}
 	max = r.TopBlock[0].Max
@@ -185,7 +184,7 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	defer cancel()
 	resp, err := c.Query(ctx, query, nil)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -197,58 +196,58 @@ func GetFrontendStatus(c external.Database) (status FrontendStatus, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	// check if all values are set correctly
 	if len(r.Crawler) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
 	if r.Crawler[0].IsCrawling == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsCrawlingNotFound)
+		err = cliutil.NewStackError(errIsCrawlingNotFound)
 		return
 	}
 
 	if r.Crawler[0].LastBlockID == nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastBlockIDNotFound)
+		err = cliutil.NewStackError(errLastBlockIDNotFound)
 		return
 	}
 
 	if len(r.Classifier) == 1 {
 		if r.Classifier[0].IsClassifying == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClassifyingNotFound)
+			err = cliutil.NewStackError(errIsClassifyingNotFound)
 			return
 		}
 
 		if r.Classifier[0].LastClassifiedBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClassifiedBlockIDNotFound)
+			err = cliutil.NewStackError(errLastClassifiedBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.HMI) == 1 {
 		if r.HMI[0].IsClustering == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClusteringMultiInputNotFound)
+			err = cliutil.NewStackError(errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.HMI[0].LastClusteredBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClusteringMultiInputBlockIDNotFound)
+			err = cliutil.NewStackError(errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}
 
 	if len(r.FMI) == 1 {
 		if r.FMI[0].IsClustering == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errIsClusteringMultiInputNotFound)
+			err = cliutil.NewStackError(errIsClusteringMultiInputNotFound)
 			return
 		}
 
 		if r.FMI[0].LastClusteredBlockID == nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errLastClusteringMultiInputBlockIDNotFound)
+			err = cliutil.NewStackError(errLastClusteringMultiInputBlockIDNotFound)
 			return
 		}
 	}
@@ -289,14 +288,14 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	var r metaQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

@@ -3,7 +3,6 @@ package external
 import (
 	"backend/cmd/cliutil"
 	"context"
-	"fmt"
 	"github.com/dgraph-io/dgo/v230"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"google.golang.org/grpc"
@@ -46,7 +45,7 @@ func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
 
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return nil, conn, err
 	}
 

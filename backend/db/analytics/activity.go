@@ -75,7 +75,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$address": addressHash})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	var r struct {
@@ -83,7 +83,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// filter duplicate transaction hashes (due to one hash per output)

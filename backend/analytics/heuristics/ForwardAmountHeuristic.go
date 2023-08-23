@@ -65,7 +65,7 @@ func (h *forwardAmountHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *forwardAmountHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errInvalidClusterTypes
+		return cliutil.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -152,14 +152,14 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			var err error
 			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, cliutil.NewStackError(err)
 			}
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime,
 				h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, cliutil.NewStackError(err)
 			}
 		}
 
@@ -172,7 +172,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 	}
 
 	if len(origins) == 0 || len(clusterOrigins) == 0 {
-		return nil, errNoOriginsAtStart
+		return nil, cliutil.NewStackError(errNoOriginsAtStart)
 	}
 
 	var exclusions []string
@@ -180,7 +180,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		var err error
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, cliutil.NewStackError(err)
 		}
 	}
 
@@ -199,7 +199,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime,
 			exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, cliutil.NewStackError(err)
 		}
 
 		destinationMap := make(map[string]heuristics.HeuristicTransaction)

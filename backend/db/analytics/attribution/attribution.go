@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"regexp"
@@ -19,14 +18,13 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	for _, a := range attributions {
 		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
-			return fmt.Errorf("attribution invalid: %v", a)
+			return cliutil.NewStackErrorf("attribution invalid: %v", a)
 		}
 	}
 
 	pb, err := json.Marshal(attributions)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	req := &api.Request{
@@ -37,7 +35,7 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	}
 	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return err
@@ -66,7 +64,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -74,7 +72,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -101,13 +99,13 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 	}
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
 	return
@@ -126,13 +124,13 @@ func DeletePublicAttribution(c external.Database, attributionUID string) (err er
 	}
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
 	return
@@ -154,7 +152,7 @@ func DeleteAllAttributions(c external.Database, userID string) (err error) {
 	}
 	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
@@ -189,7 +187,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID, "$regex": regex})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -198,7 +196,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -247,7 +245,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -264,7 +262,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/cmd/cliutil"
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
@@ -102,7 +103,7 @@ var defaultConfig = Config{
 // checkAPIModuleConfig returns an error if the given http module has invalid values
 func checkAPIModuleConfig(c APIModule) error {
 	if c.KratosPublicEndpoint == "" || c.KratosAdminEndpoint == "" {
-		return errors.New("http module config invalid, not all fields are filled")
+		return cliutil.NewStackErrorStr("http module config invalid, not all fields are filled")
 	}
 
 	return nil
@@ -126,7 +127,7 @@ func isCrawling(db external.Database) (bool, error) {
 
 		return true, err
 	} else if dbStatus.IsCrawling == nil {
-		return true, errors.New("was not able to get crawling status successfully")
+		return true, cliutil.NewStackErrorStr("was not able to get crawling status successfully")
 	}
 
 	return *dbStatus.IsCrawling, nil
@@ -278,7 +279,7 @@ func checkMeta(db external.Database) bool {
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	if endpoint == "" {
-		return nil, fmt.Errorf("endpoint is invalid: '%s'", endpoint)
+		return nil, cliutil.NewStackErrorf("endpoint is invalid: '%s'", endpoint)
 	}
 
 	cj, err := cookiejar.New(nil)
@@ -356,12 +357,12 @@ func getKratosClient(publicEndpoint string, adminEndpoint string) (*ory.APIClien
 
 	// check if public endpoint is alive
 	if !waitForKratos(auth) {
-		return nil, nil, errors.New("kratos public endpoint is not ready to receive requests")
+		return nil, nil, cliutil.NewStackErrorStr("kratos public endpoint is not ready to receive requests")
 	}
 
 	// check if public endpoint is alive
 	if !waitForKratos(adminAuth) {
-		return nil, nil, errors.New("kratos admin endpoint is not ready to receive requests")
+		return nil, nil, cliutil.NewStackErrorStr("kratos admin endpoint is not ready to receive requests")
 	}
 
 	return auth, adminAuth, nil

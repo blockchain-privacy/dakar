@@ -8,7 +8,6 @@ import (
 
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -53,7 +52,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$block": strconv.FormatUint(blockID, 10), "$ctype": string(clusterType)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -62,7 +61,7 @@ func GetInputAddressesByBlock(c external.Database, blockID uint64, clusterType C
 		AddressToClusters      []ClusterAddress           `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -102,17 +101,17 @@ func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
-			return errors.New("cluster type is not set")
+			return cliutil.NewStackErrorStr("cluster type is not set")
 		}
 
 		if len(cluster.Addresses) == 0 {
-			return errors.New("cluster no addresses set")
+			return cliutil.NewStackErrorStr("cluster no addresses set")
 		}
 	}
 
 	pb, err := json.Marshal(clusters)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return err
 	}
 
@@ -124,7 +123,7 @@ func AddCustomClusters(c external.Database, clusters []CustomCluster) error {
 	}
 	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return err
@@ -135,21 +134,21 @@ func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	// validate data
 	for _, cluster := range clusters {
 		if cluster.Type == "" {
-			return errors.New("cluster type is not set")
+			return cliutil.NewStackErrorStr("cluster type is not set")
 		}
 
 		if checkTx && cluster.Transaction.UID == "" {
-			return errors.New("cluster transaction is not set")
+			return cliutil.NewStackErrorStr("cluster transaction is not set")
 		}
 
 		if len(cluster.Addresses) == 0 && len(cluster.Children) == 0 {
-			return errors.New("cluster has no child clusters and no addresses set")
+			return cliutil.NewStackErrorStr("cluster has no child clusters and no addresses set")
 		}
 	}
 
 	pb, err := json.Marshal(clusters)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return err
 	}
 
@@ -161,7 +160,7 @@ func AddClusters(c external.Database, clusters []Cluster, checkTx bool) error {
 	}
 	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return err
@@ -192,7 +191,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 
 	pb, err := json.Marshal(clusters)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return err
 	}
 
@@ -226,7 +225,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 	}
 	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	if !existClusterMerges {
@@ -241,7 +240,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 	}
 	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	// step 3: delete all merged clusters
@@ -253,7 +252,7 @@ func ProcessClusterOperations(c external.Database, operations []DBOperation) err
 	}
 	err = db.ExistingTxWithRetry(txn, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return err
@@ -274,7 +273,7 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$uid": clusterUID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -282,12 +281,12 @@ func GetHierarchicalClusterRoot(c external.Database, clusterUID string) (rootClu
 		Root []ClusterWithParent `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Root) != 1 {
-		err = fmt.Errorf("invalid number of roots returned: %v", r.Root)
+		err = cliutil.NewStackErrorf("invalid number of roots returned: %v", r.Root)
 		return
 	}
 
@@ -342,7 +341,7 @@ func responseToFrontendClusters(clusters []FrontendClusterRequest, clusterTags [
 
 	for _, cluster := range clusters {
 		if len(cluster.Transaction) > 1 {
-			err = fmt.Errorf("invalid transaction count: %d", len(cluster.Transaction))
+			err = cliutil.NewStackErrorf("invalid transaction count: %d", len(cluster.Transaction))
 			return
 		}
 
@@ -383,7 +382,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash,
 		"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -392,13 +391,13 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 		ClusterTags []ClusterTags            `json:"tags,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	clusters, err = responseToFrontendClusters(r.Clusters, r.ClusterTags)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -439,7 +438,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -458,7 +457,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 		} `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -468,7 +467,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 	}
 
 	if len(r.AddressCluster) > 1 {
-		err = errors.New("too many clusters associated with address")
+		err = cliutil.NewStackErrorStr("too many clusters associated with address")
 		return
 	}
 
@@ -476,7 +475,7 @@ func GetHMIClusters(c external.Database, addressHash string) (addressCluster str
 
 	for _, cluster := range r.Clusters {
 		if len(cluster.Parent) > 1 {
-			err = fmt.Errorf("cluster %s has multiple parents: %v", cluster.UID, cluster.Parent)
+			err = cliutil.NewStackErrorf("cluster %s has multiple parents: %v", cluster.UID, cluster.Parent)
 			return
 		}
 
@@ -521,7 +520,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -536,7 +535,7 @@ func GetUserClusters(c external.Database, userID string) (clusters []FrontendUse
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -583,7 +582,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -593,7 +592,7 @@ func GetUserClustersUIDs(c external.Database, userID string, clusterTypeFilter [
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -620,12 +619,12 @@ func DeleteCluster(c external.Database, userID string, clusterUID string) (err e
 	}
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
 	return
@@ -647,7 +646,7 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 	}
 	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
@@ -657,7 +656,7 @@ func DeleteAllClusters(c external.Database, userID string) (err error) {
 // GetRelatedClusters returns the UIDs of clusters which can be reached from the given cluster
 func GetRelatedClusters(c external.Database, clusterUID string, userUID string, clusterTypeFilter []ClusterType) (clusters []string, err error) {
 	if clusterTypeFilter == nil {
-		err = errors.New("no cluster types passed to function")
+		err = cliutil.NewStackErrorStr("no cluster types passed to function")
 		return
 	}
 
@@ -684,7 +683,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$user": userUID, "$cluster": clusterUID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -694,7 +693,7 @@ func GetRelatedClusters(c external.Database, clusterUID string, userUID string, 
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -717,7 +716,7 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$addressHash": addressHash})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -727,7 +726,7 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -736,7 +735,7 @@ func GetClusterAddressCount(c external.Database, addressHash string) (addressCou
 	}
 
 	if len(r.Count) != 1 {
-		return 0, errors.New("invalid response from database")
+		return 0, cliutil.NewStackErrorStr("invalid response from database")
 	}
 
 	addressCount = r.Count[0].Count

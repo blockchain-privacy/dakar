@@ -3,7 +3,6 @@ package blockiterator
 import (
 	"backend/cmd/cliutil"
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -11,10 +10,10 @@ import (
 
 // BlockIterator defines the basic structure of a process which
 // iterates sequentially over a set of blocks:
-// 1. do pre loop operations like getting the start id
-// 2. do the sequential processing of blocks
-// 3. do post loop operations in the case of a
-//    failure or if the process finished due to termination
+//  1. do pre loop operations like getting the start id
+//  2. do the sequential processing of blocks
+//  3. do post loop operations in the case of a
+//     failure or if the process finished due to termination
 type BlockIterator interface {
 	// CalculateInitialState calculates the initial state of the BlockIterator
 	CalculateInitialState() error
@@ -60,7 +59,7 @@ func info(iterator BlockIterator, v ...interface{}) {
 // StartIteration starts the iteration process
 func StartIteration(iterator BlockIterator) (err error) {
 	if l := iterator.Logger(); l == nil {
-		return errors.New(iterator.Name() + " logger is nil")
+		return cliutil.NewStackErrorStr(iterator.Name() + " logger is nil")
 	}
 
 	defer func() {
@@ -69,12 +68,12 @@ func StartIteration(iterator BlockIterator) (err error) {
 		// error if the error is currently nil
 		postErr := iterator.PostExecution()
 		if err == nil && postErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), postErr)
+			err = cliutil.NewStackError(postErr)
 		}
 	}()
 
 	if initErr := iterator.CalculateInitialState(); initErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), initErr)
+		err = cliutil.NewStackError(initErr)
 		return
 	}
 
@@ -96,7 +95,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		if iterator.Empty() {
 			isInterrupt, waitErr := waitForNextDBBlockID(iterator)
 			if waitErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), waitErr)
+				err = cliutil.NewStackError(waitErr)
 				return
 			}
 
@@ -107,7 +106,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		ok, iterateErr := iterator.Iterate()
 		if iterateErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), iterateErr)
+			err = cliutil.NewStackError(iterateErr)
 			return
 		}
 
@@ -118,7 +117,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// set next state
 		if incErr := iterator.IncrementState(); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+			err = cliutil.NewStackError(incErr)
 			return
 		}
 
@@ -151,7 +150,7 @@ func waitForNextDBBlockID(it BlockIterator) (isInterrupt bool, err error) {
 			}
 
 			if ok, nextErr := it.NextBlock(); err != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), nextErr)
+				err = cliutil.NewStackError(nextErr)
 				return
 			} else if ok {
 				return

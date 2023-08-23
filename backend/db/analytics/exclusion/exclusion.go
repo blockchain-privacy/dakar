@@ -5,8 +5,6 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"time"
 )
@@ -14,12 +12,12 @@ import (
 // AddAddressExclusions adds the given address exclusions to the database
 func AddAddressExclusions(c external.Database, user User) error {
 	if len(user.Exclusions) == 0 {
-		return errors.New("nothing to add")
+		return cliutil.NewStackErrorStr("nothing to add")
 	}
 
 	pb, err := json.Marshal(user)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return err
 	}
 
@@ -31,7 +29,7 @@ func AddAddressExclusions(c external.Database, user User) error {
 	}
 	err = db.TxWithRetry(c, time.Minute*5, req)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return err
@@ -51,7 +49,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -61,7 +59,7 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -89,7 +87,7 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -102,12 +100,12 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 		} `json:"x,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Count) != 1 {
-		err = errors.New("invalid response from database")
+		err = cliutil.NewStackErrorStr("invalid response from database")
 		return
 	}
 
@@ -136,13 +134,13 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 	}
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
 	return
@@ -158,12 +156,12 @@ func DeleteAllAddressExclusions(c external.Database, userID string) (err error) 
 	}
 	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
 	return
@@ -180,7 +178,7 @@ func GetAddressExclusionStatus(c external.Database, addressHash string, userID s
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$user": userID, "$hash": addressHash})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -190,14 +188,14 @@ func GetAddressExclusionStatus(c external.Database, addressHash string, userID s
 		} `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 	if len(r.Address) == 0 {
 		isExcluded = false
 		return
 	} else if len(r.Address) > 1 {
-		err = errors.New("invalid response from database")
+		err = cliutil.NewStackErrorStr("invalid response from database")
 		return
 	}
 

@@ -4,7 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"strconv"
 
-	"fmt"
 	"time"
 
 	"gonum.org/v1/gonum/graph"
@@ -12,7 +11,7 @@ import (
 )
 
 func ErrNodeNotFound(nodeID int64) error {
-	return fmt.Errorf("error node %s does not exist in graph", ToHex(nodeID))
+	return cliutil.NewStackErrorf("error node %s does not exist in graph", ToHex(nodeID))
 }
 
 // ToHex returns a hexadecimal string representation of the given integer with the '0x' prefix
@@ -72,7 +71,7 @@ func ReverseLookupByID(g *ReversibleGraph, nodeID int64, maxLookBackTime time.Du
 	for _, e := range addressExclusions {
 		integer, err := ToInteger(e)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, cliutil.NewStackError(err)
 		}
 
 		exclusionsMap[integer] = true
@@ -145,13 +144,13 @@ func ReverseLookup(g *ReversibleGraph, uid string, maxLookBackTime time.Duration
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 	g.SetReverse(false)
 
 	results, err := ReverseLookupByID(g, nodeUID, maxLookBackTime, addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 	return results, nil
 }
@@ -162,12 +161,12 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUID string,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	targetNodeUID, err := ToInteger(targetUID)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	node := g.Node(nodeUID).(TransactionNode)
@@ -176,7 +175,7 @@ func ForwardLookup(g *ReversibleGraph, uid string, targetUID string,
 	g.SetReverse(true)
 	origins, err := ReverseLookupByID(g, nodeUID, targetNode.TS.Sub(node.TS), addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 	g.SetReverse(false)
 	return origins, err
@@ -188,13 +187,13 @@ func ForwardLookupByTime(g *ReversibleGraph, uid string, maxLookForwardTime time
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	g.SetReverse(true)
 	origins, err := ReverseLookupByID(g, nodeUID, maxLookForwardTime, addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 	g.SetReverse(false)
 	return origins, err
@@ -205,7 +204,7 @@ func GetInputTransactions(g *ReversibleGraph, uid string) ([]string, error) {
 	// convert hex string to integer
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// check if node exists

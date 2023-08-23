@@ -9,7 +9,6 @@ import (
 
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"sync"
@@ -31,6 +30,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	graphLogger.Println(v...)
+	cliutil.PrintStack(graphLogger, v...)
 }
 
 // Wrapper is wrapper for in-memory graphs
@@ -83,14 +83,14 @@ func (w *Wrapper) IsTransactionGraphLoaded() bool {
 func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, errors.New("transaction graph is not loaded yet")
+		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime, addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 	return results, nil
 }
@@ -99,14 +99,14 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, errors.New("transaction graph is not loaded yet")
+		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	results, err := ForwardLookup(w.transactionGraph, uid, targetUID, addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return results, nil
@@ -116,7 +116,7 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Duration,
 	addressExclusions []string, excludeSpendingGaps bool) (map[string]bool, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, errors.New("transaction graph is not loaded yet")
+		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
@@ -124,7 +124,7 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime,
 		addressExclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return results, nil
@@ -134,14 +134,14 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 // and the number of mixing sessions of this transactions
 func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, 0, errors.New("transaction graph is not loaded yet")
+		return nil, 0, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	results, sessionCount, err := SpendingFingerprint(w.transactionGraph, uid)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, 0, cliutil.NewStackError(err)
 	}
 
 	return results, sessionCount, nil
@@ -150,14 +150,14 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
 func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	if !w.IsTransactionGraphLoaded() {
-		return nil, errors.New("transaction graph is not loaded yet")
+		return nil, cliutil.NewStackErrorStr("transaction graph is not loaded yet")
 	}
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	results, err := GetInputTransactions(w.transactionGraph, uid)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return results, err
@@ -166,7 +166,7 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 // LoadGraphs loads the transaction graph into the wrapper
 func (w *Wrapper) LoadGraphs() error {
 	if w.isLoading {
-		return errors.New("error can not load graph as it is already loaded or still loading")
+		return cliutil.NewStackErrorStr("error can not load graph as it is already loaded or still loading")
 	}
 
 	w.isLoading = true
@@ -177,7 +177,7 @@ func (w *Wrapper) LoadGraphs() error {
 			info("Classifier status is not set. Classify at least one block before starting to load graphs.")
 			return nil
 		}
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
@@ -193,7 +193,7 @@ func (w *Wrapper) LoadGraphs() error {
 
 	txGraph, err := LoadTransactionGraph(w.db, 0)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	w.transactionGraphMutex.Lock()
@@ -224,7 +224,7 @@ func (w *Wrapper) Name() string {
 func (w *Wrapper) CalculateInitialState() error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
-		return errors.New("error graphs were not loaded before iteration started")
+		return cliutil.NewStackErrorStr("error graphs were not loaded before iteration started")
 	}
 	return nil
 }
@@ -233,7 +233,7 @@ func (w *Wrapper) CalculateInitialState() error {
 func (w *Wrapper) NextBlock() (bool, error) {
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, cliutil.NewStackError(err)
 	}
 
 	return w.state.ID <= *classifierStatus.LastClassifiedBlockID, nil
@@ -266,7 +266,7 @@ func (w *Wrapper) Empty() bool {
 func (w *Wrapper) Iterate() (bool, error) {
 	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, cliutil.NewStackError(err)
 	}
 
 	if len(connectedNodes) == 0 && len(singleNodes) == 0 {
@@ -276,18 +276,18 @@ func (w *Wrapper) Iterate() (bool, error) {
 
 	if len(connectedNodes) == 0 || len(singleNodes) == 0 {
 		// something is wrong
-		return false, errors.New("error count of single or connected nodes is zero")
+		return false, cliutil.NewStackErrorStr("error count of single or connected nodes is zero")
 	}
 
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
 	if graphErr := upsertSingleNodes(w.transactionGraph, singleNodes); graphErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), graphErr)
+		return false, cliutil.NewStackError(graphErr)
 	}
 
 	if graphErr := addEdges(w.transactionGraph, connectedNodes); graphErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), graphErr)
+		return false, cliutil.NewStackError(graphErr)
 	}
 
 	w.blocks.Inc()

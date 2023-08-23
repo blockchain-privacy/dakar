@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -24,7 +23,7 @@ var (
 // ImportCluster writes the given address relations into the database
 func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, userID string) error {
 	if userID == "" {
-		return errors.New("user ID is not set")
+		return cliutil.NewStackErrorStr("user ID is not set")
 	}
 
 	addrToUID, err := validateAddresses(dgraph, clusters)
@@ -34,7 +33,7 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 
 	dbClusters := buildDatabaseClusters(clusters, userID, addrToUID)
 	if err := clustering.AddCustomClusters(dgraph, dbClusters); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return nil
@@ -101,21 +100,21 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 
 	// check maximum number of addresses
 	if len(uniqueAddresses) > 1000 {
-		return nil, ErrTooManyAddresses
+		return nil, cliutil.NewStackError(ErrTooManyAddresses)
 	}
 
 	// check if clusters contain at least two addresses
 	clusterSet := buildClusterSet(clusters)
 	for _, v := range clusterSet {
 		if v == nil || len(v) < 2 {
-			return nil, ErrShallowCluster
+			return nil, cliutil.NewStackError(ErrShallowCluster)
 		}
 	}
 
 	// check if all addresses exist
 	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// check if there is some mismatch
@@ -131,14 +130,14 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			break
 		}
 
-		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
 	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, fmt.Errorf("address invalid: %v", dbAddress)
+			return nil, cliutil.NewStackErrorf("address invalid: %v", dbAddress)
 		}
 		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}

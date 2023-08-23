@@ -12,7 +12,6 @@ import (
 	"backend/external"
 
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -91,7 +90,7 @@ func getNumberOfDenominations(it heuristics.HeuristicTransaction, destinationTra
 	for i, nd := range numDenominations {
 		if nd > 0 {
 			if found {
-				err = fmt.Errorf("found more than one denomination type in input transaction %s for destination tx %s",
+				err = cliutil.NewStackErrorf("found more than one denomination type in input transaction %s for destination tx %s",
 					it, destinationTransaction)
 				return
 			}
@@ -199,14 +198,14 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	// get tx details for each uid
 	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(endpoints),
 		userUID, clusterTypes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	return
@@ -221,7 +220,7 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash 
 	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90,
 		userUID, requestedClusterTypes, excludeAddresses, excludeSpendingGaps)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 	return origins, attributionMapping, nil
 }
@@ -234,19 +233,19 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	// get uid for txhash
 	uid, err := db.GetTransactionUID(dgraph, txHash)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	inputTransactions, err := g.GetInputTransactions(uid)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	var exclusions []string
 	if excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, userUID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, nil, cliutil.NewStackError(err)
 		}
 	}
 
@@ -255,7 +254,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	for _, it := range inputTransactions {
 		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
-			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
+			return nil, nil, cliutil.NewStackError(lookupErr)
 		}
 
 		for k := range endpoints {
@@ -267,7 +266,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(uidMap),
 		userUID, requestedClusterTypes)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	return
@@ -281,7 +280,7 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 	for _, it := range originUIDs {
 		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookupErr)
+			return nil, cliutil.NewStackError(lookupErr)
 		}
 
 		for k := range endpoints {
@@ -299,13 +298,13 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	excludeSpendingGaps bool) (origins []heuristics.HeuristicTransaction, err error) {
 	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// get tx details for each uid
 	origins, err = heuristics.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return
@@ -343,17 +342,15 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 	newUID, err := exec(dgraph, g, txHash, thisRootUID, hx.thisHeuristic, userUID)
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-			fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-				hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err))
+		return cliutil.NewStackErrorf("heuristic type: %s, parameter: %s, %w",
+			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
 	}
 
 	for _, executor := range hx.nextHeuristics {
 		if runErr := executor.run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(),
-				fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-					executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr))
+			return cliutil.NewStackErrorf("heuristic type: %s, parameter: %s, %w",
+				executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr)
 		}
 	}
 
@@ -367,7 +364,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	userUID string) (thisUID string, err error) {
 	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -405,7 +402,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	}, userUID)
 
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

@@ -37,14 +37,14 @@ const msgUserNotFound = "User not found"
 func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {
 	users, err := dbus.GetUsers(dgraph)
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	// get identity list
 	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -54,7 +54,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -81,7 +81,7 @@ func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -103,7 +103,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 	if worker.IsInQueue(txHashString, userUID) {
 		reply.Success = true
 		reply.Status = heuristics.StatusHeuristicDuplicate
-		info(cliutil.ShowCallInfo(), "heuristic already in queue")
+		info("heuristic already in queue")
 		return
 	}
 
@@ -114,7 +114,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 
 	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeRequest
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		heuristicRequest.Deleted, userUID)
 	if err != nil {
 		reply.Msg = msgInvalidRequest
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		}
 
 		reply.Msg = msgErrorPathSearch
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		}
 
 		reply.Msg = msgErrorPathSearch
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -208,7 +208,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
 		reply.Msg = msgErrorPathSearch
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -244,7 +244,7 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 				reply.Msg = "No data was deleted. The user may not have any heuristics."
 			} else {
 				reply.Msg = "could not delete data"
-				info(cliutil.ShowCallInfo(), err)
+				info(err)
 			}
 			return
 		}
@@ -258,7 +258,7 @@ func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID s
 			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
 		} else {
 			reply.Msg = "could not delete data"
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 		}
 		return
 	}
@@ -285,7 +285,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		n, err := strconv.Atoi(fLockBackTime)
 		if err != nil {
 			reply.Msg = "error parsing input"
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 			return
 		}
 
@@ -300,7 +300,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		n, err := strconv.Atoi(direction)
 		if err != nil {
 			reply.Msg = "error parsing input"
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 			return
 		}
 
@@ -318,7 +318,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		}
 
 		reply.Msg = "error while searching for connections"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -332,14 +332,14 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		endpoints, err = worker.ForwardLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
 			reply.Msg = msgLookupNotSuccessful
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 			return
 		}
 	} else {
 		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
 			reply.Msg = msgLookupNotSuccessful
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 			return
 		}
 	}
@@ -361,7 +361,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	frontendTransactions, err := db.GetFrontendTransactionsByUID(dgraph, transactionUids)
 	if err != nil {
 		reply.Msg = msgLookupNotSuccessful
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -380,7 +380,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 	var req clustering.ClusterLookupRequest
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
 		msg = msgCouldNotDecodeRequest
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodeErr)
+		err = cliutil.NewStackError(decodeErr)
 		return
 	}
 
@@ -397,7 +397,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
 	if getErr != nil {
 		msg = "error while searching for clusters"
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+		err = cliutil.NewStackError(getErr)
 		return
 	}
 	clusters = clusterResponse
@@ -426,7 +426,7 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenU
 func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
 	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return reply
 	}
 	reply.Success = true
@@ -441,7 +441,7 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
 		handleError(w, err)
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -462,7 +462,7 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 	}
 
 	var clusterCount int
@@ -484,7 +484,7 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 			if err = csvWriter.Write(row); err != nil {
 				handleError(w, err)
-				info(cliutil.ShowCallInfo(), err)
+				info(err)
 				return
 			}
 		}
@@ -530,7 +530,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 	}
 
 	for _, c := range clusters {
@@ -561,14 +561,14 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
 	}
 	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
-		info(cliutil.ShowCallInfo(), decodeErr)
+		info(decodeErr)
 		return
 	}
 	const maxAddressCount = 2000
 	if req.IsClusterLookup {
 		addressCount, err := clustering.GetClusterAddressCount(dgraph, req.AddressHash)
 		if err != nil {
-			info(cliutil.ShowCallInfo(), err)
+			info(err)
 			return
 		}
 
@@ -581,7 +581,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 
 	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
 	if err != nil {
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -607,7 +607,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = msgUserNotFound
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -715,7 +715,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = msgUserNotFound
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -824,7 +824,7 @@ func getClusterOverviewReply(dgraph external.Database, userUID string) (reply cl
 	clusters, err := clustering.GetUserClusters(dgraph, userUID)
 	if err != nil {
 		reply.Msg = "no clusters found"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -842,7 +842,7 @@ func getDeleteClusterReply(dgraph external.Database, userUID string, clusterUID 
 
 	if err := clustering.DeleteCluster(dgraph, userUID, clusterUID); err != nil {
 		reply.Msg = "could not delete cluster"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -854,7 +854,7 @@ func getDeleteClusterReply(dgraph external.Database, userUID string, clusterUID 
 func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply deleteClusterReply) {
 	if err := clustering.DeleteAllClusters(dgraph, userUID); err != nil {
 		reply.Msg = "could not delete clusters"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -867,7 +867,7 @@ func getAttributionOverviewReply(dgraph external.Database, userUID string) (repl
 	attributions, err := attribution.GetUserAttributions(dgraph, userUID)
 	if err != nil {
 		reply.Msg = "no attributions found"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -893,7 +893,7 @@ func getDeleteAttributionReply(dgraph external.Database, userUID string,
 
 	if err != nil {
 		reply.Msg = "could not delete attribution"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -905,7 +905,7 @@ func getDeleteAttributionReply(dgraph external.Database, userUID string,
 func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (reply deleteAttributionReply) {
 	if err := attribution.DeleteAllAttributions(dgraph, userUID); err != nil {
 		reply.Msg = "could not delete clusters"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -923,7 +923,7 @@ func getAttributionSearchReply(dgraph external.Database, userUID string,
 	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
 		reply.Success = false
 		reply.Msg = "error decoding request"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -936,7 +936,7 @@ func getAttributionSearchReply(dgraph external.Database, userUID string,
 	attributions, err := attribution.SearchAttributions(dgraph, userUID, searchRequest.Query)
 	if err != nil {
 		reply.Msg = "no attributions found"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -950,7 +950,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = msgUserNotFound
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1029,7 +1029,7 @@ func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) 
 	addresses, count, err := exclusion.GetAddressExclusions(dgraph, userUID)
 	if err != nil {
 		reply.Msg = "no addresses found"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1049,7 +1049,7 @@ func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
 
 	if err := exclusion.DeleteAddressExclusion(dgraph, userUID, addressHash); err != nil {
 		reply.Msg = "could not delete address exclusion"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1061,7 +1061,7 @@ func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
 func getDeleteAllAddressExclusionsReply(dgraph external.Database, userUID string) (reply deleteAddressExclusionReply) {
 	if err := exclusion.DeleteAllAddressExclusions(dgraph, userUID); err != nil {
 		reply.Msg = "could not delete address exclusions"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1080,14 +1080,14 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		reply.Msg = msgUserNotFound
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	status, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
 	if err != nil {
 		reply.Msg = "error getting exclusion status"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1130,7 +1130,7 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 		frontEndUser.Email, nil, frontEndUser.Roles, frontEndUser.State)
 	if err != nil {
 		reply.Msg = "unable to create identity"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 	}
 
 	reply.Success = true
@@ -1145,7 +1145,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1155,38 +1155,38 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	uid, err := extractDgraphUID(identity.MetadataPublic)
 	if err != nil {
 		reply.Msg = "could not extract dgraph uid"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	if err := attribution.DeleteAllAttributions(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " attributions"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + "clusters"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " heuristics"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	err = dbus.DeleteUser(dgraph, uid)
 	if err != nil {
 		reply.Msg = "could not delete dgraph user"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1202,7 +1202,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 func setRoles(metaDataPublic any, roles []string) error {
 	metadata, ok := metaDataPublic.(map[string]any)
 	if !ok {
-		return errors.New("identity has no public metadata")
+		return cliutil.NewStackErrorStr("identity has no public metadata")
 	}
 
 	metadata["roles"] = roles
@@ -1214,7 +1214,7 @@ func setRoles(metaDataPublic any, roles []string) error {
 func setEmail(traits any, email string) error {
 	metadata, ok := traits.(map[string]any)
 	if !ok {
-		return errors.New("identity has no traits")
+		return cliutil.NewStackErrorStr("identity has no traits")
 	}
 
 	metadata["email"] = email
@@ -1247,7 +1247,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
-		info(cliutil.ShowCallInfo(), err, modRequest)
+		info(err, modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1264,7 +1264,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
 			reply.Msg = "invalid meta data"
-			info(cliutil.ShowCallInfo(), "could not set <", modRequest.Email, "> for identity", modRequest.UID)
+			info("could not set <", modRequest.Email, "> for identity", modRequest.UID)
 			return
 		}
 	}
@@ -1277,7 +1277,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		for _, role := range modRequest.Roles {
 			if _, err := getRoleByName(role.Name); err != nil {
 				reply.Msg = msgInvalidRole
-				info(cliutil.ShowCallInfo(), msgInvalidRole, role.Name, "for identity", modRequest.UID)
+				info(msgInvalidRole, role.Name, "for identity", modRequest.UID)
 				return
 			}
 			roles = append(roles, role.Name)
@@ -1286,7 +1286,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
 			reply.Msg = "invalid role"
-			info(cliutil.ShowCallInfo(), "could not add <", roles, "> to identity", modRequest.UID)
+			info("could not add <", roles, "> to identity", modRequest.UID)
 			return
 		}
 	}
@@ -1296,7 +1296,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
 		if err != nil {
 			reply.Msg = "invalid state"
-			info(cliutil.ShowCallInfo(), err, "could not change state: <", modRequest.State, "> for identity", modRequest.UID)
+			info(err, "could not change state: <", modRequest.State, "> for identity", modRequest.UID)
 			return
 		}
 		initialIdentity.SetState(*newState)
@@ -1311,7 +1311,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	}).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
-		info(cliutil.ShowCallInfo(), err, modRequest)
+		info(err, modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1342,14 +1342,14 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 		}
 
 		reply.Msg = frontendError
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	similarTransactions, sessionCount, err := worker.SpendingFingerprint(uid)
 	if err != nil {
 		reply.Msg = frontendError
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
@@ -1363,13 +1363,13 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
 	if err != nil {
 		reply.Msg = frontendError
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 		return
 	}
 
 	if len(transactions) != len(uids) {
 		reply.Msg = frontendError
-		info(cliutil.ShowCallInfo(), "length of uids and hashes is not equal for", txhash)
+		info("length of uids and hashes is not equal for", txhash)
 		return
 	}
 
@@ -1377,7 +1377,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 		fingerprint, ok := uidToFingerprint[tx.UID]
 		if !ok {
 			reply.Msg = frontendError
-			info(cliutil.ShowCallInfo(), "could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
+			info("could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
 			return
 		}
 

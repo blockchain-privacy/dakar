@@ -194,12 +194,12 @@ func (c crawlerStatusQuery) payload() (status CrawlerStatus, err error) {
 	lenQ := len(c.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		err = cliutil.NewStackError(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
@@ -215,12 +215,12 @@ func (a classifierStatusQuery) payload() (status ClassifierStatus, err error) {
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		err = cliutil.NewStackError(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
@@ -236,12 +236,12 @@ func (a clusteringHMIStatusQuery) payload() (status ClusteringHierarchicalMultiI
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		err = cliutil.NewStackError(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
@@ -257,12 +257,12 @@ func (a clusteringFMIStatusQuery) payload() (status ClusteringFlatMultiInputStat
 	lenQ := len(a.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		err = cliutil.NewStackError(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
@@ -297,12 +297,12 @@ func (m metaQuery) payload() (meta Meta, err error) {
 	lenQ := len(m.Q)
 
 	if lenQ == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrStatusNotFound)
+		err = cliutil.NewStackError(ErrStatusNotFound)
 		return
 	}
 
 	if lenQ > 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidNumber)
+		err = cliutil.NewStackError(errInvalidNumber)
 		return
 	}
 
