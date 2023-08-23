@@ -175,8 +175,6 @@ func getSimulatedRandomExclusionSet(addressMap map[int64]bool, percentExcluded f
 	}
 	numAddresses := len(addresses)
 
-	rand.Seed(time.Now().UnixNano())
-
 	for float64(len(exclusionsMap))/float64(numAddresses) < percentExcluded {
 		exclusionsMap[addresses[rand.Intn(numAddresses)]] = true //nolint:gosec
 	}
@@ -195,7 +193,6 @@ func getSimulatedSemiRandomExclusionSet(transactionAddresses [][]int64, particip
 	}
 
 	exclusionsMap := make(map[int64]bool)
-	rand.Seed(time.Now().UnixNano())
 
 	allAddresses := make(map[int64]bool)
 
@@ -271,7 +268,6 @@ func getSimulatedSemiRandomExclusionSetV2(transactionAddresses [][]int64, partic
 	}
 
 	exclusionsMap := make(map[int64]bool)
-	rand.Seed(time.Now().UnixNano())
 
 	for _, tx := range transactionAddresses {
 		// randomly select participants
