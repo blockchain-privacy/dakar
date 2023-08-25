@@ -12,7 +12,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -35,11 +34,6 @@ func InitLogger(out io.Writer, flag int) {
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
 	cliutil.PrintStack(thisLogger, v...)
-}
-
-func fatal(v ...interface{}) {
-	info(v...)
-	os.Exit(1)
 }
 
 type Server struct {
@@ -97,8 +91,8 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			fatal("server error:", err)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			info("server error:", cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()
@@ -123,8 +117,8 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && errors.Is(err, http.ErrServerClosed) {
-			fatal("server error:", err)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			info("server error:", cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()
