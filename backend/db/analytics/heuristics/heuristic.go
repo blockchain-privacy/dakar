@@ -66,12 +66,12 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
+
 	insertUID, ok := resp.GetUids()[newHeuristicDummyUID]
 	if !ok {
-		err = cliutil.NewStackErrorStr(fmt.Sprintln("no new heuristic created"))
+		err = cliutil.NewStackErrorStr("no new heuristic created")
 		return
 	}
 
@@ -102,15 +102,11 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 		CommitNow: true,
 	}
 
-	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
-	}
-	return
+	return db.TxWithRetry(c, time.Minute*5, req)
 }
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
-func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
+func DeleteAllUserHeuristics(c external.Database, userUID string) error {
 	req := &api.Request{
 		Query: `query Q($user:string){
 				var(func: uid($user)){
@@ -131,17 +127,12 @@ func DeleteAllUserHeuristics(c external.Database, userUID string) (err error) {
 		CommitNow: true,
 	}
 
-	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	if txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
-	}
-
-	return
+	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	return err
 }
 
 // DeleteAllUserTxHeuristics deletes all heuristics of a user of a particular transaction
-func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) (err error) {
+func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID string) error {
 	query := `query Q($user:string, $hash:string){
 				# get tx uid
 				tx as var(func: eq(txhash, $hash))
@@ -167,17 +158,16 @@ func DeleteAllUserTxHeuristics(c external.Database, txhash string, userUID strin
 		CommitNow: true,
 	}
 
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
 	}
 
 	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
 		return cliutil.NewStackError(ErrNoMutationHappened)
 	}
 
-	return
+	return nil
 }
 
 // GetHeuristicResults returns the connected transactions of heuristic
@@ -203,9 +193,7 @@ func GetHeuristicResults(c external.Database, heuristicUID string) (results []He
 			  }`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uid": heuristicUID})
-
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -266,7 +254,6 @@ func GetInputTransactions(c external.Database, tx string) (inputTransactions []H
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -357,7 +344,6 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -547,7 +533,6 @@ func GetTransactionsWithInputAmount(c external.Database, uids []string) (origins
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -584,7 +569,6 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$txhash": tx})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -631,7 +615,6 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$hash": txhash, "$uids": uidList})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -912,7 +895,6 @@ func GetHeuristicListByUser(c external.Database, userUID string) (frontendHeuris
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query, map[string]string{"$uuid": userUID})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

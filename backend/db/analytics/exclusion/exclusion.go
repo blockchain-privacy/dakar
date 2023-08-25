@@ -17,22 +17,15 @@ func AddAddressExclusions(c external.Database, user User) error {
 
 	pb, err := json.Marshal(user)
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*5, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
-	}
-	err = db.TxWithRetry(c, time.Minute*5, req)
-	if err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return err
+	})
 }
 
 // GetAddressExclusionUIDs returns all UIDs of the excluded addresses of a user
@@ -49,7 +42,6 @@ func GetAddressExclusionUIDs(c external.Database, userID string) (exclusions []s
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -87,7 +79,6 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -119,7 +110,7 @@ func GetAddressExclusions(c external.Database, userID string) (addresses []strin
 }
 
 // DeleteAddressExclusion deletes the given address exclusion
-func DeleteAddressExclusion(c external.Database, userID string, addressHash string) (err error) {
+func DeleteAddressExclusion(c external.Database, userID string, addressHash string) error {
 	req := &api.Request{
 		Query: `query Q($user:string,$hash:string) {
 					a as var(func: eq(addresshash,$hash))@cascade{
@@ -132,10 +123,9 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 		}},
 		CommitNow: true,
 	}
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
 	}
 
 	// check if there was actually something mutated
@@ -143,28 +133,27 @@ func DeleteAddressExclusion(c external.Database, userID string, addressHash stri
 		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
-	return
+	return nil
 }
 
 // DeleteAllAddressExclusions deletes all address exclusions of a given user
-func DeleteAllAddressExclusions(c external.Database, userID string) (err error) {
+func DeleteAllAddressExclusions(c external.Database, userID string) error {
 	req := &api.Request{
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("<" + userID + "> <User.addressExclusions> * ."),
 		}},
 		CommitNow: true,
 	}
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
 	}
 
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
 		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
-	return
+	return nil
 }
 
 // GetAddressExclusionStatus returns true if the given address is part of the users address exclusion list
@@ -178,7 +167,6 @@ func GetAddressExclusionStatus(c external.Database, addressHash string, userID s
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$user": userID, "$hash": addressHash})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

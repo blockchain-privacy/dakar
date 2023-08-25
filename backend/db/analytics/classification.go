@@ -104,7 +104,6 @@ func ClassifyDestinationAndOriginsByBlock(c external.Database, blockID uint64) (
 	}
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -156,7 +155,6 @@ func SetCollateralCreation(c external.Database, txUids []string) (insertCount ui
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -214,7 +212,6 @@ func SetCollateralPayment(c external.Database, txUids []string) (insertCount uin
 
 	resp, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -279,7 +276,6 @@ func GetCollateralInputTransactions(c external.Database, txUids []string,
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$uids": uidList, "$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

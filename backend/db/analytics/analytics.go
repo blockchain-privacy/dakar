@@ -65,7 +65,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	var r struct {
@@ -106,7 +106,7 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	var r struct {
@@ -172,7 +172,6 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -262,7 +261,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
 		map[string]string{"$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 
 	var r struct {
@@ -302,7 +301,6 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$ge": startRange, "$le": stopRange})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

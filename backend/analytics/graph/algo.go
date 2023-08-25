@@ -21,7 +21,11 @@ func ToHex(i int64) string {
 
 // ToInteger a hex string in the form of "0x123" to an integer
 func ToInteger(hexString string) (int64, error) {
-	return strconv.ParseInt(hexString[2:], 16, 64)
+	integer, err := strconv.ParseInt(hexString[2:], 16, 64)
+	if err != nil {
+		return 0, cliutil.NewStackError(err)
+	}
+	return integer, nil
 }
 
 // HasSpendingGap returns true if the spending gap is bigger than 8 hours

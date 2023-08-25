@@ -39,9 +39,9 @@ func CreateNewUser(c external.Database) (string, error) {
 		CommitNow: true,
 	}
 
-	resp, dbErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if dbErr != nil {
-		return "", cliutil.NewStackError(dbErr)
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return "", err
 	}
 
 	// check if insert was successful
@@ -54,7 +54,7 @@ func CreateNewUser(c external.Database) (string, error) {
 		userUID = v
 	}
 
-	return userUID, err
+	return userUID, nil
 }
 
 // GetUsers gets all users currently in the database
@@ -74,12 +74,10 @@ func GetUsers(c external.Database) (users []FrontendUserBackendState, err error)
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
 	// json struct
-
 	var r struct {
 		Users []User `json:"q"`
 	}
@@ -118,12 +116,10 @@ func GetUsersWithCredentials(c external.Database) (users []FrontendUserClientSta
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
 	// json struct
-
 	var r struct {
 		Users []User `json:"q"`
 	}
@@ -197,12 +193,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 		CommitNow: true,
 	}
 
-	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
-		err = cliutil.NewStackError(txErr)
-		return
-	}
-
-	return
+	return db.TxWithRetry(c, time.Minute*5, req)
 }
 
 // CreateDgraphAndKratosUser creates a dgraph user and ory kratos identity.

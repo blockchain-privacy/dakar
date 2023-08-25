@@ -75,7 +75,7 @@ func GetMixingActivity(c external.Database, addressHash string, isClusterLookup 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$address": addressHash})
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	var r struct {

@@ -25,7 +25,6 @@ func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -51,7 +50,6 @@ func GetClassifierStatus(c external.Database) (status ClassifierStatus, err erro
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -77,7 +75,6 @@ func GetClusteringHMIStatus(c external.Database) (status ClusteringHierarchicalM
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -103,7 +100,6 @@ func GetClusteringFMIStatus(c external.Database) (status ClusteringFlatMultiInpu
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -128,9 +124,7 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 			   }`
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*30, query)
-
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -288,7 +282,6 @@ func GetMeta(c external.Database) (meta Meta, err error) {
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Second*20, query)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -309,16 +302,14 @@ func SetCrawlerStatus(c external.Database, status CrawlerStatus) error {
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*10, &api.Request{
 		Query:     "{q(func: type(" + CrawlerStatusDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
+	})
 }
 
 // SetClassifierStatus sets the new classifier status
@@ -328,16 +319,14 @@ func SetClassifierStatus(c external.Database, status ClassifierStatus) error {
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*10, &api.Request{
 		Query:     "{q(func:type(" + ClassifierStatusDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
+	})
 }
 
 // SetClusteringHMIStatus sets the new hierarchical multi-input clustering status
@@ -347,16 +336,14 @@ func SetClusteringHMIStatus(c external.Database, status ClusteringHierarchicalMu
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*10, &api.Request{
 		Query:     "{q(func:type(" + ClusteringHierarchicalMultiInputDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
+	})
 }
 
 // SetClusteringFMIStatus sets the new flat multi-input clustering status
@@ -366,16 +353,14 @@ func SetClusteringFMIStatus(c external.Database, status ClusteringFlatMultiInput
 
 	pb, err := json.Marshal(status)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*10, &api.Request{
 		Query:     "{q(func:type(" + ClusteringFlatMultiInputDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
+	})
 }
 
 // SetCrawling sets the crawling status
@@ -446,16 +431,14 @@ func SetMeta(c external.Database, meta Meta) error {
 
 	pb, err := json.Marshal(meta)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*10, &api.Request{
 		Query:     "{q(func: type(" + MetaDType + ")){v as uid}}",
 		Mutations: []*api.Mutation{{SetJson: pb}},
 		CommitNow: true,
-	}
-
-	return db.TxWithRetry(c, time.Minute*10, req)
+	})
 }
 
 // InitializeMeta sets the initial values of the database metadata.

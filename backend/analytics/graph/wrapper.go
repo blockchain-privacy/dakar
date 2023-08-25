@@ -193,7 +193,7 @@ func (w *Wrapper) LoadGraphs() error {
 
 	txGraph, err := LoadTransactionGraph(w.db, 0)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	w.transactionGraphMutex.Lock()

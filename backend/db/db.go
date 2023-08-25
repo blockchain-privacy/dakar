@@ -77,7 +77,13 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
-	return db.Mutate(ctx, req)
+
+	resp, err := db.Mutate(ctx, req)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // execExistingTx executes the given request
@@ -92,7 +98,13 @@ func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Reque
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
-	return tx.Do(ctx, req)
+
+	resp, err := tx.Do(ctx, req)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // TxWithRetry executes the given request. In case the request fails repeat it
@@ -155,7 +167,12 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 
-	return db.Query(ctx, q, vars)
+	resp, err := db.Query(ctx, q, vars)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
@@ -191,9 +208,14 @@ func ReadOnlyTxWithRetry(db external.Database, timeoutPerRequest time.Duration, 
 func DropAll(db external.Database) error {
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	return db.Alter(ctx, &api.Operation{
+	err := db.Alter(ctx, &api.Operation{
 		DropAll: true,
 	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	return nil
 }
 
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph

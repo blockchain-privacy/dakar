@@ -50,7 +50,7 @@ func (h forwardLookupHeuristic) hasParameter() bool {
 func (h *forwardLookupHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour

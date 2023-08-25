@@ -33,7 +33,7 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 
 	dbClusters := buildDatabaseClusters(clusters, userID, addrToUID)
 	if err := clustering.AddCustomClusters(dgraph, dbClusters); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	return nil

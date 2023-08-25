@@ -51,7 +51,7 @@ func (h reverseLookupHeuristic) hasParameter() bool {
 func (h *reverseLookupHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime

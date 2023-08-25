@@ -324,19 +324,17 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 
 	pb, err := json.Marshal(addresses)
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return TxWithRetry(c, time.Minute*15, &api.Request{
 		Query: queryPrefix + query + "}",
 		Vars:  vars,
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
-	}
-	return TxWithRetry(c, time.Minute*15, req)
+	})
 }
 
 // GetAddressUIDs returns all requested address nodes
@@ -353,9 +351,7 @@ func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Ad
 			  }`
 
 	resp, err := ReadOnlyTxWithRetry(c, time.Minute*10, query)
-
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 	var r struct {
@@ -400,7 +396,6 @@ func GetAddressesByBlockRange(c external.Database, blockHeightStart int, blockHe
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*10, query,
 		map[string]string{"$start": strconv.Itoa(blockHeightStart), "$end": strconv.Itoa(blockHeightEnd)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

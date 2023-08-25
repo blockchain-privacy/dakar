@@ -154,7 +154,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 
 	// only need to prune if a subset of transaction is loaded
 	if err := pruneNodes(g); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	info("transaction graph contains", g.Nodes().Len(), "nodes")
@@ -188,7 +188,7 @@ func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
@@ -202,7 +202,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, PrivacyType: node.PrivacyType})
@@ -210,12 +210,12 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 		for _, input := range node.Inputs {
 			inputUID, parseErr := ToInteger(input.InputTransaction)
 			if parseErr != nil {
-				return cliutil.NewStackError(parseErr)
+				return parseErr
 			}
 
 			addressUID, parseErr := ToInteger(input.Address)
 			if parseErr != nil {
-				return cliutil.NewStackError(parseErr)
+				return parseErr
 			}
 
 			g.SetEdgeWithoutOverwrite(simple.Node(nodeUID), simple.Node(inputUID), addressUID)

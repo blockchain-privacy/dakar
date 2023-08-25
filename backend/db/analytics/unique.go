@@ -98,7 +98,6 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$to": toDate.Format(time.RFC3339), "$from": date.Format(time.RFC3339)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -141,7 +140,6 @@ func BlockHeightToTimestamp(c external.Database, blockHeight uint64) (timestamp 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$height": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

@@ -119,13 +119,11 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 			  }`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$hash": blockHash})
-
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
-	var r blockQuery
 
+	var r blockQuery
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -180,9 +178,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
 		map[string]string{"$blockID": strconv.Itoa(id)})
-
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 	var r blockQuery
@@ -354,8 +350,7 @@ func UpsertBlock(c external.Database, block Block) error {
 
 	pb, err := json.Marshal(block)
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	query := `query Q($currentHash:string,$prevHash:string){
@@ -367,19 +362,14 @@ func UpsertBlock(c external.Database, block Block) error {
 				}
 			  }`
 
-	req := &api.Request{
+	return TxWithRetry(c, time.Minute*15, &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$currentHash": block.Hash, "$prevHash": block.PrevBlock.Hash},
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
-	}
-	if err = TxWithRetry(c, time.Minute*15, req); err != nil {
-		err = cliutil.NewStackError(err)
-	}
-
-	return err
+	})
 }
 
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
@@ -388,14 +378,10 @@ func InsertArbitraryJSON(c external.Database, data []byte) error {
 		return cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
-	if err := TxWithRetry(c, time.Minute*15, &api.Request{
+	return TxWithRetry(c, time.Minute*15, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: data,
 		}},
 		CommitNow: true,
-	}); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	})
 }

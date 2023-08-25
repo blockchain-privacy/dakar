@@ -188,7 +188,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 
 	// check error from wait group
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	// map to slice
@@ -354,7 +354,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
 		intAmount := int64(amt)
 		if err != nil {
-			return err
+			return cliutil.NewStackError(err)
 		}
 		refOutput.Amount = &intAmount
 	} else if o := cache.getAndEvictOutput(vin.Txid, vin.Vout); o != nil {
