@@ -198,17 +198,12 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	// do reverse lookup
 	endpoints, err := g.ReverseLookup(tx.UID, lookBackTime, exclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 
 	// get tx details for each uid
-	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(endpoints),
+	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(endpoints),
 		userUID, clusterTypes)
-	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
-	}
-
-	return
 }
 
 // getDestinationTxOrigins returns all origins of the given
@@ -220,7 +215,7 @@ func getDestinationTxOrigins(dgraph external.Database, g *graph.Wrapper, txHash 
 	origins, attributionMapping, err := getDestinationTxOriginsTimeLimited(dgraph, g, txHash, time.Hour*24*90,
 		userUID, requestedClusterTypes, excludeAddresses, excludeSpendingGaps)
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 	return origins, attributionMapping, nil
 }
@@ -233,19 +228,19 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	// get uid for txhash
 	uid, err := db.GetTransactionUID(dgraph, txHash)
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 
 	inputTransactions, err := g.GetInputTransactions(uid)
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 
 	var exclusions []string
 	if excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, userUID)
 		if err != nil {
-			return nil, nil, cliutil.NewStackError(err)
+			return nil, nil, err
 		}
 	}
 
@@ -254,7 +249,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	for _, it := range inputTransactions {
 		endpoints, lookupErr := g.ReverseLookup(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
-			return nil, nil, cliutil.NewStackError(lookupErr)
+			return nil, nil, lookupErr
 		}
 
 		for k := range endpoints {
@@ -266,7 +261,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(uidMap),
 		userUID, requestedClusterTypes)
 	if err != nil {
-		return nil, nil, cliutil.NewStackError(err)
+		return nil, nil, err
 	}
 
 	return
@@ -280,7 +275,7 @@ func getOriginDestinationTimeLimited(g *graph.Wrapper, originUIDs []string,
 	for _, it := range originUIDs {
 		endpoints, lookupErr := g.ForwardLookupByTime(it, dur, exclusions, excludeSpendingGaps)
 		if lookupErr != nil {
-			return nil, cliutil.NewStackError(lookupErr)
+			return nil, lookupErr
 		}
 
 		for k := range endpoints {
@@ -298,16 +293,11 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	excludeSpendingGaps bool) (origins []heuristics.HeuristicTransaction, err error) {
 	uidMap, err := getOriginDestinationTimeLimited(g, originUIDs, dur, exclusions, excludeSpendingGaps)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// get tx details for each uid
-	origins, err = heuristics.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	return
+	return heuristics.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
 }
 
 func isParentHeuristicSet(parentHeuristicUID string) bool {
@@ -364,7 +354,6 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	userUID string) (thisUID string, err error) {
 	heuristicClusters, err := h.exec(dgraph, g, txHash, parentHeuristicUID)
 	if err != nil && !errors.Is(err, errNoOriginsAtStart) {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -390,7 +379,7 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 	shouldExcludeAddresses := h.getExcludeAddresses()
 	shouldExcludeSpendingGaps := h.getExcludeSpendingGaps()
 
-	thisUID, err = heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
+	return heuristics.InsertHeuristic(dgraph, heuristics.Heuristic{
 		HeuristicType:       h.getType(),
 		ClusterTypes:        clusterTypes,
 		ExcludeAddresses:    &shouldExcludeAddresses,
@@ -400,13 +389,6 @@ func exec(dgraph external.Database, g *graph.Wrapper, txHash string, parentHeuri
 		ParentHeuristic:     pHeuristic,
 		TxHash:              txHash,
 	}, userUID)
-
-	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	return
 }
 
 // createHeuristicClusters converts the given map into HeuristicCluster's

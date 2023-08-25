@@ -184,7 +184,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 			data, ok, addrErr := GetAddressWithOptions(s.db, queryString,
 				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 			if addrErr != nil {
-				handleError(w, cliutil.NewStackError(addrErr))
+				handleError(w, addrErr)
 				return
 			}
 			if ok {
@@ -239,7 +239,7 @@ func (s *Server) handlerBlockRange() http.Handler {
 
 			data, ok, blockErr := GetBlockWithOptions(s.db, queryString, blockRequest.Offset)
 			if blockErr != nil {
-				handleError(w, cliutil.NewStackError(blockErr))
+				handleError(w, blockErr)
 				return
 			}
 			if ok {
@@ -266,7 +266,7 @@ func (s *Server) handlerMeta() http.Handler {
 		// get data from db
 		verboseStatus, err := dbstat.GetFrontendStatus(s.db)
 		if err != nil {
-			handleError(w, cliutil.NewStackError(err))
+			handleError(w, err)
 			return
 		}
 

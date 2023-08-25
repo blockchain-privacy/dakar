@@ -81,7 +81,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 	for i, connectedNode := range r.Q {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
-			return nil, cliutil.NewStackError(conversionErr)
+			return nil, conversionErr
 		}
 
 		connectedNodes[i] = *node
@@ -278,7 +278,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	for i, connectedNode := range r.Connected {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
-			return nil, nil, cliutil.NewStackError(conversionErr)
+			return nil, nil, conversionErr
 		}
 
 		connectedNodes[i] = *node

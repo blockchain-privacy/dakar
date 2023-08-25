@@ -92,7 +92,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 	// check if all addresses exist
 	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// check if there is some mismatch

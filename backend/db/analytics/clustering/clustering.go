@@ -373,13 +373,7 @@ func GetClusters(c external.Database, addressHash string, maxAddresses int,
 		return
 	}
 
-	clusters, err = responseToFrontendClusters(r.Clusters, r.ClusterTags)
-	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	return
+	return responseToFrontendClusters(r.Clusters, r.ClusterTags)
 }
 
 // GetHMIClusters returns all connected hierarchical multi-input cluster to the

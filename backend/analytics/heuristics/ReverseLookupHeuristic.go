@@ -144,7 +144,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		// get origins from parent heuristic
 		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 
 		if parentHeuristicResults == nil {
@@ -160,14 +160,14 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	// gather input information
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	var exclusions []string
 	if h.excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 	}
 
@@ -178,7 +178,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
 			h.clusterTypes, exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 		if timeLimitedOrigins == nil {
 			continue

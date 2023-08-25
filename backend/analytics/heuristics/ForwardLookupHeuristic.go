@@ -145,14 +145,14 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			var err error
 			results, resultAttributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		} else {
 			var err error
 			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash,
 				h.lookForwardTime, h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		}
 
@@ -166,7 +166,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		var err error
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 	}
 
@@ -175,7 +175,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime,
 			exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 
 		result := heuristics.HeuristicResult{

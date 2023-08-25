@@ -300,7 +300,6 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 	if !isSimpleClustering {
 		userClusterUIDs, err = clustering.GetUserClustersUIDs(c, userUID, requestedClusterTypes)
 		if err != nil {
-			err = cliutil.NewStackError(err)
 			return
 		}
 
@@ -381,7 +380,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 			mergedClusterUIDS, relatedErr := clustering.GetRelatedClusters(c, userCluster, userUID, requestedClusterTypes)
 			if relatedErr != nil {
-				err = cliutil.NewStackError(relatedErr)
+				err = relatedErr
 				return
 			}
 
@@ -397,7 +396,7 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 
 	attributions, attributionErr := attribution.GetAttributionsPerCluster(c, userUID, requestedClusterTypes)
 	if attributionErr != nil {
-		err = cliutil.NewStackError(attributionErr)
+		err = attributionErr
 		return
 	}
 
@@ -434,7 +433,6 @@ func GetTransactionsWithOutputAmountAndCluster(c external.Database, uids []strin
 				var superCluster map[string]bool
 				cUID, superCluster, err = getClusterUIDFromMergedClusters(superClusters, firstClusterUID)
 				if err != nil {
-					err = cliutil.NewStackError(err)
 					return
 				}
 				allUsedClusters[string(cUID)] = usedCluster{superCluster: superCluster}

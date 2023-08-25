@@ -80,10 +80,7 @@ func (c *Crawler) IncrementState() error {
 		return cliutil.NewStackErrorStr("currentBlock is nil")
 	}
 
-	if err := c.state.increment(c.currentBlock.NextHash); err != nil {
-		return cliutil.NewStackError(err)
-	}
-	return nil
+	return c.state.increment(c.currentBlock.NextHash)
 }
 
 // Empty returns true if the BlockIterator has no more data to iterate on.
@@ -97,12 +94,12 @@ func (c *Crawler) Empty() bool {
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (c *Crawler) CalculateInitialState() error {
 	if err := dbstat.SetCrawling(c.db, true); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	state, err := getInitialState(c.db, c.rpc)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	c.state = state
@@ -113,7 +110,7 @@ func (c *Crawler) CalculateInitialState() error {
 	info("Loading UTXOs of last", c.initialBlockCacheSize, "blocks ...")
 	c.cache, err = newUTXOCache(c.db, int64(state.id), c.initialBlockCacheSize)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 	info("Loaded", c.cache.getOutputCounts(), "UTXOs")
 
@@ -122,11 +119,7 @@ func (c *Crawler) CalculateInitialState() error {
 
 // PostExecution sets the crawler status activity flag to false
 func (c *Crawler) PostExecution() error {
-	if err := dbstat.SetCrawling(c.db, false); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return dbstat.SetCrawling(c.db, false)
 }
 
 // CurrentBlock returns the height of the block which is currently crawled
@@ -148,13 +141,13 @@ func (c *Crawler) NextBlock() (bool, error) {
 		}
 
 		if incErr := c.state.increment(block.NextHash); incErr != nil {
-			return false, cliutil.NewStackError(incErr)
+			return false, incErr
 		}
 	}
 
 	numBlocks, err := getRPCNumberOfBlocks(c.rpc)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
@@ -191,7 +184,7 @@ func (c *Crawler) Iterate() (bool, error) {
 		c.transactions.Add(float64(rTransactionCounter))
 		c.blockHeight.Set(float64(c.state.id))
 	} else {
-		return false, cliutil.NewStackError(processErr)
+		return false, processErr
 	}
 
 	return true, nil

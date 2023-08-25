@@ -57,21 +57,21 @@ func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *H
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (m *HierarchicalMultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if err := setInitialHMIClusteringID(m.db); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	clusteringStatus, err := dbstat.GetClusteringHMIStatus(m.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
@@ -107,7 +107,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	// get the transaction of the current block height
 	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	var countMergedClusters int
@@ -253,7 +253,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			clusterErr := clustering.AddClusters(m.db, newClusters, true)
 			if clusterErr != nil {
-				return false, cliutil.NewStackError(clusterErr)
+				return false, clusterErr
 			}
 		}
 
@@ -265,7 +265,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 	// set the last classified block
 	if statusErr := dbstat.SetLastClusteredHMIBlockID(m.db, m.state.ID); statusErr != nil {
-		return false, cliutil.NewStackError(statusErr)
+		return false, statusErr
 	}
 
 	m.blocks.Inc()
@@ -278,7 +278,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	} else if status.LastClassifiedBlockID == nil {
 		return false, cliutil.NewStackErrorStr("last classified block is not set")
 	}
@@ -292,11 +292,7 @@ func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 }
 
 func (m *HierarchicalMultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringHMI(m.db, false); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return dbstat.SetClusteringHMI(m.db, false)
 }
 
 func (m *HierarchicalMultiInput) IncrementState() error {
@@ -330,20 +326,18 @@ func (m *HierarchicalMultiInput) Name() string {
 }
 
 // setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet
-func setInitialHMIClusteringID(dgraph external.Database) (err error) {
+func setInitialHMIClusteringID(dgraph external.Database) error {
 	status, err := dbstat.GetClusteringHMIStatus(dgraph)
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
+		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
 		if err = dbstat.SetLastClusteredHMIBlockID(dgraph, 0); err != nil {
-			err = cliutil.NewStackError(err)
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // getClusterRootByCluster returns the rootUID of UID. This is done by following the

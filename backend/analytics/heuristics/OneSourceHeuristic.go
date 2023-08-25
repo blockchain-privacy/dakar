@@ -145,7 +145,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// sources holds all sources found in all input transactions
@@ -170,7 +170,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	if h.excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 	}
 
@@ -178,7 +178,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
 			h.clusterTypes, exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 
 		if len(timeLimitedOrigins) == 0 {
@@ -202,7 +202,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		// get input denominations
 		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, txHash)
 		if getErr != nil {
-			return nil, cliutil.NewStackError(getErr)
+			return nil, getErr
 		}
 
 		oSource := countClusterDenominations(t.origins, denominationIndex)

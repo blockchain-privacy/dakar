@@ -30,7 +30,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 		stepTransactions, err := db.GetOutputs(dgraph, i, to)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 
 		transactions = append(transactions, stepTransactions...)
@@ -52,7 +52,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 		if len(utxos) > 0 {
 			if err := cache.setOutputs(t.Hash, utxos); err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		}
 	}

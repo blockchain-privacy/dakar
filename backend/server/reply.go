@@ -397,7 +397,7 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
 	if getErr != nil {
 		msg = "error while searching for clusters"
-		err = cliutil.NewStackError(getErr)
+		err = getErr
 		return
 	}
 	clusters = clusterResponse

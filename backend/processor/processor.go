@@ -67,7 +67,6 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -178,7 +177,6 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		go func(hash string, outputs map[string]outputMapping) {
 			defer wg.Done()
 			if err = buildAddresses(&mutex, cache, hash, outputs, addrMap); err != nil {
-				err = cliutil.NewStackError(err)
 				return
 			}
 		}(mapping.hash, mapping.outputs)
@@ -188,7 +186,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 
 	// check error from wait group
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	// map to slice
@@ -197,11 +195,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		addrSlice = append(addrSlice, a)
 	}
 
-	if err := db.UpsertAddresses(dgraph, addrSlice); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return db.UpsertAddresses(dgraph, addrSlice)
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
@@ -229,7 +223,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
 			if processErr := processTxVin(&txDetails, externalOutputs, d, uint32(i), txHashMap, cache); processErr != nil {
-				err = cliutil.NewStackError(processErr)
+				err = processErr
 				return
 			}
 		}
@@ -382,7 +376,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 // processBlock builds a block with the provided arguments and inserts it in the database
 func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
 	blockID uint64, timestamp string, prevBlockHash string) (err error) {
-	if err = db.UpsertBlock(dgraph, db.Block{
+	return db.UpsertBlock(dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		ID:        &blockID,
@@ -390,10 +384,7 @@ func processBlock(dgraph external.Database, transactions []db.Transaction, curre
 			Hash: prevBlockHash,
 		},
 		Transactions: transactions,
-	}); err != nil {
-		err = cliutil.NewStackError(err)
-	}
-	return
+	})
 }
 
 var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
@@ -403,7 +394,6 @@ var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highe
 func getStartingID(dgraph external.Database) (startID uint64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -415,12 +405,11 @@ func getStartingID(dgraph external.Database) (startID uint64, err error) {
 
 	highestBlockID, err := dbstat.GetHighestBlockID(dgraph)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if *status.LastBlockID != highestBlockID {
-		err = cliutil.NewStackError(errBlockIdsDoNotMatch)
+		err = errBlockIdsDoNotMatch
 	}
 
 	startID = *status.LastBlockID
@@ -459,7 +448,7 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 
 		numBlocks, rpcErr := getRPCNumberOfBlocks(client)
 		if rpcErr != nil {
-			err = cliutil.NewStackError(rpcErr)
+			err = rpcErr
 			return
 		}
 		// check if block is available and if it is an actual new block
@@ -489,7 +478,6 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errBlockIdsDoNotMatch) {
-			err = cliutil.NewStackError(err)
 			return
 		}
 		info(cliutil.NewStackError(errBlockIdsDoNotMatch), "continuing...")
@@ -504,7 +492,7 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 	// get RPC client block count
 	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
 	if rpcErr != nil {
-		err = cliutil.NewStackError(rpcErr)
+		err = rpcErr
 		return
 	}
 
@@ -590,7 +578,7 @@ func getExternalOutputs(dgraph external.Database,
 
 	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, transactionHashes)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	returnMap := make(map[string]map[uint32]db.Output)
@@ -629,7 +617,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 
 	txHashMap, err := createTransactionHashmap(batchRPC, block.Tx)
 	if err != nil {
-		err = cliutil.NewStackErrorf("%s: %w", state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 
@@ -642,7 +630,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
-			err = cliutil.NewStackErrorf("%s: %w", state.String(), buildErr)
+			err = fmt.Errorf("%s: %w", state.String(), err)
 			return
 		}
 
@@ -673,7 +661,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = cliutil.NewStackErrorf("%s: %w", state.String(), err)
+			err = fmt.Errorf("%s: %w", state.String(), err)
 			return
 		}
 
@@ -686,7 +674,6 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	blockID := int64(state.id)
 	transactionOutputs, err := db.GetOutputs(dgraph, blockID, blockID)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -707,26 +694,26 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 		if len(utxos) > 0 {
 			// this cache only gets UTXOs
 			if setErr := cache.setOutputs(t.Hash, utxos); setErr != nil {
-				err = cliutil.NewStackError(setErr)
+				err = setErr
 				return
 			}
 		}
 
 		// this cache gets all outputs
 		if setErr := allOutputsCache.setOutputs(t.Hash, t.Outputs); setErr != nil {
-			err = cliutil.NewStackError(setErr)
+			err = setErr
 			return
 		}
 	}
 
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
-		err = cliutil.NewStackErrorf("%s: %w", state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 
 	// save processing state
 	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
-		err = cliutil.NewStackErrorf("%s: %w", state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 

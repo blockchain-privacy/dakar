@@ -190,7 +190,6 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 
 	block, err := r.payload()
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 

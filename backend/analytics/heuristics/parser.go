@@ -82,14 +82,12 @@ func buildHeuristicTreeElements(hMap map[string]heuristic, heuristics []heuristi
 			if newHeuristic.hasParameter() {
 				err = newHeuristic.setParameter(h.Parameter)
 				if err != nil {
-					err = cliutil.NewStackError(err)
 					return
 				}
 			}
 
 			err = newHeuristic.setClusterTypes(h.ClusterTypes)
 			if err != nil {
-				err = cliutil.NewStackError(err)
 				return
 			}
 
@@ -161,7 +159,6 @@ func getNodeLevelDistribution(nodes map[string]heuristicTreeElement, rootUID str
 	root heuristicTreeElement) (levelToNode [][]heuristicTreeElement, err error) {
 	treeNodes, err := traverseHeuristicTree(nodes, rootUID, root, 0)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -257,13 +254,13 @@ func buildExecutors(rootHeuristicUids []string, heuristics map[string]heuristicT
 
 		levelDistribution, childErr := getNodeLevelDistribution(heuristics, v.uid, v)
 		if childErr != nil {
-			err = cliutil.NewStackError(childErr)
+			err = childErr
 			return
 		}
 
 		newRootExecutor, buildErr := buildExecutorsFromLevels(levelDistribution)
 		if buildErr != nil {
-			err = cliutil.NewStackError(buildErr)
+			err = buildErr
 			return
 		}
 
@@ -290,7 +287,6 @@ func constructExecutors(dgraph external.Database, txhash string, results []heuri
 
 	newHeuristics, err := buildHeuristicTreeElements(typeMap, results, userUID)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -315,7 +311,7 @@ func constructExecutors(dgraph external.Database, txhash string, results []heuri
 	if len(rootsToCheck) > 0 {
 		// check if all parent heuristics of contextual roots actually exists in the db
 		if exists, checkErr := heuristics.DoesHeuristicUIDExist(dgraph, txhash, rootsToCheck); checkErr != nil {
-			err = cliutil.NewStackError(checkErr)
+			err = checkErr
 			return
 		} else if !exists {
 			err = cliutil.NewStackError(errHeuristicUIDNotFound)
@@ -325,7 +321,6 @@ func constructExecutors(dgraph external.Database, txhash string, results []heuri
 
 	executors, err = buildExecutors(rootUids, newHeuristics)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -395,7 +390,6 @@ func CreateWork(dgraph external.Database, transactionHash string, changed []heur
 		// create heuristicExecutor trees
 		w.executors, err = constructExecutors(dgraph, transactionHash, changed, userUID)
 		if err != nil {
-			err = cliutil.NewStackError(err)
 			return
 		} else if len(w.executors) == 0 {
 			err = cliutil.NewStackError(errHeuristicNoExecutorsBuilt)

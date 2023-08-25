@@ -43,7 +43,6 @@ func (g *GraphDB) NewTxn() *dgo.Txn {
 func CreateClient(endpoint string) (Database, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(1024*1024*1024)))
-
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return nil, conn, err

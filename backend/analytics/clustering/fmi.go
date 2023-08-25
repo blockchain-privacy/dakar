@@ -59,21 +59,21 @@ func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMulti
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (m *FlatMultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringFMI(m.db, true); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if err := setInitialFMIClusteringID(m.db); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	clusteringStatus, err := dbstat.GetClusteringFMIStatus(m.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
@@ -115,7 +115,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 	// get the transaction of the current block height
 	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	if len(transactions) > 0 {
@@ -177,7 +177,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		operations, err = buildDBOperation(processedClusters, addressMergeMap, clusterIndex)
 		if err != nil {
-			return false, cliutil.NewStackError(err)
+			return false, err
 		}
 
 		// increase index
@@ -185,7 +185,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
 		if err != nil {
-			return false, cliutil.NewStackError(clusterErr)
+			return false, clusterErr
 		}
 		operations = append(operations, clusters...)
 
@@ -193,7 +193,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		if len(operations) > 0 {
 			opErr := clustering.ProcessClusterOperations(m.db, operations)
 			if opErr != nil {
-				return false, cliutil.NewStackError(opErr)
+				return false, opErr
 			}
 
 			countMergedClusters, countNewAddresses := calculateMetrics(operations)
@@ -207,7 +207,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 	// set the last classified block
 	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, m.state.ID); statusErr != nil {
-		return false, cliutil.NewStackError(statusErr)
+		return false, statusErr
 	}
 
 	m.blocks.Inc()
@@ -220,7 +220,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 func (m *FlatMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	} else if status.LastClassifiedBlockID == nil {
 		return false, cliutil.NewStackErrorStr("last classified block is not set")
 	}
@@ -234,11 +234,7 @@ func (m *FlatMultiInput) NextBlock() (bool, error) {
 }
 
 func (m *FlatMultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringFMI(m.db, false); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return dbstat.SetClusteringFMI(m.db, false)
 }
 
 func (m *FlatMultiInput) IncrementState() error {
@@ -272,20 +268,18 @@ func (m *FlatMultiInput) Name() string {
 }
 
 // setInitialFMIClusteringID sets the starting FMI clustering block id to 0 if no value has been set yet
-func setInitialFMIClusteringID(dgraph external.Database) (err error) {
+func setInitialFMIClusteringID(dgraph external.Database) error {
 	status, err := dbstat.GetClusteringFMIStatus(dgraph)
 	if err != nil {
-		err = cliutil.NewStackError(err)
-		return
+		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
 		if err = dbstat.SetLastClusteredFMIBlockID(dgraph, 0); err != nil {
-			err = cliutil.NewStackError(err)
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // addClustersToMergeList adds newClusters and newAddresses to clusterMergeMap and

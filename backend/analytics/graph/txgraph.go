@@ -18,12 +18,12 @@ func loadOriginTransactions(c external.Database, g *ReversibleGraph, max int) er
 	for i := 0; ; i += step {
 		originNodes, err := analytics.GetOriginTransactions(c, step, i)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		err = addSingleNodes(g, originNodes)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		if len(originNodes) < step || (max > 0 && i+step >= max) {
@@ -41,12 +41,12 @@ func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error 
 	for i := 0; ; i += step {
 		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		err = addSingleNodes(g, ccNodes)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		if len(ccNodes) < step || (max > 0 && i+step >= max) {
@@ -67,12 +67,12 @@ func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) er
 		}
 		mixingNodes, err := analytics.GetMixingTransactions(c, step, i)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		err = addEdges(g, mixingNodes)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		if len(mixingNodes) < step || (max > 0 && i+step >= max) {
@@ -93,12 +93,12 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 		}
 		destinationNodes, err := analytics.GetDestinationTransactions(c, step, i)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		err = addEdges(g, destinationNodes)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		if len(destinationNodes) < step || (max > 0 && i+step >= max) {
@@ -116,7 +116,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	mixingCount, originCount, ccCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
-		return nil, cliutil.NewStackError(getErr)
+		return nil, getErr
 	}
 
 	// nothing to do
@@ -132,24 +132,24 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	// load all origin transactions from the database
 	info("Loading origin nodes")
 	if err := loadOriginTransactions(c, g, numTxToLoad); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// load all cc transactions from the database
 	info("Loading cc nodes")
 	if err := loadCCTransactions(c, g, numTxToLoad); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// load all mixing transactions from the database
 	info("Loading mixing nodes")
 	if err := loadMixingTransactions(c, g, numTxToLoad); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 	// load all destination transactions from the database
 	info("Loading destination nodes")
 	if err := loadDestinationTransactions(c, g, numTxToLoad/10); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// only need to prune if a subset of transaction is loaded
@@ -174,7 +174,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return cliutil.NewStackError(err)
+			return err
 		}
 
 		g.AddNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})

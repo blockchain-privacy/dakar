@@ -146,7 +146,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, 0, cliutil.NewStackError(err)
+		return nil, 0, err
 	}
 
 	rootNode := g.Node(nodeUID)

@@ -152,14 +152,14 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 			var err error
 			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash, h.lookForwardTime,
 				h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		}
 
@@ -180,7 +180,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		var err error
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 	}
 
@@ -199,7 +199,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime,
 			exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, cliutil.NewStackError(err)
+			return nil, err
 		}
 
 		destinationMap := make(map[string]heuristics.HeuristicTransaction)

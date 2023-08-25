@@ -88,11 +88,7 @@ func (w *Wrapper) ReverseLookup(uid string, maxLookBackTime time.Duration,
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ReverseLookup(w.transactionGraph, uid, maxLookBackTime, addressExclusions, excludeSpendingGaps)
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-	return results, nil
+	return ReverseLookup(w.transactionGraph, uid, maxLookBackTime, addressExclusions, excludeSpendingGaps)
 }
 
 // ForwardLookup performs a forward lookup of the given uid.
@@ -104,12 +100,7 @@ func (w *Wrapper) ForwardLookup(uid string, targetUID string,
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ForwardLookup(w.transactionGraph, uid, targetUID, addressExclusions, excludeSpendingGaps)
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	return results, nil
+	return ForwardLookup(w.transactionGraph, uid, targetUID, addressExclusions, excludeSpendingGaps)
 }
 
 // ForwardLookupByTime performs a forward lookup of the given uid.
@@ -121,13 +112,8 @@ func (w *Wrapper) ForwardLookupByTime(uid string, maxLookForwardTime time.Durati
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime,
+	return ForwardLookupByTime(w.transactionGraph, uid, maxLookForwardTime,
 		addressExclusions, excludeSpendingGaps)
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	return results, nil
 }
 
 // SpendingFingerprint returns a list of transaction uids which have a similar spending pattern
@@ -139,12 +125,7 @@ func (w *Wrapper) SpendingFingerprint(uid string) ([]FingerPrint, int, error) {
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, sessionCount, err := SpendingFingerprint(w.transactionGraph, uid)
-	if err != nil {
-		return nil, 0, cliutil.NewStackError(err)
-	}
-
-	return results, sessionCount, nil
+	return SpendingFingerprint(w.transactionGraph, uid)
 }
 
 // GetInputTransactions returns the uids of all directly connected input transactions of the tx specified by uid
@@ -155,12 +136,7 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 	w.transactionGraphMutex.Lock()
 	defer w.transactionGraphMutex.Unlock()
 
-	results, err := GetInputTransactions(w.transactionGraph, uid)
-	if err != nil {
-		return nil, cliutil.NewStackError(err)
-	}
-
-	return results, err
+	return GetInputTransactions(w.transactionGraph, uid)
 }
 
 // LoadGraphs loads the transaction graph into the wrapper
@@ -177,7 +153,7 @@ func (w *Wrapper) LoadGraphs() error {
 			info("Classifier status is not set. Classify at least one block before starting to load graphs.")
 			return nil
 		}
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
@@ -233,7 +209,7 @@ func (w *Wrapper) CalculateInitialState() error {
 func (w *Wrapper) NextBlock() (bool, error) {
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	return w.state.ID <= *classifierStatus.LastClassifiedBlockID, nil
@@ -266,7 +242,7 @@ func (w *Wrapper) Empty() bool {
 func (w *Wrapper) Iterate() (bool, error) {
 	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	if len(connectedNodes) == 0 && len(singleNodes) == 0 {
@@ -283,11 +259,11 @@ func (w *Wrapper) Iterate() (bool, error) {
 	defer w.transactionGraphMutex.Unlock()
 
 	if graphErr := upsertSingleNodes(w.transactionGraph, singleNodes); graphErr != nil {
-		return false, cliutil.NewStackError(graphErr)
+		return false, graphErr
 	}
 
 	if graphErr := addEdges(w.transactionGraph, connectedNodes); graphErr != nil {
-		return false, cliutil.NewStackError(graphErr)
+		return false, graphErr
 	}
 
 	w.blocks.Inc()

@@ -160,21 +160,21 @@ func (c *Classifier) CalculateInitialState() error {
 	}
 
 	if err := dbstat.SetClassifying(c.db, true); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if err := setInitialClassifierID(c.db, c.config.ClassifierStartAfterBlock); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	crawlerStatus, err := dbstat.GetCrawlerStatus(c.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	classifierStatus, err := dbstat.GetClassifierStatus(c.db)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	if classifierStatus.LastClassifiedBlockID == nil {
@@ -217,7 +217,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 	for len(potentialCollateralTransactions) > 0 {
 		mixing, cc, cp, getErr := classifyTransactions(dgraph, potentialCollateralTransactions)
 		if getErr != nil {
-			err = cliutil.NewStackError(getErr)
+			err = getErr
 			return
 		}
 
@@ -242,7 +242,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 		var dbErr error
 		potentialCollateralTransactions, dbErr = analytics.GetCollateralInputTransactions(dgraph, txUids, blockHeight)
 		if dbErr != nil {
-			err = cliutil.NewStackError(dbErr)
+			err = dbErr
 			return
 		}
 	}
@@ -255,7 +255,7 @@ func getConnectedCollaterals(dgraph external.Database, potentialCollateralTransa
 func (c *Classifier) NextBlock() (bool, error) {
 	status, err := dbstat.GetCrawlerStatus(c.db)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	} else if status.LastBlockID == nil {
 		return false, cliutil.NewStackErrorStr("last crawled block is not set")
 	}
@@ -284,13 +284,13 @@ func (c *Classifier) Iterate() (bool, error) {
 	// get the transaction of the current block height
 	transactions, err := db.GetTransactionByBlock(c.db, c.state.ID)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	// step 1: classify all transactions of the current block locally based on their own properties
 	mixingTransactions, ccTransactions, cpTransactions, err := classifyTransactions(c.db, transactions)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	// the classifications of step 1 are in some cases only indications of the classifications.
@@ -300,7 +300,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	// step 2.1: set the privacy type of mixing transactions.
 	if len(mixingTransactions) > 0 {
 		if updateErr := db.UpdateTransactions(c.db, mixingTransactions); updateErr != nil {
-			return false, cliutil.NewStackError(updateErr)
+			return false, updateErr
 		}
 	}
 
@@ -312,7 +312,7 @@ func (c *Classifier) Iterate() (bool, error) {
 	potentialCollateralTransactions, foundOrigins,
 		classErr := analytics.ClassifyDestinationAndOriginsByBlock(c.db, c.state.ID)
 	if classErr != nil {
-		return false, cliutil.NewStackError(classErr)
+		return false, classErr
 	}
 
 	// if no potentialCollateralTransactions were found, then the origins are already set
@@ -322,7 +322,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		// which is getting inserted into the db
 		originCC, originCP, err := getConnectedCollaterals(c.db, potentialCollateralTransactions, c.state.ID)
 		if err != nil {
-			return false, cliutil.NewStackError(err)
+			return false, err
 		}
 
 		var updatedTransactions []db.Transaction
@@ -336,7 +336,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 		if len(updatedTransactions) > 0 {
 			if updateErr := db.UpdateTransactions(c.db, updatedTransactions); updateErr != nil {
-				return false, cliutil.NewStackError(updateErr)
+				return false, updateErr
 			}
 		}
 	}
@@ -352,7 +352,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		for numInserted > 0 {
 			numInserted, ccErr = analytics.SetCollateralCreation(c.db, getUids(ccTransactions))
 			if ccErr != nil {
-				return false, cliutil.NewStackError(ccErr)
+				return false, ccErr
 			}
 
 			insertedSum += numInserted
@@ -374,7 +374,7 @@ func (c *Classifier) Iterate() (bool, error) {
 		for numInserted > 0 {
 			numInserted, cpErr = analytics.SetCollateralPayment(c.db, getUids(cpTransactions))
 			if cpErr != nil {
-				return false, cliutil.NewStackError(cpErr)
+				return false, cpErr
 			}
 
 			insertedSum += numInserted
@@ -387,7 +387,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 	// set the last classified block
 	if statusErr := dbstat.SetLastClassifiedBlockID(c.db, c.state.ID); statusErr != nil {
-		return false, cliutil.NewStackError(statusErr)
+		return false, statusErr
 	}
 
 	c.blocks.Inc()
@@ -399,11 +399,7 @@ func (c *Classifier) Iterate() (bool, error) {
 
 // PostExecution sets the classifier status activity flag to false
 func (c *Classifier) PostExecution() error {
-	if err := dbstat.SetClassifying(c.db, false); err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return dbstat.SetClassifying(c.db, false)
 }
 
 // setInitialClassifierID sets the starting classifier block id to the
@@ -411,14 +407,12 @@ func (c *Classifier) PostExecution() error {
 func setInitialClassifierID(dgraph external.Database, startBlockClassifier uint64) (err error) {
 	status, err := dbstat.GetClassifierStatus(dgraph)
 	if err != nil {
-		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if status.LastClassifiedBlockID == nil ||
 		*status.LastClassifiedBlockID < startBlockClassifier {
 		if err = dbstat.SetLastClassifiedBlockID(dgraph, startBlockClassifier); err != nil {
-			err = cliutil.NewStackError(err)
 			return
 		}
 	}
@@ -443,7 +437,7 @@ func isCollateralCreation(dgraph external.Database, t db.Transaction) (bool, err
 
 	inputCount, outputCount, err := db.GetOutputAddressCounts(dgraph, t.UID)
 	if err != nil {
-		return false, cliutil.NewStackError(err)
+		return false, err
 	}
 
 	// inputs must be from the same address and outputs must go to different addresses
@@ -561,7 +555,7 @@ func classifyTransactions(dgraph external.Database, transactions []db.Transactio
 
 		isCC, collateralErr := isCollateralCreation(dgraph, transaction)
 		if collateralErr != nil {
-			err = cliutil.NewStackError(collateralErr)
+			err = collateralErr
 		}
 
 		if isCC {

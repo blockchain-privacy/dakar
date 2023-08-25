@@ -19,12 +19,12 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 
 	uids, err := validateExclusionAddresses(dgraph, exclusions)
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	dbExclusions := buildDatabaseAddressExclusions(uids, userID)
 	if err := exclusion.AddAddressExclusions(dgraph, dbExclusions); err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	return nil
@@ -71,7 +71,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	// check if all addresses exist
 	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	// check if there is some mismatch

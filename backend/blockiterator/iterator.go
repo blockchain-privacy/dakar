@@ -68,12 +68,12 @@ func StartIteration(iterator BlockIterator) (err error) {
 		// error if the error is currently nil
 		postErr := iterator.PostExecution()
 		if err == nil && postErr != nil {
-			err = cliutil.NewStackError(postErr)
+			err = postErr
 		}
 	}()
 
 	if initErr := iterator.CalculateInitialState(); initErr != nil {
-		err = cliutil.NewStackError(initErr)
+		err = initErr
 		return
 	}
 
@@ -95,7 +95,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		if iterator.Empty() {
 			isInterrupt, waitErr := waitForNextDBBlockID(iterator)
 			if waitErr != nil {
-				err = cliutil.NewStackError(waitErr)
+				err = waitErr
 				return
 			}
 
@@ -106,7 +106,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		ok, iterateErr := iterator.Iterate()
 		if iterateErr != nil {
-			err = cliutil.NewStackError(iterateErr)
+			err = iterateErr
 			return
 		}
 
@@ -117,7 +117,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 
 		// set next state
 		if incErr := iterator.IncrementState(); err != nil {
-			err = cliutil.NewStackError(incErr)
+			err = incErr
 			return
 		}
 
@@ -150,7 +150,7 @@ func waitForNextDBBlockID(it BlockIterator) (isInterrupt bool, err error) {
 			}
 
 			if ok, nextErr := it.NextBlock(); err != nil {
-				err = cliutil.NewStackError(nextErr)
+				err = nextErr
 				return
 			} else if ok {
 				return

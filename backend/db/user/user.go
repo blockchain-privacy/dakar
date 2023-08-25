@@ -83,6 +83,7 @@ func GetUsers(c external.Database) (users []FrontendUserBackendState, err error)
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -125,6 +126,7 @@ func GetUsersWithCredentials(c external.Database) (users []FrontendUserClientSta
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -177,7 +179,7 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 // DeleteUser deletes the User with the given uid
 func DeleteUser(c external.Database, uid string) (err error) {
 	if found, existsErr := existsUser(c, uid); existsErr != nil {
-		err = cliutil.NewStackError(existsErr)
+		err = existsErr
 		return
 	} else if !found {
 		err = cliutil.NewStackErrorStr("error user does not exist")
@@ -211,7 +213,7 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	// create dgraph user
 	newUserUID, userCreationError := CreateNewUser(c)
 	if userCreationError != nil {
-		return cliutil.NewStackError(userCreationError)
+		return userCreationError
 	}
 
 	// create kratos identity
@@ -253,7 +255,7 @@ func generateRandomPassword() (string, error) {
 	// Generate a Salt
 	pwByte := make([]byte, 16)
 	if _, err := rand.Read(pwByte); err != nil {
-		return "", err
+		return "", cliutil.NewStackError(err)
 	}
 
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil
@@ -263,7 +265,7 @@ func generateRandomPassword() (string, error) {
 func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string) (string, error) {
 	pw, err := generateRandomPassword()
 	if err != nil {
-		return "", cliutil.NewStackError(err)
+		return "", err
 	}
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
@@ -275,7 +277,7 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"admin"}, "active")
 	if err != nil {
-		return "", cliutil.NewStackError(err)
+		return "", err
 	}
 
 	return pw, nil
@@ -292,7 +294,7 @@ func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email s
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"privileged"}, "active")
 	if err != nil {
-		return cliutil.NewStackError(err)
+		return err
 	}
 
 	return nil

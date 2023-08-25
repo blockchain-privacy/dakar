@@ -130,14 +130,14 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 			var err error
 			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
 				h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, cliutil.NewStackError(err)
+				return nil, err
 			}
 		}
 
@@ -155,7 +155,7 @@ func (h perfectMatchHeuristic) exec(dgraph external.Database, g *graph.Wrapper, 
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
 	if err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, err
 	}
 
 	inputDenominationCounts := getDenominationCounts(transaction)
