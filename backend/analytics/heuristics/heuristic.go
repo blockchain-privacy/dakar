@@ -10,6 +10,7 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
+	"fmt"
 
 	"errors"
 	"time"
@@ -332,14 +333,14 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 	newUID, err := exec(dgraph, g, txHash, thisRootUID, hx.thisHeuristic, userUID)
 	if err != nil {
 		// two fmt.Errorf so the error gets wrapped
-		return cliutil.NewStackErrorf("heuristic type: %s, parameter: %s, %w",
+		return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
 	}
 
 	for _, executor := range hx.nextHeuristics {
 		if runErr := executor.run(dgraph, g, txHash, newUID, userUID); runErr != nil {
 			// two fmt.Errorf so the error gets wrapped
-			return cliutil.NewStackErrorf("heuristic type: %s, parameter: %s, %w",
+			return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 				executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr)
 		}
 	}
