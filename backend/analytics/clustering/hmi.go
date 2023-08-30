@@ -343,13 +343,13 @@ func setInitialHMIClusteringID(dgraph external.Database) error {
 
 // getClusterRootByCluster returns the rootUID of UID. This is done by following the
 // relations given in clusterMapping. If an empty string is returned no rootUID exists.
-func getClusterRootByCluster(clusterMapping map[string]string, UID string) string {
+func getClusterRootByCluster(clusterMapping map[string]string, uid string) string {
 	if len(clusterMapping) == 0 {
 		return ""
 	}
 
 	var rootUID string
-	tmpUID := UID
+	tmpUID := uid
 	hops := 0
 
 	for tmpUID != "" {
@@ -362,7 +362,7 @@ func getClusterRootByCluster(clusterMapping map[string]string, UID string) strin
 
 	// add relation if multi hop was performed to get better performance in subsequent queries
 	if hops > 1 {
-		clusterMapping[UID] = rootUID
+		clusterMapping[uid] = rootUID
 	}
 
 	return rootUID
