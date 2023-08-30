@@ -261,9 +261,6 @@ mainLoop:
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}
 			w.mapMutex.Unlock()
-
-			// reset memory
-			work = Work{}
 		}
 	}
 }
