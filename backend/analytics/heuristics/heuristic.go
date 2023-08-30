@@ -180,6 +180,7 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 	return sourceAmounts
 }
 
+// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
 // getKeySlice returns a slice containing all keys of the given map
 func getKeySlice(m map[string]bool) (keys []string) {
 	for k := range m {
