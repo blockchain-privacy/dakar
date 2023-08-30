@@ -10,8 +10,8 @@ lint: # Lint the files
 	@go install honnef.co/go/tools/cmd/staticcheck@latest
 	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
 
-test: ## Run unittests
-	@go test -cover ${PKG_LIST}
+test: ## Run unittests, '-p 1' make tests not run in parallel
+	@go test -p 1 -cover ${PKG_LIST}
 
 vet: ## Run vet
 	@go vet ${PKG_LIST}

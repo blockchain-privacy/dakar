@@ -8,6 +8,7 @@ default:
 variables:
   GOFLAGS: -mod=readonly
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
+  DGRAPH_VERSION: v23.1.0
 
 .modcache: &modcache
   key: modcache
@@ -48,15 +49,15 @@ unit_tests:
     - cd $WORKDIR
     - make test
   services:
-    - name: dgraph/standalone:v23.0.0
+    - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
-    - name: dgraph/standalone:v23.0.0
+    - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_status # database for status module
-    - name: dgraph/standalone:v23.0.0
+    - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_user # database for user module
-    - name: dgraph/standalone:v23.0.0
+    - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_processor # database for processor module
-    - name: dgraph/standalone:v23.0.0
+    - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_analytics # database for classifier module
 
   cache:

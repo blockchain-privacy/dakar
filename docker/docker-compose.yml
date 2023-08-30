@@ -2,7 +2,7 @@ version: "3.6"
 services:
 
   zero:
-    image: dgraph/dgraph:v23.0.0
+    image: dgraph/dgraph:v23.1.0
     container_name: zero
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -15,7 +15,7 @@ services:
       - dgraph_default
 
   alpha:
-    image: dgraph/dgraph:v23.0.0
+    image: dgraph/dgraph:v23.1.0
     container_name: alpha
     volumes:
       - ${DGRAPH_PATH}:/dgraph
@@ -40,7 +40,7 @@ services:
 
   kratos:
     container_name: kratos
-    image: oryd/kratos:v0.13.0
+    image: oryd/kratos:v1.0
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
@@ -50,7 +50,7 @@ services:
       - LOG_LEVEL=trace
       - SQA_OPT_OUT=true
     command: serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out
-    #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
+#    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
     volumes:
@@ -60,7 +60,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:14.6
+    image: postgres:14.8
     ports:
       - "5432:5432"
     environment:
@@ -82,7 +82,7 @@ services:
       - dgraph_default
 
   dashd:
-    image: dashpay/dashd:19.2
+    image: dashpay/dashd:19.3
     container_name: dashd
     volumes:
       - ${DASH_PATH}:/home/dash
