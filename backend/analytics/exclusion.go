@@ -63,6 +63,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		addresses[c] = true
 	}
 
+	// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
 	uniqueAddresses := make([]string, 0, len(addresses))
 	for k := range addresses {
 		uniqueAddresses = append(uniqueAddresses, k)
@@ -80,14 +81,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			delete(addresses, a.Hash)
 		}
 
-		// get one nonexistent address from map
-		var nonAddress string
-		for k := range addresses {
-			nonAddress = k
-			break
-		}
-
-		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping

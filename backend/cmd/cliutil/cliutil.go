@@ -86,3 +86,25 @@ func GetLogfile(fileName string) (f *os.File, err error) {
 
 	return
 }
+
+// GetOneKey returns an indeterminate key of the given map. If the map is empty, an empty key will be returned
+func GetOneKey[M ~map[K]V, K comparable, V any](m M) K {
+	for k := range m {
+		return k
+	}
+
+	var key K
+	return key
+}
+
+// GetOneItem returns an indeterminate key-value pair of the given map.
+// If the map is empty, an empty key-value pair will be returned
+func GetOneItem[M ~map[K]V, K comparable, V any](m M) (K, V) {
+	for k, v := range m {
+		return k, v
+	}
+
+	var key K
+	var val V
+	return key, val
+}

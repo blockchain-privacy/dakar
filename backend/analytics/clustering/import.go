@@ -123,14 +123,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			delete(addresses, a.Hash)
 		}
 
-		// get one nonexistent address from map
-		var nonAddress string
-		for k := range addresses {
-			nonAddress = k
-			break
-		}
-
-		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping
