@@ -500,13 +500,8 @@ func createKeyHash(someMap map[string]bool) string {
 		return ""
 	}
 
-	// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
 	// sort elements so a consistent hash can be generated
-	keys := make([]string, 0, len(someMap))
-	for k := range someMap {
-		keys = append(keys, k)
-	}
-
+	keys := cliutil.GetMapKeys(someMap)
 	sort.Strings(keys)
 
 	var allKeys []byte

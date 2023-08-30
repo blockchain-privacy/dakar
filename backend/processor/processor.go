@@ -571,13 +571,7 @@ func getExternalOutputs(dgraph external.Database,
 		return nil, nil
 	}
 
-	// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
-	transactionHashes := make([]string, 0, len(outputs))
-	for k := range outputs {
-		transactionHashes = append(transactionHashes, k)
-	}
-
-	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, transactionHashes)
+	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, cliutil.GetMapKeys(outputs))
 	if err != nil {
 		return nil, err
 	}

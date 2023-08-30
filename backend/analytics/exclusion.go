@@ -55,19 +55,14 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		return nil, cliutil.NewStackErrorStr("empty argument")
 	}
 
+	// todo: replace with generic
 	addresses := map[string]bool{}
 	for _, c := range exclusions {
 		addresses[c] = true
 	}
 
-	// todo: review once go 1.22 is released. Could be replaced with maps.Keys(someMap)
-	uniqueAddresses := make([]string, 0, len(addresses))
-	for k := range addresses {
-		uniqueAddresses = append(uniqueAddresses, k)
-	}
-
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}

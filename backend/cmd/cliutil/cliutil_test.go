@@ -128,3 +128,31 @@ func TestGetOneItem(t *testing.T) {
 	// can not check for return value as key is indeterminate with map len > 1
 	GetOneItem(map[string]int{"a": 1, "b": 2, "c": 3, "d": 4})
 }
+
+func TestGetMapKeys(t *testing.T) {
+	type testCase struct {
+		args        map[string]int
+		wantNumKeys int
+	}
+	tests := []testCase{
+		{
+			args:        map[string]int{},
+			wantNumKeys: 0,
+		},
+		{
+			args:        map[string]int{"a": 1},
+			wantNumKeys: 1,
+		},
+		{
+			args:        map[string]int{"asdf": 5, "aaa": 3},
+			wantNumKeys: 2,
+		},
+		{
+			args:        map[string]int(nil),
+			wantNumKeys: 0,
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.wantNumKeys, len(GetMapKeys(tt.args)))
+	}
+}
