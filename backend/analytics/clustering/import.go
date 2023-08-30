@@ -32,11 +32,8 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 	}
 
 	dbClusters := buildDatabaseClusters(clusters, userID, addrToUID)
-	if err := clustering.AddCustomClusters(dgraph, dbClusters); err != nil {
-		return err
-	}
 
-	return nil
+	return clustering.AddCustomClusters(dgraph, dbClusters)
 }
 
 func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,

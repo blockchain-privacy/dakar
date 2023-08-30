@@ -23,11 +23,8 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 	}
 
 	dbExclusions := buildDatabaseAddressExclusions(uids, userID)
-	if err := exclusion.AddAddressExclusions(dgraph, dbExclusions); err != nil {
-		return err
-	}
 
-	return nil
+	return exclusion.AddAddressExclusions(dgraph, dbExclusions)
 }
 
 func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusion.User {
