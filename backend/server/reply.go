@@ -1099,22 +1099,37 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
 func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var frontEndUser frontendUserRoles
+	var frontEndUser struct {
+		Email string   `json:"email"`
+		Roles []string `json:"roles"`
+		State string   `json:"state"`
+	}
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return
 	}
 
-	if !frontEndUser.IsValid() {
-		reply.Msg = "user not valid"
+	const msgInvalidUser = "user data invalid"
+
+	if len(frontEndUser.Email) == 0 || len(frontEndUser.Roles) == 0 ||
+		len(frontEndUser.State) == 0 || !isValidEmail(frontEndUser.Email) {
+		reply.Msg = msgInvalidUser
 		return
 	}
 
+	// check if all roles have valid values
+	for _, ur := range frontEndUser.Roles {
+		if _, err := getRoleByName(ur); err != nil {
+			reply.Msg = msgInvalidUser
+			return
+		}
+	}
+
 	err := dbus.CreateDgraphAndKratosUser(r.Context(), dgraph, adminAuth,
-		frontEndUser.Email, nil, frontEndUser.Roles)
+		frontEndUser.Email, nil, frontEndUser.Roles, frontEndUser.State)
 	if err != nil {
-		reply.Msg = "could not create identity"
+		reply.Msg = "unable to create identity"
 		info(cliutil.ShowCallInfo(), err)
 	}
 
@@ -1220,7 +1235,8 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		return
 	}
 
-	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 && len(modRequest.State) == 0) {
+	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 &&
+		len(modRequest.State) == 0) && !isValidEmail(modRequest.Email) {
 		reply.Msg = "nothing to change"
 		return
 	}

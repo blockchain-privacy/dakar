@@ -209,8 +209,15 @@ func DeleteUser(c external.Database, uid string) (err error) {
 // CreateDgraphAndKratosUser creates a dgraph user and ory kratos identity.
 // The UID of the dgraph user is written the metadata_admin of the new kratos identity.
 // The credentials are set if not nil.
+// state has to be either "active" or "inactive" (as per ory kratos documentation)
 func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAuth *ory.APIClient,
-	email string, credentials *ory.IdentityWithCredentials, roles []string) error {
+	email string, credentials *ory.IdentityWithCredentials, roles []string, state string) error {
+	// handle state
+	newState, err := ory.NewIdentityStateFromValue(state)
+	if err != nil {
+		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+	}
+
 	// create dgraph user
 	newUserUID, userCreationError := CreateNewUser(c)
 	if userCreationError != nil {
@@ -218,11 +225,12 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	}
 
 	// create kratos identity
-	_, _, err := adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
+	_, _, err = adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
 		SchemaId:       "default_v0",
 		Traits:         map[string]interface{}{"email": email},
 		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
 		Credentials:    credentials,
+		State:          newState,
 	}).Execute()
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
@@ -275,7 +283,7 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 	err = CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
 		Password: &ory.IdentityWithCredentialsPassword{
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
-	}, []string{"admin"})
+	}, []string{"admin"}, "active")
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
@@ -292,7 +300,7 @@ func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email s
 	err := CreateDgraphAndKratosUser(ctx, c, adminAuth, email, &ory.IdentityWithCredentials{
 		Password: &ory.IdentityWithCredentialsPassword{
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
-	}, []string{"privileged"})
+	}, []string{"privileged"}, "active")
 	if err != nil {
 		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 	}
