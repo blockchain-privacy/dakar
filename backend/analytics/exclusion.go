@@ -55,7 +55,6 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		return nil, cliutil.NewStackErrorStr("empty argument")
 	}
 
-	// todo: replace with generic
 	addresses := map[string]bool{}
 	for _, c := range exclusions {
 		addresses[c] = true
