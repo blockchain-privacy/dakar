@@ -84,13 +84,8 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 		addresses[c.AddressHash] = true
 	}
 
-	uniqueAddresses := make([]string, 0, len(addresses))
-	for k := range addresses {
-		uniqueAddresses = append(uniqueAddresses, k)
-	}
-
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}
