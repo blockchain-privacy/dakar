@@ -211,7 +211,7 @@ func shutdownServer(srv *http.Server) {
 	if srv == nil {
 		return
 	}
-	info("### Shutting down server ###")
+	info("Shutting down server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
