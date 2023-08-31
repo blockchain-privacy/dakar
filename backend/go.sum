@@ -88,6 +88,8 @@ github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7J
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/ory/kratos-client-go v0.13.1 h1:o+pFV9ZRMFSBa4QeNJYbJeLz036UWU4p+7yfKghK+0E=
 github.com/ory/kratos-client-go v0.13.1/go.mod h1:hkrFJuHSBQw+qN6Ks0faOAYhAKwtpjvhCZzsQ7g/Ufc=
+github.com/ory/kratos-client-go v1.0.0 h1:mm32FMJrt4pBv2KEuhuNtiewJApc8c1Kmz0+WFHhOMA=
+github.com/ory/kratos-client-go v1.0.0/go.mod h1:a2Tl4cgQAxsjR59w3EfnH5hengabjXUHiEVDzdqiZI0=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

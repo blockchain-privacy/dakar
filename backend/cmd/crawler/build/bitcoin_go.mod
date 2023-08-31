@@ -1,6 +1,6 @@
 module backend
 
-go 1.18
+go 1.21
 
 require (
 	github.com/btcsuite/btcd v0.23.4
@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.2
 	github.com/dgraph-io/dgo/v230 v230.0.1
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/ory/kratos-client-go v0.13.1
+	github.com/ory/kratos-client-go v1.0.0
 	github.com/prometheus/client_golang v1.16.0
 	github.com/stretchr/testify v1.8.4
 	gonum.org/v1/gonum v0.14.0
