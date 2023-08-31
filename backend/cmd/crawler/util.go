@@ -246,7 +246,7 @@ func printVersion() {
 func checkMeta(db external.Database) bool {
 	meta, err := status.GetMeta(db)
 	if err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"runtime/debug"
 )
 
@@ -64,5 +65,15 @@ func PrintStack(logger *log.Logger, v ...interface{}) {
 				logger.Println(string(st.Stack()))
 			}
 		}
+	}
+}
+
+func LogError(l *slog.Logger, err error, v ...any) {
+	var st StackError
+	if errors.As(err, &st) {
+		v = append(v, slog.String("stack", string(st.Stack())))
+		l.Warn(st.Error(), v...)
+	} else {
+		l.Warn(err.Error(), v...)
 	}
 }

@@ -32,8 +32,8 @@ func writeUnauthorized(w http.ResponseWriter, msg string) {
 	}
 
 	w.WriteHeader(http.StatusUnauthorized)
-	if _, writeErr := w.Write([]byte(msg)); writeErr != nil {
-		info(writeErr)
+	if _, err := w.Write([]byte(msg)); err != nil {
+		warn(err)
 	}
 }
 
@@ -42,7 +42,7 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	setDefaultHeader(w)
 	if _, err := w.Write([]byte(`{"invalidToken": true}`)); err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		info(err)
+		warn(err)
 	}
 }
 
@@ -104,7 +104,7 @@ func (s *Server) authorization() adapter {
 				Cookie(r.Header.Get("Cookie")).Execute()
 			if err != nil {
 				sendRedirectMessage(w)
-				info(err)
+				warn(err)
 				return
 			}
 			defer sessionResponse.Body.Close()
@@ -124,7 +124,7 @@ func (s *Server) authorization() adapter {
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
 					sendRedirectMessage(w)
-					info(extensionErr)
+					warn(extensionErr)
 					return
 				}
 				defer extensionResponse.Body.Close()
@@ -133,14 +133,14 @@ func (s *Server) authorization() adapter {
 			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
 			if err != nil {
 				sendRedirectMessage(w)
-				info(err)
+				warn(err)
 				return
 			}
 
 			roles, err := extractRoles(session.Identity.MetadataPublic)
 			if err != nil {
 				sendRedirectMessage(w)
-				info(err)
+				warn(err)
 				return
 			}
 
@@ -150,7 +150,7 @@ func (s *Server) authorization() adapter {
 				routeRole, roleErr := getRoleByName(role.Name)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
-					info(roleErr)
+					warn(roleErr)
 					return
 				}
 
@@ -162,7 +162,8 @@ func (s *Server) authorization() adapter {
 
 			if !routeAllowed {
 				writeUnauthorized(w, "route not allowed")
-				info(session, "tried to access", route)
+				info("tried to access restricted route: "+route, "session", session)
+
 				return
 			}
 

@@ -9,31 +9,30 @@ import (
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 )
 
-// loggerPrefix is the prefix which is printed for each log message
-const loggerPrefix = "\033[0;34mserver\u001B[0m\t"
-
 // maxBodySize is the maximum number of bytes a body can contain
 // without an error being thrown while it being read
 const maxBodySize = 1048576 // 1048576 = 1024 * 1024 -> 1 MiB
 
-var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+var thisLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
-func InitLogger(out io.Writer, flag int) {
-	thisLogger = log.New(out, loggerPrefix, flag)
+func InitLogger() {
+	thisLogger = slog.With(slog.String("module", "server"))
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
-	cliutil.PrintStack(thisLogger, v...)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cliutil.LogError(thisLogger, err, v...)
 }
 
 type Server struct {

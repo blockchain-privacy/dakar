@@ -73,7 +73,7 @@ func (s *Server) handlerSearch() http.Handler {
 			for _, fn := range searchOrder {
 				data, ok, err := fn(s.db, queryString)
 				if err != nil {
-					info(err)
+					warn(err)
 					break
 				}
 				// nothing found -> next try
@@ -90,7 +90,7 @@ func (s *Server) handlerSearch() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -127,7 +127,7 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -196,7 +196,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -251,7 +251,7 @@ func (s *Server) handlerBlockRange() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -337,7 +337,7 @@ func (s *Server) handlerAddCluster() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -353,7 +353,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
 		}
@@ -361,7 +361,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -375,7 +375,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAllClustersReply(s.db, tUser.ID)
 		}
@@ -383,7 +383,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -397,7 +397,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getClusterOverviewReply(s.db, tUser.ID)
 		}
@@ -405,7 +405,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -419,7 +419,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getAttributionOverviewReply(s.db, tUser.ID)
 		}
@@ -427,7 +427,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -442,7 +442,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -457,7 +457,7 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -473,7 +473,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
 		}
@@ -481,7 +481,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -497,7 +497,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
 		}
@@ -505,7 +505,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -519,7 +519,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
 		}
@@ -527,7 +527,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -541,7 +541,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
 		}
@@ -549,7 +549,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -564,7 +564,7 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -580,7 +580,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
 		}
@@ -588,7 +588,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -602,7 +602,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
 		}
@@ -610,7 +610,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -624,7 +624,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
 		}
@@ -632,7 +632,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -653,7 +653,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
 		}
@@ -661,7 +661,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -683,7 +683,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -704,7 +704,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply.Success = true
 			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
@@ -713,7 +713,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -726,7 +726,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			info(err)
+			warn(err)
 			return
 		}
 
@@ -736,7 +736,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			info(err)
+			warn(err)
 			return
 		}
 
@@ -748,14 +748,14 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			info(err)
+			warn(err)
 			return
 		}
 
 		// encoding
 		if err = json.NewEncoder(w).Encode(frontendHeuristic); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -776,7 +776,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = msgUserNotFound
-			info(err)
+			warn(err)
 		} else {
 			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
 		}
@@ -784,7 +784,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -798,11 +798,11 @@ func (s *Server) handlerHeuristicList() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error modifying user"
-			info(err)
+			warn(err)
 		} else {
 			items, err := dbtxh.GetHeuristicListByUser(s.db, tUser.ID)
 			if err != nil {
-				info(err)
+				warn(err)
 			} else {
 				reply.Success = true
 				reply.Item = items
@@ -812,7 +812,7 @@ func (s *Server) handlerHeuristicList() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -833,7 +833,7 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -846,7 +846,7 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 		var reply deleteHeuristicReply
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error extracting user"
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
 		}
@@ -854,7 +854,7 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -870,7 +870,7 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -888,7 +888,7 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -903,7 +903,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error deleting user"
-			info(err)
+			warn(err)
 		} else {
 			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
 		}
@@ -911,7 +911,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -927,7 +927,7 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -940,9 +940,9 @@ func (s *Server) handlerGetIdentities() http.Handler {
 		reply := getIdentitiesReply(s.db, s.adminAuth, r)
 
 		// encoding
-		if encodingErr := json.NewEncoder(w).Encode(reply); encodingErr != nil {
+		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(encodingErr)
+			warn(err)
 		}
 	})
 }
@@ -957,7 +957,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -972,7 +972,7 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -986,7 +986,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error modifying user"
-			info(err)
+			warn(err)
 		} else {
 			reply = getClusterLookupReply(s.db, r.Body, tUser)
 		}
@@ -994,7 +994,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -1009,7 +1009,7 @@ func (s *Server) handlerMixingActivity() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -1024,7 +1024,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
@@ -1046,7 +1046,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
 			http.Error(w, "encoding error", http.StatusInternalServerError)
-			info(err)
+			warn(err)
 		}
 	})
 }
