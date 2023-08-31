@@ -49,19 +49,16 @@ func initAllLoggers(fileHandle io.Writer) {
 		outputWriter = os.Stdout
 	}
 
-	logger := slog.New(slog.NewJSONHandler(outputWriter, nil))
+	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
 	slog.SetDefault(logger)
 
 	thisLogger = slog.With(slog.String("module", "crawler"))
 
-	writer := log.Writer()
-	flags := log.Flags()
-
-	analytics.InitLogger(writer, flags)
-	db.InitLogger(writer, flags)
-	processor.InitLogger(writer, flags)
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
 	server.InitLogger()
-	heuristic.InitLogger(writer, flags)
+	heuristic.InitLogger()
 }
 
 func info(msg string, v ...any) {

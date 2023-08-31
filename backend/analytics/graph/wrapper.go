@@ -6,11 +6,11 @@ import (
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
+	"log/slog"
 
 	"context"
 	"errors"
-	"io"
-	"log"
+
 	"sync"
 	"time"
 
@@ -18,19 +18,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-// graphLoggerPrefix is the prefix which is printed for each log message of analyticsLogger
-const graphLoggerPrefix = "\033[0;32mgraph\u001B[0m\t"
-
-var graphLogger = log.New(log.Writer(), graphLoggerPrefix, log.Flags())
+var graphLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
-func InitLogger(out io.Writer, flag int) {
-	graphLogger = log.New(out, graphLoggerPrefix, flag)
+func InitLogger() {
+	graphLogger = slog.With(slog.String("module", "graph"))
 }
 
-func info(v ...interface{}) {
-	graphLogger.Println(v...)
-	cliutil.PrintStack(graphLogger, v...)
+func info(msg string, v ...any) {
+	graphLogger.Info(msg, v...)
 }
 
 // Wrapper is wrapper for in-memory graphs
@@ -182,7 +178,7 @@ func (w *Wrapper) LoadGraphs() error {
 // ------------ Block Iterator interface methods ------------
 
 // Logger returns the Logger
-func (w *Wrapper) Logger() *log.Logger {
+func (w *Wrapper) Logger() *slog.Logger {
 	return graphLogger
 }
 

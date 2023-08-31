@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"log"
+	"log/slog"
 	"strconv"
 )
 
@@ -312,7 +312,7 @@ func (m *HierarchicalMultiInput) CurrentBlock() uint64 {
 }
 
 // Logger returns the Logger
-func (m *HierarchicalMultiInput) Logger() *log.Logger {
+func (m *HierarchicalMultiInput) Logger() *slog.Logger {
 	return clusteringLogger
 }
 

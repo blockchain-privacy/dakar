@@ -322,7 +322,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		return
 	}
 
-	info("Reverse Lookup for", txhash, "look back time (days):", int(lookBackTime))
+	info("Connection Lookup Request Start", "transaction_hash", txhash, "look_back_time_days", int(lookBackTime), "forward", isLookupForward)
 
 	const msgLookupNotSuccessful = "Lookup not successful"
 
@@ -344,7 +344,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		}
 	}
 
-	info("time:", time.Since(rLookupTime), "endpoints: origins:", len(endpoints))
+	info("Connection Lookup Request End", "elapsed_time", time.Since(rLookupTime), "num_endpoints", len(endpoints))
 
 	// reply with the first 30 endpoints
 	const numOutputNodes = 30
@@ -644,7 +644,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	defer func(file multipart.File) {
 		err := file.Close()
 		if err != nil {
-			info("Error closing CSV-file")
+			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -752,7 +752,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	defer func(file multipart.File) {
 		err := file.Close()
 		if err != nil {
-			info("Error closing CSV-file")
+			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -968,7 +968,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	defer func(file multipart.File) {
 		err := file.Close()
 		if err != nil {
-			info("Error closing CSV-file")
+			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1264,7 +1264,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
 			reply.Msg = "invalid meta data"
-			info("could not set <", modRequest.Email, "> for identity", modRequest.UID)
+			warn(fmt.Errorf("could not set identity: %w", err), "modification_request", modRequest)
 			return
 		}
 	}
@@ -1277,7 +1277,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		for _, role := range modRequest.Roles {
 			if _, err := getRoleByName(role.Name); err != nil {
 				reply.Msg = msgInvalidRole
-				info(msgInvalidRole, role.Name, "for identity", modRequest.UID)
+				warn(err, "modification_request", modRequest)
 				return
 			}
 			roles = append(roles, role.Name)
@@ -1286,7 +1286,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
 			reply.Msg = "invalid role"
-			info("could not add <", roles, "> to identity", modRequest.UID)
+			warn(err, "modification_request", modRequest)
 			return
 		}
 	}
@@ -1369,7 +1369,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 
 	if len(transactions) != len(uids) {
 		reply.Msg = frontendError
-		info("length of uids and hashes is not equal for", txhash)
+		warn(cliutil.NewStackErrorf("length of uids and hashes is not equal for %s", txhash))
 		return
 	}
 
@@ -1377,7 +1377,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 		fingerprint, ok := uidToFingerprint[tx.UID]
 		if !ok {
 			reply.Msg = frontendError
-			info("could not find uid to tx hash mapping for", tx.UID, "in request for", txhash)
+			warn(cliutil.NewStackErrorf("could not find uid to tx hash mapping for %s in request for %s", txhash, tx.UID))
 			return
 		}
 

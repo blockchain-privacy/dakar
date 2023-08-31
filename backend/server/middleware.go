@@ -3,7 +3,6 @@ package server
 import (
 	"backend/cmd/cliutil"
 	dbus "backend/db/user"
-
 	"bytes"
 	"context"
 	"io"
@@ -253,7 +252,7 @@ func limitMethod(method string) adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Method != method {
-				info("error received", r.Method, "request for route", route, "instead of", method)
+				warn(cliutil.NewStackErrorf("error received %s request for route %s instead of %s", r.Method, route, method))
 				w.WriteHeader(http.StatusMethodNotAllowed)
 				return
 			}

@@ -26,6 +26,7 @@ var (
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
+	InitLogger()
 	if !testhelper.IsCIActive() {
 		m.Run()
 		return

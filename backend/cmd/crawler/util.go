@@ -150,7 +150,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			info("Authentication error:", err)
+			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
 			return false
 		}
 
@@ -189,7 +189,7 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			info("Authentication error:", err)
+			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
 			return false
 		}
 
@@ -220,7 +220,7 @@ func shutdownServer(srv *http.Server) {
 	}()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		info("Server was shutdown and returned error:", err)
+		warn(cliutil.NewStackErrorf("Server was shutdown and returned error: %w", err))
 	}
 }
 
@@ -279,7 +279,7 @@ func checkMeta(db external.Database) bool {
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	if endpoint == "" {
-		return nil, cliutil.NewStackErrorf("endpoint is invalid: '%s'", endpoint)
+		return nil, cliutil.NewStackErrorf("endpoint is invalid: %s", endpoint)
 	}
 
 	cj, err := cookiejar.New(nil)

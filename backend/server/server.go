@@ -91,7 +91,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			info("server error:", cliutil.NewStackError(err))
+			warn(cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()
@@ -117,7 +117,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			info("server error:", cliutil.NewStackError(err))
+			warn(cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()
