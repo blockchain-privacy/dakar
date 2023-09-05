@@ -11,7 +11,7 @@ import (
 )
 
 func ErrNodeNotFound(nodeID int64) error {
-	return cliutil.NewStackErrorf("error node %s does not exist in graph", ToHex(nodeID))
+	return cliutil.NewStackErrorf("node %s does not exist in graph", ToHex(nodeID))
 }
 
 // ToHex returns a hexadecimal string representation of the given integer with the '0x' prefix

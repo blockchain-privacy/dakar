@@ -642,9 +642,8 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	}
 
 	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
+		if err := file.Close(); err != nil {
+			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -750,9 +749,8 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	}
 
 	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
+		if err := file.Close(); err != nil {
+			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -966,9 +964,8 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	}
 
 	defer func(file multipart.File) {
-		err := file.Close()
-		if err != nil {
-			warn(cliutil.NewStackErrorf("Error closing CSV-file: %w", err))
+		if err := file.Close(); err != nil {
+			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1264,7 +1261,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
 			reply.Msg = "invalid meta data"
-			warn(fmt.Errorf("could not set identity: %w", err), "modification_request", modRequest)
+			warn(err, "modification_request", modRequest)
 			return
 		}
 	}

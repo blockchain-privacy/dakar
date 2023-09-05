@@ -271,16 +271,16 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 		nodeID = node.ID()
 
 		if g.To(nodeID).Len() == 0 && g.From(nodeID).Len() == 0 {
-			return cliutil.NewStackErrorStr("error node exists with no edges")
+			return cliutil.NewStackErrorStr("node exists with no edges")
 		}
 
 		txNode, ok = node.(TransactionNode)
 		if !ok {
-			return cliutil.NewStackErrorf("error node has wrong type: %T", node)
+			return cliutil.NewStackErrorf("node has wrong type: %T", node)
 		}
 
 		if txNode.TS.IsZero() {
-			return cliutil.NewStackErrorStr("error node has invalid timestamp")
+			return cliutil.NewStackErrorStr("node has invalid timestamp")
 		}
 	}
 
