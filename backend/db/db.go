@@ -122,7 +122,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request:", req)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -145,7 +145,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "request:", req)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -191,7 +191,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return nil, err
 		}
 
-		warn(fmt.Errorf("encountered error, retrying: %w", err), "query:", q, "vars:", vars)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
