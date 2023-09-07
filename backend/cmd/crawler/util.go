@@ -150,7 +150,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			info("Authentication error:", err)
+			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
 			return false
 		}
 
@@ -189,7 +189,7 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 		}
 
 		if strings.Contains(err.Error(), "status code: 401") {
-			info("Authentication error:", err)
+			warn(cliutil.NewStackErrorf("Authentication error: %w", err))
 			return false
 		}
 
@@ -211,7 +211,7 @@ func shutdownServer(srv *http.Server) {
 	if srv == nil {
 		return
 	}
-	info("### Shutting down server ###")
+	info("Shutting down server")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
@@ -220,7 +220,7 @@ func shutdownServer(srv *http.Server) {
 	}()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		info("Server was shutdown and returned error:", err)
+		warn(cliutil.NewStackErrorf("Server was shutdown and returned error: %w", err))
 	}
 }
 
@@ -246,16 +246,15 @@ func printVersion() {
 func checkMeta(db external.Database) bool {
 	meta, err := status.GetMeta(db)
 	if err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 
 	// check if the blockchain mode of database matches the blockchain mode of the executable
 	if meta.BlockchainMode != blockchainMode {
-		info("Database is using a different blockchain mode than the executable")
-		info("Database blockchain mode:", meta.BlockchainMode)
-		info("Executable blockchain mode:", blockchainMode)
-		info("You likely used the wrong executable or connected to the wrong database")
+		info("Database is using a different blockchain mode than the executable. You likely used the wrong executable or connected to the wrong database.",
+			"database blockchain mode", meta.BlockchainMode,
+			"executable blockchain mode", blockchainMode)
 		return false
 	}
 
@@ -266,10 +265,9 @@ func checkMeta(db external.Database) bool {
 
 	// check if the database schema version matches the schema version of the executable
 	if *meta.SchemaVersion != database.SchemaVersion {
-		info("Database is using a different schema version than executable")
-		info("Database schema version:", *meta.SchemaVersion)
-		info("Executable schema version:", database.SchemaVersion)
-		info("You may have to upgrade the database schema or use a different version of the executable")
+		info("Database is using a different schema version than executable. You may have to upgrade the database schema or use a different version of the executable.",
+			"database schema version", *meta.SchemaVersion,
+			"executable schema version", database.SchemaVersion)
 		return false
 	}
 
@@ -279,7 +277,7 @@ func checkMeta(db external.Database) bool {
 // newKratosClient creates a new kratos client
 func newKratosClient(endpoint string) (*ory.APIClient, error) {
 	if endpoint == "" {
-		return nil, cliutil.NewStackErrorf("endpoint is invalid: '%s'", endpoint)
+		return nil, cliutil.NewStackErrorf("endpoint is invalid: %s", endpoint)
 	}
 
 	cj, err := cookiejar.New(nil)

@@ -13,13 +13,14 @@ import (
 	"backend/external"
 	"backend/processor"
 	"backend/server"
-	ory "github.com/ory/kratos-client-go"
-
 	"context"
 	"errors"
 	"flag"
 	"fmt"
+	ory "github.com/ory/kratos-client-go"
+	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -38,28 +39,34 @@ const versionString = "v1.0.0"
 // Allowed values: "Dash" "Bitcoin" "Doge"
 var blockchainMode = ""
 
-var thisLogger *log.Logger
+var thisLogger *slog.Logger
 
-func initLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;31mcrawler\033[0m\t", log.Flags())
+func initAllLoggers(fileHandle io.Writer) {
+	var outputWriter io.Writer
+	if fileHandle != nil {
+		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
+	} else {
+		outputWriter = os.Stdout
+	}
+
+	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
+	slog.SetDefault(logger)
+
+	thisLogger = slog.With(slog.String("module", "crawler"))
+
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	heuristic.InitLogger()
 }
 
-func initAllLoggers() {
-	initLogger()
-
-	writer := log.Writer()
-	flags := log.Flags()
-
-	analytics.InitLogger(writer, flags)
-	db.InitLogger(writer, flags)
-	processor.InitLogger(writer, flags)
-	server.InitLogger(writer, flags)
-	heuristic.InitLogger(writer, flags)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
-	cli.PrintStack(thisLogger, v...)
+func warn(err error, v ...any) {
+	cli.LogError(thisLogger, err, v...)
 }
 
 func setCommandFlags(c *Commands) {
@@ -111,7 +118,7 @@ func resetDatabaseDialog(database external.Database) bool {
 	var userAnswer string
 	info("All data in the database will we deleted! Do you want to continue (yes/no)?")
 	if _, err := fmt.Scanln(&userAnswer); err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 
@@ -121,19 +128,19 @@ func resetDatabaseDialog(database external.Database) bool {
 	}
 
 	if err := db.DropAll(database); err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 	info("Dropped all data.")
 
 	if err := db.SetupSchema(database); err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 	info("Successfully set up new schema.")
 
 	if err := status.InitializeMeta(database, blockchainMode); err != nil {
-		info(err)
+		warn(err)
 		return false
 	}
 	info("Successfully initialized database")
@@ -262,7 +269,8 @@ func main() {
 	////// SETUP //////
 
 	// setup Logging
-	if f, err := cli.GetLogfile(config.Logfile); err == nil {
+	f, err := cli.GetLogfile(config.Logfile)
+	if err == nil {
 		defer func() {
 			if err = f.Close(); err != nil {
 				fmt.Println(err)
@@ -273,7 +281,7 @@ func main() {
 		return
 	}
 
-	initAllLoggers()
+	initAllLoggers(f)
 
 	processorConfig, analyserConfig, err := selectConfig(blockchainMode)
 	if err != nil {
@@ -285,25 +293,25 @@ func main() {
 
 	disableModules(analyserConfig, &config)
 
-	info("Blockchain mode:", processorConfig.BlockchainName)
+	info("Blockchain mode: " + processorConfig.BlockchainName)
 
 	////// CONNECT TO DATABASE //////
 
 	endpoint, err := cli.BuildEndpoint(config.Database.Host, config.Database.Port)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	// create dgraph client
 	graphDB, c, err := external.CreateClient(endpoint)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	defer func() {
 		if err = c.Close(); err != nil {
-			info(err)
+			warn(err)
 		}
 	}()
 
@@ -329,7 +337,7 @@ func main() {
 
 	// check if schema exists
 	if isSet, err := db.IsSchemaSet(graphDB); err != nil {
-		info(err)
+		warn(err)
 		return
 	} else if !isSet {
 		info("Schema is not set. Use -reset to create a new schema.")
@@ -342,7 +350,7 @@ func main() {
 
 	if !commands.IgnoreSafeGuard {
 		if ok, err := isCrawling(graphDB); err != nil {
-			info(err)
+			warn(err)
 			return
 		} else if ok {
 			info("Crawling process is already running. Use -ignoresafeguard to crawl despite this.")
@@ -355,7 +363,7 @@ func main() {
 	auth, adminAuth, err := getKratosClient(config.Modules.HTTP.KratosPublicEndpoint,
 		config.Modules.HTTP.KratosAdminEndpoint)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -364,7 +372,7 @@ func main() {
 	// create admin account if none is set
 	if config.Modules.HTTP.Active {
 		if err := createAdminUser(graphDB, adminAuth); err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 	}
@@ -377,7 +385,7 @@ func main() {
 	if config.Modules.HTTP.Active || config.Modules.Crawler.Active {
 		client, batchClient, err = connectBlockchainRPCClient(config.RPC)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 	}
@@ -411,7 +419,7 @@ func main() {
 			if processorErr := blockiterator.StartIteration(processor.NewCrawler(
 				appContext, graphDB, client, batchClient, config.Modules.Crawler.InitialCacheSize,
 				processorConfig)); processorErr != nil {
-				info(processorErr)
+				warn(processorErr)
 			}
 		}()
 	}
@@ -426,7 +434,7 @@ func main() {
 		go func() {
 			graphErr := graphWrapper.LoadGraphs()
 			if graphErr != nil {
-				info(graphErr)
+				warn(graphErr)
 				return
 			}
 
@@ -435,7 +443,7 @@ func main() {
 				go func() {
 					defer wg.Done()
 					if iterErr := blockiterator.StartIteration(graphWrapper); iterErr != nil {
-						info(iterErr)
+						warn(iterErr)
 					}
 				}()
 				wg.Add(1)
@@ -447,7 +455,7 @@ func main() {
 
 					if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
 						appContext, graphDB, analyserConfig)); classifierErr != nil {
-						info(classifierErr)
+						warn(classifierErr)
 					}
 				}()
 			}
@@ -471,7 +479,7 @@ func main() {
 
 			if classifierErr := blockiterator.StartIteration(analytics.NewClassifier(
 				appContext, graphDB, analyserConfig)); classifierErr != nil {
-				info(classifierErr)
+				warn(classifierErr)
 			}
 		}()
 	}
@@ -487,7 +495,7 @@ func main() {
 
 			if clusteringErr := blockiterator.StartIteration(clustering.NewHierarchicalMultiInput(
 				appContext, graphDB)); clusteringErr != nil {
-				info(clusteringErr)
+				warn(clusteringErr)
 			}
 		}()
 	}
@@ -503,7 +511,7 @@ func main() {
 
 			if clusteringErr := blockiterator.StartIteration(clustering.NewFlatMultiInput(
 				appContext, graphDB)); clusteringErr != nil {
-				info(clusteringErr)
+				warn(clusteringErr)
 			}
 		}()
 	}
@@ -513,7 +521,7 @@ func main() {
 	if config.Modules.HTTP.Active {
 		apiServer, serverErr := server.NewServer(graphDB, adminAuth, auth, client, worker)
 		if serverErr != nil {
-			info(serverErr)
+			warn(serverErr)
 		}
 
 		wg.Add(1)

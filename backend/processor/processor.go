@@ -8,8 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
-	"log"
+	"log/slog"
 	"strconv"
 	"sync"
 	"time"
@@ -22,21 +21,19 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 )
 
-const (
-	// loggerPrefix is the prefix which is printed for each log message
-	loggerPrefix = "\033[0;35mprocess\u001B[0m\t"
-)
-
-var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+var thisLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
-func InitLogger(out io.Writer, flag int) {
-	thisLogger = log.New(out, loggerPrefix, flag)
+func InitLogger() {
+	thisLogger = slog.With(slog.String("module", "processor"))
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
-	cliutil.PrintStack(thisLogger, v...)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cliutil.LogError(thisLogger, err, v...)
 }
 
 // holds the current state of the crawling processing loop
@@ -418,7 +415,7 @@ func getStartingID(dgraph external.Database) (startID uint64, err error) {
 }
 
 func processingInterrupted() {
-	info("### Block processing interrupted ###")
+	info("Block processing interrupted")
 }
 
 // waitForNextRPCBlock waits for the next block. If the interrupt receives a signal isInterrupt is true.
@@ -480,7 +477,7 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 		if !errors.Is(err, errBlockIdsDoNotMatch) {
 			return
 		}
-		info(cliutil.NewStackError(errBlockIdsDoNotMatch), "continuing...")
+		warn(cliutil.NewStackError(errBlockIdsDoNotMatch), "continuing...")
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {

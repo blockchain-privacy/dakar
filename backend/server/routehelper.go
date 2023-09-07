@@ -141,7 +141,7 @@ func handleError(w http.ResponseWriter, err error) {
 	}
 
 	http.Error(w, "an error occurred", http.StatusInternalServerError)
-	info(err)
+	warn(err)
 }
 
 // buildKey build a key from the given arguments

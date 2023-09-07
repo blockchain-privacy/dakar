@@ -4,6 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db/analytics"
 	"backend/external"
+	"fmt"
 
 	"runtime"
 
@@ -124,8 +125,8 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 		return nil, nil
 	}
 
-	info("db stats: mixing count:", mixingCount, "origin count:", originCount,
-		"destination count:", destinationCount, "cc count:", ccCount)
+	info("db stats", "mixing_count", mixingCount, "origin_count", originCount,
+		"destination_count", destinationCount, "cc_count", ccCount)
 
 	g := NewReversibleGraph(mixingCount + originCount + destinationCount)
 
@@ -156,8 +157,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	if err := pruneNodes(g); err != nil {
 		return nil, err
 	}
-
-	info("transaction graph contains", g.Nodes().Len(), "nodes")
+	info(fmt.Sprintf("transaction graph contains %d nodes", g.Nodes().Len()))
 	// check
 	info("verifying transaction graph")
 	if verificationErr := verifyTransactionGraph(g); verificationErr != nil {
@@ -271,16 +271,16 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 		nodeID = node.ID()
 
 		if g.To(nodeID).Len() == 0 && g.From(nodeID).Len() == 0 {
-			return cliutil.NewStackErrorStr("error node exists with no edges")
+			return cliutil.NewStackErrorStr("node exists with no edges")
 		}
 
 		txNode, ok = node.(TransactionNode)
 		if !ok {
-			return cliutil.NewStackErrorf("error node has wrong type: %T", node)
+			return cliutil.NewStackErrorf("node has wrong type: %T", node)
 		}
 
 		if txNode.TS.IsZero() {
-			return cliutil.NewStackErrorStr("error node has invalid timestamp")
+			return cliutil.NewStackErrorStr("node has invalid timestamp")
 		}
 	}
 

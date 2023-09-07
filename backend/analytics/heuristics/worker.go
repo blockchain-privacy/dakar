@@ -5,10 +5,9 @@ import (
 	"backend/cmd/cliutil"
 	dbtxh "backend/db/analytics/heuristics"
 	"backend/external"
+	"log/slog"
 
 	"context"
-	"io"
-	"log"
 	"sync"
 	"time"
 
@@ -32,21 +31,21 @@ const (
 	StatusHeuristicProcessing
 	// StatusHeuristicWorkerNotReady is set if the heuristic worker is not ready yet
 	StatusHeuristicWorkerNotReady
-
-	// loggerPrefix is the prefix which is printed for each log message
-	loggerPrefix = "\033[0;34mhworker\u001B[0m\t"
 )
 
-var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+var thisLogger *slog.Logger
 
 // InitLogger creates new loggers with the given parameters.
-func InitLogger(out io.Writer, flag int) {
-	thisLogger = log.New(out, loggerPrefix, flag)
+func InitLogger() {
+	thisLogger = slog.With(slog.String("module", "heuristic_worker"))
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
-	cliutil.PrintStack(thisLogger, v...)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cliutil.LogError(thisLogger, err, v...)
 }
 
 type workKey struct {
@@ -241,7 +240,7 @@ mainLoop:
 
 				// delete changed or removable heuristics
 				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
-					info(err)
+					warn(err)
 					// no return/break because we want to keep working even if we are failing
 					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
 				} else {
@@ -249,7 +248,7 @@ mainLoop:
 					for _, e := range work.executors {
 						if err = e.run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
 							w.currentWorkItem.userUID); err != nil {
-							info(err)
+							warn(err)
 						}
 					}
 				}

@@ -8,6 +8,7 @@ import (
 	"backend/db/analytics"
 	dbstat "backend/db/status"
 	"backend/external"
+	"log/slog"
 
 	"context"
 	"log"
@@ -133,7 +134,7 @@ func (c *Classifier) Name() string {
 }
 
 // Logger returns the Logger
-func (c *Classifier) Logger() *log.Logger {
+func (c *Classifier) Logger() *slog.Logger {
 	return analyticsLogger
 }
 

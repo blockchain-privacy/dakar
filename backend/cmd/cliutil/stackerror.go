@@ -3,7 +3,7 @@ package cliutil
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"runtime/debug"
 )
 
@@ -55,14 +55,12 @@ func GetStack(err error) ([]byte, bool) {
 	return nil, false
 }
 
-// PrintStack prints the stack of each StackError contained in v with the given logger
-func PrintStack(logger *log.Logger, v ...interface{}) {
-	for _, msg := range v {
-		if err, ok := msg.(error); ok {
-			var st StackError
-			if errors.As(err, &st) {
-				logger.Println(string(st.Stack()))
-			}
-		}
+func LogError(l *slog.Logger, err error, v ...any) {
+	var st StackError
+	if errors.As(err, &st) {
+		v = append(v, slog.String("stack", string(st.Stack())))
+		l.Warn(err.Error(), v...)
+	} else {
+		l.Warn(err.Error(), v...)
 	}
 }

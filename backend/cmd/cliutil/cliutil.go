@@ -2,7 +2,6 @@ package cliutil
 
 import (
 	"flag"
-	"io"
 	"log"
 	"os"
 	"strconv"
@@ -81,8 +80,6 @@ func GetLogfile(fileName string) (f *os.File, err error) {
 		err = NewStackError(err)
 		return
 	}
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.SetOutput(io.MultiWriter(os.Stdout, f))
 
 	return
 }

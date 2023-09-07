@@ -4,7 +4,7 @@ import (
 	"backend/cmd/cliutil"
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 )
 
@@ -34,7 +34,7 @@ type BlockIterator interface {
 	// CurrentBlock returns the height of the block which is currently processed
 	CurrentBlock() uint64
 
-	Logger() *log.Logger
+	Logger() *slog.Logger
 	Context() context.Context
 	Name() string
 }
@@ -52,8 +52,8 @@ func (s State) String() string {
 	return fmt.Sprintf("ID: %d, Top: %d", s.ID, s.Top)
 }
 
-func info(iterator BlockIterator, v ...interface{}) {
-	iterator.Logger().Println(append([]interface{}{iterator.Name()}, v...)...)
+func info(iterator BlockIterator, msg string, v ...interface{}) {
+	iterator.Logger().Info(msg, append([]interface{}{"block_iterator_name", iterator.Name()}, v...)...)
 }
 
 // StartIteration starts the iteration process
@@ -77,7 +77,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		return
 	}
 
-	info(iterator, "starting at:", iterator.CurrentBlock())
+	info(iterator, fmt.Sprintf("starting at: %d", iterator.CurrentBlock()))
 
 	numIteratedBlocks := 0
 	timerGlobal := time.Now()
@@ -124,7 +124,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		// metrics
 		numIteratedBlocks++
 		if numIteratedBlocks%1000 == 0 {
-			info(iterator, "avg 1000 blocks:", time.Since(timerGlobal).Milliseconds()/1000, "ms/block")
+			info(iterator, fmt.Sprintf("avg 1000 blocks: %v ms/block", time.Since(timerGlobal).Milliseconds()/1000))
 			timerGlobal = time.Now()
 		}
 	}

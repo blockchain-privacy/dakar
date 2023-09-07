@@ -6,9 +6,9 @@ import (
 	"backend/db/analytics/clustering"
 	dbstat "backend/db/status"
 	"backend/external"
+	"log/slog"
 
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -253,7 +253,7 @@ func (m *FlatMultiInput) CurrentBlock() uint64 {
 }
 
 // Logger returns the Logger
-func (m *FlatMultiInput) Logger() *log.Logger {
+func (m *FlatMultiInput) Logger() *slog.Logger {
 	return clusteringLogger
 }
 

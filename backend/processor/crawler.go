@@ -5,10 +5,11 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
+	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"log"
+	"log/slog"
 )
 
 // Crawler implements BlockIterator which processes the transactions of each traversed block
@@ -60,7 +61,7 @@ func (c *Crawler) Name() string {
 }
 
 // Logger returns the Logger
-func (c *Crawler) Logger() *log.Logger {
+func (c *Crawler) Logger() *slog.Logger {
 	return thisLogger
 }
 
@@ -106,13 +107,13 @@ func (c *Crawler) CalculateInitialState() error {
 
 	c.blockHeight.Set(float64(state.id))
 	c.state.incremented = true
-
-	info("Loading UTXOs of last", c.initialBlockCacheSize, "blocks ...")
+	info(fmt.Sprintf("Loading UTXOs of last %d blocks ...", c.initialBlockCacheSize))
 	c.cache, err = newUTXOCache(c.db, int64(state.id), c.initialBlockCacheSize)
 	if err != nil {
 		return err
 	}
-	info("Loaded", c.cache.getOutputCounts(), "UTXOs")
+
+	info(fmt.Sprintf("Loaded %d UTXOs", c.cache.getOutputCounts()))
 
 	return nil
 }

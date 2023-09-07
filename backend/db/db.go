@@ -4,9 +4,10 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"errors"
+	"fmt"
+	"log/slog"
 
 	"context"
-	"io"
 	"log"
 	"os"
 	"testing"
@@ -26,12 +27,9 @@ const (
 	maxRetries = 5
 	// retrySleepDuration is the duration between retries
 	retrySleepDuration = time.Second * 5
-
-	// loggerPrefix is the prefix which is printed for each log message
-	loggerPrefix = "\033[0;33mdb\u001B[0m\t"
 )
 
-var thisLogger = log.New(log.Writer(), loggerPrefix, log.Flags())
+var thisLogger *slog.Logger
 
 var (
 	// ErrBlockNotFound is returned if no block was found
@@ -46,13 +44,16 @@ var (
 )
 
 // InitLogger creates new loggers with the given parameters.
-func InitLogger(out io.Writer, flag int) {
-	thisLogger = log.New(out, loggerPrefix, flag)
+func InitLogger() {
+	thisLogger = slog.With(slog.String("module", "database"))
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
-	cliutil.PrintStack(thisLogger, v...)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cliutil.LogError(thisLogger, err, v...)
 }
 
 // GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
@@ -121,7 +122,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info("encountered error retrying:", err, "request:", req)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -144,7 +145,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info("encountered error retrying:", err, "request:", req)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -190,7 +191,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return nil, err
 		}
 
-		info("encountered error retrying:", err, "query:", q, "vars:", vars)
+		warn(fmt.Errorf("encountered error, retrying: %w", err), "query", q, "vars", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}

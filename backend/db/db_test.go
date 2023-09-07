@@ -12,15 +12,15 @@ import (
 const blockFileName = "testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
+	InitLogger()
 	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameDB)
 }
 
 func TestInfo(t *testing.T) {
 	require.NotPanics(t, func() {
 		info("test123")
-		info()
-		info(-1)
-		info(nil)
+		info("")
+		info("", -1, nil)
 	})
 }
 

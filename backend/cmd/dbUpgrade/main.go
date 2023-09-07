@@ -6,7 +6,9 @@ import (
 	"backend/external"
 	"flag"
 	"fmt"
+	"io"
 	"log"
+	"os"
 )
 
 var thisLogger *log.Logger
@@ -17,7 +19,6 @@ func initLogger() {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
-	cli.PrintStack(thisLogger, v...)
 }
 
 type Config struct {
@@ -66,6 +67,8 @@ func main() {
 	// setup Logging
 	if len(config.Logfile) > 0 {
 		if f, err := cli.GetLogfile(config.Logfile); err == nil {
+			log.SetFlags(log.LstdFlags | log.Lshortfile)
+			log.SetOutput(io.MultiWriter(os.Stdout, f))
 			defer func() {
 				if err = f.Close(); err != nil {
 					fmt.Println(err)
