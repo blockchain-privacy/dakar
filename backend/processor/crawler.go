@@ -5,8 +5,6 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
-	"errors"
-	"fmt"
 	"github.com/btcsuite/btcd/btcjson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -79,13 +77,10 @@ func (c *Crawler) DB() external.Database {
 // IncrementState increments the state one block
 func (c *Crawler) IncrementState() error {
 	if c.currentBlock == nil {
-		return errors.New("currentBlock is nil")
+		return cliutil.NewStackErrorStr("currentBlock is nil")
 	}
 
-	if err := c.state.increment(c.currentBlock.NextHash); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-	return nil
+	return c.state.increment(c.currentBlock.NextHash)
 }
 
 // Empty returns true if the BlockIterator has no more data to iterate on.
@@ -99,12 +94,12 @@ func (c *Crawler) Empty() bool {
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (c *Crawler) CalculateInitialState() error {
 	if err := dbstat.SetCrawling(c.db, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	state, err := getInitialState(c.db, c.rpc)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	c.state = state
@@ -115,7 +110,7 @@ func (c *Crawler) CalculateInitialState() error {
 	info("Loading UTXOs of last", c.initialBlockCacheSize, "blocks ...")
 	c.cache, err = newUTXOCache(c.db, int64(state.id), c.initialBlockCacheSize)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 	info("Loaded", c.cache.getOutputCounts(), "UTXOs")
 
@@ -124,11 +119,7 @@ func (c *Crawler) CalculateInitialState() error {
 
 // PostExecution sets the crawler status activity flag to false
 func (c *Crawler) PostExecution() error {
-	if err := dbstat.SetCrawling(c.db, false); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return dbstat.SetCrawling(c.db, false)
 }
 
 // CurrentBlock returns the height of the block which is currently crawled
@@ -142,7 +133,7 @@ func (c *Crawler) NextBlock() (bool, error) {
 		// state is on next block
 		block, err := c.rpc.GetBlockVerbose(c.state.chainHash)
 		if err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return false, cliutil.NewStackError(err)
 		}
 
 		if block.NextHash == "" {
@@ -150,19 +141,19 @@ func (c *Crawler) NextBlock() (bool, error) {
 		}
 
 		if incErr := c.state.increment(block.NextHash); incErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), incErr)
+			return false, incErr
 		}
 	}
 
 	numBlocks, err := getRPCNumberOfBlocks(c.rpc)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, err
 	}
 
 	if c.state.id <= numBlocks-c.config.ForkRangeLimit {
 		currentBlock, getErr := c.rpc.GetBlockVerbose(c.state.chainHash)
 		if getErr != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+			return false, cliutil.NewStackError(getErr)
 		}
 		c.currentBlock = currentBlock
 		c.state.top = numBlocks
@@ -176,14 +167,14 @@ func (c *Crawler) NextBlock() (bool, error) {
 // its outputs/inputs and all associated addresses are written to the database.
 func (c *Crawler) Iterate() (bool, error) {
 	if c.Empty() {
-		return false, errors.New("got empty state")
+		return false, cliutil.NewStackErrorStr("got empty state")
 	}
 
 	var err error
 	// get block from RPC-Client
 	c.currentBlock, err = c.rpc.GetBlockVerbose(c.state.chainHash)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, cliutil.NewStackError(err)
 	}
 
 	// do the actual processing and aggregate the resulting metrics
@@ -193,7 +184,7 @@ func (c *Crawler) Iterate() (bool, error) {
 		c.transactions.Add(float64(rTransactionCounter))
 		c.blockHeight.Set(float64(c.state.id))
 	} else {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
+		return false, processErr
 	}
 
 	return true, nil

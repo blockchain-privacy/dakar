@@ -52,6 +52,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 // GetBackendContext returns a context with a runtime of backendTimeout and a cancel function
@@ -67,31 +68,43 @@ func GetFrontendContext() (context.Context, context.CancelFunc) {
 // execTx executes the given request
 func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
-	return db.Mutate(ctx, req)
+
+	resp, err := db.Mutate(ctx, req)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // execExistingTx executes the given request
 func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Request) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if req == nil {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
-	return tx.Do(ctx, req)
+
+	resp, err := tx.Do(ctx, req)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // TxWithRetry executes the given request. In case the request fails repeat it
@@ -108,7 +121,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		info("encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -131,7 +144,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
 			return
 		}
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "request:", req)
+		info("encountered error retrying:", err, "request:", req)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -144,17 +157,22 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	if timeoutPerRequest <= 0 {
-		return nil, errInvalidTimeout
+		return nil, cliutil.NewStackError(errInvalidTimeout)
 	}
 
 	if q == "" {
-		return nil, errEmptyRequestArgument
+		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
 	defer cancel()
 
-	return db.Query(ctx, q, vars)
+	resp, err := db.Query(ctx, q, vars)
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return resp, nil
 }
 
 // ReadOnlyTxVarWithRetry executes the given request. In case the request fails repeats it
@@ -172,7 +190,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 			return nil, err
 		}
 
-		info(cliutil.ShowCallInfo(), "encountered error retrying:", err, "query:", q, "vars:", vars)
+		info("encountered error retrying:", err, "query:", q, "vars:", vars)
 		if i+1 < maxRetries {
 			time.Sleep(retrySleepDuration)
 		}
@@ -190,9 +208,14 @@ func ReadOnlyTxWithRetry(db external.Database, timeoutPerRequest time.Duration, 
 func DropAll(db external.Database) error {
 	ctx, cancel := GetBackendContext()
 	defer cancel()
-	return db.Alter(ctx, &api.Operation{
+	err := db.Alter(ctx, &api.Operation{
 		DropAll: true,
 	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	return nil
 }
 
 // CreateCommaList returns a formatted string which contains all given uids for usage with Dgraph

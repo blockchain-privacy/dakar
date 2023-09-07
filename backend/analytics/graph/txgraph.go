@@ -5,8 +5,6 @@ import (
 	"backend/db/analytics"
 	"backend/external"
 
-	"errors"
-	"fmt"
 	"runtime"
 
 	"gonum.org/v1/gonum/graph"
@@ -20,12 +18,12 @@ func loadOriginTransactions(c external.Database, g *ReversibleGraph, max int) er
 	for i := 0; ; i += step {
 		originNodes, err := analytics.GetOriginTransactions(c, step, i)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		err = addSingleNodes(g, originNodes)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		if len(originNodes) < step || (max > 0 && i+step >= max) {
@@ -43,12 +41,12 @@ func loadCCTransactions(c external.Database, g *ReversibleGraph, max int) error 
 	for i := 0; ; i += step {
 		ccNodes, err := analytics.GetCollateralCreationTransactions(c, step, i)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		err = addSingleNodes(g, ccNodes)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		if len(ccNodes) < step || (max > 0 && i+step >= max) {
@@ -69,12 +67,12 @@ func loadMixingTransactions(c external.Database, g *ReversibleGraph, max int) er
 		}
 		mixingNodes, err := analytics.GetMixingTransactions(c, step, i)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		err = addEdges(g, mixingNodes)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		if len(mixingNodes) < step || (max > 0 && i+step >= max) {
@@ -95,12 +93,12 @@ func loadDestinationTransactions(c external.Database, g *ReversibleGraph, max in
 		}
 		destinationNodes, err := analytics.GetDestinationTransactions(c, step, i)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		err = addEdges(g, destinationNodes)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		if len(destinationNodes) < step || (max > 0 && i+step >= max) {
@@ -118,7 +116,7 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	mixingCount, originCount, ccCount, destinationCount, getErr :=
 		analytics.GetPrivacyTransactionCount(c)
 	if getErr != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+		return nil, getErr
 	}
 
 	// nothing to do
@@ -134,29 +132,29 @@ func LoadTransactionGraph(c external.Database, numTxToLoad int) (*ReversibleGrap
 	// load all origin transactions from the database
 	info("Loading origin nodes")
 	if err := loadOriginTransactions(c, g, numTxToLoad); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// load all cc transactions from the database
 	info("Loading cc nodes")
 	if err := loadCCTransactions(c, g, numTxToLoad); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// load all mixing transactions from the database
 	info("Loading mixing nodes")
 	if err := loadMixingTransactions(c, g, numTxToLoad); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 	// load all destination transactions from the database
 	info("Loading destination nodes")
 	if err := loadDestinationTransactions(c, g, numTxToLoad/10); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// only need to prune if a subset of transaction is loaded
 	if err := pruneNodes(g); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	info("transaction graph contains", g.Nodes().Len(), "nodes")
@@ -176,7 +174,7 @@ func addSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		g.AddNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
@@ -190,7 +188,7 @@ func upsertSingleNodes(g *ReversibleGraph, nodes []analytics.Node) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.Block[0].TS, PrivacyType: node.PrivacyType})
@@ -204,7 +202,7 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 	for _, node := range nodes {
 		nodeUID, err := ToInteger(node.UID)
 		if err != nil {
-			return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return err
 		}
 
 		g.UpdateNode(TransactionNode{id: nodeUID, TS: node.TS, PrivacyType: node.PrivacyType})
@@ -212,12 +210,12 @@ func addEdges(g *ReversibleGraph, nodes []analytics.ConnectedNode) error {
 		for _, input := range node.Inputs {
 			inputUID, parseErr := ToInteger(input.InputTransaction)
 			if parseErr != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
+				return parseErr
 			}
 
 			addressUID, parseErr := ToInteger(input.Address)
 			if parseErr != nil {
-				return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), parseErr)
+				return parseErr
 			}
 
 			g.SetEdgeWithoutOverwrite(simple.Node(nodeUID), simple.Node(inputUID), addressUID)
@@ -244,7 +242,7 @@ func pruneNodes(g *ReversibleGraph) error {
 		if !ok {
 			g.RemoveNode(nodeID)
 		} else if txNode.TS.IsZero() {
-			return errors.New("error node timestamp is zero")
+			return cliutil.NewStackErrorStr("error node timestamp is zero")
 		}
 	}
 
@@ -273,16 +271,16 @@ func verifyTransactionGraph(g *ReversibleGraph) error {
 		nodeID = node.ID()
 
 		if g.To(nodeID).Len() == 0 && g.From(nodeID).Len() == 0 {
-			return errors.New("error node exists with no edges")
+			return cliutil.NewStackErrorStr("error node exists with no edges")
 		}
 
 		txNode, ok = node.(TransactionNode)
 		if !ok {
-			return fmt.Errorf("error node has wrong type: %T", node)
+			return cliutil.NewStackErrorf("error node has wrong type: %T", node)
 		}
 
 		if txNode.TS.IsZero() {
-			return errors.New("error node has invalid timestamp")
+			return cliutil.NewStackErrorStr("error node has invalid timestamp")
 		}
 	}
 

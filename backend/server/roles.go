@@ -1,7 +1,7 @@
 package server
 
 import (
-	"errors"
+	"backend/cmd/cliutil"
 	"fmt"
 )
 
@@ -212,7 +212,7 @@ func (p PrivilegedRole) String() string {
 func getRoleByName(name string) (Role, error) {
 	returnedRole, ok := roleMap[name]
 	if !ok {
-		return nil, errors.New("role does not exist")
+		return nil, cliutil.NewStackErrorStr("role does not exist")
 	}
 
 	return returnedRole, nil

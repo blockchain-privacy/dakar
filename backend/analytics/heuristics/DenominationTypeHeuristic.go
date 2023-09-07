@@ -50,7 +50,7 @@ func (h denominationTypeHeuristic) setParameter(_ string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *denominationTypeHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errInvalidClusterTypes
+		return cliutil.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -132,14 +132,14 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 			var err error
 			results, attributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, err
 			}
 		} else {
 			var err error
 			results, attributionMap, err = getDestinationTxOrigins(dgraph, g, txHash, h.userUID,
 				h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, err
 			}
 		}
 
@@ -152,12 +152,12 @@ func (h denominationTypeHeuristic) exec(dgraph external.Database, g *graph.Wrapp
 	}
 
 	if len(origins) == 0 {
-		return nil, errNoOriginsAtStart
+		return nil, cliutil.NewStackError(errNoOriginsAtStart)
 	}
 
 	transaction, err := heuristics.GetInputAmounts(dgraph, txHash)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	inputDenominationCounts := getDenominationCounts(transaction)

@@ -36,6 +36,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 // holds the current state of the crawling processing loop
@@ -66,7 +67,6 @@ func (p *crawlerState) increment(nextHash string) (err error) {
 
 	p.chainHash, err = chainhash.NewHashFromStr(nextHash)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -130,11 +130,11 @@ func addOutputsToAddresses(addresses map[string]db.Address, addr string, uids []
 func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, outputs map[string]outputMapping,
 	addrMap map[string]db.Address) error {
 	if cache == nil {
-		return errors.New("cache is not set")
+		return cliutil.NewStackErrorStr("cache is not set")
 	}
 
 	if txHash == "" {
-		return errors.New("transaction hash is empty")
+		return cliutil.NewStackErrorStr("transaction hash is empty")
 	}
 
 	for _, mapping := range outputs {
@@ -143,7 +143,7 @@ func buildAddresses(mutex sync.Locker, cache *outputCache, txHash string, output
 			output := cache.getOutput(txHash, idx)
 
 			if output == nil {
-				return fmt.Errorf("requested output not found in cache: hash: %s index: %d", txHash, idx)
+				return cliutil.NewStackErrorf("requested output not found in cache: hash: %s index: %d", txHash, idx)
 			}
 
 			uids = append(uids, output.UID)
@@ -165,7 +165,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 	}
 
 	if cache == nil {
-		return errors.New("cache is not set")
+		return cliutil.NewStackErrorStr("cache is not set")
 	}
 
 	addrMap := make(map[string]db.Address)
@@ -177,7 +177,6 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		go func(hash string, outputs map[string]outputMapping) {
 			defer wg.Done()
 			if err = buildAddresses(&mutex, cache, hash, outputs, addrMap); err != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 				return
 			}
 		}(mapping.hash, mapping.outputs)
@@ -196,11 +195,7 @@ func processAddresses(dgraph external.Database, cache *outputCache,
 		addrSlice = append(addrSlice, a)
 	}
 
-	if err := db.UpsertAddresses(dgraph, addrSlice); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return db.UpsertAddresses(dgraph, addrSlice)
 }
 
 // createOutputUID creates a named uid, parsable by dgraph
@@ -228,7 +223,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		// process inputs if transaction is not a coinbase transaction
 		for i, d := range rawTransaction.Vin {
 			if processErr := processTxVin(&txDetails, externalOutputs, d, uint32(i), txHashMap, cache); processErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), processErr)
+				err = processErr
 				return
 			}
 		}
@@ -239,7 +234,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		if len(rawTransaction.Vin) == len(txDetails.Inputs) {
 			foundAllInputs = true
 		} else {
-			err = fmt.Errorf("not all inputs where found in transaction %s", rawTransaction.Txid)
+			err = cliutil.NewStackErrorf("not all inputs where found in transaction %s", rawTransaction.Txid)
 			return
 		}
 	} else {
@@ -254,7 +249,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		amt, valErr := btcutil.NewAmount(d.Value)
 		intAmount := int64(amt)
 		if valErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), valErr)
+			err = cliutil.NewStackError(valErr)
 			return
 		}
 		index := d.N
@@ -263,7 +258,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 		if d.ScriptPubKey.Addresses == nil && d.ScriptPubKey.Type != "nulldata" && d.ScriptPubKey.Type != "nonstandard" {
 			decodeString, decodingErr := hex.DecodeString(d.ScriptPubKey.Hex)
 			if decodingErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), decodingErr)
+				err = cliutil.NewStackError(decodingErr)
 				return
 			}
 
@@ -271,7 +266,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 			cfg.PubKeyHashAddrID = config.PubKeyHashAddrID
 			_, addresses, _, extractionError := txscript.ExtractPkScriptAddrs(decodeString, &cfg)
 			if extractionError != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), extractionError)
+				err = cliutil.NewStackError(extractionError)
 				return
 			}
 
@@ -299,7 +294,7 @@ func buildTransactionMapping(rawTransaction btcjson.TxRawResult,
 	// if all inputs are available the transaction fee gets calculated
 	if foundAllInputs {
 		if err = txDetails.CalculateTransactionFee(); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			err = cliutil.NewStackError(err)
 			return
 		}
 	}
@@ -353,7 +348,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 		amt, err := btcutil.NewAmount(v.Vout[vin.Vout].Value)
 		intAmount := int64(amt)
 		if err != nil {
-			return err
+			return cliutil.NewStackError(err)
 		}
 		refOutput.Amount = &intAmount
 	} else if o := cache.getAndEvictOutput(vin.Txid, vin.Vout); o != nil {
@@ -362,12 +357,12 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 	} else {
 		t, ok := externalOutputs[vin.Txid]
 		if !ok {
-			return fmt.Errorf("tx %s does not exist in external cache", vin.Txid)
+			return cliutil.NewStackErrorf("tx %s does not exist in external cache", vin.Txid)
 		}
 
 		o, ok := t[vin.Vout]
 		if !ok {
-			return fmt.Errorf("tx %s - outputindex %d does not exist in external cache", vin.Txid, vin.Vout)
+			return cliutil.NewStackErrorf("tx %s - outputindex %d does not exist in external cache", vin.Txid, vin.Vout)
 		}
 
 		refOutput.Amount = o.Amount
@@ -381,7 +376,7 @@ func processTxVin(details *db.Transaction, externalOutputs map[string]map[uint32
 // processBlock builds a block with the provided arguments and inserts it in the database
 func processBlock(dgraph external.Database, transactions []db.Transaction, currentHash string,
 	blockID uint64, timestamp string, prevBlockHash string) (err error) {
-	if err = db.UpsertBlock(dgraph, db.Block{
+	return db.UpsertBlock(dgraph, db.Block{
 		Hash:      currentHash,
 		Timestamp: timestamp,
 		ID:        &blockID,
@@ -389,10 +384,7 @@ func processBlock(dgraph external.Database, transactions []db.Transaction, curre
 			Hash: prevBlockHash,
 		},
 		Transactions: transactions,
-	}); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-	return
+	})
 }
 
 var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
@@ -402,7 +394,6 @@ var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highe
 func getStartingID(dgraph external.Database) (startID uint64, err error) {
 	status, err := dbstat.GetCrawlerStatus(dgraph)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -414,7 +405,6 @@ func getStartingID(dgraph external.Database) (startID uint64, err error) {
 
 	highestBlockID, err := dbstat.GetHighestBlockID(dgraph)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -436,7 +426,7 @@ func processingInterrupted() {
 func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, hashObj *chainhash.Hash,
 	rpcNumBlocks uint64, config Config) (currentBlock *btcjson.GetBlockVerboseResult, isInterrupt bool, err error) {
 	if hashObj == nil {
-		err = errors.New("blockhash is nil")
+		err = cliutil.NewStackErrorStr("blockhash is nil")
 		return
 	}
 
@@ -451,14 +441,14 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 		case <-ticker.C:
 			currentBlock, err = client.GetBlockVerbose(hashObj)
 			if err != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				err = cliutil.NewStackError(err)
 				return
 			}
 		}
 
 		numBlocks, rpcErr := getRPCNumberOfBlocks(client)
 		if rpcErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+			err = rpcErr
 			return
 		}
 		// check if block is available and if it is an actual new block
@@ -474,11 +464,11 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 	rpcInfo, err := client.GetBlockChainInfo()
 	if err != nil {
-		return 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return 0, cliutil.NewStackError(err)
 	}
 
 	if rpcInfo.Blocks < 0 {
-		return 0, errors.New("error RPC client block count is negative")
+		return 0, cliutil.NewStackErrorStr("error RPC client block count is negative")
 	}
 
 	return uint64(rpcInfo.Blocks), nil
@@ -488,14 +478,13 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
 		if !errors.Is(err, errBlockIdsDoNotMatch) {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 			return
 		}
-		info(errBlockIdsDoNotMatch.Error(), "continuing...")
+		info(cliutil.NewStackError(errBlockIdsDoNotMatch), "continuing...")
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 	state.hash = state.chainHash.String()
@@ -503,7 +492,7 @@ func getInitialState(dgraph external.Database, client external.RPCClient) (state
 	// get RPC client block count
 	numBlocks, rpcErr := getRPCNumberOfBlocks(client)
 	if rpcErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), rpcErr)
+		err = rpcErr
 		return
 	}
 
@@ -529,13 +518,13 @@ func createTransactionHashmap(client external.BatchRPCClient,
 
 			txHash, err := chainhash.NewHashFromStr(t)
 			if err != nil {
-				l.err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				l.err = cliutil.NewStackError(err)
 				c <- l
 				return
 			}
 			futureResults := client.GetRawTransactionVerboseAsync(txHash)
 			if err != nil {
-				l.err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				l.err = cliutil.NewStackError(err)
 				c <- l
 				return
 			}
@@ -551,14 +540,14 @@ func createTransactionHashmap(client external.BatchRPCClient,
 	for i := 0; i < len(transactions); i++ {
 		lookup := <-c
 		if lookup.err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), lookup.err)
+			return nil, cliutil.NewStackError(lookup.err)
 		}
 		futures = append(futures, lookup)
 	}
 
 	// send batch request
 	if err := client.Send(); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	// collect results
@@ -566,7 +555,7 @@ func createTransactionHashmap(client external.BatchRPCClient,
 	for _, f := range futures {
 		r, err := f.result.Receive()
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, cliutil.NewStackError(err)
 		}
 
 		txs[f.hash] = *r
@@ -589,7 +578,7 @@ func getExternalOutputs(dgraph external.Database,
 
 	transactionsOutputs, err := db.GetTransactionsOutputs(dgraph, transactionHashes)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	returnMap := make(map[string]map[uint32]db.Output)
@@ -600,7 +589,7 @@ func getExternalOutputs(dgraph external.Database,
 		for _, i := range indexes {
 			for _, o := range t.Outputs {
 				if o.OutputIndex == nil {
-					return nil, fmt.Errorf("output index was not set for tx %s", t.Hash)
+					return nil, cliutil.NewStackErrorf("output index was not set for tx %s", t.Hash)
 				}
 				if *o.OutputIndex == i {
 					// add index mapping
@@ -628,7 +617,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 
 	txHashMap, err := createTransactionHashmap(batchRPC, block.Tx)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 
@@ -641,7 +630,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	for _, t := range txHashMap {
 		newTx, tMap, buildErr := buildTransactionMapping(t, txHashMap, externalOutputs, config, cache)
 		if buildErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), buildErr)
+			err = fmt.Errorf("%s: %w", state.String(), err)
 			return
 		}
 
@@ -654,7 +643,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 
 	// sanity check for number of transactions
 	if len(transactions) != len(block.Tx) {
-		err = fmt.Errorf("wrong number of transactions in block: %s", block.Hash)
+		err = cliutil.NewStackErrorf("wrong number of transactions in block: %s", block.Hash)
 		return
 	}
 
@@ -672,7 +661,7 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 		// block is not yet in database -> create new block
 		ts := time.Unix(block.Time, 0).Format(time.RFC3339)
 		if err = processBlock(dgraph, transactions, state.hash, state.id, ts, block.PreviousHash); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+			err = fmt.Errorf("%s: %w", state.String(), err)
 			return
 		}
 
@@ -685,7 +674,6 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 	blockID := int64(state.id)
 	transactionOutputs, err := db.GetOutputs(dgraph, blockID, blockID)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -706,26 +694,26 @@ func processRound(dgraph external.Database, batchRPC external.BatchRPCClient, st
 		if len(utxos) > 0 {
 			// this cache only gets UTXOs
 			if setErr := cache.setOutputs(t.Hash, utxos); setErr != nil {
-				err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), setErr)
+				err = setErr
 				return
 			}
 		}
 
 		// this cache gets all outputs
 		if setErr := allOutputsCache.setOutputs(t.Hash, t.Outputs); setErr != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), setErr)
+			err = setErr
 			return
 		}
 	}
 
 	if err = processAddresses(dgraph, allOutputsCache, txMapping); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 
 	// save processing state
 	if err = dbstat.SetLastBlockID(dgraph, state.id); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo()+state.String(), err)
+		err = fmt.Errorf("%s: %w", state.String(), err)
 		return
 	}
 

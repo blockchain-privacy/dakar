@@ -51,7 +51,7 @@ func (h reverseLookupHeuristic) hasParameter() bool {
 func (h *reverseLookupHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
@@ -65,7 +65,7 @@ func (h *reverseLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *reverseLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errInvalidClusterTypes
+		return cliutil.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -144,11 +144,11 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		// get origins from parent heuristic
 		parentHeuristicResults, attrMap, err := heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 
 		if parentHeuristicResults == nil {
-			return nil, errNoOriginsAtStart
+			return nil, cliutil.NewStackError(errNoOriginsAtStart)
 		}
 
 		parentAttributionMap = attrMap
@@ -160,14 +160,14 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 	// gather input information
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	var exclusions []string
 	if h.excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 	}
 
@@ -178,7 +178,7 @@ func (h reverseLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
 			h.clusterTypes, exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 		if timeLimitedOrigins == nil {
 			continue

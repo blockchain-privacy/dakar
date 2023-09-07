@@ -6,7 +6,6 @@ import (
 
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -43,7 +42,7 @@ func sendRedirectMessage(w http.ResponseWriter) {
 	setDefaultHeader(w)
 	if _, err := w.Write([]byte(`{"invalidToken": true}`)); err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		info(cliutil.ShowCallInfo(), err)
+		info(err)
 	}
 }
 
@@ -51,17 +50,17 @@ func sendRedirectMessage(w http.ResponseWriter) {
 func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
 	metadata, ok := metaDataPublic.(map[string]any)
 	if !ok {
-		return nil, errors.New("identity has no public metadata")
+		return nil, cliutil.NewStackErrorStr("identity has no public metadata")
 	}
 
 	rolesInterface, ok := metadata["roles"]
 	if !ok {
-		return nil, errors.New("identity has no field 'roles'")
+		return nil, cliutil.NewStackErrorStr("identity has no field 'roles'")
 	}
 
 	roleInterfaces, ok := rolesInterface.([]any)
 	if !ok {
-		return nil, errors.New("roles could not be cast from interface")
+		return nil, cliutil.NewStackErrorStr("roles could not be cast from interface")
 	}
 
 	var roles []dbus.Role
@@ -82,17 +81,17 @@ func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
 func extractDgraphUID(metadataPublic any) (string, error) {
 	metadata, ok := metadataPublic.(map[string]any)
 	if !ok {
-		return "", errors.New("identity has no admin metadata")
+		return "", cliutil.NewStackErrorStr("identity has no admin metadata")
 	}
 
 	dgraphUIDInterface, ok := metadata["dgraph_uid"]
 	if !ok {
-		return "", errors.New("identity has no field 'dgraph_uid'")
+		return "", cliutil.NewStackErrorStr("identity has no field 'dgraph_uid'")
 	}
 
 	dgraphUID, ok := dgraphUIDInterface.(string)
 	if !ok {
-		return "", errors.New("dgraph UID could not be cast from interface")
+		return "", cliutil.NewStackErrorStr("dgraph UID could not be cast from interface")
 	}
 
 	return dgraphUID, nil
@@ -105,7 +104,7 @@ func (s *Server) authorization() adapter {
 				Cookie(r.Header.Get("Cookie")).Execute()
 			if err != nil {
 				sendRedirectMessage(w)
-				info(cliutil.ShowCallInfo(), err)
+				info(err)
 				return
 			}
 			defer sessionResponse.Body.Close()
@@ -125,7 +124,7 @@ func (s *Server) authorization() adapter {
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
 					sendRedirectMessage(w)
-					info(cliutil.ShowCallInfo(), extensionErr)
+					info(extensionErr)
 					return
 				}
 				defer extensionResponse.Body.Close()
@@ -134,14 +133,14 @@ func (s *Server) authorization() adapter {
 			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
 			if err != nil {
 				sendRedirectMessage(w)
-				info(cliutil.ShowCallInfo(), err)
+				info(err)
 				return
 			}
 
 			roles, err := extractRoles(session.Identity.MetadataPublic)
 			if err != nil {
 				sendRedirectMessage(w)
-				info(cliutil.ShowCallInfo(), err)
+				info(err)
 				return
 			}
 
@@ -151,7 +150,7 @@ func (s *Server) authorization() adapter {
 				routeRole, roleErr := getRoleByName(role.Name)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
-					info(cliutil.ShowCallInfo(), roleErr)
+					info(roleErr)
 					return
 				}
 
@@ -163,7 +162,7 @@ func (s *Server) authorization() adapter {
 
 			if !routeAllowed {
 				writeUnauthorized(w, "route not allowed")
-				info(cliutil.ShowCallInfo(), session, "tried to access", route)
+				info(session, "tried to access", route)
 				return
 			}
 

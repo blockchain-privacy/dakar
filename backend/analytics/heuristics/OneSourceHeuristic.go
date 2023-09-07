@@ -7,8 +7,6 @@ import (
 	"backend/db/analytics/exclusion"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-	"errors"
-
 	"fmt"
 	"strconv"
 	"time"
@@ -51,7 +49,7 @@ func (h oneSourceHeuristic) hasParameter() bool {
 func (h *oneSourceHeuristic) setParameter(p string) error {
 	hoursToLookBack, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 	lBackTime := time.Duration(hoursToLookBack) * time.Hour
 	h.lookBackTime = lBackTime
@@ -65,7 +63,7 @@ func (h *oneSourceHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *oneSourceHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errInvalidClusterTypes
+		return cliutil.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -147,7 +145,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	// transaction specified by txHash. These transactions are called >>input transactions<<.
 	inputTransactions, err := heuristics.GetInputTransactions(dgraph, txHash)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// sources holds all sources found in all input transactions
@@ -172,7 +170,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	if h.excludeAddresses {
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 	}
 
@@ -180,7 +178,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		timeLimitedOrigins, usedAttributions, err := getTimeLimitedOrigins(dgraph, g, it, h.lookBackTime, h.userUID,
 			h.clusterTypes, exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 
 		if len(timeLimitedOrigins) == 0 {
@@ -204,7 +202,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 		// get input denominations
 		nDenominations, denominationIndex, getErr := getNumberOfDenominations(t.inputTransaction, txHash)
 		if getErr != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), getErr)
+			return nil, getErr
 		}
 
 		oSource := countClusterDenominations(t.origins, denominationIndex)
@@ -267,7 +265,7 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	for k := range remainingOrigins {
 		v, ok := allOriginMap[k]
 		if !ok {
-			return nil, errors.New("could not find origin in all origin map")
+			return nil, cliutil.NewStackErrorStr("could not find origin in all origin map")
 		}
 
 		resultClusters[v.Cluster] = append(resultClusters[v.Cluster], heuristics.HeuristicResult{

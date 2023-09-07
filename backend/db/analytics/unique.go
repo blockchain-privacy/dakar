@@ -5,7 +5,6 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -62,7 +61,7 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 		clusterCountVariables = outputClusterVariable + ", " + inputClusterVariable
 		addressesWithClusterVariables = outputAddressesWithClusterVariable + ", " + inputAddressesWithClusterVariable
 	default:
-		err = errors.New("invalid option")
+		err = cliutil.NewStackErrorStr("invalid option")
 		return
 	}
 
@@ -99,7 +98,6 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$to": toDate.Format(time.RFC3339), "$from": date.Format(time.RFC3339)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -116,12 +114,12 @@ func GetUniqueAddressCountsPerBlock(c external.Database, date time.Time, option 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.AddressCount) != 1 || len(r.ClusterCount) != 1 || len(r.AddressesWithCluster) != 1 {
-		err = errors.New("invalid response from database")
+		err = cliutil.NewStackErrorStr("invalid response from database")
 		return
 	}
 
@@ -142,7 +140,6 @@ func BlockHeightToTimestamp(c external.Database, blockHeight uint64) (timestamp 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query,
 		map[string]string{"$height": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -153,12 +150,12 @@ func BlockHeightToTimestamp(c external.Database, blockHeight uint64) (timestamp 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Query) != 1 {
-		err = errors.New("invalid response from database")
+		err = cliutil.NewStackErrorStr("invalid response from database")
 		return
 	}
 

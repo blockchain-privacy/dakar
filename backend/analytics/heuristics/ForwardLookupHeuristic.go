@@ -50,7 +50,7 @@ func (h forwardLookupHeuristic) hasParameter() bool {
 func (h *forwardLookupHeuristic) setParameter(p string) error {
 	hoursToLookForward, err := strconv.ParseUint(p, 10, 32)
 	if err != nil {
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	h.lookForwardTime = time.Duration(hoursToLookForward) * time.Hour
@@ -64,7 +64,7 @@ func (h *forwardLookupHeuristic) setParameter(p string) error {
 // then the consolidation of the multi-input clusters and the additional clusters will be used.
 func (h *forwardLookupHeuristic) setClusterTypes(clusterTypes []clustering.ClusterType) error {
 	if !areClusterTypesValid(clusterTypes) {
-		return errInvalidClusterTypes
+		return cliutil.NewStackError(errInvalidClusterTypes)
 	}
 
 	h.clusterTypes = clusterTypes
@@ -145,19 +145,19 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 			var err error
 			results, resultAttributionMap, err = heuristics.GetHeuristicResults(dgraph, parentHeuristicUID)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, err
 			}
 		} else {
 			var err error
 			results, resultAttributionMap, err = getDestinationTxOriginsTimeLimited(dgraph, g, txHash,
 				h.lookForwardTime, h.userUID, h.clusterTypes, h.excludeAddresses, h.excludeSpendingGaps)
 			if err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, err
 			}
 		}
 
 		if len(results) == 0 {
-			return nil, errNoOriginsAtStart
+			return nil, cliutil.NewStackError(errNoOriginsAtStart)
 		}
 	}
 
@@ -166,7 +166,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		var err error
 		exclusions, err = exclusion.GetAddressExclusionUIDs(dgraph, h.userUID)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 	}
 
@@ -175,7 +175,7 @@ func (h forwardLookupHeuristic) exec(dgraph external.Database, g *graph.Wrapper,
 		uidMap, err := getOriginDestinationTimeLimited(g, []string{o.UID}, h.lookForwardTime,
 			exclusions, h.excludeSpendingGaps)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 
 		result := heuristics.HeuristicResult{

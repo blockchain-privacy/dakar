@@ -4,8 +4,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
-	"errors"
-	"fmt"
 )
 
 type outputCache struct {
@@ -32,7 +30,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 		stepTransactions, err := db.GetOutputs(dgraph, i, to)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return nil, err
 		}
 
 		transactions = append(transactions, stepTransactions...)
@@ -54,7 +52,7 @@ func newUTXOCache(dgraph external.Database, mostRecentBlockID int64, initialLoad
 
 		if len(utxos) > 0 {
 			if err := cache.setOutputs(t.Hash, utxos); err != nil {
-				return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+				return nil, err
 			}
 		}
 	}
@@ -81,11 +79,11 @@ func (u *outputCache) getOutputCounts() int {
 // setOutputs sets the outputs for the specified transaction hash.
 func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	if len(outputs) == 0 {
-		return fmt.Errorf("tried to set zero outputs for transaction %s", txHash)
+		return cliutil.NewStackErrorf("tried to set zero outputs for transaction %s", txHash)
 	}
 
 	if txHash == "" {
-		return errors.New("transaction hash is empty")
+		return cliutil.NewStackErrorStr("transaction hash is empty")
 	}
 
 	if _, ok := u.c[txHash]; ok {
@@ -94,7 +92,7 @@ func (u *outputCache) setOutputs(txHash string, outputs []db.Output) error {
 	outputMap := make(map[uint32]db.Output)
 	for _, o := range outputs {
 		if o.OutputIndex == nil {
-			return fmt.Errorf("output index is not set for tx %s", txHash)
+			return cliutil.NewStackErrorf("output index is not set for tx %s", txHash)
 		}
 		outputMap[*o.OutputIndex] = o
 	}

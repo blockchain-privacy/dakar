@@ -1,14 +1,10 @@
 package cliutil
 
 import (
-	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
-	"path"
-	"runtime"
 	"strconv"
 	"strings"
 
@@ -20,12 +16,12 @@ func ReadConfig(configFilePath string, config interface{}) error {
 	// Open config file
 	file, err := os.Open(configFilePath)
 	if err != nil {
-		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		return NewStackError(err)
 	}
 	defer func(file *os.File) {
 		err := file.Close()
 		if err != nil {
-			log.Println(fmt.Errorf("%s: %w", ShowCallInfo(), err))
+			log.Println(NewStackError(err))
 		}
 	}(file)
 
@@ -36,7 +32,7 @@ func ReadConfig(configFilePath string, config interface{}) error {
 
 	// Start YAML decoding from file
 	if err := d.Decode(config); err != nil {
-		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		return NewStackError(err)
 	}
 
 	return nil
@@ -46,11 +42,11 @@ func ReadConfig(configFilePath string, config interface{}) error {
 func WriteConfig(filePath string, config interface{}) error {
 	marshalledConfig, err := yaml.Marshal(&config)
 	if err != nil {
-		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		return NewStackError(err)
 	}
 
 	if err := os.WriteFile(filePath, marshalledConfig, 0600); err != nil {
-		return fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		return NewStackError(err)
 	}
 
 	return nil
@@ -63,30 +59,11 @@ func SetConfigFlags(defaultConfigName string, filePath *string, createConfigFile
 		"creates a default config file '"+defaultConfigName+"' (default: false)")
 }
 
-// ShowCallInfo returns the current call stack
-func ShowCallInfo() string {
-	pc, file, line, ok := runtime.Caller(1)
-	if !ok {
-		return ""
-	}
-
-	_, fileName := path.Split(file)
-	parts := strings.Split(runtime.FuncForPC(pc).Name(), ".")
-	pl := len(parts)
-	funcName := parts[pl-1]
-
-	if parts[pl-2][0] == '(' {
-		funcName = parts[pl-2] + "." + funcName
-	}
-
-	return fmt.Sprintf("%s:%d %s", fileName, line, funcName)
-}
-
 // BuildEndpoint creates a string in the format of "host:port"
 func BuildEndpoint(host string, port uint) (string, error) {
 	host = strings.TrimSpace(host)
 	if len(host) == 0 || port == 0 {
-		return "", errors.New("host or port is not valid")
+		return "", NewStackErrorStr("host or port is not valid")
 	}
 
 	return host + ":" + strconv.Itoa(int(port)), nil
@@ -95,13 +72,13 @@ func BuildEndpoint(host string, port uint) (string, error) {
 // GetLogfile returns a file accessor for fileName
 func GetLogfile(fileName string) (f *os.File, err error) {
 	if len(fileName) == 0 {
-		err = errors.New("name for log file is invalid")
+		err = NewStackErrorStr("name for log file is invalid")
 		return
 	}
 
 	f, err = os.OpenFile(fileName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", ShowCallInfo(), err)
+		err = NewStackError(err)
 		return
 	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)

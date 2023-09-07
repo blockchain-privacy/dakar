@@ -2,6 +2,7 @@ package server
 
 import (
 	heuristic "backend/analytics/heuristics"
+	"backend/cmd/cliutil"
 	"backend/external"
 	"errors"
 	"fmt"
@@ -32,10 +33,7 @@ func InitLogger(out io.Writer, flag int) {
 
 func info(v ...interface{}) {
 	thisLogger.Println(v...)
-}
-
-func fatal(v ...interface{}) {
-	thisLogger.Fatalln(v...)
+	cliutil.PrintStack(thisLogger, v...)
 }
 
 type Server struct {
@@ -51,11 +49,11 @@ type Server struct {
 func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClient, client external.RPCClient,
 	worker *heuristic.Worker) (*Server, error) {
 	if adminAuth == nil || auth == nil {
-		return nil, errors.New("authentication handles are not set")
+		return nil, cliutil.NewStackErrorStr("authentication handles are not set")
 	}
 
 	if worker == nil {
-		return nil, errors.New("worker pointer is nil")
+		return nil, cliutil.NewStackErrorStr("worker pointer is nil")
 	}
 
 	// init cache
@@ -93,8 +91,8 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fatal("server error:", err)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			info("server error:", cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()
@@ -119,8 +117,8 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fatal("server error:", err)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			info("server error:", cliutil.NewStackError(err))
 		}
 		wg.Done()
 	}()

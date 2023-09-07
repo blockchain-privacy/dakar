@@ -5,28 +5,26 @@ import (
 	"backend/db"
 	"backend/db/analytics/exclusion"
 	"backend/external"
-	"errors"
-	"fmt"
 )
 
 // ImportAddressExclusions writes the given address relations into the database
 func ImportAddressExclusions(dgraph external.Database, exclusions []string, userID string) error {
 	if userID == "" {
-		return errors.New("user ID is not set")
+		return cliutil.NewStackErrorStr("user ID is not set")
 	}
 
 	if len(exclusions) == 0 {
-		return errors.New("address exclusion list is empty")
+		return cliutil.NewStackErrorStr("address exclusion list is empty")
 	}
 
 	uids, err := validateExclusionAddresses(dgraph, exclusions)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	dbExclusions := buildDatabaseAddressExclusions(uids, userID)
 	if err := exclusion.AddAddressExclusions(dgraph, dbExclusions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	return nil
@@ -53,11 +51,11 @@ func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusio
 func validateExclusionAddresses(dgraph external.Database, exclusions []string) ([]string, error) {
 	// check maximum number of items
 	if len(exclusions) > 10000 {
-		return nil, ErrTooManyAddresses
+		return nil, cliutil.NewStackError(ErrTooManyAddresses)
 	}
 
 	if len(exclusions) == 0 {
-		return nil, errors.New("empty argument")
+		return nil, cliutil.NewStackErrorStr("empty argument")
 	}
 
 	addresses := map[string]bool{}
@@ -73,7 +71,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	// check if all addresses exist
 	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// check if there is some mismatch
@@ -89,7 +87,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			break
 		}
 
-		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
@@ -97,7 +95,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 	uids := make([]string, len(dbAddresses))
 	for i, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, fmt.Errorf("address invalid: %v", dbAddress)
+			return nil, cliutil.NewStackErrorf("address invalid: %v", dbAddress)
 		}
 		uids[i] = dbAddress.UID
 	}

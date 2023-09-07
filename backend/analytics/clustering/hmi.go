@@ -7,7 +7,6 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"context"
-	"errors"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -59,25 +58,25 @@ func NewHierarchicalMultiInput(ctx context.Context, dgraph external.Database) *H
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (m *HierarchicalMultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringHMI(m.db, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	if err := setInitialHMIClusteringID(m.db); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	clusteringStatus, err := dbstat.GetClusteringHMIStatus(m.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return errors.New("error last HMI clustered block is not set")
+		return cliutil.NewStackErrorStr("error last HMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -103,13 +102,13 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
-		return false, errors.New("got empty state")
+		return false, cliutil.NewStackErrorStr("got empty state")
 	}
 
 	// get the transaction of the current block height
 	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeHMI)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, err
 	}
 
 	var countMergedClusters int
@@ -137,7 +136,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 			for _, addr := range tx.Addresses {
 				if len(addr.Clusters) > 0 {
 					if len(addr.Clusters) != 1 {
-						return false, fmt.Errorf("found more than one multi-input cluster attached to address %v", addr)
+						return false, cliutil.NewStackErrorf("found more than one multi-input cluster attached to address %v", addr)
 					}
 
 					transactionCluster := addr.Clusters[0]
@@ -161,8 +160,8 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 					} else {
 						root, dbErr := clustering.GetHierarchicalClusterRoot(m.db, transactionCluster.UID)
 						if dbErr != nil {
-							return false, fmt.Errorf("%s - block %d cluster uid %s: %w",
-								cliutil.ShowCallInfo(), m.state.ID, transactionCluster.UID, dbErr)
+							return false, fmt.Errorf("block %d cluster uid %s: %w",
+								m.state.ID, transactionCluster.UID, dbErr)
 						}
 
 						clusterMap[root.UID] = clustering.Cluster{
@@ -190,7 +189,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
-				return false, errors.New("Transaction " + tx.UID +
+				return false, cliutil.NewStackErrorStr("Transaction " + tx.UID +
 					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
 			}
 
@@ -250,12 +249,12 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 		// insert new clusters
 		if len(newClusters) > 0 {
 			if validationErr := validateClusters(newClusters); validationErr != nil {
-				return false, fmt.Errorf("%s block id: %d: %w", cliutil.ShowCallInfo(), m.state.ID, validationErr)
+				return false, fmt.Errorf("block id %d: %w", m.state.ID, validationErr)
 			}
 
 			clusterErr := clustering.AddClusters(m.db, newClusters, true)
 			if clusterErr != nil {
-				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
+				return false, clusterErr
 			}
 		}
 
@@ -267,7 +266,7 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 
 	// set the last classified block
 	if statusErr := dbstat.SetLastClusteredHMIBlockID(m.db, m.state.ID); statusErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
+		return false, statusErr
 	}
 
 	m.blocks.Inc()
@@ -280,9 +279,9 @@ func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, err
 	} else if status.LastClassifiedBlockID == nil {
-		return false, errors.New("last classified block is not set")
+		return false, cliutil.NewStackErrorStr("last classified block is not set")
 	}
 
 	if m.state.ID <= *status.LastClassifiedBlockID {
@@ -294,11 +293,7 @@ func (m *HierarchicalMultiInput) NextBlock() (bool, error) {
 }
 
 func (m *HierarchicalMultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringHMI(m.db, false); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return dbstat.SetClusteringHMI(m.db, false)
 }
 
 func (m *HierarchicalMultiInput) IncrementState() error {
@@ -332,20 +327,18 @@ func (m *HierarchicalMultiInput) Name() string {
 }
 
 // setInitialHMIClusteringID sets the starting HMI clustering block id to 0 if no value has been set yet
-func setInitialHMIClusteringID(dgraph external.Database) (err error) {
+func setInitialHMIClusteringID(dgraph external.Database) error {
 	status, err := dbstat.GetClusteringHMIStatus(dgraph)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
 		if err = dbstat.SetLastClusteredHMIBlockID(dgraph, 0); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // getClusterRootByCluster returns the rootUID of UID. This is done by following the
@@ -381,19 +374,19 @@ func validateClusters(clusters []clustering.Cluster) error {
 	addressUIDs := make(map[string]bool)
 	for _, cluster := range clusters {
 		if len(cluster.Children) == 0 && len(cluster.Addresses) == 0 {
-			return fmt.Errorf("cluster %s has no addresses and no children", cluster.UID)
+			return cliutil.NewStackErrorf("cluster %s has no addresses and no children", cluster.UID)
 		}
 
 		for _, child := range cluster.Children {
 			if clusterUIDs[child.UID] {
-				return fmt.Errorf("cluster %s has multiple parents", child.UID)
+				return cliutil.NewStackErrorf("cluster %s has multiple parents", child.UID)
 			}
 			clusterUIDs[child.UID] = true
 		}
 
 		for _, addr := range cluster.Addresses {
 			if addressUIDs[addr.UID] {
-				return fmt.Errorf("address %s has multiple parents", addr.UID)
+				return cliutil.NewStackErrorf("address %s has multiple parents", addr.UID)
 			}
 			addressUIDs[addr.UID] = true
 		}

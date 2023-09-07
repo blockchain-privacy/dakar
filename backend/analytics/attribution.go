@@ -5,8 +5,6 @@ import (
 	"backend/db"
 	"backend/db/analytics/attribution"
 	"backend/external"
-	"errors"
-	"fmt"
 	"time"
 )
 
@@ -21,11 +19,11 @@ type Attribution struct {
 // ImportAttribution writes the given address relations into the database
 func ImportAttribution(dgraph external.Database, attributions []Attribution, userID string, isPublic bool) error {
 	if userID == "" {
-		return errors.New("user ID is not set")
+		return cliutil.NewStackErrorStr("user ID is not set")
 	}
 
 	if len(attributions) == 0 {
-		return errors.New("attribution list is empty")
+		return cliutil.NewStackErrorStr("attribution list is empty")
 	}
 
 	addrToUID, err := validateAddresses(dgraph, attributions)
@@ -34,11 +32,8 @@ func ImportAttribution(dgraph external.Database, attributions []Attribution, use
 	}
 
 	dbAttributions := buildDatabaseAttributions(attributions, userID, addrToUID, isPublic)
-	if err := attribution.AddAttributions(dgraph, dbAttributions); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
 
-	return nil
+	return attribution.AddAttributions(dgraph, dbAttributions)
 }
 
 func buildDatabaseAttributions(attributions []Attribution, userID string, hashToUID map[string]string,
@@ -77,11 +72,11 @@ func buildDatabaseAttributions(attributions []Attribution, userID string, hashTo
 func validateAddresses(dgraph external.Database, attributions []Attribution) (map[string]string, error) {
 	// check maximum number of items
 	if len(attributions) > 1000 {
-		return nil, ErrTooManyAddresses
+		return nil, cliutil.NewStackError(ErrTooManyAddresses)
 	}
 
 	if len(attributions) == 0 {
-		return nil, errors.New("attribution list is empty")
+		return nil, cliutil.NewStackErrorStr("attribution list is empty")
 	}
 
 	addresses := map[string]bool{}
@@ -97,7 +92,7 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 	// check if all addresses exist
 	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	// check if there is some mismatch
@@ -113,14 +108,14 @@ func validateAddresses(dgraph external.Database, attributions []Attribution) (ma
 			break
 		}
 
-		return nil, fmt.Errorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
 	}
 
 	// build mapping
 	hashToUID := map[string]string{}
 	for _, dbAddress := range dbAddresses {
 		if dbAddress.Hash == "" || dbAddress.UID == "" {
-			return nil, fmt.Errorf("address invalid: %v", dbAddress)
+			return nil, cliutil.NewStackErrorf("address invalid: %v", dbAddress)
 		}
 		hashToUID[dbAddress.Hash] = dbAddress.UID
 	}

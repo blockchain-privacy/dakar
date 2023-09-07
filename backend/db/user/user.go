@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	ory "github.com/ory/kratos-client-go"
 	"time"
 
@@ -30,7 +29,7 @@ func CreateNewUser(c external.Database) (string, error) {
 
 	pb, err := json.Marshal(usr)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return "", cliutil.NewStackError(err)
 	}
 
 	req := &api.Request{
@@ -40,14 +39,14 @@ func CreateNewUser(c external.Database) (string, error) {
 		CommitNow: true,
 	}
 
-	resp, dbErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if dbErr != nil {
-		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), dbErr)
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return "", err
 	}
 
 	// check if insert was successful
 	if len(resp.Uids) != 1 {
-		return "", fmt.Errorf("invalid number of uids returned: %s", resp.Uids)
+		return "", cliutil.NewStackErrorf("invalid number of uids returned: %s", resp.Uids)
 	}
 
 	var userUID string
@@ -55,7 +54,7 @@ func CreateNewUser(c external.Database) (string, error) {
 		userUID = v
 	}
 
-	return userUID, err
+	return userUID, nil
 }
 
 // GetUsers gets all users currently in the database
@@ -75,22 +74,21 @@ func GetUsers(c external.Database) (users []FrontendUserBackendState, err error)
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	// json struct
-
 	var r struct {
 		Users []User `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Users) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorUsersNotFound)
+		err = cliutil.NewStackError(ErrorUsersNotFound)
 		return
 	}
 
@@ -119,22 +117,21 @@ func GetUsersWithCredentials(c external.Database) (users []FrontendUserClientSta
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
 	// json struct
-
 	var r struct {
 		Users []User `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Users) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrorUsersNotFound)
+		err = cliutil.NewStackError(ErrorUsersNotFound)
 		return
 	}
 
@@ -155,7 +152,7 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 	// no retry
 	resp, txErr := c.Query(ctx, query, map[string]string{"$uid": uid})
 	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
+		err = cliutil.NewStackError(txErr)
 		return
 	}
 
@@ -166,7 +163,7 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -182,10 +179,10 @@ func existsUser(c external.Database, uid string) (found bool, err error) {
 // DeleteUser deletes the User with the given uid
 func DeleteUser(c external.Database, uid string) (err error) {
 	if found, existsErr := existsUser(c, uid); existsErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), existsErr)
+		err = existsErr
 		return
 	} else if !found {
-		err = errors.New("error user does not exist")
+		err = cliutil.NewStackErrorStr("error user does not exist")
 		return
 	}
 
@@ -198,12 +195,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 		CommitNow: true,
 	}
 
-	if txErr := db.TxWithRetry(c, time.Minute*5, req); txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
-		return
-	}
-
-	return
+	return db.TxWithRetry(c, time.Minute*5, req)
 }
 
 // CreateDgraphAndKratosUser creates a dgraph user and ory kratos identity.
@@ -215,13 +207,13 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 	// handle state
 	newState, err := ory.NewIdentityStateFromValue(state)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	// create dgraph user
 	newUserUID, userCreationError := CreateNewUser(c)
 	if userCreationError != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), userCreationError)
+		return userCreationError
 	}
 
 	// create kratos identity
@@ -233,7 +225,7 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 		State:          newState,
 	}).Execute()
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return nil
@@ -252,7 +244,7 @@ func CreateKratosUser(ctx context.Context, dgraphUID string, adminAuth *ory.APIC
 		Credentials:    credentials,
 	}).Execute()
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return cliutil.NewStackError(err)
 	}
 
 	return nil
@@ -263,7 +255,7 @@ func generateRandomPassword() (string, error) {
 	// Generate a Salt
 	pwByte := make([]byte, 16)
 	if _, err := rand.Read(pwByte); err != nil {
-		return "", err
+		return "", cliutil.NewStackError(err)
 	}
 
 	return base64.RawStdEncoding.EncodeToString(pwByte), nil
@@ -273,7 +265,7 @@ func generateRandomPassword() (string, error) {
 func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string) (string, error) {
 	pw, err := generateRandomPassword()
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return "", err
 	}
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Minute*2)
@@ -285,7 +277,7 @@ func CreateAdminUser(c external.Database, adminAuth *ory.APIClient, email string
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"admin"}, "active")
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return "", err
 	}
 
 	return pw, nil
@@ -302,7 +294,7 @@ func CreatePrivilegedUser(c external.Database, adminAuth *ory.APIClient, email s
 			Config: &ory.IdentityWithCredentialsPasswordConfig{Password: &pw}},
 	}, []string{"privileged"}, "active")
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	return nil

@@ -5,7 +5,6 @@ import (
 	"backend/external"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -83,11 +82,11 @@ func (bq blockQuery) payload() (blk Block, err error) {
 	lenQ := len(bq.Q)
 
 	if lenQ == 0 {
-		err = errors.New("no blocks found")
+		err = cliutil.NewStackErrorStr("no blocks found")
 		return
 	} else if lenQ > 1 {
 		// found more than one block, which should not be possible
-		err = errors.New("found more than one block")
+		err = cliutil.NewStackErrorStr("found more than one block")
 		return
 	}
 	blk = bq.Q[0]
@@ -97,7 +96,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 // GetBlock gets block information from the database
 func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	if blockHash == "" {
-		err = errEmptyRequestArgument
+		err = cliutil.NewStackError(errEmptyRequestArgument)
 		return
 	}
 
@@ -120,15 +119,13 @@ func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 			  }`
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$hash": blockHash})
-
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
-	var r blockQuery
 
+	var r blockQuery
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -181,21 +178,18 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 
 	resp, err := ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
 		map[string]string{"$blockID": strconv.Itoa(id)})
-
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 	var r blockQuery
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	block, err := r.payload()
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -223,7 +217,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 // GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
 	if blockHash == "" {
-		err = errEmptyRequestArgument
+		err = cliutil.NewStackError(errEmptyRequestArgument)
 		return
 	}
 
@@ -275,7 +269,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	defer cancel()
 	resp, err := c.Query(ctx, query, map[string]string{"$ident": blockHash})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -296,10 +290,10 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 	}
 
 	if len(r.Blocks) == 0 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), ErrBlockNotFound)
+		err = cliutil.NewStackError(ErrBlockNotFound)
 		return
 	} else if len(r.Blocks) != 1 {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), errInvalidResult)
+		err = cliutil.NewStackError(errInvalidResult)
 		return
 	}
 
@@ -336,7 +330,7 @@ func GetFrontendBlock(c external.Database, blockHash string, offset int) (block 
 // UpsertBlock upserts a block and the prevBlock relation
 func UpsertBlock(c external.Database, block Block) error {
 	if block.PrevBlock == nil {
-		return fmt.Errorf("previous block reference is nil: %v", block)
+		return cliutil.NewStackErrorf("previous block reference is nil: %v", block)
 	}
 	block.UID = "uid(v)"
 	block.PrevBlock.UID = "uid(x)"
@@ -355,8 +349,7 @@ func UpsertBlock(c external.Database, block Block) error {
 
 	pb, err := json.Marshal(block)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
 	query := `query Q($currentHash:string,$prevHash:string){
@@ -368,35 +361,26 @@ func UpsertBlock(c external.Database, block Block) error {
 				}
 			  }`
 
-	req := &api.Request{
+	return TxWithRetry(c, time.Minute*15, &api.Request{
 		Query: query,
 		Vars:  map[string]string{"$currentHash": block.Hash, "$prevHash": block.PrevBlock.Hash},
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
-	}
-	if err = TxWithRetry(c, time.Minute*15, req); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return err
+	})
 }
 
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
 func InsertArbitraryJSON(c external.Database, data []byte) error {
 	if len(data) == 0 {
-		return errEmptyRequestArgument
+		return cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
-	if err := TxWithRetry(c, time.Minute*15, &api.Request{
+	return TxWithRetry(c, time.Minute*15, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: data,
 		}},
 		CommitNow: true,
-	}); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	})
 }

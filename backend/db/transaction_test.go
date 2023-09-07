@@ -239,7 +239,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, int64(-1), transaction[0].PrivacyType)
 
 	SetupDB(t, dbHandle, blockFileName)
-	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638"
+	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638" //nolint:gosec
 	transaction, err = GetFrontendTransaction(dbHandle, txHash2)
 	require.NoError(t, err)
 	require.Equal(t, 1, len(transaction))
@@ -276,7 +276,7 @@ func TestGetTransactionBlockID(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 60001, id)
 
-	const txHash2 = "d0bc5aba5a81df73b706d7819956fb298e03baf52a97c736bb588dfd3586e849"
+	const txHash2 = "d0bc5aba5a81df73b706d7819956fb298e03baf52a97c736bb588dfd3586e849" //nolint:gosec
 	id, err = GetTransactionBlockID(dbHandle, txHash2)
 	require.NoError(t, err)
 	require.EqualValues(t, 60007, id)

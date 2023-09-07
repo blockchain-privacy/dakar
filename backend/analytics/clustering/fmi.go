@@ -8,8 +8,6 @@ import (
 	"backend/external"
 
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"strconv"
 
@@ -61,25 +59,25 @@ func NewFlatMultiInput(ctx context.Context, dgraph external.Database) *FlatMulti
 // CalculateInitialState calculates the state on which the iterator starts processing
 func (m *FlatMultiInput) CalculateInitialState() error {
 	if err := dbstat.SetClusteringFMI(m.db, true); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	if err := setInitialFMIClusteringID(m.db); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	classifierStatus, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	clusteringStatus, err := dbstat.GetClusteringFMIStatus(m.db)
 	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return err
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return errors.New("error last FMI clustered block is not set")
+		return cliutil.NewStackErrorStr("error last FMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -111,13 +109,13 @@ type newCluster struct {
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
 func (m *FlatMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
-		return false, errors.New("got empty state")
+		return false, cliutil.NewStackErrorStr("got empty state")
 	}
 
 	// get the transaction of the current block height
 	transactions, err := clustering.GetInputAddressesByBlock(m.db, m.state.ID, clustering.TypeFMI)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, err
 	}
 
 	if len(transactions) > 0 {
@@ -140,8 +138,8 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 			for _, addr := range tx.Addresses {
 				if len(addr.Clusters) > 0 {
 					if len(addr.Clusters) != 1 {
-						return false, fmt.Errorf("%s: found more than one multi-input "+
-							"cluster attached to address %v", cliutil.ShowCallInfo(), addr)
+						return false, cliutil.NewStackErrorf("found more than one multi-input "+
+							"cluster attached to address %v", addr)
 					}
 					transactionCluster := addr.Clusters[0]
 
@@ -158,7 +156,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 			if len(addressesWithoutCluster) == 0 && len(existingClusters) == 0 {
 				// this should never happen
-				return false, errors.New("Transaction " + tx.UID +
+				return false, cliutil.NewStackErrorStr("Transaction " + tx.UID +
 					" at block " + strconv.FormatUint(m.state.ID, 10) + " has invalid data")
 			}
 
@@ -179,7 +177,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		operations, err = buildDBOperation(processedClusters, addressMergeMap, clusterIndex)
 		if err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+			return false, err
 		}
 
 		// increase index
@@ -187,7 +185,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 		clusters, clusterErr := buildDBOperation(processedClusters, clusterMergeMap, clusterIndex)
 		if err != nil {
-			return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), clusterErr)
+			return false, clusterErr
 		}
 		operations = append(operations, clusters...)
 
@@ -195,7 +193,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 		if len(operations) > 0 {
 			opErr := clustering.ProcessClusterOperations(m.db, operations)
 			if opErr != nil {
-				return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), opErr)
+				return false, opErr
 			}
 
 			countMergedClusters, countNewAddresses := calculateMetrics(operations)
@@ -209,7 +207,7 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 
 	// set the last classified block
 	if statusErr := dbstat.SetLastClusteredFMIBlockID(m.db, m.state.ID); statusErr != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), statusErr)
+		return false, statusErr
 	}
 
 	m.blocks.Inc()
@@ -222,9 +220,9 @@ func (m *FlatMultiInput) Iterate() (bool, error) {
 func (m *FlatMultiInput) NextBlock() (bool, error) {
 	status, err := dbstat.GetClassifierStatus(m.db)
 	if err != nil {
-		return false, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return false, err
 	} else if status.LastClassifiedBlockID == nil {
-		return false, errors.New("last classified block is not set")
+		return false, cliutil.NewStackErrorStr("last classified block is not set")
 	}
 
 	if m.state.ID <= *status.LastClassifiedBlockID {
@@ -236,11 +234,7 @@ func (m *FlatMultiInput) NextBlock() (bool, error) {
 }
 
 func (m *FlatMultiInput) PostExecution() error {
-	if err := dbstat.SetClusteringFMI(m.db, false); err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return nil
+	return dbstat.SetClusteringFMI(m.db, false)
 }
 
 func (m *FlatMultiInput) IncrementState() error {
@@ -274,20 +268,18 @@ func (m *FlatMultiInput) Name() string {
 }
 
 // setInitialFMIClusteringID sets the starting FMI clustering block id to 0 if no value has been set yet
-func setInitialFMIClusteringID(dgraph external.Database) (err error) {
+func setInitialFMIClusteringID(dgraph external.Database) error {
 	status, err := dbstat.GetClusteringFMIStatus(dgraph)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return
+		return err
 	}
 
 	if status.LastClusteredBlockID == nil {
 		if err = dbstat.SetLastClusteredFMIBlockID(dgraph, 0); err != nil {
-			err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-			return
+			return err
 		}
 	}
-	return
+	return nil
 }
 
 // addClustersToMergeList adds newClusters and newAddresses to clusterMergeMap and
@@ -416,7 +408,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 		processedClusters[i] = true
 
 		if len(i.mergeList) == 0 && len(i.addresses) == 0 {
-			return nil, errors.New("no clusters and addresses")
+			return nil, cliutil.NewStackErrorStr("no clusters and addresses")
 		}
 
 		clusterIndex++
@@ -430,7 +422,7 @@ func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*
 			var largestAddressesCount int
 			for _, c := range i.mergeList {
 				if c.AddressCount == nil {
-					return nil, fmt.Errorf("address count is not set for cluster %s", c.UID)
+					return nil, cliutil.NewStackErrorf("address count is not set for cluster %s", c.UID)
 				}
 				addressCount += *c.AddressCount
 				if *c.AddressCount > largestAddressesCount {

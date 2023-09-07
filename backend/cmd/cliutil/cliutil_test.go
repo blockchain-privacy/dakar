@@ -60,11 +60,6 @@ func TestSetConfigFlags(t *testing.T) {
 	})
 }
 
-func TestShowCallInfo(t *testing.T) {
-	info := ShowCallInfo()
-	require.NotEmpty(t, info, "call info is empty")
-}
-
 func TestBuildEndpoint(t *testing.T) {
 	cases := []struct {
 		host string

@@ -224,7 +224,7 @@ func TestProcessAddresses(t *testing.T) {
 	const (
 		fistAddress   = "XonqFxADHJxSwZCuka5h46HXAdFfBMQc21"
 		secondAddress = "XvdH1vasQtDv7LvQuD2u124ibKFwNsPFv9"
-		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b"
+		txHash        = "fd89e6e3bb0968da20d0253dbddb9e8634bc97e1f173b7c497e0c61e7231398b" //nolint:gosec
 	)
 
 	mapping, err := db.GetTransactionsOutputs(dbHandle, []string{txHash})

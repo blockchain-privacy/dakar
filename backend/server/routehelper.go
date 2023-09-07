@@ -141,7 +141,7 @@ func handleError(w http.ResponseWriter, err error) {
 	}
 
 	http.Error(w, "an error occurred", http.StatusInternalServerError)
-	info(cliutil.ShowCallInfo(), err)
+	info(err)
 }
 
 // buildKey build a key from the given arguments
@@ -222,12 +222,12 @@ type tokenUser struct {
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
-		err = errors.New("could not extract token user from context")
+		err = cliutil.NewStackErrorStr("could not extract token user from context")
 		return
 	}
 	tUser := userInfo.(tokenUser)
 	if len(tUser.ID) == 0 {
-		err = errors.New("invalid user id extracted from context")
+		err = cliutil.NewStackErrorStr("invalid user id extracted from context")
 		return
 	}
 

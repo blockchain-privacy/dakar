@@ -2,8 +2,6 @@ package graph
 
 import (
 	"backend/cmd/cliutil"
-	"errors"
-	"fmt"
 	"math"
 	"sort"
 )
@@ -115,7 +113,7 @@ func getShortestDistances(sessionMeans1 []int64, sessionMeans2 []int64) []int64 
 func scoreMeans(rootMeans []int64, otherMeans []int64) (float64, error) {
 	distances := getShortestDistances(rootMeans, otherMeans)
 	if len(distances) == 0 {
-		return -1, errors.New("no distances found")
+		return -1, cliutil.NewStackErrorStr("no distances found")
 	}
 
 	var score float64
@@ -148,22 +146,22 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, 0, err
 	}
 
 	rootNode := g.Node(nodeUID)
 	if rootNode == nil {
-		return nil, 0, errors.New(uid + " not in graph")
+		return nil, 0, cliutil.NewStackErrorStr(uid + " not in graph")
 	}
 
 	rootTx, ok := rootNode.(TransactionNode)
 	if !ok || !rootTx.PrivacyType.IsDestination() {
-		return nil, 0, errors.New(uid + " is not a destination transaction")
+		return nil, 0, cliutil.NewStackErrorStr(uid + " is not a destination transaction")
 	}
 
 	rootMeans := getSessionsFromTransaction(g, rootTx)
 	if len(rootMeans) == 0 {
-		return nil, 0, errors.New(uid + " has no session means")
+		return nil, 0, cliutil.NewStackErrorStr(uid + " has no session means")
 	}
 	earliestInputTimestamp := rootMeans[0]
 	numSessions := len(rootMeans)

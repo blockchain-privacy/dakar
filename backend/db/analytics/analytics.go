@@ -7,7 +7,6 @@ import (
 	"backend/external"
 
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -66,7 +65,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	var r struct {
@@ -74,7 +73,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	connectedNodes := make([]ConnectedNode, len(r.Q))
@@ -82,7 +81,7 @@ func GetConnectedPrivacyTransactions(c external.Database, numNodes int, offsetNo
 	for i, connectedNode := range r.Q {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
-			return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+			return nil, conversionErr
 		}
 
 		connectedNodes[i] = *node
@@ -107,7 +106,7 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, err
 	}
 
 	var r struct {
@@ -115,7 +114,7 @@ func GetPrivacyTransactions(c external.Database, numNodes int, offsetNodes int, 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return r.Q, nil
@@ -173,7 +172,6 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -196,12 +194,12 @@ func GetPrivacyTransactionCount(c external.Database) (mixingCount int, originCou
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
 	if len(r.Mixing) != 1 || len(r.Origin) != 1 || len(r.Destination) != 1 || len(r.CC) != 1 {
-		err = errors.New("invalid response from database")
+		err = cliutil.NewStackErrorStr("invalid response from database")
 		return
 	}
 
@@ -263,7 +261,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
 		map[string]string{"$bid": strconv.FormatUint(blockHeight, 10)})
 	if err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, err
 	}
 
 	var r struct {
@@ -272,7 +270,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
 	connectedNodes := make([]ConnectedNode, len(r.Connected))
@@ -280,7 +278,7 @@ func GetPrivacyTransactionsByBlock(c external.Database, blockHeight uint64) ([]C
 	for i, connectedNode := range r.Connected {
 		node, conversionErr := connectedNode.toConnectedNode()
 		if conversionErr != nil {
-			return nil, nil, fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), conversionErr)
+			return nil, nil, conversionErr
 		}
 
 		connectedNodes[i] = *node
@@ -303,7 +301,6 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
 		map[string]string{"$ge": startRange, "$le": stopRange})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -315,7 +312,7 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 

@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/external"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"regexp"
@@ -19,28 +18,21 @@ func AddAttributions(c external.Database, attributions []Attribution) error {
 	for _, a := range attributions {
 		if a.Address.UID == "" || a.Tag == "" || a.Timestamp == "" ||
 			(!a.IsPublic && a.User == nil) || (a.IsPublic && a.User != nil) {
-			return fmt.Errorf("attribution invalid: %v", a)
+			return cliutil.NewStackErrorf("attribution invalid: %v", a)
 		}
 	}
 
 	pb, err := json.Marshal(attributions)
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-		return err
+		return cliutil.NewStackError(err)
 	}
 
-	req := &api.Request{
+	return db.TxWithRetry(c, time.Minute*5, &api.Request{
 		Mutations: []*api.Mutation{{
 			SetJson: pb,
 		}},
 		CommitNow: true,
-	}
-	err = db.TxWithRetry(c, time.Minute*5, req)
-	if err != nil {
-		return fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
-	}
-
-	return err
+	})
 }
 
 // GetUserAttributions returns all attributions of a user
@@ -66,7 +58,6 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*3, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -74,7 +65,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 		Attributions []RequestAttribution `json:"q,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -86,7 +77,7 @@ func GetUserAttributions(c external.Database, userID string) (attributions []Fro
 }
 
 // DeletePrivateAttribution deletes the given attribution
-func DeletePrivateAttribution(c external.Database, userID string, attributionUID string) (err error) {
+func DeletePrivateAttribution(c external.Database, userID string, attributionUID string) error {
 	req := &api.Request{
 		Query: `query Q($user:string,$attribution:string) {
 				var(func:uid($user))@filter(type(User)){
@@ -99,22 +90,21 @@ func DeletePrivateAttribution(c external.Database, userID string, attributionUID
 		}},
 		CommitNow: true,
 	}
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
-		return
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
 	}
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
-	return
+	return nil
 }
 
 // DeletePublicAttribution deletes the given public attribution
-func DeletePublicAttribution(c external.Database, attributionUID string) (err error) {
+func DeletePublicAttribution(c external.Database, attributionUID string) error {
 	req := &api.Request{
 		Query: `query Q($attribution:string) {
 				a as var(func:uid($attribution))@filter(type(` + DType + ") and eq(Attribution.isPublic,true))}",
@@ -124,22 +114,21 @@ func DeletePublicAttribution(c external.Database, attributionUID string) (err er
 		}},
 		CommitNow: true,
 	}
-	resp, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
-		return
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
 	}
 
 	// check if there was actually something mutated
 	if resp.GetMetrics().NumUids["mutation_cost"] == 0 {
-		return errors.New("nothing was deleted")
+		return cliutil.NewStackErrorStr("nothing was deleted")
 	}
 
-	return
+	return nil
 }
 
 // DeleteAllAttributions deletes all attributions of a given user
-func DeleteAllAttributions(c external.Database, userID string) (err error) {
+func DeleteAllAttributions(c external.Database, userID string) error {
 	req := &api.Request{
 		Query: `query Q($user:string) {
 				var(func:uid($user))@filter(type(User)){
@@ -152,13 +141,8 @@ func DeleteAllAttributions(c external.Database, userID string) (err error) {
 		}},
 		CommitNow: true,
 	}
-	_, txErr := db.TxWithRetryAndResponse(c, time.Minute*5, req)
-	if txErr != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), txErr)
-		return
-	}
-
-	return
+	_, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	return err
 }
 
 // SearchAttributions returns the attributions that match the query string
@@ -189,7 +173,6 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID, "$regex": regex})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -198,7 +181,7 @@ func SearchAttributions(c external.Database, userID string, searchQuery string) 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
@@ -247,7 +230,6 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute, query, map[string]string{"$user": userID})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
 		return
 	}
 
@@ -264,7 +246,7 @@ func GetAttributionsPerCluster(c external.Database, userID string, clusterTypes 
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = fmt.Errorf("%s: %w", cliutil.ShowCallInfo(), err)
+		err = cliutil.NewStackError(err)
 		return
 	}
 
