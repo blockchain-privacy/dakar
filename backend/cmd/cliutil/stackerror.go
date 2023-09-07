@@ -59,7 +59,7 @@ func LogError(l *slog.Logger, err error, v ...any) {
 	var st StackError
 	if errors.As(err, &st) {
 		v = append(v, slog.String("stack", string(st.Stack())))
-		l.Warn(st.Error(), v...)
+		l.Warn(err.Error(), v...)
 	} else {
 		l.Warn(err.Error(), v...)
 	}
