@@ -14,13 +14,17 @@ func ErrNodeNotFound(nodeID int64) error {
 	return cliutil.NewStackErrorf("node %s does not exist in graph", ToHex(nodeID))
 }
 
-// ToHex returns a hexadecimal string representation of the given integer with the '0x' prefix
+// ToHex returns a hexadecimal string representation of the given integer with the '0x' prefix.
+// Does not handle negative integers.
 func ToHex(i int64) string {
 	return "0x" + strconv.FormatInt(i, 16)
 }
 
-// ToInteger a hex string in the form of "0x123" to an integer
+// ToInteger a hex string in the form of "0x123" to an integer. For performance reasons, there is no strong input validation.
 func ToInteger(hexString string) (int64, error) {
+	if len(hexString) < 3 {
+		return 0, cliutil.NewStackErrorf("string to short: %s", hexString)
+	}
 	integer, err := strconv.ParseInt(hexString[2:], 16, 64)
 	if err != nil {
 		return 0, cliutil.NewStackError(err)
