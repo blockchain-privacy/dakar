@@ -32,11 +32,8 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 	}
 
 	dbClusters := buildDatabaseClusters(clusters, userID, addrToUID)
-	if err := clustering.AddCustomClusters(dgraph, dbClusters); err != nil {
-		return err
-	}
 
-	return nil
+	return clustering.AddCustomClusters(dgraph, dbClusters)
 }
 
 func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
@@ -93,10 +90,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 		addresses[c.AddressHash] = true
 	}
 
-	uniqueAddresses := make([]string, 0, len(addresses))
-	for k := range addresses {
-		uniqueAddresses = append(uniqueAddresses, k)
-	}
+	uniqueAddresses := cliutil.GetMapKeys(addresses)
 
 	// check maximum number of addresses
 	if len(uniqueAddresses) > 1000 {
@@ -123,14 +117,7 @@ func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem)
 			delete(addresses, a.Hash)
 		}
 
-		// get one nonexistent address from map
-		var nonAddress string
-		for k := range addresses {
-			nonAddress = k
-			break
-		}
-
-		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping

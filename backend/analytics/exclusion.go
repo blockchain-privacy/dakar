@@ -23,11 +23,8 @@ func ImportAddressExclusions(dgraph external.Database, exclusions []string, user
 	}
 
 	dbExclusions := buildDatabaseAddressExclusions(uids, userID)
-	if err := exclusion.AddAddressExclusions(dgraph, dbExclusions); err != nil {
-		return err
-	}
 
-	return nil
+	return exclusion.AddAddressExclusions(dgraph, dbExclusions)
 }
 
 func buildDatabaseAddressExclusions(exclusions []string, userID string) exclusion.User {
@@ -63,13 +60,8 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 		addresses[c] = true
 	}
 
-	uniqueAddresses := make([]string, 0, len(addresses))
-	for k := range addresses {
-		uniqueAddresses = append(uniqueAddresses, k)
-	}
-
 	// check if all addresses exist
-	dbAddresses, err := db.GetAddressUIDs(dgraph, uniqueAddresses)
+	dbAddresses, err := db.GetAddressUIDs(dgraph, cliutil.GetMapKeys(addresses))
 	if err != nil {
 		return nil, err
 	}
@@ -80,14 +72,7 @@ func validateExclusionAddresses(dgraph external.Database, exclusions []string) (
 			delete(addresses, a.Hash)
 		}
 
-		// get one nonexistent address from map
-		var nonAddress string
-		for k := range addresses {
-			nonAddress = k
-			break
-		}
-
-		return nil, cliutil.NewStackErrorf("%s: %w", nonAddress, ErrNonExistentAddress)
+		return nil, cliutil.NewStackErrorf("%s: %w", cliutil.GetOneKey(addresses), ErrNonExistentAddress)
 	}
 
 	// build mapping

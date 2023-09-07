@@ -180,15 +180,6 @@ func buildSourceAmounts(origins map[string]heuristics.HeuristicTransaction) map[
 	return sourceAmounts
 }
 
-// getKeySlice returns a slice containing all keys of the given map
-func getKeySlice(m map[string]bool) (keys []string) {
-	for k := range m {
-		keys = append(keys, k)
-	}
-
-	return
-}
-
 // getTimeLimitedOrigins returns all origins of the given transaction.
 // If lookBackTime is bigger than zero only origins in the time range of
 // tx.ts - lookBackTime will be returned.
@@ -203,7 +194,7 @@ func getTimeLimitedOrigins(dgraph external.Database, g *graph.Wrapper, tx heuris
 	}
 
 	// get tx details for each uid
-	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(endpoints),
+	return heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, cliutil.GetMapKeys(endpoints),
 		userUID, clusterTypes)
 }
 
@@ -259,7 +250,7 @@ func getDestinationTxOriginsTimeLimited(dgraph external.Database, g *graph.Wrapp
 	}
 
 	// get tx details for each uid
-	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, getKeySlice(uidMap),
+	origins, attributionMapping, err = heuristics.GetTransactionsWithOutputAmountAndCluster(dgraph, cliutil.GetMapKeys(uidMap),
 		userUID, requestedClusterTypes)
 	if err != nil {
 		return nil, nil, err
@@ -298,7 +289,7 @@ func getOriginDestinationsWithInputs(dgraph external.Database, g *graph.Wrapper,
 	}
 
 	// get tx details for each uid
-	return heuristics.GetTransactionsWithInputAmount(dgraph, getKeySlice(uidMap))
+	return heuristics.GetTransactionsWithInputAmount(dgraph, cliutil.GetMapKeys(uidMap))
 }
 
 func isParentHeuristicSet(parentHeuristicUID string) bool {

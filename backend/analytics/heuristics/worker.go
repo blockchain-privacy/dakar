@@ -232,11 +232,7 @@ mainLoop:
 
 			// get Work for this cycle
 			w.mapMutex.RLock()
-			for k, v := range w.executionMap {
-				work = v
-				w.currentWorkItem = k
-				break
-			}
+			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
 
 			// do we have something to do?
@@ -265,9 +261,6 @@ mainLoop:
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}
 			w.mapMutex.Unlock()
-
-			// reset memory
-			work = Work{}
 		}
 	}
 }

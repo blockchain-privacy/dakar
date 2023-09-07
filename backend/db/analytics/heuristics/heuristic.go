@@ -501,11 +501,7 @@ func createKeyHash(someMap map[string]bool) string {
 	}
 
 	// sort elements so a consistent hash can be generated
-	keys := make([]string, 0, len(someMap))
-	for k := range someMap {
-		keys = append(keys, k)
-	}
-
+	keys := cliutil.GetMapKeys(someMap)
 	sort.Strings(keys)
 
 	var allKeys []byte

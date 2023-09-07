@@ -191,12 +191,7 @@ func (h *forwardAmountHeuristic) exec(dgraph external.Database, g *graph.Wrapper
 
 	clusterDestinations := make([]clusterDestination, 0, len(clusterOrigins))
 	for c, txMap := range clusterOrigins {
-		var txUIDs []string
-
-		for k := range txMap {
-			txUIDs = append(txUIDs, k)
-		}
-		destinations, err := getOriginDestinationsWithInputs(dgraph, g, txUIDs, h.lookForwardTime,
+		destinations, err := getOriginDestinationsWithInputs(dgraph, g, cliutil.GetMapKeys(txMap), h.lookForwardTime,
 			exclusions, h.excludeSpendingGaps)
 		if err != nil {
 			return nil, err
