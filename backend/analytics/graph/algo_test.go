@@ -136,7 +136,10 @@ func TestCheckAddressExclusions(t *testing.T) {
 	}
 }
 
-func TestReverseLookupByID(t *testing.T) {
+// newTestGraph returns a new graph with the structure shown below.
+// Each layer of nodes has a time difference of 1 hour.
+// Thus, node 11 is the most recent while node 1 has a 3-hour time difference.
+func newTestGraph() *ReversibleGraph {
 	// *** Test Graph structure  ***
 	//              ┌──────┐
 	//              │  5   ├─────┐
@@ -151,47 +154,59 @@ func TestReverseLookupByID(t *testing.T) {
 	//                   │
 	// ┌──────┬────┬─────┴┐    ┌──────┬──────┬──────┐
 	// │  3   │    │  7   │    │  10  │      │  12  │
-	// └──────┤    └──────┴────┴──────┘      └──────┘
-	//        │
-	// ┌──────┤
-	// │  4   │
-	// └──────┘
+	// └──────┤    └──────┴────┴──┬───┘      └──────┘
+	//        │                   │
+	// ┌──────┤                ┌──┴───┐
+	// │  4   │                │  13  │
+	// └──────┘                └──────┘
 	graph := NewReversibleGraph(12)
 	now := time.Now()
 
+	threeHoursOld := now.Add(-time.Hour * 3)
+	twoHoursOld := now.Add(-time.Hour * 2)
+	oneHourOld := now.Add(-time.Hour * 1)
+
 	graph.SetEdgeWithoutOverwrite(
 		TransactionNode{TS: now, id: 11, PrivacyType: 0},
-		TransactionNode{TS: now, id: 8, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 8, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 8, PrivacyType: 0},
-		TransactionNode{TS: now, id: 5, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 8, PrivacyType: 0},
+		TransactionNode{TS: twoHoursOld, id: 5, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 8, PrivacyType: 0},
-		TransactionNode{TS: now, id: 6, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 8, PrivacyType: 0},
+		TransactionNode{TS: twoHoursOld, id: 6, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 6, PrivacyType: 0},
-		TransactionNode{TS: now, id: 1, PrivacyType: 0}, 0)
+		TransactionNode{TS: twoHoursOld, id: 6, PrivacyType: 0},
+		TransactionNode{TS: threeHoursOld, id: 1, PrivacyType: 201}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 6, PrivacyType: 0},
-		TransactionNode{TS: now, id: 2, PrivacyType: 0}, 0)
+		TransactionNode{TS: twoHoursOld, id: 6, PrivacyType: 0},
+		TransactionNode{TS: threeHoursOld, id: 2, PrivacyType: 201}, 0)
 	graph.SetEdgeWithoutOverwrite(
 		TransactionNode{TS: now, id: 11, PrivacyType: 0},
-		TransactionNode{TS: now, id: 9, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 9, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
 		TransactionNode{TS: now, id: 12, PrivacyType: 0},
-		TransactionNode{TS: now, id: 10, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 10, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 10, PrivacyType: 0},
-		TransactionNode{TS: now, id: 7, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 10, PrivacyType: 0},
+		TransactionNode{TS: twoHoursOld, id: 7, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 9, PrivacyType: 0},
-		TransactionNode{TS: now, id: 7, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 10, PrivacyType: 0},
+		TransactionNode{TS: oneHourOld, id: 13, PrivacyType: 201}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 7, PrivacyType: 0},
-		TransactionNode{TS: now, id: 3, PrivacyType: 0}, 0)
+		TransactionNode{TS: oneHourOld, id: 9, PrivacyType: 0},
+		TransactionNode{TS: twoHoursOld, id: 7, PrivacyType: 0}, 0)
 	graph.SetEdgeWithoutOverwrite(
-		TransactionNode{TS: now, id: 3, PrivacyType: 0},
-		TransactionNode{TS: now, id: 4, PrivacyType: 0}, 0)
+		TransactionNode{TS: twoHoursOld, id: 7, PrivacyType: 0},
+		TransactionNode{TS: threeHoursOld, id: 3, PrivacyType: 0}, 123456)
+	graph.SetEdgeWithoutOverwrite(
+		TransactionNode{TS: threeHoursOld, id: 3, PrivacyType: 0},
+		TransactionNode{TS: threeHoursOld, id: 4, PrivacyType: 201}, 0)
+	return graph
+}
+
+func TestReverseLookupByID(t *testing.T) {
+	graph := newTestGraph()
 	type args struct {
 		nodeID              int64
 		maxLookBackTime     time.Duration
@@ -206,7 +221,7 @@ func TestReverseLookupByID(t *testing.T) {
 		{
 			args: args{
 				nodeID:              11,
-				maxLookBackTime:     time.Hour * 24 * 60,
+				maxLookBackTime:     time.Hour * 24,
 				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
@@ -216,17 +231,17 @@ func TestReverseLookupByID(t *testing.T) {
 		{
 			args: args{
 				nodeID:              12,
-				maxLookBackTime:     time.Hour * 24 * 60,
+				maxLookBackTime:     time.Hour * 24,
 				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
-			want:    map[string]bool{"0x4": true},
+			want:    map[string]bool{"0x4": true, "0xd": true},
 			wantErr: false,
 		},
 		{
 			args: args{
 				nodeID:              6,
-				maxLookBackTime:     time.Hour * 24 * 60,
+				maxLookBackTime:     time.Hour * 24,
 				addressExclusions:   nil,
 				excludeSpendingGaps: false,
 			},
@@ -241,9 +256,232 @@ func TestReverseLookupByID(t *testing.T) {
 			args:    args{nodeID: -1},
 			wantErr: true,
 		},
+		// Limited look back
+		{
+			args: args{
+				nodeID:              11,
+				maxLookBackTime:     time.Hour * 2,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0x5": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              12,
+				maxLookBackTime:     time.Hour * 1,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0xd": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              6,
+				maxLookBackTime:     time.Minute * 30,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{},
+			wantErr: false,
+		},
+		// address exclusion
+		{
+			args: args{
+				nodeID:              12,
+				maxLookBackTime:     time.Hour * 24,
+				addressExclusions:   []string{ToHex(123456)},
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0xd": true},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
-		results, err := ReverseLookupByID(graph, tt.args.nodeID, tt.args.maxLookBackTime, nil, false)
+		results, err := ReverseLookupByID(graph, tt.args.nodeID, tt.args.maxLookBackTime,
+			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, results)
+		}
+	}
+}
+
+func TestReverseLookup(t *testing.T) {
+	graph := newTestGraph()
+	type args struct {
+		nodeID              int64
+		maxLookBackTime     time.Duration
+		addressExclusions   []string
+		excludeSpendingGaps bool
+	}
+	tests := []struct {
+		args    args
+		want    map[string]bool
+		wantErr bool
+	}{
+		{
+			args: args{
+				nodeID:              11,
+				maxLookBackTime:     time.Hour * 24,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0x5": true, "0x1": true, "0x2": true, "0x4": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              12,
+				maxLookBackTime:     time.Hour * 24,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0x4": true, "0xd": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              6,
+				maxLookBackTime:     time.Hour * 24,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0x1": true, "0x2": true},
+			wantErr: false,
+		},
+		{
+			args:    args{nodeID: 500},
+			wantErr: true,
+		},
+		{
+			args:    args{nodeID: -1},
+			wantErr: true,
+		},
+		// Limited look back
+		{
+			args: args{
+				nodeID:              11,
+				maxLookBackTime:     time.Hour * 2,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0x5": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              12,
+				maxLookBackTime:     time.Hour * 1,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0xd": true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              6,
+				maxLookBackTime:     time.Minute * 30,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{},
+			wantErr: false,
+		},
+		// address exclusion
+		{
+			args: args{
+				nodeID:              12,
+				maxLookBackTime:     time.Hour * 24,
+				addressExclusions:   []string{ToHex(123456)},
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{"0xd": true},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := ReverseLookup(graph, ToHex(tt.args.nodeID), tt.args.maxLookBackTime,
+			tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, results)
+		}
+	}
+}
+
+func TestForwardLookup(t *testing.T) {
+	graph := newTestGraph()
+	type args struct {
+		nodeID              int64
+		targetID            int64
+		addressExclusions   []string
+		excludeSpendingGaps bool
+	}
+	tests := []struct {
+		args    args
+		want    map[string]bool
+		wantErr bool
+	}{
+		{
+			args: args{
+				nodeID:              1,
+				targetID:            11,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              4,
+				targetID:            11,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := ForwardLookup(graph, ToHex(tt.args.nodeID), ToHex(tt.args.targetID), tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, results)
+		}
+	}
+}
+
+func TestGetInputTransactions(t *testing.T) {
+	graph := newTestGraph()
+	tests := []struct {
+		uid     string
+		want    []string
+		wantErr bool
+	}{
+		{
+			uid:     ToHex(11),
+			want:    []string{ToHex(8), ToHex(9)},
+			wantErr: false,
+		},
+		{
+			uid:     ToHex(12),
+			want:    []string{ToHex(10)},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := GetInputTransactions(graph, tt.uid)
 		if tt.wantErr {
 			require.Error(t, err)
 		} else {
