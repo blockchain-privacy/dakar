@@ -479,6 +479,11 @@ func TestGetInputTransactions(t *testing.T) {
 			want:    []string{ToHex(10)},
 			wantErr: false,
 		},
+		{
+			uid:     "a",
+			want:    nil,
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		results, err := GetInputTransactions(graph, tt.uid)
