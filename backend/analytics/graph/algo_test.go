@@ -2,6 +2,7 @@ package graph
 
 import (
 	"github.com/stretchr/testify/require"
+	"slices"
 	"testing"
 	"time"
 )
@@ -491,6 +492,8 @@ func TestGetInputTransactions(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
+			// sort results so order stays the same
+			slices.Sort(results)
 			require.Equal(t, tt.want, results)
 		}
 	}
