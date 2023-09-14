@@ -44,12 +44,14 @@ services:
     ports:
       - '4433:4433' # public
       - '4434:4434' # admin
+    user: "1000:1000"
     environment:
      # - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
       - DSN=postgres://${KRATOS_POSTGRES_USER}:${KRATOS_POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
-      - LOG_LEVEL=trace
+     # - LOG_LEVEL=trace
       - SQA_OPT_OUT=true
-    command: serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out
+    entrypoint: ''
+    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out 2>&1 | tee -a /etc/config/kratos/log.txt'
 #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
@@ -115,11 +117,12 @@ services:
     depends_on:
       - kratos
     container_name: oathkeeper
+    user: "1000:1000"
     ports:
       - "4455:4455"
       - "4456:4456"
-    command:
-      serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out
+    entrypoint: ''
+    command: /bin/sh -c 'oathkeeper serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out 2>&1 | tee -a /etc/config/oathkeeper/log.txt'
     environment:
       - LOG_LEVEL=debug
     restart: on-failure
@@ -127,6 +130,18 @@ services:
       - dgraph_default
     volumes:
       - ./oathkeeper:/etc/config/oathkeeper
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    volumes:
+      - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:ro
+      - ./kratos/log.txt:/kratos_log.txt:ro
+      - ./oathkeeper/log.txt:/oathkeeper_log.txt:ro
+      - ../backend/cmd/crawler/crawler.log:/crawler.log:ro
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - dgraph_default
 
 #  bitcoind:
 #    image: ruimarinho/bitcoin-core:23.0-alpine
