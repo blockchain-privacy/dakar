@@ -1,4 +1,4 @@
-version: v0.11.0
+version: v1.0.0
 
 dsn: memory
 
@@ -34,6 +34,7 @@ selfservice:
   default_browser_return_url: http://localhost:8082/
   allowed_return_urls:
     - http://localhost:4455
+    - http://localhost:8082/
 
   methods:
     password:
@@ -61,6 +62,9 @@ selfservice:
       enabled: true
       ui_url: http://localhost:8082/recovery
       use: code
+      after:
+        hooks:
+          - hook: revoke_active_sessions
 
     verification:
       enabled: false
@@ -74,11 +78,9 @@ selfservice:
 
     login:
       ui_url: http://localhost:8082/login
-      lifespan: 10m
 
     registration:
       enabled: false
-      lifespan: 10m
       ui_url: http://localhost:8082/registration
       after:
         password:
@@ -87,7 +89,7 @@ selfservice:
 
 log:
   level: info
-  format: text
+  format: json
   leak_sensitive_values: false
 
 secrets:
