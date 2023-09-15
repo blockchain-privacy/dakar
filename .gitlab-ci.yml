@@ -36,9 +36,11 @@ test:
   variables:
     CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
   script:
-    - wget https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz
+    # get btcd for rpc testing
+    - curl --fail --silent --show-error -LO https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
+    # start tests
     - make test
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
