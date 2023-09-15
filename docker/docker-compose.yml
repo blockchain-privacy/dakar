@@ -51,7 +51,7 @@ services:
      # - LOG_LEVEL=trace
       - SQA_OPT_OUT=true
     entrypoint: ''
-    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out 2>&1 | tee -a /etc/config/kratos/log.txt'
+    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out ${KRATOS_DEV_CLI_PARAMETERS} 2>&1 | tee -a /etc/config/kratos/log.txt'
 #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
