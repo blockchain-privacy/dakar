@@ -267,7 +267,7 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 // sets up the schema and inserts data from the provided file
 func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
 	if !database.isDirty {
-		info("not empty triggered")
+		t.Logf("not dirty triggered")
 		return
 	}
 
