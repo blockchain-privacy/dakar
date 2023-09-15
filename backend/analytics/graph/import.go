@@ -242,7 +242,7 @@ func pruneNodes(g *ReversibleGraph) error {
 		if !ok {
 			g.RemoveNode(nodeID)
 		} else if txNode.TS.IsZero() {
-			return cliutil.NewStackErrorStr("error node timestamp is zero")
+			return cliutil.NewStackErrorStr("node timestamp is zero")
 		}
 	}
 

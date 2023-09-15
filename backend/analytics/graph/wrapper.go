@@ -138,7 +138,7 @@ func (w *Wrapper) GetInputTransactions(uid string) ([]string, error) {
 // LoadGraphs loads the transaction graph into the wrapper
 func (w *Wrapper) LoadGraphs() error {
 	if w.isLoading {
-		return cliutil.NewStackErrorStr("error can not load graph as it is already loaded or still loading")
+		return cliutil.NewStackErrorStr("can not load graph as it is already loaded or still loading")
 	}
 
 	w.isLoading = true
@@ -196,7 +196,7 @@ func (w *Wrapper) Name() string {
 func (w *Wrapper) CalculateInitialState() error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
-		return cliutil.NewStackErrorStr("error graphs were not loaded before iteration started")
+		return cliutil.NewStackErrorStr("graphs were not loaded before iteration started")
 	}
 	return nil
 }
@@ -234,7 +234,7 @@ func (w *Wrapper) Empty() bool {
 }
 
 // Iterate loads the mixing transactions and all connected origin and
-// destination transactions of the current block into the in-memory graphs
+// destination transactions of the current block into the in-memory graph
 func (w *Wrapper) Iterate() (bool, error) {
 	connectedNodes, singleNodes, err := analytics.GetPrivacyTransactionsByBlock(w.db, w.state.ID)
 	if err != nil {
@@ -248,7 +248,7 @@ func (w *Wrapper) Iterate() (bool, error) {
 
 	if len(connectedNodes) == 0 || len(singleNodes) == 0 {
 		// something is wrong
-		return false, cliutil.NewStackErrorStr("error count of single or connected nodes is zero")
+		return false, cliutil.NewStackErrorStr("count of single or connected nodes is zero")
 	}
 
 	w.transactionGraphMutex.Lock()
