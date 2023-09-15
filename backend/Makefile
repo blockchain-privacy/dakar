@@ -1,5 +1,4 @@
 BUILD_DIR := "build"
-PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 CRAWLER_DIR := "./cmd/crawler"
 
 .PHONY: all dep build clean test lint tidy update_dependencies
@@ -8,13 +7,13 @@ all: build
 
 lint: # Lint the files
 	@go install honnef.co/go/tools/cmd/staticcheck@latest
-	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail ${PKG_LIST}
+	@${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail $(shell go list ./... | grep -v /vendor/)
 
 test: ## Run unittests, '-p 1' makes tests not run in parallel;
-	@go test -p 1 -cover ${PKG_LIST}
+	@go test -p 1 -cover ./...
 
 vet: ## Run vet
-	@go vet ${PKG_LIST}
+	@go vet ./...
 
 build: dash bitcoin ## Builds both Dash and Bitcoin
 
