@@ -239,8 +239,9 @@ func CreateCommaArray(uids []string) string {
 }
 
 type TestDB struct {
-	DB      external.Database
-	IsDirty bool
+	DB            external.Database
+	IsDirty       bool
+	blockFileName string
 }
 
 func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
@@ -266,7 +267,7 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
 func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
-	if !database.IsDirty {
+	if !database.IsDirty && database.blockFileName == blockFileName {
 		t.Logf("not dirty triggered")
 		return
 	}
@@ -286,6 +287,7 @@ func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
 	}
 
 	database.IsDirty = false
+	database.blockFileName = blockFileName
 }
 
 // SetupDBWithoutData returns the database to its initial state:
