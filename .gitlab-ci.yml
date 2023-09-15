@@ -6,7 +6,6 @@ default:
     - main
 
 variables:
-  GOFLAGS: -mod=readonly
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v23.1.0
   BTCD_VERSION: v0.23.3
@@ -29,10 +28,9 @@ stages:
   - build
 
 before_script:
-  - cat /etc/hosts
   - cd backend
 
-unit_tests:
+test:
   stage: test
   needs: ["dependencies"]
   variables:
@@ -41,8 +39,6 @@ unit_tests:
     - wget https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
-
-    # start test
     - make test
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
@@ -60,7 +56,7 @@ unit_tests:
     <<: *modcache
     policy: pull
 
-lint_code:
+lint:
   stage: test
   needs: ["dependencies"]
   script: make lint
