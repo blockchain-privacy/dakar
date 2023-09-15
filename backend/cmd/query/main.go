@@ -226,8 +226,10 @@ func main() {
 		defer func(file *os.File) {
 			_ = file.Close()
 		}(file)
+		startBlock := 1557775
+		endBlock := 1557780
 
-		blockRange, err := getBlockRange(dgraph, 60000, 60020)
+		blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
 		if err != nil {
 			info("error getting blocks", err)
 			return
@@ -238,7 +240,7 @@ func main() {
 			return
 		}
 
-		addressRange, err := getAddressRange(dgraph, 60000, 60020)
+		addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
 		if err != nil {
 			info("error getting addresses", err)
 			return
