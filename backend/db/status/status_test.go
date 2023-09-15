@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-var dbHandle = &db.TestDB{}
+var dbHandle = &db.TestDB{IsDirty: true}
 
 const blockFileName = "../testdata/blocks_60000_60020.json"
 

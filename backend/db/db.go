@@ -240,11 +240,11 @@ func CreateCommaArray(uids []string) string {
 
 type TestDB struct {
 	DB      external.Database
-	isDirty bool
+	IsDirty bool
 }
 
 func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
-	t.isDirty = true
+	t.IsDirty = true
 	return t.DB.Mutate(ctx, req)
 }
 
@@ -253,20 +253,20 @@ func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*
 }
 
 func (t *TestDB) Alter(ctx context.Context, op *api.Operation) error {
-	t.isDirty = true
+	t.IsDirty = true
 	return t.DB.Alter(ctx, op)
 }
 
 // NewTxn creates a new transaction.
 func (t *TestDB) NewTxn() *dgo.Txn {
-	t.isDirty = true
+	t.IsDirty = true
 	return t.DB.NewTxn()
 }
 
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
 func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
-	if !database.isDirty {
+	if !database.IsDirty {
 		t.Logf("not dirty triggered")
 		return
 	}
@@ -285,15 +285,17 @@ func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
 		return
 	}
 
-	database.isDirty = false
+	database.IsDirty = false
 }
 
 // SetupDBWithoutData returns the database to its initial state:
 // drops ALL data and sets up the schema
-func SetupDBWithoutData(t *testing.T, database external.Database) {
+func SetupDBWithoutData(t *testing.T, database *TestDB) {
 	// reset db
 	require.NoError(t, DropAll(database))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))
+
+	database.IsDirty = true
 }

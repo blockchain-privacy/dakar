@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	dbHandle    = &db.TestDB{}
+	dbHandle    = &db.TestDB{IsDirty: true}
 	client      *rpcclient.Client
 	batchClient *rpcclient.Client
 )

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var dbHandle = &db.TestDB{}
+var dbHandle = &db.TestDB{IsDirty: true}
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 const classificationFile = "../db/testdata/blocks_1557775_1557780.json"

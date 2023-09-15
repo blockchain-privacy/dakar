@@ -2,16 +2,15 @@ package user
 
 import (
 	"backend/db"
-	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var dbHandle external.Database
+var dbHandle = &db.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameUser)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameUser)
 }
 
 func TestGenerateRandomPassword(t *testing.T) {
