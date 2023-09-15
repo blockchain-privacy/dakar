@@ -26,7 +26,7 @@ func IsCIActive() bool {
 
 func SkipIfNotCI(t *testing.T) {
 	if !IsCIActive() {
-		t.Skip("skipping CI test")
+		t.SkipNow()
 	}
 }
 
