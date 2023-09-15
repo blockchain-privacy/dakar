@@ -1,0 +1,26 @@
+run:
+  concurrency: 2
+  timeout: 10m
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - bodyclose
+    - errorlint
+    - exportloopref
+    - goconst
+    - gocritic
+    - gocyclo
+    - goprintffuncname
+    - gosec
+    - prealloc
+    - revive
+    - stylecheck
+    - tenv
+    - wastedassign
+    - whitespace
+    - usestdlibvars
