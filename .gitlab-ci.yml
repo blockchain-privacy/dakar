@@ -9,6 +9,7 @@ variables:
   GOFLAGS: -mod=readonly
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v23.1.0
+  BTCD_VERSION: v0.23.3
 
 .modcache: &modcache
   key: modcache
@@ -37,16 +38,11 @@ unit_tests:
   variables:
     CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
   script:
-    # create btcd executable
-    - export WORKDIR=$PWD
-    - export PATH=$PATH:$GOPATH/bin
-    - mkdir -p $GOPATH/src/github.com/btcsuite
-    - cd $GOPATH/src/github.com/btcsuite
-    - git clone https://github.com/btcsuite/btcd
-    - cd btcd
-    - go install -v . ./cmd/...
+    - wget https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz
+    - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
+    - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
+
     # start test
-    - cd $WORKDIR
     - make test
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
