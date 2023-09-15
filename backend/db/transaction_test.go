@@ -2,13 +2,10 @@ package db
 
 import (
 	"backend/constants"
-	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
-
-var dbHandle external.Database
 
 func TestTransaction_String(t *testing.T) {
 	tx := Transaction{

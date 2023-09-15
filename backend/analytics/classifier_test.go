@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-var dbHandle external.Database
+var dbHandle = &db.TestDB{}
 
 const blockFileName = "../db/testdata/blocks_60000_60020.json"
 const classificationFile = "../db/testdata/blocks_1557775_1557780.json"
@@ -24,7 +24,7 @@ func getPointer[number any](n number) *number {
 }
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameAnalytics)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameAnalytics)
 }
 
 func TestIsMixing(t *testing.T) {

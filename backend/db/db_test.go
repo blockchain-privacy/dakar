@@ -11,9 +11,11 @@ import (
 
 const blockFileName = "testdata/blocks_60000_60020.json"
 
+var dbHandle = &TestDB{}
+
 func TestMain(m *testing.M) {
 	InitLogger()
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestInfo(t *testing.T) {

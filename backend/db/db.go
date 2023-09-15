@@ -5,11 +5,11 @@ import (
 	"backend/external"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
+	"os"
 
 	"context"
-	"log"
-	"os"
 	"testing"
 	"time"
 
@@ -238,9 +238,39 @@ func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
 }
 
+type TestDB struct {
+	DB      external.Database
+	isDirty bool
+}
+
+func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
+	t.isDirty = true
+	return t.DB.Mutate(ctx, req)
+}
+
+func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error) {
+	return t.DB.Query(ctx, q, vars)
+}
+
+func (t *TestDB) Alter(ctx context.Context, op *api.Operation) error {
+	t.isDirty = true
+	return t.DB.Alter(ctx, op)
+}
+
+// NewTxn creates a new transaction.
+func (t *TestDB) NewTxn() *dgo.Txn {
+	t.isDirty = true
+	return t.DB.NewTxn()
+}
+
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
-func SetupDB(t *testing.T, database external.Database, blockFileName string) {
+func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
+	if !database.isDirty {
+		info("not empty triggered")
+		return
+	}
+
 	// reset db
 	require.NoError(t, DropAll(database))
 
@@ -254,6 +284,8 @@ func SetupDB(t *testing.T, database external.Database, blockFileName string) {
 		log.Panic("Could not upsert block data", err)
 		return
 	}
+
+	database.isDirty = false
 }
 
 // SetupDBWithoutData returns the database to its initial state:

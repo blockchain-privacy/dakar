@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	dbHandle    external.Database
+	dbHandle    = &db.TestDB{}
 	client      *rpcclient.Client
 	batchClient *rpcclient.Client
 )
@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	dbHandle = graphDB
+	dbHandle.DB = graphDB
 
 	client = harness.Client
 	batchClient = harness.BatchClient

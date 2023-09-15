@@ -2,18 +2,17 @@ package status
 
 import (
 	"backend/db"
-	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var dbHandle external.Database
+var dbHandle = &db.TestDB{}
 
 const blockFileName = "../testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameStatus)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameStatus)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
