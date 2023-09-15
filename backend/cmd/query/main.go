@@ -109,6 +109,7 @@ var defaultConfig = Config{
 	},
 }
 
+//nolint:gocyclo
 func main() {
 	////// SET FLAGS //////
 

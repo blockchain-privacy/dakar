@@ -138,13 +138,14 @@ func GetHighestBlockID(c external.Database) (max uint64, err error) {
 		return
 	}
 
-	if len(r.TopBlock) == 0 {
+	switch {
+	case len(r.TopBlock) == 0:
 		err = cliutil.NewStackError(errTopBlockNotFound)
 		return
-	} else if len(r.TopBlock) > 1 {
+	case len(r.TopBlock) > 1:
 		err = cliutil.NewStackError(errInvalidNumber)
 		return
-	} else if r.TopBlock[0].Max == 0 {
+	case r.TopBlock[0].Max == 0:
 		err = cliutil.NewStackError(errTopBlockNotFound)
 		return
 	}

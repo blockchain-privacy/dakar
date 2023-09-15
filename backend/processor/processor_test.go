@@ -118,11 +118,12 @@ func TestAddOutputToMapping(t *testing.T) {
 	)
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 0)
 	if val, ok := outputMappings[firstAddress]; ok {
-		if len(val.indexes) != 1 {
+		switch {
+		case len(val.indexes) != 1:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != firstAddress {
+		case val.hash != firstAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 0 {
+		case val.indexes[0] != 0:
 			t.Fatal("wrong id")
 		}
 	} else {
@@ -135,11 +136,12 @@ func TestAddOutputToMapping(t *testing.T) {
 
 	outputMappings = addOutputToMapping(outputMappings, secondAddress, 10)
 	if val, ok := outputMappings[secondAddress]; ok {
-		if len(val.indexes) != 1 {
+		switch {
+		case len(val.indexes) != 1:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != secondAddress {
+		case val.hash != secondAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 10 {
+		case val.indexes[0] != 10:
 			t.Fatal("wrong id")
 		}
 	} else {
@@ -152,11 +154,12 @@ func TestAddOutputToMapping(t *testing.T) {
 
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 5)
 	if val, ok := outputMappings[firstAddress]; ok {
-		if len(val.indexes) != 2 {
+		switch {
+		case len(val.indexes) != 2:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != firstAddress {
+		case val.hash != firstAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 0 || val.indexes[1] != 5 {
+		case val.indexes[0] != 0 || val.indexes[1] != 5:
 			t.Fatal("wrong id")
 		}
 	} else {
