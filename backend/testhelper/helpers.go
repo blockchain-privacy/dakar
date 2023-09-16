@@ -3,6 +3,7 @@ package testhelper
 import (
 	"backend/external"
 	"context"
+	_ "embed"
 	"github.com/dgraph-io/dgo/v230"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"google.golang.org/grpc"
@@ -14,14 +15,22 @@ import (
 type ContainerName string
 
 const (
-	EnvCIFlag       = "CI_ACTIVE"
-	ContainerNameDB = ContainerName("dgraph_db")
+	EnvCIFlag         = "CI_ACTIVE"
+	UseClassifierFile = "classifier"
+	UseBlockFile      = "block"
+	ContainerNameDB   = ContainerName("dgraph_db")
 )
 
+//go:embed blocks_60000_60020.json
+var BlockFile []byte
+
+//go:embed blocks_1557775_1557780.json
+var ClassifierFile []byte
+
 type TestDB struct {
-	DB            external.Database
-	IsDirty       bool
-	BlockFileName string
+	DB          external.Database
+	IsDirty     bool
+	FileNameKey string
 }
 
 func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
@@ -67,7 +76,7 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 		defer func(c *grpc.ClientConn) {
 			err := c.Close()
 			if err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 		}(c)
 

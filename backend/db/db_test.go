@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const blockFileName = "testdata/blocks_60000_60020.json"
-
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {

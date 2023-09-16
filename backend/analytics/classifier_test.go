@@ -16,9 +16,6 @@ import (
 
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
-const blockFileName = "../db/testdata/blocks_60000_60020.json"
-const classificationFile = "../db/testdata/blocks_1557775_1557780.json"
-
 func getPointer[number any](n number) *number {
 	return &n
 }
@@ -472,7 +469,7 @@ func Test_getUids(t *testing.T) {
 
 func Test_getConnectedCollaterals(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
 		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
@@ -535,7 +532,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 
 func TestClassifier_NextBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
@@ -570,7 +567,7 @@ func TestClassifier_CurrentBlock(t *testing.T) {
 
 func TestClassifier_Iterate(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	const firstBlock = 1557778
 
@@ -650,7 +647,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 
 func Test_isCollateralCreation(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
@@ -706,7 +703,7 @@ func Test_newCollateralCreationTransaction(t *testing.T) {
 
 func Test_isCollateralPayment(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
@@ -755,7 +752,7 @@ func Test_newCollateralPaymentTransaction(t *testing.T) {
 
 func Test_isMixing(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
@@ -847,7 +844,7 @@ func Test_hasValidPrivacyType(t *testing.T) {
 
 func Test_classifyTransactions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
 		"6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389",
@@ -900,7 +897,7 @@ func Test_classifyTransactions(t *testing.T) {
 
 func TestBlockIterator(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	const firstBlock = 1557778
 

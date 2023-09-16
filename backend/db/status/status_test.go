@@ -9,8 +9,6 @@ import (
 
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
-const blockFileName = "../testdata/blocks_60000_60020.json"
-
 func TestMain(m *testing.M) {
 	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
@@ -113,7 +111,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 
 func TestGetHighestBlockID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
 	require.NoError(t, err)

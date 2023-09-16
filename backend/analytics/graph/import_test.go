@@ -1,7 +1,9 @@
 package graph
 
 import (
+	"backend/db"
 	"backend/db/analytics"
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
@@ -200,4 +202,22 @@ func Test_verifyTransactionGraph(t *testing.T) {
 		id: 10000,
 	})
 	require.Error(t, verifyTransactionGraph(g))
+}
+
+func Test_loadOriginTransactions(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	g := NewReversibleGraph(1)
+	// testdata contains one (1) origin transaction
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	require.Nil(t, loadOriginTransactions(dbHandle, g, 0))
+	require.Equal(t, 1, g.Nodes().Len())
+}
+
+func Test_loadMixingTransactions(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	g := NewReversibleGraph(1)
+	// testdata contains one (1) origin transaction
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	require.Nil(t, loadMixingTransactions(dbHandle, g, 0))
+	require.Equal(t, 1, g.Nodes().Len())
 }

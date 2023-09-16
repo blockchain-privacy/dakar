@@ -109,7 +109,7 @@ func TestFrontendTransaction_String(t *testing.T) {
 
 func TestGetTransactionsOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	// test null input
 	outputs, err := GetTransactionsOutputs(dbHandle, nil)
 	require.Error(t, err)
@@ -138,7 +138,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 
 func TestGetTransactionByBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
 	transactions, err := GetTransactionByBlock(dbHandle, 1)
@@ -164,7 +164,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 	require.Zero(t, inputCount)
 	require.Zero(t, outputCount)
 
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60001)
 	require.NoError(t, err)
@@ -224,7 +224,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 
 func TestGetFrontendTransaction(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const blockHash = "00000000000cfe64fca7b5c3a8ad1ee39dd3f380aeb56027bc25e97904d2c99e"
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	transaction, err := GetFrontendTransaction(dbHandle, txHash1)
@@ -235,7 +235,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	require.Equal(t, int64(0), transaction[0].Fee)
 	require.Equal(t, int64(-1), transaction[0].PrivacyType)
 
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638" //nolint:gosec
 	transaction, err = GetFrontendTransaction(dbHandle, txHash2)
 	require.NoError(t, err)
@@ -248,7 +248,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 
 func TestGetFrontendTransactionsByUID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)
 	require.NoError(t, err)
@@ -266,7 +266,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 
 func TestGetTransactionBlockID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	id, err := GetTransactionBlockID(dbHandle, txHash1)
@@ -281,7 +281,7 @@ func TestGetTransactionBlockID(t *testing.T) {
 
 func TestUpdateTransactions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// empty slice should fail
 	require.Error(t, UpdateTransactions(dbHandle, nil))
@@ -313,7 +313,7 @@ func TestUpdateTransactions(t *testing.T) {
 
 func TestGetTransactionUID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	_, err := GetTransactionUID(dbHandle, "")
 	require.Error(t, err)
@@ -329,7 +329,7 @@ func TestGetTransactionUID(t *testing.T) {
 
 func TestGetOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	transactions, err := GetOutputs(dbHandle, 60000, 60020)
 	require.NoError(t, err)
 	require.Equal(t, 56, len(transactions))
@@ -346,7 +346,7 @@ func TestGetOutputs(t *testing.T) {
 
 func TestGetTransaction(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
 		txHash  string
@@ -378,7 +378,7 @@ func TestGetTransaction(t *testing.T) {
 
 func TestGetTransactionUIDMapping(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	SetupDB(t, dbHandle, blockFileName)
+	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)
 	require.NoError(t, err)

@@ -4,13 +4,11 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"backend/testhelper"
+	"context"
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
-	"os"
-
-	"context"
 	"testing"
 	"time"
 
@@ -241,9 +239,9 @@ func CreateCommaArray(uids []string) string {
 
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
-func SetupDB(t *testing.T, database *testhelper.TestDB, blockFileName string) {
+func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 	// check if database state has been modified. In case it has not, just return
-	if !database.IsDirty && database.BlockFileName == blockFileName {
+	if !database.IsDirty && database.FileNameKey == fileKey {
 		return
 	}
 
@@ -253,16 +251,24 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, blockFileName string) {
 	// set up schema
 	require.NoError(t, SetupSchema(database))
 
-	fileBytes, err := os.ReadFile(blockFileName)
-	require.NoError(t, err)
+	var fileBytes []byte
+
+	switch {
+	case fileKey == testhelper.UseClassifierFile:
+		fileBytes = testhelper.ClassifierFile
+	case fileKey == testhelper.UseBlockFile:
+		fileBytes = testhelper.BlockFile
+	default:
+		log.Panic("invalid file key")
+	}
 
 	if err := InsertArbitraryJSON(database, fileBytes); err != nil {
-		log.Panic("Could not upsert block data", err)
+		log.Panic("could not upsert block data", err)
 		return
 	}
 
 	database.IsDirty = false
-	database.BlockFileName = blockFileName
+	database.FileNameKey = fileKey
 }
 
 // SetupDBWithoutData returns the database to its initial state:

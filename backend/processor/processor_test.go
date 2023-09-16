@@ -23,8 +23,6 @@ var (
 	batchClient *rpcclient.Client
 )
 
-const blockFileName = "../db/testdata/blocks_60000_60020.json"
-
 func TestMain(m *testing.M) {
 	InitLogger()
 	if !testhelper.IsCIActive() {
@@ -217,7 +215,7 @@ func TestCreateOutputUid(t *testing.T) {
 
 func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// calling with empty mapping is allowed
 	require.NoError(t, processAddresses(dbHandle, nil, nil))
@@ -634,7 +632,7 @@ func Test_processTxVin(t *testing.T) {
 
 func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := db.GetTransactionByBlock(dbHandle, 60000)
 	require.NoError(t, err)
@@ -682,7 +680,7 @@ func Test_getStartingID(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotStartID)
 
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: getPointer[bool](true),
@@ -737,7 +735,7 @@ func Test_createTransactionHashmap(t *testing.T) {
 
 func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
 		outputs  map[string][]uint32
