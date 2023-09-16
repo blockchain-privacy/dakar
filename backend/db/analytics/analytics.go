@@ -322,3 +322,113 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 
 	return
 }
+
+// GetForwardLookupTransactions traverses forward in the transaction graph, starting with the transaction
+// specified by startTxHash. This function is used to generate test data.
+func GetForwardLookupTransactions(c external.Database, startTxHash string) (blocks []db.Block, addresses []db.Address, err error) {
+	const query = `query Q($txhash: string) {
+				var(func: eq(txhash, $txhash))@recurse(depth:3){
+					tx_outputs
+					~tx_inputs@filter(has(privacytype))
+					t as txhash
+				}
+
+				var(func: uid(t)) {
+					b as ~transactions
+					i as tx_inputs
+					o as tx_outputs
+				}
+
+				var(func: uid(o,i)){
+					a as ~addr_outputs
+				}
+				
+				addresses(func: uid(a)){
+					uid
+					addresshash
+					dgraph.type
+					addr_outputs@filter(uid(o,i)){
+						uid
+					}
+				}
+
+				blocks(func: uid(b)){
+					uid
+					id
+					ts
+					blockhash
+					dgraph.type
+					prevblock {
+						uid
+						blockhash
+						dgraph.type
+					}
+					transactions@filter(uid(t)){
+						uid
+						txhash
+						privacytype
+						fee
+						dgraph.type
+						tx_outputs {
+							...fOutput
+						}
+						tx_inputs {
+							...fOutput
+						}
+					}
+				}
+			  }
+
+				fragment fOutput {
+					uid
+					amount
+					inputindex
+					outputindex
+					iscoinbase
+					dgraph.type
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+		map[string]string{"$txhash": startTxHash})
+	if err != nil {
+		return
+	}
+	var r struct {
+		Blocks    []db.Block   `json:"blocks,omitempty"`
+		Addresses []db.Address `json:"addresses,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for _, block := range r.Blocks {
+		block.UID = "_:" + block.UID
+		block.PrevBlock.UID = "_:" + block.PrevBlock.UID
+
+		for i := range block.Transactions {
+			block.Transactions[i].UID = "_:" + block.Transactions[i].UID
+
+			for y := range block.Transactions[i].Outputs {
+				block.Transactions[i].Outputs[y].UID = "_:" + block.Transactions[i].Outputs[y].UID
+			}
+
+			for y := range block.Transactions[i].Inputs {
+				block.Transactions[i].Inputs[y].UID = "_:" + block.Transactions[i].Inputs[y].UID
+			}
+		}
+	}
+
+	for i := range r.Addresses {
+		r.Addresses[i].UID = "_:" + r.Addresses[i].UID
+
+		for y := range r.Addresses[i].Outputs {
+			r.Addresses[i].Outputs[y].UID = "_:" + r.Addresses[i].Outputs[y].UID
+		}
+	}
+
+	blocks = r.Blocks
+	addresses = r.Addresses
+
+	return
+}
