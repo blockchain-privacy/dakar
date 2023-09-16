@@ -18,6 +18,7 @@ const (
 	EnvCIFlag         = "CI_ACTIVE"
 	UseClassifierFile = "classifier"
 	UseBlockFile      = "block"
+	UsePrivacyFile    = "privacy"
 	ContainerNameDB   = ContainerName("dgraph_db")
 )
 
@@ -26,6 +27,12 @@ var BlockFile []byte
 
 //go:embed blocks_1557775_1557780.json
 var ClassifierFile []byte
+
+// PrivacyFile contains a small transaction graph created by traversing forward beginning with tx
+// 452f795486980ef698fe652b56597eef3e7f6ad155cb0c9f1de21254d9bd9b0e
+//
+//go:embed privacy_transactions.json
+var PrivacyFile []byte
 
 type TestDB struct {
 	DB          external.Database

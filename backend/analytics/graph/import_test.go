@@ -207,17 +207,26 @@ func Test_verifyTransactionGraph(t *testing.T) {
 func Test_loadOriginTransactions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	g := NewReversibleGraph(1)
-	// testdata contains one (1) origin transaction
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	// testdata contains 1 origin transaction
+	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	require.Nil(t, loadOriginTransactions(dbHandle, g, 0))
 	require.Equal(t, 1, g.Nodes().Len())
 }
 
-func Test_loadMixingTransactions(t *testing.T) {
+func Test_loadDestinationTransactions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	g := NewReversibleGraph(1)
-	// testdata contains one (1) origin transaction
-	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
+	// testdata contains 1 destination transaction with 7 input transactions
+	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	require.Nil(t, loadDestinationTransactions(dbHandle, g, 0))
+	require.Equal(t, 8, g.Nodes().Len())
+}
+
+func Test_loadMixingTransactions(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	g := NewReversibleGraph(132)
+	// testdata contains 132 mixing transactions and 557 input transactions
+	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 	require.Nil(t, loadMixingTransactions(dbHandle, g, 0))
-	require.Equal(t, 1, g.Nodes().Len())
+	require.Equal(t, 689, g.Nodes().Len())
 }

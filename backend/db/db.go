@@ -253,11 +253,13 @@ func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
 
 	var fileBytes []byte
 
-	switch {
-	case fileKey == testhelper.UseClassifierFile:
+	switch fileKey {
+	case testhelper.UseClassifierFile:
 		fileBytes = testhelper.ClassifierFile
-	case fileKey == testhelper.UseBlockFile:
+	case testhelper.UseBlockFile:
 		fileBytes = testhelper.BlockFile
+	case testhelper.UsePrivacyFile:
+		fileBytes = testhelper.PrivacyFile
 	default:
 		log.Panic("invalid file key")
 	}
