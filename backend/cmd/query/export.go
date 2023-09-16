@@ -2,7 +2,10 @@ package main
 
 import (
 	mgraph "backend/analytics/graph"
+	"backend/db/analytics"
+	"backend/external"
 	"encoding/csv"
+	"encoding/json"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
 	"os"
@@ -247,4 +250,95 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	info("number of edges not traversed due to spending gap:", spendingGapCounter)
 
 	writeTxToCSV(mgraph.ToHex(nodeID)+"_mixing_transactions", exportTransactions)
+}
+
+func doExportBlocks(dgraph external.Database, fileName string, startBlock int, endBlock int) {
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		info("error creating file", err)
+		return
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
+	if err != nil {
+		info("error getting blocks", err)
+		return
+	}
+
+	if len(blockRange) == 0 {
+		info("no blocks to write")
+		return
+	}
+
+	addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
+	if err != nil {
+		info("error getting addresses", err)
+		return
+	}
+
+	if len(addressRange) == 0 {
+		info("no addresses to write")
+		return
+	}
+
+	// merge addresses and blocks
+	toEncode := make([]any, 0, len(blockRange)+len(addressRange))
+	for _, b := range blockRange {
+		toEncode = append(toEncode, b)
+	}
+
+	for _, a := range addressRange {
+		toEncode = append(toEncode, a)
+	}
+
+	err = json.NewEncoder(file).Encode(toEncode)
+	if err != nil {
+		info("error encoding data", err)
+		return
+	}
+}
+
+func doExportPrivacyTransactions(dgraph external.Database, fileName string, startTransaction string) {
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
+	if err != nil {
+		info("error creating file", err)
+		return
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+
+	blocks, addresses, err := analytics.GetForwardLookupTransactions(dgraph, startTransaction)
+	if err != nil {
+		return
+	}
+
+	if len(addresses) == 0 {
+		info("no addresses to write")
+		return
+	}
+
+	if len(blocks) == 0 {
+		info("no blocks to write")
+		return
+	}
+
+	// merge addresses and blocks
+	toEncode := make([]any, 0, len(blocks)+len(addresses))
+	for _, b := range blocks {
+		toEncode = append(toEncode, b)
+	}
+
+	for _, a := range addresses {
+		toEncode = append(toEncode, a)
+	}
+
+	err = json.NewEncoder(file).Encode(toEncode)
+	if err != nil {
+		info("error encoding data", err)
+		return
+	}
 }

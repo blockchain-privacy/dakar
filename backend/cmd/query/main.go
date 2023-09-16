@@ -5,7 +5,6 @@ import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -59,20 +58,29 @@ type OriginGapModule struct {
 }
 
 type ExportBlocksModule struct {
-	Active   bool   `yaml:"active"`
-	Filename string `yaml:"filename"`
+	Active     bool   `yaml:"active"`
+	Filename   string `yaml:"filename"`
+	StartBlock int    `yaml:"startBlock"`
+	EndBlock   int    `yaml:"endBlock"`
+}
+
+type ExportPrivacyTransactionsModule struct {
+	Active           bool   `yaml:"active"`
+	Filename         string `yaml:"filename"`
+	StartTransaction string `yaml:"startTransaction"`
 }
 
 type Config struct {
-	Logfile              string                    `yaml:"logfile"`
-	DBHost               string                    `yaml:"host"`
-	DBPort               uint                      `yaml:"port"`
-	PrivacyCharts        PrivacyChartModule        `yaml:"privacyCharts"`
-	UniqueAddresses      UniqueAddressesModule     `yaml:"uniqueAddresses"`
-	TimestampAnalytics   TimestampAnalyticsModule  `yaml:"timestampAnalytics"`
-	ExclusionSimulations ExclusionSimulationModule `yaml:"exclusionSimulations"`
-	OriginGap            OriginGapModule           `yaml:"originGap"`
-	ExportBlocks         ExportBlocksModule        `yaml:"exportBlocks"`
+	Logfile                   string                          `yaml:"logfile"`
+	DBHost                    string                          `yaml:"host"`
+	DBPort                    uint                            `yaml:"port"`
+	PrivacyCharts             PrivacyChartModule              `yaml:"privacyCharts"`
+	UniqueAddresses           UniqueAddressesModule           `yaml:"uniqueAddresses"`
+	TimestampAnalytics        TimestampAnalyticsModule        `yaml:"timestampAnalytics"`
+	ExclusionSimulations      ExclusionSimulationModule       `yaml:"exclusionSimulations"`
+	OriginGap                 OriginGapModule                 `yaml:"originGap"`
+	ExportBlocks              ExportBlocksModule              `yaml:"exportBlocks"`
+	ExportPrivacyTransactions ExportPrivacyTransactionsModule `yaml:"exportPrivacyTransactions"`
 }
 
 var defaultConfig = Config{
@@ -106,6 +114,17 @@ var defaultConfig = Config{
 		Active:      false,
 		Filename:    "",
 		MinGapHours: 0,
+	},
+	ExportBlocks: ExportBlocksModule{
+		Active:     false,
+		Filename:   "",
+		StartBlock: 0,
+		EndBlock:   0,
+	},
+	ExportPrivacyTransactions: ExportPrivacyTransactionsModule{
+		Active:           false,
+		Filename:         "",
+		StartTransaction: "",
 	},
 }
 
@@ -219,54 +238,12 @@ func main() {
 	}
 
 	if config.ExportBlocks.Active {
-		file, err := os.OpenFile(config.ExportBlocks.Filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
-		if err != nil {
-			info("error creating file", err)
-			return
-		}
-		defer func(file *os.File) {
-			_ = file.Close()
-		}(file)
-		startBlock := 1557775
-		endBlock := 1557780
+		doExportBlocks(dgraph, config.ExportBlocks.Filename, config.ExportBlocks.StartBlock, config.ExportBlocks.EndBlock)
+	}
 
-		blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
-		if err != nil {
-			info("error getting blocks", err)
-			return
-		}
-
-		if len(blockRange) == 0 {
-			info("no blocks to write")
-			return
-		}
-
-		addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
-		if err != nil {
-			info("error getting addresses", err)
-			return
-		}
-
-		if len(addressRange) == 0 {
-			info("no addresses to write")
-			return
-		}
-
-		// merge addresses and blocks
-		var toEncode []any
-		for _, b := range blockRange {
-			toEncode = append(toEncode, b)
-		}
-
-		for _, a := range addressRange {
-			toEncode = append(toEncode, a)
-		}
-
-		err = json.NewEncoder(file).Encode(toEncode)
-		if err != nil {
-			info("error encoding data", err)
-			return
-		}
+	if config.ExportPrivacyTransactions.Active {
+		doExportPrivacyTransactions(dgraph, config.ExportPrivacyTransactions.Filename,
+			config.ExportPrivacyTransactions.StartTransaction)
 	}
 }
 
