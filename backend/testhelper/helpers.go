@@ -11,16 +11,11 @@ import (
 	"testing"
 )
 
-const EnvCIFlag = "CI_ACTIVE"
-
 type ContainerName string
 
 const (
-	ContainerNameStatus    = ContainerName("dgraph_status")
-	ContainerNameUser      = ContainerName("dgraph_user")
-	ContainerNameProcessor = ContainerName("dgraph_processor")
-	ContainerNameAnalytics = ContainerName("dgraph_analytics")
-	ContainerNameDB        = ContainerName("dgraph_db")
+	EnvCIFlag       = "CI_ACTIVE"
+	ContainerNameDB = ContainerName("dgraph_db")
 )
 
 type TestDB struct {

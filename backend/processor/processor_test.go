@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// create dgraph client
-	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameProcessor) + ":9080")
+	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameDB) + ":9080")
 	if err != nil {
 		log.Panic(err)
 		return

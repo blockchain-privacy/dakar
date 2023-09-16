@@ -24,7 +24,7 @@ func getPointer[number any](n number) *number {
 }
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameAnalytics)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestIsMixing(t *testing.T) {

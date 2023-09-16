@@ -12,7 +12,7 @@ var dbHandle = &testhelper.TestDB{IsDirty: true}
 const blockFileName = "../testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameStatus)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {

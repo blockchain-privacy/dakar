@@ -10,7 +10,7 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameUser)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestGenerateRandomPassword(t *testing.T) {
