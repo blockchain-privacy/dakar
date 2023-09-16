@@ -352,6 +352,9 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 
 				shallow_txs(func: uid(it))@filter(not uid(pt)){
 					uid
+					tx_outputs{
+						uid
+					}
 				}
 				
 				addresses(func: uid(a)){
@@ -441,6 +444,10 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 
 	for i := range r.ShallowTransactions {
 		r.ShallowTransactions[i].UID = "_:" + r.ShallowTransactions[i].UID
+
+		for y := range r.ShallowTransactions[i].Outputs {
+			r.ShallowTransactions[i].Outputs[y].UID = "_:" + r.ShallowTransactions[i].Outputs[y].UID
+		}
 	}
 
 	blocks = r.Blocks
