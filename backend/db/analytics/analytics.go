@@ -5,7 +5,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -325,15 +324,23 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 
 // GetForwardLookupTransactions traverses forward in the transaction graph, starting with the transaction
 // specified by startTxHash. This function is used to generate test data.
-func GetForwardLookupTransactions(c external.Database, startTxHash string) (blocks []db.Block, addresses []db.Address, err error) {
+func GetForwardLookupTransactions(c external.Database, startTxHash string) (blocks []db.Block,
+	addresses []db.Address, transactions []db.Transaction, err error) {
 	const query = `query Q($txhash: string) {
 				var(func: eq(txhash, $txhash))@recurse(depth:3){
 					tx_outputs
 					~tx_inputs@filter(has(privacytype))
-					t as txhash
+					pt as txhash
 				}
 
-				var(func: uid(t)) {
+				# get input transactions of all transactions
+				var(func: uid(pt)){
+					tx_inputs {
+						it as ~tx_outputs
+					}
+				}
+
+				var(func: uid(pt)) {
 					b as ~transactions
 					i as tx_inputs
 					o as tx_outputs
@@ -341,6 +348,10 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 
 				var(func: uid(o,i)){
 					a as ~addr_outputs
+				}
+
+				shallow_txs(func: uid(it))@filter(not uid(pt)){
+					uid
 				}
 				
 				addresses(func: uid(a)){
@@ -363,7 +374,7 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 						blockhash
 						dgraph.type
 					}
-					transactions@filter(uid(t)){
+					transactions@filter(uid(pt)){
 						uid
 						txhash
 						privacytype
@@ -394,8 +405,9 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 		return
 	}
 	var r struct {
-		Blocks    []db.Block   `json:"blocks,omitempty"`
-		Addresses []db.Address `json:"addresses,omitempty"`
+		Blocks              []db.Block       `json:"blocks,omitempty"`
+		Addresses           []db.Address     `json:"addresses,omitempty"`
+		ShallowTransactions []db.Transaction `json:"shallow_txs,omitempty"`
 	}
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
 		err = cliutil.NewStackError(err)
@@ -427,8 +439,13 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 		}
 	}
 
+	for i := range r.ShallowTransactions {
+		r.ShallowTransactions[i].UID = "_:" + r.ShallowTransactions[i].UID
+	}
+
 	blocks = r.Blocks
 	addresses = r.Addresses
+	transactions = r.ShallowTransactions
 
 	return
 }

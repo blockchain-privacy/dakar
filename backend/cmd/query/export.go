@@ -311,7 +311,7 @@ func doExportPrivacyTransactions(dgraph external.Database, fileName string, star
 		_ = file.Close()
 	}(file)
 
-	blocks, addresses, err := analytics.GetForwardLookupTransactions(dgraph, startTransaction)
+	blocks, addresses, transactions, err := analytics.GetForwardLookupTransactions(dgraph, startTransaction)
 	if err != nil {
 		return
 	}
@@ -326,14 +326,23 @@ func doExportPrivacyTransactions(dgraph external.Database, fileName string, star
 		return
 	}
 
+	if len(transactions) == 0 {
+		info("no transactions to write")
+		return
+	}
+
 	// merge addresses and blocks
-	toEncode := make([]any, 0, len(blocks)+len(addresses))
+	toEncode := make([]any, 0, len(blocks)+len(addresses)+len(transactions))
 	for _, b := range blocks {
 		toEncode = append(toEncode, b)
 	}
 
 	for _, a := range addresses {
 		toEncode = append(toEncode, a)
+	}
+
+	for _, t := range transactions {
+		toEncode = append(toEncode, t)
 	}
 
 	err = json.NewEncoder(file).Encode(toEncode)
