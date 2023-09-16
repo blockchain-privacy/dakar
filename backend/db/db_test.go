@@ -11,7 +11,7 @@ import (
 
 const blockFileName = "testdata/blocks_60000_60020.json"
 
-var dbHandle = &TestDB{}
+var dbHandle = &testhelper.TestDB{}
 
 func TestMain(m *testing.M) {
 	InitLogger()

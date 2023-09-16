@@ -3,6 +3,7 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
+	"backend/testhelper"
 	"errors"
 	"fmt"
 	"log"
@@ -238,37 +239,11 @@ func CreateCommaArray(uids []string) string {
 	return "[" + CreateCommaList(uids) + "]"
 }
 
-type TestDB struct {
-	DB            external.Database
-	IsDirty       bool
-	blockFileName string
-}
-
-func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
-	t.IsDirty = true
-	return t.DB.Mutate(ctx, req)
-}
-
-func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error) {
-	return t.DB.Query(ctx, q, vars)
-}
-
-func (t *TestDB) Alter(ctx context.Context, op *api.Operation) error {
-	t.IsDirty = true
-	return t.DB.Alter(ctx, op)
-}
-
-// NewTxn creates a new transaction.
-func (t *TestDB) NewTxn() *dgo.Txn {
-	t.IsDirty = true
-	return t.DB.NewTxn()
-}
-
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
-func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
-	if !database.IsDirty && database.blockFileName == blockFileName {
-		t.Logf("not dirty triggered")
+func SetupDB(t *testing.T, database *testhelper.TestDB, blockFileName string) {
+	// check if database state has been modified. In case it has not, just return
+	if !database.IsDirty && database.BlockFileName == blockFileName {
 		return
 	}
 
@@ -287,12 +262,12 @@ func SetupDB(t *testing.T, database *TestDB, blockFileName string) {
 	}
 
 	database.IsDirty = false
-	database.blockFileName = blockFileName
+	database.BlockFileName = blockFileName
 }
 
 // SetupDBWithoutData returns the database to its initial state:
 // drops ALL data and sets up the schema
-func SetupDBWithoutData(t *testing.T, database *TestDB) {
+func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	// reset db
 	require.NoError(t, DropAll(database))
 
