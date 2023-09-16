@@ -402,19 +402,19 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 		return
 	}
 
-	for _, block := range r.Blocks {
-		block.UID = "_:" + block.UID
-		block.PrevBlock.UID = "_:" + block.PrevBlock.UID
+	for x := range r.Blocks {
+		r.Blocks[x].UID = "_:" + r.Blocks[x].UID
+		r.Blocks[x].PrevBlock.UID = "_:" + r.Blocks[x].PrevBlock.UID
 
-		for i := range block.Transactions {
-			block.Transactions[i].UID = "_:" + block.Transactions[i].UID
+		for i := range r.Blocks[x].Transactions {
+			r.Blocks[x].Transactions[i].UID = "_:" + r.Blocks[x].Transactions[i].UID
 
-			for y := range block.Transactions[i].Outputs {
-				block.Transactions[i].Outputs[y].UID = "_:" + block.Transactions[i].Outputs[y].UID
+			for y := range r.Blocks[x].Transactions[i].Outputs {
+				r.Blocks[x].Transactions[i].Outputs[y].UID = "_:" + r.Blocks[x].Transactions[i].Outputs[y].UID
 			}
 
-			for y := range block.Transactions[i].Inputs {
-				block.Transactions[i].Inputs[y].UID = "_:" + block.Transactions[i].Inputs[y].UID
+			for y := range r.Blocks[x].Transactions[i].Inputs {
+				r.Blocks[x].Transactions[i].Inputs[y].UID = "_:" + r.Blocks[x].Transactions[i].Inputs[y].UID
 			}
 		}
 	}
