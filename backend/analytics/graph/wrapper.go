@@ -6,10 +6,10 @@ import (
 	"backend/db/analytics"
 	"backend/db/status"
 	"backend/external"
-	"log/slog"
-
 	"context"
 	"errors"
+	"log/slog"
+	"os"
 
 	"sync"
 	"time"
@@ -163,7 +163,14 @@ func (w *Wrapper) LoadGraphs() error {
 	// state.ID - 1 because the ID is the next block
 	w.blockHeight.Set(float64(w.state.ID - 1))
 
-	txGraph, err := LoadTransactionGraph(w.db, 0)
+	numTxToLoad := 0
+
+	if _, ok := os.LookupEnv("DEV_SMALL_GRAPH"); ok {
+		info("DEV_SMALL_GRAPH environment variable is set. Limiting in-memory mixing graph.")
+		numTxToLoad = 10000
+	}
+
+	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
 	if err != nil {
 		return err
 	}

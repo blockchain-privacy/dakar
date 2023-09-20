@@ -1,23 +1,38 @@
 # Crawler
 
-This is the blockchain crawler. It loads data from `dashd` and stores it in a Dgraph database. 
+This is the blockchain crawler. 
+
+Modules 
+ - Crawler: Loads data from `dashd` via JSON-RPC and stores it in a Dgraph database.
+ - Classifier: Classifies transaction stored in Dgraph regarding their privacy type (mixing, origin, destination, ...).
+ - Clustering: Clusters addresses of non-privacy transactions via the multi-input clustering heuristic.
+ - Heuristics: Allows to apply heuristics on classified transactions in conjunction with clustered addresses.
+ - API: HTTP-REST server. 
 
 ## Stopping the crawler
 
 Do not kill the crawling process, instead send a termination or interrupt signal. The crawler will then gracefully shutdown.
 
-## Examples
+## Initial Setup
 
-Create a new config file
+Create a new config file. This will not start the crawler.
 
 ```shell script
 ./crawler -createConfig
 ```
 
-Confirm the reset dialog and start the crawler.
+Start the crawler and confirm the reset dialog.
+
 ```shell script
-echo yes | ./crawler -reset
+./crawler -reset
 ```
+
+## Environment Variables
+
+| Variable        | Default Value | Description                                                                                                     |
+|-----------------|:-------------:|-----------------------------------------------------------------------------------------------------------------|
+| DEV_SMALL_GRAPH | unset         | Only loads a small in-memory mixing graph. Useful for fast startup of the crawler. Set to any value to activate. |
+
 
 ## Metrics
 
@@ -25,10 +40,30 @@ The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured 
 
 ## Commandline Arguments
 
-| Flag | Default Value | Description |
-|----------|:-------------:|------:|
-| ignoresafeguard | false | Ignore the crawling safe guard (default: false) |
-| reset | false | Remove all data from the database (default: false) |
-| version | false | Show version information |
-| createConfig | false | creates a default config file (default: false) |
-| config | config.yml | config file path (default: config.yml) |
+|            Flag | Default Value | Description                                        |
+|----------------:|:-------------:|:---------------------------------------------------|
+| ignoresafeguard | false         | Ignore the crawling safe guard (default: false)    |
+|           reset | false         | Remove all data from the database (default: false) |
+|         version | false         | Show version information                           |
+|    createConfig | false         | creates a default config file (default: false)     |
+|          config | config.yml    | config file path (default: config.yml)             |
+
+The crawler registers its activity in the underlying Dgraph database to prevent multiple
+crawlers accidentally using the same database at the same time. In case of an unexpected shutdown of the crawler, the safeguard might still be set in the database.
+With the `ignoresafeguard` flag the safeguard can be ignored and the crawling be resumed.
+
+## Configuration
+
+The crawler is configured via a configuration file.
+
+Create a new config file with the command below. This will create a new config file named `config.yml`.
+
+```shell script
+./crawler -createConfig
+```
+
+Start the crawler with a new config file
+
+```shell script
+./crawler -config path/to/config/file.yml
+```
