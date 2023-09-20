@@ -37,6 +37,8 @@ services:
     expose:
       - 8000
     command: dgraph-ratel
+    networks:
+      - dgraph_default
 
   kratos:
     container_name: kratos
@@ -46,12 +48,13 @@ services:
       - '4434:4434' # admin
     user: "1000:1000"
     environment:
-     # - DSN=sqlite:///var/lib/sqlite/db.sqlite?_fk=true
       - DSN=postgres://${KRATOS_POSTGRES_USER}:${KRATOS_POSTGRES_PASSWORD}@postgres:5432/kratos?sslmode=disable&max_conns=20&max_idle_conns=4
-     # - LOG_LEVEL=trace
+      #- LOG_LEVEL=trace
       - SQA_OPT_OUT=true
+      - SECRETS_COOKIE=${KRATOS_SECRETS_COOKIE}
+      - SECRETS_CIPHER=${KRATOS_SECRETS_CIPHER}
     entrypoint: ''
-    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier --sqa-opt-out ${KRATOS_DEV_CLI_PARAMETERS} 2>&1 | tee -a /etc/config/kratos/log.txt'
+    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS} 2>&1 | tee -a /etc/config/kratos/log.txt'
 #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
@@ -96,6 +99,8 @@ services:
       - 9998
     command: dashd
     restart: unless-stopped
+    networks:
+      - dgraph_default
 
   wikiapi:
     image: bluedark/wikiapi:latest

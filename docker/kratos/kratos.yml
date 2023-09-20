@@ -92,11 +92,12 @@ log:
   format: json
   leak_sensitive_values: false
 
-secrets:
-  cookie:
-    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
-  cipher:
-    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
+# Set via environment variables
+#secrets:
+#  cookie:
+#    - PLEASE-CHANGE-ME-I-AM-VERY-INSECURE
+#  cipher:
+#    - 32-LONG-SECRET-NOT-SECURE-AT-ALL
 
 ciphers:
   algorithm: xchacha20-poly1305
