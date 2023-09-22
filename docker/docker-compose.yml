@@ -1,4 +1,10 @@
 version: "3.6"
+x-logging:
+  &default-logging
+  driver: "journald"
+  options:
+    tag: "{{.Name}}"
+
 services:
 
   zero:
@@ -53,8 +59,7 @@ services:
       - SQA_OPT_OUT=true
       - SECRETS_COOKIE=${KRATOS_SECRETS_COOKIE}
       - SECRETS_CIPHER=${KRATOS_SECRETS_CIPHER}
-    entrypoint: ''
-    command: /bin/sh -c 'kratos serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS} 2>&1 | tee -a /etc/config/kratos/log.txt'
+    command: serve -c /etc/config/kratos/kratos.yml --watch-courier ${KRATOS_DEV_CLI_PARAMETERS}
 #    command: migrate sql -e # enable the three commands and run: sudo docker-compose run kratos
 #    stdin_open: true # docker run -i
 #    tty: true        # docker run -t
@@ -62,6 +67,7 @@ services:
       - ./kratos:/etc/config/kratos
     networks:
       - dgraph_default
+    logging: *default-logging
 
   postgres:
     container_name: postgres
@@ -126,8 +132,7 @@ services:
     ports:
       - "4455:4455"
       - "4456:4456"
-    entrypoint: ''
-    command: /bin/sh -c 'oathkeeper serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out 2>&1 | tee -a /etc/config/oathkeeper/log.txt'
+    command: serve proxy -c "/etc/config/oathkeeper/oathkeeper.yml" --sqa-opt-out
     environment:
       - LOG_LEVEL=debug
     restart: on-failure
@@ -135,18 +140,33 @@ services:
       - dgraph_default
     volumes:
       - ./oathkeeper:/etc/config/oathkeeper
+    logging: *default-logging
 
   promtail:
     image: grafana/promtail:2.9.0
     container_name: promtail
     volumes:
       - ./promtail/promtail-local-config.yaml:/etc/promtail/config.yaml:ro
-      - ./kratos/log.txt:/kratos_log.txt:ro
-      - ./oathkeeper/log.txt:/oathkeeper_log.txt:ro
+      - /var/log/journal/:/var/log/journal/:ro
+      - /etc/machine-id:/etc/machine-i:ro
       - ../backend/cmd/crawler/crawler.log:/crawler.log:ro
     command: -config.file=/etc/promtail/config.yaml
     networks:
       - dgraph_default
+
+#  dakar:
+#    image: dakar-dash:latest
+#    container_name: dakar
+#    environment:
+#      - DEV_SMALL_GRAPH=1
+#    ports:
+#      - '8081:8081'
+#      - '8481:8481'
+#    volumes:
+#      - ./dakar/config.yml:/data/config.yml
+#    networks:
+#      - dgraph_default
+#    logging: *default-logging
 
 #  bitcoind:
 #    image: ruimarinho/bitcoin-core:23.0-alpine
