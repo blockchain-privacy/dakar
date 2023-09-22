@@ -32,7 +32,8 @@ docker-dash: ## Build Docker image for the Dash binary
 
 docker-bitcoin: ## Build Docker image for the Bitcoin binary
 	docker build -t dakar-bitcoin --build-arg="BLOCKCHAIN_MODE=Bitcoin"\
-			--build-arg="MODFILE_PATH=$(CRAWLER_DIR)/build/bitcoin_go.mod" .
+			--build-arg="MODFILE_PATH=$(CRAWLER_DIR)/build/bitcoin_go.mod"\
+			 --build-arg="MODSUM_PATH=$(CRAWLER_DIR)/build/bitcoin_go.sum" .
 
 tidy: ## Run go mod tidy on the default go.mod file and bitcoin go.mod file
 	@go mod tidy
