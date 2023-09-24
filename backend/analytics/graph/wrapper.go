@@ -203,17 +203,23 @@ func (w *Wrapper) Name() string {
 	return "graph wrapper"
 }
 
-// CalculateInitialState calculates the state on which the iterator starts processing
+// CalculateInitialState is a dummy which only checks if LoadGraphs
+// has been executed. LoadGraphs set the initial state.
 func (w *Wrapper) CalculateInitialState() error {
 	// check if state was set by LoadGraphs
 	if !w.isLoading {
 		return cliutil.NewStackErrorStr("graphs were not loaded before iteration started")
 	}
+
 	return nil
 }
 
 // NextBlock tries to increase the internal state to the next block
 func (w *Wrapper) NextBlock() (bool, error) {
+	if w.db == nil {
+		return false, cliutil.NewStackErrorStr("database handle is not set")
+	}
+
 	classifierStatus, err := status.GetClassifierStatus(w.db)
 	if err != nil || classifierStatus.LastClassifiedBlockID == nil {
 		return false, err
