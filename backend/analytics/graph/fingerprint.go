@@ -142,7 +142,8 @@ type FingerPrint struct {
 func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, error) {
 	// maximumDistance is the maximum distance between to earliest (lowest) input timestamp
 	// of the root transaction and the timestamp of the compared transaction
-	const maximumDistance = 60 * 60 * 24 * 2
+	// 2 days = 60 * 60 * 24 * 2 = 172800 seconds
+	const maximumDistance = 172800
 
 	nodeUID, err := ToInteger(uid)
 	if err != nil {
@@ -166,7 +167,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 	earliestInputTimestamp := rootMeans[0]
 	numSessions := len(rootMeans)
 	numSessionsFloat := float64(numSessions)
-	const maximumScores = 30
+	const maxNumberOfScoreResults = 30
 	var fingerprints []FingerPrint
 	nodes := g.Nodes()
 	for nodes.Next() {
@@ -203,7 +204,7 @@ func SpendingFingerprint(g *ReversibleGraph, uid string) ([]FingerPrint, int, er
 		})
 
 		// remove the first element (which has the lowest score)
-		if len(fingerprints) > maximumScores {
+		if len(fingerprints) > maxNumberOfScoreResults {
 			fingerprints = fingerprints[1:]
 		}
 	}
