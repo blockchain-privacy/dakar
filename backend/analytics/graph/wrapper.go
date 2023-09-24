@@ -141,6 +141,10 @@ func (w *Wrapper) LoadGraphs() error {
 		return cliutil.NewStackErrorStr("can not load graph as it is already loaded or still loading")
 	}
 
+	if w.db == nil {
+		return cliutil.NewStackErrorStr("database is not set")
+	}
+
 	w.isLoading = true
 
 	classifierStatus, err := status.GetClassifierStatus(w.db)
