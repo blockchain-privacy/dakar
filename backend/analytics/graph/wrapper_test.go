@@ -2,10 +2,12 @@ package graph
 
 import (
 	"backend/db"
+	"backend/db/status"
 	"backend/testhelper"
 	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
+	"os"
 	"slices"
 	"sort"
 	"sync"
@@ -449,12 +451,130 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 
 	w.db = dbHandle
 
-	// database is empty, therefore classifier status is not set. Should return error and set isLoading to true.
-	require.Error(t, w.LoadGraphs())
+	// database is empty, therefore classifier status is not set. Should return no error and set isLoading to true.
+	require.NoError(t, w.LoadGraphs())
 	require.True(t, w.isLoading)
 
-	// todo add classifier status to privacy file
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	// set correct classifier status
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
 
+	// set wrapper not loading and set environment variable to
+	// only load a small graph (should have no effect, as graph is small anyway)
+	w.isLoading = false
+	require.NoError(t, os.Setenv("DEV_SMALL_GRAPH", "1"))
 	require.NoError(t, w.LoadGraphs())
+	require.NotNil(t, w.transactionGraph)
+}
+
+func TestWrapper_Logger(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	// logger is set in TestMain
+	require.NotNil(t, w.Logger())
+}
+
+func TestWrapper_Context(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	require.Equal(t, context.Background(), w.Context())
+}
+
+func TestWrapper_Name(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	require.NotEmpty(t, w.Name())
+}
+
+func TestWrapper_CalculateInitialState(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+
+	// error because no graphs were loaded so far
+	require.Error(t, w.CalculateInitialState())
+
+	// simulate a loaded graph -> no error
+	w.isLoading = true
+	require.NoError(t, w.CalculateInitialState())
+}
+
+func TestWrapper_NextBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+
+	// db handle not set -> error
+	flag, err := w.NextBlock()
+	require.Error(t, err)
+	require.False(t, flag)
+
+	w.db = dbHandle
+
+	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, w.LoadGraphs())
+
+	// false because w.state.top is higher than most recent classified block
+	flag, err = w.NextBlock()
+	require.NoError(t, err)
+	require.False(t, flag)
+}
+
+func TestWrapper_CurrentBlock(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	require.Zero(t, w.CurrentBlock())
+}
+
+func TestWrapper_PostExecution(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	require.Nil(t, w.PostExecution())
+}
+
+func TestWrapper_IncrementState(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+
+	require.Zero(t, w.state.ID)
+	require.NoError(t, w.IncrementState())
+	require.EqualValues(t, 1, w.state.ID)
+}
+
+func TestWrapper_Empty(t *testing.T) {
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+	require.False(t, w.Empty())
+
+	w.state.ID = 30
+	w.state.Top = 29
+
+	require.True(t, w.Empty())
+}
+
+func TestWrapper_Iterate(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	w := NewWrapper(context.Background(), nil)
+	unregisterCollectors(w)
+
+	w.db = dbHandle
+
+	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
+	require.NoError(t, status.SetLastClassifiedBlockID(dbHandle, uint64(testhelper.ClassifierFileLastBlock)))
+	require.NoError(t, w.LoadGraphs())
+
+	// state.ID is set to a block which does not exist,
+	// therefore iterate detects no nodes to insert and moves on
+	flag, err := w.Iterate()
+	require.NoError(t, err)
+	require.True(t, flag)
+
+	// set state.ID to most recent block
+	w.state.ID--
+	// now there should be something to do
+	flag, err = w.Iterate()
+	require.NoError(t, err)
+	require.True(t, flag)
 }
