@@ -149,7 +149,7 @@ func waitForNextDBBlockID(it BlockIterator) (isInterrupt bool, err error) {
 				return
 			}
 
-			if ok, nextErr := it.NextBlock(); err != nil {
+			if ok, nextErr := it.NextBlock(); nextErr != nil {
 				err = nextErr
 				return
 			} else if ok {
