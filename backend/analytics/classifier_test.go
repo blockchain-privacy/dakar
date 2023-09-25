@@ -537,7 +537,7 @@ func TestClassifier_NextBlock(t *testing.T) {
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  &no,
-		LastBlockID: getPointer[uint64](60020),
+		LastBlockID: getPointer[uint64](testhelper.BlockFileLastBlock),
 	}))
 
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*20)
@@ -546,16 +546,14 @@ func TestClassifier_NextBlock(t *testing.T) {
 	classifier := NewClassifier(ctx, dbHandle, NewDashConfig())
 	unregisterCollectors(classifier)
 
-	const firstBlock = 60000
-	const lastBlock = 60020
 	// set to first available block
-	classifier.state.ID = firstBlock
-	classifier.state.Top = firstBlock
+	classifier.state.ID = testhelper.BlockFileFirstBlock
+	classifier.state.Top = testhelper.BlockFileFirstBlock
 
 	got, err := classifier.NextBlock()
 	require.NoError(t, err)
 	require.True(t, got)
-	require.EqualValues(t, lastBlock, classifier.state.Top)
+	require.EqualValues(t, testhelper.BlockFileLastBlock, classifier.state.Top)
 }
 
 func TestClassifier_CurrentBlock(t *testing.T) {

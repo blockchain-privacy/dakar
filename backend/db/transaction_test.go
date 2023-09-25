@@ -330,7 +330,7 @@ func TestGetTransactionUID(t *testing.T) {
 func TestGetOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
-	transactions, err := GetOutputs(dbHandle, 60000, 60020)
+	transactions, err := GetOutputs(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
 	require.NoError(t, err)
 	require.Equal(t, 56, len(transactions))
 

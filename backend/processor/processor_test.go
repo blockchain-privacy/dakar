@@ -634,7 +634,7 @@ func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	transactions, err := db.GetTransactionByBlock(dbHandle, 60000)
+	transactions, err := db.GetTransactionByBlock(dbHandle, testhelper.BlockFileFirstBlock)
 	require.NoError(t, err)
 
 	type args struct {
@@ -692,11 +692,11 @@ func Test_getStartingID(t *testing.T) {
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling:  getPointer[bool](true),
-		LastBlockID: getPointer[uint64](60020),
+		LastBlockID: getPointer[uint64](testhelper.BlockFileLastBlock),
 	}))
 	gotStartID, err = getStartingID(dbHandle)
 	require.NoError(t, err)
-	require.EqualValues(t, 60020, gotStartID)
+	require.EqualValues(t, testhelper.BlockFileLastBlock, gotStartID)
 }
 
 func Test_processingInterrupted(t *testing.T) {

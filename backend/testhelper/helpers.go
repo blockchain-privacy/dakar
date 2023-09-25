@@ -15,11 +15,14 @@ import (
 type ContainerName string
 
 const (
-	EnvCIFlag         = "CI_ACTIVE"
-	UseClassifierFile = "classifier"
-	UseBlockFile      = "block"
-	UsePrivacyFile    = "privacy"
-	ContainerNameDB   = ContainerName("dgraph_db")
+	EnvCIFlag               = "CI_ACTIVE"
+	UseClassifierFile       = "classifier"
+	UseBlockFile            = "block"
+	UsePrivacyFile          = "privacy"
+	ContainerNameDB         = ContainerName("dgraph_db")
+	ClassifierFileLastBlock = 1557780
+	BlockFileFirstBlock     = 60000
+	BlockFileLastBlock      = 60020
 )
 
 //go:embed blocks_60000_60020.json
