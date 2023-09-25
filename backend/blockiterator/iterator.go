@@ -116,7 +116,7 @@ func StartIteration(iterator BlockIterator) (err error) {
 		}
 
 		// set next state
-		if incErr := iterator.IncrementState(); err != nil {
+		if incErr := iterator.IncrementState(); incErr != nil {
 			err = incErr
 			return
 		}
