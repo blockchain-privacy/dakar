@@ -506,3 +506,48 @@ func TestGetInputTransactions(t *testing.T) {
 		}
 	}
 }
+
+func TestForwardLookupByTime(t *testing.T) {
+	graph := newTestGraph()
+	type args struct {
+		nodeID              int64
+		maxLookForwardTime  time.Duration
+		addressExclusions   []string
+		excludeSpendingGaps bool
+	}
+	tests := []struct {
+		args    args
+		want    map[string]bool
+		wantErr bool
+	}{
+		{
+			args: args{
+				nodeID:              1,
+				maxLookForwardTime:  time.Hour * 5,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true},
+			wantErr: false,
+		},
+		{
+			args: args{
+				nodeID:              4,
+				maxLookForwardTime:  time.Hour * 5,
+				addressExclusions:   nil,
+				excludeSpendingGaps: false,
+			},
+			want:    map[string]bool{ToHex(11): true, ToHex(12): true},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		results, err := ForwardLookupByTime(graph, ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.want, results)
+		}
+	}
+}

@@ -18,7 +18,7 @@ func TestLoadUTXOCache(t *testing.T) {
 
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	cache, err = newUTXOCache(dbHandle, 60020, 20)
+	cache, err = newUTXOCache(dbHandle, testhelper.BlockFileLastBlock, 20)
 	require.NoError(t, err)
 	require.NotNil(t, cache)
 	require.Equal(t, 2, cache.getOutputCounts())

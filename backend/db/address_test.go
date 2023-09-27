@@ -104,7 +104,7 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
-	blockRange, err := GetAddressesByBlockRange(dbHandle, 60000, 60020, true)
+	blockRange, err := GetAddressesByBlockRange(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock, true)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockRange)
 
