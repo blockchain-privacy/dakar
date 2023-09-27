@@ -5,7 +5,6 @@ import (
 	"backend/constants"
 	"backend/db"
 	"backend/external"
-
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -319,6 +318,141 @@ func GetPrivacyTypeData(c external.Database, startRange string, stopRange string
 	for _, q := range r.Query {
 		ts = append(ts, q.Timestamp.UTC())
 	}
+
+	return
+}
+
+// GetForwardLookupTransactions traverses forward in the transaction graph, starting with the transaction
+// specified by startTxHash. This function is used to generate test data.
+func GetForwardLookupTransactions(c external.Database, startTxHash string) (blocks []db.Block,
+	addresses []db.Address, transactions []db.Transaction, err error) {
+	const query = `query Q($txhash: string) {
+				var(func: eq(txhash, $txhash))@recurse(depth:3){
+					tx_outputs
+					~tx_inputs@filter(has(privacytype))
+					pt as txhash
+				}
+
+				# get input transactions of all transactions
+				var(func: uid(pt)){
+					tx_inputs {
+						it as ~tx_outputs
+					}
+				}
+
+				var(func: uid(pt)) {
+					b as ~transactions
+					i as tx_inputs
+					o as tx_outputs
+				}
+
+				var(func: uid(o,i)){
+					a as ~addr_outputs
+				}
+
+				shallow_txs(func: uid(it))@filter(not uid(pt)){
+					uid
+					tx_outputs{
+						uid
+					}
+				}
+				
+				addresses(func: uid(a)){
+					uid
+					addresshash
+					dgraph.type
+					addr_outputs@filter(uid(o,i)){
+						uid
+					}
+				}
+
+				blocks(func: uid(b)){
+					uid
+					id
+					ts
+					blockhash
+					dgraph.type
+					prevblock {
+						uid
+						blockhash
+						dgraph.type
+					}
+					transactions@filter(uid(pt)){
+						uid
+						txhash
+						privacytype
+						fee
+						dgraph.type
+						tx_outputs {
+							...fOutput
+						}
+						tx_inputs {
+							...fOutput
+						}
+					}
+				}
+			  }
+
+				fragment fOutput {
+					uid
+					amount
+					inputindex
+					outputindex
+					iscoinbase
+					dgraph.type
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query,
+		map[string]string{"$txhash": startTxHash})
+	if err != nil {
+		return
+	}
+	var r struct {
+		Blocks              []db.Block       `json:"blocks,omitempty"`
+		Addresses           []db.Address     `json:"addresses,omitempty"`
+		ShallowTransactions []db.Transaction `json:"shallow_txs,omitempty"`
+	}
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for x := range r.Blocks {
+		r.Blocks[x].UID = "_:" + r.Blocks[x].UID
+		r.Blocks[x].PrevBlock.UID = "_:" + r.Blocks[x].PrevBlock.UID
+
+		for i := range r.Blocks[x].Transactions {
+			r.Blocks[x].Transactions[i].UID = "_:" + r.Blocks[x].Transactions[i].UID
+
+			for y := range r.Blocks[x].Transactions[i].Outputs {
+				r.Blocks[x].Transactions[i].Outputs[y].UID = "_:" + r.Blocks[x].Transactions[i].Outputs[y].UID
+			}
+
+			for y := range r.Blocks[x].Transactions[i].Inputs {
+				r.Blocks[x].Transactions[i].Inputs[y].UID = "_:" + r.Blocks[x].Transactions[i].Inputs[y].UID
+			}
+		}
+	}
+
+	for i := range r.Addresses {
+		r.Addresses[i].UID = "_:" + r.Addresses[i].UID
+
+		for y := range r.Addresses[i].Outputs {
+			r.Addresses[i].Outputs[y].UID = "_:" + r.Addresses[i].Outputs[y].UID
+		}
+	}
+
+	for i := range r.ShallowTransactions {
+		r.ShallowTransactions[i].UID = "_:" + r.ShallowTransactions[i].UID
+
+		for y := range r.ShallowTransactions[i].Outputs {
+			r.ShallowTransactions[i].Outputs[y].UID = "_:" + r.ShallowTransactions[i].Outputs[y].UID
+		}
+	}
+
+	blocks = r.Blocks
+	addresses = r.Addresses
+	transactions = r.ShallowTransactions
 
 	return
 }

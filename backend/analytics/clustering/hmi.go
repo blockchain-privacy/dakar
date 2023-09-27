@@ -100,6 +100,8 @@ func (m *HierarchicalMultiInput) CalculateInitialState() error {
 }
 
 // Iterate clusters all addresses of the current block based on the multi-input heuristic
+//
+//nolint:gocyclo
 func (m *HierarchicalMultiInput) Iterate() (bool, error) {
 	if m.Empty() {
 		return false, cliutil.NewStackErrorStr("got empty state")

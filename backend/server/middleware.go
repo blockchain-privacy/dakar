@@ -100,13 +100,16 @@ func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, sessionResponse, err := s.auth.FrontendApi.ToSession(r.Context()).
-				Cookie(r.Header.Get("Cookie")).Execute()
+				Cookie(r.Header.Get("Cookie")).Execute() //nolint:bodyclose
 			if err != nil {
 				sendRedirectMessage(w)
 				warn(err)
 				return
 			}
-			defer sessionResponse.Body.Close()
+
+			defer func(Body io.ReadCloser) {
+				_ = Body.Close()
+			}(sessionResponse.Body)
 
 			// check if session active and not expired
 			if session.Active == nil || session.ExpiresAt == nil ||
@@ -126,7 +129,7 @@ func (s *Server) authorization() adapter {
 					warn(extensionErr)
 					return
 				}
-				defer extensionResponse.Body.Close()
+				_ = extensionResponse.Body.Close()
 			}
 
 			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
@@ -208,8 +211,10 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 				h.ServeHTTP(recorder, r)
 
 				// get recorded values
-				resp := recorder.Result()
-				defer resp.Body.Close()
+				resp := recorder.Result() //nolint:bodyclose
+				defer func(Body io.ReadCloser) {
+					_ = Body.Close()
+				}(resp.Body)
 
 				response.statusCode = resp.StatusCode
 				response.buffer = recorder.Body.Bytes()

@@ -18,12 +18,10 @@ import (
 )
 
 var (
-	dbHandle    external.Database
+	dbHandle    = &testhelper.TestDB{IsDirty: true}
 	client      *rpcclient.Client
 	batchClient *rpcclient.Client
 )
-
-const blockFileName = "../db/testdata/blocks_60000_60020.json"
 
 func TestMain(m *testing.M) {
 	InitLogger()
@@ -33,7 +31,7 @@ func TestMain(m *testing.M) {
 	}
 
 	// create dgraph client
-	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameProcessor) + ":9080")
+	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameDB) + ":9080")
 	if err != nil {
 		log.Panic(err)
 		return
@@ -69,7 +67,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	dbHandle = graphDB
+	dbHandle.DB = graphDB
 
 	client = harness.Client
 	batchClient = harness.BatchClient
@@ -118,11 +116,12 @@ func TestAddOutputToMapping(t *testing.T) {
 	)
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 0)
 	if val, ok := outputMappings[firstAddress]; ok {
-		if len(val.indexes) != 1 {
+		switch {
+		case len(val.indexes) != 1:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != firstAddress {
+		case val.hash != firstAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 0 {
+		case val.indexes[0] != 0:
 			t.Fatal("wrong id")
 		}
 	} else {
@@ -135,11 +134,12 @@ func TestAddOutputToMapping(t *testing.T) {
 
 	outputMappings = addOutputToMapping(outputMappings, secondAddress, 10)
 	if val, ok := outputMappings[secondAddress]; ok {
-		if len(val.indexes) != 1 {
+		switch {
+		case len(val.indexes) != 1:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != secondAddress {
+		case val.hash != secondAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 10 {
+		case val.indexes[0] != 10:
 			t.Fatal("wrong id")
 		}
 	} else {
@@ -152,11 +152,12 @@ func TestAddOutputToMapping(t *testing.T) {
 
 	outputMappings = addOutputToMapping(outputMappings, firstAddress, 5)
 	if val, ok := outputMappings[firstAddress]; ok {
-		if len(val.indexes) != 2 {
+		switch {
+		case len(val.indexes) != 2:
 			t.Fatal("wrong length of ids")
-		} else if val.hash != firstAddress {
+		case val.hash != firstAddress:
 			t.Fatal("wrong hash")
-		} else if val.indexes[0] != 0 || val.indexes[1] != 5 {
+		case val.indexes[0] != 0 || val.indexes[1] != 5:
 			t.Fatal("wrong id")
 		}
 	} else {
@@ -214,7 +215,7 @@ func TestCreateOutputUid(t *testing.T) {
 
 func TestProcessAddresses(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// calling with empty mapping is allowed
 	require.NoError(t, processAddresses(dbHandle, nil, nil))
@@ -631,7 +632,7 @@ func Test_processTxVin(t *testing.T) {
 
 func Test_processBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := db.GetTransactionByBlock(dbHandle, 60000)
 	require.NoError(t, err)
@@ -679,7 +680,7 @@ func Test_getStartingID(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, gotStartID)
 
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: getPointer[bool](true),
@@ -734,7 +735,7 @@ func Test_createTransactionHashmap(t *testing.T) {
 
 func Test_getExternalOutputs(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
 		outputs  map[string][]uint32

@@ -12,7 +12,7 @@ import (
 
 func TestImportAddressExclusions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// create dgraph user for tests
 	userUID, err := user.CreateNewUser(dbHandle)
@@ -112,7 +112,7 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 
 func Test_validateExclusionAddresses(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	type args struct {
 		dgraph     external.Database

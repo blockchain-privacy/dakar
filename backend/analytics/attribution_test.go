@@ -35,7 +35,7 @@ var attributions = []Attribution{
 
 func TestImportAttribution(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// create dgraph user for tests
 	userUID, err := user.CreateNewUser(dbHandle)
@@ -146,7 +146,7 @@ func Test_buildDatabaseAttributions(t *testing.T) {
 
 func Test_validateAddresses(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	type args struct {
 		dgraph       external.Database

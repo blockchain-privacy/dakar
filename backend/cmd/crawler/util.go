@@ -5,7 +5,6 @@ import (
 	database "backend/db"
 	"backend/db/status"
 	"backend/external"
-
 	"context"
 	"errors"
 	"fmt"
@@ -303,13 +302,13 @@ func isKratosAlive(auth *ory.APIClient) bool {
 	ctx1, cancelFunc := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancelFunc()
 
-	_, resp1, err := auth.MetadataApi.IsAlive(ctx1).Execute()
-	if err != nil {
-		return false
+	_, resp, err := auth.MetadataApi.IsAlive(ctx1).Execute()
+	if resp != nil {
+		if err := resp.Body.Close(); err != nil {
+			warn(cliutil.NewStackError(err))
+		}
 	}
-	defer resp1.Body.Close()
-
-	return true
+	return err == nil
 }
 
 // waitForKratos waits until kratos is ready to receive requests

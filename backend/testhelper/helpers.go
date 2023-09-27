@@ -2,23 +2,63 @@ package testhelper
 
 import (
 	"backend/external"
+	"context"
+	_ "embed"
+	"github.com/dgraph-io/dgo/v230"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 	"google.golang.org/grpc"
 	"log"
 	"os"
 	"testing"
 )
 
-const EnvCIFlag = "CI_ACTIVE"
-
 type ContainerName string
 
 const (
-	ContainerNameStatus    = ContainerName("dgraph_status")
-	ContainerNameUser      = ContainerName("dgraph_user")
-	ContainerNameProcessor = ContainerName("dgraph_processor")
-	ContainerNameAnalytics = ContainerName("dgraph_analytics")
-	ContainerNameDB        = ContainerName("dgraph_db")
+	EnvCIFlag         = "CI_ACTIVE"
+	UseClassifierFile = "classifier"
+	UseBlockFile      = "block"
+	UsePrivacyFile    = "privacy"
+	ContainerNameDB   = ContainerName("dgraph_db")
 )
+
+//go:embed blocks_60000_60020.json
+var BlockFile []byte
+
+//go:embed blocks_1557775_1557780.json
+var ClassifierFile []byte
+
+// PrivacyFile contains a small transaction graph created by traversing forward beginning with tx
+// 452f795486980ef698fe652b56597eef3e7f6ad155cb0c9f1de21254d9bd9b0e
+//
+//go:embed privacy_transactions.json
+var PrivacyFile []byte
+
+type TestDB struct {
+	DB          external.Database
+	IsDirty     bool
+	FileNameKey string
+}
+
+func (t *TestDB) Mutate(ctx context.Context, req *api.Request) (*api.Response, error) {
+	t.IsDirty = true
+	return t.DB.Mutate(ctx, req)
+}
+
+func (t *TestDB) Query(ctx context.Context, q string, vars map[string]string) (*api.Response, error) {
+	return t.DB.Query(ctx, q, vars)
+}
+
+func (t *TestDB) Alter(ctx context.Context, op *api.Operation) error {
+	t.IsDirty = true
+	return t.DB.Alter(ctx, op)
+}
+
+// NewTxn creates a new transaction.
+func (t *TestDB) NewTxn() *dgo.Txn {
+	t.IsDirty = true
+	return t.DB.NewTxn()
+}
 
 func IsCIActive() bool {
 	return os.Getenv(EnvCIFlag) != ""
@@ -26,7 +66,7 @@ func IsCIActive() bool {
 
 func SkipIfNotCI(t *testing.T) {
 	if !IsCIActive() {
-		t.Skip("skipping CI test")
+		t.SkipNow()
 	}
 }
 
@@ -43,7 +83,7 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerN
 		defer func(c *grpc.ClientConn) {
 			err := c.Close()
 			if err != nil {
-				log.Fatal(err)
+				log.Panic(err)
 			}
 		}(c)
 

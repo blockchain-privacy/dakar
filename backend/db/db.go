@@ -3,13 +3,12 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
+	"backend/testhelper"
+	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-
-	"context"
 	"log"
-	"os"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -240,28 +239,48 @@ func CreateCommaArray(uids []string) string {
 
 // SetupDB returns the database to its initial state: drops ALL data,
 // sets up the schema and inserts data from the provided file
-func SetupDB(t *testing.T, database external.Database, blockFileName string) {
+func SetupDB(t *testing.T, database *testhelper.TestDB, fileKey string) {
+	// check if database state has been modified. In case it has not, just return
+	if !database.IsDirty && database.FileNameKey == fileKey {
+		return
+	}
+
 	// reset db
 	require.NoError(t, DropAll(database))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))
 
-	fileBytes, err := os.ReadFile(blockFileName)
-	require.NoError(t, err)
+	var fileBytes []byte
+
+	switch fileKey {
+	case testhelper.UseClassifierFile:
+		fileBytes = testhelper.ClassifierFile
+	case testhelper.UseBlockFile:
+		fileBytes = testhelper.BlockFile
+	case testhelper.UsePrivacyFile:
+		fileBytes = testhelper.PrivacyFile
+	default:
+		log.Panic("invalid file key")
+	}
 
 	if err := InsertArbitraryJSON(database, fileBytes); err != nil {
-		log.Panic("Could not upsert block data", err)
+		log.Panic("could not upsert block data", err)
 		return
 	}
+
+	database.IsDirty = false
+	database.FileNameKey = fileKey
 }
 
 // SetupDBWithoutData returns the database to its initial state:
 // drops ALL data and sets up the schema
-func SetupDBWithoutData(t *testing.T, database external.Database) {
+func SetupDBWithoutData(t *testing.T, database *testhelper.TestDB) {
 	// reset db
 	require.NoError(t, DropAll(database))
 
 	// set up schema
 	require.NoError(t, SetupSchema(database))
+
+	database.IsDirty = true
 }

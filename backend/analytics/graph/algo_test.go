@@ -1,11 +1,19 @@
 package graph
 
 import (
+	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"slices"
 	"testing"
 	"time"
 )
+
+var dbHandle = &testhelper.TestDB{IsDirty: true}
+
+func TestMain(m *testing.M) {
+	InitLogger()
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+}
 
 func TestErrNodeNotFound(t *testing.T) {
 	require.NotNil(t, ErrNodeNotFound(1))

@@ -2,18 +2,15 @@ package status
 
 import (
 	"backend/db"
-	"backend/external"
 	"backend/testhelper"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-var dbHandle external.Database
-
-const blockFileName = "../testdata/blocks_60000_60020.json"
+var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameStatus)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
@@ -114,7 +111,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 
 func TestGetHighestBlockID(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
 	require.NoError(t, err)

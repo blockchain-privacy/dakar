@@ -157,11 +157,11 @@ func (h oneSourceHeuristic) exec(dgraph external.Database, g *graph.Wrapper, txH
 	sourceTransactionMap := make(map[heuristics.ClusterUID]map[string]heuristics.HeuristicTransaction)
 	// for each input transaction to the destination transaction,
 	// inputSources holds one map with all its occurring sources
-	var inputSources []map[heuristics.ClusterUID]bool
+	var inputSources []map[heuristics.ClusterUID]bool //nolint:prealloc
 	// contains all time limited origins
 	var allTimeLimitedOrigins []heuristics.HeuristicTransaction
 	// contains all time limited origins per input transaction
-	var allTxAndOrigins []txAndOrigins
+	var allTxAndOrigins []txAndOrigins //nolint:prealloc
 	// attributionMap maps a clusterUID to a slice of attribution UIDs
 	attributionMap := make(map[heuristics.ClusterUID][]string)
 

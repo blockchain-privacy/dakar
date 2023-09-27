@@ -14,17 +14,14 @@ import (
 	"time"
 )
 
-var dbHandle external.Database
-
-const blockFileName = "../db/testdata/blocks_60000_60020.json"
-const classificationFile = "../db/testdata/blocks_1649985_1650050.json"
+var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func getPointer[number any](n number) *number {
 	return &n
 }
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle, testhelper.ContainerNameAnalytics)
+	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
 }
 
 func TestIsMixing(t *testing.T) {
@@ -472,12 +469,12 @@ func Test_getUids(t *testing.T) {
 
 func Test_getConnectedCollaterals(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
-		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b",
-		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e",
-		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0"}
+		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
+		"f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7",
+		"15e89abaa5d3062e8b694b06db4d9bd7ebf121527d70559ba3a56d62234c4296"}
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
@@ -512,7 +509,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 			args: args{
 				dgraph:                          dbHandle,
 				potentialCollateralTransactions: txs,
-				blockHeight:                     1650044,
+				blockHeight:                     1557780,
 			},
 			wantOriginCCLen: 1,
 			wantOriginCPLen: 2,
@@ -535,7 +532,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 
 func TestClassifier_NextBlock(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, blockFileName)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
@@ -570,9 +567,9 @@ func TestClassifier_CurrentBlock(t *testing.T) {
 
 func TestClassifier_Iterate(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	const firstBlock = 1649985
+	const firstBlock = 1557778
 
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
@@ -650,15 +647,15 @@ func Test_setInitialClassifierID(t *testing.T) {
 
 func Test_isCollateralCreation(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	ccTx, err := db.GetTransaction(dbHandle, "06c58c40b1293720e5f84da7b79648fcbebc610ff1df0075a5fde81238dd88c2")
+	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	cpTx, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -667,7 +664,7 @@ func Test_isCollateralCreation(t *testing.T) {
 		wantErr bool
 	}{
 		{t: ccTx, want: true, wantErr: false},
-		{t: ccTx2, want: true, wantErr: false},
+		{t: cpTx, want: false, wantErr: false},
 		{t: mixingTx, want: false, wantErr: false},
 		{t: unclassifiedTx, want: false, wantErr: false},
 	}
@@ -706,15 +703,15 @@ func Test_newCollateralCreationTransaction(t *testing.T) {
 
 func Test_isCollateralPayment(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "9ed46089d138decae684f0e18fb387a7a55223f121431c2c279c0ccb85093fdd")
+	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -722,7 +719,7 @@ func Test_isCollateralPayment(t *testing.T) {
 		want bool
 	}{
 		{t: cp, want: true},
-		{t: ccTx2, want: false},
+		{t: ccTx, want: false},
 		{t: mixingTx, want: false},
 		{t: unclassifiedTx, want: false},
 	}
@@ -755,17 +752,17 @@ func Test_newCollateralPaymentTransaction(t *testing.T) {
 
 func Test_isMixing(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	cp, err := db.GetTransaction(dbHandle, "9ed46089d138decae684f0e18fb387a7a55223f121431c2c279c0ccb85093fdd")
+	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
 	require.NoError(t, err)
-	ccTx2, err := db.GetTransaction(dbHandle, "c120e4c63f28b0b82ac4c0719591e3cab4f69d6b89b229bc401f3b02b66495f9")
+	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
 	require.NoError(t, err)
-	unclassifiedTx, err := db.GetTransaction(dbHandle, "f4805d99cb946647c989603b7bedac59ec6fcbccb51020e470984f9e3af10531")
+	unclassifiedTx, err := db.GetTransaction(dbHandle, "c071b12871b6f2b2eaded80e156273a021a95fde407a729fa968afd38e996242")
 	require.NoError(t, err)
-	mixingTx, err := db.GetTransaction(dbHandle, "ed2cb0aa0b1c86aad8e58851f47ef52c705857f4fadeadbadd11eb45cc613870")
+	mixingTx, err := db.GetTransaction(dbHandle, "6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389")
 	require.NoError(t, err)
-	mixingTx2, err := db.GetTransaction(dbHandle, "26d570199447dbec5fee25443c15d549047cfe5ec825bde89765937283498683")
+	mixingTx2, err := db.GetTransaction(dbHandle, "8a1b7adf54e37a2165f3bfba9df4abd4552a50af703dbd4ba5ba59b0562ded2f")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -773,9 +770,9 @@ func Test_isMixing(t *testing.T) {
 		want int
 	}{
 		{t: cp, want: -1},
-		{t: ccTx2, want: -1},
+		{t: ccTx, want: -1},
 		{t: mixingTx, want: 3},
-		{t: mixingTx2, want: 3},
+		{t: mixingTx2, want: 4},
 		{t: unclassifiedTx, want: -1},
 	}
 	for _, tt := range tests {
@@ -847,13 +844,13 @@ func Test_hasValidPrivacyType(t *testing.T) {
 
 func Test_classifyTransactions(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
-		"8508e32dbd5e6ae6fbf3a1ca47e967ca1754fdc64d4ae00de27d32a891b9365b",
-		"6e0de143dbdd5544be262067dbc3d6f9767b3a4a725f12034c222236e10c0f1e",
-		"921d30bb00c2f27c655f915a2486d674d4873170786f8e5774de6029f34726c0",
-		"f5c3b60aff1f1f4b2f9c73e5337ae960b3a55a192ccbade90e626699a9922ce3"}
+		"6bae9c7d40899c501fdd00c3ff5b6e5dc78687d1ca192fe9afe685ccdcc15389",
+		"55a6030d087b42682e3c3fdd0605e15ccf0923192fccaa83a6cf42a036d472e4",
+		"f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7",
+		"15e89abaa5d3062e8b694b06db4d9bd7ebf121527d70559ba3a56d62234c4296"}
 
 	txs := make([]db.Transaction, len(txHashes))
 	for i, hash := range txHashes {
@@ -900,15 +897,15 @@ func Test_classifyTransactions(t *testing.T) {
 
 func TestBlockIterator(t *testing.T) {
 	testhelper.SkipIfNotCI(t)
-	db.SetupDB(t, dbHandle, classificationFile)
+	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
-	const firstBlock = 1649985
+	const firstBlock = 1557778
 
 	no := false
 	require.NoError(t, status.SetCrawlerStatus(dbHandle, status.CrawlerStatus{
 		IsCrawling: &no,
-		// let's classify 3 blocks
-		LastBlockID: getPointer[uint64](firstBlock + 2),
+		// let's classify 2 blocks
+		LastBlockID: getPointer[uint64](firstBlock + 1),
 	}))
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
 		IsClassifying: &no,

@@ -123,20 +123,22 @@ func GetFrontendAddress(c external.Database, addrHash string, sortOrder int,
 	sortDirection := "asc"
 	sortBy := "val(ots)"
 
+	const sortDescending = "desc"
+
 	switch sortOrder {
 	case SortAscendingByInputTime:
 		sortBy = "val(its)"
 	case SortDescendingByInputTime:
-		sortDirection = "desc"
+		sortDirection = sortDescending
 		sortBy = "val(its)"
 	case SortAscendingByOutputTime:
 		// do nothing, values are already correctly set
 	case SortDescendingByOutputTime:
-		sortDirection = "desc"
+		sortDirection = sortDescending
 	case SortAscendingByAmount:
 		sortBy = "amount"
 	case SortDescendingByAmount:
-		sortDirection = "desc"
+		sortDirection = sortDescending
 		sortBy = "amount"
 	default:
 		err = cliutil.NewStackErrorStr("error unrecognized sort order")
