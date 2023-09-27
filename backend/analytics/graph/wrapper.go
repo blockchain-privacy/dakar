@@ -8,8 +8,10 @@ import (
 	"backend/external"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
 	"sync"
 	"time"
@@ -169,9 +171,20 @@ func (w *Wrapper) LoadGraphs() error {
 
 	numTxToLoad := 0
 
-	if _, ok := os.LookupEnv("DEV_SMALL_GRAPH"); ok {
-		info("DEV_SMALL_GRAPH environment variable is set. Limiting in-memory mixing graph.")
-		numTxToLoad = 10000
+	if graphLimit, ok := os.LookupEnv("DEV_GRAPH_LIMIT"); ok {
+		numGraphLimit, err := strconv.Atoi(graphLimit)
+		if err != nil {
+			return cliutil.NewStackErrorf("DEV_GRAPH_LIMIT is not a number: %w", err)
+		}
+		if numGraphLimit < 0 {
+			info("DEV_GRAPH_LIMIT environment variable is negative. Exiting ...")
+			return cliutil.NewStackErrorStr("negative DEV_GRAPH_LIMIT environment variable")
+		} else if numGraphLimit == 0 {
+			info("DEV_GRAPH_LIMIT environment variable is set to zero. Ignoring ...")
+		} else {
+			info(fmt.Sprintf("DEV_GRAPH_LIMIT environment variable is set. Limiting in-memory mixing graph to %d transactions", numGraphLimit))
+			numTxToLoad = numGraphLimit
+		}
 	}
 
 	txGraph, err := LoadTransactionGraph(w.db, numTxToLoad)
