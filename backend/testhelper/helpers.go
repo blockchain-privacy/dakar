@@ -61,7 +61,8 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 }
 
 func IsCIActive() bool {
-	return os.Getenv(EnvCIFlag) != ""
+	_, ok := os.LookupEnv(EnvCIFlag)
+	return ok
 }
 
 func SkipIfNotCI(t *testing.T) {

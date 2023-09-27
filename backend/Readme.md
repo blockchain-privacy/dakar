@@ -5,27 +5,28 @@ This is the backend of Dakar. It crawls the Dash blockchain and exposes its data
 ## Dependencies
 
 * `btcsuite` - blockchain rpc client access
-* `Dgraph` - data storage and processed blockchain data
+* `dgraph` - data storage and processed blockchain data
 * `grpc` - network communication
 * `ristretto` - in-memory cache for API requests
 * `gonum` - graph algorithms
 * `prometheus client` - metrics
+* `ory kratos` - user authentication and credential management
 
 For a more detailed overview check [here](./go.mod).
 
 ## Development
 
 Guide
-
 1. Coding must be done through feature branches
 1. Work must be linked to issues from the issue tracker
 1. Work should be documented 
 1. Work should have unit tests associated, when appropriate  
 1. New work should undergo code-review before merging  
 1. Small editorial and documentation work can be done directly in `master`
-1. [Propogate](https://dave.cheney.net/2015/11/05/lets-talk-about-logging) and [wrap](https://blog.golang.org/go1.13-errors) errors. 
-In short: Propogate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`. 
-Only log if there is an error. Do not log metrics.
+1. [Propagate](https://dave.cheney.net/2015/11/05/lets-talk-about-logging) and [wrap](https://blog.golang.org/go1.13-errors) errors. 
+   1. Propagate errors with additional information up to the `main` package and log them there. Do not log errors in other package than `main`. 
+   Only log if there is an error. Do not log metrics.
+   1. Wrap all native errors via the [StackError](cmd/cliutil/stackerror.go) type to enable error tracing.
 
 Branches
 * `master` - main stable dev branch, must compile and should work.
@@ -34,7 +35,7 @@ Branches
 ## Start
 ### Setup Dash
 * Setup `dashd` and let it sync. A GUI is available via `dash-qt`. Dash can be downloaded [here](https://www.dash.org/downloads/). Verify the file hashes.
-* Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler.go) are used.
+* Launch the Dash daemon `dashd` with RPC user and password. In this example the default values from [crawler.go](cmd/crawler/main.go) are used.
 ```shell script
 dashd -rpcuser=rpc1user -rpcpassword=1234pass
 ```
@@ -45,7 +46,8 @@ dashd -rpcuser=rpc1user -rpcpassword=1234pass
 cd <project_dir>/backend/docker
 docker network create dgraph_default
 ```
-* Change the whitelisted ip range in `docker-compose.yml` to your private ip (line 29)
+* Change the whitelisted ip range in `docker-compose.yml` to your private ip
+* Set the appropriate values in the .env file
 * Execute `docker-compose up` to start Dgraph
 * After the startup is complete the database explorer `Ratel` is available via `http://localhost:8000/?local`
 
@@ -71,6 +73,14 @@ crawler 2021/01/04 11:40:37 main.go:31: Dash mode active
 server  2021/01/04 11:40:37 server.go:19: Starting server at endpoint http://localhost:8081
 process 2021/01/04 11:40:38 processor.go:31: [Starting crawling at Id: 17940, Hash: 000000000171e06d339fdb33e02eb61ab63415e079a43481bd7cb7b852c4cf4b]
 ```
+
+### Docker
+
+To create a docker image containing the crawler executable execute the script below.
+```shell script
+make docker-dash
+```
+The image expects the config file to be mounted to `/data/config.yml`.
 
 ### Setup Frontend
 
