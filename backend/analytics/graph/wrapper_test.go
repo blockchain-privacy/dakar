@@ -462,7 +462,7 @@ func TestWrapper_LoadGraphs(t *testing.T) {
 	// set wrapper not loading and set environment variable to
 	// only load a small graph (should have no effect, as graph is small anyway)
 	w.isLoading = false
-	require.NoError(t, os.Setenv("DEV_SMALL_GRAPH", "1"))
+	require.NoError(t, os.Setenv("DEV_GRAPH_LIMIT", "10000"))
 	require.NoError(t, w.LoadGraphs())
 	require.NotNil(t, w.transactionGraph)
 }

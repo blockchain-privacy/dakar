@@ -29,9 +29,9 @@ Start the crawler and confirm the reset dialog.
 
 ## Environment Variables
 
-| Variable        | Default Value | Description                                                                                                     |
-|-----------------|:-------------:|-----------------------------------------------------------------------------------------------------------------|
-| DEV_SMALL_GRAPH | unset         | Only loads a small in-memory mixing graph. Useful for fast startup of the crawler. Set to any value to activate. |
+| Variable        | Default Value | Description                                                                                                                           |
+|-----------------|:-------------:|---------------------------------------------------------------------------------------------------------------------------------------|
+| DEV_GRAPH_LIMIT | unset         | Limits the number of privacy transactions loaded for the in-memory graph. Useful for fast startup of the crawler. Must be an integer. |
 
 
 ## Metrics
