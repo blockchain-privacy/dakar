@@ -73,6 +73,9 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
 	require.NoError(t, hm.CalculateInitialState())
 
+	// this block contains transactions with multiple input addresses
+	hm.state.ID = 60015
+
 	ok, err = hm.Iterate()
 	require.NoError(t, err)
 	require.True(t, ok)

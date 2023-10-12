@@ -294,6 +294,9 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
 	require.NoError(t, fm.CalculateInitialState())
 
+	// this block contains transactions with multiple input addresses
+	fm.state.ID = 60015
+
 	ok, err = fm.Iterate()
 	require.NoError(t, err)
 	require.True(t, ok)
