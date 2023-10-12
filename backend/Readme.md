@@ -108,8 +108,8 @@ The command below runs all tests, which don't require a database and RPC-client.
 go test -cover -race ./... 
 ```
 
-Set the `DB_TESTS` and `DB_HOSTNAME` environment variables to run tests which require the database.
-Set `DB_HOSTNAME` to the host which runs the database. The port is expected to be `9080`. 
+To run database tests, first set up an empty dgraph instance, preferably via [docker](../docker/docker-compose_local-test.yml).
+Next, set the `DB_TESTS` and `DB_HOSTNAME` environment variables. `DB_HOSTNAME` should be set to the host which runs the database. The port is expected to be `9080`. 
 Set parallelism to 1, so database tests of different modules don't interfere which each other.
 
 ```shell
