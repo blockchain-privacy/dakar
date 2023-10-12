@@ -250,7 +250,7 @@ func TestCreateClient(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	name, ok := testhelper.GetDBName()
 	if !ok {
-		t.Fatal("environment variable " + testhelper.EnvDBName + " is not set")
+		t.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
 	}
 	_, c, err := external.CreateClient(name + ":9080")
 	require.NoError(t, err)

@@ -29,7 +29,7 @@ func TestMain(m *testing.M) {
 	if testhelper.DoDBTests() {
 		dbName, ok := testhelper.GetDBName()
 		if !ok {
-			log.Fatal("environment variable " + testhelper.EnvDBName + " is not set")
+			log.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
 		}
 		// create dgraph client
 		graphDB, c, err := external.CreateClient(dbName + ":9080")

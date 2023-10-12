@@ -17,7 +17,7 @@ type ContainerName string
 const (
 	EnvDBTests              = "DB_TESTS"
 	EnvRPCTests             = "RPC_TESTS"
-	EnvDBName               = "DB_NAME"
+	EnvDBHostname           = "DB_HOSTNAME"
 	UseClassifierFile       = "classifier"
 	UseBlockFile            = "block"
 	UsePrivacyFile          = "privacy"
@@ -75,7 +75,7 @@ func DoRPCTests() bool {
 }
 
 func GetDBName() (string, bool) {
-	return os.LookupEnv(EnvDBName)
+	return os.LookupEnv(EnvDBHostname)
 }
 
 func SkipIfNoDB(t *testing.T) {
@@ -96,7 +96,7 @@ func RunDgraphTests(m *testing.M, packageDBHandle *external.Database) {
 	if DoDBTests() {
 		dbName, ok := GetDBName()
 		if !ok {
-			log.Fatal("environment variable " + EnvDBName + " is not set")
+			log.Fatal("environment variable " + EnvDBHostname + " is not set")
 		}
 		// create dgraph client
 		graphDB, c, err := external.CreateClient(dbName + ":9080")
