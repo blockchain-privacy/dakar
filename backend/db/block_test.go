@@ -65,7 +65,7 @@ func TestBlockQueryPayload(t *testing.T) {
 }
 
 func TestGetBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"
@@ -84,7 +84,7 @@ func TestGetBlock(t *testing.T) {
 }
 
 func TestGetFullBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	block, err := GetFullBlock(dbHandle, 60003, true)
@@ -100,7 +100,7 @@ func TestGetFullBlock(t *testing.T) {
 }
 
 func TestGetFrontendBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	const blockHash = "0000000000422dc68b3a1ab79869010747851e53d7732a10477759271da13caa"

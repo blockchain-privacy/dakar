@@ -205,7 +205,7 @@ func Test_verifyTransactionGraph(t *testing.T) {
 }
 
 func Test_loadOriginTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	g := NewReversibleGraph(1)
 	// testdata contains 1 origin transaction
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
@@ -214,7 +214,7 @@ func Test_loadOriginTransactions(t *testing.T) {
 }
 
 func Test_loadDestinationTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	g := NewReversibleGraph(1)
 	// testdata contains 1 destination transaction with 7 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
@@ -223,7 +223,7 @@ func Test_loadDestinationTransactions(t *testing.T) {
 }
 
 func Test_loadMixingTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	g := NewReversibleGraph(132)
 	// testdata contains 132 mixing transactions and 557 input transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
@@ -232,7 +232,7 @@ func Test_loadMixingTransactions(t *testing.T) {
 }
 
 func Test_loadCCTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	g := NewReversibleGraph(132)
 	// testdata contains 0 cc transactions
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
@@ -241,7 +241,7 @@ func Test_loadCCTransactions(t *testing.T) {
 }
 
 func TestLoadTransactionGraph(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UsePrivacyFile)
 
 	graph, err := LoadTransactionGraph(dbHandle, 0)

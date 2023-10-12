@@ -8,7 +8,7 @@ import (
 )
 
 func TestLoadUTXOCache(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 	// nothing in DB so should not return anything
 	cache, err := newUTXOCache(dbHandle, 0, 0)

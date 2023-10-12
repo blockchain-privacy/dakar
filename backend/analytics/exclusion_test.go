@@ -11,7 +11,7 @@ import (
 )
 
 func TestImportAddressExclusions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// create dgraph user for tests
@@ -111,7 +111,7 @@ func Test_buildDatabaseAddressExclusions(t *testing.T) {
 }
 
 func Test_validateExclusionAddresses(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	type args struct {

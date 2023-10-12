@@ -10,11 +10,13 @@ import (
 var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
 func TestGetCrawlerStatus(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	require.NoError(t, db.DropAll(dbHandle))
+
 	// crawler status not yet set
 	_, err := GetCrawlerStatus(dbHandle)
 	require.Error(t, err)
@@ -38,7 +40,9 @@ func TestGetCrawlerStatus(t *testing.T) {
 }
 
 func TestGetClassifierStatus(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	require.NoError(t, db.DropAll(dbHandle))
+
 	// classifier status not yet set
 	_, err := GetClassifierStatus(dbHandle)
 	require.Error(t, err)
@@ -62,7 +66,9 @@ func TestGetClassifierStatus(t *testing.T) {
 }
 
 func TestGetClusteringHMIStatus(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	require.NoError(t, db.DropAll(dbHandle))
+
 	// clustering status not yet set
 	_, err := GetClusteringHMIStatus(dbHandle)
 	require.Error(t, err)
@@ -86,7 +92,9 @@ func TestGetClusteringHMIStatus(t *testing.T) {
 }
 
 func TestGetClusteringFMIStatus(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	require.NoError(t, db.DropAll(dbHandle))
+
 	// clustering status not yet set
 	_, err := GetClusteringFMIStatus(dbHandle)
 	require.Error(t, err)
@@ -110,7 +118,7 @@ func TestGetClusteringFMIStatus(t *testing.T) {
 }
 
 func TestGetHighestBlockID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	blockHeight, err := GetHighestBlockID(dbHandle)
@@ -119,7 +127,7 @@ func TestGetHighestBlockID(t *testing.T) {
 }
 
 func TestGetFrontendStatus(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
 	// nothing set yet -> should fail
@@ -140,7 +148,7 @@ func TestGetFrontendStatus(t *testing.T) {
 }
 
 func TestGetMeta(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	require.NoError(t, db.DropAll(dbHandle))
 
 	// nothing set yet -> should fail

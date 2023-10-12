@@ -34,7 +34,9 @@ test:
   stage: test
   needs: ["dependencies"]
   variables:
-    CI_ACTIVE: "1" # variable to recognize that tests are run via the CI, any non-empty value works
+    DB_TESTS: "1" # variable which controls if tests requiring the database should be run
+    RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
+    DB_NAME: "dgraph_db" # name of the dgraph database container
   script:
     # get btcd for rpc testing
     - curl --fail --silent --show-error -LO https://github.com/btcsuite/btcd/releases/download/$BTCD_VERSION/btcd-linux-amd64-$BTCD_VERSION.tar.gz

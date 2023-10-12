@@ -93,7 +93,7 @@ func Test_buildDatabaseClusters(t *testing.T) {
 }
 
 func Test_validateAddresses(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// generate 1001 address hashes
@@ -149,7 +149,7 @@ func Test_validateAddresses(t *testing.T) {
 }
 
 func TestImportCluster(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	type args struct {
