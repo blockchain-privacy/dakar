@@ -446,3 +446,24 @@ func TestSpendingFingerprint(t *testing.T) {
 		}
 	}
 }
+
+func Test_getSessionsFromTransaction(t *testing.T) {
+	g := newDestinationGraph(t)
+	tests := []struct {
+		tx   TransactionNode
+		want []int64
+	}{
+		// node does not exist in graph -> no results
+		{
+			tx:   TransactionNode{id: 55555},
+			want: nil,
+		},
+		{
+			tx:   TransactionNode{id: 1},
+			want: []int64{1577874600, 1577980800},
+		},
+	}
+	for _, tt := range tests {
+		require.Equal(t, tt.want, getSessionsFromTransaction(g, tt.tx))
+	}
+}
