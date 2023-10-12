@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestAddClustersToMergeList(t *testing.T) {
+func Test_addClustersToMergeList(t *testing.T) {
 	clusterMergeMap := make(map[string]*newCluster)
 	addressMergeMap := make(map[string]*newCluster)
 	clusterStore := make(map[string]clustering.Cluster)
