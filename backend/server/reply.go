@@ -914,9 +914,11 @@ func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (re
 
 func getAttributionSearchReply(dgraph external.Database, userUID string,
 	body io.Reader) (reply attributionOverviewReply) {
-	var searchRequest struct {
+	type request struct {
 		Query string `json:"q,omitempty"`
 	}
+
+	var searchRequest request
 
 	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
 		reply.Success = false
@@ -965,7 +967,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
+			warn(cliutil.NewStackErrorf("closing CSV-file: %w", err))
 		}
 	}(file)
 

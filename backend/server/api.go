@@ -47,6 +47,16 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
 }
 
+// Search godoc
+//
+//	@Summary	Search for blocks, addresses and transactions
+//	@Tags		data
+//	@Produce	json
+//	@Param		hash	path		string	true	"Hash"
+//	@Success	200		{object}	server.searchResponse
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/search/{hash} [get]
+//
 // API pattern: "/api/v1/search/<hash>"
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -95,6 +105,18 @@ func (s *Server) handlerSearch() http.Handler {
 	})
 }
 
+// Query for Address, Transaction or Block godoc
+//
+//	@Summary	Query for address, transaction or block
+//	@Tags		data
+//	@Produce	json
+//	@Param		hash	path		string	true	"Hash"
+//	@Success	200		{object}	server.searchResponse
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/blk/{hash} [get]
+//	@Router		/address/{hash} [get]
+//	@Router		/tx/{hash} [get]
+//
 // API pattern: "/api/v1/<type>/<query>"
 // API pattern: "/api/v1/blk/<query>"
 // API pattern: "/api/v1/address/<query>"
@@ -256,6 +278,15 @@ func (s *Server) handlerBlockRange() http.Handler {
 	})
 }
 
+// Server Status godoc
+//
+//	@Summary	Get the status of all backend modules
+//	@Tags		meta
+//	@Produce	json
+//	@Success	200	{object}	server.metaStatus
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/meta/ [get]
+//
 // API pattern: "/api/v1/meta/"
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -296,6 +327,16 @@ func (s *Server) handlerMeta() http.Handler {
 	})
 }
 
+// Heuristic Summary godoc
+//
+//	@Summary	Heuristic Summary
+//	@Tags		heuristic
+//	@Produce	text/csv
+//	@Param		heuristic_UID	path		string	true	"0x123"
+//	@Success	200				{string}	string	"comma separated values"
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/heuristicsSummary/{heuristic_UID} [get]
+//
 // API pattern: "/api/v1/heuristicsSummary/<heuristic_UID>"
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -318,6 +359,15 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 	})
 }
 
+// Cluster Summary godoc
+//
+//	@Summary	Cluster Summary
+//	@Tags		cluster
+//	@Produce	text/csv
+//	@Success	200	{string}	string	"comma separated values"
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/clusterSummary [get]
+//
 // API pattern: "/api/v1/clusterSummary"
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -327,6 +377,16 @@ func (s *Server) handlerClusterSummary() http.Handler {
 	})
 }
 
+//	@Summary	Add Cluster
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		separator	formData	string	true	"separator of the CSV file"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		file		formData	file	true	"the CSV file"
+//	@Success	200			{object}	server.addClusterReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addCluster [post]
+//
 // API pattern: "/api/v1/addCluster"
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -342,6 +402,16 @@ func (s *Server) handlerAddCluster() http.Handler {
 	})
 }
 
+// Delete Cluster godoc
+//
+//	@Summary	Delete Cluster
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		cluster_uid	path		string	true	"0x123"
+//	@Success	200			{object}	server.deleteClusterReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/deleteCluster/{cluster_uid} [get]
+//
 // API pattern: "/api/v1/deleteCluster/<cluster_uid>"
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -366,6 +436,15 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 	})
 }
 
+// Delete All Clusters godoc
+//
+//	@Summary	Delete all clusters of the current user
+//	@Tags		cluster
+//	@Produce	json
+//	@Success	200	{object}	server.deleteClusterReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllClusters [get]
+//
 // API pattern: "/api/v1/deleteAllClusters"
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -388,6 +467,15 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 	})
 }
 
+// Cluster Overview godoc
+//
+//	@Summary	Get all custom clusters of the current user
+//	@Tags		cluster
+//	@Produce	json
+//	@Success	200	{object}	server.clusterOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/clusterOverview [get]
+//
 // API pattern: "/api/v1/clusterOverview"
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -410,6 +498,15 @@ func (s *Server) handlerClusterOverview() http.Handler {
 	})
 }
 
+// Attribution Overview godoc
+//
+//	@Summary	Get all attributions of the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Success	200	{object}	server.attributionOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/attributionOverview [get]
+//
 // API pattern: "/api/v1/attributionOverview"
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -432,6 +529,18 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 	})
 }
 
+// Add Private Attribution godoc
+//
+//	@Summary	Create a new attribution which is only visible for the current user
+//	@Tags		attribution
+//	@Produce	text/csv
+//	@Param		separator	formData	string	true	"separator of the CSV file"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		file		formData	file	true	"the CSV file"
+//	@Success	200			{object}	server.addAttributionReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addPrivateAttribution [post]
+//
 // API pattern: "/api/v1/addPrivateAttribution"
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -447,6 +556,18 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	})
 }
 
+// Add Public Attribution godoc
+//
+//	@Summary	Create a new attribution which is visible to all users
+//	@Tags		attribution
+//	@Produce	text/csv
+//	@Param		separator	formData	string	true	"separator of the CSV file"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		file		formData	file	true	"the CSV file"
+//	@Success	200			{string}	string	"comma separated values"
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addPublicAttribution [post]
+//
 // API pattern: "/api/v1/addPublicAttribution"
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -462,7 +583,17 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/deletePrivateAttribution/<cluster_uid>"
+// Delete Private Attribution godoc
+//
+//	@Summary	Delete an attribution belonging to the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Param		attribution_uid	path		string	true	"0x123"
+//	@Success	200				{object}	server.deleteAttributionReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/deletePrivateAttribution/{attribution_uid} [get]
+//
+// API pattern: "/api/v1/deletePrivateAttribution/<attribution_uid>"
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -486,7 +617,17 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/deletePublicAttribution/<cluster_uid>"
+// Delete Public Attribution godoc
+//
+//	@Summary	Delete a public attribution
+//	@Tags		attribution
+//	@Produce	json
+//	@Param		attribution_uid	path		string	true	"0x123"
+//	@Success	200				{object}	server.deleteAttributionReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/deletePublicAttribution/{attribution_uid} [get]
+//
+// API pattern: "/api/v1/deletePublicAttribution/<attribution_uid>"
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -510,6 +651,15 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	})
 }
 
+// Delete All Private Attributions godoc
+//
+//	@Summary	Delete all attributions of the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Success	200	{object}	server.deleteAttributionReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllPrivateAttributions [get]
+//
 // API pattern: "/api/v1/deleteAllPrivateAttributions"
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -532,6 +682,17 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	})
 }
 
+// Search Attributions godoc
+//
+//	@Summary	Search all public attributions and the attributions belonging to the current user
+//	@Tags		attribution
+//	@Accept		json
+//	@Produce	json
+//	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search Attributions"
+//	@Success	200			{object}	server.attributionOverviewReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/searchAttributions [post]
+//
 // API pattern: "/api/v1/searchAttributions"
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -554,6 +715,16 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 	})
 }
 
+// Add Address Exclusion godoc
+//
+//	@Summary	Adds new address exclusions for the current user
+//	@Tags		address exclusions
+//	@Produce	text/csv
+//	@Param		file	formData	file	true	"the CSV file"
+//	@Success	200		{object}	server.addAddressExclusionsReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/addAddressExclusions [post]
+//
 // API pattern: "/api/v1/addAddressExclusions"
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -569,6 +740,16 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 	})
 }
 
+// Delete Address Exclusion godoc
+//
+//	@Summary	Deletes an address exclusion of the current user
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Param		address_exclusion_uid	path		string	true	"0x123"
+//	@Success	200						{object}	server.deleteAddressExclusionReply
+//	@Failure	500						{string}	string	"encoding error"
+//	@Router		/deleteAddressExclusion/{address_exclusion_uid} [get]
+//
 // API pattern: "/api/v1/deleteAddressExclusion/<address_exclusion_uid>"
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -593,6 +774,15 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	})
 }
 
+// Delete All Address Exclusions godoc
+//
+//	@Summary	Delete all address exclusions of the current user
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Success	200	{object}	server.deleteAddressExclusionReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllAddressExclusions [get]
+//
 // API pattern: "/api/v1/deleteAllAddressExclusions"
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -615,6 +805,15 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	})
 }
 
+// Address Exclusion Overview godoc
+//
+//	@Summary	Address exclusion overview
+//	@Tags		address exclusion
+//	@Produce	json
+//	@Success	200	{object}	server.addressExclusionOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/addressExclusionOverview [get]
+//
 // API pattern: "/api/v1/addressExclusionOverview"
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -637,6 +836,16 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	})
 }
 
+// Heuristic godoc
+//
+//	@Summary	Get all heuristic defined for a transaction
+//	@Tags		heuristic
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.heuristicReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/heuristics/{hash} [get]
+//
 // API pattern: "/api/v1/heuristics/<hash>"
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -666,6 +875,16 @@ func (s *Server) handlerHeuristics() http.Handler {
 	})
 }
 
+// HMI clusters godoc
+//
+//	@Summary	Get HMI clusters per transaction
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.hmiLookupReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/hmiLookup/{hash} [get]
+//
 // API pattern: "/api/v1/hmiLookup/<hash>"
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -688,6 +907,16 @@ func (s *Server) handlerHMILookup() http.Handler {
 	})
 }
 
+// Heuristic Status godoc
+//
+//	@Summary	Get the status of all heuristics per transaction
+//	@Tags		heuristic
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.heuristicReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/heuristicStatus/{hash} [get]
+//
 // API pattern: "/api/v1/heuristicStatus/<hash>"
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

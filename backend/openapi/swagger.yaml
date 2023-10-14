@@ -1,0 +1,940 @@
+basePath: /api/v1
+definitions:
+  attribution.Attribution:
+    properties:
+      Attribution.address:
+        $ref: '#/definitions/attribution.HollowAddress'
+      Attribution.category:
+        type: string
+      Attribution.description:
+        type: string
+      Attribution.isPublic:
+        type: boolean
+      Attribution.source:
+        type: string
+      Attribution.tag:
+        type: string
+      Attribution.ts:
+        type: string
+      Attribution.user:
+        $ref: '#/definitions/attribution.HollowUser'
+      dgraph.type:
+        items:
+          type: string
+        type: array
+      uid:
+        type: string
+    type: object
+  attribution.FrontendAttribution:
+    properties:
+      address:
+        type: string
+      category:
+        type: string
+      description:
+        type: string
+      isPublic:
+        type: boolean
+      source:
+        type: string
+      tag:
+        type: string
+      ts:
+        type: string
+      uid:
+        type: string
+    type: object
+  attribution.HollowAddress:
+    properties:
+      uid:
+        type: string
+    type: object
+  attribution.HollowUser:
+    properties:
+      uid:
+        type: string
+    type: object
+  clustering.FrontendHMICluster:
+    properties:
+      addressCount:
+        type: integer
+      children:
+        items:
+          type: string
+        type: array
+      parent:
+        type: string
+      txhash:
+        type: string
+      uid:
+        type: string
+    type: object
+  clustering.FrontendUserCluster:
+    properties:
+      address_count:
+        type: integer
+      addresses:
+        items:
+          type: string
+        type: array
+      ts:
+        type: string
+      uid:
+        type: string
+    type: object
+  heuristics.DummyNode:
+    properties:
+      uid:
+        type: string
+    type: object
+  heuristics.FrontendHeuristic:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      clusterCount:
+        type: integer
+      clusterTypes:
+        items:
+          type: string
+        type: array
+      excludeAddresses:
+        type: boolean
+      excludeSpendingGaps:
+        type: boolean
+      parameter:
+        type: string
+      parent:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      results:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristicResult'
+        type: array
+      ts:
+        type: string
+      type:
+        type: string
+      uid:
+        type: string
+    type: object
+  heuristics.FrontendHeuristicResult:
+    properties:
+      destinations:
+        items:
+          properties:
+            ts:
+              type: string
+            txhash:
+              type: string
+            uid:
+              type: string
+          type: object
+        type: array
+      origin:
+        properties:
+          addresshash:
+            type: string
+          ts:
+            type: string
+          txhash:
+            type: string
+          uid:
+            type: string
+        type: object
+    type: object
+  heuristics.Heuristic:
+    properties:
+      ~Heuristic.parent:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      ~User.heuristics:
+        type: string
+      Heuristic.clusterTypes:
+        items:
+          type: string
+        type: array
+      Heuristic.clusters:
+        items:
+          $ref: '#/definitions/heuristics.HeuristicCluster'
+        type: array
+      Heuristic.excludeAddresses:
+        type: boolean
+      Heuristic.excludeSpendingGaps:
+        type: boolean
+      Heuristic.parameter:
+        type: string
+      Heuristic.parent:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      Heuristic.transaction:
+        properties:
+          uid:
+            type: string
+        type: object
+      Heuristic.ts:
+        type: string
+      Heuristic.type:
+        type: string
+      dgraph.type:
+        items:
+          type: string
+        type: array
+      uid:
+        type: string
+    type: object
+  heuristics.HeuristicCluster:
+    properties:
+      HeuristicCluster.attributions:
+        items:
+          $ref: '#/definitions/attribution.Attribution'
+        type: array
+      HeuristicCluster.results:
+        items:
+          $ref: '#/definitions/heuristics.HeuristicResult'
+        type: array
+      dgraph.type:
+        items:
+          type: string
+        type: array
+    type: object
+  heuristics.HeuristicQueueStatus:
+    enum:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    type: integer
+    x-enum-varnames:
+    - StatusHeuristicAdded
+    - StatusHeuristicDuplicate
+    - StatusHeuristicNotInQueue
+    - StatusHeuristicInQueue
+    - StatusHeuristicProcessing
+    - StatusHeuristicWorkerNotReady
+  heuristics.HeuristicResult:
+    properties:
+      HeuristicResult.destinations:
+        items:
+          $ref: '#/definitions/heuristics.DummyNode'
+        type: array
+      HeuristicResult.origin:
+        $ref: '#/definitions/heuristics.DummyNode'
+      dgraph.type:
+        items:
+          type: string
+        type: array
+    type: object
+  server.addAddressExclusionsReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.addAttributionReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.addClusterReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.addressExclusionOverviewReply:
+    properties:
+      addressCount:
+        type: integer
+      addresses:
+        items:
+          type: string
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.attributionOverviewReply:
+    properties:
+      attributions:
+        items:
+          $ref: '#/definitions/attribution.FrontendAttribution'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.clusterOverviewReply:
+    properties:
+      clusters:
+        items:
+          $ref: '#/definitions/clustering.FrontendUserCluster'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.deleteAddressExclusionReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.deleteAttributionReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.deleteClusterReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.getAttributionSearchReply.request:
+    properties:
+      q:
+        type: string
+    type: object
+  server.heuristicReply:
+    properties:
+      heuristics:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristic'
+        type: array
+      msg:
+        type: string
+      status:
+        $ref: '#/definitions/heuristics.HeuristicQueueStatus'
+      success:
+        type: boolean
+    type: object
+  server.hmiLookupReply:
+    properties:
+      address_cluster:
+        type: string
+      clusters:
+        items:
+          $ref: '#/definitions/clustering.FrontendHMICluster'
+        type: array
+      success:
+        type: boolean
+    type: object
+  server.metaStatus:
+    properties:
+      rpcinfo:
+        $ref: '#/definitions/server.prunedRPCInfo'
+      status:
+        $ref: '#/definitions/status.FrontendStatus'
+    type: object
+  server.prunedRPCInfo:
+    properties:
+      blocks:
+        type: integer
+      difficulty:
+        type: number
+      pruned:
+        type: boolean
+      size_on_disk:
+        type: integer
+      verificationprogress:
+        type: number
+    type: object
+  server.queryResultType:
+    enum:
+    - block
+    - addr
+    - tx
+    - response_empty
+    type: string
+    x-enum-varnames:
+    - typeBlock
+    - typeAddr
+    - typeTx
+    - typeEmpty
+  server.searchResponse:
+    properties:
+      payload: {}
+      type:
+        $ref: '#/definitions/server.queryResultType'
+    type: object
+  status.FrontendStatus:
+    properties:
+      isclassifying:
+        type: boolean
+      isclusteringfmi:
+        type: boolean
+      isclusteringhmi:
+        type: boolean
+      iscrawling:
+        type: boolean
+      lastblockid:
+        type: integer
+      lastclassifiedid:
+        type: integer
+      lastclusteredfmiid:
+        type: integer
+      lastclusteredhmiid:
+        type: integer
+    type: object
+host: localhost
+info:
+  contact: {}
+  description: This is the REST API for Dakar
+  title: Dakar API
+  version: "1.0"
+paths:
+  /addAddressExclusions:
+    post:
+      parameters:
+      - description: the CSV file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addAddressExclusionsReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Adds new address exclusions for the current user
+      tags:
+      - address exclusions
+  /addCluster:
+    post:
+      parameters:
+      - description: separator of the CSV file
+        in: formData
+        name: separator
+        required: true
+        type: string
+      - description: controls whether the first line should be skiped
+        in: formData
+        name: hasHeader
+        required: true
+        type: boolean
+      - description: the CSV file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addClusterReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Add Cluster
+      tags:
+      - cluster
+  /addPrivateAttribution:
+    post:
+      parameters:
+      - description: separator of the CSV file
+        in: formData
+        name: separator
+        required: true
+        type: string
+      - description: controls whether the first line should be skiped
+        in: formData
+        name: hasHeader
+        required: true
+        type: boolean
+      - description: the CSV file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addAttributionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Create a new attribution which is only visible for the current user
+      tags:
+      - attribution
+  /addPublicAttribution:
+    post:
+      parameters:
+      - description: separator of the CSV file
+        in: formData
+        name: separator
+        required: true
+        type: string
+      - description: controls whether the first line should be skiped
+        in: formData
+        name: hasHeader
+        required: true
+        type: boolean
+      - description: the CSV file
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: comma separated values
+          schema:
+            type: string
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Create a new attribution which is visible to all users
+      tags:
+      - attribution
+  /address/{hash}:
+    get:
+      parameters:
+      - description: Hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Query for address, transaction or block
+      tags:
+      - data
+  /addressExclusionOverview:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addressExclusionOverviewReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Address exclusion overview
+      tags:
+      - address exclusion
+  /attributionOverview:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.attributionOverviewReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get all attributions of the current user
+      tags:
+      - attribution
+  /blk/{hash}:
+    get:
+      parameters:
+      - description: Hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Query for address, transaction or block
+      tags:
+      - data
+  /clusterOverview:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.clusterOverviewReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get all custom clusters of the current user
+      tags:
+      - cluster
+  /clusterSummary:
+    get:
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: comma separated values
+          schema:
+            type: string
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Cluster Summary
+      tags:
+      - cluster
+  /deleteAddressExclusion/{address_exclusion_uid}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: address_exclusion_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteAddressExclusionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Deletes an address exclusion of the current user
+      tags:
+      - address exclusions
+  /deleteAllAddressExclusions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteAddressExclusionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete all address exclusions of the current user
+      tags:
+      - address exclusions
+  /deleteAllClusters:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteClusterReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete all clusters of the current user
+      tags:
+      - cluster
+  /deleteAllPrivateAttributions:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteAttributionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete all attributions of the current user
+      tags:
+      - attribution
+  /deleteCluster/{cluster_uid}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: cluster_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteClusterReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete Cluster
+      tags:
+      - cluster
+  /deletePrivateAttribution/{attribution_uid}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: attribution_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteAttributionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete an attribution belonging to the current user
+      tags:
+      - attribution
+  /deletePublicAttribution/{attribution_uid}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: attribution_uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteAttributionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete a public attribution
+      tags:
+      - attribution
+  /heuristicStatus/{hash}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.heuristicReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the status of all heuristics per transaction
+      tags:
+      - heuristic
+  /heuristics/{hash}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.heuristicReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get all heuristic defined for a transaction
+      tags:
+      - heuristic
+  /heuristicsSummary/{heuristic_UID}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: heuristic_UID
+        required: true
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: comma separated values
+          schema:
+            type: string
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Heuristic Summary
+      tags:
+      - heuristic
+  /hmiLookup/{hash}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.hmiLookupReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get HMI clusters per transaction
+      tags:
+      - cluster
+  /meta/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.metaStatus'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the status of all backend modules
+      tags:
+      - meta
+  /search/{hash}:
+    get:
+      parameters:
+      - description: Hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Search for blocks, addresses and transactions
+      tags:
+      - data
+  /searchAttributions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Search Attributions
+        in: body
+        name: attribution
+        required: true
+        schema:
+          $ref: '#/definitions/server.getAttributionSearchReply.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.attributionOverviewReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Search all public attributions and the attributions belonging to the
+        current user
+      tags:
+      - attribution
+  /tx/{hash}:
+    get:
+      parameters:
+      - description: Hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Query for address, transaction or block
+      tags:
+      - data
+swagger: "2.0"

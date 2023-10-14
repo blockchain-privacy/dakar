@@ -1,0 +1,1438 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the REST API for Dakar",
+        "title": "Dakar API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost",
+    "basePath": "/api/v1",
+    "paths": {
+        "/addAddressExclusions": {
+            "post": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "address exclusions"
+                ],
+                "summary": "Adds new address exclusions for the current user",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "the CSV file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addAddressExclusionsReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addCluster": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Add Cluster",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "separator of the CSV file",
+                        "name": "separator",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "controls whether the first line should be skiped",
+                        "name": "hasHeader",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "the CSV file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addClusterReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addPrivateAttribution": {
+            "post": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Create a new attribution which is only visible for the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "separator of the CSV file",
+                        "name": "separator",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "controls whether the first line should be skiped",
+                        "name": "hasHeader",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "the CSV file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addAttributionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addPublicAttribution": {
+            "post": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Create a new attribution which is visible to all users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "separator of the CSV file",
+                        "name": "separator",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "controls whether the first line should be skiped",
+                        "name": "hasHeader",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "the CSV file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "comma separated values",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/address/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Query for address, transaction or block",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addressExclusionOverview": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address exclusion"
+                ],
+                "summary": "Address exclusion overview",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addressExclusionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/attributionOverview": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Get all attributions of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/blk/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Query for address, transaction or block",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/clusterOverview": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Get all custom clusters of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.clusterOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/clusterSummary": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Cluster Summary",
+                "responses": {
+                    "200": {
+                        "description": "comma separated values",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteAddressExclusion/{address_exclusion_uid}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address exclusions"
+                ],
+                "summary": "Deletes an address exclusion of the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "address_exclusion_uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteAddressExclusionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteAllAddressExclusions": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address exclusions"
+                ],
+                "summary": "Delete all address exclusions of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteAddressExclusionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteAllClusters": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Delete all clusters of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteClusterReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteAllPrivateAttributions": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Delete all attributions of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteAttributionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteCluster/{cluster_uid}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Delete Cluster",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "cluster_uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteClusterReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deletePrivateAttribution/{attribution_uid}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Delete an attribution belonging to the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "attribution_uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteAttributionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deletePublicAttribution/{attribution_uid}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Delete a public attribution",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "attribution_uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteAttributionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristicStatus/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Get the status of all heuristics per transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristics/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Get all heuristic defined for a transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristicsSummary/{heuristic_UID}": {
+            "get": {
+                "produces": [
+                    "text/csv"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Heuristic Summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "heuristic_UID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "comma separated values",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/hmiLookup/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Get HMI clusters per transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.hmiLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/meta/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "meta"
+                ],
+                "summary": "Get the status of all backend modules",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.metaStatus"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/search/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Search for blocks, addresses and transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/searchAttributions": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "attribution"
+                ],
+                "summary": "Search all public attributions and the attributions belonging to the current user",
+                "parameters": [
+                    {
+                        "description": "Search Attributions",
+                        "name": "attribution",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getAttributionSearchReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tx/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Query for address, transaction or block",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "attribution.Attribution": {
+            "type": "object",
+            "properties": {
+                "Attribution.address": {
+                    "$ref": "#/definitions/attribution.HollowAddress"
+                },
+                "Attribution.category": {
+                    "type": "string"
+                },
+                "Attribution.description": {
+                    "type": "string"
+                },
+                "Attribution.isPublic": {
+                    "type": "boolean"
+                },
+                "Attribution.source": {
+                    "type": "string"
+                },
+                "Attribution.tag": {
+                    "type": "string"
+                },
+                "Attribution.ts": {
+                    "type": "string"
+                },
+                "Attribution.user": {
+                    "$ref": "#/definitions/attribution.HollowUser"
+                },
+                "dgraph.type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "attribution.FrontendAttribution": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "attribution.HollowAddress": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "attribution.HollowUser": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "clustering.FrontendHMICluster": {
+            "type": "object",
+            "properties": {
+                "addressCount": {
+                    "type": "integer"
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "parent": {
+                    "type": "string"
+                },
+                "txhash": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "clustering.FrontendUserCluster": {
+            "type": "object",
+            "properties": {
+                "address_count": {
+                    "type": "integer"
+                },
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.DummyNode": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.FrontendHeuristic": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "clusterCount": {
+                    "type": "integer"
+                },
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "excludeAddresses": {
+                    "type": "boolean"
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristicResult"
+                    }
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.FrontendHeuristicResult": {
+            "type": "object",
+            "properties": {
+                "destinations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ts": {
+                                "type": "string"
+                            },
+                            "txhash": {
+                                "type": "string"
+                            },
+                            "uid": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "origin": {
+                    "type": "object",
+                    "properties": {
+                        "addresshash": {
+                            "type": "string"
+                        },
+                        "ts": {
+                            "type": "string"
+                        },
+                        "txhash": {
+                            "type": "string"
+                        },
+                        "uid": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "heuristics.Heuristic": {
+            "type": "object",
+            "properties": {
+                "Heuristic.clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "Heuristic.clusters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HeuristicCluster"
+                    }
+                },
+                "Heuristic.excludeAddresses": {
+                    "type": "boolean"
+                },
+                "Heuristic.excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "Heuristic.parameter": {
+                    "type": "string"
+                },
+                "Heuristic.parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "Heuristic.transaction": {
+                    "type": "object",
+                    "properties": {
+                        "uid": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "Heuristic.ts": {
+                    "type": "string"
+                },
+                "Heuristic.type": {
+                    "type": "string"
+                },
+                "dgraph.type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "~Heuristic.parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "~User.heuristics": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.HeuristicCluster": {
+            "type": "object",
+            "properties": {
+                "HeuristicCluster.attributions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/attribution.Attribution"
+                    }
+                },
+                "HeuristicCluster.results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HeuristicResult"
+                    }
+                },
+                "dgraph.type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "heuristics.HeuristicQueueStatus": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "x-enum-varnames": [
+                "StatusHeuristicAdded",
+                "StatusHeuristicDuplicate",
+                "StatusHeuristicNotInQueue",
+                "StatusHeuristicInQueue",
+                "StatusHeuristicProcessing",
+                "StatusHeuristicWorkerNotReady"
+            ]
+        },
+        "heuristics.HeuristicResult": {
+            "type": "object",
+            "properties": {
+                "HeuristicResult.destinations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.DummyNode"
+                    }
+                },
+                "HeuristicResult.origin": {
+                    "$ref": "#/definitions/heuristics.DummyNode"
+                },
+                "dgraph.type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server.addAddressExclusionsReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.addAttributionReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.addClusterReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.addressExclusionOverviewReply": {
+            "type": "object",
+            "properties": {
+                "addressCount": {
+                    "type": "integer"
+                },
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.attributionOverviewReply": {
+            "type": "object",
+            "properties": {
+                "attributions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/attribution.FrontendAttribution"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.clusterOverviewReply": {
+            "type": "object",
+            "properties": {
+                "clusters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.FrontendUserCluster"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.deleteAddressExclusionReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.deleteAttributionReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.deleteClusterReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.getAttributionSearchReply.request": {
+            "type": "object",
+            "properties": {
+                "q": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.heuristicReply": {
+            "type": "object",
+            "properties": {
+                "heuristics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristic"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.hmiLookupReply": {
+            "type": "object",
+            "properties": {
+                "address_cluster": {
+                    "type": "string"
+                },
+                "clusters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.FrontendHMICluster"
+                    }
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.metaStatus": {
+            "type": "object",
+            "properties": {
+                "rpcinfo": {
+                    "$ref": "#/definitions/server.prunedRPCInfo"
+                },
+                "status": {
+                    "$ref": "#/definitions/status.FrontendStatus"
+                }
+            }
+        },
+        "server.prunedRPCInfo": {
+            "type": "object",
+            "properties": {
+                "blocks": {
+                    "type": "integer"
+                },
+                "difficulty": {
+                    "type": "number"
+                },
+                "pruned": {
+                    "type": "boolean"
+                },
+                "size_on_disk": {
+                    "type": "integer"
+                },
+                "verificationprogress": {
+                    "type": "number"
+                }
+            }
+        },
+        "server.queryResultType": {
+            "type": "string",
+            "enum": [
+                "block",
+                "addr",
+                "tx",
+                "response_empty"
+            ],
+            "x-enum-varnames": [
+                "typeBlock",
+                "typeAddr",
+                "typeTx",
+                "typeEmpty"
+            ]
+        },
+        "server.searchResponse": {
+            "type": "object",
+            "properties": {
+                "payload": {},
+                "type": {
+                    "$ref": "#/definitions/server.queryResultType"
+                }
+            }
+        },
+        "status.FrontendStatus": {
+            "type": "object",
+            "properties": {
+                "isclassifying": {
+                    "type": "boolean"
+                },
+                "isclusteringfmi": {
+                    "type": "boolean"
+                },
+                "isclusteringhmi": {
+                    "type": "boolean"
+                },
+                "iscrawling": {
+                    "type": "boolean"
+                },
+                "lastblockid": {
+                    "type": "integer"
+                },
+                "lastclassifiedid": {
+                    "type": "integer"
+                },
+                "lastclusteredfmiid": {
+                    "type": "integer"
+                },
+                "lastclusteredhmiid": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}
