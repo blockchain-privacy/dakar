@@ -106,11 +106,12 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		info("heuristic already in queue")
 		return
 	}
-
-	var heuristicRequest struct {
+	type request struct {
 		Changed []dbHeuristic.FrontendHeuristicRequest `json:"changed,omitempty"`
 		Deleted []string                               `json:"deleted,omitempty"`
 	}
+
+	var heuristicRequest request
 
 	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeRequest
@@ -287,6 +288,10 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 			reply.Msg = "error parsing input"
 			warn(err)
 			return
+		}
+
+		if n > 90 {
+			n = 90
 		}
 
 		lookBackTime = time.Duration(n)
@@ -554,12 +559,13 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 
 // getMixingActivity returns the result of a mixing activity lookup
 func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply) {
-	var req struct {
+	type request struct {
 		// AddressHash is the address hash for which the lookup will be done
 		AddressHash string `json:"addressHash,omitempty"`
 		// IsClusterLookup determines if all addresses of the cluster will be considered
 		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
 	}
+	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		warn(err)
 		return
@@ -1098,11 +1104,13 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
 func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var frontEndUser struct {
+	type request struct {
 		Email string   `json:"email"`
 		Roles []string `json:"roles"`
 		State string   `json:"state"`
 	}
+
+	var frontEndUser request
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
@@ -1223,12 +1231,14 @@ func setEmail(traits any, email string) error {
 
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var modRequest struct {
+	type request struct {
 		UID   string              `json:"uid,omitempty"`
 		Email string              `json:"email,omitempty"`
 		State string              `json:"state,omitempty"`
 		Roles []dbus.FrontendRole `json:"roles,omitempty"`
 	}
+
+	var modRequest request
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return
