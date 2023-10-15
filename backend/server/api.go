@@ -688,7 +688,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Tags		attribution
 //	@Accept		json
 //	@Produce	json
-//	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search Attributions"
+//	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search query"
 //	@Success	200			{object}	server.attributionOverviewReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/searchAttributions [post]
@@ -947,8 +947,23 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 	})
 }
 
+// Heuristic Details godoc
+//
+//	@Summary	Get the details of a heuristic
+//	@Tags		heuristic
+//	@Produce	json
+//	@Accept		json
+//	@Param		heuristic	body		server.handlerHeuristicsDetails.request	true	"Heuristic UID"
+//	@Success	200			{object}	dbtxh.FrontendHeuristicShort
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/heuristicDetails/ [post]
+//
 // API pattern: "/api/v1/heuristicDetails/"
 func (s *Server) handlerHeuristicsDetails() http.Handler {
+	type request struct {
+		HeuristicUID string `json:"uid,omitempty"`
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -959,9 +974,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 			return
 		}
 
-		var heuristicRequest struct {
-			HeuristicUID string `json:"uid,omitempty"`
-		}
+		var heuristicRequest request
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
@@ -989,6 +1002,19 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 	})
 }
 
+// Execute Heuristics godoc
+//
+//	@Summary		Queues the execution of heuristics for the given transaction
+//	@Description	This call queues the given heuristics for the given transaction. Does not wait until the heuristic execution is finished.
+//	@Tags			heuristic
+//	@Produce		json
+//	@Accept			json
+//	@Param			hash		path		string										true	"0x123"
+//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
+//	@Success		200			{object}	server.heuristicExecutionReply
+//	@Failure		500			{string}	string	"encoding error"
+//	@Router			/executeHeuristics/{hash} [post]
+//
 // API pattern: "/api/v1/executeHeuristics/<hash>"
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1018,6 +1044,15 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 	})
 }
 
+// List Heuristics godoc
+//
+//	@Summary	Lists all heuristics of the current user
+//	@Tags		heuristic
+//	@Produce	json
+//	@Success	200	{object}	server.heuristicListReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/heuristicList/ [get]
+//
 // API pattern: "/api/v1/heuristicList/"
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1046,6 +1081,16 @@ func (s *Server) handlerHeuristicList() http.Handler {
 	})
 }
 
+// Heuristic Descriptors godoc
+//
+//	@Summary		Gets available heuristic descriptors
+//	@Description	Returns available heuristic descriptors, which define the heuristic interface
+//	@Tags			heuristic
+//	@Produce		json
+//	@Success		200	{object}	server.heuristicDescriptorReply
+//	@Failure		500	{string}	string	"encoding error"
+//	@Router			/heuristicDescriptors/ [get]
+//
 // API pattern: "/api/v1/heuristicDescriptors/"
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1067,6 +1112,18 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	})
 }
 
+// Delete Heuristic godoc
+//
+//	@Summary		Deletes either all heuristics or all heuristics of a transaction
+//	@Description	Deletes either all heuristics of the current user or all heuristics of a transaction of the current user
+//	@Tags			heuristic
+//	@Produce		json
+//	@Accept			json
+//	@Param			heuristic	body		dbtxh.DeleteHeuristicRequest	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
+//	@Success		200			{object}	server.deleteHeuristicReply
+//	@Failure		500			{string}	string	"encoding error"
+//	@Router			/deleteHeuristic/ [post]
+//
 // API pattern: "/api/v1/deleteHeuristic/"
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1088,6 +1145,17 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 	})
 }
 
+// Create Identity godoc
+//
+//	@Summary	Create a new identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Accept		json
+//	@Param		identity	body		server.getCreateIdentityReply.request	true	"Identity details"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/createIdentity/ [post]
+//
 // API pattern: "/api/v1/createIdentity/"
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
@@ -1104,6 +1172,16 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 	})
 }
 
+// Admin Delete Identity godoc
+//
+//	@Summary	Delete an arbitrary identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Param		identityUID	path		string	true	"0x123"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/adminDeleteIdentity/{identityUID} [get]
+//
 // API pattern: "/api/v1/adminDeleteIdentity/<identityUID>"
 // handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
@@ -1122,6 +1200,15 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	})
 }
 
+// Delete Identity godoc
+//
+//	@Summary	Delete the identity of the current user
+//	@Tags		authentication
+//	@Produce	json
+//	@Success	200	{object}	server.identityReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteIdentity/ [get]
+//
 // API pattern: "/api/v1/deleteIdentity/"
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
@@ -1145,6 +1232,17 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 	})
 }
 
+// Modify Identity godoc
+//
+//	@Summary	Modify an arbitrary identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Accept		json
+//	@Param		identity	body		server.getModifyIdentityReply.request	true	"Identity modification details"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/modifyIdentity/ [post]
+//
 // API pattern: "/api/v1/modifyIdentity/"
 // handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
@@ -1161,6 +1259,15 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 	})
 }
 
+// Get Identities godoc
+//
+//	@Summary	Get all identities
+//	@Tags		authentication
+//	@Produce	json
+//	@Success	200	{object}	server.identitiesReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/getIdentities/ [get]
+//
 // API pattern: "/api/v1/getIdentities/"
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1176,6 +1283,17 @@ func (s *Server) handlerGetIdentities() http.Handler {
 	})
 }
 
+// Shortest Transaction Path godoc
+//
+//	@Summary	Get the shortest path between two transactions
+//	@Tags		tools
+//	@Produce	json
+//	@Accept		json
+//	@Param		transactions	body		dbtxh.ShortestTransactionPathRequest	true	"transactions between which the path should be found"
+//	@Success	200				{object}	server.shortestTransactionPathReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/shortestTransactionPath/ [post]
+//
 // API pattern: "/api/v1/shortestTransactionPath/"
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1191,6 +1309,18 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 	})
 }
 
+// Connection Lookup Path godoc
+//
+//	@Summary	Connection lookup
+//	@Tags		tools
+//	@Produce	json
+//	@Param		txhash	path		string	true	"Transaction hash"
+//	@Param		forward	query		bool	false	"search direction"
+//	@Param		t		query		int		false	"number of days to look back"	maximum(90)
+//	@Success	200		{object}	server.connectionLookupReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/reverseLookup/{txhash} [get]
+//
 // API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1206,6 +1336,16 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 	})
 }
 
+// Cluster Lookup Path godoc
+//
+//	@Summary	Get all clusters of the given address
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		addressHash	path		string	true	"Address hash"
+//	@Success	200			{object}	server.clusterLookupReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/clusterLookup/{addressHash} [get]
+//
 // API pattern: "/api/v1/clusterLookup/<addressHash>"
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1228,6 +1368,17 @@ func (s *Server) handlerClusterLookup() http.Handler {
 	})
 }
 
+// Mixing Activity Path godoc
+//
+//	@Summary	Mixing Activity of an address
+//	@Tags		tools
+//	@Produce	json
+//	@Accept		json
+//	@Param		heuristic	body		server.getMixingActivity.request	true	"Mixing activity request details"
+//	@Success	200			{object}	server.mixingActivityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/mixingActivity/ [post]
+//
 // API pattern: "/api/v1/mixingActivity/"
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1243,6 +1394,16 @@ func (s *Server) handlerMixingActivity() http.Handler {
 	})
 }
 
+// Address Exclusion Status godoc
+//
+//	@Summary	Get the exclusion status of an address
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Param		address_hash	path		string	true	"address hash"
+//	@Success	200				{object}	server.addressExclusionStatusReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/addressExclusionStatus/{address_hash} [get]
+//
 // API pattern: "/api/v1/addressExclusionStatus/<address_hash>"
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1258,6 +1419,16 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	})
 }
 
+// Spending Fingerprint godoc
+//
+//	@Summary	Get the spending fingerprint of a transaction
+//	@Tags		tools
+//	@Produce	json
+//	@Param		hash	path		string	true	"transaction hash"
+//	@Success	200		{object}	server.spendingFingerprintReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/spendingFingerprint/{hash} [get]
+//
 // API pattern: "/api/v1/spendingFingerprint/<hash>"
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
