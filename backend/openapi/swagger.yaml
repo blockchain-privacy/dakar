@@ -1,5 +1,26 @@
 basePath: /api/v1
 definitions:
+  analytics.MixingActivity:
+    properties:
+      block:
+        items:
+          properties:
+            ts:
+              type: string
+          type: object
+        type: array
+      input_txs:
+        items:
+          properties:
+            txhash:
+              type: string
+          type: object
+        type: array
+      privacytype:
+        type: integer
+      txhash:
+        type: string
+    type: object
   attribution.Attribution:
     properties:
       Attribution.address:
@@ -54,6 +75,297 @@ definitions:
       uid:
         type: string
     type: object
+  client.AuthenticatorAssuranceLevel:
+    enum:
+    - aal0
+    - aal1
+    - aal2
+    - aal3
+    type: string
+    x-enum-varnames:
+    - AUTHENTICATORASSURANCELEVEL_AAL0
+    - AUTHENTICATORASSURANCELEVEL_AAL1
+    - AUTHENTICATORASSURANCELEVEL_AAL2
+    - AUTHENTICATORASSURANCELEVEL_AAL3
+  client.Identity:
+    properties:
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      created_at:
+        description: CreatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      credentials:
+        additionalProperties:
+          $ref: '#/definitions/client.IdentityCredentials'
+        description: Credentials represents all credentials that can be used for authenticating
+          this identity.
+        type: object
+      id:
+        description: ID is the identity's unique identifier.  The Identity ID can
+          not be changed and can not be chosen. This ensures future compatibility
+          and optimization for distributed stores such as CockroachDB.
+        type: string
+      metadata_admin:
+        description: NullJSONRawMessage represents a json.RawMessage that works well
+          with JSON, SQL, and Swagger and is NULLable-
+      metadata_public:
+        description: NullJSONRawMessage represents a json.RawMessage that works well
+          with JSON, SQL, and Swagger and is NULLable-
+      recovery_addresses:
+        description: RecoveryAddresses contains all the addresses that can be used
+          to recover an identity.
+        items:
+          $ref: '#/definitions/client.RecoveryIdentityAddress'
+        type: array
+      schema_id:
+        description: SchemaID is the ID of the JSON Schema to be used for validating
+          the identity's traits.
+        type: string
+      schema_url:
+        description: 'SchemaURL is the URL of the endpoint where the identity''s traits
+          schema can be fetched from.  format: url'
+        type: string
+      state:
+        $ref: '#/definitions/client.IdentityState'
+      state_changed_at:
+        type: string
+      traits:
+        description: Traits represent an identity's traits. The identity is able to
+          create, modify, and delete traits in a self-service manner. The input will
+          always be validated against the JSON Schema defined in `schema_url`.
+      updated_at:
+        description: UpdatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      verifiable_addresses:
+        description: VerifiableAddresses contains all the addresses that can be verified
+          by the user.
+        items:
+          $ref: '#/definitions/client.VerifiableIdentityAddress'
+        type: array
+    type: object
+  client.IdentityCredentials:
+    properties:
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      config:
+        additionalProperties: true
+        type: object
+      created_at:
+        description: CreatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      identifiers:
+        description: Identifiers represents a list of unique identifiers this credential
+          type matches.
+        items:
+          type: string
+        type: array
+      type:
+        $ref: '#/definitions/client.IdentityCredentialsType'
+      updated_at:
+        description: UpdatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      version:
+        description: Version refers to the version of the credential. Useful when
+          changing the config schema.
+        type: integer
+    type: object
+  client.IdentityCredentialsType:
+    enum:
+    - password
+    - totp
+    - oidc
+    - webauthn
+    - lookup_secret
+    type: string
+    x-enum-varnames:
+    - IDENTITYCREDENTIALSTYPE_PASSWORD
+    - IDENTITYCREDENTIALSTYPE_TOTP
+    - IDENTITYCREDENTIALSTYPE_OIDC
+    - IDENTITYCREDENTIALSTYPE_WEBAUTHN
+    - IDENTITYCREDENTIALSTYPE_LOOKUP_SECRET
+  client.IdentityState:
+    enum:
+    - active
+    - inactive
+    type: string
+    x-enum-varnames:
+    - IDENTITYSTATE_ACTIVE
+    - IDENTITYSTATE_INACTIVE
+  client.RecoveryIdentityAddress:
+    properties:
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      created_at:
+        description: CreatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      id:
+        type: string
+      updated_at:
+        description: UpdatedAt is a helper struct field for gobuffalo.pop.
+        type: string
+      value:
+        type: string
+      via:
+        type: string
+    type: object
+  client.Session:
+    properties:
+      active:
+        description: Active state. If false the session is no longer active.
+        type: boolean
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      authenticated_at:
+        description: The Session Authentication Timestamp  When this session was authenticated
+          at. If multi-factor authentication was used this is the time when the last
+          factor was authenticated (e.g. the TOTP code challenge was completed).
+        type: string
+      authentication_methods:
+        description: A list of authenticators which were used to authenticate the
+          session.
+        items:
+          $ref: '#/definitions/client.SessionAuthenticationMethod'
+        type: array
+      authenticator_assurance_level:
+        $ref: '#/definitions/client.AuthenticatorAssuranceLevel'
+      devices:
+        description: Devices has history of all endpoints where the session was used
+        items:
+          $ref: '#/definitions/client.SessionDevice'
+        type: array
+      expires_at:
+        description: The Session Expiry  When this session expires at.
+        type: string
+      id:
+        description: Session ID
+        type: string
+      identity:
+        $ref: '#/definitions/client.Identity'
+      issued_at:
+        description: The Session Issuance Timestamp  When this session was issued
+          at. Usually equal or close to `authenticated_at`.
+        type: string
+    type: object
+  client.SessionAuthenticationMethod:
+    properties:
+      aal:
+        $ref: '#/definitions/client.AuthenticatorAssuranceLevel'
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      completed_at:
+        description: When the authentication challenge was completed.
+        type: string
+      method:
+        type: string
+      provider:
+        description: OIDC or SAML provider id used for authentication
+        type: string
+    type: object
+  client.SessionDevice:
+    properties:
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      id:
+        description: Device record ID
+        type: string
+      ip_address:
+        description: IPAddress of the client
+        type: string
+      location:
+        description: Geo Location corresponding to the IP Address
+        type: string
+      user_agent:
+        description: UserAgent of the client
+        type: string
+    type: object
+  client.VerifiableIdentityAddress:
+    properties:
+      additionalProperties:
+        additionalProperties: true
+        type: object
+      created_at:
+        description: When this entry was created
+        type: string
+      id:
+        description: The ID
+        type: string
+      status:
+        description: VerifiableAddressStatus must not exceed 16 characters as that
+          is the limitation in the SQL Schema
+        type: string
+      updated_at:
+        description: When this entry was last updated
+        type: string
+      value:
+        description: The address value  example foo@user.com
+        type: string
+      verified:
+        description: Indicates if the address has already been verified
+        type: boolean
+      verified_at:
+        type: string
+      via:
+        description: VerifiableAddressType must not exceed 16 characters as that is
+          the limitation in the SQL Schema
+        type: string
+    type: object
+  clustering.Attribution:
+    properties:
+      isPublic:
+        type: boolean
+      tag:
+        type: string
+    type: object
+  clustering.ClusterType:
+    enum:
+    - hmi
+    - fmi
+    - custom
+    type: string
+    x-enum-varnames:
+    - TypeHMI
+    - TypeFMI
+    - TypeCustom
+  clustering.FrontendAddress:
+    properties:
+      addresshash:
+        type: string
+      output_count:
+        type: integer
+      spent_output_count:
+        type: integer
+    type: object
+  clustering.FrontendCluster:
+    properties:
+      addressCount:
+        type: integer
+      addresses:
+        items:
+          $ref: '#/definitions/clustering.FrontendAddress'
+        type: array
+      attributions:
+        items:
+          $ref: '#/definitions/clustering.Attribution'
+        type: array
+      bhash:
+        type: string
+      bid:
+        type: integer
+      ts:
+        type: string
+      txhash:
+        type: string
+      type:
+        $ref: '#/definitions/clustering.ClusterType'
+      uid:
+        type: string
+    type: object
   clustering.FrontendHMICluster:
     properties:
       addressCount:
@@ -80,6 +392,90 @@ definitions:
       ts:
         type: string
       uid:
+        type: string
+    type: object
+  db.FrontendTransaction:
+    properties:
+      bhash:
+        type: string
+      bid:
+        type: integer
+      bts:
+        type: string
+      fee:
+        type: integer
+      inputs:
+        items:
+          $ref: '#/definitions/db.FrontendTransactionOutput'
+        type: array
+      outputs:
+        items:
+          $ref: '#/definitions/db.FrontendTransactionOutput'
+        type: array
+      privacytype:
+        type: integer
+      txhash:
+        type: string
+    type: object
+  db.FrontendTransactionOutput:
+    properties:
+      addresshash:
+        type: string
+      amount:
+        type: integer
+      inputindex:
+        type: integer
+      iscoinbase:
+        type: boolean
+      keyasm:
+        type: string
+      outputindex:
+        type: integer
+      privacytype:
+        description: This is data from either the transaction where this output is
+          generated or spent
+        type: integer
+      sigasm:
+        type: string
+      ts:
+        type: string
+      txhash:
+        type: string
+    type: object
+  heuristics.Attribution:
+    properties:
+      isPublic:
+        type: boolean
+      tag:
+        type: string
+    type: object
+  heuristics.DeleteHeuristicRequest:
+    properties:
+      delete_all:
+        type: boolean
+      tx_hash:
+        type: string
+    type: object
+  heuristics.Descriptor:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      parameter:
+        description: pointer so Parameter does not appear in JSON if not set
+        properties:
+          description:
+            type: string
+          type:
+            description: 'Type must be one of the following values: ''int'', ''string'''
+            type: string
+          value:
+            type: string
+        type: object
+      title:
+        type: string
+      type:
         type: string
     type: object
   heuristics.DummyNode:
@@ -120,6 +516,42 @@ definitions:
       uid:
         type: string
     type: object
+  heuristics.FrontendHeuristicCluster:
+    properties:
+      attributions:
+        items:
+          $ref: '#/definitions/heuristics.Attribution'
+        type: array
+      txs:
+        items:
+          $ref: '#/definitions/heuristics.FrontendTransactionResult'
+        type: array
+    type: object
+  heuristics.FrontendHeuristicRequest:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      clusterTypes:
+        items:
+          $ref: '#/definitions/clustering.ClusterType'
+        type: array
+      excludeSpendingGaps:
+        type: boolean
+      parameter:
+        type: string
+      parent:
+        items:
+          $ref: '#/definitions/heuristics.Heuristic'
+        type: array
+      type:
+        type: string
+      uid:
+        type: string
+      useAddressExclusionList:
+        type: boolean
+    type: object
   heuristics.FrontendHeuristicResult:
     properties:
       destinations:
@@ -144,6 +576,24 @@ definitions:
           uid:
             type: string
         type: object
+    type: object
+  heuristics.FrontendHeuristicShort:
+    properties:
+      clusters:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristicCluster'
+        type: array
+      uid:
+        type: string
+    type: object
+  heuristics.FrontendTransactionResult:
+    properties:
+      destinationCount:
+        type: integer
+      ts:
+        type: string
+      txhash:
+        type: string
     type: object
   heuristics.Heuristic:
     properties:
@@ -202,6 +652,15 @@ definitions:
           type: string
         type: array
     type: object
+  heuristics.HeuristicListItem:
+    properties:
+      h_count:
+        type: integer
+      mod_time:
+        type: string
+      txhash:
+        type: string
+    type: object
   heuristics.HeuristicQueueStatus:
     enum:
     - 0
@@ -230,6 +689,26 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  heuristics.ShortestTransactionPathRequest:
+    properties:
+      anyDirection:
+        description: |-
+          AnyDirection determines the search direction of the shortest transaction path query
+          True: Both inputs and outputs are traversed
+          False: Only inputs are traversed
+        type: boolean
+      from:
+        description: From is the starting point of the shortest path lookup
+        type: string
+      includePrivacyTransactions:
+        description: |-
+          IncludePrivacyTransactions determines if privacy transactions
+          should be considered when doing the shortest path lookup
+        type: boolean
+      to:
+        description: To is the end point of the shortest path lookup
+        type: string
     type: object
   server.addAddressExclusionsReply:
     properties:
@@ -265,11 +744,31 @@ definitions:
       success:
         type: boolean
     type: object
+  server.addressExclusionStatusReply:
+    properties:
+      isExclusion:
+        type: boolean
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
   server.attributionOverviewReply:
     properties:
       attributions:
         items:
           $ref: '#/definitions/attribution.FrontendAttribution'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.clusterLookupReply:
+    properties:
+      clusters:
+        items:
+          $ref: '#/definitions/clustering.FrontendCluster'
         type: array
       msg:
         type: string
@@ -285,6 +784,21 @@ definitions:
       msg:
         type: string
       success:
+        type: boolean
+    type: object
+  server.connectionLookupReply:
+    properties:
+      count:
+        type: integer
+      msg:
+        type: string
+      success:
+        type: boolean
+      transactions:
+        items:
+          $ref: '#/definitions/db.FrontendTransaction'
+        type: array
+      warning:
         type: boolean
     type: object
   server.deleteAddressExclusionReply:
@@ -308,10 +822,124 @@ definitions:
       success:
         type: boolean
     type: object
+  server.deleteHeuristicReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.fingerprintScore:
+    properties:
+      score:
+        type: number
+      session_count:
+        type: integer
+      txhash:
+        type: string
+    type: object
   server.getAttributionSearchReply.request:
     properties:
       q:
         type: string
+    type: object
+  server.getCreateIdentityReply.request:
+    properties:
+      email:
+        type: string
+      roles:
+        items:
+          type: string
+        type: array
+      state:
+        type: string
+    type: object
+  server.getHeuristicExecutionReply.request:
+    properties:
+      changed:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristicRequest'
+        type: array
+      deleted:
+        items:
+          type: string
+        type: array
+    type: object
+  server.getMixingActivity.request:
+    properties:
+      addressHash:
+        description: AddressHash is the address hash for which the lookup will be
+          done
+        type: string
+      isClusterLookup:
+        description: IsClusterLookup determines if all addresses of the cluster will
+          be considered
+        type: boolean
+    type: object
+  server.getModifyIdentityReply.request:
+    properties:
+      email:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/user.FrontendRole'
+        type: array
+      state:
+        type: string
+      uid:
+        type: string
+    type: object
+  server.handlerAddressOutputRange.request:
+    properties:
+      filter:
+        items:
+          type: integer
+        type: array
+      offset:
+        type: integer
+      order:
+        type: integer
+    type: object
+  server.handlerBlockRange.request:
+    properties:
+      offset:
+        type: integer
+    type: object
+  server.handlerHeuristicsDetails.request:
+    properties:
+      uid:
+        type: string
+    type: object
+  server.heuristicDescriptorReply:
+    properties:
+      descriptors:
+        items:
+          $ref: '#/definitions/heuristics.Descriptor'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.heuristicExecutionReply:
+    properties:
+      msg:
+        type: string
+      status:
+        $ref: '#/definitions/heuristics.HeuristicQueueStatus'
+      success:
+        type: boolean
+    type: object
+  server.heuristicListReply:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/heuristics.HeuristicListItem'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
     type: object
   server.heuristicReply:
     properties:
@@ -337,12 +965,47 @@ definitions:
       success:
         type: boolean
     type: object
+  server.identitiesReply:
+    properties:
+      identities:
+        items:
+          $ref: '#/definitions/client.Identity'
+        type: array
+      sessions:
+        items:
+          $ref: '#/definitions/client.Session'
+        type: array
+      success:
+        type: boolean
+      users:
+        items:
+          $ref: '#/definitions/user.FrontendUserBackendState'
+        type: array
+    type: object
+  server.identityReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
   server.metaStatus:
     properties:
       rpcinfo:
         $ref: '#/definitions/server.prunedRPCInfo'
       status:
         $ref: '#/definitions/status.FrontendStatus'
+    type: object
+  server.mixingActivityReply:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/analytics.MixingActivity'
+        type: array
+      msg:
+        type: string
+      success:
+        type: boolean
     type: object
   server.prunedRPCInfo:
     properties:
@@ -375,6 +1038,32 @@ definitions:
       type:
         $ref: '#/definitions/server.queryResultType'
     type: object
+  server.shortestTransactionPathReply:
+    properties:
+      msg:
+        type: string
+      success:
+        type: boolean
+      transactions:
+        items:
+          $ref: '#/definitions/db.FrontendTransaction'
+        type: array
+    type: object
+  server.spendingFingerprintReply:
+    properties:
+      fingerprint_scores:
+        items:
+          $ref: '#/definitions/server.fingerprintScore'
+        type: array
+      msg:
+        type: string
+      session_count:
+        type: integer
+      success:
+        type: boolean
+      warning:
+        type: boolean
+    type: object
   status.FrontendStatus:
     properties:
       isclassifying:
@@ -393,6 +1082,30 @@ definitions:
         type: integer
       lastclusteredhmiid:
         type: integer
+    type: object
+  user.FrontendRole:
+    properties:
+      name:
+        type: string
+      uid:
+        type: string
+    type: object
+  user.FrontendUserBackendState:
+    properties:
+      created:
+        type: string
+      email:
+        type: string
+      kratosID:
+        type: string
+      modified:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/user.FrontendRole'
+        type: array
+      uid:
+        type: string
     type: object
 host: localhost
 info:
@@ -556,7 +1269,79 @@ paths:
             type: string
       summary: Address exclusion overview
       tags:
-      - address exclusion
+      - address exclusions
+  /addressExclusionStatus/{address_hash}:
+    get:
+      parameters:
+      - description: address hash
+        in: path
+        name: address_hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addressExclusionStatusReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the exclusion status of an address
+      tags:
+      - address exclusions
+  /addressOutputRange/{address_hash}:
+    post:
+      parameters:
+      - description: address hash
+        in: path
+        name: address_hash
+        required: true
+        type: string
+      - description: output offset
+        in: body
+        name: offset
+        required: true
+        schema:
+          $ref: '#/definitions/server.handlerAddressOutputRange.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get outputs of the given address
+      tags:
+      - data
+  /adminDeleteIdentity/{identityUID}:
+    get:
+      parameters:
+      - description: "0x123"
+        in: path
+        name: identityUID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.identityReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete an arbitrary identity
+      tags:
+      - authentication
   /attributionOverview:
     get:
       produces:
@@ -595,6 +1380,56 @@ paths:
       summary: Query for address, transaction or block
       tags:
       - data
+  /blkRange/{block_hash}:
+    post:
+      parameters:
+      - description: block hash
+        in: path
+        name: block_hash
+        required: true
+        type: string
+      - description: transaction offset
+        in: body
+        name: offset
+        required: true
+        schema:
+          $ref: '#/definitions/server.handlerBlockRange.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.searchResponse'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get transactions of the given block
+      tags:
+      - data
+  /clusterLookup/{addressHash}:
+    get:
+      parameters:
+      - description: Address hash
+        in: path
+        name: addressHash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.clusterLookupReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get all clusters of the given address
+      tags:
+      - cluster
   /clusterOverview:
     get:
       produces:
@@ -627,6 +1462,31 @@ paths:
       summary: Cluster Summary
       tags:
       - cluster
+  /createIdentity/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Identity details
+        in: body
+        name: identity
+        required: true
+        schema:
+          $ref: '#/definitions/server.getCreateIdentityReply.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.identityReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Create a new identity
+      tags:
+      - authentication
   /deleteAddressExclusion/{address_exclusion_uid}:
     get:
       parameters:
@@ -719,6 +1579,50 @@ paths:
       summary: Delete Cluster
       tags:
       - cluster
+  /deleteHeuristic/:
+    post:
+      consumes:
+      - application/json
+      description: Deletes either all heuristics of the current user or all heuristics
+        of a transaction of the current user
+      parameters:
+      - description: Heuristic deletion request. Set delete_all to true, only if ALL
+          heuristic should be deleted.
+        in: body
+        name: heuristic
+        required: true
+        schema:
+          $ref: '#/definitions/heuristics.DeleteHeuristicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.deleteHeuristicReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Deletes either all heuristics or all heuristics of a transaction
+      tags:
+      - heuristic
+  /deleteIdentity/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.identityReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Delete the identity of the current user
+      tags:
+      - authentication
   /deletePrivateAttribution/{attribution_uid}:
     get:
       parameters:
@@ -763,6 +1667,113 @@ paths:
       summary: Delete a public attribution
       tags:
       - attribution
+  /executeHeuristics/{hash}:
+    post:
+      consumes:
+      - application/json
+      description: This call queues the given heuristics for the given transaction.
+        Does not wait until the heuristic execution is finished.
+      parameters:
+      - description: "0x123"
+        in: path
+        name: hash
+        required: true
+        type: string
+      - description: Heuristics to queue
+        in: body
+        name: heuristic
+        required: true
+        schema:
+          $ref: '#/definitions/server.getHeuristicExecutionReply.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.heuristicExecutionReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Queues the execution of heuristics for the given transaction
+      tags:
+      - heuristic
+  /getIdentities/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.identitiesReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get all identities
+      tags:
+      - authentication
+  /heuristicDescriptors/:
+    get:
+      description: Returns available heuristic descriptors, which define the heuristic
+        interface
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.heuristicDescriptorReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Gets available heuristic descriptors
+      tags:
+      - heuristic
+  /heuristicDetails/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Heuristic UID
+        in: body
+        name: heuristic
+        required: true
+        schema:
+          $ref: '#/definitions/server.handlerHeuristicsDetails.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/heuristics.FrontendHeuristicShort'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the details of a heuristic
+      tags:
+      - heuristic
+  /heuristicList/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.heuristicListReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Lists all heuristics of the current user
+      tags:
+      - heuristic
   /heuristicStatus/{hash}:
     get:
       parameters:
@@ -867,6 +1878,87 @@ paths:
       summary: Get the status of all backend modules
       tags:
       - meta
+  /mixingActivity/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Mixing activity request details
+        in: body
+        name: heuristic
+        required: true
+        schema:
+          $ref: '#/definitions/server.getMixingActivity.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.mixingActivityReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Mixing Activity of an address
+      tags:
+      - tools
+  /modifyIdentity/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Identity modification details
+        in: body
+        name: identity
+        required: true
+        schema:
+          $ref: '#/definitions/server.getModifyIdentityReply.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.identityReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Modify an arbitrary identity
+      tags:
+      - authentication
+  /reverseLookup/{txhash}:
+    get:
+      parameters:
+      - description: Transaction hash
+        in: path
+        name: txhash
+        required: true
+        type: string
+      - description: search direction
+        in: query
+        name: forward
+        type: boolean
+      - description: number of days to look back
+        in: query
+        maximum: 90
+        name: t
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.connectionLookupReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Connection lookup
+      tags:
+      - tools
   /search/{hash}:
     get:
       parameters:
@@ -894,7 +1986,7 @@ paths:
       consumes:
       - application/json
       parameters:
-      - description: Search Attributions
+      - description: Search query
         in: body
         name: attribution
         required: true
@@ -915,6 +2007,53 @@ paths:
         current user
       tags:
       - attribution
+  /shortestTransactionPath/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: transactions between which the path should be found
+        in: body
+        name: transactions
+        required: true
+        schema:
+          $ref: '#/definitions/heuristics.ShortestTransactionPathRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.shortestTransactionPathReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the shortest path between two transactions
+      tags:
+      - tools
+  /spendingFingerprint/{hash}:
+    get:
+      parameters:
+      - description: transaction hash
+        in: path
+        name: hash
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.spendingFingerprintReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Get the spending fingerprint of a transaction
+      tags:
+      - tools
   /tx/{hash}:
     get:
       parameters:

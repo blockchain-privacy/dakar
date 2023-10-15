@@ -828,7 +828,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 // Address Exclusion Overview godoc
 //
 //	@Summary	Address exclusion overview
-//	@Tags		address exclusion
+//	@Tags		address exclusions
 //	@Produce	json
 //	@Success	200	{object}	server.addressExclusionOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
