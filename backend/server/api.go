@@ -154,8 +154,24 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 	})
 }
 
+// Address Output Range godoc
+//
+//	@Summary	Get outputs of the given address
+//	@Tags		data
+//	@Produce	json
+//	@Param		address_hash	path		string										true	"address hash"
+//	@Param		offset			body		server.handlerAddressOutputRange.request	true	"output offset"
+//	@Success	200				{object}	server.searchResponse
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/addressOutputRange/{address_hash} [post]
+//
 // API pattern: "/api/v1/addressOutputRange/<address_hash>"
 func (s *Server) handlerAddressOutputRange() http.Handler {
+	type request struct {
+		Offset int   `json:"offset"`
+		Order  int   `json:"order"`
+		Filter []int `json:"filter"`
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -167,12 +183,6 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 		}
 
 		if isValid(queryString) {
-			type request struct {
-				Offset int   `json:"offset"`
-				Order  int   `json:"order"`
-				Filter []int `json:"filter"`
-			}
-
 			var addressRequest request
 			addressRequest.Offset = -1
 			addressRequest.Order = -1
@@ -223,8 +233,22 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/blkRange/<address_hash>"
+// Block Range godoc
+//
+//	@Summary	Get transactions of the given block
+//	@Tags		data
+//	@Produce	json
+//	@Param		block_hash	path		string								true	"block hash"
+//	@Param		offset		body		server.handlerBlockRange.request	true	"transaction offset"
+//	@Success	200			{object}	server.searchResponse
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/blkRange/{block_hash} [post]
+//
+// API pattern: "/api/v1/blkRange/<block_hash>"
 func (s *Server) handlerBlockRange() http.Handler {
+	type request struct {
+		Offset int `json:"offset"`
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -236,10 +260,6 @@ func (s *Server) handlerBlockRange() http.Handler {
 		}
 
 		if isValid(queryString) {
-			type request struct {
-				Offset int `json:"offset"`
-			}
-
 			var blockRequest request
 			blockRequest.Offset = -1
 
