@@ -1,6 +1,19 @@
-# Backend
+ # Backend
 
 This is the backend of Dakar. It crawls the Dash blockchain and exposes its data via a REST API.
+
+* [Backend](#backend)
+   * [Dependencies](#dependencies)
+   * [Development](#development)
+   * [Start](#start)
+      * [Setup Dash](#setup-dash)
+      * [Setup Dgraph](#setup-dgraph)
+      * [Setup Crawler](#setup-crawler)
+      * [Docker](#docker)
+      * [Setup Frontend](#setup-frontend)
+   * [Metrics](#metrics)
+   * [Running local tests](#running-local-tests)
+   * [OpenAPI Documentation](#openapi-documentation)
 
 ## Dependencies
 
@@ -121,3 +134,32 @@ Set the `DB_TESTS`, `DB_HOSTNAME` and `RPC_TESTS` environment variables to run a
 ```shell
 RPC_TESTS=1 DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./... 
 ```
+
+## OpenAPI Documentation
+
+The API documentation is built with [swaggo](https://github.com/swaggo/swag) using the annotations in the [api](server/api.go) file.
+
+To build or update the OpenAPI documentation execute the following command, which store the files in the [openapi](openapi) directory.
+
+```shell
+make swagger-create
+```
+
+Format the OpenAPI annotations using:
+
+```shell
+make swagger-fmt
+```
+
+To compile the API documentation web server, run the command below. It will create the executable in the [build](build) directory.
+
+```shell
+make apidoc
+```
+
+Starting the `apidoc` executable will run the server on port `1323`:
+
+```text
+http://localhost:1323/swagger/index.html
+```
+

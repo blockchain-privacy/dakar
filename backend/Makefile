@@ -1,7 +1,8 @@
 BUILD_DIR := "build"
 CRAWLER_DIR := "./cmd/crawler"
+SWAGGER_DIR := "./cmd/apidoc"
 
-.PHONY: all dep build clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt
+.PHONY: all dep build dash bitcoin clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt apidoc
 
 all: build
 
@@ -47,6 +48,9 @@ swagger-create: ## Creates openapi docs
 
 swagger-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server
+
+apidoc: ## Builds the swagger server
+	go build -v -o $(BUILD_DIR)/apidoc $(SWAGGER_DIR)
 
 help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
