@@ -85,8 +85,14 @@ func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 		return
 	}
 
+	transformedFrontendHeuristics := make([]dbHeuristic.TransformedFrontendHeuristic, len(results))
+
+	for i, h := range results {
+		transformedFrontendHeuristics[i] = h.Transform()
+	}
+
 	reply.Success = true
-	reply.Heuristics = results
+	reply.Heuristics = transformedFrontendHeuristics
 	reply.Status = worker.GetStatus(txHashString, userUID)
 
 	return
@@ -107,8 +113,8 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		return
 	}
 	type request struct {
-		Changed []dbHeuristic.FrontendHeuristicRequest `json:"changed,omitempty"`
-		Deleted []string                               `json:"deleted,omitempty"`
+		Changed []dbHeuristic.TransformedFrontendHeuristicRequest `json:"changed,omitempty"`
+		Deleted []string                                          `json:"deleted,omitempty"`
 	}
 
 	var heuristicRequest request
@@ -124,8 +130,12 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		return
 	}
 
-	work, err := heuristics.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
-		heuristicRequest.Deleted, userUID)
+	changes := make([]dbHeuristic.FrontendHeuristicRequest, len(heuristicRequest.Changed))
+	for i, c := range heuristicRequest.Changed {
+		changes[i] = c.Transform()
+	}
+
+	work, err := heuristics.CreateWork(dgraph, txHashString, changes, heuristicRequest.Deleted, userUID)
 	if err != nil {
 		reply.Msg = msgInvalidRequest
 		warn(err)

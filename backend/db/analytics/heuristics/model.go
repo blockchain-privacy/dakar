@@ -59,8 +59,7 @@ type Heuristic struct {
 	Transaction         struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"Heuristic.transaction,omitempty"`
-	Timestamp string `json:"Heuristic.ts,omitempty"`
-	// todo openapi has problems with two json keys having the "same" key (Heuristic.parent + ~Heuristic.parent)
+	Timestamp       string             `json:"Heuristic.ts,omitempty"`
 	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
 	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
 	Clusters        []HeuristicCluster `json:"Heuristic.clusters,omitempty"`
@@ -174,6 +173,41 @@ type FrontendHeuristicRequest struct {
 	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
 }
 
+// TransformedFrontendHeuristicRequest is the frontend type representation of a FrontendHeuristicRequest
+type TransformedFrontendHeuristicRequest struct {
+	UID                 string                   `json:"uid,omitempty"`
+	Type                string                   `json:"type,omitempty"`
+	Parameter           string                   `json:"parameter,omitempty"`
+	ParentHeuristic     []HollowHeuristic        `json:"parent,omitempty"`
+	ChildHeuristics     []HollowHeuristic        `json:"children,omitempty"`
+	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
+	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
+}
+
+func (t TransformedFrontendHeuristicRequest) Transform() FrontendHeuristicRequest {
+	parentHeuristics := make([]Heuristic, len(t.ParentHeuristic))
+	for i, ph := range t.ParentHeuristic {
+		parentHeuristics[i].UID = ph.UID
+	}
+
+	childHeuristics := make([]Heuristic, len(t.ChildHeuristics))
+	for i, ch := range t.ChildHeuristics {
+		childHeuristics[i].UID = ch.UID
+	}
+
+	return FrontendHeuristicRequest{
+		UID:                 t.UID,
+		Type:                t.Type,
+		Parameter:           t.Parameter,
+		ParentHeuristic:     parentHeuristics,
+		ChildHeuristics:     childHeuristics,
+		ClusterTypes:        t.ClusterTypes,
+		ExcludeAddresses:    t.ExcludeAddresses,
+		ExcludeSpendingGaps: t.ExcludeSpendingGaps,
+	}
+}
+
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend
 type FrontendHeuristic struct {
 	UID                 string                    `json:"uid,omitempty"`
@@ -187,6 +221,50 @@ type FrontendHeuristic struct {
 	ChildHeuristics     []Heuristic               `json:"children,omitempty"`
 	ClusterCount        int                       `json:"clusterCount,omitempty"`
 	Results             []FrontendHeuristicResult `json:"results,omitempty"`
+}
+
+func (f FrontendHeuristic) Transform() TransformedFrontendHeuristic {
+	parentHeuristics := make([]HollowHeuristic, len(f.ParentHeuristic))
+	for i, ph := range f.ParentHeuristic {
+		parentHeuristics[i].UID = ph.UID
+	}
+
+	childHeuristics := make([]HollowHeuristic, len(f.ChildHeuristics))
+	for i, ch := range f.ChildHeuristics {
+		childHeuristics[i].UID = ch.UID
+	}
+	return TransformedFrontendHeuristic{
+		UID:                 f.UID,
+		Timestamp:           f.Timestamp,
+		Type:                f.Type,
+		Parameter:           f.Parameter,
+		ExcludeAddresses:    f.ExcludeAddresses,
+		ExcludeSpendingGaps: f.ExcludeSpendingGaps,
+		ClusterTypes:        f.ClusterTypes,
+		ParentHeuristic:     parentHeuristics,
+		ChildHeuristics:     childHeuristics,
+		ClusterCount:        f.ClusterCount,
+		Results:             f.Results,
+	}
+}
+
+// TransformedFrontendHeuristic is the frontend type representation of a frontend heuristic, which can be converted to the type FrontendHeuristic
+type TransformedFrontendHeuristic struct {
+	UID                 string                    `json:"uid,omitempty"`
+	Timestamp           string                    `json:"ts,omitempty"`
+	Type                string                    `json:"type,omitempty"`
+	Parameter           string                    `json:"parameter,omitempty"`
+	ExcludeAddresses    bool                      `json:"excludeAddresses"`
+	ExcludeSpendingGaps bool                      `json:"excludeSpendingGaps"`
+	ClusterTypes        []string                  `json:"clusterTypes,omitempty"`
+	ParentHeuristic     []HollowHeuristic         `json:"parent,omitempty"`
+	ChildHeuristics     []HollowHeuristic         `json:"children,omitempty"`
+	ClusterCount        int                       `json:"clusterCount,omitempty"`
+	Results             []FrontendHeuristicResult `json:"results,omitempty"`
+}
+
+type HollowHeuristic struct {
+	UID string `json:"uid,omitempty"`
 }
 
 type FrontendTransactionResult struct {
