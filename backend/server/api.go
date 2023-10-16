@@ -52,15 +52,16 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 
 // Search godoc
 //
-//	@Summary	Search for blocks, addresses and transactions
-//	@Tags		data
-//	@Produce	json
-//	@Param		hash	path		string	true	"Hash"
-//	@Success	200		{object}	server.searchResponse
-//	@Failure	500		{string}	string	"encoding error"
-//	@Router		/search/{hash} [get]
+//	@Summary		Search for blocks, addresses and transactions
+//	@Description	Search for blocks, addresses and transactions. Supports searching by hash or block ID.
+//	@Tags			data
+//	@Produce		json
+//	@Param			query	path		string	true	"Hash"
+//	@Success		200		{object}	server.searchResponse
+//	@Failure		500		{string}	string	"encoding error"
+//	@Router			/search/{query} [get]
 //
-// API pattern: "/api/v1/search/<hash>"
+// API pattern: "/api/v1/search/<query>"
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -388,12 +389,12 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 //	@Tags		cluster
 //	@Produce	text/csv
 //	@Accept		json
-//	@Param		address	body		clustering.ClusterLookupRequest	true	"Address hash"
-//	@Success	200		{file}		file							"comma separated values"
-//	@Failure	500		{string}	string							"encoding error"
-//	@Router		/clusterSummary/ [post]
+//	@Param		addressHash	path		string	true	"Address hash"
+//	@Success	200			{file}		file	"comma separated values"
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/clusterSummary/{addressHash} [get]
 //
-// API pattern: "/api/v1/clusterSummary/"
+// API pattern: "/api/v1/clusterSummary/<addressHash>"
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1376,13 +1377,14 @@ func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
+		addressHash := path.Base(r.URL.Path)
 		var reply clusterLookupReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error modifying user"
 			warn(err)
 		} else {
-			reply = getClusterLookupReply(s.db, r.Body, tUser)
+			reply = getClusterLookupReply(s.db, addressHash, tUser)
 		}
 
 		// encoding
@@ -1547,13 +1549,13 @@ func (s *Server) setupHandlers() {
 	// Clusters
 	s.handler.Handle(getRouteClusterLookup(),
 		adapt(s.handlerClusterLookup(), getRouteClusterLookup(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHMILookup(),
 		adapt(s.handlerHMILookup(), getRouteHMILookup(),
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteClusterSummary(),
 		adapt(s.handlerClusterSummary(), getRouteClusterSummary(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddCluster(),
 		adapt(s.handlerAddCluster(), getRouteAddCluster(),
 			limitMethod("POST"), s.authorization(), maxBody()))

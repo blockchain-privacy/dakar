@@ -388,28 +388,20 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	return
 }
 
-// getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
-func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int,
+// getFrontendCluster returns the requested (by address hash) clusters. In case an error occurred msg and err is filled.
+func getFrontendCluster(dgraph external.Database, addressHash string, maxAddresses int,
 	userID string) (clusters []clustering.FrontendCluster, msg string, err error) {
-	// parse request
-	var req clustering.ClusterLookupRequest
-	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
-		msg = msgCouldNotDecodeRequest
-		err = cliutil.NewStackError(decodeErr)
-		return
-	}
-
-	if req.AddressHash == "" {
+	if addressHash == "" {
 		msg = "address hash is empty"
 		return
 	}
 
-	if !isValid(req.AddressHash) {
+	if !isValid(addressHash) {
 		msg = "address hash was not valid"
 		return
 	}
 
-	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
+	clusterResponse, getErr := clustering.GetClusters(dgraph, addressHash, maxAddresses, userID)
 	if getErr != nil {
 		msg = "error while searching for clusters"
 		err = getErr
@@ -421,10 +413,10 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenUser) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph external.Database, addressHash string, user tokenUser) (reply clusterLookupReply) {
 	const maxAddresses = 30
 
-	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses, user.ID)
+	clusters, msg, err := getFrontendCluster(dgraph, addressHash, maxAddresses, user.ID)
 	reply.Msg = msg
 	if err != nil {
 		warn(err)
@@ -517,7 +509,9 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		return
 	}
 
-	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0, tUser.ID)
+	addressHash := path.Base(r.URL.Path)
+
+	clusters, msg, err := getFrontendCluster(dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
 		handleError(w, err)
 		info(msg)
