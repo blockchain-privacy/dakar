@@ -322,6 +322,12 @@ definitions:
       tag:
         type: string
     type: object
+  clustering.ClusterLookupRequest:
+    properties:
+      addressHash:
+        description: AddressHash is either the address hash for which to find clusters
+        type: string
+    type: object
   clustering.ClusterType:
     enum:
     - hmi
@@ -618,6 +624,8 @@ definitions:
       Heuristic.parameter:
         type: string
       Heuristic.parent:
+        description: todo openapi has problems with two json keys haven the "same"
+          key (Heuristic.parent + ~Heuristic.parent)
         items:
           $ref: '#/definitions/heuristics.Heuristic'
         type: array
@@ -1114,7 +1122,7 @@ info:
   title: Dakar API
   version: "1.0"
 paths:
-  /addAddressExclusions:
+  /addAddressExclusions/:
     post:
       parameters:
       - description: the CSV file
@@ -1136,7 +1144,7 @@ paths:
       summary: Adds new address exclusions for the current user
       tags:
       - address exclusions
-  /addCluster:
+  /addCluster/:
     post:
       parameters:
       - description: separator of the CSV file
@@ -1168,7 +1176,7 @@ paths:
       summary: Add Cluster
       tags:
       - cluster
-  /addPrivateAttribution:
+  /addPrivateAttribution/:
     post:
       parameters:
       - description: separator of the CSV file
@@ -1200,7 +1208,7 @@ paths:
       summary: Create a new attribution which is only visible for the current user
       tags:
       - attribution
-  /addPublicAttribution:
+  /addPublicAttribution/:
     post:
       parameters:
       - description: separator of the CSV file
@@ -1254,7 +1262,7 @@ paths:
       summary: Query for address, transaction or block
       tags:
       - data
-  /addressExclusionOverview:
+  /addressExclusionOverview/:
     get:
       produces:
       - application/json
@@ -1342,7 +1350,7 @@ paths:
       summary: Delete an arbitrary identity
       tags:
       - authentication
-  /attributionOverview:
+  /attributionOverview/:
     get:
       produces:
       - application/json
@@ -1430,7 +1438,7 @@ paths:
       summary: Get all clusters of the given address
       tags:
       - cluster
-  /clusterOverview:
+  /clusterOverview/:
     get:
       produces:
       - application/json
@@ -1446,20 +1454,29 @@ paths:
       summary: Get all custom clusters of the current user
       tags:
       - cluster
-  /clusterSummary:
-    get:
+  /clusterSummary/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Address hash
+        in: body
+        name: address
+        required: true
+        schema:
+          $ref: '#/definitions/clustering.ClusterLookupRequest'
       produces:
       - text/csv
       responses:
         "200":
           description: comma separated values
           schema:
-            type: string
+            type: file
         "500":
           description: encoding error
           schema:
             type: string
-      summary: Cluster Summary
+      summary: Get all clusters of an address
       tags:
       - cluster
   /createIdentity/:
@@ -1509,7 +1526,7 @@ paths:
       summary: Deletes an address exclusion of the current user
       tags:
       - address exclusions
-  /deleteAllAddressExclusions:
+  /deleteAllAddressExclusions/:
     get:
       produces:
       - application/json
@@ -1525,7 +1542,7 @@ paths:
       summary: Delete all address exclusions of the current user
       tags:
       - address exclusions
-  /deleteAllClusters:
+  /deleteAllClusters/:
     get:
       produces:
       - application/json
@@ -1541,7 +1558,7 @@ paths:
       summary: Delete all clusters of the current user
       tags:
       - cluster
-  /deleteAllPrivateAttributions:
+  /deleteAllPrivateAttributions/:
     get:
       produces:
       - application/json
@@ -1832,7 +1849,7 @@ paths:
         "200":
           description: comma separated values
           schema:
-            type: string
+            type: file
         "500":
           description: encoding error
           schema:
@@ -1981,7 +1998,7 @@ paths:
       summary: Search for blocks, addresses and transactions
       tags:
       - data
-  /searchAttributions:
+  /searchAttributions/:
     post:
       consumes:
       - application/json

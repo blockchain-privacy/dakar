@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/addAddressExclusions": {
+        "/addAddressExclusions/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -49,7 +49,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/addCluster": {
+        "/addCluster/": {
             "post": {
                 "produces": [
                     "application/json"
@@ -97,7 +97,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/addPrivateAttribution": {
+        "/addPrivateAttribution/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -145,7 +145,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/addPublicAttribution": {
+        "/addPublicAttribution/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -227,13 +227,13 @@ const docTemplate = `{
                 }
             }
         },
-        "/addressExclusionOverview": {
+        "/addressExclusionOverview/": {
             "get": {
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "address exclusion"
+                    "address exclusions"
                 ],
                 "summary": "Address exclusion overview",
                 "responses": {
@@ -252,7 +252,118 @@ const docTemplate = `{
                 }
             }
         },
-        "/attributionOverview": {
+        "/addressExclusionStatus/{address_hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "address exclusions"
+                ],
+                "summary": "Get the exclusion status of an address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "address hash",
+                        "name": "address_hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addressExclusionStatusReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/addressOutputRange/{address_hash}": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Get outputs of the given address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "address hash",
+                        "name": "address_hash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "output offset",
+                        "name": "offset",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.handlerAddressOutputRange.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/adminDeleteIdentity/{identityUID}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Delete an arbitrary identity",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "identityUID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.identityReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/attributionOverview/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -311,7 +422,84 @@ const docTemplate = `{
                 }
             }
         },
-        "/clusterOverview": {
+        "/blkRange/{block_hash}": {
+            "post": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "data"
+                ],
+                "summary": "Get transactions of the given block",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "block hash",
+                        "name": "block_hash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "transaction offset",
+                        "name": "offset",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.handlerBlockRange.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/clusterLookup/{addressHash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "cluster"
+                ],
+                "summary": "Get all clusters of the given address",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Address hash",
+                        "name": "addressHash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.clusterLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/clusterOverview/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -336,20 +524,73 @@ const docTemplate = `{
                 }
             }
         },
-        "/clusterSummary": {
-            "get": {
+        "/clusterSummary/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "text/csv"
                 ],
                 "tags": [
                     "cluster"
                 ],
-                "summary": "Cluster Summary",
+                "summary": "Get all clusters of an address",
+                "parameters": [
+                    {
+                        "description": "Address hash",
+                        "name": "address",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/clustering.ClusterLookupRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "comma separated values",
                         "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/createIdentity/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Create a new identity",
+                "parameters": [
+                    {
+                        "description": "Identity details",
+                        "name": "identity",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getCreateIdentityReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.identityReply"
                         }
                     },
                     "500": {
@@ -395,7 +636,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/deleteAllAddressExclusions": {
+        "/deleteAllAddressExclusions/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -420,7 +661,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/deleteAllClusters": {
+        "/deleteAllClusters/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -445,7 +686,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/deleteAllPrivateAttributions": {
+        "/deleteAllPrivateAttributions/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -493,6 +734,71 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.deleteClusterReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteHeuristic/": {
+            "post": {
+                "description": "Deletes either all heuristics of the current user or all heuristics of a transaction of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Deletes either all heuristics or all heuristics of a transaction",
+                "parameters": [
+                    {
+                        "description": "Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted.",
+                        "name": "heuristic",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/heuristics.DeleteHeuristicRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.deleteHeuristicReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteIdentity/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Delete the identity of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.identityReply"
                         }
                     },
                     "500": {
@@ -561,6 +867,168 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.deleteAttributionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/executeHeuristics/{hash}": {
+            "post": {
+                "description": "This call queues the given heuristics for the given transaction. Does not wait until the heuristic execution is finished.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Queues the execution of heuristics for the given transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "0x123",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Heuristics to queue",
+                        "name": "heuristic",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getHeuristicExecutionReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicExecutionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/getIdentities/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Get all identities",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.identitiesReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristicDescriptors/": {
+            "get": {
+                "description": "Returns available heuristic descriptors, which define the heuristic interface",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Gets available heuristic descriptors",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicDescriptorReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristicDetails/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Get the details of a heuristic",
+                "parameters": [
+                    {
+                        "description": "Heuristic UID",
+                        "name": "heuristic",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.handlerHeuristicsDetails.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/heuristics.FrontendHeuristicShort"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/heuristicList/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Lists all heuristics of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicListReply"
                         }
                     },
                     "500": {
@@ -662,7 +1130,7 @@ const docTemplate = `{
                     "200": {
                         "description": "comma separated values",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
                         }
                     },
                     "500": {
@@ -733,6 +1201,131 @@ const docTemplate = `{
                 }
             }
         },
+        "/mixingActivity/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Mixing Activity of an address",
+                "parameters": [
+                    {
+                        "description": "Mixing activity request details",
+                        "name": "heuristic",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getMixingActivity.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.mixingActivityReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/modifyIdentity/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "authentication"
+                ],
+                "summary": "Modify an arbitrary identity",
+                "parameters": [
+                    {
+                        "description": "Identity modification details",
+                        "name": "identity",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getModifyIdentityReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.identityReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/reverseLookup/{txhash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Connection lookup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction hash",
+                        "name": "txhash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "search direction",
+                        "name": "forward",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 90,
+                        "type": "integer",
+                        "description": "number of days to look back",
+                        "name": "t",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.connectionLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/search/{hash}": {
             "get": {
                 "produces": [
@@ -767,7 +1360,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/searchAttributions": {
+        "/searchAttributions/": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -781,7 +1374,7 @@ const docTemplate = `{
                 "summary": "Search all public attributions and the attributions belonging to the current user",
                 "parameters": [
                     {
-                        "description": "Search Attributions",
+                        "description": "Search query",
                         "name": "attribution",
                         "in": "body",
                         "required": true,
@@ -795,6 +1388,79 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/shortestTransactionPath/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Get the shortest path between two transactions",
+                "parameters": [
+                    {
+                        "description": "transactions between which the path should be found",
+                        "name": "transactions",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/heuristics.ShortestTransactionPathRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.shortestTransactionPathReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/spendingFingerprint/{hash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Get the spending fingerprint of a transaction",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "transaction hash",
+                        "name": "hash",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.spendingFingerprintReply"
                         }
                     },
                     "500": {
@@ -842,6 +1508,39 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "analytics.MixingActivity": {
+            "type": "object",
+            "properties": {
+                "block": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "ts": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "input_txs": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "txhash": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "privacytype": {
+                    "type": "integer"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
         "attribution.Attribution": {
             "type": "object",
             "properties": {
@@ -925,6 +1624,397 @@ const docTemplate = `{
                 }
             }
         },
+        "client.AuthenticatorAssuranceLevel": {
+            "type": "string",
+            "enum": [
+                "aal0",
+                "aal1",
+                "aal2",
+                "aal3"
+            ],
+            "x-enum-varnames": [
+                "AUTHENTICATORASSURANCELEVEL_AAL0",
+                "AUTHENTICATORASSURANCELEVEL_AAL1",
+                "AUTHENTICATORASSURANCELEVEL_AAL2",
+                "AUTHENTICATORASSURANCELEVEL_AAL3"
+            ]
+        },
+        "client.Identity": {
+            "type": "object",
+            "properties": {
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "description": "CreatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "credentials": {
+                    "description": "Credentials represents all credentials that can be used for authenticating this identity.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/client.IdentityCredentials"
+                    }
+                },
+                "id": {
+                    "description": "ID is the identity's unique identifier.  The Identity ID can not be changed and can not be chosen. This ensures future compatibility and optimization for distributed stores such as CockroachDB.",
+                    "type": "string"
+                },
+                "metadata_admin": {
+                    "description": "NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-"
+                },
+                "metadata_public": {
+                    "description": "NullJSONRawMessage represents a json.RawMessage that works well with JSON, SQL, and Swagger and is NULLable-"
+                },
+                "recovery_addresses": {
+                    "description": "RecoveryAddresses contains all the addresses that can be used to recover an identity.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.RecoveryIdentityAddress"
+                    }
+                },
+                "schema_id": {
+                    "description": "SchemaID is the ID of the JSON Schema to be used for validating the identity's traits.",
+                    "type": "string"
+                },
+                "schema_url": {
+                    "description": "SchemaURL is the URL of the endpoint where the identity's traits schema can be fetched from.  format: url",
+                    "type": "string"
+                },
+                "state": {
+                    "$ref": "#/definitions/client.IdentityState"
+                },
+                "state_changed_at": {
+                    "type": "string"
+                },
+                "traits": {
+                    "description": "Traits represent an identity's traits. The identity is able to create, modify, and delete traits in a self-service manner. The input will always be validated against the JSON Schema defined in ` + "`" + `schema_url` + "`" + `."
+                },
+                "updated_at": {
+                    "description": "UpdatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "verifiable_addresses": {
+                    "description": "VerifiableAddresses contains all the addresses that can be verified by the user.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.VerifiableIdentityAddress"
+                    }
+                }
+            }
+        },
+        "client.IdentityCredentials": {
+            "type": "object",
+            "properties": {
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "config": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "description": "CreatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "identifiers": {
+                    "description": "Identifiers represents a list of unique identifiers this credential type matches.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "type": {
+                    "$ref": "#/definitions/client.IdentityCredentialsType"
+                },
+                "updated_at": {
+                    "description": "UpdatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "version": {
+                    "description": "Version refers to the version of the credential. Useful when changing the config schema.",
+                    "type": "integer"
+                }
+            }
+        },
+        "client.IdentityCredentialsType": {
+            "type": "string",
+            "enum": [
+                "password",
+                "totp",
+                "oidc",
+                "webauthn",
+                "lookup_secret"
+            ],
+            "x-enum-varnames": [
+                "IDENTITYCREDENTIALSTYPE_PASSWORD",
+                "IDENTITYCREDENTIALSTYPE_TOTP",
+                "IDENTITYCREDENTIALSTYPE_OIDC",
+                "IDENTITYCREDENTIALSTYPE_WEBAUTHN",
+                "IDENTITYCREDENTIALSTYPE_LOOKUP_SECRET"
+            ]
+        },
+        "client.IdentityState": {
+            "type": "string",
+            "enum": [
+                "active",
+                "inactive"
+            ],
+            "x-enum-varnames": [
+                "IDENTITYSTATE_ACTIVE",
+                "IDENTITYSTATE_INACTIVE"
+            ]
+        },
+        "client.RecoveryIdentityAddress": {
+            "type": "object",
+            "properties": {
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "description": "CreatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "UpdatedAt is a helper struct field for gobuffalo.pop.",
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                },
+                "via": {
+                    "type": "string"
+                }
+            }
+        },
+        "client.Session": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "description": "Active state. If false the session is no longer active.",
+                    "type": "boolean"
+                },
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "authenticated_at": {
+                    "description": "The Session Authentication Timestamp  When this session was authenticated at. If multi-factor authentication was used this is the time when the last factor was authenticated (e.g. the TOTP code challenge was completed).",
+                    "type": "string"
+                },
+                "authentication_methods": {
+                    "description": "A list of authenticators which were used to authenticate the session.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.SessionAuthenticationMethod"
+                    }
+                },
+                "authenticator_assurance_level": {
+                    "$ref": "#/definitions/client.AuthenticatorAssuranceLevel"
+                },
+                "devices": {
+                    "description": "Devices has history of all endpoints where the session was used",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.SessionDevice"
+                    }
+                },
+                "expires_at": {
+                    "description": "The Session Expiry  When this session expires at.",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "Session ID",
+                    "type": "string"
+                },
+                "identity": {
+                    "$ref": "#/definitions/client.Identity"
+                },
+                "issued_at": {
+                    "description": "The Session Issuance Timestamp  When this session was issued at. Usually equal or close to ` + "`" + `authenticated_at` + "`" + `.",
+                    "type": "string"
+                }
+            }
+        },
+        "client.SessionAuthenticationMethod": {
+            "type": "object",
+            "properties": {
+                "aal": {
+                    "$ref": "#/definitions/client.AuthenticatorAssuranceLevel"
+                },
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "completed_at": {
+                    "description": "When the authentication challenge was completed.",
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "provider": {
+                    "description": "OIDC or SAML provider id used for authentication",
+                    "type": "string"
+                }
+            }
+        },
+        "client.SessionDevice": {
+            "type": "object",
+            "properties": {
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "id": {
+                    "description": "Device record ID",
+                    "type": "string"
+                },
+                "ip_address": {
+                    "description": "IPAddress of the client",
+                    "type": "string"
+                },
+                "location": {
+                    "description": "Geo Location corresponding to the IP Address",
+                    "type": "string"
+                },
+                "user_agent": {
+                    "description": "UserAgent of the client",
+                    "type": "string"
+                }
+            }
+        },
+        "client.VerifiableIdentityAddress": {
+            "type": "object",
+            "properties": {
+                "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "created_at": {
+                    "description": "When this entry was created",
+                    "type": "string"
+                },
+                "id": {
+                    "description": "The ID",
+                    "type": "string"
+                },
+                "status": {
+                    "description": "VerifiableAddressStatus must not exceed 16 characters as that is the limitation in the SQL Schema",
+                    "type": "string"
+                },
+                "updated_at": {
+                    "description": "When this entry was last updated",
+                    "type": "string"
+                },
+                "value": {
+                    "description": "The address value  example foo@user.com",
+                    "type": "string"
+                },
+                "verified": {
+                    "description": "Indicates if the address has already been verified",
+                    "type": "boolean"
+                },
+                "verified_at": {
+                    "type": "string"
+                },
+                "via": {
+                    "description": "VerifiableAddressType must not exceed 16 characters as that is the limitation in the SQL Schema",
+                    "type": "string"
+                }
+            }
+        },
+        "clustering.Attribution": {
+            "type": "object",
+            "properties": {
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "clustering.ClusterLookupRequest": {
+            "type": "object",
+            "properties": {
+                "addressHash": {
+                    "description": "AddressHash is either the address hash for which to find clusters",
+                    "type": "string"
+                }
+            }
+        },
+        "clustering.ClusterType": {
+            "type": "string",
+            "enum": [
+                "hmi",
+                "fmi",
+                "custom"
+            ],
+            "x-enum-varnames": [
+                "TypeHMI",
+                "TypeFMI",
+                "TypeCustom"
+            ]
+        },
+        "clustering.FrontendAddress": {
+            "type": "object",
+            "properties": {
+                "addresshash": {
+                    "type": "string"
+                },
+                "output_count": {
+                    "type": "integer"
+                },
+                "spent_output_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "clustering.FrontendCluster": {
+            "type": "object",
+            "properties": {
+                "addressCount": {
+                    "type": "integer"
+                },
+                "addresses": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.FrontendAddress"
+                    }
+                },
+                "attributions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.Attribution"
+                    }
+                },
+                "bhash": {
+                    "type": "string"
+                },
+                "bid": {
+                    "type": "integer"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "txhash": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/clustering.ClusterType"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
         "clustering.FrontendHMICluster": {
             "type": "object",
             "properties": {
@@ -964,6 +2054,132 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "db.FrontendTransaction": {
+            "type": "object",
+            "properties": {
+                "bhash": {
+                    "type": "string"
+                },
+                "bid": {
+                    "type": "integer"
+                },
+                "bts": {
+                    "type": "string"
+                },
+                "fee": {
+                    "type": "integer"
+                },
+                "inputs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/db.FrontendTransactionOutput"
+                    }
+                },
+                "outputs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/db.FrontendTransactionOutput"
+                    }
+                },
+                "privacytype": {
+                    "type": "integer"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
+        "db.FrontendTransactionOutput": {
+            "type": "object",
+            "properties": {
+                "addresshash": {
+                    "type": "string"
+                },
+                "amount": {
+                    "type": "integer"
+                },
+                "inputindex": {
+                    "type": "integer"
+                },
+                "iscoinbase": {
+                    "type": "boolean"
+                },
+                "keyasm": {
+                    "type": "string"
+                },
+                "outputindex": {
+                    "type": "integer"
+                },
+                "privacytype": {
+                    "description": "This is data from either the transaction where this output is generated or spent",
+                    "type": "integer"
+                },
+                "sigasm": {
+                    "type": "string"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.Attribution": {
+            "type": "object",
+            "properties": {
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.DeleteHeuristicRequest": {
+            "type": "object",
+            "properties": {
+                "delete_all": {
+                    "type": "boolean"
+                },
+                "tx_hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.Descriptor": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "parameter": {
+                    "description": "pointer so Parameter does not appear in JSON if not set",
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "type": "string"
+                        },
+                        "type": {
+                            "description": "Type must be one of the following values: 'int', 'string'",
+                            "type": "string"
+                        },
+                        "value": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -1026,6 +2242,61 @@ const docTemplate = `{
                 }
             }
         },
+        "heuristics.FrontendHeuristicCluster": {
+            "type": "object",
+            "properties": {
+                "attributions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Attribution"
+                    }
+                },
+                "txs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendTransactionResult"
+                    }
+                }
+            }
+        },
+        "heuristics.FrontendHeuristicRequest": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.ClusterType"
+                    }
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Heuristic"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "useAddressExclusionList": {
+                    "type": "boolean"
+                }
+            }
+        },
         "heuristics.FrontendHeuristicResult": {
             "type": "object",
             "properties": {
@@ -1065,6 +2336,34 @@ const docTemplate = `{
                 }
             }
         },
+        "heuristics.FrontendHeuristicShort": {
+            "type": "object",
+            "properties": {
+                "clusters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristicCluster"
+                    }
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.FrontendTransactionResult": {
+            "type": "object",
+            "properties": {
+                "destinationCount": {
+                    "type": "integer"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
         "heuristics.Heuristic": {
             "type": "object",
             "properties": {
@@ -1090,6 +2389,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "Heuristic.parent": {
+                    "description": "todo openapi has problems with two json keys haven the \"same\" key (Heuristic.parent + ~Heuristic.parent)",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/heuristics.Heuristic"
@@ -1152,6 +2452,20 @@ const docTemplate = `{
                 }
             }
         },
+        "heuristics.HeuristicListItem": {
+            "type": "object",
+            "properties": {
+                "h_count": {
+                    "type": "integer"
+                },
+                "mod_time": {
+                    "type": "string"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
         "heuristics.HeuristicQueueStatus": {
             "type": "integer",
             "enum": [
@@ -1188,6 +2502,27 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "heuristics.ShortestTransactionPathRequest": {
+            "type": "object",
+            "properties": {
+                "anyDirection": {
+                    "description": "AnyDirection determines the search direction of the shortest transaction path query\nTrue: Both inputs and outputs are traversed\nFalse: Only inputs are traversed",
+                    "type": "boolean"
+                },
+                "from": {
+                    "description": "From is the starting point of the shortest path lookup",
+                    "type": "string"
+                },
+                "includePrivacyTransactions": {
+                    "description": "IncludePrivacyTransactions determines if privacy transactions\nshould be considered when doing the shortest path lookup",
+                    "type": "boolean"
+                },
+                "to": {
+                    "description": "To is the end point of the shortest path lookup",
+                    "type": "string"
                 }
             }
         },
@@ -1244,6 +2579,20 @@ const docTemplate = `{
                 }
             }
         },
+        "server.addressExclusionStatusReply": {
+            "type": "object",
+            "properties": {
+                "isExclusion": {
+                    "type": "boolean"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "server.attributionOverviewReply": {
             "type": "object",
             "properties": {
@@ -1251,6 +2600,23 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/attribution.FrontendAttribution"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.clusterLookupReply": {
+            "type": "object",
+            "properties": {
+                "clusters": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.FrontendCluster"
                     }
                 },
                 "msg": {
@@ -1274,6 +2640,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.connectionLookupReply": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/db.FrontendTransaction"
+                    }
+                },
+                "warning": {
                     "type": "boolean"
                 }
             }
@@ -1311,11 +2700,184 @@ const docTemplate = `{
                 }
             }
         },
+        "server.deleteHeuristicReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.fingerprintScore": {
+            "type": "object",
+            "properties": {
+                "score": {
+                    "type": "number"
+                },
+                "session_count": {
+                    "type": "integer"
+                },
+                "txhash": {
+                    "type": "string"
+                }
+            }
+        },
         "server.getAttributionSearchReply.request": {
             "type": "object",
             "properties": {
                 "q": {
                     "type": "string"
+                }
+            }
+        },
+        "server.getCreateIdentityReply.request": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "state": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.getHeuristicExecutionReply.request": {
+            "type": "object",
+            "properties": {
+                "changed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristicRequest"
+                    }
+                },
+                "deleted": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "server.getMixingActivity.request": {
+            "type": "object",
+            "properties": {
+                "addressHash": {
+                    "description": "AddressHash is the address hash for which the lookup will be done",
+                    "type": "string"
+                },
+                "isClusterLookup": {
+                    "description": "IsClusterLookup determines if all addresses of the cluster will be considered",
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.getModifyIdentityReply.request": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/user.FrontendRole"
+                    }
+                },
+                "state": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.handlerAddressOutputRange.request": {
+            "type": "object",
+            "properties": {
+                "filter": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "order": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server.handlerBlockRange.request": {
+            "type": "object",
+            "properties": {
+                "offset": {
+                    "type": "integer"
+                }
+            }
+        },
+        "server.handlerHeuristicsDetails.request": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.heuristicDescriptorReply": {
+            "type": "object",
+            "properties": {
+                "descriptors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.Descriptor"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.heuristicExecutionReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.heuristicListReply": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HeuristicListItem"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1356,6 +2918,43 @@ const docTemplate = `{
                 }
             }
         },
+        "server.identitiesReply": {
+            "type": "object",
+            "properties": {
+                "identities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.Identity"
+                    }
+                },
+                "sessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/client.Session"
+                    }
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/user.FrontendUserBackendState"
+                    }
+                }
+            }
+        },
+        "server.identityReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "server.metaStatus": {
             "type": "object",
             "properties": {
@@ -1364,6 +2963,23 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
+                }
+            }
+        },
+        "server.mixingActivityReply": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/analytics.MixingActivity"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1411,6 +3027,46 @@ const docTemplate = `{
                 }
             }
         },
+        "server.shortestTransactionPathReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "transactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/db.FrontendTransaction"
+                    }
+                }
+            }
+        },
+        "server.spendingFingerprintReply": {
+            "type": "object",
+            "properties": {
+                "fingerprint_scores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/server.fingerprintScore"
+                    }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "session_count": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "warning": {
+                    "type": "boolean"
+                }
+            }
+        },
         "status.FrontendStatus": {
             "type": "object",
             "properties": {
@@ -1437,6 +3093,43 @@ const docTemplate = `{
                 },
                 "lastclusteredhmiid": {
                     "type": "integer"
+                }
+            }
+        },
+        "user.FrontendRole": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "user.FrontendUserBackendState": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "kratosID": {
+                    "type": "string"
+                },
+                "modified": {
+                    "type": "string"
+                },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/user.FrontendRole"
+                    }
+                },
+                "uid": {
+                    "type": "string"
                 }
             }
         }

@@ -59,7 +59,8 @@ type Heuristic struct {
 	Transaction         struct {
 		UID string `json:"uid,omitempty"`
 	} `json:"Heuristic.transaction,omitempty"`
-	Timestamp       string             `json:"Heuristic.ts,omitempty"`
+	Timestamp string `json:"Heuristic.ts,omitempty"`
+	// todo openapi has problems with two json keys having the "same" key (Heuristic.parent + ~Heuristic.parent)
 	ParentHeuristic []Heuristic        `json:"Heuristic.parent,omitempty"`
 	ChildHeuristics []Heuristic        `json:"~Heuristic.parent,omitempty"`
 	Clusters        []HeuristicCluster `json:"Heuristic.clusters,omitempty"`

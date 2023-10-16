@@ -9,7 +9,7 @@
     "host": "localhost",
     "basePath": "/api/v1",
     "paths": {
-        "/addAddressExclusions": {
+        "/addAddressExclusions/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -43,7 +43,7 @@
                 }
             }
         },
-        "/addCluster": {
+        "/addCluster/": {
             "post": {
                 "produces": [
                     "application/json"
@@ -91,7 +91,7 @@
                 }
             }
         },
-        "/addPrivateAttribution": {
+        "/addPrivateAttribution/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -139,7 +139,7 @@
                 }
             }
         },
-        "/addPublicAttribution": {
+        "/addPublicAttribution/": {
             "post": {
                 "produces": [
                     "text/csv"
@@ -221,7 +221,7 @@
                 }
             }
         },
-        "/addressExclusionOverview": {
+        "/addressExclusionOverview/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -357,7 +357,7 @@
                 }
             }
         },
-        "/attributionOverview": {
+        "/attributionOverview/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -493,7 +493,7 @@
                 }
             }
         },
-        "/clusterOverview": {
+        "/clusterOverview/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -518,20 +518,34 @@
                 }
             }
         },
-        "/clusterSummary": {
-            "get": {
+        "/clusterSummary/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "text/csv"
                 ],
                 "tags": [
                     "cluster"
                 ],
-                "summary": "Cluster Summary",
+                "summary": "Get all clusters of an address",
+                "parameters": [
+                    {
+                        "description": "Address hash",
+                        "name": "address",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/clustering.ClusterLookupRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "comma separated values",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
                         }
                     },
                     "500": {
@@ -616,7 +630,7 @@
                 }
             }
         },
-        "/deleteAllAddressExclusions": {
+        "/deleteAllAddressExclusions/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -641,7 +655,7 @@
                 }
             }
         },
-        "/deleteAllClusters": {
+        "/deleteAllClusters/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -666,7 +680,7 @@
                 }
             }
         },
-        "/deleteAllPrivateAttributions": {
+        "/deleteAllPrivateAttributions/": {
             "get": {
                 "produces": [
                     "application/json"
@@ -1110,7 +1124,7 @@
                     "200": {
                         "description": "comma separated values",
                         "schema": {
-                            "type": "string"
+                            "type": "file"
                         }
                     },
                     "500": {
@@ -1340,7 +1354,7 @@
                 }
             }
         },
-        "/searchAttributions": {
+        "/searchAttributions/": {
             "post": {
                 "consumes": [
                     "application/json"
@@ -1921,6 +1935,15 @@
                 }
             }
         },
+        "clustering.ClusterLookupRequest": {
+            "type": "object",
+            "properties": {
+                "addressHash": {
+                    "description": "AddressHash is either the address hash for which to find clusters",
+                    "type": "string"
+                }
+            }
+        },
         "clustering.ClusterType": {
             "type": "string",
             "enum": [
@@ -2360,6 +2383,7 @@
                     "type": "string"
                 },
                 "Heuristic.parent": {
+                    "description": "todo openapi has problems with two json keys haven the \"same\" key (Heuristic.parent + ~Heuristic.parent)",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/heuristics.Heuristic"

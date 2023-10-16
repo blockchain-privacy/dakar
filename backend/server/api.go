@@ -4,6 +4,10 @@ import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
 	"backend/db"
+	"time"
+
+	// for openapi
+	_ "backend/db/analytics/clustering"
 	dbtxh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	"backend/external"
@@ -13,7 +17,6 @@ import (
 	"net/http"
 	"path"
 	"strconv"
-	"time"
 )
 
 var (
@@ -353,7 +356,7 @@ func (s *Server) handlerMeta() http.Handler {
 //	@Tags		heuristic
 //	@Produce	text/csv
 //	@Param		heuristic_UID	path		string	true	"0x123"
-//	@Success	200				{string}	string	"comma separated values"
+//	@Success	200				{file}		file	"comma separated values"
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/heuristicsSummary/{heuristic_UID} [get]
 //
@@ -381,14 +384,16 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 
 // Cluster Summary godoc
 //
-//	@Summary	Cluster Summary
+//	@Summary	Get all clusters of an address
 //	@Tags		cluster
 //	@Produce	text/csv
-//	@Success	200	{string}	string	"comma separated values"
-//	@Failure	500	{string}	string	"encoding error"
-//	@Router		/clusterSummary [get]
+//	@Accept		json
+//	@Param		address	body		clustering.ClusterLookupRequest	true	"Address hash"
+//	@Success	200		{file}		file							"comma separated values"
+//	@Failure	500		{string}	string							"encoding error"
+//	@Router		/clusterSummary/ [post]
 //
-// API pattern: "/api/v1/clusterSummary"
+// API pattern: "/api/v1/clusterSummary/"
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -405,9 +410,9 @@ func (s *Server) handlerClusterSummary() http.Handler {
 //	@Param		file		formData	file	true	"the CSV file"
 //	@Success	200			{object}	server.addClusterReply
 //	@Failure	500			{string}	string	"encoding error"
-//	@Router		/addCluster [post]
+//	@Router		/addCluster/ [post]
 //
-// API pattern: "/api/v1/addCluster"
+// API pattern: "/api/v1/addCluster/"
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -463,9 +468,9 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.deleteClusterReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/deleteAllClusters [get]
+//	@Router		/deleteAllClusters/ [get]
 //
-// API pattern: "/api/v1/deleteAllClusters"
+// API pattern: "/api/v1/deleteAllClusters/"
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -494,9 +499,9 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.clusterOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/clusterOverview [get]
+//	@Router		/clusterOverview/ [get]
 //
-// API pattern: "/api/v1/clusterOverview"
+// API pattern: "/api/v1/clusterOverview/"
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -525,9 +530,9 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.attributionOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/attributionOverview [get]
+//	@Router		/attributionOverview/ [get]
 //
-// API pattern: "/api/v1/attributionOverview"
+// API pattern: "/api/v1/attributionOverview/"
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -559,9 +564,9 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 //	@Param		file		formData	file	true	"the CSV file"
 //	@Success	200			{object}	server.addAttributionReply
 //	@Failure	500			{string}	string	"encoding error"
-//	@Router		/addPrivateAttribution [post]
+//	@Router		/addPrivateAttribution/ [post]
 //
-// API pattern: "/api/v1/addPrivateAttribution"
+// API pattern: "/api/v1/addPrivateAttribution/"
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -586,9 +591,9 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Param		file		formData	file	true	"the CSV file"
 //	@Success	200			{string}	string	"comma separated values"
 //	@Failure	500			{string}	string	"encoding error"
-//	@Router		/addPublicAttribution [post]
+//	@Router		/addPublicAttribution/ [post]
 //
-// API pattern: "/api/v1/addPublicAttribution"
+// API pattern: "/api/v1/addPublicAttribution/"
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -678,9 +683,9 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.deleteAttributionReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/deleteAllPrivateAttributions [get]
+//	@Router		/deleteAllPrivateAttributions/ [get]
 //
-// API pattern: "/api/v1/deleteAllPrivateAttributions"
+// API pattern: "/api/v1/deleteAllPrivateAttributions/"
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -711,9 +716,9 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search query"
 //	@Success	200			{object}	server.attributionOverviewReply
 //	@Failure	500			{string}	string	"encoding error"
-//	@Router		/searchAttributions [post]
+//	@Router		/searchAttributions/ [post]
 //
-// API pattern: "/api/v1/searchAttributions"
+// API pattern: "/api/v1/searchAttributions/"
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -743,9 +748,9 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 //	@Param		file	formData	file	true	"the CSV file"
 //	@Success	200		{object}	server.addAddressExclusionsReply
 //	@Failure	500		{string}	string	"encoding error"
-//	@Router		/addAddressExclusions [post]
+//	@Router		/addAddressExclusions/ [post]
 //
-// API pattern: "/api/v1/addAddressExclusions"
+// API pattern: "/api/v1/addAddressExclusions/"
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -801,9 +806,9 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.deleteAddressExclusionReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/deleteAllAddressExclusions [get]
+//	@Router		/deleteAllAddressExclusions/ [get]
 //
-// API pattern: "/api/v1/deleteAllAddressExclusions"
+// API pattern: "/api/v1/deleteAllAddressExclusions/"
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -832,9 +837,9 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Produce	json
 //	@Success	200	{object}	server.addressExclusionOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/addressExclusionOverview [get]
+//	@Router		/addressExclusionOverview/ [get]
 //
-// API pattern: "/api/v1/addressExclusionOverview"
+// API pattern: "/api/v1/addressExclusionOverview/"
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
