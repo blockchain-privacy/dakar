@@ -21,31 +21,6 @@ definitions:
       txhash:
         type: string
     type: object
-  attribution.Attribution:
-    properties:
-      Attribution.address:
-        $ref: '#/definitions/attribution.HollowAddress'
-      Attribution.category:
-        type: string
-      Attribution.description:
-        type: string
-      Attribution.isPublic:
-        type: boolean
-      Attribution.source:
-        type: string
-      Attribution.tag:
-        type: string
-      Attribution.ts:
-        type: string
-      Attribution.user:
-        $ref: '#/definitions/attribution.HollowUser'
-      dgraph.type:
-        items:
-          type: string
-        type: array
-      uid:
-        type: string
-    type: object
   attribution.FrontendAttribution:
     properties:
       address:
@@ -62,16 +37,6 @@ definitions:
         type: string
       ts:
         type: string
-      uid:
-        type: string
-    type: object
-  attribution.HollowAddress:
-    properties:
-      uid:
-        type: string
-    type: object
-  attribution.HollowUser:
-    properties:
       uid:
         type: string
     type: object
@@ -484,44 +449,6 @@ definitions:
       type:
         type: string
     type: object
-  heuristics.DummyNode:
-    properties:
-      uid:
-        type: string
-    type: object
-  heuristics.FrontendHeuristic:
-    properties:
-      children:
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      clusterCount:
-        type: integer
-      clusterTypes:
-        items:
-          type: string
-        type: array
-      excludeAddresses:
-        type: boolean
-      excludeSpendingGaps:
-        type: boolean
-      parameter:
-        type: string
-      parent:
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      results:
-        items:
-          $ref: '#/definitions/heuristics.FrontendHeuristicResult'
-        type: array
-      ts:
-        type: string
-      type:
-        type: string
-      uid:
-        type: string
-    type: object
   heuristics.FrontendHeuristicCluster:
     properties:
       attributions:
@@ -532,31 +459,6 @@ definitions:
         items:
           $ref: '#/definitions/heuristics.FrontendTransactionResult'
         type: array
-    type: object
-  heuristics.FrontendHeuristicRequest:
-    properties:
-      children:
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      clusterTypes:
-        items:
-          $ref: '#/definitions/clustering.ClusterType'
-        type: array
-      excludeSpendingGaps:
-        type: boolean
-      parameter:
-        type: string
-      parent:
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      type:
-        type: string
-      uid:
-        type: string
-      useAddressExclusionList:
-        type: boolean
     type: object
   heuristics.FrontendHeuristicResult:
     properties:
@@ -601,65 +503,6 @@ definitions:
       txhash:
         type: string
     type: object
-  heuristics.Heuristic:
-    properties:
-      ~Heuristic.parent:
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      ~User.heuristics:
-        type: string
-      Heuristic.clusterTypes:
-        items:
-          type: string
-        type: array
-      Heuristic.clusters:
-        items:
-          $ref: '#/definitions/heuristics.HeuristicCluster'
-        type: array
-      Heuristic.excludeAddresses:
-        type: boolean
-      Heuristic.excludeSpendingGaps:
-        type: boolean
-      Heuristic.parameter:
-        type: string
-      Heuristic.parent:
-        description: todo openapi has problems with two json keys haven the "same"
-          key (Heuristic.parent + ~Heuristic.parent)
-        items:
-          $ref: '#/definitions/heuristics.Heuristic'
-        type: array
-      Heuristic.transaction:
-        properties:
-          uid:
-            type: string
-        type: object
-      Heuristic.ts:
-        type: string
-      Heuristic.type:
-        type: string
-      dgraph.type:
-        items:
-          type: string
-        type: array
-      uid:
-        type: string
-    type: object
-  heuristics.HeuristicCluster:
-    properties:
-      HeuristicCluster.attributions:
-        items:
-          $ref: '#/definitions/attribution.Attribution'
-        type: array
-      HeuristicCluster.results:
-        items:
-          $ref: '#/definitions/heuristics.HeuristicResult'
-        type: array
-      dgraph.type:
-        items:
-          type: string
-        type: array
-    type: object
   heuristics.HeuristicListItem:
     properties:
       h_count:
@@ -685,18 +528,10 @@ definitions:
     - StatusHeuristicInQueue
     - StatusHeuristicProcessing
     - StatusHeuristicWorkerNotReady
-  heuristics.HeuristicResult:
+  heuristics.HollowHeuristic:
     properties:
-      HeuristicResult.destinations:
-        items:
-          $ref: '#/definitions/heuristics.DummyNode'
-        type: array
-      HeuristicResult.origin:
-        $ref: '#/definitions/heuristics.DummyNode'
-      dgraph.type:
-        items:
-          type: string
-        type: array
+      uid:
+        type: string
     type: object
   heuristics.ShortestTransactionPathRequest:
     properties:
@@ -717,6 +552,64 @@ definitions:
       to:
         description: To is the end point of the shortest path lookup
         type: string
+    type: object
+  heuristics.TransformedFrontendHeuristic:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      clusterCount:
+        type: integer
+      clusterTypes:
+        items:
+          type: string
+        type: array
+      excludeAddresses:
+        type: boolean
+      excludeSpendingGaps:
+        type: boolean
+      parameter:
+        type: string
+      parent:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      results:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristicResult'
+        type: array
+      ts:
+        type: string
+      type:
+        type: string
+      uid:
+        type: string
+    type: object
+  heuristics.TransformedFrontendHeuristicRequest:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      clusterTypes:
+        items:
+          $ref: '#/definitions/clustering.ClusterType'
+        type: array
+      excludeSpendingGaps:
+        type: boolean
+      parameter:
+        type: string
+      parent:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      type:
+        type: string
+      uid:
+        type: string
+      useAddressExclusionList:
+        type: boolean
     type: object
   server.addAddressExclusionsReply:
     properties:
@@ -866,7 +759,7 @@ definitions:
     properties:
       changed:
         items:
-          $ref: '#/definitions/heuristics.FrontendHeuristicRequest'
+          $ref: '#/definitions/heuristics.TransformedFrontendHeuristicRequest'
         type: array
       deleted:
         items:
@@ -953,7 +846,7 @@ definitions:
     properties:
       heuristics:
         items:
-          $ref: '#/definitions/heuristics.FrontendHeuristic'
+          $ref: '#/definitions/heuristics.TransformedFrontendHeuristic'
         type: array
       msg:
         type: string

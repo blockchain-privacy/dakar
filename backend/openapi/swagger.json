@@ -1535,44 +1535,6 @@
                 }
             }
         },
-        "attribution.Attribution": {
-            "type": "object",
-            "properties": {
-                "Attribution.address": {
-                    "$ref": "#/definitions/attribution.HollowAddress"
-                },
-                "Attribution.category": {
-                    "type": "string"
-                },
-                "Attribution.description": {
-                    "type": "string"
-                },
-                "Attribution.isPublic": {
-                    "type": "boolean"
-                },
-                "Attribution.source": {
-                    "type": "string"
-                },
-                "Attribution.tag": {
-                    "type": "string"
-                },
-                "Attribution.ts": {
-                    "type": "string"
-                },
-                "Attribution.user": {
-                    "$ref": "#/definitions/attribution.HollowUser"
-                },
-                "dgraph.type": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
         "attribution.FrontendAttribution": {
             "type": "object",
             "properties": {
@@ -1597,22 +1559,6 @@
                 "ts": {
                     "type": "string"
                 },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "attribution.HollowAddress": {
-            "type": "object",
-            "properties": {
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "attribution.HollowUser": {
-            "type": "object",
-            "properties": {
                 "uid": {
                     "type": "string"
                 }
@@ -2178,64 +2124,6 @@
                 }
             }
         },
-        "heuristics.DummyNode": {
-            "type": "object",
-            "properties": {
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "heuristics.FrontendHeuristic": {
-            "type": "object",
-            "properties": {
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "clusterCount": {
-                    "type": "integer"
-                },
-                "clusterTypes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "excludeAddresses": {
-                    "type": "boolean"
-                },
-                "excludeSpendingGaps": {
-                    "type": "boolean"
-                },
-                "parameter": {
-                    "type": "string"
-                },
-                "parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.FrontendHeuristicResult"
-                    }
-                },
-                "ts": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
         "heuristics.FrontendHeuristicCluster": {
             "type": "object",
             "properties": {
@@ -2250,44 +2138,6 @@
                     "items": {
                         "$ref": "#/definitions/heuristics.FrontendTransactionResult"
                     }
-                }
-            }
-        },
-        "heuristics.FrontendHeuristicRequest": {
-            "type": "object",
-            "properties": {
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "clusterTypes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/clustering.ClusterType"
-                    }
-                },
-                "excludeSpendingGaps": {
-                    "type": "boolean"
-                },
-                "parameter": {
-                    "type": "string"
-                },
-                "parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                },
-                "useAddressExclusionList": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2358,94 +2208,6 @@
                 }
             }
         },
-        "heuristics.Heuristic": {
-            "type": "object",
-            "properties": {
-                "Heuristic.clusterTypes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "Heuristic.clusters": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HeuristicCluster"
-                    }
-                },
-                "Heuristic.excludeAddresses": {
-                    "type": "boolean"
-                },
-                "Heuristic.excludeSpendingGaps": {
-                    "type": "boolean"
-                },
-                "Heuristic.parameter": {
-                    "type": "string"
-                },
-                "Heuristic.parent": {
-                    "description": "todo openapi has problems with two json keys haven the \"same\" key (Heuristic.parent + ~Heuristic.parent)",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "Heuristic.transaction": {
-                    "type": "object",
-                    "properties": {
-                        "uid": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "Heuristic.ts": {
-                    "type": "string"
-                },
-                "Heuristic.type": {
-                    "type": "string"
-                },
-                "dgraph.type": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "uid": {
-                    "type": "string"
-                },
-                "~Heuristic.parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.Heuristic"
-                    }
-                },
-                "~User.heuristics": {
-                    "type": "string"
-                }
-            }
-        },
-        "heuristics.HeuristicCluster": {
-            "type": "object",
-            "properties": {
-                "HeuristicCluster.attributions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/attribution.Attribution"
-                    }
-                },
-                "HeuristicCluster.results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HeuristicResult"
-                    }
-                },
-                "dgraph.type": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
         "heuristics.HeuristicListItem": {
             "type": "object",
             "properties": {
@@ -2479,23 +2241,11 @@
                 "StatusHeuristicWorkerNotReady"
             ]
         },
-        "heuristics.HeuristicResult": {
+        "heuristics.HollowHeuristic": {
             "type": "object",
             "properties": {
-                "HeuristicResult.destinations": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.DummyNode"
-                    }
-                },
-                "HeuristicResult.origin": {
-                    "$ref": "#/definitions/heuristics.DummyNode"
-                },
-                "dgraph.type": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "uid": {
+                    "type": "string"
                 }
             }
         },
@@ -2517,6 +2267,94 @@
                 "to": {
                     "description": "To is the end point of the shortest path lookup",
                     "type": "string"
+                }
+            }
+        },
+        "heuristics.TransformedFrontendHeuristic": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "clusterCount": {
+                    "type": "integer"
+                },
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "excludeAddresses": {
+                    "type": "boolean"
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristicResult"
+                    }
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "heuristics.TransformedFrontendHeuristicRequest": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.ClusterType"
+                    }
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "useAddressExclusionList": {
+                    "type": "boolean"
                 }
             }
         },
@@ -2750,7 +2588,7 @@
                 "changed": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/heuristics.FrontendHeuristicRequest"
+                        "$ref": "#/definitions/heuristics.TransformedFrontendHeuristicRequest"
                     }
                 },
                 "deleted": {
@@ -2881,7 +2719,7 @@
                 "heuristics": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/heuristics.FrontendHeuristic"
+                        "$ref": "#/definitions/heuristics.TransformedFrontendHeuristic"
                     }
                 },
                 "msg": {
