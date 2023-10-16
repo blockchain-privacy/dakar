@@ -1401,7 +1401,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 //	@Tags		tools
 //	@Produce	json
 //	@Accept		json
-//	@Param		heuristic	body		server.getMixingActivity.request	true	"Mixing activity request details"
+//	@Param		activity	body		server.getMixingActivity.request	true	"Mixing activity request details"
 //	@Success	200			{object}	server.mixingActivityReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/mixingActivity/ [post]
