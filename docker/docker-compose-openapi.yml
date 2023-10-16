@@ -1,0 +1,9 @@
+version: "3.6"
+
+services:
+  openapi:
+    image: openapitools/openapi-generator-cli:v7.0.1
+    container_name: openapi
+    volumes:
+      - ../backend/openapi:/local
+    command: generate -i /local/swagger.yaml -g typescript-fetch -o /local/client/typescript-fetch --additional-properties modelPropertyNaming=original
