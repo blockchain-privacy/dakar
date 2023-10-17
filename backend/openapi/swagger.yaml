@@ -287,12 +287,6 @@ definitions:
       tag:
         type: string
     type: object
-  clustering.ClusterLookupRequest:
-    properties:
-      addressHash:
-        description: AddressHash is either the address hash for which to find clusters
-        type: string
-    type: object
   clustering.ClusterType:
     enum:
     - hmi
@@ -1347,17 +1341,16 @@ paths:
       summary: Get all custom clusters of the current user
       tags:
       - cluster
-  /clusterSummary/:
-    post:
+  /clusterSummary/{addressHash}:
+    get:
       consumes:
       - application/json
       parameters:
       - description: Address hash
-        in: body
-        name: address
+        in: path
+        name: addressHash
         required: true
-        schema:
-          $ref: '#/definitions/clustering.ClusterLookupRequest'
+        type: string
       produces:
       - text/csv
       responses:
@@ -1397,12 +1390,12 @@ paths:
       summary: Create a new identity
       tags:
       - authentication
-  /deleteAddressExclusion/{address_exclusion_uid}:
+  /deleteAddressExclusion/{addressHash}:
     get:
       parameters:
       - description: "0x123"
         in: path
-        name: address_exclusion_uid
+        name: addressHash
         required: true
         type: string
       produces:
@@ -1795,7 +1788,7 @@ paths:
       parameters:
       - description: Mixing activity request details
         in: body
-        name: heuristic
+        name: activity
         required: true
         schema:
           $ref: '#/definitions/server.getMixingActivity.request'
@@ -1869,12 +1862,14 @@ paths:
       summary: Connection lookup
       tags:
       - tools
-  /search/{hash}:
+  /search/{query}:
     get:
+      description: Search for blocks, addresses and transactions. Supports searching
+        by hash or block ID.
       parameters:
       - description: Hash
         in: path
-        name: hash
+        name: query
         required: true
         type: string
       produces:

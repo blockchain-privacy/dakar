@@ -524,8 +524,8 @@ const docTemplate = `{
                 }
             }
         },
-        "/clusterSummary/": {
-            "post": {
+        "/clusterSummary/{addressHash}": {
+            "get": {
                 "consumes": [
                     "application/json"
                 ],
@@ -538,13 +538,11 @@ const docTemplate = `{
                 "summary": "Get all clusters of an address",
                 "parameters": [
                     {
+                        "type": "string",
                         "description": "Address hash",
-                        "name": "address",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/clustering.ClusterLookupRequest"
-                        }
+                        "name": "addressHash",
+                        "in": "path",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -602,7 +600,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/deleteAddressExclusion/{address_exclusion_uid}": {
+        "/deleteAddressExclusion/{addressHash}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -615,7 +613,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "0x123",
-                        "name": "address_exclusion_uid",
+                        "name": "addressHash",
                         "in": "path",
                         "required": true
                     }
@@ -1216,7 +1214,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Mixing activity request details",
-                        "name": "heuristic",
+                        "name": "activity",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -1326,8 +1324,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/search/{hash}": {
+        "/search/{query}": {
             "get": {
+                "description": "Search for blocks, addresses and transactions. Supports searching by hash or block ID.",
                 "produces": [
                     "application/json"
                 ],
@@ -1339,7 +1338,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Hash",
-                        "name": "hash",
+                        "name": "query",
                         "in": "path",
                         "required": true
                     }
@@ -1883,15 +1882,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "tag": {
-                    "type": "string"
-                }
-            }
-        },
-        "clustering.ClusterLookupRequest": {
-            "type": "object",
-            "properties": {
-                "addressHash": {
-                    "description": "AddressHash is either the address hash for which to find clusters",
                     "type": "string"
                 }
             }
