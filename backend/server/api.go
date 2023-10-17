@@ -771,12 +771,12 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Summary	Deletes an address exclusion of the current user
 //	@Tags		address exclusions
 //	@Produce	json
-//	@Param		address_exclusion_uid	path		string	true	"0x123"
-//	@Success	200						{object}	server.deleteAddressExclusionReply
-//	@Failure	500						{string}	string	"encoding error"
-//	@Router		/deleteAddressExclusion/{address_exclusion_uid} [get]
+//	@Param		addressHash	path		string	true	"0x123"
+//	@Success	200			{object}	server.deleteAddressExclusionReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/deleteAddressExclusion/{addressHash} [get]
 //
-// API pattern: "/api/v1/deleteAddressExclusion/<address_exclusion_uid>"
+// API pattern: "/api/v1/deleteAddressExclusion/<addressHash>"
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
