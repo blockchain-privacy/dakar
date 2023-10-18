@@ -1214,9 +1214,7 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		identityUID := path.Base(r.URL.Path)
-
-		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, identityUID)
+		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, path.Base(r.URL.Path))
 
 		// encoding
 		if err := json.NewEncoder(w).Encode(reply); err != nil {
