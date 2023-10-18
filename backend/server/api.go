@@ -1478,6 +1478,13 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 	})
 }
 
+// todo: when https://github.com/golang/go/issues/61410 is merged and released,
+// refactor API design to use consistent endpoint naming:
+// - GET clusters - returns all clusters
+// - GET clusters/{addresshash} - returns all clusters belonging to a specific address
+// - DELETE clusters - deletes all clusters
+// - DELETE clusters/{addresshash} - deletes all clusters belonging to a specific address
+// - POST clusters - creates a new clusters
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
