@@ -78,6 +78,11 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 
 func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 	txHashString string, userUID string) (reply heuristicReply) {
+	if !isValid(txHashString) {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
@@ -414,6 +419,11 @@ func getFrontendCluster(dgraph external.Database, addressHash string, maxAddress
 
 // getClusterLookupReply returns the result of a cluster lookup
 func getClusterLookupReply(dgraph external.Database, addressHash string, user tokenUser) (reply clusterLookupReply) {
+	if !isValid(addressHash) {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	const maxAddresses = 30
 
 	clusters, msg, err := getFrontendCluster(dgraph, addressHash, maxAddresses, user.ID)
@@ -431,6 +441,10 @@ func getClusterLookupReply(dgraph external.Database, addressHash string, user to
 
 // getHMILookupReply returns all hmi clusters connected to the given address hash
 func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
+	if !isValid(addressHash) {
+		return
+	}
+
 	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
 	if err != nil {
 		warn(err)
@@ -1051,8 +1065,8 @@ func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) 
 
 func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
 	addressHash string) (reply deleteAddressExclusionReply) {
-	if addressHash == "" {
-		reply.Msg = "address hash was not set"
+	if !isValid(addressHash) {
+		reply.Msg = msgInvalidRequest
 		return
 	}
 
@@ -1152,6 +1166,11 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 // getDeleteIdentityReply deletes the given user
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	r *http.Request, delUID string) (reply identityReply) {
+	if delUID == "" {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	// get identity data
 	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
@@ -1177,7 +1196,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	}
 
 	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + "clusters"
+		reply.Msg = "could not delete users " + uid + " clusters"
 		warn(err)
 		return
 	}
