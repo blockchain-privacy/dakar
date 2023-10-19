@@ -561,6 +561,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/connectionLookup/{txhash}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "tools"
+                ],
+                "summary": "Connection lookup",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Transaction hash",
+                        "name": "txhash",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "search direction",
+                        "name": "forward",
+                        "in": "query"
+                    },
+                    {
+                        "maximum": 90,
+                        "type": "integer",
+                        "description": "number of days to look back",
+                        "name": "t",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.connectionLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "encoding error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/createIdentity/": {
             "post": {
                 "consumes": [
@@ -1266,53 +1313,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.identityReply"
-                        }
-                    },
-                    "500": {
-                        "description": "encoding error",
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                }
-            }
-        },
-        "/reverseLookup/{txhash}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "tools"
-                ],
-                "summary": "Connection lookup",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Transaction hash",
-                        "name": "txhash",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "boolean",
-                        "description": "search direction",
-                        "name": "forward",
-                        "in": "query"
-                    },
-                    {
-                        "maximum": 90,
-                        "type": "integer",
-                        "description": "number of days to look back",
-                        "name": "t",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/server.connectionLookupReply"
                         }
                     },
                     "500": {

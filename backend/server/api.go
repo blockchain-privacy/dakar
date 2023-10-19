@@ -1343,9 +1343,9 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Param		t		query		int		false	"number of days to look back"	maximum(90)
 //	@Success	200		{object}	server.connectionLookupReply
 //	@Failure	500		{string}	string	"encoding error"
-//	@Router		/reverseLookup/{txhash} [get]
+//	@Router		/connectionLookup/{txhash} [get]
 //
-// API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
+// API pattern: "/api/v1/connectionLookup/<txhash>?forward=true&t=30"
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)

@@ -692,7 +692,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 			break
 		}
 
-		if index == 0 && headerFlag == "1" {
+		if index == 0 && headerFlag == "true" {
 			continue
 		}
 
@@ -799,7 +799,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 			break
 		}
 
-		if index == 0 && headerFlag == "1" {
+		if index == 0 && headerFlag == "true" {
 			continue
 		}
 

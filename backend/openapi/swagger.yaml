@@ -1365,6 +1365,37 @@ paths:
       summary: Get all clusters of an address
       tags:
       - cluster
+  /connectionLookup/{txhash}:
+    get:
+      parameters:
+      - description: Transaction hash
+        in: path
+        name: txhash
+        required: true
+        type: string
+      - description: search direction
+        in: query
+        name: forward
+        type: boolean
+      - description: number of days to look back
+        in: query
+        maximum: 90
+        name: t
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.connectionLookupReply'
+        "500":
+          description: encoding error
+          schema:
+            type: string
+      summary: Connection lookup
+      tags:
+      - tools
   /createIdentity/:
     post:
       consumes:
@@ -1831,37 +1862,6 @@ paths:
       summary: Modify an arbitrary identity
       tags:
       - authentication
-  /reverseLookup/{txhash}:
-    get:
-      parameters:
-      - description: Transaction hash
-        in: path
-        name: txhash
-        required: true
-        type: string
-      - description: search direction
-        in: query
-        name: forward
-        type: boolean
-      - description: number of days to look back
-        in: query
-        maximum: 90
-        name: t
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/server.connectionLookupReply'
-        "500":
-          description: encoding error
-          schema:
-            type: string
-      summary: Connection lookup
-      tags:
-      - tools
   /search/{query}:
     get:
       description: Search for blocks, addresses and transactions. Supports searching
