@@ -50,6 +50,14 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
 }
 
+// writeReply encodes the given reply into JSON
+func writeReply(w http.ResponseWriter, reply any) {
+	if err := json.NewEncoder(w).Encode(reply); err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		warn(err)
+	}
+}
+
 // Search godoc
 //
 //	@Summary		Search for blocks, addresses and transactions
@@ -101,11 +109,7 @@ func (s *Server) handlerSearch() http.Handler {
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -150,11 +154,7 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -229,11 +229,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -294,11 +290,7 @@ func (s *Server) handlerBlockRange() http.Handler {
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -333,7 +325,7 @@ func (s *Server) handlerMeta() http.Handler {
 		}
 
 		// set response struct
-		stat := metaStatus{
+		reply := metaStatus{
 			Status: verboseStatus,
 			RPCInfo: prunedRPCInfo{
 				Blocks:               rpcInfo.Blocks,
@@ -344,10 +336,7 @@ func (s *Server) handlerMeta() http.Handler {
 			},
 		}
 
-		// encoding
-		if encErr := json.NewEncoder(w).Encode(stat); encErr != nil {
-			handleError(w, encErr)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -420,11 +409,7 @@ func (s *Server) handlerAddCluster() http.Handler {
 
 		reply := getAddClusterReply(s.db, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -454,11 +439,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -485,11 +466,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 			reply = getDeleteAllClustersReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -516,11 +493,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 			reply = getClusterOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -547,11 +520,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 			reply = getAttributionOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -574,11 +543,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 
 		reply := getAddAttributionReply(s.db, r, false)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -601,11 +566,7 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 
 		reply := getAddAttributionReply(s.db, r, true)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -635,11 +596,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -669,11 +626,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -700,11 +653,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -733,11 +682,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -758,11 +703,7 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 
 		reply := getAddAddressExclusionsReply(s.db, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -792,11 +733,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -823,11 +760,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -854,11 +787,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -893,11 +822,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -925,11 +850,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 
 		reply := getHMILookupReply(s.db, addressHash)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -965,11 +886,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1013,18 +930,14 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
+		reply, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			warn(err)
 			return
 		}
 
-		// encoding
-		if err = json.NewEncoder(w).Encode(frontendHeuristic); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1062,11 +975,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1099,11 +1008,7 @@ func (s *Server) handlerHeuristicList() http.Handler {
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1130,11 +1035,7 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 
 		reply.Success = true
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1163,11 +1064,7 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1190,11 +1087,7 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 
 		reply := getCreateIdentityReply(s.db, s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1216,11 +1109,7 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 
 		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, path.Base(r.URL.Path))
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1248,11 +1137,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1275,11 +1160,7 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 
 		reply := getModifyIdentityReply(s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1299,11 +1180,7 @@ func (s *Server) handlerGetIdentities() http.Handler {
 
 		reply := getIdentitiesReply(s.db, s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1325,11 +1202,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 
 		reply := getShortestTransactionPathReply(s.db, r.Body)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1352,11 +1225,7 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 
 		reply := getConnectionLookupReply(s.db, s.worker, r.URL)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1385,11 +1254,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 			reply = getClusterLookupReply(s.db, addressHash, tUser)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1411,11 +1276,7 @@ func (s *Server) handlerMixingActivity() http.Handler {
 
 		reply := getMixingActivity(s.db, r.Body)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1436,11 +1297,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 
 		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
@@ -1468,11 +1325,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 
 		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
