@@ -34,6 +34,164 @@ const msgCouldNotDecodeUser = "could not decode user data"
 const msgInvalidRequest = "invalid request"
 const msgUserNotFound = "User not found"
 
+// getSearchResponse searches for the given query in the database
+func getSearchResponse(dgraph external.Database, query string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	if isValid(query) {
+		searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+
+		if isLikelyBlock(query) {
+			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+		} else if isLikelyAddress(query) {
+			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+		}
+
+		// iterate over db access functions
+		for _, fn := range searchOrder {
+			data, ok, err := fn(dgraph, query)
+			if err != nil {
+				warn(err)
+				break
+			}
+			// nothing found -> next try
+			if !ok {
+				continue
+			}
+
+			reply.Payload = data.result
+			reply.Type = data.resultType
+			break
+		}
+	}
+	return reply
+}
+
+// getDataDetailsResponse searches for the given query in the database via the provided function fn
+func getDataDetailsResponse(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	if isValid(query) {
+		data, ok, fnErr := fn(dgraph, query)
+		if fnErr != nil {
+			return reply
+		}
+
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+	return reply
+}
+
+// getAddressOutputRangeResponse searches for the given address hash in the database with the options stored in the request
+func getAddressOutputRangeResponse(r *http.Request, dgraph external.Database, addressHash string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	type request struct {
+		Offset int   `json:"offset"`
+		Order  int   `json:"order"`
+		Filter []int `json:"filter"`
+	}
+
+	if isValid(addressHash) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return reply
+		}
+
+		var addressRequest request
+		addressRequest.Offset = -1
+		addressRequest.Order = -1
+
+		if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
+			reply.Msg = msgCouldNotDecodeRequest
+			return reply
+		}
+
+		if !db.IsValidSortOrder(addressRequest.Order) {
+			reply.Msg = errorInvalidSortOrder
+			return reply
+		}
+
+		if !db.IsValidFilter(addressRequest.Filter) {
+			reply.Msg = errorInvalidFilter
+			return reply
+		}
+
+		if addressRequest.Offset < 0 {
+			reply.Msg = errorInvalidOffset
+			return reply
+		}
+
+		data, ok, addrErr := GetAddressWithOptions(dgraph, addressHash,
+			addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
+		if addrErr != nil {
+			return reply
+		}
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+
+	return reply
+}
+
+// getBlockRangeResponse searches for the given block hash in the database with the options stored in the request
+func getBlockRangeResponse(r *http.Request, dgraph external.Database, blockHash string) searchReply {
+	reply := searchReply{
+		Type:    "response_empty",
+		Payload: nil,
+	}
+
+	type request struct {
+		Offset int `json:"offset"`
+	}
+
+	if isValid(blockHash) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return reply
+		}
+
+		var blockRequest request
+		blockRequest.Offset = -1
+
+		if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
+			reply.Msg = msgCouldNotDecodeRequest
+			return reply
+		}
+
+		if blockRequest.Offset < 0 {
+			reply.Msg = errorInvalidOffset
+			return reply
+		}
+
+		data, ok, blockErr := GetBlockWithOptions(dgraph, blockHash, blockRequest.Offset)
+		if blockErr != nil {
+			warn(blockErr)
+			return reply
+		}
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+
+	return reply
+}
+
 func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {
 	users, err := dbus.GetUsers(dgraph)
 	if err != nil {

@@ -3,7 +3,6 @@ package server
 import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
-	"backend/db"
 	"time"
 
 	// for openapi
@@ -12,7 +11,6 @@ import (
 	dbstat "backend/db/status"
 	"backend/external"
 	"encoding/json"
-	"io"
 	"math"
 	"net/http"
 	"path"
@@ -37,49 +35,14 @@ var (
 //	@Tags			data
 //	@Produce		json
 //	@Param			query	path		string	true	"Hash"
-//	@Success		200		{object}	server.searchResponse
+//	@Success		200		{object}	server.searchReply
 //	@Failure		500		{string}	string	"encoding error"
 //	@Router			/search/{query} [get]
-//
-// API pattern: "/api/v1/search/<query>"
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
-
-		// set response struct
-		reply := searchResponse{
-			Type:    typeEmpty,
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
-
-			if isLikelyBlock(queryString) {
-				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
-			} else if isLikelyAddress(queryString) {
-				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
-			}
-
-			// iterate over db access functions
-			for _, fn := range searchOrder {
-				data, ok, err := fn(s.db, queryString)
-				if err != nil {
-					warn(err)
-					break
-				}
-				// nothing found -> next try
-				if !ok {
-					continue
-				}
-
-				reply.Payload = data.result
-				reply.Type = data.resultType
-				break
-			}
-		}
+		reply := getSearchResponse(s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -91,40 +54,16 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Tags		data
 //	@Produce	json
 //	@Param		hash	path		string	true	"Hash"
-//	@Success	200		{object}	server.searchResponse
+//	@Success	200		{object}	server.searchReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/blk/{hash} [get]
 //	@Router		/address/{hash} [get]
 //	@Router		/tx/{hash} [get]
-//
-// API pattern: "/api/v1/<type>/<query>"
-// API pattern: "/api/v1/blk/<query>"
-// API pattern: "/api/v1/address/<query>"
-// API pattern: "/api/v1/tx/<query>"
 func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
-
-		// set response struct
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			data, ok, fnErr := fn(s.db, queryString)
-			if fnErr != nil {
-				handleError(w, fnErr)
-				return
-			}
-
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
+		reply := getDataDetailsResponse(s.db, fn, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -135,71 +74,16 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Summary	Get outputs of the given address
 //	@Tags		data
 //	@Produce	json
-//	@Param		address_hash	path		string										true	"address hash"
-//	@Param		offset			body		server.handlerAddressOutputRange.request	true	"output offset"
-//	@Success	200				{object}	server.searchResponse
-//	@Failure	500				{string}	string	"encoding error"
-//	@Router		/addressOutputRange/{address_hash} [post]
-//
-// API pattern: "/api/v1/addressOutputRange/<address_hash>"
+//	@Param		addressHash	path		string											true	"address hash"
+//	@Param		options		body		server.getAddressOutputRangeResponse.request	true	"query options"
+//	@Success	200			{object}	server.searchReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addressOutputRange/{addressHash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
-	type request struct {
-		Offset int   `json:"offset"`
-		Order  int   `json:"order"`
-		Filter []int `json:"filter"`
-	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
-
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			var addressRequest request
-			addressRequest.Offset = -1
-			addressRequest.Order = -1
-
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-
-			if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
-				handleError(w, cliutil.NewStackError(decodeErr))
-				return
-			}
-
-			if !db.IsValidSortOrder(addressRequest.Order) {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidSortOrder))
-				return
-			}
-
-			if !db.IsValidFilter(addressRequest.Filter) {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidFilter))
-				return
-			}
-
-			if addressRequest.Offset < 0 {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidOffset))
-				return
-			}
-
-			data, ok, addrErr := GetAddressWithOptions(s.db, queryString,
-				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
-			if addrErr != nil {
-				handleError(w, addrErr)
-				return
-			}
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
+		reply := getAddressOutputRangeResponse(r, s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -210,57 +94,16 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Summary	Get transactions of the given block
 //	@Tags		data
 //	@Produce	json
-//	@Param		block_hash	path		string								true	"block hash"
-//	@Param		offset		body		server.handlerBlockRange.request	true	"transaction offset"
-//	@Success	200			{object}	server.searchResponse
+//	@Param		blockHash	path		string									true	"block hash"
+//	@Param		offset		body		server.getBlockRangeResponse.request	true	"transaction offset"
+//	@Success	200			{object}	server.searchReply
 //	@Failure	500			{string}	string	"encoding error"
-//	@Router		/blkRange/{block_hash} [post]
-//
-// API pattern: "/api/v1/blkRange/<block_hash>"
+//	@Router		/blkRange/{blockHash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
-	type request struct {
-		Offset int `json:"offset"`
-	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
-
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			var blockRequest request
-			blockRequest.Offset = -1
-
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-
-			if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
-				handleError(w, cliutil.NewStackError(decodeErr))
-				return
-			}
-
-			if blockRequest.Offset < 0 {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidOffset))
-				return
-			}
-
-			data, ok, blockErr := GetBlockWithOptions(s.db, queryString, blockRequest.Offset)
-			if blockErr != nil {
-				handleError(w, blockErr)
-				return
-			}
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
+		reply := getBlockRangeResponse(r, s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -274,8 +117,6 @@ func (s *Server) handlerBlockRange() http.Handler {
 //	@Success	200	{object}	server.metaStatus
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/meta/ [get]
-//
-// API pattern: "/api/v1/meta/"
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -321,8 +162,6 @@ func (s *Server) handlerMeta() http.Handler {
 //	@Success	200				{file}		file	"comma separated values"
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/heuristicsSummary/{heuristic_UID} [get]
-//
-// API pattern: "/api/v1/heuristicsSummary/<heuristic_UID>"
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -354,8 +193,6 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 //	@Success	200			{file}		file	"comma separated values"
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/clusterSummary/{addressHash} [get]
-//
-// API pattern: "/api/v1/clusterSummary/<addressHash>"
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -364,17 +201,15 @@ func (s *Server) handlerClusterSummary() http.Handler {
 	})
 }
 
-//	@Summary	Add Cluster
-//	@Tags		cluster
-//	@Produce	json
-//	@Param		separator	formData	string	true	"separator of the CSV file"
-//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
-//	@Param		file		formData	file	true	"the CSV file"
-//	@Success	200			{object}	server.addClusterReply
-//	@Failure	500			{string}	string	"encoding error"
-//	@Router		/addCluster/ [post]
-//
-// API pattern: "/api/v1/addCluster/"
+// @Summary	Add Cluster
+// @Tags		cluster
+// @Produce	json
+// @Param		separator	formData	string	true	"separator of the CSV file"
+// @Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+// @Param		file		formData	file	true	"the CSV file"
+// @Success	200			{object}	server.addClusterReply
+// @Failure	500			{string}	string	"encoding error"
+// @Router		/addCluster/ [post]
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -394,8 +229,6 @@ func (s *Server) handlerAddCluster() http.Handler {
 //	@Success	200			{object}	server.deleteClusterReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/deleteCluster/{cluster_uid} [get]
-//
-// API pattern: "/api/v1/deleteCluster/<cluster_uid>"
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -423,8 +256,6 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Success	200	{object}	server.deleteClusterReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/deleteAllClusters/ [get]
-//
-// API pattern: "/api/v1/deleteAllClusters/"
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -450,8 +281,6 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 //	@Success	200	{object}	server.clusterOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/clusterOverview/ [get]
-//
-// API pattern: "/api/v1/clusterOverview/"
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -477,8 +306,6 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Success	200	{object}	server.attributionOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/attributionOverview/ [get]
-//
-// API pattern: "/api/v1/attributionOverview/"
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -507,8 +334,6 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 //	@Success	200			{object}	server.addAttributionReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/addPrivateAttribution/ [post]
-//
-// API pattern: "/api/v1/addPrivateAttribution/"
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -530,8 +355,6 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Success	200			{string}	string	"comma separated values"
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/addPublicAttribution/ [post]
-//
-// API pattern: "/api/v1/addPublicAttribution/"
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -551,8 +374,6 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 //	@Success	200				{object}	server.deleteAttributionReply
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/deletePrivateAttribution/{attribution_uid} [get]
-//
-// API pattern: "/api/v1/deletePrivateAttribution/<attribution_uid>"
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -581,8 +402,6 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 //	@Success	200				{object}	server.deleteAttributionReply
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/deletePublicAttribution/{attribution_uid} [get]
-//
-// API pattern: "/api/v1/deletePublicAttribution/<attribution_uid>"
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -610,8 +429,6 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Success	200	{object}	server.deleteAttributionReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/deleteAllPrivateAttributions/ [get]
-//
-// API pattern: "/api/v1/deleteAllPrivateAttributions/"
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -639,8 +456,6 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Success	200			{object}	server.attributionOverviewReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/searchAttributions/ [post]
-//
-// API pattern: "/api/v1/searchAttributions/"
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -667,8 +482,6 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 //	@Success	200		{object}	server.addAddressExclusionsReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/addAddressExclusions/ [post]
-//
-// API pattern: "/api/v1/addAddressExclusions/"
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -688,8 +501,6 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Success	200			{object}	server.deleteAddressExclusionReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/deleteAddressExclusion/{addressHash} [get]
-//
-// API pattern: "/api/v1/deleteAddressExclusion/<addressHash>"
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -717,8 +528,6 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //	@Success	200	{object}	server.deleteAddressExclusionReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/deleteAllAddressExclusions/ [get]
-//
-// API pattern: "/api/v1/deleteAllAddressExclusions/"
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -744,8 +553,6 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Success	200	{object}	server.addressExclusionOverviewReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/addressExclusionOverview/ [get]
-//
-// API pattern: "/api/v1/addressExclusionOverview/"
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -772,8 +579,6 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 //	@Success	200		{object}	server.heuristicReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/heuristics/{hash} [get]
-//
-// API pattern: "/api/v1/heuristics/<hash>"
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -807,8 +612,6 @@ func (s *Server) handlerHeuristics() http.Handler {
 //	@Success	200		{object}	server.hmiLookupReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/hmiLookup/{hash} [get]
-//
-// API pattern: "/api/v1/hmiLookup/<hash>"
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -835,8 +638,6 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Success	200		{object}	server.heuristicReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/heuristicStatus/{hash} [get]
-//
-// API pattern: "/api/v1/heuristicStatus/<hash>"
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -872,8 +673,6 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 //	@Success	200			{object}	dbtxh.FrontendHeuristicShort
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/heuristicDetails/ [post]
-//
-// API pattern: "/api/v1/heuristicDetails/"
 func (s *Server) handlerHeuristicsDetails() http.Handler {
 	type request struct {
 		HeuristicUID string `json:"uid,omitempty"`
@@ -925,8 +724,6 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Success		200			{object}	server.heuristicExecutionReply
 //	@Failure		500			{string}	string	"encoding error"
 //	@Router			/executeHeuristics/{hash} [post]
-//
-// API pattern: "/api/v1/executeHeuristics/<hash>"
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -959,8 +756,6 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Success	200	{object}	server.heuristicListReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/heuristicList/ [get]
-//
-// API pattern: "/api/v1/heuristicList/"
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -993,8 +788,6 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Success		200	{object}	server.heuristicDescriptorReply
 //	@Failure		500	{string}	string	"encoding error"
 //	@Router			/heuristicDescriptors/ [get]
-//
-// API pattern: "/api/v1/heuristicDescriptors/"
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1022,8 +815,6 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 //	@Success		200			{object}	server.deleteHeuristicReply
 //	@Failure		500			{string}	string	"encoding error"
 //	@Router			/deleteHeuristic/ [post]
-//
-// API pattern: "/api/v1/deleteHeuristic/"
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1051,7 +842,6 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/createIdentity/ [post]
 //
-// API pattern: "/api/v1/createIdentity/"
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1073,7 +863,6 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/adminDeleteIdentity/{identityUID} [get]
 //
-// API pattern: "/api/v1/adminDeleteIdentity/<identityUID>"
 // handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1094,7 +883,6 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/deleteIdentity/ [get]
 //
-// API pattern: "/api/v1/deleteIdentity/"
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1124,7 +912,6 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/modifyIdentity/ [post]
 //
-// API pattern: "/api/v1/modifyIdentity/"
 // handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1144,8 +931,6 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 //	@Success	200	{object}	server.identitiesReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/getIdentities/ [get]
-//
-// API pattern: "/api/v1/getIdentities/"
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1166,8 +951,6 @@ func (s *Server) handlerGetIdentities() http.Handler {
 //	@Success	200				{object}	server.shortestTransactionPathReply
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/shortestTransactionPath/ [post]
-//
-// API pattern: "/api/v1/shortestTransactionPath/"
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1189,8 +972,6 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Success	200		{object}	server.connectionLookupReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/connectionLookup/{txhash} [get]
-//
-// API pattern: "/api/v1/connectionLookup/<txhash>?forward=true&t=30"
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1210,8 +991,6 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Success	200			{object}	server.clusterLookupReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/clusterLookup/{addressHash} [get]
-//
-// API pattern: "/api/v1/clusterLookup/<addressHash>"
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1240,8 +1019,6 @@ func (s *Server) handlerClusterLookup() http.Handler {
 //	@Success	200			{object}	server.mixingActivityReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/mixingActivity/ [post]
-//
-// API pattern: "/api/v1/mixingActivity/"
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1261,8 +1038,6 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Success	200				{object}	server.addressExclusionStatusReply
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/addressExclusionStatus/{address_hash} [get]
-//
-// API pattern: "/api/v1/addressExclusionStatus/<address_hash>"
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1282,8 +1057,6 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Success	200		{object}	server.spendingFingerprintReply
 //	@Failure	500		{string}	string	"encoding error"
 //	@Router		/spendingFingerprint/{hash} [get]
-//
-// API pattern: "/api/v1/spendingFingerprint/<hash>"
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)

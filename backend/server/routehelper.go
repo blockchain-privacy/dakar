@@ -77,9 +77,10 @@ func isLikelyAddress(query string) bool {
 	return query[0:1] == "X" || query[0:1] == "7"
 }
 
-type searchResponse struct {
+type searchReply struct {
 	Type    queryResultType `json:"type,omitempty"`
 	Payload interface{}     `json:"payload,omitempty"`
+	Msg     string          `json:"msg,omitempty"`
 }
 
 type prunedRPCInfo struct {
@@ -174,13 +175,13 @@ func handleError(w http.ResponseWriter, err error) {
 }
 
 // buildKey build a key from the given arguments
-func buildKey(route string, query string, body []byte) (key string) {
-	key = route + query
+func buildKey(route string, query string, body []byte) string {
+	key := route + query
 	if len(body) > 0 {
 		key += string(body)
 	}
 
-	return
+	return key
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
