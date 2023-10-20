@@ -303,7 +303,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.getAddressOutputRangeResponse.request"
+                            "$ref": "#/definitions/server.getAddressOutputRangeReply.request"
                         }
                     }
                 ],
@@ -439,7 +439,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.getBlockRangeResponse.request"
+                            "$ref": "#/definitions/server.getBlockRangeReply.request"
                         }
                     }
                 ],
@@ -1228,7 +1228,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.metaStatus"
+                            "$ref": "#/definitions/server.metaReply"
                         }
                     },
                     "500": {
@@ -2547,7 +2547,7 @@
                 }
             }
         },
-        "server.getAddressOutputRangeResponse.request": {
+        "server.getAddressOutputRangeReply.request": {
             "type": "object",
             "properties": {
                 "filter": {
@@ -2572,7 +2572,7 @@
                 }
             }
         },
-        "server.getBlockRangeResponse.request": {
+        "server.getBlockRangeReply.request": {
             "type": "object",
             "properties": {
                 "offset": {
@@ -2777,7 +2777,7 @@
                 }
             }
         },
-        "server.metaStatus": {
+        "server.metaReply": {
             "type": "object",
             "properties": {
                 "rpcinfo": {
@@ -2785,6 +2785,9 @@
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },

@@ -733,7 +733,7 @@ definitions:
       txhash:
         type: string
     type: object
-  server.getAddressOutputRangeResponse.request:
+  server.getAddressOutputRangeReply.request:
     properties:
       filter:
         items:
@@ -749,7 +749,7 @@ definitions:
       q:
         type: string
     type: object
-  server.getBlockRangeResponse.request:
+  server.getBlockRangeReply.request:
     properties:
       offset:
         type: integer
@@ -884,12 +884,14 @@ definitions:
       success:
         type: boolean
     type: object
-  server.metaStatus:
+  server.metaReply:
     properties:
       rpcinfo:
         $ref: '#/definitions/server.prunedRPCInfo'
       status:
         $ref: '#/definitions/status.FrontendStatus'
+      success:
+        type: boolean
     type: object
   server.mixingActivityReply:
     properties:
@@ -1202,7 +1204,7 @@ paths:
         name: options
         required: true
         schema:
-          $ref: '#/definitions/server.getAddressOutputRangeResponse.request'
+          $ref: '#/definitions/server.getAddressOutputRangeReply.request'
       produces:
       - application/json
       responses:
@@ -1290,7 +1292,7 @@ paths:
         name: offset
         required: true
         schema:
-          $ref: '#/definitions/server.getBlockRangeResponse.request'
+          $ref: '#/definitions/server.getBlockRangeReply.request'
       produces:
       - application/json
       responses:
@@ -1806,7 +1808,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.metaStatus'
+            $ref: '#/definitions/server.metaReply'
         "500":
           description: encoding error
           schema:

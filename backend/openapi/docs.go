@@ -309,7 +309,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.getAddressOutputRangeResponse.request"
+                            "$ref": "#/definitions/server.getAddressOutputRangeReply.request"
                         }
                     }
                 ],
@@ -445,7 +445,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.getBlockRangeResponse.request"
+                            "$ref": "#/definitions/server.getBlockRangeReply.request"
                         }
                     }
                 ],
@@ -1234,7 +1234,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.metaStatus"
+                            "$ref": "#/definitions/server.metaReply"
                         }
                     },
                     "500": {
@@ -2553,7 +2553,7 @@ const docTemplate = `{
                 }
             }
         },
-        "server.getAddressOutputRangeResponse.request": {
+        "server.getAddressOutputRangeReply.request": {
             "type": "object",
             "properties": {
                 "filter": {
@@ -2578,7 +2578,7 @@ const docTemplate = `{
                 }
             }
         },
-        "server.getBlockRangeResponse.request": {
+        "server.getBlockRangeReply.request": {
             "type": "object",
             "properties": {
                 "offset": {
@@ -2783,7 +2783,7 @@ const docTemplate = `{
                 }
             }
         },
-        "server.metaStatus": {
+        "server.metaReply": {
             "type": "object",
             "properties": {
                 "rpcinfo": {
@@ -2791,6 +2791,9 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
+                },
+                "success": {
+                    "type": "boolean"
                 }
             }
         },
