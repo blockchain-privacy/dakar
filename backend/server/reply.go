@@ -11,9 +11,11 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
+	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
 	"io"
+	"math"
 	"path"
 	"strings"
 	"time"
@@ -34,8 +36,8 @@ const msgCouldNotDecodeUser = "could not decode user data"
 const msgInvalidRequest = "invalid request"
 const msgUserNotFound = "User not found"
 
-// getSearchResponse searches for the given query in the database
-func getSearchResponse(dgraph external.Database, query string) searchReply {
+// getSearchReply searches for the given query in the database
+func getSearchReply(dgraph external.Database, query string) searchReply {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
@@ -70,8 +72,8 @@ func getSearchResponse(dgraph external.Database, query string) searchReply {
 	return reply
 }
 
-// getDataDetailsResponse searches for the given query in the database via the provided function fn
-func getDataDetailsResponse(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) searchReply {
+// getDataDetailsReply searches for the given query in the database via the provided function fn
+func getDataDetailsReply(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) searchReply {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
@@ -91,8 +93,8 @@ func getDataDetailsResponse(dgraph external.Database, fn func(external.Database,
 	return reply
 }
 
-// getAddressOutputRangeResponse searches for the given address hash in the database with the options stored in the request
-func getAddressOutputRangeResponse(r *http.Request, dgraph external.Database, addressHash string) searchReply {
+// getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request
+func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addressHash string) searchReply {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
@@ -148,8 +150,8 @@ func getAddressOutputRangeResponse(r *http.Request, dgraph external.Database, ad
 	return reply
 }
 
-// getBlockRangeResponse searches for the given block hash in the database with the options stored in the request
-func getBlockRangeResponse(r *http.Request, dgraph external.Database, blockHash string) searchReply {
+// getBlockRangeReply searches for the given block hash in the database with the options stored in the request
+func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash string) searchReply {
 	reply := searchReply{
 		Type:    "response_empty",
 		Payload: nil,
@@ -190,6 +192,37 @@ func getBlockRangeResponse(r *http.Request, dgraph external.Database, blockHash 
 	}
 
 	return reply
+}
+
+func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) metaReply {
+	var reply metaReply
+	// async request rpc info
+	futureBlockchainInfo := rpcClient.GetBlockChainInfoAsync()
+
+	// get data from db
+	verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
+	if err != nil {
+		return reply
+	}
+
+	// receive async rpc info
+	rpcInfo, err := futureBlockchainInfo.Receive()
+	if err != nil {
+		return reply
+	}
+
+	// set response struct
+	return metaReply{
+		Status: verboseStatus,
+		RPCInfo: prunedRPCInfo{
+			Blocks:               rpcInfo.Blocks,
+			Difficulty:           rpcInfo.Difficulty,
+			VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
+			Pruned:               rpcInfo.Pruned,
+			SizeOnDisk:           rpcInfo.SizeOnDisk,
+		},
+		Success: true,
+	}
 }
 
 func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {

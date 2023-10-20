@@ -8,10 +8,8 @@ import (
 	// for openapi
 	_ "backend/db/analytics/clustering"
 	dbtxh "backend/db/analytics/heuristics"
-	dbstat "backend/db/status"
 	"backend/external"
 	"encoding/json"
-	"math"
 	"net/http"
 	"path"
 )
@@ -42,7 +40,7 @@ func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getSearchResponse(s.db, path.Base(r.URL.Path))
+		reply := getSearchReply(s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -63,7 +61,7 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getDataDetailsResponse(s.db, fn, path.Base(r.URL.Path))
+		reply := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -74,8 +72,8 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Summary	Get outputs of the given address
 //	@Tags		data
 //	@Produce	json
-//	@Param		addressHash	path		string											true	"address hash"
-//	@Param		options		body		server.getAddressOutputRangeResponse.request	true	"query options"
+//	@Param		addressHash	path		string										true	"address hash"
+//	@Param		options		body		server.getAddressOutputRangeReply.request	true	"query options"
 //	@Success	200			{object}	server.searchReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/addressOutputRange/{addressHash} [post]
@@ -83,7 +81,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getAddressOutputRangeResponse(r, s.db, path.Base(r.URL.Path))
+		reply := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -94,8 +92,8 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Summary	Get transactions of the given block
 //	@Tags		data
 //	@Produce	json
-//	@Param		blockHash	path		string									true	"block hash"
-//	@Param		offset		body		server.getBlockRangeResponse.request	true	"transaction offset"
+//	@Param		blockHash	path		string								true	"block hash"
+//	@Param		offset		body		server.getBlockRangeReply.request	true	"transaction offset"
 //	@Success	200			{object}	server.searchReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/blkRange/{blockHash} [post]
@@ -103,7 +101,7 @@ func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		reply := getBlockRangeResponse(r, s.db, path.Base(r.URL.Path))
+		reply := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
 
 		writeReply(w, reply)
 	})
@@ -114,40 +112,13 @@ func (s *Server) handlerBlockRange() http.Handler {
 //	@Summary	Get the status of all backend modules
 //	@Tags		meta
 //	@Produce	json
-//	@Success	200	{object}	server.metaStatus
+//	@Success	200	{object}	server.metaReply
 //	@Failure	500	{string}	string	"encoding error"
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
-		// async request rpc info
-		futureBlockchainInfo := s.client.GetBlockChainInfoAsync()
-
-		// get data from db
-		verboseStatus, err := dbstat.GetFrontendStatus(s.db)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		// receive async rpc info
-		rpcInfo, err := futureBlockchainInfo.Receive()
-		if err != nil {
-			handleError(w, cliutil.NewStackError(err))
-			return
-		}
-
-		// set response struct
-		reply := metaStatus{
-			Status: verboseStatus,
-			RPCInfo: prunedRPCInfo{
-				Blocks:               rpcInfo.Blocks,
-				Difficulty:           rpcInfo.Difficulty,
-				VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
-				Pruned:               rpcInfo.Pruned,
-				SizeOnDisk:           rpcInfo.SizeOnDisk,
-			},
-		}
+		reply := getMetaReply(s.db, s.client)
 
 		writeReply(w, reply)
 	})

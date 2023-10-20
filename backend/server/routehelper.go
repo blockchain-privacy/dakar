@@ -91,9 +91,10 @@ type prunedRPCInfo struct {
 	Blocks               int32   `json:"blocks"`
 }
 
-type metaStatus struct {
+type metaReply struct {
 	Status  dbstat.FrontendStatus `json:"status"`
 	RPCInfo prunedRPCInfo         `json:"rpcinfo"`
+	Success bool                  `json:"success"`
 }
 
 type heuristicReply struct {
