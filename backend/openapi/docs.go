@@ -215,7 +215,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -286,7 +286,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/addressOutputRange/{address_hash}": {
+        "/addressOutputRange/{addressHash}": {
             "post": {
                 "produces": [
                     "application/json"
@@ -299,17 +299,17 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "address hash",
-                        "name": "address_hash",
+                        "name": "addressHash",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "output offset",
-                        "name": "offset",
+                        "description": "query options",
+                        "name": "options",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.handlerAddressOutputRange.request"
+                            "$ref": "#/definitions/server.getAddressOutputRangeResponse.request"
                         }
                     }
                 ],
@@ -317,7 +317,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -410,7 +410,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -422,7 +422,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/blkRange/{block_hash}": {
+        "/blkRange/{blockHash}": {
             "post": {
                 "produces": [
                     "application/json"
@@ -435,7 +435,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "block hash",
-                        "name": "block_hash",
+                        "name": "blockHash",
                         "in": "path",
                         "required": true
                     },
@@ -445,7 +445,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.handlerBlockRange.request"
+                            "$ref": "#/definitions/server.getBlockRangeResponse.request"
                         }
                     }
                 ],
@@ -453,7 +453,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -1347,7 +1347,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -1493,7 +1493,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.searchResponse"
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     },
                     "500": {
@@ -2553,11 +2553,36 @@ const docTemplate = `{
                 }
             }
         },
+        "server.getAddressOutputRangeResponse.request": {
+            "type": "object",
+            "properties": {
+                "filter": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "order": {
+                    "type": "integer"
+                }
+            }
+        },
         "server.getAttributionSearchReply.request": {
             "type": "object",
             "properties": {
                 "q": {
                     "type": "string"
+                }
+            }
+        },
+        "server.getBlockRangeResponse.request": {
+            "type": "object",
+            "properties": {
+                "offset": {
+                    "type": "integer"
                 }
             }
         },
@@ -2625,31 +2650,6 @@ const docTemplate = `{
                 },
                 "uid": {
                     "type": "string"
-                }
-            }
-        },
-        "server.handlerAddressOutputRange.request": {
-            "type": "object",
-            "properties": {
-                "filter": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "offset": {
-                    "type": "integer"
-                },
-                "order": {
-                    "type": "integer"
-                }
-            }
-        },
-        "server.handlerBlockRange.request": {
-            "type": "object",
-            "properties": {
-                "offset": {
-                    "type": "integer"
                 }
             }
         },
@@ -2846,9 +2846,12 @@ const docTemplate = `{
                 "typeEmpty"
             ]
         },
-        "server.searchResponse": {
+        "server.searchReply": {
             "type": "object",
             "properties": {
+                "msg": {
+                    "type": "string"
+                },
                 "payload": {},
                 "type": {
                     "$ref": "#/definitions/server.queryResultType"

@@ -733,10 +733,26 @@ definitions:
       txhash:
         type: string
     type: object
+  server.getAddressOutputRangeResponse.request:
+    properties:
+      filter:
+        items:
+          type: integer
+        type: array
+      offset:
+        type: integer
+      order:
+        type: integer
+    type: object
   server.getAttributionSearchReply.request:
     properties:
       q:
         type: string
+    type: object
+  server.getBlockRangeResponse.request:
+    properties:
+      offset:
+        type: integer
     type: object
   server.getCreateIdentityReply.request:
     properties:
@@ -783,22 +799,6 @@ definitions:
         type: string
       uid:
         type: string
-    type: object
-  server.handlerAddressOutputRange.request:
-    properties:
-      filter:
-        items:
-          type: integer
-        type: array
-      offset:
-        type: integer
-      order:
-        type: integer
-    type: object
-  server.handlerBlockRange.request:
-    properties:
-      offset:
-        type: integer
     type: object
   server.handlerHeuristicsDetails.request:
     properties:
@@ -927,8 +927,10 @@ definitions:
     - typeAddr
     - typeTx
     - typeEmpty
-  server.searchResponse:
+  server.searchReply:
     properties:
+      msg:
+        type: string
       payload: {}
       type:
         $ref: '#/definitions/server.queryResultType'
@@ -1141,7 +1143,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
@@ -1187,27 +1189,27 @@ paths:
       summary: Get the exclusion status of an address
       tags:
       - address exclusions
-  /addressOutputRange/{address_hash}:
+  /addressOutputRange/{addressHash}:
     post:
       parameters:
       - description: address hash
         in: path
-        name: address_hash
+        name: addressHash
         required: true
         type: string
-      - description: output offset
+      - description: query options
         in: body
-        name: offset
+        name: options
         required: true
         schema:
-          $ref: '#/definitions/server.handlerAddressOutputRange.request'
+          $ref: '#/definitions/server.getAddressOutputRangeResponse.request'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
@@ -1267,7 +1269,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
@@ -1275,12 +1277,12 @@ paths:
       summary: Query for address, transaction or block
       tags:
       - data
-  /blkRange/{block_hash}:
+  /blkRange/{blockHash}:
     post:
       parameters:
       - description: block hash
         in: path
-        name: block_hash
+        name: blockHash
         required: true
         type: string
       - description: transaction offset
@@ -1288,14 +1290,14 @@ paths:
         name: offset
         required: true
         schema:
-          $ref: '#/definitions/server.handlerBlockRange.request'
+          $ref: '#/definitions/server.getBlockRangeResponse.request'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
@@ -1878,7 +1880,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
@@ -1973,7 +1975,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.searchResponse'
+            $ref: '#/definitions/server.searchReply'
         "500":
           description: encoding error
           schema:
