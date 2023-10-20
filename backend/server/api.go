@@ -16,7 +16,6 @@ import (
 	"math"
 	"net/http"
 	"path"
-	"strconv"
 )
 
 var (
@@ -30,33 +29,6 @@ var (
 	errorInvalidFilter       = "error invalid filter"
 	errorInvalidOffset       = "error invalid offset"
 )
-
-type searchResponse struct {
-	Type    queryResultType `json:"type,omitempty"`
-	Payload interface{}     `json:"payload,omitempty"`
-}
-
-func setDefaultHeader(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-	w.Header().Set("Content-Type", "application/json")
-}
-
-// setCacheHeader sets the client side caching to a third of the server side cache
-func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
-	if duration == time.Duration(0) {
-		duration = time.Hour * 24
-	}
-	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
-}
-
-// writeReply encodes the given reply into JSON
-func writeReply(w http.ResponseWriter, reply any) {
-	if err := json.NewEncoder(w).Encode(reply); err != nil {
-		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(err)
-	}
-}
 
 // Search godoc
 //
