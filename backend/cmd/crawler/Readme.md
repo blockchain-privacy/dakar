@@ -31,7 +31,7 @@ Start the crawler and confirm the reset dialog.
 
 | Variable        | Default Value | Description                                                                                                                           |
 |-----------------|:-------------:|---------------------------------------------------------------------------------------------------------------------------------------|
-| DEV_GRAPH_LIMIT | unset         | Limits the number of privacy transactions loaded for the in-memory graph. Useful for fast startup of the crawler. Must be an integer. |
+| DEV_GRAPH_LIMIT |     unset     | Limits the number of privacy transactions loaded for the in-memory graph. Useful for fast startup of the crawler. Must be an integer. |
 
 
 ## Metrics
@@ -42,11 +42,11 @@ The crawler exposes prometheus metrics via `\metrics`. This endpoint is secured 
 
 |            Flag | Default Value | Description                                        |
 |----------------:|:-------------:|:---------------------------------------------------|
-| ignoresafeguard | false         | Ignore the crawling safe guard (default: false)    |
-|           reset | false         | Remove all data from the database (default: false) |
-|         version | false         | Show version information                           |
-|    createConfig | false         | creates a default config file (default: false)     |
-|          config | config.yml    | config file path (default: config.yml)             |
+| ignoresafeguard |     false     | Ignore the crawling safe guard (default: false)    |
+|           reset |     false     | Remove all data from the database (default: false) |
+|         version |     false     | Show version information                           |
+|    createConfig |     false     | creates a default config file (default: false)     |
+|          config |  config.yml   | config file path (default: config.yml)             |
 
 The crawler registers its activity in the underlying Dgraph database to prevent multiple
 crawlers accidentally using the same database at the same time. In case of an unexpected shutdown of the crawler, the safeguard might still be set in the database.

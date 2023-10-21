@@ -56,7 +56,7 @@ func main() {
 
 ## Available CLI flags
 
-| Flag | Default Value | Description |
-|----------|:-------------:|------:|
-| createConfig | false | creates a default config file (default: false) |
-| config | < empty string > | config file path (default: < the file name passed to GetConfig >) |
+| Flag         |  Default Value   |                                                       Description |
+|--------------|:----------------:|------------------------------------------------------------------:|
+| createConfig |      false       |                    creates a default config file (default: false) |
+| config       | < empty string > | config file path (default: < the file name passed to GetConfig >) |
