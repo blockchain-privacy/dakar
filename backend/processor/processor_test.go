@@ -90,7 +90,7 @@ func TestIncrementProcessingState(t *testing.T) {
 	var p crawlerState
 
 	err := p.increment(firstHash)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotEmpty(t, p.String())
 
 	if p.id != 1 || p.hash != firstHash {
@@ -98,7 +98,7 @@ func TestIncrementProcessingState(t *testing.T) {
 	}
 
 	err = p.increment(secondHash)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	if p.id != 2 || p.hash != secondHash {
 		t.Fatal("incrementation not successful")
 	}
@@ -106,10 +106,10 @@ func TestIncrementProcessingState(t *testing.T) {
 	p2 := p
 
 	err = p2.increment(toLongHash)
-	require.NotNil(t, err)
+	require.Error(t, err)
 
 	err = p.increment(invalidHash)
-	require.NotNil(t, err)
+	require.Error(t, err)
 }
 
 func TestAddOutputToMapping(t *testing.T) {

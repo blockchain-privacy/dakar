@@ -126,7 +126,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 		"0cfd028caf97751603255b1467085c3ccc5d476d79810ba9608d63587c7986f8",
 	})
 	require.NoError(t, err)
-	require.Equal(t, 2, len(outputs))
+	require.Len(t, outputs, 2)
 
 	var outputCount int
 	for _, mapping := range outputs {
@@ -147,7 +147,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 
 	transactions, err = GetTransactionByBlock(dbHandle, 60001)
 	require.NoError(t, err)
-	require.Equal(t, 4, len(transactions))
+	require.Len(t, transactions, 4)
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
@@ -168,7 +168,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60001)
 	require.NoError(t, err)
-	require.Equal(t, 4, len(transactions))
+	require.Len(t, transactions, 4)
 
 	type testCase struct {
 		txhash     string
@@ -229,7 +229,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
 	transaction, err := GetFrontendTransaction(dbHandle, txHash1)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(transaction))
+	require.Len(t, transaction, 1)
 	require.Equal(t, txHash1, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(0), transaction[0].Fee)
@@ -239,7 +239,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 	const txHash2 = "818dae776566815b8d5307f8597fc8c1db737e933a4605e1841a83f078731638" //nolint:gosec
 	transaction, err = GetFrontendTransaction(dbHandle, txHash2)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(transaction))
+	require.Len(t, transaction, 1)
 	require.Equal(t, txHash2, transaction[0].Hash)
 	require.Equal(t, blockHash, transaction[0].BlockHash)
 	require.Equal(t, int64(100000), transaction[0].Fee)
@@ -252,7 +252,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)
 	require.NoError(t, err)
-	require.Equal(t, 7, len(transactions))
+	require.Len(t, transactions, 7)
 
 	var uids [7]string
 	for i, tx := range transactions {
@@ -332,16 +332,16 @@ func TestGetOutputs(t *testing.T) {
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	transactions, err := GetOutputs(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
 	require.NoError(t, err)
-	require.Equal(t, 56, len(transactions))
+	require.Len(t, transactions, 56)
 
 	transactions, err = GetOutputs(dbHandle, 60007, 60007)
 	require.NoError(t, err)
-	require.Equal(t, 7, len(transactions))
+	require.Len(t, transactions, 7)
 
 	// should return an empty transaction slice, because this block range is not included in the database
 	transactions, err = GetOutputs(dbHandle, 1, 10)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(transactions))
+	require.Empty(t, transactions)
 }
 
 func TestGetTransaction(t *testing.T) {
@@ -382,7 +382,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)
 	require.NoError(t, err)
-	require.Equal(t, 7, len(transactions))
+	require.Len(t, transactions, 7)
 
 	var uids [7]string
 	for i, tx := range transactions {

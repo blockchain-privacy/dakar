@@ -530,7 +530,7 @@ func TestWrapper_CurrentBlock(t *testing.T) {
 func TestWrapper_PostExecution(t *testing.T) {
 	w := NewWrapper(context.Background(), nil)
 	unregisterCollectors(w)
-	require.Nil(t, w.PostExecution())
+	require.NoError(t, w.PostExecution())
 }
 
 func TestWrapper_IncrementState(t *testing.T) {

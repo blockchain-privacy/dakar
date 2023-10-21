@@ -144,7 +144,7 @@ func TestGetFrontendStatus(t *testing.T) {
 	status, err := GetFrontendStatus(dbHandle)
 	require.NoError(t, err)
 	require.True(t, status.IsCrawling)
-	require.Equal(t, status.LastBlockID, uint64(50))
+	require.Equal(t, uint64(50), status.LastBlockID)
 }
 
 func TestGetMeta(t *testing.T) {
@@ -164,7 +164,7 @@ func TestGetMeta(t *testing.T) {
 	metaResult, err := GetMeta(dbHandle)
 	require.NoError(t, err)
 	require.NotNil(t, metaResult.SchemaVersion)
-	require.Equal(t, *metaResult.SchemaVersion, db.SchemaVersion)
-	require.Equal(t, metaResult.BlockchainMode, "Dash")
+	require.Equal(t, db.SchemaVersion, *metaResult.SchemaVersion)
+	require.Equal(t, "Dash", metaResult.BlockchainMode)
 	require.NotEmpty(t, metaResult.CreationTime)
 }

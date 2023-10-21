@@ -16,9 +16,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestErrNodeNotFound(t *testing.T) {
-	require.NotNil(t, ErrNodeNotFound(1))
-	require.NotNil(t, ErrNodeNotFound(-1))
-	require.NotNil(t, ErrNodeNotFound(0))
+	require.Error(t, ErrNodeNotFound(1))
+	require.Error(t, ErrNodeNotFound(-1))
+	require.Error(t, ErrNodeNotFound(0))
 }
 
 func TestToHex(t *testing.T) {

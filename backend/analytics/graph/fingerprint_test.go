@@ -192,7 +192,7 @@ func Test_scoreMeans(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got) //nolint:testifylint
 		}
 	}
 }

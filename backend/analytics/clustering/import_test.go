@@ -143,7 +143,7 @@ func Test_validateAddresses(t *testing.T) {
 			}
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tt.wantMapLen, len(addresses))
+			require.Len(t, addresses, tt.wantMapLen)
 		}
 	}
 }
