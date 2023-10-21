@@ -7,8 +7,7 @@ SWAGGER_DIR := "./cmd/apidoc"
 all: build
 
 lint: # Lint the files
-	go install honnef.co/go/tools/cmd/staticcheck@latest
-	${CI_PROJECT_DIR}/vendor/go/bin/staticcheck -fail $(shell go list ./... | grep -v /vendor/)
+	golangci-lint run
 
 test: ## Run unittests, '-p 1' makes tests not run in parallel;
 	go test -p 1 -cover -race ./...
