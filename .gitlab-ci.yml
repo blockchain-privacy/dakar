@@ -52,12 +52,9 @@ test:
     policy: pull
 
 lint:
+  image: golangci/golangci-lint:latest
   stage: test
-  needs: ["dependencies"]
   script: make lint
-  cache:
-    <<: *modcache
-    policy: pull
 
 vet:
   stage: test
