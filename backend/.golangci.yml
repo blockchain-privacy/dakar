@@ -23,3 +23,8 @@ linters:
     - whitespace
     - usestdlibvars
     - testifylint
+    - perfsprint
+    - protogetter
+    - sloglint
+    - mirror
+    - gocheckcompilerdirectives
