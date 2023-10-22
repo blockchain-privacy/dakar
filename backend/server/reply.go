@@ -235,7 +235,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	// get identity list
 	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -245,7 +245,7 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -317,7 +317,7 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 
 	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeRequest
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 
@@ -492,7 +492,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		n, err := strconv.Atoi(fLockBackTime)
 		if err != nil {
 			reply.Msg = "error parsing input"
-			warn(err)
+			warn(cliutil.NewStackError(err))
 			return
 		}
 
@@ -511,7 +511,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 		n, err := strconv.Atoi(direction)
 		if err != nil {
 			reply.Msg = "error parsing input"
-			warn(err)
+			warn(cliutil.NewStackError(err))
 			return
 		}
 
@@ -649,10 +649,23 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, heuristicUID string) {
+func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	heuristicUID := path.Base(r.URL.Path)
+	if heuristicUID == "" {
+		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
+		return
+	}
+
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		warn(err)
+		return
+	}
+
 	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
-		handleError(w, err)
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 		warn(err)
 		return
 	}
@@ -674,7 +687,8 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(err)
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
 	var clusterCount int
@@ -695,8 +709,9 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 				transaction.Timestamp, strconv.Itoa(transaction.DestinationCount)}
 
 			if err = csvWriter.Write(row); err != nil {
-				handleError(w, err)
-				warn(err)
+				// communication with client is not possible, can only log error
+				// this is because as soon as we write the CSV header, the HTTP response status is also sent
+				warn(cliutil.NewStackError(err))
 				return
 			}
 		}
@@ -708,18 +723,23 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 // writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		http.Error(w, errorClusterSummary, http.StatusNotFound)
+	addressHash := path.Base(r.URL.Path)
+	if addressHash == "" {
+		http.Error(w, "no address hash provided", http.StatusNotFound)
 		return
 	}
 
-	addressHash := path.Base(r.URL.Path)
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		warn(err)
+		return
+	}
 
 	clusters, msg, err := getFrontendCluster(dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
-		handleError(w, err)
-		info(msg)
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		warn(err, "reason", msg)
 		return
 	}
 
@@ -743,8 +763,9 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		"address hash", "output count", "unspent output count"}
 
 	if err = csvWriter.Write(header); err != nil {
-		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(err)
+		http.Error(w, "error writing to file", http.StatusInternalServerError)
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
 	for _, c := range clusters {
@@ -759,7 +780,10 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
 
 			if err = csvWriter.Write(row); err != nil {
-				handleError(w, err)
+				// communication with client is not possible, can only log error
+				// this is because as soon as we write the CSV header, the HTTP response status is also sent
+				warn(cliutil.NewStackError(err))
+				return
 			}
 		}
 		csvWriter.Flush()
@@ -776,7 +800,7 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 	}
 	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	const maxAddressCount = 2000
@@ -1138,7 +1162,7 @@ func getAttributionSearchReply(dgraph external.Database, userUID string,
 	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
 		reply.Success = false
 		reply.Msg = "error decoding request"
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 
@@ -1366,7 +1390,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1407,7 +1431,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
-		warn(err)
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1470,7 +1494,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
-		warn(err, "modification_request", modRequest)
+		warn(cliutil.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1519,7 +1543,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
 		if err != nil {
 			reply.Msg = "invalid state"
-			warn(err, "modification_request", modRequest)
+			warn(cliutil.NewStackError(err), "modification_request", modRequest)
 			return
 		}
 		initialIdentity.SetState(*newState)
@@ -1534,7 +1558,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	}).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = msgErrModifyingUser
-		warn(err, "modification_request", modRequest)
+		warn(cliutil.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {

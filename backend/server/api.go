@@ -137,20 +137,7 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		heuristicUID := path.Base(r.URL.Path)
-
-		if heuristicUID == "." || heuristicUID == "" {
-			handleError(w, cliutil.NewStackErrorStr("no heuristic UID provided"))
-			return
-		}
-
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		writeHeuristicSummary(w, s.db, tUser, heuristicUID)
+		writeHeuristicSummary(w, r, s.db)
 	})
 }
 
@@ -663,7 +650,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			warn(err)
+			warn(cliutil.NewStackError(err))
 			return
 		}
 
@@ -1040,7 +1027,6 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 		}
 
 		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
-
 		writeReply(w, reply)
 	})
 }

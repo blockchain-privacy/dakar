@@ -63,7 +63,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 func writeReply(w http.ResponseWriter, reply any) {
 	if err := json.NewEncoder(w).Encode(reply); err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(err)
+		warn(cliutil.NewStackError(err))
 	}
 }
 
@@ -165,16 +165,6 @@ type SearchResult struct {
 	result     interface{}
 }
 
-// handleError conditionally logs and writes the error to the http response
-func handleError(w http.ResponseWriter, err error) {
-	if err == nil || w == nil {
-		return
-	}
-
-	http.Error(w, "an error occurred", http.StatusInternalServerError)
-	warn(err)
-}
-
 // buildKey build a key from the given arguments
 func buildKey(route string, query string, body []byte) string {
 	key := route + query
@@ -248,17 +238,17 @@ type tokenUser struct {
 	Roles    []dbus.Role `json:"roles,omitempty"`
 }
 
-// extractTokenUser extracts the tokenUser from the context.
-// Returns an error if no user data could be extracted
+// extractTokenUser extracts a tokenUser from the context.
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
 		err = cliutil.NewStackErrorStr("could not extract token user from context")
 		return
 	}
-	tUser := userInfo.(tokenUser)
-	if len(tUser.ID) == 0 {
-		err = cliutil.NewStackErrorStr("invalid user id extracted from context")
+
+	tUser, ok := userInfo.(tokenUser)
+	if !ok || len(tUser.ID) == 0 {
+		err = cliutil.NewStackErrorStr("invalid user extracted from context")
 		return
 	}
 
