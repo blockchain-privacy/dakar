@@ -134,18 +134,6 @@ type queryHeuristicTransactionInputs struct {
 	Outputs []HeuristicOutput `json:"tx_inputs,omitempty"`
 }
 
-// FrontendHeuristicComplete holds all heuristic tree data which is exposed to the frontend
-type FrontendHeuristicComplete struct {
-	UID        string              `json:"uid,omitempty"`
-	Timestamp  string              `json:"ts,omitempty"`
-	Heuristics []FrontendHeuristic `json:"~Heuristic.transaction,omitempty"`
-}
-
-// String returns the string representation of a FrontendHeuristicComplete object
-func (f FrontendHeuristicComplete) String() string {
-	return fmt.Sprintf("UID:%s, timestamp:%s, heuristic count:%d", f.UID, f.Timestamp, len(f.Heuristics))
-}
-
 // FrontendHeuristicResult holds heuristic result data which is exposed to the frontend
 type FrontendHeuristicResult struct {
 	Origin struct {
@@ -161,8 +149,8 @@ type FrontendHeuristicResult struct {
 	} `json:"destinations,omitempty"`
 }
 
-// FrontendHeuristicRequest holds all heuristic data which is set by the user
-type FrontendHeuristicRequest struct {
+// DatabaseHeuristicRequest holds all heuristic data which is set by the user
+type DatabaseHeuristicRequest struct {
 	UID                 string                   `json:"uid,omitempty"`
 	Type                string                   `json:"type,omitempty"`
 	Parameter           string                   `json:"parameter,omitempty"`
@@ -171,41 +159,6 @@ type FrontendHeuristicRequest struct {
 	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
 	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
 	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
-}
-
-// TransformedFrontendHeuristicRequest is the frontend type representation of a FrontendHeuristicRequest
-type TransformedFrontendHeuristicRequest struct {
-	UID                 string                   `json:"uid,omitempty"`
-	Type                string                   `json:"type,omitempty"`
-	Parameter           string                   `json:"parameter,omitempty"`
-	ParentHeuristic     []HollowHeuristic        `json:"parent,omitempty"`
-	ChildHeuristics     []HollowHeuristic        `json:"children,omitempty"`
-	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
-	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
-	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
-}
-
-func (t TransformedFrontendHeuristicRequest) Transform() FrontendHeuristicRequest {
-	parentHeuristics := make([]Heuristic, len(t.ParentHeuristic))
-	for i, ph := range t.ParentHeuristic {
-		parentHeuristics[i].UID = ph.UID
-	}
-
-	childHeuristics := make([]Heuristic, len(t.ChildHeuristics))
-	for i, ch := range t.ChildHeuristics {
-		childHeuristics[i].UID = ch.UID
-	}
-
-	return FrontendHeuristicRequest{
-		UID:                 t.UID,
-		Type:                t.Type,
-		Parameter:           t.Parameter,
-		ParentHeuristic:     parentHeuristics,
-		ChildHeuristics:     childHeuristics,
-		ClusterTypes:        t.ClusterTypes,
-		ExcludeAddresses:    t.ExcludeAddresses,
-		ExcludeSpendingGaps: t.ExcludeSpendingGaps,
-	}
 }
 
 // FrontendHeuristic holds all heuristic data which is exposed to the frontend
@@ -223,7 +176,7 @@ type FrontendHeuristic struct {
 	Results             []FrontendHeuristicResult `json:"results,omitempty"`
 }
 
-func (f FrontendHeuristic) Transform() TransformedFrontendHeuristic {
+func (f FrontendHeuristic) ToClientHeuristic() ClientHeuristic {
 	parentHeuristics := make([]HollowHeuristic, len(f.ParentHeuristic))
 	for i, ph := range f.ParentHeuristic {
 		parentHeuristics[i].UID = ph.UID
@@ -233,7 +186,7 @@ func (f FrontendHeuristic) Transform() TransformedFrontendHeuristic {
 	for i, ch := range f.ChildHeuristics {
 		childHeuristics[i].UID = ch.UID
 	}
-	return TransformedFrontendHeuristic{
+	return ClientHeuristic{
 		UID:                 f.UID,
 		Timestamp:           f.Timestamp,
 		Type:                f.Type,
@@ -248,8 +201,8 @@ func (f FrontendHeuristic) Transform() TransformedFrontendHeuristic {
 	}
 }
 
-// TransformedFrontendHeuristic is the frontend type representation of a frontend heuristic, which can be converted to the type FrontendHeuristic
-type TransformedFrontendHeuristic struct {
+// ClientHeuristic is the frontend type representation of a frontend heuristic, which can be converted to the type FrontendHeuristic
+type ClientHeuristic struct {
 	UID                 string                    `json:"uid,omitempty"`
 	Timestamp           string                    `json:"ts,omitempty"`
 	Type                string                    `json:"type,omitempty"`
@@ -290,32 +243,11 @@ type FrontendHeuristicShort struct {
 	Clusters []FrontendHeuristicCluster `json:"clusters,omitempty"`
 }
 
-// ShortestTransactionPathRequest holds all configuration data for a shortest transaction search request
-type ShortestTransactionPathRequest struct {
-	// From is the starting point of the shortest path lookup
-	From string `json:"from,omitempty"`
-	// To is the end point of the shortest path lookup
-	To string `json:"to,omitempty"`
-	// IncludePrivacyTransactions determines if privacy transactions
-	// should be considered when doing the shortest path lookup
-	IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
-	// AnyDirection determines the search direction of the shortest transaction path query
-	// True: Both inputs and outputs are traversed
-	// False: Only inputs are traversed
-	AnyDirection bool `json:"anyDirection"`
-}
-
 // HeuristicListItem holds data for an item in the heuristic list of a user
 type HeuristicListItem struct {
 	Transaction      string `json:"txhash,omitempty"`
 	LastModification string `json:"mod_time,omitempty"`
 	HeuristicCount   uint64 `json:"h_count,omitempty"`
-}
-
-// DeleteHeuristicRequest holds configuration data about whether all heuristics should be deleted or only a specific one
-type DeleteHeuristicRequest struct {
-	DeleteAll       bool   `json:"delete_all"`
-	TransactionHash string `json:"tx_hash,omitempty"`
 }
 
 type mergedClusterItem struct {

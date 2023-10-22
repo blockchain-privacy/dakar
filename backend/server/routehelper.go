@@ -99,16 +99,22 @@ type metaReply struct {
 }
 
 type heuristicReply struct {
-	Success    bool                               `json:"success"`
-	Msg        string                             `json:"msg,omitempty"`
-	Heuristics []dbh.TransformedFrontendHeuristic `json:"heuristics,omitempty"`
-	Status     heuristics.HeuristicQueueStatus    `json:"status"`
+	Success    bool                            `json:"success"`
+	Msg        string                          `json:"msg,omitempty"`
+	Heuristics []dbh.ClientHeuristic           `json:"heuristics,omitempty"`
+	Status     heuristics.HeuristicQueueStatus `json:"status"`
 }
 
 type heuristicExecutionReply struct {
 	Success bool                            `json:"success"`
 	Msg     string                          `json:"msg,omitempty"`
 	Status  heuristics.HeuristicQueueStatus `json:"status"`
+}
+
+type heuristicDetailsReply struct {
+	Success   bool                       `json:"success"`
+	Msg       string                     `json:"msg,omitempty"`
+	Heuristic dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
 }
 
 type identityReply struct {
@@ -344,6 +350,41 @@ type identitiesReply struct {
 	Users      []dbus.FrontendUserBackendState `json:"users"`
 	Identities []client.Identity               `json:"identities"`
 	Sessions   []client.Session                `json:"sessions"`
+}
+
+// ClientHeuristicRequest is the client type representation of a DatabaseHeuristicRequest
+type ClientHeuristicRequest struct {
+	UID                 string                   `json:"uid,omitempty"`
+	Type                string                   `json:"type,omitempty"`
+	Parameter           string                   `json:"parameter,omitempty"`
+	ParentHeuristic     []dbh.HollowHeuristic    `json:"parent,omitempty"`
+	ChildHeuristics     []dbh.HollowHeuristic    `json:"children,omitempty"`
+	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
+	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
+}
+
+func (t ClientHeuristicRequest) ToDatabaseRequest() dbh.DatabaseHeuristicRequest {
+	parentHeuristics := make([]dbh.Heuristic, len(t.ParentHeuristic))
+	for i, ph := range t.ParentHeuristic {
+		parentHeuristics[i].UID = ph.UID
+	}
+
+	childHeuristics := make([]dbh.Heuristic, len(t.ChildHeuristics))
+	for i, ch := range t.ChildHeuristics {
+		childHeuristics[i].UID = ch.UID
+	}
+
+	return dbh.DatabaseHeuristicRequest{
+		UID:                 t.UID,
+		Type:                t.Type,
+		Parameter:           t.Parameter,
+		ParentHeuristic:     parentHeuristics,
+		ChildHeuristics:     childHeuristics,
+		ClusterTypes:        t.ClusterTypes,
+		ExcludeAddresses:    t.ExcludeAddresses,
+		ExcludeSpendingGaps: t.ExcludeSpendingGaps,
+	}
 }
 
 // isValidEmail is a regex filter which checks if the input conforms to an email string

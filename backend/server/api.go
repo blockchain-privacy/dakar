@@ -2,28 +2,11 @@ package server
 
 import (
 	"backend/analytics/heuristics"
-	"backend/cmd/cliutil"
 	"time"
 
-	// for openapi
-	_ "backend/db/analytics/clustering"
-	dbtxh "backend/db/analytics/heuristics"
 	"backend/external"
-	"encoding/json"
 	"net/http"
 	"path"
-)
-
-var (
-	errorClusterSummary      = "error getting cluster summary"
-	errorHeuristicSummary    = "error getting heuristic summary"
-	errorHeuristics          = "error getting heuristics"
-	errorHeuristicExecution  = "error executing heuristics"
-	errorHeuristicDetails    = "error getting heuristic details"
-	errorSpendingFingerprint = "error getting spending fingerprintScore details"
-	errorInvalidSortOrder    = "error invalid sort order"
-	errorInvalidFilter       = "error invalid filter"
-	errorInvalidOffset       = "error invalid offset"
 )
 
 // Search godoc
@@ -174,16 +157,7 @@ func (s *Server) handlerAddCluster() http.Handler {
 //	@Router		/deleteCluster/{cluster_uid} [get]
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteClusterReply
-
-		clusterUID := path.Base(r.URL.Path)
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
-		}
+		reply := getDeleteClusterReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -199,14 +173,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Router		/deleteAllClusters/ [get]
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteClusterReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAllClustersReply(s.db, tUser.ID)
-		}
+		reply := getDeleteAllClustersReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -222,14 +189,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 //	@Router		/clusterOverview/ [get]
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply clusterOverviewReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getClusterOverviewReply(s.db, tUser.ID)
-		}
+		reply := getClusterOverviewReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -245,14 +205,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Router		/attributionOverview/ [get]
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply attributionOverviewReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getAttributionOverviewReply(s.db, tUser.ID)
-		}
+		reply := getAttributionOverviewReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -271,7 +224,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 //	@Router		/addPrivateAttribution/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddAttributionReply(s.db, r, false)
+		reply := getAddAttributionReply(r, s.db, false)
 
 		sendReply(w, reply)
 	})
@@ -290,7 +243,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Router		/addPublicAttribution/ [post]
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddAttributionReply(s.db, r, true)
+		reply := getAddAttributionReply(r, s.db, true)
 
 		sendReply(w, reply)
 	})
@@ -307,16 +260,7 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 //	@Router		/deletePrivateAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteAttributionReply
-
-		attributionUID := path.Base(r.URL.Path)
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
-		}
+		reply := getDeleteAttributionReply(r, s.db, false)
 
 		sendReply(w, reply)
 	})
@@ -333,16 +277,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 //	@Router		/deletePublicAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteAttributionReply
-
-		attributionUID := path.Base(r.URL.Path)
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
-		}
+		reply := getDeleteAttributionReply(r, s.db, true)
 
 		sendReply(w, reply)
 	})
@@ -358,14 +293,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Router		/deleteAllPrivateAttributions/ [get]
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteAttributionReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
-		}
+		reply := getDeleteAllAttributionsReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -383,14 +311,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Router		/searchAttributions/ [post]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply attributionOverviewReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
-		}
+		reply := getAttributionSearchReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -424,16 +345,7 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Router		/deleteAddressExclusion/{addressHash} [get]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteAddressExclusionReply
-
-		addressHash := path.Base(r.URL.Path)
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
-		}
+		reply := getDeleteAddressExclusionReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -449,14 +361,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //	@Router		/deleteAllAddressExclusions/ [get]
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteAddressExclusionReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
-		}
+		reply := getDeleteAllAddressExclusionsReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -472,14 +377,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Router		/addressExclusionOverview/ [get]
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply addressExclusionOverviewReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
-		}
+		reply := getAddressExclusionOverviewReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -496,21 +394,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 //	@Router		/heuristics/{hash} [get]
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txHashString := path.Base(r.URL.Path)
-
-		if !isValid(txHashString) {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			return
-		}
-
-		var reply heuristicReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
-		}
+		reply := getHeuristicReply(r, s.db, s.worker)
 
 		sendReply(w, reply)
 	})
@@ -527,14 +411,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 //	@Router		/hmiLookup/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		addressHash := path.Base(r.URL.Path)
-
-		if !isValid(addressHash) {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			return
-		}
-
-		reply := getHMILookupReply(s.db, addressHash)
+		reply := getHMILookupReply(s.db, path.Base(r.URL.Path))
 
 		sendReply(w, reply)
 	})
@@ -551,22 +428,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Router		/heuristicStatus/{hash} [get]
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txHashString := path.Base(r.URL.Path)
-
-		if !isValid(txHashString) {
-			http.Error(w, errorHeuristics, http.StatusNotFound)
-			return
-		}
-
-		var reply heuristicReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply.Success = true
-			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
-		}
+		reply := getHeuristicStatusReply(r, s.worker)
 
 		sendReply(w, reply)
 	})
@@ -578,42 +440,13 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 //	@Tags		heuristic
 //	@Produce	json
 //	@Accept		json
-//	@Param		heuristic	body		server.handlerHeuristicsDetails.request	true	"Heuristic UID"
-//	@Success	200			{object}	dbtxh.FrontendHeuristicShort
+//	@Param		heuristic	body		server.getHeuristicDetailsReply.request	true	"Heuristic UID"
+//	@Success	200			{object}	server.heuristicDetailsReply
 //	@Failure	500			{string}	string	"encoding error"
 //	@Router		/heuristicDetails/ [post]
 func (s *Server) handlerHeuristicsDetails() http.Handler {
-	type request struct {
-		HeuristicUID string `json:"uid,omitempty"`
-	}
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tUser, err := extractTokenUser(r.Context())
-		if err != nil {
-			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			warn(err)
-			return
-		}
-
-		var heuristicRequest request
-
-		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
-			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			warn(cliutil.NewStackError(err))
-			return
-		}
-
-		if len(heuristicRequest.HeuristicUID) == 0 {
-			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			return
-		}
-
-		reply, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
-		if err != nil {
-			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
-			warn(err)
-			return
-		}
+		reply := getHeuristicDetailsReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -633,21 +466,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txHashString := path.Base(r.URL.Path)
-
-		if !isValid(txHashString) {
-			http.Error(w, errorHeuristicExecution, http.StatusNotFound)
-			return
-		}
-
-		var reply heuristicExecutionReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = msgUserNotFound
-			warn(err)
-		} else {
-			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
-		}
+		reply := getHeuristicExecutionReply(r, s.db, s.worker)
 
 		sendReply(w, reply)
 	})
@@ -663,20 +482,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Router		/heuristicList/ [get]
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply heuristicListReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "error modifying user"
-			warn(err)
-		} else {
-			items, err := dbtxh.GetHeuristicListByUser(s.db, tUser.ID)
-			if err != nil {
-				warn(err)
-			} else {
-				reply.Success = true
-				reply.Item = items
-			}
-		}
+		reply := getHeuristicListReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -693,13 +499,12 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply heuristicDescriptorReply
+		reply := heuristicDescriptorReply{Success: true}
+		reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
 
-		for _, t := range heuristics.ValidHeuristicTypes {
-			reply.Descriptors = append(reply.Descriptors, t.GetDescriptor())
+		for i, t := range heuristics.ValidHeuristicTypes {
+			reply.Descriptors[i] = t.GetDescriptor()
 		}
-
-		reply.Success = true
 
 		sendReply(w, reply)
 	})
@@ -712,19 +517,13 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic	body		dbtxh.DeleteHeuristicRequest	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
+//	@Param			heuristic	body		server.getDeleteHeuristicReply.request	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
 //	@Success		200			{object}	server.deleteHeuristicReply
 //	@Failure		500			{string}	string	"encoding error"
 //	@Router			/deleteHeuristic/ [post]
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply deleteHeuristicReply
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "error extracting user"
-			warn(err)
-		} else {
-			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
-		}
+		reply := getDeleteHeuristicReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -763,7 +562,7 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 // handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, path.Base(r.URL.Path))
+		reply := getDeleteIdentityReply(r, s.db, s.adminAuth, true)
 
 		sendReply(w, reply)
 	})
@@ -781,14 +580,7 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var reply identityReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "error deleting user"
-			warn(err)
-		} else {
-			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
-		}
+		reply := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
 
 		sendReply(w, reply)
 	})
@@ -836,7 +628,7 @@ func (s *Server) handlerGetIdentities() http.Handler {
 //	@Tags		tools
 //	@Produce	json
 //	@Accept		json
-//	@Param		transactions	body		dbtxh.ShortestTransactionPathRequest	true	"transactions between which the path should be found"
+//	@Param		transactions	body		server.getShortestTransactionPathReply.request	true	"transactions between which the path should be found"
 //	@Success	200				{object}	server.shortestTransactionPathReply
 //	@Failure	500				{string}	string	"encoding error"
 //	@Router		/shortestTransactionPath/ [post]
@@ -878,15 +670,7 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Router		/clusterLookup/{addressHash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		addressHash := path.Base(r.URL.Path)
-		var reply clusterLookupReply
-
-		if tUser, err := extractTokenUser(r.Context()); err != nil {
-			reply.Msg = "error modifying user"
-			warn(err)
-		} else {
-			reply = getClusterLookupReply(s.db, addressHash, tUser)
-		}
+		reply := getClusterLookupReply(r, s.db)
 
 		sendReply(w, reply)
 	})
@@ -938,14 +722,8 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		txHashString := path.Base(r.URL.Path)
+		reply := getSpendingFingerprintReply(s.db, s.worker, path.Base(r.URL.Path))
 
-		if !isValid(txHashString) {
-			http.Error(w, errorSpendingFingerprint, http.StatusNotFound)
-			return
-		}
-
-		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
 		sendReply(w, reply)
 	})
 }
