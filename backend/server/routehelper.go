@@ -101,7 +101,7 @@ type metaReply struct {
 type heuristicReply struct {
 	Success    bool                            `json:"success"`
 	Msg        string                          `json:"msg,omitempty"`
-	Heuristics []dbh.ClientHeuristic           `json:"heuristics,omitempty"`
+	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
 	Status     heuristics.HeuristicQueueStatus `json:"status"`
 }
 

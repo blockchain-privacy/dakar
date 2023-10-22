@@ -170,46 +170,6 @@ type FrontendHeuristic struct {
 	ExcludeAddresses    bool                      `json:"excludeAddresses"`
 	ExcludeSpendingGaps bool                      `json:"excludeSpendingGaps"`
 	ClusterTypes        []string                  `json:"clusterTypes,omitempty"`
-	ParentHeuristic     []Heuristic               `json:"parent,omitempty"`
-	ChildHeuristics     []Heuristic               `json:"children,omitempty"`
-	ClusterCount        int                       `json:"clusterCount,omitempty"`
-	Results             []FrontendHeuristicResult `json:"results,omitempty"`
-}
-
-func (f FrontendHeuristic) ToClientHeuristic() ClientHeuristic {
-	parentHeuristics := make([]HollowHeuristic, len(f.ParentHeuristic))
-	for i, ph := range f.ParentHeuristic {
-		parentHeuristics[i].UID = ph.UID
-	}
-
-	childHeuristics := make([]HollowHeuristic, len(f.ChildHeuristics))
-	for i, ch := range f.ChildHeuristics {
-		childHeuristics[i].UID = ch.UID
-	}
-	return ClientHeuristic{
-		UID:                 f.UID,
-		Timestamp:           f.Timestamp,
-		Type:                f.Type,
-		Parameter:           f.Parameter,
-		ExcludeAddresses:    f.ExcludeAddresses,
-		ExcludeSpendingGaps: f.ExcludeSpendingGaps,
-		ClusterTypes:        f.ClusterTypes,
-		ParentHeuristic:     parentHeuristics,
-		ChildHeuristics:     childHeuristics,
-		ClusterCount:        f.ClusterCount,
-		Results:             f.Results,
-	}
-}
-
-// ClientHeuristic is the frontend type representation of a frontend heuristic, which can be converted to the type FrontendHeuristic
-type ClientHeuristic struct {
-	UID                 string                    `json:"uid,omitempty"`
-	Timestamp           string                    `json:"ts,omitempty"`
-	Type                string                    `json:"type,omitempty"`
-	Parameter           string                    `json:"parameter,omitempty"`
-	ExcludeAddresses    bool                      `json:"excludeAddresses"`
-	ExcludeSpendingGaps bool                      `json:"excludeSpendingGaps"`
-	ClusterTypes        []string                  `json:"clusterTypes,omitempty"`
 	ParentHeuristic     []HollowHeuristic         `json:"parent,omitempty"`
 	ChildHeuristics     []HollowHeuristic         `json:"children,omitempty"`
 	ClusterCount        int                       `json:"clusterCount,omitempty"`

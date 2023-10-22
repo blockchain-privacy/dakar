@@ -299,14 +299,8 @@ func getHeuristicReply(r *http.Request, dgraph external.Database, worker *heuris
 		return
 	}
 
-	transformedFrontendHeuristics := make([]dbHeuristic.ClientHeuristic, len(results))
-
-	for i, h := range results {
-		transformedFrontendHeuristics[i] = h.ToClientHeuristic()
-	}
-
 	reply.Success = true
-	reply.Heuristics = transformedFrontendHeuristics
+	reply.Heuristics = results
 	reply.Status = worker.GetStatus(txHashString, tUser.ID)
 
 	return
