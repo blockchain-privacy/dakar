@@ -650,6 +650,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 
 // writeHeuristicSummary writes heuristic data in CSV format
 func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	setCORSHeaders(w)
 	heuristicUID := path.Base(r.URL.Path)
 	if heuristicUID == "" {
 		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
@@ -723,6 +724,7 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 
 // writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	setCORSHeaders(w)
 	addressHash := path.Base(r.URL.Path)
 	if addressHash == "" {
 		http.Error(w, "no address hash provided", http.StatusNotFound)

@@ -38,11 +38,9 @@ var (
 //	@Router			/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getSearchReply(s.db, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -59,11 +57,9 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Router		/tx/{hash} [get]
 func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -79,11 +75,9 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Router		/addressOutputRange/{addressHash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -99,11 +93,9 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Router		/blkRange/{blockHash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -117,10 +109,9 @@ func (s *Server) handlerBlockRange() http.Handler {
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
 		reply := getMetaReply(s.db, s.client)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -135,8 +126,6 @@ func (s *Server) handlerMeta() http.Handler {
 //	@Router		/heuristicsSummary/{heuristic_UID} [get]
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		writeHeuristicSummary(w, r, s.db)
 	})
 }
@@ -153,8 +142,6 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 //	@Router		/clusterSummary/{addressHash} [get]
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		writeClusterSummary(w, r, s.db)
 	})
 }
@@ -170,11 +157,9 @@ func (s *Server) handlerClusterSummary() http.Handler {
 // @Router		/addCluster/ [post]
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddClusterReply(s.db, r)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -189,8 +174,6 @@ func (s *Server) handlerAddCluster() http.Handler {
 //	@Router		/deleteCluster/{cluster_uid} [get]
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteClusterReply
 
 		clusterUID := path.Base(r.URL.Path)
@@ -202,7 +185,7 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -216,8 +199,6 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Router		/deleteAllClusters/ [get]
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteClusterReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -227,7 +208,7 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 			reply = getDeleteAllClustersReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -241,8 +222,6 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 //	@Router		/clusterOverview/ [get]
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply clusterOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -252,7 +231,7 @@ func (s *Server) handlerClusterOverview() http.Handler {
 			reply = getClusterOverviewReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -266,8 +245,6 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Router		/attributionOverview/ [get]
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply attributionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -277,7 +254,7 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 			reply = getAttributionOverviewReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -294,11 +271,9 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 //	@Router		/addPrivateAttribution/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddAttributionReply(s.db, r, false)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -315,11 +290,9 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Router		/addPublicAttribution/ [post]
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddAttributionReply(s.db, r, true)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -334,8 +307,6 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 //	@Router		/deletePrivateAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteAttributionReply
 
 		attributionUID := path.Base(r.URL.Path)
@@ -347,7 +318,7 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -362,8 +333,6 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 //	@Router		/deletePublicAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteAttributionReply
 
 		attributionUID := path.Base(r.URL.Path)
@@ -375,7 +344,7 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -389,8 +358,6 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Router		/deleteAllPrivateAttributions/ [get]
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteAttributionReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -400,7 +367,7 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -416,8 +383,6 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Router		/searchAttributions/ [post]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply attributionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -427,7 +392,7 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -442,11 +407,9 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 //	@Router		/addAddressExclusions/ [post]
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddAddressExclusionsReply(s.db, r)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -461,8 +424,6 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Router		/deleteAddressExclusion/{addressHash} [get]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteAddressExclusionReply
 
 		addressHash := path.Base(r.URL.Path)
@@ -474,7 +435,7 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -488,8 +449,6 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //	@Router		/deleteAllAddressExclusions/ [get]
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteAddressExclusionReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -499,7 +458,7 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -513,8 +472,6 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Router		/addressExclusionOverview/ [get]
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply addressExclusionOverviewReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -524,7 +481,7 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -539,8 +496,6 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 //	@Router		/heuristics/{hash} [get]
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
@@ -557,7 +512,7 @@ func (s *Server) handlerHeuristics() http.Handler {
 			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -572,8 +527,6 @@ func (s *Server) handlerHeuristics() http.Handler {
 //	@Router		/hmiLookup/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		addressHash := path.Base(r.URL.Path)
 
 		if !isValid(addressHash) {
@@ -583,7 +536,7 @@ func (s *Server) handlerHMILookup() http.Handler {
 
 		reply := getHMILookupReply(s.db, addressHash)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -598,8 +551,6 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Router		/heuristicStatus/{hash} [get]
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
@@ -617,7 +568,7 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -637,8 +588,6 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
@@ -666,7 +615,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 			return
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -684,8 +633,6 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
@@ -702,7 +649,7 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -716,8 +663,6 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Router		/heuristicList/ [get]
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply heuristicListReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -733,7 +678,7 @@ func (s *Server) handlerHeuristicList() http.Handler {
 			}
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -748,8 +693,6 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply heuristicDescriptorReply
 
 		for _, t := range heuristics.ValidHeuristicTypes {
@@ -758,7 +701,7 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 
 		reply.Success = true
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -775,8 +718,6 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 //	@Router			/deleteHeuristic/ [post]
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply deleteHeuristicReply
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error extracting user"
@@ -785,7 +726,7 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -803,11 +744,9 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getCreateIdentityReply(s.db, s.adminAuth, r)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -824,11 +763,9 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 // handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -844,8 +781,6 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		var reply identityReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
@@ -855,7 +790,7 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -873,11 +808,9 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 // handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getModifyIdentityReply(s.adminAuth, r)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -891,11 +824,9 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 //	@Router		/getIdentities/ [get]
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getIdentitiesReply(s.db, s.adminAuth, r)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -911,11 +842,9 @@ func (s *Server) handlerGetIdentities() http.Handler {
 //	@Router		/shortestTransactionPath/ [post]
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getShortestTransactionPathReply(s.db, r.Body)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -932,11 +861,9 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Router		/connectionLookup/{txhash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getConnectionLookupReply(s.db, s.worker, r.URL)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -951,8 +878,6 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Router		/clusterLookup/{addressHash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		addressHash := path.Base(r.URL.Path)
 		var reply clusterLookupReply
 
@@ -963,7 +888,7 @@ func (s *Server) handlerClusterLookup() http.Handler {
 			reply = getClusterLookupReply(s.db, addressHash, tUser)
 		}
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -979,11 +904,9 @@ func (s *Server) handlerClusterLookup() http.Handler {
 //	@Router		/mixingActivity/ [post]
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getMixingActivity(s.db, r.Body)
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -998,11 +921,9 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Router		/addressExclusionStatus/{address_hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
 
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 
@@ -1017,8 +938,6 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		setDefaultHeader(w)
-
 		txHashString := path.Base(r.URL.Path)
 
 		if !isValid(txHashString) {
@@ -1027,7 +946,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 		}
 
 		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
-		writeReply(w, reply)
+		sendReply(w, reply)
 	})
 }
 

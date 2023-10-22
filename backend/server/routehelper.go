@@ -45,10 +45,9 @@ func isValid(input string) bool {
 	return isValidInput(input)
 }
 
-func setDefaultHeader(w http.ResponseWriter) {
+func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-	w.Header().Set("Content-Type", "application/json")
 }
 
 // setCacheHeader sets the client side caching to a third of the server side cache
@@ -59,8 +58,10 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
 }
 
-// writeReply encodes the given reply into JSON
-func writeReply(w http.ResponseWriter, reply any) {
+// sendReply encodes the given reply into JSON and sends it
+func sendReply(w http.ResponseWriter, reply any) {
+	setCORSHeaders(w)
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(reply); err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
 		warn(cliutil.NewStackError(err))
