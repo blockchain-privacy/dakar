@@ -810,7 +810,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/heuristics.DeleteHeuristicRequest"
+                            "$ref": "#/definitions/server.getDeleteHeuristicReply.request"
                         }
                     }
                 ],
@@ -1040,7 +1040,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/server.handlerHeuristicsDetails.request"
+                            "$ref": "#/definitions/server.getHeuristicDetailsReply.request"
                         }
                     }
                 ],
@@ -1048,7 +1048,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/heuristics.FrontendHeuristicShort"
+                            "$ref": "#/definitions/server.heuristicDetailsReply"
                         }
                     },
                     "500": {
@@ -1417,7 +1417,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/heuristics.ShortestTransactionPathRequest"
+                            "$ref": "#/definitions/server.getShortestTransactionPathReply.request"
                         }
                     }
                 ],
@@ -2076,17 +2076,6 @@ const docTemplate = `{
                 }
             }
         },
-        "heuristics.DeleteHeuristicRequest": {
-            "type": "object",
-            "properties": {
-                "delete_all": {
-                    "type": "boolean"
-                },
-                "tx_hash": {
-                    "type": "string"
-                }
-            }
-        },
         "heuristics.Descriptor": {
             "type": "object",
             "properties": {
@@ -2241,27 +2230,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "heuristics.ShortestTransactionPathRequest": {
-            "type": "object",
-            "properties": {
-                "anyDirection": {
-                    "description": "AnyDirection determines the search direction of the shortest transaction path query\nTrue: Both inputs and outputs are traversed\nFalse: Only inputs are traversed",
-                    "type": "boolean"
-                },
-                "from": {
-                    "description": "From is the starting point of the shortest path lookup",
-                    "type": "string"
-                },
-                "includePrivacyTransactions": {
-                    "description": "IncludePrivacyTransactions determines if privacy transactions\nshould be considered when doing the shortest path lookup",
-                    "type": "boolean"
-                },
-                "to": {
-                    "description": "To is the end point of the shortest path lookup",
                     "type": "string"
                 }
             }
@@ -2603,6 +2571,25 @@ const docTemplate = `{
                 }
             }
         },
+        "server.getDeleteHeuristicReply.request": {
+            "type": "object",
+            "properties": {
+                "delete_all": {
+                    "type": "boolean"
+                },
+                "tx_hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.getHeuristicDetailsReply.request": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
         "server.getHeuristicExecutionReply.request": {
             "type": "object",
             "properties": {
@@ -2653,10 +2640,23 @@ const docTemplate = `{
                 }
             }
         },
-        "server.handlerHeuristicsDetails.request": {
+        "server.getShortestTransactionPathReply.request": {
             "type": "object",
             "properties": {
-                "uid": {
+                "anyDirection": {
+                    "description": "AnyDirection determines the search direction of the shortest transaction path query\nTrue: Both inputs and outputs are traversed\nFalse: Only inputs are traversed",
+                    "type": "boolean"
+                },
+                "from": {
+                    "description": "From is the starting point of the shortest path lookup",
+                    "type": "string"
+                },
+                "includePrivacyTransactions": {
+                    "description": "IncludePrivacyTransactions determines if privacy transactions\nshould be considered when doing the shortest path lookup",
+                    "type": "boolean"
+                },
+                "to": {
+                    "description": "To is the end point of the shortest path lookup",
                     "type": "string"
                 }
             }
@@ -2669,6 +2669,20 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/heuristics.Descriptor"
                     }
+                },
+                "msg": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "server.heuristicDetailsReply": {
+            "type": "object",
+            "properties": {
+                "heuristic": {
+                    "$ref": "#/definitions/heuristics.FrontendHeuristicShort"
                 },
                 "msg": {
                     "type": "string"

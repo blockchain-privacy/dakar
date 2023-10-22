@@ -414,13 +414,6 @@ definitions:
       tag:
         type: string
     type: object
-  heuristics.DeleteHeuristicRequest:
-    properties:
-      delete_all:
-        type: boolean
-      tx_hash:
-        type: string
-    type: object
   heuristics.Descriptor:
     properties:
       category:
@@ -525,26 +518,6 @@ definitions:
   heuristics.HollowHeuristic:
     properties:
       uid:
-        type: string
-    type: object
-  heuristics.ShortestTransactionPathRequest:
-    properties:
-      anyDirection:
-        description: |-
-          AnyDirection determines the search direction of the shortest transaction path query
-          True: Both inputs and outputs are traversed
-          False: Only inputs are traversed
-        type: boolean
-      from:
-        description: From is the starting point of the shortest path lookup
-        type: string
-      includePrivacyTransactions:
-        description: |-
-          IncludePrivacyTransactions determines if privacy transactions
-          should be considered when doing the shortest path lookup
-        type: boolean
-      to:
-        description: To is the end point of the shortest path lookup
         type: string
     type: object
   heuristics.TransformedFrontendHeuristic:
@@ -765,6 +738,18 @@ definitions:
       state:
         type: string
     type: object
+  server.getDeleteHeuristicReply.request:
+    properties:
+      delete_all:
+        type: boolean
+      tx_hash:
+        type: string
+    type: object
+  server.getHeuristicDetailsReply.request:
+    properties:
+      uid:
+        type: string
+    type: object
   server.getHeuristicExecutionReply.request:
     properties:
       changed:
@@ -800,9 +785,24 @@ definitions:
       uid:
         type: string
     type: object
-  server.handlerHeuristicsDetails.request:
+  server.getShortestTransactionPathReply.request:
     properties:
-      uid:
+      anyDirection:
+        description: |-
+          AnyDirection determines the search direction of the shortest transaction path query
+          True: Both inputs and outputs are traversed
+          False: Only inputs are traversed
+        type: boolean
+      from:
+        description: From is the starting point of the shortest path lookup
+        type: string
+      includePrivacyTransactions:
+        description: |-
+          IncludePrivacyTransactions determines if privacy transactions
+          should be considered when doing the shortest path lookup
+        type: boolean
+      to:
+        description: To is the end point of the shortest path lookup
         type: string
     type: object
   server.heuristicDescriptorReply:
@@ -811,6 +811,15 @@ definitions:
         items:
           $ref: '#/definitions/heuristics.Descriptor'
         type: array
+      msg:
+        type: string
+      success:
+        type: boolean
+    type: object
+  server.heuristicDetailsReply:
+    properties:
+      heuristic:
+        $ref: '#/definitions/heuristics.FrontendHeuristicShort'
       msg:
         type: string
       success:
@@ -1530,7 +1539,7 @@ paths:
         name: heuristic
         required: true
         schema:
-          $ref: '#/definitions/heuristics.DeleteHeuristicRequest'
+          $ref: '#/definitions/server.getDeleteHeuristicReply.request'
       produces:
       - application/json
       responses:
@@ -1681,14 +1690,14 @@ paths:
         name: heuristic
         required: true
         schema:
-          $ref: '#/definitions/server.handlerHeuristicsDetails.request'
+          $ref: '#/definitions/server.getHeuristicDetailsReply.request'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/heuristics.FrontendHeuristicShort'
+            $ref: '#/definitions/server.heuristicDetailsReply'
         "500":
           description: encoding error
           schema:
@@ -1926,7 +1935,7 @@ paths:
         name: transactions
         required: true
         schema:
-          $ref: '#/definitions/heuristics.ShortestTransactionPathRequest'
+          $ref: '#/definitions/server.getShortestTransactionPathReply.request'
       produces:
       - application/json
       responses:
