@@ -61,9 +61,21 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 // sendReply encodes the given reply into JSON and sends it
 func sendReply(w http.ResponseWriter, reply any) {
 	setCORSHeaders(w)
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(reply); err != nil {
+
+	// use marshalling instead of encoding (streaming), as it gives better error handling
+	// and because encoding buffers all data before writing: https://github.com/golang/go/issues/7872
+	// todo check if https://github.com/golang/go/discussions/63397 has been accepted, merged and released and then rework json handling.
+	replyBuffer, err := json.Marshal(reply)
+	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if _, err := w.Write(replyBuffer); err != nil {
+		// not possible to send response to client, so just log error
 		warn(cliutil.NewStackError(err))
 	}
 }

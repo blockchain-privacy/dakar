@@ -1,12 +1,10 @@
 package server
 
 import (
-	"backend/analytics/heuristics"
-	"time"
-
 	"backend/external"
 	"net/http"
 	"path"
+	"time"
 )
 
 // Search godoc
@@ -499,12 +497,7 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := heuristicDescriptorReply{Success: true}
-		reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
-
-		for i, t := range heuristics.ValidHeuristicTypes {
-			reply.Descriptors[i] = t.GetDescriptor()
-		}
+		reply := getHeuristicDescriptorReply()
 
 		sendReply(w, reply)
 	})

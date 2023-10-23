@@ -1856,3 +1856,14 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 
 	return
 }
+
+func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
+	reply.Success = true
+	reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
+
+	for i, t := range heuristics.ValidHeuristicTypes {
+		reply.Descriptors[i] = t.GetDescriptor()
+	}
+
+	return
+}
