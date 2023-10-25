@@ -436,6 +436,39 @@ definitions:
       type:
         type: string
     type: object
+  heuristics.FrontendHeuristic:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      clusterCount:
+        type: integer
+      clusterTypes:
+        items:
+          type: string
+        type: array
+      excludeAddresses:
+        type: boolean
+      excludeSpendingGaps:
+        type: boolean
+      parameter:
+        type: string
+      parent:
+        items:
+          $ref: '#/definitions/heuristics.HollowHeuristic'
+        type: array
+      results:
+        items:
+          $ref: '#/definitions/heuristics.FrontendHeuristicResult'
+        type: array
+      ts:
+        type: string
+      type:
+        type: string
+      uid:
+        type: string
+    type: object
   heuristics.FrontendHeuristicCluster:
     properties:
       attributions:
@@ -520,40 +553,7 @@ definitions:
       uid:
         type: string
     type: object
-  heuristics.TransformedFrontendHeuristic:
-    properties:
-      children:
-        items:
-          $ref: '#/definitions/heuristics.HollowHeuristic'
-        type: array
-      clusterCount:
-        type: integer
-      clusterTypes:
-        items:
-          type: string
-        type: array
-      excludeAddresses:
-        type: boolean
-      excludeSpendingGaps:
-        type: boolean
-      parameter:
-        type: string
-      parent:
-        items:
-          $ref: '#/definitions/heuristics.HollowHeuristic'
-        type: array
-      results:
-        items:
-          $ref: '#/definitions/heuristics.FrontendHeuristicResult'
-        type: array
-      ts:
-        type: string
-      type:
-        type: string
-      uid:
-        type: string
-    type: object
-  heuristics.TransformedFrontendHeuristicRequest:
+  server.ClientHeuristicRequest:
     properties:
       children:
         items:
@@ -578,27 +578,6 @@ definitions:
       useAddressExclusionList:
         type: boolean
     type: object
-  server.addAddressExclusionsReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
-  server.addAttributionReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
-  server.addClusterReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
   server.addressExclusionOverviewReply:
     properties:
       addressCount:
@@ -607,18 +586,10 @@ definitions:
         items:
           type: string
         type: array
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.addressExclusionStatusReply:
     properties:
       isExclusion:
-        type: boolean
-      msg:
-        type: string
-      success:
         type: boolean
     type: object
   server.attributionOverviewReply:
@@ -627,10 +598,6 @@ definitions:
         items:
           $ref: '#/definitions/attribution.FrontendAttribution'
         type: array
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.clusterLookupReply:
     properties:
@@ -638,10 +605,6 @@ definitions:
         items:
           $ref: '#/definitions/clustering.FrontendCluster'
         type: array
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.clusterOverviewReply:
     properties:
@@ -651,8 +614,6 @@ definitions:
         type: array
       msg:
         type: string
-      success:
-        type: boolean
     type: object
   server.connectionLookupReply:
     properties:
@@ -660,42 +621,10 @@ definitions:
         type: integer
       msg:
         type: string
-      success:
-        type: boolean
       transactions:
         items:
           $ref: '#/definitions/db.FrontendTransaction'
         type: array
-      warning:
-        type: boolean
-    type: object
-  server.deleteAddressExclusionReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
-  server.deleteAttributionReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
-  server.deleteClusterReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
-    type: object
-  server.deleteHeuristicReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.fingerprintScore:
     properties:
@@ -754,7 +683,7 @@ definitions:
     properties:
       changed:
         items:
-          $ref: '#/definitions/heuristics.TransformedFrontendHeuristicRequest'
+          $ref: '#/definitions/server.ClientHeuristicRequest'
         type: array
       deleted:
         items:
@@ -811,28 +740,16 @@ definitions:
         items:
           $ref: '#/definitions/heuristics.Descriptor'
         type: array
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.heuristicDetailsReply:
     properties:
       heuristic:
         $ref: '#/definitions/heuristics.FrontendHeuristicShort'
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.heuristicExecutionReply:
     properties:
-      msg:
-        type: string
       status:
         $ref: '#/definitions/heuristics.HeuristicQueueStatus'
-      success:
-        type: boolean
     type: object
   server.heuristicListReply:
     properties:
@@ -840,23 +757,20 @@ definitions:
         items:
           $ref: '#/definitions/heuristics.HeuristicListItem'
         type: array
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.heuristicReply:
     properties:
       heuristics:
         items:
-          $ref: '#/definitions/heuristics.TransformedFrontendHeuristic'
+          $ref: '#/definitions/heuristics.FrontendHeuristic'
         type: array
-      msg:
-        type: string
       status:
         $ref: '#/definitions/heuristics.HeuristicQueueStatus'
-      success:
-        type: boolean
+    type: object
+  server.heuristicStatusReply:
+    properties:
+      status:
+        $ref: '#/definitions/heuristics.HeuristicQueueStatus'
     type: object
   server.hmiLookupReply:
     properties:
@@ -866,8 +780,6 @@ definitions:
         items:
           $ref: '#/definitions/clustering.FrontendHMICluster'
         type: array
-      success:
-        type: boolean
     type: object
   server.identitiesReply:
     properties:
@@ -879,19 +791,10 @@ definitions:
         items:
           $ref: '#/definitions/client.Session'
         type: array
-      success:
-        type: boolean
       users:
         items:
           $ref: '#/definitions/user.FrontendUserBackendState'
         type: array
-    type: object
-  server.identityReply:
-    properties:
-      msg:
-        type: string
-      success:
-        type: boolean
     type: object
   server.metaReply:
     properties:
@@ -899,8 +802,6 @@ definitions:
         $ref: '#/definitions/server.prunedRPCInfo'
       status:
         $ref: '#/definitions/status.FrontendStatus'
-      success:
-        type: boolean
     type: object
   server.mixingActivityReply:
     properties:
@@ -910,8 +811,11 @@ definitions:
         type: array
       msg:
         type: string
-      success:
-        type: boolean
+    type: object
+  server.msgReply:
+    properties:
+      msg:
+        type: string
     type: object
   server.prunedRPCInfo:
     properties:
@@ -940,8 +844,6 @@ definitions:
     - typeEmpty
   server.searchReply:
     properties:
-      msg:
-        type: string
       payload: {}
       type:
         $ref: '#/definitions/server.queryResultType'
@@ -950,8 +852,6 @@ definitions:
     properties:
       msg:
         type: string
-      success:
-        type: boolean
       transactions:
         items:
           $ref: '#/definitions/db.FrontendTransaction'
@@ -967,10 +867,6 @@ definitions:
         type: string
       session_count:
         type: integer
-      success:
-        type: boolean
-      warning:
-        type: boolean
     type: object
   status.FrontendStatus:
     properties:
@@ -1036,18 +932,26 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.addAddressExclusionsReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Adds new address exclusions for the current user
       tags:
       - address exclusions
   /addCluster/:
     post:
       parameters:
-      - description: separator of the CSV file
+      - description: separator of the CSV file; only comma and semicolon are allowed.
         in: formData
         name: separator
         required: true
@@ -1068,11 +972,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.addClusterReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Add Cluster
       tags:
       - cluster
@@ -1100,11 +1012,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.addAttributionReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Create a new attribution which is only visible for the current user
       tags:
       - attribution
@@ -1130,13 +1050,21 @@ paths:
       - text/csv
       responses:
         "200":
-          description: comma separated values
+          description: OK
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
         "500":
-          description: encoding error
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
       summary: Create a new attribution which is visible to all users
       tags:
       - attribution
@@ -1155,10 +1083,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Query for address, transaction or block
       tags:
       - data
@@ -1171,10 +1107,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.addressExclusionOverviewReply'
-        "500":
-          description: encoding error
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.addressExclusionOverviewReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.addressExclusionOverviewReply'
       summary: Address exclusion overview
       tags:
       - address exclusions
@@ -1193,10 +1133,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.addressExclusionStatusReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.addressExclusionStatusReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.addressExclusionStatusReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.addressExclusionStatusReply'
       summary: Get the exclusion status of an address
       tags:
       - address exclusions
@@ -1221,10 +1169,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Get outputs of the given address
       tags:
       - data
@@ -1242,11 +1198,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.identityReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete an arbitrary identity
       tags:
       - authentication
@@ -1259,10 +1223,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.attributionOverviewReply'
-        "500":
-          description: encoding error
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.attributionOverviewReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.attributionOverviewReply'
       summary: Get all attributions of the current user
       tags:
       - attribution
@@ -1281,10 +1249,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Query for address, transaction or block
       tags:
       - data
@@ -1309,10 +1285,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Get transactions of the given block
       tags:
       - data
@@ -1331,10 +1315,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.clusterLookupReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.clusterLookupReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.clusterLookupReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.clusterLookupReply'
       summary: Get all clusters of the given address
       tags:
       - cluster
@@ -1347,10 +1339,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.clusterOverviewReply'
-        "500":
-          description: encoding error
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.clusterOverviewReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.clusterOverviewReply'
       summary: Get all custom clusters of the current user
       tags:
       - cluster
@@ -1402,10 +1398,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.connectionLookupReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.connectionLookupReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.connectionLookupReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.connectionLookupReply'
       summary: Connection lookup
       tags:
       - tools
@@ -1426,11 +1430,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.identityReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Create a new identity
       tags:
       - authentication
@@ -1443,14 +1451,22 @@ paths:
         required: true
         type: string
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteAddressExclusionReply'
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "500":
-          description: encoding error
+          description: Internal Server Error
           schema:
             type: string
       summary: Deletes an address exclusion of the current user
@@ -1459,14 +1475,18 @@ paths:
   /deleteAllAddressExclusions/:
     get:
       produces:
-      - application/json
+      - text/plain
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteAddressExclusionReply'
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
         "500":
-          description: encoding error
+          description: Internal Server Error
           schema:
             type: string
       summary: Delete all address exclusions of the current user
@@ -1480,11 +1500,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteClusterReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete all clusters of the current user
       tags:
       - cluster
@@ -1496,11 +1520,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteAttributionReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete all attributions of the current user
       tags:
       - attribution
@@ -1518,11 +1546,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteClusterReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete Cluster
       tags:
       - cluster
@@ -1546,11 +1582,23 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteHeuristicReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Deletes either all heuristics or all heuristics of a transaction
       tags:
       - heuristic
@@ -1562,11 +1610,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.identityReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete the identity of the current user
       tags:
       - authentication
@@ -1584,11 +1640,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteAttributionReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete an attribution belonging to the current user
       tags:
       - attribution
@@ -1606,11 +1670,19 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.deleteAttributionReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Delete a public attribution
       tags:
       - attribution
@@ -1639,10 +1711,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.heuristicExecutionReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.heuristicExecutionReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.heuristicExecutionReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.heuristicExecutionReply'
       summary: Queues the execution of heuristics for the given transaction
       tags:
       - heuristic
@@ -1656,9 +1736,9 @@ paths:
           schema:
             $ref: '#/definitions/server.identitiesReply'
         "500":
-          description: encoding error
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.identitiesReply'
       summary: Get all identities
       tags:
       - authentication
@@ -1673,10 +1753,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.heuristicDescriptorReply'
-        "500":
-          description: encoding error
-          schema:
-            type: string
       summary: Gets available heuristic descriptors
       tags:
       - heuristic
@@ -1698,10 +1774,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.heuristicDetailsReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.heuristicDetailsReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.heuristicDetailsReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.heuristicDetailsReply'
       summary: Get the details of a heuristic
       tags:
       - heuristic
@@ -1714,10 +1798,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.heuristicListReply'
-        "500":
-          description: encoding error
+        "401":
+          description: Unauthorized
           schema:
-            type: string
+            $ref: '#/definitions/server.heuristicListReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.heuristicListReply'
       summary: Lists all heuristics of the current user
       tags:
       - heuristic
@@ -1735,16 +1823,22 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.heuristicReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.heuristicStatusReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.heuristicStatusReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.heuristicStatusReply'
       summary: Get the status of all heuristics per transaction
       tags:
       - heuristic
   /heuristics/{hash}:
     get:
+      description: Get all heuristics defined for a transaction and the current heuristic
+        execution status
       parameters:
       - description: "0x123"
         in: path
@@ -1758,11 +1852,19 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.heuristicReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
-      summary: Get all heuristic defined for a transaction
+            $ref: '#/definitions/server.heuristicReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.heuristicReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.heuristicReply'
+      summary: Get all heuristics defined for a transaction
       tags:
       - heuristic
   /heuristicsSummary/{heuristic_UID}:
@@ -1802,10 +1904,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.hmiLookupReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.hmiLookupReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.hmiLookupReply'
       summary: Get HMI clusters per transaction
       tags:
       - cluster
@@ -1819,9 +1925,9 @@ paths:
           schema:
             $ref: '#/definitions/server.metaReply'
         "500":
-          description: encoding error
+          description: Internal Server Error
           schema:
-            type: string
+            $ref: '#/definitions/server.metaReply'
       summary: Get the status of all backend modules
       tags:
       - meta
@@ -1843,10 +1949,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.mixingActivityReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.mixingActivityReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.mixingActivityReply'
       summary: Mixing Activity of an address
       tags:
       - tools
@@ -1867,11 +1977,15 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/server.identityReply'
-        "500":
-          description: encoding error
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
       summary: Modify an arbitrary identity
       tags:
       - authentication
@@ -1892,10 +2006,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Search for blocks, addresses and transactions
       tags:
       - data
@@ -1917,10 +2039,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.attributionOverviewReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.attributionOverviewReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.attributionOverviewReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.attributionOverviewReply'
       summary: Search all public attributions and the attributions belonging to the
         current user
       tags:
@@ -1943,10 +2073,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.shortestTransactionPathReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.shortestTransactionPathReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.shortestTransactionPathReply'
       summary: Get the shortest path between two transactions
       tags:
       - tools
@@ -1965,10 +2099,14 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.spendingFingerprintReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.spendingFingerprintReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.spendingFingerprintReply'
       summary: Get the spending fingerprint of a transaction
       tags:
       - tools
@@ -1987,10 +2125,18 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/server.searchReply'
-        "500":
-          description: encoding error
+        "400":
+          description: Bad Request
           schema:
-            type: string
+            $ref: '#/definitions/server.searchReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.searchReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.searchReply'
       summary: Query for address, transaction or block
       tags:
       - data

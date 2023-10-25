@@ -31,13 +31,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.addAddressExclusionsReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -55,7 +67,7 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "separator of the CSV file",
+                        "description": "separator of the CSV file; only comma and semicolon are allowed.",
                         "name": "separator",
                         "in": "formData",
                         "required": true
@@ -79,13 +91,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.addClusterReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -127,13 +151,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.addAttributionReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -173,15 +209,27 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "comma separated values",
+                        "description": "OK",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -212,10 +260,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -237,10 +297,16 @@
                             "$ref": "#/definitions/server.addressExclusionOverviewReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.addressExclusionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.addressExclusionOverviewReply"
                         }
                     }
                 }
@@ -271,10 +337,22 @@
                             "$ref": "#/definitions/server.addressExclusionStatusReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.addressExclusionStatusReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.addressExclusionStatusReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.addressExclusionStatusReply"
                         }
                     }
                 }
@@ -314,10 +392,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -345,13 +435,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.identityReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -373,10 +475,16 @@
                             "$ref": "#/definitions/server.attributionOverviewReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.attributionOverviewReply"
                         }
                     }
                 }
@@ -407,10 +515,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -450,10 +570,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -484,10 +616,22 @@
                             "$ref": "#/definitions/server.clusterLookupReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.clusterLookupReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.clusterLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.clusterLookupReply"
                         }
                     }
                 }
@@ -509,10 +653,16 @@
                             "$ref": "#/definitions/server.clusterOverviewReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.clusterOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.clusterOverviewReply"
                         }
                     }
                 }
@@ -593,10 +743,22 @@
                             "$ref": "#/definitions/server.connectionLookupReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.connectionLookupReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.connectionLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.connectionLookupReply"
                         }
                     }
                 }
@@ -629,13 +791,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.identityReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -644,7 +812,7 @@
         "/deleteAddressExclusion/{addressHash}": {
             "get": {
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "address exclusions"
@@ -663,11 +831,23 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteAddressExclusionReply"
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -678,7 +858,7 @@
         "/deleteAllAddressExclusions/": {
             "get": {
                 "produces": [
-                    "application/json"
+                    "text/plain"
                 ],
                 "tags": [
                     "address exclusions"
@@ -688,11 +868,17 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteAddressExclusionReply"
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -713,13 +899,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteClusterReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -738,13 +930,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteAttributionReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -772,13 +970,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteClusterReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -812,13 +1022,31 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteHeuristicReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -837,13 +1065,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.identityReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -871,13 +1111,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteAttributionReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -905,13 +1157,25 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.deleteAttributionReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -955,10 +1219,22 @@
                             "$ref": "#/definitions/server.heuristicExecutionReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.heuristicExecutionReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicExecutionReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicExecutionReply"
                         }
                     }
                 }
@@ -981,9 +1257,9 @@
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.identitiesReply"
                         }
                     }
                 }
@@ -1004,12 +1280,6 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/server.heuristicDescriptorReply"
-                        }
-                    },
-                    "500": {
-                        "description": "encoding error",
-                        "schema": {
-                            "type": "string"
                         }
                     }
                 }
@@ -1045,10 +1315,22 @@
                             "$ref": "#/definitions/server.heuristicDetailsReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.heuristicDetailsReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicDetailsReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicDetailsReply"
                         }
                     }
                 }
@@ -1070,10 +1352,16 @@
                             "$ref": "#/definitions/server.heuristicListReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.heuristicListReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicListReply"
                         }
                     }
                 }
@@ -1101,13 +1389,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.heuristicReply"
+                            "$ref": "#/definitions/server.heuristicStatusReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.heuristicStatusReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicStatusReply"
                         }
                     }
                 }
@@ -1115,13 +1409,14 @@
         },
         "/heuristics/{hash}": {
             "get": {
+                "description": "Get all heuristics defined for a transaction and the current heuristic execution status",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "heuristic"
                 ],
-                "summary": "Get all heuristic defined for a transaction",
+                "summary": "Get all heuristics defined for a transaction",
                 "parameters": [
                     {
                         "type": "string",
@@ -1138,10 +1433,22 @@
                             "$ref": "#/definitions/server.heuristicReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.heuristicReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicReply"
                         }
                     }
                 }
@@ -1206,10 +1513,16 @@
                             "$ref": "#/definitions/server.hmiLookupReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.hmiLookupReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.hmiLookupReply"
                         }
                     }
                 }
@@ -1232,9 +1545,9 @@
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.metaReply"
                         }
                     }
                 }
@@ -1270,10 +1583,16 @@
                             "$ref": "#/definitions/server.mixingActivityReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.mixingActivityReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.mixingActivityReply"
                         }
                     }
                 }
@@ -1306,13 +1625,19 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.identityReply"
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     },
                     "500": {
-                        "description": "encoding error",
+                        "description": "Internal Server Error",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.msgReply"
                         }
                     }
                 }
@@ -1344,10 +1669,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -1383,10 +1720,22 @@
                             "$ref": "#/definitions/server.attributionOverviewReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.attributionOverviewReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.attributionOverviewReply"
                         }
                     }
                 }
@@ -1422,10 +1771,16 @@
                             "$ref": "#/definitions/server.shortestTransactionPathReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.shortestTransactionPathReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.shortestTransactionPathReply"
                         }
                     }
                 }
@@ -1456,10 +1811,16 @@
                             "$ref": "#/definitions/server.spendingFingerprintReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.spendingFingerprintReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.spendingFingerprintReply"
                         }
                     }
                 }
@@ -1490,10 +1851,22 @@
                             "$ref": "#/definitions/server.searchReply"
                         }
                     },
-                    "500": {
-                        "description": "encoding error",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
-                            "type": "string"
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.searchReply"
                         }
                     }
                 }
@@ -2103,6 +2476,56 @@
                 }
             }
         },
+        "heuristics.FrontendHeuristic": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "clusterCount": {
+                    "type": "integer"
+                },
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "excludeAddresses": {
+                    "type": "boolean"
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parent": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.HollowHeuristic"
+                    }
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/heuristics.FrontendHeuristicResult"
+                    }
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
         "heuristics.FrontendHeuristicCluster": {
             "type": "object",
             "properties": {
@@ -2228,57 +2651,7 @@
                 }
             }
         },
-        "heuristics.TransformedFrontendHeuristic": {
-            "type": "object",
-            "properties": {
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HollowHeuristic"
-                    }
-                },
-                "clusterCount": {
-                    "type": "integer"
-                },
-                "clusterTypes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "excludeAddresses": {
-                    "type": "boolean"
-                },
-                "excludeSpendingGaps": {
-                    "type": "boolean"
-                },
-                "parameter": {
-                    "type": "string"
-                },
-                "parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HollowHeuristic"
-                    }
-                },
-                "results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.FrontendHeuristicResult"
-                    }
-                },
-                "ts": {
-                    "type": "string"
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "heuristics.TransformedFrontendHeuristicRequest": {
+        "server.ClientHeuristicRequest": {
             "type": "object",
             "properties": {
                 "children": {
@@ -2316,39 +2689,6 @@
                 }
             }
         },
-        "server.addAddressExclusionsReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.addAttributionReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.addClusterReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
         "server.addressExclusionOverviewReply": {
             "type": "object",
             "properties": {
@@ -2360,12 +2700,6 @@
                     "items": {
                         "type": "string"
                     }
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2373,12 +2707,6 @@
             "type": "object",
             "properties": {
                 "isExclusion": {
-                    "type": "boolean"
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
                     "type": "boolean"
                 }
             }
@@ -2391,12 +2719,6 @@
                     "items": {
                         "$ref": "#/definitions/attribution.FrontendAttribution"
                     }
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2408,12 +2730,6 @@
                     "items": {
                         "$ref": "#/definitions/clustering.FrontendCluster"
                     }
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2428,9 +2744,6 @@
                 },
                 "msg": {
                     "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2443,61 +2756,11 @@
                 "msg": {
                     "type": "string"
                 },
-                "success": {
-                    "type": "boolean"
-                },
                 "transactions": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/db.FrontendTransaction"
                     }
-                },
-                "warning": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.deleteAddressExclusionReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.deleteAttributionReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.deleteClusterReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "server.deleteHeuristicReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2590,7 +2853,7 @@
                 "changed": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/heuristics.TransformedFrontendHeuristicRequest"
+                        "$ref": "#/definitions/server.ClientHeuristicRequest"
                     }
                 },
                 "deleted": {
@@ -2663,12 +2926,6 @@
                     "items": {
                         "$ref": "#/definitions/heuristics.Descriptor"
                     }
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2677,26 +2934,14 @@
             "properties": {
                 "heuristic": {
                     "$ref": "#/definitions/heuristics.FrontendHeuristicShort"
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
         "server.heuristicExecutionReply": {
             "type": "object",
             "properties": {
-                "msg": {
-                    "type": "string"
-                },
                 "status": {
                     "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2708,12 +2953,6 @@
                     "items": {
                         "$ref": "#/definitions/heuristics.HeuristicListItem"
                     }
-                },
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2723,17 +2962,19 @@
                 "heuristics": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/heuristics.TransformedFrontendHeuristic"
+                        "$ref": "#/definitions/heuristics.FrontendHeuristic"
                     }
-                },
-                "msg": {
-                    "type": "string"
                 },
                 "status": {
                     "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
-                },
-                "success": {
-                    "type": "boolean"
+                }
+            }
+        },
+        "server.heuristicStatusReply": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
                 }
             }
         },
@@ -2748,9 +2989,6 @@
                     "items": {
                         "$ref": "#/definitions/clustering.FrontendHMICluster"
                     }
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2769,25 +3007,11 @@
                         "$ref": "#/definitions/client.Session"
                     }
                 },
-                "success": {
-                    "type": "boolean"
-                },
                 "users": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/user.FrontendUserBackendState"
                     }
-                }
-            }
-        },
-        "server.identityReply": {
-            "type": "object",
-            "properties": {
-                "msg": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2799,9 +3023,6 @@
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
-                },
-                "success": {
-                    "type": "boolean"
                 }
             }
         },
@@ -2816,9 +3037,14 @@
                 },
                 "msg": {
                     "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
+                }
+            }
+        },
+        "server.msgReply": {
+            "type": "object",
+            "properties": {
+                "msg": {
+                    "type": "string"
                 }
             }
         },
@@ -2860,9 +3086,6 @@
         "server.searchReply": {
             "type": "object",
             "properties": {
-                "msg": {
-                    "type": "string"
-                },
                 "payload": {},
                 "type": {
                     "$ref": "#/definitions/server.queryResultType"
@@ -2874,9 +3097,6 @@
             "properties": {
                 "msg": {
                     "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
                 },
                 "transactions": {
                     "type": "array",
@@ -2900,12 +3120,6 @@
                 },
                 "session_count": {
                     "type": "integer"
-                },
-                "success": {
-                    "type": "boolean"
-                },
-                "warning": {
-                    "type": "boolean"
                 }
             }
         },
