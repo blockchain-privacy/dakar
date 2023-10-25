@@ -632,16 +632,16 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	// get direction parameter
 	direction := urlValues.Get("forward")
 	var isLookupForward bool
-	// direction is either "0" or "1", thus check for a string with length equal to 1.
-	if len(direction) == 1 {
-		n, err := strconv.Atoi(direction)
+	// direction is either "true" or "false"
+	if len(direction) <= 5 {
+		n, err := strconv.ParseBool(direction)
 		if err != nil {
 			status = http.StatusBadRequest
 			warn(cliutil.NewStackError(err))
 			return
 		}
 
-		isLookupForward = n == 1
+		isLookupForward = n
 	}
 
 	txhash := path.Base(urlHandle.Path)
