@@ -161,6 +161,12 @@ func GetTransactionsOutputs(c external.Database, transactionHashes []string) (
 		return nil, cliutil.NewStackError(errEmptyRequestArgument)
 	}
 
+	for _, t := range transactionHashes {
+		if !isValidQueryInput(t) {
+			return nil, cliutil.NewStackErrorStr("invalid transaction hash")
+		}
+	}
+
 	query := `{
 				q(func: eq(txhash,` + CreateCommaArray(transactionHashes) + `)){
 					txhash
