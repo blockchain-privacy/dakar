@@ -15,13 +15,15 @@ import (
 //	@Produce		json
 //	@Param			query	path		string	true	"Hash"
 //	@Success		200		{object}	server.searchReply
-//	@Failure		500		{string}	string	"encoding error"
+//	@Failure		400		{object}	server.searchReply
+//	@Failure		404		{object}	server.searchReply
+//	@Failure		500		{object}	server.searchReply
 //	@Router			/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getSearchReply(s.db, path.Base(r.URL.Path))
+		reply, status := getSearchReply(s.db, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -32,15 +34,17 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Produce	json
 //	@Param		hash	path		string	true	"Hash"
 //	@Success	200		{object}	server.searchReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Failure	400		{object}	server.searchReply
+//	@Failure	404		{object}	server.searchReply
+//	@Failure	500		{object}	server.searchReply
 //	@Router		/blk/{hash} [get]
 //	@Router		/address/{hash} [get]
 //	@Router		/tx/{hash} [get]
 func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
+		reply, status := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -52,13 +56,15 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Param		addressHash	path		string										true	"address hash"
 //	@Param		options		body		server.getAddressOutputRangeReply.request	true	"query options"
 //	@Success	200			{object}	server.searchReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.searchReply
+//	@Failure	404			{object}	server.searchReply
+//	@Failure	500			{object}	server.searchReply
 //	@Router		/addressOutputRange/{addressHash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -70,13 +76,15 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Param		blockHash	path		string								true	"block hash"
 //	@Param		offset		body		server.getBlockRangeReply.request	true	"transaction offset"
 //	@Success	200			{object}	server.searchReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.searchReply
+//	@Failure	404			{object}	server.searchReply
+//	@Failure	500			{object}	server.searchReply
 //	@Router		/blkRange/{blockHash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -86,13 +94,13 @@ func (s *Server) handlerBlockRange() http.Handler {
 //	@Tags		meta
 //	@Produce	json
 //	@Success	200	{object}	server.metaReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	500	{object}	server.metaReply
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getMetaReply(s.db, s.client)
+		reply, status := getMetaReply(s.db, s.client)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -130,17 +138,19 @@ func (s *Server) handlerClusterSummary() http.Handler {
 // @Summary	Add Cluster
 // @Tags		cluster
 // @Produce	json
-// @Param		separator	formData	string	true	"separator of the CSV file"
+// @Param		separator	formData	string	true	"separator of the CSV file; only comma and semicolon are allowed."
 // @Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
 // @Param		file		formData	file	true	"the CSV file"
-// @Success	200			{object}	server.addClusterReply
-// @Failure	500			{string}	string	"encoding error"
+// @Success	200			{object}	server.msgReply
+// @Failure	400			{object}	server.msgReply
+// @Failure	401			{object}	server.msgReply
+// @Failure	500			{object}	server.msgReply
 // @Router		/addCluster/ [post]
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddClusterReply(s.db, r)
+		reply, status := getAddClusterReply(s.db, r)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -150,14 +160,16 @@ func (s *Server) handlerAddCluster() http.Handler {
 //	@Tags		cluster
 //	@Produce	json
 //	@Param		cluster_uid	path		string	true	"0x123"
-//	@Success	200			{object}	server.deleteClusterReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	401			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/deleteCluster/{cluster_uid} [get]
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteClusterReply(r, s.db)
+		reply, status := getDeleteClusterReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -166,14 +178,15 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 //	@Summary	Delete all clusters of the current user
 //	@Tags		cluster
 //	@Produce	json
-//	@Success	200	{object}	server.deleteClusterReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Success	200	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/deleteAllClusters/ [get]
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAllClustersReply(r, s.db)
+		reply, status := getDeleteAllClustersReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -183,13 +196,14 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 //	@Tags		cluster
 //	@Produce	json
 //	@Success	200	{object}	server.clusterOverviewReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	401	{object}	server.clusterOverviewReply
+//	@Failure	500	{object}	server.clusterOverviewReply
 //	@Router		/clusterOverview/ [get]
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getClusterOverviewReply(r, s.db)
+		reply, status := getClusterOverviewReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -199,13 +213,14 @@ func (s *Server) handlerClusterOverview() http.Handler {
 //	@Tags		attribution
 //	@Produce	json
 //	@Success	200	{object}	server.attributionOverviewReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	401	{object}	server.attributionOverviewReply
+//	@Failure	500	{object}	server.attributionOverviewReply
 //	@Router		/attributionOverview/ [get]
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAttributionOverviewReply(r, s.db)
+		reply, status := getAttributionOverviewReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -217,14 +232,16 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 //	@Param		separator	formData	string	true	"separator of the CSV file"
 //	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
 //	@Param		file		formData	file	true	"the CSV file"
-//	@Success	200			{object}	server.addAttributionReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	401			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/addPrivateAttribution/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddAttributionReply(r, s.db, false)
+		reply, status := getAddAttributionReply(r, s.db, false)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -236,14 +253,16 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Param		separator	formData	string	true	"separator of the CSV file"
 //	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
 //	@Param		file		formData	file	true	"the CSV file"
-//	@Success	200			{string}	string	"comma separated values"
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	401			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/addPublicAttribution/ [post]
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddAttributionReply(r, s.db, true)
+		reply, status := getAddAttributionReply(r, s.db, true)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -253,14 +272,16 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 //	@Tags		attribution
 //	@Produce	json
 //	@Param		attribution_uid	path		string	true	"0x123"
-//	@Success	200				{object}	server.deleteAttributionReply
-//	@Failure	500				{string}	string	"encoding error"
+//	@Success	200				{object}	server.msgReply
+//	@Failure	400				{object}	server.msgReply
+//	@Failure	401				{object}	server.msgReply
+//	@Failure	500				{object}	server.msgReply
 //	@Router		/deletePrivateAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAttributionReply(r, s.db, false)
+		reply, status := getDeleteAttributionReply(r, s.db, false)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -270,14 +291,16 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 //	@Tags		attribution
 //	@Produce	json
 //	@Param		attribution_uid	path		string	true	"0x123"
-//	@Success	200				{object}	server.deleteAttributionReply
-//	@Failure	500				{string}	string	"encoding error"
+//	@Success	200				{object}	server.msgReply
+//	@Failure	400				{object}	server.msgReply
+//	@Failure	401				{object}	server.msgReply
+//	@Failure	500				{object}	server.msgReply
 //	@Router		/deletePublicAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAttributionReply(r, s.db, true)
+		reply, status := getDeleteAttributionReply(r, s.db, true)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -286,14 +309,15 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 //	@Summary	Delete all attributions of the current user
 //	@Tags		attribution
 //	@Produce	json
-//	@Success	200	{object}	server.deleteAttributionReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Success	200	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/deleteAllPrivateAttributions/ [get]
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAllAttributionsReply(r, s.db)
+		reply, status := getDeleteAllAttributionsReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -305,13 +329,15 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Produce	json
 //	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search query"
 //	@Success	200			{object}	server.attributionOverviewReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.attributionOverviewReply
+//	@Failure	401			{object}	server.attributionOverviewReply
+//	@Failure	500			{object}	server.attributionOverviewReply
 //	@Router		/searchAttributions/ [post]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAttributionSearchReply(r, s.db)
+		reply, status := getAttributionSearchReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -321,14 +347,16 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 //	@Tags		address exclusions
 //	@Produce	text/csv
 //	@Param		file	formData	file	true	"the CSV file"
-//	@Success	200		{object}	server.addAddressExclusionsReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Success	200		{object}	server.msgReply
+//	@Failure	400		{object}	server.msgReply
+//	@Failure	401		{object}	server.msgReply
+//	@Failure	500		{object}	server.msgReply
 //	@Router		/addAddressExclusions/ [post]
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddAddressExclusionsReply(s.db, r)
+		reply, status := getAddAddressExclusionsReply(s.db, r)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -336,16 +364,18 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //
 //	@Summary	Deletes an address exclusion of the current user
 //	@Tags		address exclusions
-//	@Produce	json
+//	@Produce	text/plain
 //	@Param		addressHash	path		string	true	"0x123"
-//	@Success	200			{object}	server.deleteAddressExclusionReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{string}	string
+//	@Failure	400			{string}	string
+//	@Failure	401			{string}	string
+//	@Failure	500			{string}	string
 //	@Router		/deleteAddressExclusion/{addressHash} [get]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAddressExclusionReply(r, s.db)
+		status := getDeleteAddressExclusionReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, "", status)
 	})
 }
 
@@ -353,15 +383,16 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 //
 //	@Summary	Delete all address exclusions of the current user
 //	@Tags		address exclusions
-//	@Produce	json
-//	@Success	200	{object}	server.deleteAddressExclusionReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Produce	text/plain
+//	@Success	200	{string}	string
+//	@Failure	401	{string}	string
+//	@Failure	500	{string}	string
 //	@Router		/deleteAllAddressExclusions/ [get]
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteAllAddressExclusionsReply(r, s.db)
+		status := getDeleteAllAddressExclusionsReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, "", status)
 	})
 }
 
@@ -371,30 +402,34 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 //	@Tags		address exclusions
 //	@Produce	json
 //	@Success	200	{object}	server.addressExclusionOverviewReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	401	{object}	server.addressExclusionOverviewReply
+//	@Failure	500	{object}	server.addressExclusionOverviewReply
 //	@Router		/addressExclusionOverview/ [get]
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddressExclusionOverviewReply(r, s.db)
+		reply, status := getAddressExclusionOverviewReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
 // Heuristic godoc
 //
-//	@Summary	Get all heuristic defined for a transaction
-//	@Tags		heuristic
-//	@Produce	json
-//	@Param		hash	path		string	true	"0x123"
-//	@Success	200		{object}	server.heuristicReply
-//	@Failure	500		{string}	string	"encoding error"
-//	@Router		/heuristics/{hash} [get]
+//	@Summary		Get all heuristics defined for a transaction
+//	@Description	Get all heuristics defined for a transaction and the current heuristic execution status
+//	@Tags			heuristic
+//	@Produce		json
+//	@Param			hash	path		string	true	"0x123"
+//	@Success		200		{object}	server.heuristicReply
+//	@Failure		400		{object}	server.heuristicReply
+//	@Failure		401		{object}	server.heuristicReply
+//	@Failure		500		{object}	server.heuristicReply
+//	@Router			/heuristics/{hash} [get]
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHeuristicReply(r, s.db, s.worker)
+		reply, status := getHeuristicReply(r, s.db, s.worker)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -405,13 +440,14 @@ func (s *Server) handlerHeuristics() http.Handler {
 //	@Produce	json
 //	@Param		hash	path		string	true	"0x123"
 //	@Success	200		{object}	server.hmiLookupReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Failure	400		{object}	server.hmiLookupReply
+//	@Failure	500		{object}	server.hmiLookupReply
 //	@Router		/hmiLookup/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHMILookupReply(s.db, path.Base(r.URL.Path))
+		reply, status := getHMILookupReply(s.db, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -421,14 +457,15 @@ func (s *Server) handlerHMILookup() http.Handler {
 //	@Tags		heuristic
 //	@Produce	json
 //	@Param		hash	path		string	true	"0x123"
-//	@Success	200		{object}	server.heuristicReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Success	200		{object}	server.heuristicStatusReply
+//	@Failure	400		{object}	server.heuristicStatusReply
+//	@Failure	401		{object}	server.heuristicStatusReply
 //	@Router		/heuristicStatus/{hash} [get]
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHeuristicStatusReply(r, s.worker)
+		reply, status := getHeuristicStatusReply(r, s.worker)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -440,13 +477,15 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 //	@Accept		json
 //	@Param		heuristic	body		server.getHeuristicDetailsReply.request	true	"Heuristic UID"
 //	@Success	200			{object}	server.heuristicDetailsReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.heuristicDetailsReply
+//	@Failure	401			{object}	server.heuristicDetailsReply
+//	@Failure	500			{object}	server.heuristicDetailsReply
 //	@Router		/heuristicDetails/ [post]
 func (s *Server) handlerHeuristicsDetails() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHeuristicDetailsReply(r, s.db)
+		reply, status := getHeuristicDetailsReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -460,13 +499,15 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Param			hash		path		string										true	"0x123"
 //	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
 //	@Success		200			{object}	server.heuristicExecutionReply
-//	@Failure		500			{string}	string	"encoding error"
+//	@Failure		400			{object}	server.heuristicExecutionReply
+//	@Failure		401			{object}	server.heuristicExecutionReply
+//	@Failure		500			{object}	server.heuristicExecutionReply
 //	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHeuristicExecutionReply(r, s.db, s.worker)
+		reply, status := getHeuristicExecutionReply(r, s.db, s.worker)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -476,13 +517,14 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 //	@Tags		heuristic
 //	@Produce	json
 //	@Success	200	{object}	server.heuristicListReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	401	{object}	server.heuristicListReply
+//	@Failure	500	{object}	server.heuristicListReply
 //	@Router		/heuristicList/ [get]
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getHeuristicListReply(r, s.db)
+		reply, status := getHeuristicListReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -493,13 +535,12 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Success		200	{object}	server.heuristicDescriptorReply
-//	@Failure		500	{string}	string	"encoding error"
 //	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply := getHeuristicDescriptorReply()
 
-		sendReply(w, reply)
+		sendReply(w, reply, http.StatusOK)
 	})
 }
 
@@ -511,14 +552,17 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 //	@Produce		json
 //	@Accept			json
 //	@Param			heuristic	body		server.getDeleteHeuristicReply.request	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
-//	@Success		200			{object}	server.deleteHeuristicReply
-//	@Failure		500			{string}	string	"encoding error"
+//	@Success		200			{object}	server.msgReply
+//	@Failure		400			{object}	server.msgReply
+//	@Failure		401			{object}	server.msgReply
+//	@Failure		404			{object}	server.msgReply
+//	@Failure		500			{object}	server.msgReply
 //	@Router			/deleteHeuristic/ [post]
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteHeuristicReply(r, s.db)
+		reply, status := getDeleteHeuristicReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -529,16 +573,17 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 //	@Produce	json
 //	@Accept		json
 //	@Param		identity	body		server.getCreateIdentityReply.request	true	"Identity details"
-//	@Success	200			{object}	server.identityReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/createIdentity/ [post]
 //
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getCreateIdentityReply(s.db, s.adminAuth, r)
+		reply, status := getCreateIdentityReply(s.db, s.adminAuth, r)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -548,16 +593,16 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 //	@Tags		authentication
 //	@Produce	json
 //	@Param		identityUID	path		string	true	"0x123"
-//	@Success	200			{object}	server.identityReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	401			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/adminDeleteIdentity/{identityUID} [get]
-//
-// handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteIdentityReply(r, s.db, s.adminAuth, true)
+		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, true)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -566,16 +611,18 @@ func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 //	@Summary	Delete the identity of the current user
 //	@Tags		authentication
 //	@Produce	json
-//	@Success	200	{object}	server.identityReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/deleteIdentity/ [get]
 //
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
+		reply, status := getDeleteIdentityReply(r, s.db, s.adminAuth, false)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -586,16 +633,17 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 //	@Produce	json
 //	@Accept		json
 //	@Param		identity	body		server.getModifyIdentityReply.request	true	"Identity modification details"
-//	@Success	200			{object}	server.identityReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200			{object}	server.msgReply
+//	@Failure	400			{object}	server.msgReply
+//	@Failure	500			{object}	server.msgReply
 //	@Router		/modifyIdentity/ [post]
 //
 // handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getModifyIdentityReply(s.adminAuth, r)
+		reply, status := getModifyIdentityReply(s.adminAuth, r)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -605,13 +653,13 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 //	@Tags		authentication
 //	@Produce	json
 //	@Success	200	{object}	server.identitiesReply
-//	@Failure	500	{string}	string	"encoding error"
+//	@Failure	500	{object}	server.identitiesReply
 //	@Router		/getIdentities/ [get]
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getIdentitiesReply(s.db, s.adminAuth, r)
+		reply, status := getIdentitiesReply(s.db, s.adminAuth, r)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -623,13 +671,14 @@ func (s *Server) handlerGetIdentities() http.Handler {
 //	@Accept		json
 //	@Param		transactions	body		server.getShortestTransactionPathReply.request	true	"transactions between which the path should be found"
 //	@Success	200				{object}	server.shortestTransactionPathReply
-//	@Failure	500				{string}	string	"encoding error"
+//	@Failure	400				{object}	server.shortestTransactionPathReply
+//	@Failure	500				{object}	server.shortestTransactionPathReply
 //	@Router		/shortestTransactionPath/ [post]
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getShortestTransactionPathReply(s.db, r.Body)
+		reply, status := getShortestTransactionPathReply(s.db, r.Body)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -642,13 +691,15 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Param		forward	query		bool	false	"search direction"
 //	@Param		t		query		int		false	"number of days to look back"	maximum(90)
 //	@Success	200		{object}	server.connectionLookupReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Failure	400		{object}	server.connectionLookupReply
+//	@Failure	404		{object}	server.connectionLookupReply
+//	@Failure	500		{object}	server.connectionLookupReply
 //	@Router		/connectionLookup/{txhash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getConnectionLookupReply(s.db, s.worker, r.URL)
+		reply, status := getConnectionLookupReply(s.db, s.worker, r.URL)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -659,13 +710,15 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Produce	json
 //	@Param		addressHash	path		string	true	"Address hash"
 //	@Success	200			{object}	server.clusterLookupReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.clusterLookupReply
+//	@Failure	401			{object}	server.clusterLookupReply
+//	@Failure	500			{object}	server.clusterLookupReply
 //	@Router		/clusterLookup/{addressHash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getClusterLookupReply(r, s.db)
+		reply, status := getClusterLookupReply(r, s.db)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -677,13 +730,14 @@ func (s *Server) handlerClusterLookup() http.Handler {
 //	@Accept		json
 //	@Param		activity	body		server.getMixingActivity.request	true	"Mixing activity request details"
 //	@Success	200			{object}	server.mixingActivityReply
-//	@Failure	500			{string}	string	"encoding error"
+//	@Failure	400			{object}	server.mixingActivityReply
+//	@Failure	500			{object}	server.mixingActivityReply
 //	@Router		/mixingActivity/ [post]
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getMixingActivity(s.db, r.Body)
+		reply, status := getMixingActivity(s.db, r.Body)
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -694,13 +748,15 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Produce	json
 //	@Param		address_hash	path		string	true	"address hash"
 //	@Success	200				{object}	server.addressExclusionStatusReply
-//	@Failure	500				{string}	string	"encoding error"
+//	@Failure	400				{object}	server.addressExclusionStatusReply
+//	@Failure	401				{object}	server.addressExclusionStatusReply
+//	@Failure	500				{object}	server.addressExclusionStatusReply
 //	@Router		/addressExclusionStatus/{address_hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 
@@ -711,13 +767,14 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Produce	json
 //	@Param		hash	path		string	true	"transaction hash"
 //	@Success	200		{object}	server.spendingFingerprintReply
-//	@Failure	500		{string}	string	"encoding error"
+//	@Failure	400		{object}	server.spendingFingerprintReply
+//	@Failure	500		{object}	server.spendingFingerprintReply
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply := getSpendingFingerprintReply(s.db, s.worker, path.Base(r.URL.Path))
+		reply, status := getSpendingFingerprintReply(s.db, s.worker, path.Base(r.URL.Path))
 
-		sendReply(w, reply)
+		sendReply(w, reply, status)
 	})
 }
 

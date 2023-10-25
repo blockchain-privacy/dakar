@@ -59,7 +59,7 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 }
 
 // sendReply encodes the given reply into JSON and sends it
-func sendReply(w http.ResponseWriter, reply any) {
+func sendReply(w http.ResponseWriter, reply any, statusCode int) {
 	setCORSHeaders(w)
 
 	// use marshalling instead of encoding (streaming), as it gives better error handling
@@ -72,7 +72,16 @@ func sendReply(w http.ResponseWriter, reply any) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	if reply == "" {
+		w.Header().Set("Content-Type", "text/plain")
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+	}
+
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+	w.WriteHeader(statusCode)
 
 	if _, err := w.Write(replyBuffer); err != nil {
 		// not possible to send response to client, so just log error
@@ -93,7 +102,6 @@ func isLikelyAddress(query string) bool {
 type searchReply struct {
 	Type    queryResultType `json:"type,omitempty"`
 	Payload interface{}     `json:"payload,omitempty"`
-	Msg     string          `json:"msg,omitempty"`
 }
 
 type prunedRPCInfo struct {
@@ -105,56 +113,38 @@ type prunedRPCInfo struct {
 }
 
 type metaReply struct {
-	Status  dbstat.FrontendStatus `json:"status"`
-	RPCInfo prunedRPCInfo         `json:"rpcinfo"`
-	Success bool                  `json:"success"`
+	Status  *dbstat.FrontendStatus `json:"status,omitempty"`
+	RPCInfo *prunedRPCInfo         `json:"rpcinfo,omitempty"`
 }
 
 type heuristicReply struct {
-	Success    bool                            `json:"success"`
-	Msg        string                          `json:"msg,omitempty"`
 	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
 	Status     heuristics.HeuristicQueueStatus `json:"status"`
 }
 
+type heuristicStatusReply struct {
+	Status heuristics.HeuristicQueueStatus `json:"status"`
+}
+
 type heuristicExecutionReply struct {
-	Success bool                            `json:"success"`
-	Msg     string                          `json:"msg,omitempty"`
-	Status  heuristics.HeuristicQueueStatus `json:"status"`
+	Status heuristics.HeuristicQueueStatus `json:"status"`
 }
 
 type heuristicDetailsReply struct {
-	Success   bool                       `json:"success"`
-	Msg       string                     `json:"msg,omitempty"`
 	Heuristic dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
 }
 
-type identityReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type shortestTransactionPathReply struct {
-	Success      bool                     `json:"success"`
 	Msg          string                   `json:"msg,omitempty"`
 	Transactions []db.FrontendTransaction `json:"transactions"`
 }
 
 type heuristicListReply struct {
-	Success bool                    `json:"success"`
-	Msg     string                  `json:"msg,omitempty"`
-	Item    []dbh.HeuristicListItem `json:"items"`
+	Item []dbh.HeuristicListItem `json:"items"`
 }
 
 type heuristicDescriptorReply struct {
-	Success     bool                    `json:"success"`
-	Msg         string                  `json:"msg,omitempty"`
 	Descriptors []heuristics.Descriptor `json:"descriptors"`
-}
-
-type deleteHeuristicReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
 }
 
 type fingerprintScore struct {
@@ -164,8 +154,6 @@ type fingerprintScore struct {
 }
 
 type spendingFingerprintReply struct {
-	Success           bool               `json:"success"`
-	Warning           bool               `json:"warning,omitempty"`
 	Msg               string             `json:"msg,omitempty"`
 	SessionCount      int                `json:"session_count,omitempty"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores,omitempty"`
@@ -277,88 +265,48 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 }
 
 type connectionLookupReply struct {
-	Success          bool                     `json:"success"`
-	Warning          bool                     `json:"warning,omitempty"`
 	Msg              string                   `json:"msg,omitempty"`
 	Transactions     []db.FrontendTransaction `json:"transactions"`
 	TransactionCount *int                     `json:"count,omitempty"`
 }
 
 type clusterLookupReply struct {
-	Success  bool                         `json:"success"`
-	Msg      string                       `json:"msg,omitempty"`
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }
 
 type hmiLookupReply struct {
-	Success        bool                            `json:"success"`
 	Clusters       []clustering.FrontendHMICluster `json:"clusters,omitempty"`
 	AddressCluster string                          `json:"address_cluster,omitempty"`
 }
 
 type mixingActivityReply struct {
-	Success    bool                       `json:"success"`
 	Msg        string                     `json:"msg,omitempty"`
 	Activities []analytics.MixingActivity `json:"activities,omitempty"`
 }
 
-type addClusterReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type clusterOverviewReply struct {
-	Success  bool                             `json:"success"`
 	Msg      string                           `json:"msg,omitempty"`
 	Clusters []clustering.FrontendUserCluster `json:"clusters"`
 }
 
-type deleteClusterReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
-type addAttributionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type attributionOverviewReply struct {
-	Success      bool                              `json:"success"`
-	Msg          string                            `json:"msg,omitempty"`
 	Attributions []attribution.FrontendAttribution `json:"attributions"`
 }
 
-type deleteAttributionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
-type addAddressExclusionsReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
+type msgReply struct {
+	Msg string `json:"msg"`
 }
 
 type addressExclusionOverviewReply struct {
-	Success       bool     `json:"success"`
-	Msg           string   `json:"msg,omitempty"`
 	AddressHashes []string `json:"addresses"`
 	Count         int64    `json:"addressCount,omitempty"`
 }
 
-type deleteAddressExclusionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type addressExclusionStatusReply struct {
-	Success     bool   `json:"success"`
-	IsExclusion bool   `json:"isExclusion"`
-	Msg         string `json:"msg,omitempty"`
+	IsExclusion bool `json:"isExclusion"`
 }
 
 type identitiesReply struct {
-	Success    bool                            `json:"success"`
 	Users      []dbus.FrontendUserBackendState `json:"users"`
 	Identities []client.Identity               `json:"identities"`
 	Sessions   []client.Session                `json:"sessions"`
