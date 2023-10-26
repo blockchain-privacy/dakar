@@ -705,7 +705,7 @@
                 }
             }
         },
-        "/connectionLookup/{txhash}": {
+        "/connectionLookup/{txHash}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -718,7 +718,7 @@
                     {
                         "type": "string",
                         "description": "transaction hash",
-                        "name": "txhash",
+                        "name": "txHash",
                         "in": "path",
                         "required": true
                     },

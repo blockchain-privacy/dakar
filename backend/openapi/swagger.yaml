@@ -1374,12 +1374,12 @@ paths:
       summary: Get all clusters of an address
       tags:
       - cluster
-  /connectionLookup/{txhash}:
+  /connectionLookup/{txHash}:
     get:
       parameters:
       - description: transaction hash
         in: path
-        name: txhash
+        name: txHash
         required: true
         type: string
       - description: search direction

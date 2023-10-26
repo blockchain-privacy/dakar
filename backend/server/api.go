@@ -687,14 +687,14 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Summary	Connection lookup
 //	@Tags		tools
 //	@Produce	json
-//	@Param		txhash	path		string	true	"transaction hash"
+//	@Param		txHash	path		string	true	"transaction hash"
 //	@Param		forward	query		bool	true	"search direction"
 //	@Param		t		query		int		true	"time range in number of days"	maximum(90) minimum(1)
 //	@Success	200		{object}	server.connectionLookupReply
 //	@Failure	400		{object}	server.connectionLookupReply
 //	@Failure	404		{object}	server.connectionLookupReply
 //	@Failure	500		{object}	server.connectionLookupReply
-//	@Router		/connectionLookup/{txhash} [get]
+//	@Router		/connectionLookup/{txHash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getConnectionLookupReply(s.db, s.worker, r.URL)

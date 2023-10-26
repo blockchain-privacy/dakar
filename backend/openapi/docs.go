@@ -711,7 +711,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/connectionLookup/{txhash}": {
+        "/connectionLookup/{txHash}": {
             "get": {
                 "produces": [
                     "application/json"
@@ -724,7 +724,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "transaction hash",
-                        "name": "txhash",
+                        "name": "txHash",
                         "in": "path",
                         "required": true
                     },
