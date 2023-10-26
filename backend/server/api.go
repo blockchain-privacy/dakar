@@ -687,9 +687,9 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Summary	Connection lookup
 //	@Tags		tools
 //	@Produce	json
-//	@Param		txhash	path		string	true	"Transaction hash"
-//	@Param		forward	query		bool	false	"search direction"
-//	@Param		t		query		int		false	"number of days to look back"	maximum(90)
+//	@Param		txhash	path		string	true	"transaction hash"
+//	@Param		forward	query		bool	true	"search direction"
+//	@Param		t		query		int		true	"time range in number of days"	maximum(90) minimum(1)
 //	@Success	200		{object}	server.connectionLookupReply
 //	@Failure	400		{object}	server.connectionLookupReply
 //	@Failure	404		{object}	server.connectionLookupReply

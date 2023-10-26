@@ -611,38 +611,29 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	urlValues := urlHandle.Query()
 
-	// get time parameter
-	fLockBackTime := urlValues.Get("t")
-	var lookBackTime time.Duration
-	if len(fLockBackTime) > 0 {
-		n, err := strconv.Atoi(fLockBackTime)
-		if err != nil {
-			status = http.StatusBadRequest
-			warn(cliutil.NewStackError(err))
-			return
-		}
-
-		if n > 90 {
-			n = 90
-		}
-
-		lookBackTime = time.Duration(n)
+	numDays, err := strconv.Atoi(urlValues.Get("t"))
+	if err != nil {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 't'"
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
-	// get direction parameter
-	direction := urlValues.Get("forward")
-	var isLookupForward bool
-	// direction is either "true" or "false"
-	if len(direction) <= 5 {
-		n, err := strconv.ParseBool(direction)
-		if err != nil {
-			status = http.StatusBadRequest
-			warn(cliutil.NewStackError(err))
-			return
-		}
-
-		isLookupForward = n
+	isLookupForward, err := strconv.ParseBool(urlValues.Get("forward"))
+	if err != nil {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 'forward'"
+		warn(cliutil.NewStackError(err))
+		return
 	}
+
+	if numDays > 90 {
+		numDays = 90
+	} else if numDays == 0 {
+		numDays = 1
+	}
+
+	lookBackTime := time.Duration(numDays)
 
 	txhash := path.Base(urlHandle.Path)
 
