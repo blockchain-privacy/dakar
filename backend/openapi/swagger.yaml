@@ -1377,7 +1377,7 @@ paths:
   /connectionLookup/{txhash}:
     get:
       parameters:
-      - description: Transaction hash
+      - description: transaction hash
         in: path
         name: txhash
         required: true
@@ -1385,11 +1385,14 @@ paths:
       - description: search direction
         in: query
         name: forward
+        required: true
         type: boolean
-      - description: number of days to look back
+      - description: time range in number of days
         in: query
         maximum: 90
+        minimum: 1
         name: t
+        required: true
         type: integer
       produces:
       - application/json

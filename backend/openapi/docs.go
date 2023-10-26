@@ -723,7 +723,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Transaction hash",
+                        "description": "transaction hash",
                         "name": "txhash",
                         "in": "path",
                         "required": true
@@ -732,14 +732,17 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "search direction",
                         "name": "forward",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "maximum": 90,
+                        "minimum": 1,
                         "type": "integer",
-                        "description": "number of days to look back",
+                        "description": "time range in number of days",
                         "name": "t",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
