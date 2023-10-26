@@ -79,16 +79,16 @@ swaggo:
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - make swagger-fmt
     - make swagger-create
-  artifacts:
-    paths:
-      - backend/openapi
+#  artifacts:
+#    paths:
+#      - backend/openapi
 
-openapi:
-  needs: ["swaggo"]
-  image: openapitools/openapi-generator-cli:v7.0.1
-  stage: build
-  script:
-    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
-  artifacts:
-    paths:
-      - backend/openapi/client
+#openapi:
+#  needs: ["swaggo"]
+#  image: openapitools/openapi-generator-cli:v7.0.1
+#  stage: build
+#  script:
+#    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+#  artifacts:
+#    paths:
+#      - backend/openapi/client
