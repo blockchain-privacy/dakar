@@ -44,6 +44,11 @@ clean: ## Remove previous build
 
 swagger-create: ## Creates openapi docs
 	./swag init --pd -d cmd/crawler,server -o openapi
+ifdef CI
+	/usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+else
+	(cd ../docker && sudo docker-compose -f docker-compose-openapi.yml up)
+endif
 
 swagger-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server

@@ -71,7 +71,15 @@ build:
     <<: *modcache
     policy: pull
 
+openapi:
+  image: openapitools/openapi-generator-cli:v7.0.1
+  stage: build
+  script:
+    - make swagger-fmt
+    - make swagger-create
+
 #  artifacts:
 #    paths:
 #    - backend/build/crawler_dash
 #    - backend/build/crawler_bitcoin
+#    - backend/openapi/client
