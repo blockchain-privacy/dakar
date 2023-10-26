@@ -611,26 +611,30 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	urlValues := urlHandle.Query()
 
-	numDays, err := strconv.Atoi(urlValues.Get("t"))
-	if err != nil {
-		status = http.StatusBadRequest
-		reply.Msg = "invalid value for parameter 't'"
-		warn(cliutil.NewStackError(err))
-		return
-	}
-
 	isLookupForward, err := strconv.ParseBool(urlValues.Get("forward"))
 	if err != nil {
 		status = http.StatusBadRequest
 		reply.Msg = "invalid value for parameter 'forward'"
-		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	numDays, err := strconv.Atoi(urlValues.Get("t"))
+	if err != nil {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 't'"
 		return
 	}
 
 	if numDays > 90 {
-		numDays = 90
-	} else if numDays == 0 {
-		numDays = 1
+		status = http.StatusBadRequest
+		reply.Msg = "value for parameter 't' must be lower of equal then 90"
+		return
+	}
+
+	if numDays <= 0 {
+		status = http.StatusBadRequest
+		reply.Msg = "value for parameter 't' must be greater than 0"
+		return
 	}
 
 	lookBackTime := time.Duration(numDays)
