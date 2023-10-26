@@ -9,6 +9,7 @@ variables:
   GOPATH: ${CI_PROJECT_DIR}/vendor/go
   DGRAPH_VERSION: v23.1.0
   BTCD_VERSION: v0.23.3
+  SWAGGO_VERSION: 1.16.2
 
 .modcache: &modcache
   key: modcache
@@ -71,15 +72,23 @@ build:
     <<: *modcache
     policy: pull
 
+swaggo:
+  stage: build
+  script:
+    - curl --fail --silent --show-error -LO https://github.com/swaggo/swag/releases/download/v"${SWAGGO_VERSION}"/swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
+    - make swagger-fmt
+    - make swagger-create
+  artifacts:
+    paths:
+      - backend/openapi
+
 openapi:
+  needs: ["swaggo"]
   image: openapitools/openapi-generator-cli:v7.0.1
   stage: build
   script:
-    - make swagger-fmt
-    - make swagger-create
-
-#  artifacts:
-#    paths:
-#    - backend/build/crawler_dash
-#    - backend/build/crawler_bitcoin
-#    - backend/openapi/client
+    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+  artifacts:
+    paths:
+      - backend/openapi/client
