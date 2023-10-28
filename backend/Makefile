@@ -45,8 +45,9 @@ clean: ## Remove previous build
 swagger-create: ## Creates openapi docs
 	./swag init --pd -d cmd/crawler,server -o openapi
 ifndef CI
-	(cd ../docker && sudo docker-compose -f docker-compose-openapi.yml up)
+	(cd ../docker && sudo docker-compose -f docker-compose-openapi.yml up && sudo docker-compose -f docker-compose-openapi.yml rm -fsv)
 endif
+	(cd openapi/client/typescript-fetch && yarn npm publish)
 
 swagger-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server
