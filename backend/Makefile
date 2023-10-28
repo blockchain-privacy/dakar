@@ -1,6 +1,5 @@
 BUILD_DIR := "build"
 CRAWLER_DIR := "./cmd/crawler"
-SWAGGER_DIR := "./cmd/apidoc"
 
 .PHONY: all dep build dash bitcoin clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt
 

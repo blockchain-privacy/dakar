@@ -139,10 +139,25 @@ RPC_TESTS=1 DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./...
 
 The API documentation is built with [swaggo](https://github.com/swaggo/swag) using the annotations in the [api](server/api.go) file.
 
-To build or update the OpenAPI documentation execute the following command, which store the files in the [openapi](openapi) directory.
+The following command
+- compiles the OpenAPI schema the in [openapi](openapi) directory
+- builds the [Typescript client](openapi/client) 
+- and publishes it to the [Gitlab registry](https://git.gvk.idi.ntnu.no/research/blockchain/dakar/-/packages). 
 
 ```shell
 make swagger-create
+```
+
+Make sure to have the deployment token set in your `~/.yarnrc.yml`:
+
+```yaml
+yarnPath: .yarn/releases/yarn-4.0.0.cjs
+
+npmScopes:
+  blockchain:
+    npmRegistryServer: "https://git.gvk.idi.ntnu.no/api/v4/projects/410/packages/npm/"
+    npmAlwaysAuth: true
+    npmAuthToken: "<your-deploy-token>"
 ```
 
 Format the OpenAPI annotations using:
@@ -150,16 +165,3 @@ Format the OpenAPI annotations using:
 ```shell
 make swagger-fmt
 ```
-
-To compile the API documentation web server, run the command below. It will create the executable in the [build](build) directory.
-
-```shell
-make apidoc
-```
-
-Starting the `apidoc` executable will run the server on port `1323`:
-
-```text
-http://localhost:1323/swagger/index.html
-```
-
