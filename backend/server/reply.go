@@ -1115,7 +1115,7 @@ func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic 
 	csvReader.FieldsPerRecord = 5
 	var line []string
 
-	var addresses []analytics.Attribution
+	var attributions []analytics.Attribution
 	var index int
 	for ; ; index++ {
 		line, err = csvReader.Read()
@@ -1150,16 +1150,16 @@ func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic 
 			return
 		}
 
-		addresses = append(addresses, newAttribution)
+		attributions = append(attributions, newAttribution)
 	}
 
-	if len(addresses) == 0 {
+	if len(attributions) == 0 {
 		reply.Msg = CsvNoData
 		status = http.StatusBadRequest
 		return
 	}
 
-	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
+	if err := analytics.ImportAttribution(dgraph, attributions, tUser.ID, isPublic); err != nil {
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
