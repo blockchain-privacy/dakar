@@ -77,7 +77,7 @@ func (m *FlatMultiInput) CalculateInitialState() error {
 	}
 
 	if clusteringStatus.LastClusteredBlockID == nil {
-		return cliutil.NewStackErrorStr("error last FMI clustered block is not set")
+		return cliutil.NewStackErrorStr("last FMI clustered block is not set")
 	}
 
 	var state blockiterator.State
@@ -353,11 +353,8 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 			addresses: addressList,
 		}
 	} else {
-		for foundPointer := range foundListMap {
-			mergeListPtr = foundPointer
-			// map is only one element big
-			break
-		}
+		// map is only one element big
+		mergeListPtr = cliutil.GetOneKey(foundListMap)
 	}
 
 	mergeListPtr.changeTransaction = tx
@@ -365,7 +362,6 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	// new addresses to newCluster
 	for a := range newAddresses {
 		mergeListPtr.addresses[a] = true
-		// clusterMergeMap[a] = mergeListPtr
 	}
 
 	// find new clusters by querying the clusterMergeMap and append them to the mergeList
@@ -396,6 +392,8 @@ func addClustersToMergeList(clusterMergeMap map[string]*newCluster, addressMerge
 	}
 }
 
+// buildDBOperation creates database operations based on the given items. Items contained
+// in processedClusters are not processed. The clusterIndex controls the temporary UID (_:0x123) of the new clusters.
 func buildDBOperation(processedClusters map[*newCluster]bool, items map[string]*newCluster,
 	clusterIndex int) ([]clustering.DBOperation, error) {
 	var operations []clustering.DBOperation //nolint:prealloc

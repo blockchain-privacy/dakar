@@ -1,7 +1,12 @@
 package clustering
 
 import (
+	"backend/db"
 	"backend/db/analytics/clustering"
+	dbstat "backend/db/status"
+	"backend/testhelper"
+	"context"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -85,4 +90,303 @@ func countPointer(data map[string]*newCluster) int {
 		found[v] = true
 	}
 	return len(found)
+}
+
+func Test_buildDBOperation(t *testing.T) {
+	five := 5
+	ten := 10
+
+	someCluster := newCluster{
+		changeTransaction: "0x1",
+		mergeList:         nil,
+		addresses:         map[string]bool{"0x10": true, "0x20": true},
+	}
+
+	otherCluster := newCluster{}
+
+	type args struct {
+		processedClusters map[*newCluster]bool
+		items             map[string]*newCluster
+		clusterIndex      int
+	}
+	tests := []struct {
+		args              args
+		wantNumOperatiosn int
+		wantErr           bool
+	}{
+		{
+			args:              args{processedClusters: nil, items: map[string]*newCluster{}, clusterIndex: 0},
+			wantNumOperatiosn: 0,
+			wantErr:           false,
+		},
+		// mergeList and addresses empty
+		{
+			args: args{processedClusters: map[*newCluster]bool{}, items: map[string]*newCluster{"": {
+				changeTransaction: "",
+				mergeList:         nil,
+				addresses:         nil,
+			}}, clusterIndex: 0},
+			wantNumOperatiosn: 0,
+			wantErr:           true,
+		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{},
+				items: map[string]*newCluster{
+					"a": {
+						changeTransaction: "",
+						mergeList:         nil,
+						addresses:         nil,
+					}},
+				clusterIndex: 0},
+			wantNumOperatiosn: 0,
+			wantErr:           true,
+		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{},
+				items: map[string]*newCluster{
+					"a": &someCluster},
+				clusterIndex: 0},
+			wantNumOperatiosn: 1,
+			wantErr:           false,
+		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{&someCluster: true},
+				items: map[string]*newCluster{
+					"a": &someCluster,
+					"b": {
+						changeTransaction: "0x2",
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: &five}, {UID: "0x200", AddressCount: &ten}},
+						addresses:         map[string]bool{"0x30": true, "0x40": true},
+					}},
+				clusterIndex: 0},
+			wantNumOperatiosn: 1,
+			wantErr:           false,
+		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{&otherCluster: true},
+				items: map[string]*newCluster{
+					"a": &someCluster,
+					"b": {
+						changeTransaction: "0x2",
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: &five}, {UID: "0x200", AddressCount: &ten}},
+						addresses:         map[string]bool{"0x30": true, "0x40": true},
+					}},
+				clusterIndex: 0},
+			wantNumOperatiosn: 2,
+			wantErr:           false,
+		},
+		{
+			args: args{
+				processedClusters: map[*newCluster]bool{&otherCluster: true},
+				items: map[string]*newCluster{
+					"a": &someCluster,
+					"b": {
+						changeTransaction: "0x2",
+						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: nil}},
+					}},
+				clusterIndex: 0},
+			wantNumOperatiosn: 0,
+			wantErr:           true,
+		},
+	}
+	for _, tt := range tests {
+		operation, err := buildDBOperation(tt.args.processedClusters, tt.args.items, tt.args.clusterIndex)
+		if tt.wantErr {
+			require.Error(t, err)
+		} else {
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNumOperatiosn, len(operation))
+		}
+	}
+}
+
+func Test_calculateMetrics(t *testing.T) {
+	operations := []clustering.DBOperation{
+		{
+			NewCluster: clustering.Cluster{
+				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}, {UID: "0x3"}},
+			},
+			OldClusters: []string{"1", "2", "3"},
+		},
+		{
+			NewCluster: clustering.Cluster{
+				Addresses: []clustering.HollowAddress{{UID: "0x1"}, {UID: "0x2"}},
+			},
+			OldClusters: []string{"1", "2"},
+		},
+		{
+			NewCluster: clustering.Cluster{
+				Addresses: []clustering.HollowAddress{{UID: "0x1"}},
+			},
+			OldClusters: []string{"1"},
+		},
+	}
+
+	clusterCount, addressCount := calculateMetrics(operations)
+	require.Equal(t, 6, clusterCount)
+	require.Equal(t, 6, addressCount)
+}
+
+// unregisterCollectors unregisters all collectors of the flat multi input clusterer.
+// This is needed because collectors can not be registered twice with the same default config.
+func unregisterCollectors(fm *FlatMultiInput) {
+	if fm == nil {
+		return
+	}
+
+	prometheus.Unregister(fm.blocks)
+	prometheus.Unregister(fm.transactions)
+	prometheus.Unregister(fm.mergedClusters)
+	prometheus.Unregister(fm.newAddresses)
+	prometheus.Unregister(fm.blockHeight)
+}
+
+func TestNewFlatMultiInput(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+	require.NotNil(t, fm)
+}
+
+func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	// panics because db is not set
+	require.Panics(t, func() {
+		_ = fm.CalculateInitialState()
+	})
+
+	fm.db = dbHandle
+	db.SetupDBWithoutData(t, dbHandle)
+
+	// error because classifier status is not set
+	require.Error(t, fm.CalculateInitialState())
+
+	// set classifier status
+	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+
+	require.NoError(t, fm.CalculateInitialState())
+	require.EqualValues(t, 1, fm.state.ID)
+	require.EqualValues(t, 0, fm.state.Top)
+}
+
+func TestFlatMultiInput_Iterate(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	unregisterCollectors(fm)
+
+	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+	require.NoError(t, fm.CalculateInitialState())
+
+	// error because queue is empty
+	ok, err := fm.Iterate()
+	require.Error(t, err)
+	require.False(t, ok)
+
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
+	require.NoError(t, fm.CalculateInitialState())
+
+	ok, err = fm.Iterate()
+	require.NoError(t, err)
+	require.True(t, ok)
+}
+
+func TestFlatMultiInput_NextBlock(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
+
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	unregisterCollectors(fm)
+
+	// error because no status is set
+	_, err := fm.NextBlock()
+	require.Error(t, err)
+
+	require.NoError(t, dbstat.SetClassifying(dbHandle, true))
+
+	// error because not classified block is set
+	_, err = fm.NextBlock()
+	require.Error(t, err)
+
+	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
+	ok, err := fm.NextBlock()
+	require.NoError(t, err)
+	require.True(t, ok)
+	require.EqualValues(t, testhelper.BlockFileLastBlock, fm.state.Top)
+}
+
+func TestFlatMultiInput_PostExecution(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	fm := NewFlatMultiInput(context.Background(), dbHandle)
+	unregisterCollectors(fm)
+
+	require.NoError(t, fm.PostExecution())
+}
+
+func TestFlatMultiInput_IncrementState(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	require.EqualValues(t, 0, fm.state.ID)
+	require.NoError(t, fm.IncrementState())
+	require.EqualValues(t, 1, fm.state.ID)
+}
+
+func TestFlatMultiInput_Empty(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	// initially top and id are 0, so not empty
+	require.False(t, fm.Empty())
+	fm.state.Top = 5
+	fm.state.ID = 6
+
+	require.True(t, fm.Empty())
+}
+
+func TestFlatMultiInput_CurrentBlock(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	require.Zero(t, fm.CurrentBlock())
+}
+
+func TestFlatMultiInput_Logger(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	require.NotNil(t, fm.Logger())
+}
+
+func TestFlatMultiInput_Context(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	require.NotNil(t, fm.Context())
+}
+
+func TestFlatMultiInput_Name(t *testing.T) {
+	fm := NewFlatMultiInput(context.Background(), nil)
+	unregisterCollectors(fm)
+
+	require.NotEmpty(t, fm.Name())
+}
+
+func Test_setInitialFMIClusteringID(t *testing.T) {
+	testhelper.SkipIfNotCI(t)
+	db.SetupDBWithoutData(t, dbHandle)
+
+	require.Error(t, setInitialFMIClusteringID(dbHandle))
+	require.NoError(t, dbstat.SetClusteringFMI(dbHandle, true))
+	require.NoError(t, setInitialFMIClusteringID(dbHandle))
 }

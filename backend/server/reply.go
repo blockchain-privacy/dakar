@@ -697,7 +697,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 		case errors.Is(err, analyticsClustering.ErrShallowCluster):
 			reply.Msg = CsvShallowCluster
 		case errors.Is(err, analyticsClustering.ErrNonExistentAddress):
-			reply.Msg = err.Error()
+			reply.Msg = CsvInvalidData
 		default:
 			reply.Msg = CsvErrorImporting
 			warn(err)
@@ -805,7 +805,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
 		case errors.Is(err, analytics.ErrNonExistentAddress):
-			reply.Msg = err.Error()
+			reply.Msg = CsvInvalidData
 		default:
 			reply.Msg = CsvErrorImporting
 			warn(err)
@@ -1009,7 +1009,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
 		case errors.Is(err, analytics.ErrNonExistentAddress):
-			reply.Msg = err.Error()
+			reply.Msg = CsvInvalidData
 		default:
 			reply.Msg = CsvErrorImporting
 			warn(err)

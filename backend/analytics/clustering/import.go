@@ -36,6 +36,9 @@ func ImportCluster(dgraph external.Database, clusters []ExternalClusterItem, use
 	return clustering.AddCustomClusters(dgraph, dbClusters)
 }
 
+// buildDatabaseClusters creates from the given cluster and address to
+// uid mapping (hashToUID) custom clusters which can be inserted into the database.
+// hashToUID must contain mappings for all addresses contained in clusters.
 func buildDatabaseClusters(clusters []ExternalClusterItem, userID string,
 	hashToUID map[string]string) []clustering.CustomCluster {
 	set := buildClusterSet(clusters)
@@ -82,8 +85,8 @@ func buildClusterSet(clusters []ExternalClusterItem) map[string]map[string]bool 
 // validateAddresses returns an error, if the given cluster items are not valid.
 // Returns ErrTooManyAddresses if there are more than 1000 addresses.
 // Returns ErrShallowCluster if there are clusters with less than 2 addresses.
-// If an address does not exist on the db an error containing the address hash is returned.
-// Returns a mapping from address hash to db UID.
+// If an address does not exist in the db, an error containing the address hash is returned.
+// Returns a mapping from address hash to db UID, if no errors occurred.
 func validateAddresses(dgraph external.Database, clusters []ExternalClusterItem) (map[string]string, error) {
 	addresses := map[string]bool{}
 	for _, c := range clusters {
