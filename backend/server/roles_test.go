@@ -66,18 +66,18 @@ func TestNewPrivilegedRole(t *testing.T) {
 
 func TestGetRoleByName(t *testing.T) {
 	adminRole, err := getRoleByName(AdminRoleName)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, adminRole)
 
 	userRole, err := getRoleByName("user")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, userRole)
 
 	privRole, err := getRoleByName("privileged")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, privRole)
 
 	invRole, err := getRoleByName("some_invalid_role_string")
-	require.NotNil(t, err)
+	require.Error(t, err)
 	require.Nil(t, invRole)
 }

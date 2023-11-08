@@ -12,8 +12,6 @@ linters:
     - bodyclose
     - errorlint
     - exportloopref
-    - goconst
-    - gocritic
     - gocyclo
     - goprintffuncname
     - gosec
@@ -24,3 +22,9 @@ linters:
     - wastedassign
     - whitespace
     - usestdlibvars
+    - testifylint
+    - perfsprint
+    - protogetter
+    - sloglint
+    - mirror
+    - gocheckcompilerdirectives

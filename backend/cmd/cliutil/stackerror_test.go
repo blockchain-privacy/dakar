@@ -31,7 +31,7 @@ func TestGetStack(t *testing.T) {
 }
 
 func TestNewStackError(t *testing.T) {
-	require.NotNil(t, NewStackError(errors.New("some string")))
+	require.Error(t, NewStackError(errors.New("some string")))
 }
 
 func TestStackError_Error(t *testing.T) {
@@ -109,9 +109,9 @@ func TestStackError_Unwrap(t *testing.T) {
 }
 
 func TestNewStackErrorStr(t *testing.T) {
-	require.NotNil(t, NewStackErrorStr("some string"))
+	require.Error(t, NewStackErrorStr("some string"))
 }
 
 func TestNewStackErrorf(t *testing.T) {
-	require.NotNil(t, NewStackErrorf("new error %d", 1))
+	require.Error(t, NewStackErrorf("new error %d", 1))
 }

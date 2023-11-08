@@ -20,9 +20,9 @@ func TestReadAndWriteConfig(t *testing.T) {
 
 	// create temp file and close it immediately
 	file, err := os.CreateTemp("", "go_test_logfile")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	fName := file.Name()
-	require.Nil(t, file.Close())
+	require.NoError(t, file.Close())
 
 	var emptyConfig TestConfig
 	require.NoError(t, WriteConfig(fName, emptyConfig))
@@ -75,10 +75,10 @@ func TestBuildEndpoint(t *testing.T) {
 	for _, c := range cases {
 		endpoint, err := BuildEndpoint(c.host, c.port)
 		if len(strings.TrimSpace(c.host)) == 0 || c.port == 0 {
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.Empty(t, endpoint, "endpoint should be empty")
 		} else {
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotEmpty(t, endpoint, "created endpoint is empty")
 		}
 	}
@@ -87,19 +87,19 @@ func TestBuildEndpoint(t *testing.T) {
 func TestGetLogfile(t *testing.T) {
 	// this should not work
 	logfile, err := GetLogfile("")
-	require.NotNil(t, err)
+	require.Error(t, err)
 	require.Nil(t, logfile)
 
 	// this should work
 
 	// create temp file and close it immediately
 	file, err := os.CreateTemp("", "go_test_logfile")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	fName := file.Name()
-	require.Nil(t, file.Close())
+	require.NoError(t, file.Close())
 
 	logfile, err = GetLogfile(fName)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	require.NotNil(t, logfile)
 }
 
@@ -153,6 +153,6 @@ func TestGetMapKeys(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		require.Equal(t, tt.wantNumKeys, len(GetMapKeys(tt.args)))
+		require.Len(t, GetMapKeys(tt.args), tt.wantNumKeys)
 	}
 }

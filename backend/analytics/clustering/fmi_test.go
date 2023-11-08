@@ -20,8 +20,8 @@ func Test_addClustersToMergeList(t *testing.T) {
 
 	// case: no data given
 	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx1", newClusters, newAddresses)
-	require.Len(t, clusterMergeMap, 0)
-	require.Len(t, addressMergeMap, 0)
+	require.Empty(t, clusterMergeMap)
+	require.Empty(t, addressMergeMap)
 	require.Equal(t, 0, countPointer(clusterMergeMap))
 	require.Equal(t, 0, countPointer(addressMergeMap))
 
@@ -33,7 +33,7 @@ func Test_addClustersToMergeList(t *testing.T) {
 
 	// case: 5 new addresses
 	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx2", newClusters, newAddresses)
-	require.Len(t, clusterMergeMap, 0)
+	require.Empty(t, clusterMergeMap)
 	require.Len(t, addressMergeMap, 5)
 	require.Equal(t, 0, countPointer(clusterMergeMap))
 	require.Equal(t, 1, countPointer(addressMergeMap))
@@ -111,12 +111,12 @@ func Test_buildDBOperation(t *testing.T) {
 	}
 	tests := []struct {
 		args              args
-		wantNumOperatiosn int
+		wantNumOperations int
 		wantErr           bool
 	}{
 		{
 			args:              args{processedClusters: nil, items: map[string]*newCluster{}, clusterIndex: 0},
-			wantNumOperatiosn: 0,
+			wantNumOperations: 0,
 			wantErr:           false,
 		},
 		// mergeList and addresses empty
@@ -126,7 +126,7 @@ func Test_buildDBOperation(t *testing.T) {
 				mergeList:         nil,
 				addresses:         nil,
 			}}, clusterIndex: 0},
-			wantNumOperatiosn: 0,
+			wantNumOperations: 0,
 			wantErr:           true,
 		},
 		{
@@ -139,7 +139,7 @@ func Test_buildDBOperation(t *testing.T) {
 						addresses:         nil,
 					}},
 				clusterIndex: 0},
-			wantNumOperatiosn: 0,
+			wantNumOperations: 0,
 			wantErr:           true,
 		},
 		{
@@ -148,7 +148,7 @@ func Test_buildDBOperation(t *testing.T) {
 				items: map[string]*newCluster{
 					"a": &someCluster},
 				clusterIndex: 0},
-			wantNumOperatiosn: 1,
+			wantNumOperations: 1,
 			wantErr:           false,
 		},
 		{
@@ -162,7 +162,7 @@ func Test_buildDBOperation(t *testing.T) {
 						addresses:         map[string]bool{"0x30": true, "0x40": true},
 					}},
 				clusterIndex: 0},
-			wantNumOperatiosn: 1,
+			wantNumOperations: 1,
 			wantErr:           false,
 		},
 		{
@@ -176,7 +176,7 @@ func Test_buildDBOperation(t *testing.T) {
 						addresses:         map[string]bool{"0x30": true, "0x40": true},
 					}},
 				clusterIndex: 0},
-			wantNumOperatiosn: 2,
+			wantNumOperations: 2,
 			wantErr:           false,
 		},
 		{
@@ -189,7 +189,7 @@ func Test_buildDBOperation(t *testing.T) {
 						mergeList:         []clustering.Cluster{{UID: "0x100", AddressCount: nil}},
 					}},
 				clusterIndex: 0},
-			wantNumOperatiosn: 0,
+			wantNumOperations: 0,
 			wantErr:           true,
 		},
 	}
@@ -199,7 +199,7 @@ func Test_buildDBOperation(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.Equal(t, tt.wantNumOperatiosn, len(operation))
+			require.Len(t, operation, tt.wantNumOperations)
 		}
 	}
 }

@@ -15,7 +15,7 @@ const uidV = "uid(v)"
 
 // GetCrawlerStatus gets the crawler status from the database
 func GetCrawlerStatus(c external.Database) (status CrawlerStatus, err error) {
-	query := `{
+	const query = `{
 				 q(func: type(` + CrawlerStatusDType + `)){
 					uid
 					iscrawling
