@@ -7,12 +7,12 @@ import (
 )
 
 func TestSetupSchema(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	require.NoError(t, SetupSchema(dbHandle))
 }
 
 func TestIsSchemaSet(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	// first drop schema
 	require.NoError(t, DropAll(dbHandle))
 

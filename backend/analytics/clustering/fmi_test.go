@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestAddClustersToMergeList(t *testing.T) {
+func Test_addClustersToMergeList(t *testing.T) {
 	clusterMergeMap := make(map[string]*newCluster)
 	addressMergeMap := make(map[string]*newCluster)
 	clusterStore := make(map[string]clustering.Cluster)
@@ -252,7 +252,7 @@ func TestNewFlatMultiInput(t *testing.T) {
 }
 
 func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	fm := NewFlatMultiInput(context.Background(), nil)
 	unregisterCollectors(fm)
@@ -277,7 +277,7 @@ func TestFlatMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestFlatMultiInput_Iterate(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle)
@@ -294,13 +294,16 @@ func TestFlatMultiInput_Iterate(t *testing.T) {
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
 	require.NoError(t, fm.CalculateInitialState())
 
+	// this block contains transactions with multiple input addresses
+	fm.state.ID = 60015
+
 	ok, err = fm.Iterate()
 	require.NoError(t, err)
 	require.True(t, ok)
 }
 
 func TestFlatMultiInput_NextBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle)
@@ -324,7 +327,7 @@ func TestFlatMultiInput_NextBlock(t *testing.T) {
 }
 
 func TestFlatMultiInput_PostExecution(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	fm := NewFlatMultiInput(context.Background(), dbHandle)
@@ -383,7 +386,7 @@ func TestFlatMultiInput_Name(t *testing.T) {
 }
 
 func Test_setInitialFMIClusteringID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	require.Error(t, setInitialFMIClusteringID(dbHandle))

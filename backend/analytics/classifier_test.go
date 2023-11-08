@@ -21,7 +21,7 @@ func getPointer[number any](n number) *number {
 }
 
 func TestMain(m *testing.M) {
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
 func TestIsMixing(t *testing.T) {
@@ -410,7 +410,7 @@ func TestClassifier_Empty(t *testing.T) {
 }
 
 func TestClassifier_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	classifier := NewClassifier(context.Background(), nil, Config{})
@@ -468,7 +468,7 @@ func Test_getUids(t *testing.T) {
 }
 
 func Test_getConnectedCollaterals(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
@@ -531,7 +531,7 @@ func Test_getConnectedCollaterals(t *testing.T) {
 }
 
 func TestClassifier_NextBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	no := false
@@ -564,7 +564,7 @@ func TestClassifier_CurrentBlock(t *testing.T) {
 }
 
 func TestClassifier_Iterate(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	const firstBlock = 1557778
@@ -594,7 +594,7 @@ func TestClassifier_Iterate(t *testing.T) {
 }
 
 func TestClassifier_PostExecution(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	classifier := NewClassifier(context.Background(), dbHandle, NewDashConfig())
@@ -604,7 +604,7 @@ func TestClassifier_PostExecution(t *testing.T) {
 }
 
 func Test_setInitialClassifierID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 	yes := true
 	require.NoError(t, status.SetClassifierStatus(dbHandle, status.ClassifierStatus{
@@ -644,7 +644,7 @@ func Test_setInitialClassifierID(t *testing.T) {
 }
 
 func Test_isCollateralCreation(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	ccTx, err := db.GetTransaction(dbHandle, "f44eb76b592c5b16a79fd81277c55306f4db6cb783b01f3fde675867bc8af2b7")
@@ -700,7 +700,7 @@ func Test_newCollateralCreationTransaction(t *testing.T) {
 }
 
 func Test_isCollateralPayment(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
@@ -749,7 +749,7 @@ func Test_newCollateralPaymentTransaction(t *testing.T) {
 }
 
 func Test_isMixing(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	cp, err := db.GetTransaction(dbHandle, "8f85c5c61fac409ce4b07c25d51d93dc8bcd1054d5dad3da2c1d7754bdc98d5e")
@@ -841,7 +841,7 @@ func Test_hasValidPrivacyType(t *testing.T) {
 }
 
 func Test_classifyTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	txHashes := []string{
@@ -894,7 +894,7 @@ func Test_classifyTransactions(t *testing.T) {
 }
 
 func TestBlockIterator(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseClassifierFile)
 
 	const firstBlock = 1557778

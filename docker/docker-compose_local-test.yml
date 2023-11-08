@@ -1,0 +1,12 @@
+version: "3.6"
+
+services:
+  dgraph_db:
+    image: dgraph/standalone:v23.1.0
+    network_mode: "bridge"
+    container_name: dgraph_db
+    ports:
+      - "${CONTAINER_IP}:8080:8080"
+      - "${CONTAINER_IP}:9080:9080"
+    expose:
+      - 9080

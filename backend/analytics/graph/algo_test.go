@@ -12,7 +12,7 @@ var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
 	InitLogger()
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
 func TestErrNodeNotFound(t *testing.T) {

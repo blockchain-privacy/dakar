@@ -16,5 +16,5 @@ func TestInitLogger(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	InitLogger()
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }

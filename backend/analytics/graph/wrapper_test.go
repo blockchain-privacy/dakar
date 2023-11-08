@@ -439,7 +439,7 @@ func TestWrapper_GetInputTransactions(t *testing.T) {
 }
 
 func TestWrapper_LoadGraphs(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
 	unregisterCollectors(w)
@@ -499,7 +499,7 @@ func TestWrapper_CalculateInitialState(t *testing.T) {
 }
 
 func TestWrapper_NextBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
 	unregisterCollectors(w)
@@ -554,7 +554,7 @@ func TestWrapper_Empty(t *testing.T) {
 }
 
 func TestWrapper_Iterate(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	w := NewWrapper(context.Background(), nil)
 	unregisterCollectors(w)

@@ -13,7 +13,7 @@ var dbHandle = &testhelper.TestDB{IsDirty: true}
 
 func TestMain(m *testing.M) {
 	InitLogger()
-	testhelper.RunDgraphTests(m, &dbHandle.DB, testhelper.ContainerNameDB)
+	testhelper.RunDgraphTests(m, &dbHandle.DB)
 }
 
 func TestInfo(t *testing.T) {
@@ -39,7 +39,7 @@ func TestGetFrontendContext(t *testing.T) {
 }
 
 func TestExecTx(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := execTx(dbHandle, time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
@@ -58,7 +58,7 @@ func TestExecTx(t *testing.T) {
 }
 
 func TestExecExistingTx(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := execExistingTx(dbHandle.NewTxn(), time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
@@ -77,7 +77,7 @@ func TestExecExistingTx(t *testing.T) {
 }
 
 func TestTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	require.Error(t, TxWithRetry(dbHandle, time.Duration(0), &api.Request{
 		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
@@ -91,7 +91,7 @@ func TestTxWithRetry(t *testing.T) {
 }
 
 func TestTxWithRetryAndResponse(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := TxWithRetryAndResponse(dbHandle, time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
@@ -110,7 +110,7 @@ func TestTxWithRetryAndResponse(t *testing.T) {
 }
 
 func TestExistingTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	require.Error(t, ExistingTxWithRetry(dbHandle.NewTxn(), time.Duration(0), &api.Request{
 		Query: `{q(func:uid(0x1)){uid}}`, CommitNow: true}))
@@ -124,7 +124,7 @@ func TestExistingTxWithRetry(t *testing.T) {
 }
 
 func TestExistingTxWithRetryAndResponse(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := ExistingTxWithRetryAndResponse(dbHandle.NewTxn(), time.Duration(0), &api.Request{
 		Query:     `{q(func:uid(0x1)){uid}}`,
@@ -143,7 +143,7 @@ func TestExistingTxWithRetryAndResponse(t *testing.T) {
 }
 
 func TestExecReadOnlyTx(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := execReadOnlyTx(dbHandle, time.Minute, "", nil)
 	require.Error(t, err)
@@ -156,7 +156,7 @@ func TestExecReadOnlyTx(t *testing.T) {
 }
 
 func TestReadOnlyTxVarWithRetry(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := ReadOnlyTxVarWithRetry(dbHandle, time.Minute, "", nil)
 	require.Error(t, err)
@@ -169,7 +169,7 @@ func TestReadOnlyTxVarWithRetry(t *testing.T) {
 }
 
 func TestReadOnlyTxWithRetry(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	_, err := ReadOnlyTxWithRetry(dbHandle, time.Minute, "")
 	require.Error(t, err)
@@ -242,13 +242,17 @@ func TestCreateCommaArray(t *testing.T) {
 }
 
 func TestDropAll(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	require.NoError(t, DropAll(dbHandle))
 }
 
 func TestCreateClient(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
-	_, c, err := external.CreateClient(string(testhelper.ContainerNameDB) + ":9080")
+	testhelper.SkipIfNoDB(t)
+	name, ok := testhelper.GetDBName()
+	if !ok {
+		t.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
+	}
+	_, c, err := external.CreateClient(name + ":9080")
 	require.NoError(t, err)
 	require.NoError(t, c.Close())
 }

@@ -95,6 +95,29 @@ App running at:
 - Network: http://<your-private-ip>:8082/
 ```
 
-### Metrics
+## Metrics
 
 Metrics are exposed via `/metrics` on a separate port, which is configurable via the config file.
+
+## Running local tests
+
+Some tests require a connection to a dgraph database and a blockchain RPC-client.
+
+The command below runs all tests, which don't require a database and RPC-client.
+```shell
+go test -cover -race ./... 
+```
+
+To run database tests, first set up an empty dgraph instance, preferably via [docker](../docker/docker-compose_local-test.yml).
+Next, set the `DB_TESTS` and `DB_HOSTNAME` environment variables. `DB_HOSTNAME` should be set to the host which runs the database. The port is expected to be `9080`. 
+Set parallelism to 1, so database tests of different modules don't interfere which each other.
+
+```shell
+DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./... 
+```
+
+Set the `DB_TESTS`, `DB_HOSTNAME` and `RPC_TESTS` environment variables to run all tests.
+
+```shell
+RPC_TESTS=1 DB_TESTS=1 DB_HOSTNAME=localhost go test -p 1 -cover -race ./... 
+```

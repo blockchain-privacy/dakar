@@ -52,7 +52,8 @@ func TestCrawler_DB(t *testing.T) {
 }
 
 func TestCrawler_IncrementState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
@@ -70,7 +71,8 @@ func TestCrawler_IncrementState(t *testing.T) {
 }
 
 func TestCrawler_Empty(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
@@ -90,7 +92,8 @@ func TestCrawler_Empty(t *testing.T) {
 }
 
 func TestCrawler_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
@@ -99,7 +102,7 @@ func TestCrawler_CalculateInitialState(t *testing.T) {
 }
 
 func TestCrawler_PostExecution(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
@@ -115,7 +118,8 @@ func TestCrawler_CurrentBlock(t *testing.T) {
 }
 
 func TestCrawler_NextBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())
@@ -131,7 +135,8 @@ func TestCrawler_NextBlock(t *testing.T) {
 }
 
 func TestCrawler_Iterate(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	crawler := NewCrawler(context.Background(), dbHandle, client, batchClient, 0, NewBitcoinConfig())

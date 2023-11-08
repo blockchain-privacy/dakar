@@ -32,7 +32,7 @@ func TestNewHierarchicalMultiInput(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 
 	hm := NewHierarchicalMultiInput(context.Background(), nil)
 	unregisterCollectorsHM(hm)
@@ -57,7 +57,7 @@ func TestHierarchicalMultiInput_CalculateInitialState(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_Iterate(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
 	unregisterCollectorsHM(hm)
@@ -73,13 +73,16 @@ func TestHierarchicalMultiInput_Iterate(t *testing.T) {
 	require.NoError(t, dbstat.SetLastClassifiedBlockID(dbHandle, testhelper.BlockFileLastBlock))
 	require.NoError(t, hm.CalculateInitialState())
 
+	// this block contains transactions with multiple input addresses
+	hm.state.ID = 60015
+
 	ok, err = hm.Iterate()
 	require.NoError(t, err)
 	require.True(t, ok)
 }
 
 func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
@@ -103,7 +106,7 @@ func TestHierarchicalMultiInput_NextBlock(t *testing.T) {
 }
 
 func TestHierarchicalMultiInput_PostExecution(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	hm := NewHierarchicalMultiInput(context.Background(), dbHandle)
@@ -162,7 +165,7 @@ func TestHierarchicalMultiInput_Name(t *testing.T) {
 }
 
 func Test_setInitialHMIClusteringID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	require.Error(t, setInitialHMIClusteringID(dbHandle))

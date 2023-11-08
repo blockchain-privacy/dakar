@@ -15,11 +15,12 @@ import (
 type ContainerName string
 
 const (
-	EnvCIFlag               = "CI_ACTIVE"
+	EnvDBTests              = "DB_TESTS"
+	EnvRPCTests             = "RPC_TESTS"
+	EnvDBHostname           = "DB_HOSTNAME"
 	UseClassifierFile       = "classifier"
 	UseBlockFile            = "block"
 	UsePrivacyFile          = "privacy"
-	ContainerNameDB         = ContainerName("dgraph_db")
 	ClassifierFileLastBlock = 1557780
 	BlockFileFirstBlock     = 60000
 	BlockFileLastBlock      = 60020
@@ -63,23 +64,42 @@ func (t *TestDB) NewTxn() *dgo.Txn {
 	return t.DB.NewTxn()
 }
 
-func IsCIActive() bool {
-	_, ok := os.LookupEnv(EnvCIFlag)
+func DoDBTests() bool {
+	_, ok := os.LookupEnv(EnvDBTests)
 	return ok
 }
 
-func SkipIfNotCI(t *testing.T) {
-	if !IsCIActive() {
+func DoRPCTests() bool {
+	_, ok := os.LookupEnv(EnvRPCTests)
+	return ok
+}
+
+func GetDBName() (string, bool) {
+	return os.LookupEnv(EnvDBHostname)
+}
+
+func SkipIfNoDB(t *testing.T) {
+	if !DoDBTests() {
+		t.SkipNow()
+	}
+}
+
+func SkipIfNoRPC(t *testing.T) {
+	if !DoRPCTests() {
 		t.SkipNow()
 	}
 }
 
 // RunDgraphTests connects to the given dgraph container and runs all tests
 // packageDBHandle should be set to the global db interface handle of the package module.
-func RunDgraphTests(m *testing.M, packageDBHandle *external.Database, containerName ContainerName) {
-	if IsCIActive() {
+func RunDgraphTests(m *testing.M, packageDBHandle *external.Database) {
+	if DoDBTests() {
+		dbName, ok := GetDBName()
+		if !ok {
+			log.Fatal("environment variable " + EnvDBHostname + " is not set")
+		}
 		// create dgraph client
-		graphDB, c, err := external.CreateClient(string(containerName) + ":9080")
+		graphDB, c, err := external.CreateClient(dbName + ":9080")
 		if err != nil {
 			log.Panic(err)
 			return

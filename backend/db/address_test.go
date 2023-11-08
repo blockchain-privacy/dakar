@@ -58,7 +58,7 @@ func TestFrontendAddress_String(t *testing.T) {
 }
 
 func TestGetFrontendAddress(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	_, err := GetFrontendAddress(dbHandle, "", 1, 1, nil)
@@ -76,7 +76,7 @@ func TestGetFrontendAddress(t *testing.T) {
 }
 
 func TestUpsertAddresses(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDBWithoutData(t, dbHandle)
 
 	const newAddressHash = "some_address_hash"
@@ -101,7 +101,7 @@ func TestUpsertAddresses(t *testing.T) {
 }
 
 func TestGetAddressesByBlockRange(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	blockRange, err := GetAddressesByBlockRange(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock, true)
@@ -114,7 +114,7 @@ func TestGetAddressesByBlockRange(t *testing.T) {
 }
 
 func TestGetAddressUIDs(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	type args struct {
 		c             external.Database

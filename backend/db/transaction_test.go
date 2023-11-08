@@ -108,7 +108,7 @@ func TestFrontendTransaction_String(t *testing.T) {
 }
 
 func TestGetTransactionsOutputs(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	// test null input
 	outputs, err := GetTransactionsOutputs(dbHandle, nil)
@@ -137,7 +137,7 @@ func TestGetTransactionsOutputs(t *testing.T) {
 }
 
 func TestGetTransactionByBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// only blocks beginning from height 60000 are in the DB, so it should fail
@@ -151,7 +151,7 @@ func TestGetTransactionByBlock(t *testing.T) {
 }
 
 func TestGetOutputAddressCounts(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	// invalid input
 	inputCount, outputCount, err := GetOutputAddressCounts(dbHandle, "")
 	require.Error(t, err)
@@ -223,7 +223,7 @@ func TestGetOutputAddressCounts(t *testing.T) {
 }
 
 func TestGetFrontendTransaction(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	const blockHash = "00000000000cfe64fca7b5c3a8ad1ee39dd3f380aeb56027bc25e97904d2c99e"
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
@@ -247,7 +247,7 @@ func TestGetFrontendTransaction(t *testing.T) {
 }
 
 func TestGetFrontendTransactionsByUID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)
@@ -265,7 +265,7 @@ func TestGetFrontendTransactionsByUID(t *testing.T) {
 }
 
 func TestGetTransactionBlockID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	const txHash1 = "a9535110536ded94998287e306b9a0c7d9e6b3a7ad88c7e82a60a0515ccc1f13"
@@ -280,7 +280,7 @@ func TestGetTransactionBlockID(t *testing.T) {
 }
 
 func TestUpdateTransactions(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// empty slice should fail
@@ -312,7 +312,7 @@ func TestUpdateTransactions(t *testing.T) {
 }
 
 func TestGetTransactionUID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	_, err := GetTransactionUID(dbHandle, "")
@@ -328,7 +328,7 @@ func TestGetTransactionUID(t *testing.T) {
 }
 
 func TestGetOutputs(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 	transactions, err := GetOutputs(dbHandle, testhelper.BlockFileFirstBlock, testhelper.BlockFileLastBlock)
 	require.NoError(t, err)
@@ -345,7 +345,7 @@ func TestGetOutputs(t *testing.T) {
 }
 
 func TestGetTransaction(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
@@ -377,7 +377,7 @@ func TestGetTransaction(t *testing.T) {
 }
 
 func TestGetTransactionUIDMapping(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := GetTransactionByBlock(dbHandle, 60005)

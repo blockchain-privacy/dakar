@@ -25,52 +25,56 @@ var (
 
 func TestMain(m *testing.M) {
 	InitLogger()
-	if !testhelper.IsCIActive() {
-		m.Run()
-		return
-	}
 
-	// create dgraph client
-	graphDB, c, err := external.CreateClient(string(testhelper.ContainerNameDB) + ":9080")
-	if err != nil {
-		log.Panic(err)
-		return
-	}
-	defer func(c *grpc.ClientConn) {
-		err := c.Close()
-		if err != nil {
-			log.Fatal(err)
+	if testhelper.DoDBTests() {
+		dbName, ok := testhelper.GetDBName()
+		if !ok {
+			log.Fatal("environment variable " + testhelper.EnvDBHostname + " is not set")
 		}
-	}(c)
+		// create dgraph client
+		graphDB, c, err := external.CreateClient(dbName + ":9080")
+		if err != nil {
+			log.Panic(err)
+			return
+		}
+		defer func(c *grpc.ClientConn) {
+			err := c.Close()
+			if err != nil {
+				log.Fatal(err)
+			}
+		}(c)
 
-	if !external.WaitForDatabase(graphDB) {
-		log.Panic("Could not connect to database", err)
-		return
+		if !external.WaitForDatabase(graphDB) {
+			log.Panic("Could not connect to database", err)
+			return
+		}
+
+		dbHandle.DB = graphDB
 	}
 
-	// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
-	harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
-	if err != nil {
-		log.Panic("unable to create primary harness: ", err)
-		return
+	if testhelper.DoRPCTests() {
+		// create test harness. Automatic build of btcd is not working somehow, so it is built at the CI stage
+		harness, err := rpctest.New(&chaincfg.SimNetParams, nil, []string{"--rejectnonstd", "--txindex"}, "btcd")
+		if err != nil {
+			log.Panic("unable to create primary harness: ", err)
+			return
+		}
+
+		defer func(harness *rpctest.Harness) {
+			_ = harness.TearDown()
+		}(harness)
+
+		// Initialize the primary mining node with a chain of length 105,
+		// providing 5 mature coinbases to allow spending from for testing
+		// purposes.
+		if err := harness.SetUp(true, 5); err != nil {
+			log.Panic("unable to setup test chain: ", err)
+			return
+		}
+
+		client = harness.Client
+		batchClient = harness.BatchClient
 	}
-
-	defer func(harness *rpctest.Harness) {
-		_ = harness.TearDown()
-	}(harness)
-
-	// Initialize the primary mining node with a chain of length 105,
-	// providing 5 mature coinbases to allow spending from for testing
-	// purposes.
-	if err := harness.SetUp(true, 5); err != nil {
-		log.Panic("unable to setup test chain: ", err)
-		return
-	}
-
-	dbHandle.DB = graphDB
-
-	client = harness.Client
-	batchClient = harness.BatchClient
 
 	m.Run()
 }
@@ -214,7 +218,7 @@ func TestCreateOutputUid(t *testing.T) {
 }
 
 func TestProcessAddresses(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	// calling with empty mapping is allowed
@@ -259,7 +263,8 @@ func TestProcessAddresses(t *testing.T) {
 }
 
 func TestWaitForNextRPCBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	interrupt := make(chan struct{})
 	cfg := NewDashConfig()
 	// for a fast test
@@ -298,7 +303,8 @@ func TestWaitForNextRPCBlock(t *testing.T) {
 }
 
 func TestGetRPCNumberOfBlocks(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	numBlocks, err := getRPCNumberOfBlocks(client)
 	require.NoError(t, err)
 	require.NotZerof(t, numBlocks, "number of blocks should not be zero")
@@ -410,7 +416,8 @@ func Test_buildAddresses(t *testing.T) {
 }
 
 func Test_buildTransactionMapping(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 
 	blockHashes, err := client.Generate(1)
 	require.NoError(t, err)
@@ -631,7 +638,7 @@ func Test_processTxVin(t *testing.T) {
 }
 
 func Test_processBlock(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	transactions, err := db.GetTransactionByBlock(dbHandle, testhelper.BlockFileFirstBlock)
@@ -671,7 +678,7 @@ func Test_processBlock(t *testing.T) {
 }
 
 func Test_getStartingID(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	require.NoError(t, status.SetCrawling(dbHandle, true))
@@ -706,7 +713,8 @@ func Test_processingInterrupted(t *testing.T) {
 }
 
 func Test_getInitialState(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	_, err := getInitialState(dbHandle, client)
@@ -719,8 +727,8 @@ func Test_getInitialState(t *testing.T) {
 }
 
 func Test_createTransactionHashmap(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
-
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	blockHashes, err := client.Generate(1)
 	require.NoError(t, err)
 	require.NotEmpty(t, blockHashes)
@@ -734,7 +742,7 @@ func Test_createTransactionHashmap(t *testing.T) {
 }
 
 func Test_getExternalOutputs(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
 	db.SetupDB(t, dbHandle, testhelper.UseBlockFile)
 
 	tests := []struct {
@@ -771,7 +779,8 @@ func Test_getExternalOutputs(t *testing.T) {
 }
 
 func Test_processRound(t *testing.T) {
-	testhelper.SkipIfNotCI(t)
+	testhelper.SkipIfNoDB(t)
+	testhelper.SkipIfNoRPC(t)
 	db.SetupDBWithoutData(t, dbHandle)
 
 	blockHashes, err := client.Generate(2)
