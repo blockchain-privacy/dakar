@@ -11,6 +11,8 @@ import (
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
+	"encoding/json"
+	"time"
 
 	"context"
 	"errors"
@@ -43,6 +45,28 @@ func isValid(input string) bool {
 	return isValidInput(input)
 }
 
+func setDefaultHeader(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
+	w.Header().Set("Content-Type", "application/json")
+}
+
+// setCacheHeader sets the client side caching to a third of the server side cache
+func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
+	if duration == time.Duration(0) {
+		duration = time.Hour * 24
+	}
+	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
+}
+
+// writeReply encodes the given reply into JSON
+func writeReply(w http.ResponseWriter, reply any) {
+	if err := json.NewEncoder(w).Encode(reply); err != nil {
+		http.Error(w, "encoding error", http.StatusInternalServerError)
+		warn(err)
+	}
+}
+
 // isLikelyBlock returns true if the given query string is likely a block hash
 func isLikelyBlock(query string) bool {
 	return query[0:1] == "0"
@@ -53,6 +77,12 @@ func isLikelyAddress(query string) bool {
 	return query[0:1] == "X" || query[0:1] == "7"
 }
 
+type searchReply struct {
+	Type    queryResultType `json:"type,omitempty"`
+	Payload interface{}     `json:"payload,omitempty"`
+	Msg     string          `json:"msg,omitempty"`
+}
+
 type prunedRPCInfo struct {
 	Difficulty           float64 `json:"difficulty"`
 	VerificationProgress float64 `json:"verificationprogress,omitempty"`
@@ -61,16 +91,17 @@ type prunedRPCInfo struct {
 	Blocks               int32   `json:"blocks"`
 }
 
-type metaStatus struct {
+type metaReply struct {
 	Status  dbstat.FrontendStatus `json:"status"`
 	RPCInfo prunedRPCInfo         `json:"rpcinfo"`
+	Success bool                  `json:"success"`
 }
 
 type heuristicReply struct {
-	Success    bool                            `json:"success"`
-	Msg        string                          `json:"msg,omitempty"`
-	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
-	Status     heuristics.HeuristicQueueStatus `json:"status"`
+	Success    bool                               `json:"success"`
+	Msg        string                             `json:"msg,omitempty"`
+	Heuristics []dbh.TransformedFrontendHeuristic `json:"heuristics,omitempty"`
+	Status     heuristics.HeuristicQueueStatus    `json:"status"`
 }
 
 type heuristicExecutionReply struct {
@@ -145,13 +176,13 @@ func handleError(w http.ResponseWriter, err error) {
 }
 
 // buildKey build a key from the given arguments
-func buildKey(route string, query string, body []byte) (key string) {
-	key = route + query
+func buildKey(route string, query string, body []byte) string {
+	key := route + query
 	if len(body) > 0 {
 		key += string(body)
 	}
 
-	return
+	return key
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true

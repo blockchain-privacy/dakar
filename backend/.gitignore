@@ -22,3 +22,5 @@ projectFilesBackup
 
 # data files
 *.csv
+
+openapi/client

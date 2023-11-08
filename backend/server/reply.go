@@ -11,9 +11,11 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/exclusion"
 	dbHeuristic "backend/db/analytics/heuristics"
+	dbstat "backend/db/status"
 	dbus "backend/db/user"
 	"backend/external"
 	"io"
+	"math"
 	"path"
 	"strings"
 	"time"
@@ -33,6 +35,195 @@ const msgCouldNotDecodeRequest = "could not decode request data"
 const msgCouldNotDecodeUser = "could not decode user data"
 const msgInvalidRequest = "invalid request"
 const msgUserNotFound = "User not found"
+
+// getSearchReply searches for the given query in the database
+func getSearchReply(dgraph external.Database, query string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	if isValid(query) {
+		searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+
+		if isLikelyBlock(query) {
+			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+		} else if isLikelyAddress(query) {
+			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+		}
+
+		// iterate over db access functions
+		for _, fn := range searchOrder {
+			data, ok, err := fn(dgraph, query)
+			if err != nil {
+				warn(err)
+				break
+			}
+			// nothing found -> next try
+			if !ok {
+				continue
+			}
+
+			reply.Payload = data.result
+			reply.Type = data.resultType
+			break
+		}
+	}
+	return reply
+}
+
+// getDataDetailsReply searches for the given query in the database via the provided function fn
+func getDataDetailsReply(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	if isValid(query) {
+		data, ok, fnErr := fn(dgraph, query)
+		if fnErr != nil {
+			return reply
+		}
+
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+	return reply
+}
+
+// getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request
+func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addressHash string) searchReply {
+	reply := searchReply{
+		Type:    typeEmpty,
+		Payload: nil,
+	}
+
+	type request struct {
+		Offset int   `json:"offset"`
+		Order  int   `json:"order"`
+		Filter []int `json:"filter"`
+	}
+
+	if isValid(addressHash) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return reply
+		}
+
+		var addressRequest request
+		addressRequest.Offset = -1
+		addressRequest.Order = -1
+
+		if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
+			reply.Msg = msgCouldNotDecodeRequest
+			return reply
+		}
+
+		if !db.IsValidSortOrder(addressRequest.Order) {
+			reply.Msg = errorInvalidSortOrder
+			return reply
+		}
+
+		if !db.IsValidFilter(addressRequest.Filter) {
+			reply.Msg = errorInvalidFilter
+			return reply
+		}
+
+		if addressRequest.Offset < 0 {
+			reply.Msg = errorInvalidOffset
+			return reply
+		}
+
+		data, ok, addrErr := GetAddressWithOptions(dgraph, addressHash,
+			addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
+		if addrErr != nil {
+			return reply
+		}
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+
+	return reply
+}
+
+// getBlockRangeReply searches for the given block hash in the database with the options stored in the request
+func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash string) searchReply {
+	reply := searchReply{
+		Type:    "response_empty",
+		Payload: nil,
+	}
+
+	type request struct {
+		Offset int `json:"offset"`
+	}
+
+	if isValid(blockHash) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return reply
+		}
+
+		var blockRequest request
+		blockRequest.Offset = -1
+
+		if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
+			reply.Msg = msgCouldNotDecodeRequest
+			return reply
+		}
+
+		if blockRequest.Offset < 0 {
+			reply.Msg = errorInvalidOffset
+			return reply
+		}
+
+		data, ok, blockErr := GetBlockWithOptions(dgraph, blockHash, blockRequest.Offset)
+		if blockErr != nil {
+			warn(blockErr)
+			return reply
+		}
+		if ok {
+			reply.Payload = data.result
+			reply.Type = data.resultType
+		}
+	}
+
+	return reply
+}
+
+func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) metaReply {
+	var reply metaReply
+	// async request rpc info
+	futureBlockchainInfo := rpcClient.GetBlockChainInfoAsync()
+
+	// get data from db
+	verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
+	if err != nil {
+		return reply
+	}
+
+	// receive async rpc info
+	rpcInfo, err := futureBlockchainInfo.Receive()
+	if err != nil {
+		return reply
+	}
+
+	// set response struct
+	return metaReply{
+		Status: verboseStatus,
+		RPCInfo: prunedRPCInfo{
+			Blocks:               rpcInfo.Blocks,
+			Difficulty:           rpcInfo.Difficulty,
+			VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
+			Pruned:               rpcInfo.Pruned,
+			SizeOnDisk:           rpcInfo.SizeOnDisk,
+		},
+		Success: true,
+	}
+}
 
 func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {
 	users, err := dbus.GetUsers(dgraph)
@@ -78,6 +269,11 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 
 func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 	txHashString string, userUID string) (reply heuristicReply) {
+	if !isValid(txHashString) {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
 	if err != nil {
 		reply.Msg = "no heuristics found"
@@ -85,8 +281,14 @@ func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
 		return
 	}
 
+	transformedFrontendHeuristics := make([]dbHeuristic.TransformedFrontendHeuristic, len(results))
+
+	for i, h := range results {
+		transformedFrontendHeuristics[i] = h.Transform()
+	}
+
 	reply.Success = true
-	reply.Heuristics = results
+	reply.Heuristics = transformedFrontendHeuristics
 	reply.Status = worker.GetStatus(txHashString, userUID)
 
 	return
@@ -106,11 +308,12 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		info("heuristic already in queue")
 		return
 	}
-
-	var heuristicRequest struct {
-		Changed []dbHeuristic.FrontendHeuristicRequest `json:"changed,omitempty"`
-		Deleted []string                               `json:"deleted,omitempty"`
+	type request struct {
+		Changed []dbHeuristic.TransformedFrontendHeuristicRequest `json:"changed,omitempty"`
+		Deleted []string                                          `json:"deleted,omitempty"`
 	}
+
+	var heuristicRequest request
 
 	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeRequest
@@ -123,8 +326,12 @@ func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Wor
 		return
 	}
 
-	work, err := heuristics.CreateWork(dgraph, txHashString, heuristicRequest.Changed,
-		heuristicRequest.Deleted, userUID)
+	changes := make([]dbHeuristic.FrontendHeuristicRequest, len(heuristicRequest.Changed))
+	for i, c := range heuristicRequest.Changed {
+		changes[i] = c.Transform()
+	}
+
+	work, err := heuristics.CreateWork(dgraph, txHashString, changes, heuristicRequest.Deleted, userUID)
 	if err != nil {
 		reply.Msg = msgInvalidRequest
 		warn(err)
@@ -289,6 +496,10 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 			return
 		}
 
+		if n > 90 {
+			n = 90
+		}
+
 		lookBackTime = time.Duration(n)
 	}
 
@@ -373,28 +584,20 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	return
 }
 
-// getFrontendCluster returns the requested (by body) clusters. In case an error occurred msg and err is filled.
-func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses int,
+// getFrontendCluster returns the requested (by address hash) clusters. In case an error occurred msg and err is filled.
+func getFrontendCluster(dgraph external.Database, addressHash string, maxAddresses int,
 	userID string) (clusters []clustering.FrontendCluster, msg string, err error) {
-	// parse request
-	var req clustering.ClusterLookupRequest
-	if decodeErr := json.NewDecoder(body).Decode(&req); decodeErr != nil {
-		msg = msgCouldNotDecodeRequest
-		err = cliutil.NewStackError(decodeErr)
-		return
-	}
-
-	if req.AddressHash == "" {
+	if addressHash == "" {
 		msg = "address hash is empty"
 		return
 	}
 
-	if !isValid(req.AddressHash) {
+	if !isValid(addressHash) {
 		msg = "address hash was not valid"
 		return
 	}
 
-	clusterResponse, getErr := clustering.GetClusters(dgraph, req.AddressHash, maxAddresses, userID)
+	clusterResponse, getErr := clustering.GetClusters(dgraph, addressHash, maxAddresses, userID)
 	if getErr != nil {
 		msg = "error while searching for clusters"
 		err = getErr
@@ -406,10 +609,15 @@ func getFrontendCluster(dgraph external.Database, body io.Reader, maxAddresses i
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenUser) (reply clusterLookupReply) {
+func getClusterLookupReply(dgraph external.Database, addressHash string, user tokenUser) (reply clusterLookupReply) {
+	if !isValid(addressHash) {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	const maxAddresses = 30
 
-	clusters, msg, err := getFrontendCluster(dgraph, body, maxAddresses, user.ID)
+	clusters, msg, err := getFrontendCluster(dgraph, addressHash, maxAddresses, user.ID)
 	reply.Msg = msg
 	if err != nil {
 		warn(err)
@@ -424,6 +632,10 @@ func getClusterLookupReply(dgraph external.Database, body io.Reader, user tokenU
 
 // getHMILookupReply returns all hmi clusters connected to the given address hash
 func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
+	if !isValid(addressHash) {
+		return
+	}
+
 	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
 	if err != nil {
 		warn(err)
@@ -502,7 +714,9 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		return
 	}
 
-	clusters, msg, err := getFrontendCluster(dgraph, r.Body, 0, tUser.ID)
+	addressHash := path.Base(r.URL.Path)
+
+	clusters, msg, err := getFrontendCluster(dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
 		handleError(w, err)
 		info(msg)
@@ -554,12 +768,13 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 
 // getMixingActivity returns the result of a mixing activity lookup
 func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply) {
-	var req struct {
+	type request struct {
 		// AddressHash is the address hash for which the lookup will be done
 		AddressHash string `json:"addressHash,omitempty"`
 		// IsClusterLookup determines if all addresses of the cluster will be considered
 		IsClusterLookup bool `json:"isClusterLookup,omitempty"`
 	}
+	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
 		warn(err)
 		return
@@ -668,7 +883,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 			break
 		}
 
-		if index == 0 && headerFlag == "1" {
+		if index == 0 && headerFlag == "true" {
 			continue
 		}
 
@@ -775,7 +990,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 			break
 		}
 
-		if index == 0 && headerFlag == "1" {
+		if index == 0 && headerFlag == "true" {
 			continue
 		}
 
@@ -914,9 +1129,11 @@ func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (re
 
 func getAttributionSearchReply(dgraph external.Database, userUID string,
 	body io.Reader) (reply attributionOverviewReply) {
-	var searchRequest struct {
+	type request struct {
 		Query string `json:"q,omitempty"`
 	}
+
+	var searchRequest request
 
 	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
 		reply.Success = false
@@ -965,7 +1182,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 
 	defer func(file multipart.File) {
 		if err := file.Close(); err != nil {
-			warn(cliutil.NewStackErrorf("error closing CSV-file: %w", err))
+			warn(cliutil.NewStackErrorf("closing CSV-file: %w", err))
 		}
 	}(file)
 
@@ -1039,8 +1256,8 @@ func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) 
 
 func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
 	addressHash string) (reply deleteAddressExclusionReply) {
-	if addressHash == "" {
-		reply.Msg = "address hash was not set"
+	if !isValid(addressHash) {
+		reply.Msg = msgInvalidRequest
 		return
 	}
 
@@ -1096,11 +1313,13 @@ func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, a
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
 func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var frontEndUser struct {
+	type request struct {
 		Email string   `json:"email"`
 		Roles []string `json:"roles"`
 		State string   `json:"state"`
 	}
+
+	var frontEndUser request
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
@@ -1138,6 +1357,11 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 // getDeleteIdentityReply deletes the given user
 func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	r *http.Request, delUID string) (reply identityReply) {
+	if delUID == "" {
+		reply.Msg = msgInvalidRequest
+		return
+	}
+
 	// get identity data
 	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
 	if err != nil {
@@ -1163,7 +1387,7 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	}
 
 	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
-		reply.Msg = "could not delete users " + uid + "clusters"
+		reply.Msg = "could not delete users " + uid + " clusters"
 		warn(err)
 		return
 	}
@@ -1221,12 +1445,14 @@ func setEmail(traits any, email string) error {
 
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
-	var modRequest struct {
+	type request struct {
 		UID   string              `json:"uid,omitempty"`
 		Email string              `json:"email,omitempty"`
 		State string              `json:"state,omitempty"`
 		Roles []dbus.FrontendRole `json:"roles,omitempty"`
 	}
+
+	var modRequest request
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
 		reply.Msg = msgCouldNotDecodeUser
 		return

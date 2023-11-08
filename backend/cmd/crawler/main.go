@@ -215,6 +215,12 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpccli
 	return client, batchClient, nil
 }
 
+//	@title			Dakar API
+//	@version		1.0
+//	@description	This is the REST API for Dakar
+//	@host			localhost
+//	@BasePath		/api/v1
+//
 // The crawler for the system. It needs to be run prior to using any of the other
 // commands that rely on the Dgraph DB to be pre-created.
 //

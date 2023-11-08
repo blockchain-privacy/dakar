@@ -3,17 +3,15 @@ package server
 import (
 	"backend/analytics/heuristics"
 	"backend/cmd/cliutil"
-	"backend/db"
+	"time"
+
+	// for openapi
+	_ "backend/db/analytics/clustering"
 	dbtxh "backend/db/analytics/heuristics"
-	dbstat "backend/db/status"
 	"backend/external"
 	"encoding/json"
-	"io"
-	"math"
 	"net/http"
 	"path"
-	"strconv"
-	"time"
 )
 
 var (
@@ -28,275 +26,113 @@ var (
 	errorInvalidOffset       = "error invalid offset"
 )
 
-type searchResponse struct {
-	Type    queryResultType `json:"type,omitempty"`
-	Payload interface{}     `json:"payload,omitempty"`
-}
-
-func setDefaultHeader(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
-	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-	w.Header().Set("Content-Type", "application/json")
-}
-
-// setCacheHeader sets the client side caching to a third of the server side cache
-func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
-	if duration == time.Duration(0) {
-		duration = time.Hour * 24
-	}
-	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
-}
-
-// API pattern: "/api/v1/search/<hash>"
+// Search godoc
+//
+//	@Summary		Search for blocks, addresses and transactions
+//	@Description	Search for blocks, addresses and transactions. Supports searching by hash or block ID.
+//	@Tags			data
+//	@Produce		json
+//	@Param			query	path		string	true	"Hash"
+//	@Success		200		{object}	server.searchReply
+//	@Failure		500		{string}	string	"encoding error"
+//	@Router			/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
+		reply := getSearchReply(s.db, path.Base(r.URL.Path))
 
-		// set response struct
-		reply := searchResponse{
-			Type:    typeEmpty,
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
-
-			if isLikelyBlock(queryString) {
-				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
-			} else if isLikelyAddress(queryString) {
-				searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
-			}
-
-			// iterate over db access functions
-			for _, fn := range searchOrder {
-				data, ok, err := fn(s.db, queryString)
-				if err != nil {
-					warn(err)
-					break
-				}
-				// nothing found -> next try
-				if !ok {
-					continue
-				}
-
-				reply.Payload = data.result
-				reply.Type = data.resultType
-				break
-			}
-		}
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/<type>/<query>"
-// API pattern: "/api/v1/blk/<query>"
-// API pattern: "/api/v1/address/<query>"
-// API pattern: "/api/v1/tx/<query>"
+// Query for Address, Transaction or Block godoc
+//
+//	@Summary	Query for address, transaction or block
+//	@Tags		data
+//	@Produce	json
+//	@Param		hash	path		string	true	"Hash"
+//	@Success	200		{object}	server.searchReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/blk/{hash} [get]
+//	@Router		/address/{hash} [get]
+//	@Router		/tx/{hash} [get]
 func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
+		reply := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
 
-		// set response struct
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			data, ok, fnErr := fn(s.db, queryString)
-			if fnErr != nil {
-				handleError(w, fnErr)
-				return
-			}
-
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addressOutputRange/<address_hash>"
+// Address Output Range godoc
+//
+//	@Summary	Get outputs of the given address
+//	@Tags		data
+//	@Produce	json
+//	@Param		addressHash	path		string										true	"address hash"
+//	@Param		options		body		server.getAddressOutputRangeReply.request	true	"query options"
+//	@Success	200			{object}	server.searchReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addressOutputRange/{addressHash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
+		reply := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			type request struct {
-				Offset int   `json:"offset"`
-				Order  int   `json:"order"`
-				Filter []int `json:"filter"`
-			}
-
-			var addressRequest request
-			addressRequest.Offset = -1
-			addressRequest.Order = -1
-
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-
-			if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
-				handleError(w, cliutil.NewStackError(decodeErr))
-				return
-			}
-
-			if !db.IsValidSortOrder(addressRequest.Order) {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidSortOrder))
-				return
-			}
-
-			if !db.IsValidFilter(addressRequest.Filter) {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidFilter))
-				return
-			}
-
-			if addressRequest.Offset < 0 {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidOffset))
-				return
-			}
-
-			data, ok, addrErr := GetAddressWithOptions(s.db, queryString,
-				addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
-			if addrErr != nil {
-				handleError(w, addrErr)
-				return
-			}
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/blkRange/<address_hash>"
+// Block Range godoc
+//
+//	@Summary	Get transactions of the given block
+//	@Tags		data
+//	@Produce	json
+//	@Param		blockHash	path		string								true	"block hash"
+//	@Param		offset		body		server.getBlockRangeReply.request	true	"transaction offset"
+//	@Success	200			{object}	server.searchReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/blkRange/{blockHash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		queryString := path.Base(r.URL.Path)
+		reply := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
 
-		reply := searchResponse{
-			Type:    "response_empty",
-			Payload: nil,
-		}
-
-		if isValid(queryString) {
-			type request struct {
-				Offset int `json:"offset"`
-			}
-
-			var blockRequest request
-			blockRequest.Offset = -1
-
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				handleError(w, err)
-				return
-			}
-
-			if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
-				handleError(w, cliutil.NewStackError(decodeErr))
-				return
-			}
-
-			if blockRequest.Offset < 0 {
-				handleError(w, cliutil.NewStackErrorStr(errorInvalidOffset))
-				return
-			}
-
-			data, ok, blockErr := GetBlockWithOptions(s.db, queryString, blockRequest.Offset)
-			if blockErr != nil {
-				handleError(w, blockErr)
-				return
-			}
-			if ok {
-				reply.Payload = data.result
-				reply.Type = data.resultType
-			}
-		}
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/meta/"
+// Server Status godoc
+//
+//	@Summary	Get the status of all backend modules
+//	@Tags		meta
+//	@Produce	json
+//	@Success	200	{object}	server.metaReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
-		// async request rpc info
-		futureBlockchainInfo := s.client.GetBlockChainInfoAsync()
+		reply := getMetaReply(s.db, s.client)
 
-		// get data from db
-		verboseStatus, err := dbstat.GetFrontendStatus(s.db)
-		if err != nil {
-			handleError(w, err)
-			return
-		}
-
-		// receive async rpc info
-		rpcInfo, err := futureBlockchainInfo.Receive()
-		if err != nil {
-			handleError(w, cliutil.NewStackError(err))
-			return
-		}
-
-		// set response struct
-		stat := metaStatus{
-			Status: verboseStatus,
-			RPCInfo: prunedRPCInfo{
-				Blocks:               rpcInfo.Blocks,
-				Difficulty:           rpcInfo.Difficulty,
-				VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
-				Pruned:               rpcInfo.Pruned,
-				SizeOnDisk:           rpcInfo.SizeOnDisk,
-			},
-		}
-
-		// encoding
-		if encErr := json.NewEncoder(w).Encode(stat); encErr != nil {
-			handleError(w, encErr)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristicsSummary/<heuristic_UID>"
+// Heuristic Summary godoc
+//
+//	@Summary	Heuristic Summary
+//	@Tags		heuristic
+//	@Produce	text/csv
+//	@Param		heuristic_UID	path		string	true	"0x123"
+//	@Success	200				{file}		file	"comma separated values"
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/heuristicsSummary/{heuristic_UID} [get]
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -318,7 +154,16 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/clusterSummary"
+// Cluster Summary godoc
+//
+//	@Summary	Get all clusters of an address
+//	@Tags		cluster
+//	@Produce	text/csv
+//	@Accept		json
+//	@Param		addressHash	path		string	true	"Address hash"
+//	@Success	200			{file}		file	"comma separated values"
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/clusterSummary/{addressHash} [get]
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -327,22 +172,34 @@ func (s *Server) handlerClusterSummary() http.Handler {
 	})
 }
 
-// API pattern: "/api/v1/addCluster"
+// @Summary	Add Cluster
+// @Tags		cluster
+// @Produce	json
+// @Param		separator	formData	string	true	"separator of the CSV file"
+// @Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+// @Param		file		formData	file	true	"the CSV file"
+// @Success	200			{object}	server.addClusterReply
+// @Failure	500			{string}	string	"encoding error"
+// @Router		/addCluster/ [post]
 func (s *Server) handlerAddCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getAddClusterReply(s.db, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteCluster/<cluster_uid>"
+// Delete Cluster godoc
+//
+//	@Summary	Delete Cluster
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		cluster_uid	path		string	true	"0x123"
+//	@Success	200			{object}	server.deleteClusterReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/deleteCluster/{cluster_uid} [get]
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -358,15 +215,18 @@ func (s *Server) handlerDeleteCluster() http.Handler {
 			reply = getDeleteClusterReply(s.db, tUser.ID, clusterUID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteAllClusters"
+// Delete All Clusters godoc
+//
+//	@Summary	Delete all clusters of the current user
+//	@Tags		cluster
+//	@Produce	json
+//	@Success	200	{object}	server.deleteClusterReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllClusters/ [get]
 func (s *Server) handlerDeleteAllClusters() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -380,15 +240,18 @@ func (s *Server) handlerDeleteAllClusters() http.Handler {
 			reply = getDeleteAllClustersReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/clusterOverview"
+// Cluster Overview godoc
+//
+//	@Summary	Get all custom clusters of the current user
+//	@Tags		cluster
+//	@Produce	json
+//	@Success	200	{object}	server.clusterOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/clusterOverview/ [get]
 func (s *Server) handlerClusterOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -402,15 +265,18 @@ func (s *Server) handlerClusterOverview() http.Handler {
 			reply = getClusterOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/attributionOverview"
+// Attribution Overview godoc
+//
+//	@Summary	Get all attributions of the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Success	200	{object}	server.attributionOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/attributionOverview/ [get]
 func (s *Server) handlerAttributionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -424,45 +290,61 @@ func (s *Server) handlerAttributionOverview() http.Handler {
 			reply = getAttributionOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addPrivateAttribution"
+// Add Private Attribution godoc
+//
+//	@Summary	Create a new attribution which is only visible for the current user
+//	@Tags		attribution
+//	@Produce	text/csv
+//	@Param		separator	formData	string	true	"separator of the CSV file"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		file		formData	file	true	"the CSV file"
+//	@Success	200			{object}	server.addAttributionReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addPrivateAttribution/ [post]
 func (s *Server) handlerAddPrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getAddAttributionReply(s.db, r, false)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addPublicAttribution"
+// Add Public Attribution godoc
+//
+//	@Summary	Create a new attribution which is visible to all users
+//	@Tags		attribution
+//	@Produce	text/csv
+//	@Param		separator	formData	string	true	"separator of the CSV file"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		file		formData	file	true	"the CSV file"
+//	@Success	200			{string}	string	"comma separated values"
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/addPublicAttribution/ [post]
 func (s *Server) handlerAddPublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getAddAttributionReply(s.db, r, true)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deletePrivateAttribution/<cluster_uid>"
+// Delete Private Attribution godoc
+//
+//	@Summary	Delete an attribution belonging to the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Param		attribution_uid	path		string	true	"0x123"
+//	@Success	200				{object}	server.deleteAttributionReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/deletePrivateAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -478,15 +360,19 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, false)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deletePublicAttribution/<cluster_uid>"
+// Delete Public Attribution godoc
+//
+//	@Summary	Delete a public attribution
+//	@Tags		attribution
+//	@Produce	json
+//	@Param		attribution_uid	path		string	true	"0x123"
+//	@Success	200				{object}	server.deleteAttributionReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/deletePublicAttribution/{attribution_uid} [get]
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -502,15 +388,18 @@ func (s *Server) handlerDeletePublicAttribution() http.Handler {
 			reply = getDeleteAttributionReply(s.db, tUser.ID, attributionUID, true)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteAllPrivateAttributions"
+// Delete All Private Attributions godoc
+//
+//	@Summary	Delete all attributions of the current user
+//	@Tags		attribution
+//	@Produce	json
+//	@Success	200	{object}	server.deleteAttributionReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllPrivateAttributions/ [get]
 func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -524,15 +413,20 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 			reply = getDeleteAllAttributionsReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/searchAttributions"
+// Search Attributions godoc
+//
+//	@Summary	Search all public attributions and the attributions belonging to the current user
+//	@Tags		attribution
+//	@Accept		json
+//	@Produce	json
+//	@Param		attribution	body		server.getAttributionSearchReply.request	true	"Search query"
+//	@Success	200			{object}	server.attributionOverviewReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/searchAttributions/ [post]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -546,30 +440,38 @@ func (s *Server) handlerSearchAttributions() http.Handler {
 			reply = getAttributionSearchReply(s.db, tUser.ID, r.Body)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addAddressExclusions"
+// Add Address Exclusion godoc
+//
+//	@Summary	Adds new address exclusions for the current user
+//	@Tags		address exclusions
+//	@Produce	text/csv
+//	@Param		file	formData	file	true	"the CSV file"
+//	@Success	200		{object}	server.addAddressExclusionsReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/addAddressExclusions/ [post]
 func (s *Server) handlerAddAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getAddAddressExclusionsReply(s.db, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteAddressExclusion/<address_exclusion_uid>"
+// Delete Address Exclusion godoc
+//
+//	@Summary	Deletes an address exclusion of the current user
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Param		addressHash	path		string	true	"0x123"
+//	@Success	200			{object}	server.deleteAddressExclusionReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/deleteAddressExclusion/{addressHash} [get]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -585,15 +487,18 @@ func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 			reply = getDeleteAddressExclusionReply(s.db, tUser.ID, addressHash)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteAllAddressExclusions"
+// Delete All Address Exclusions godoc
+//
+//	@Summary	Delete all address exclusions of the current user
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Success	200	{object}	server.deleteAddressExclusionReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteAllAddressExclusions/ [get]
 func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -607,15 +512,18 @@ func (s *Server) handlerDeleteAllAddressExclusions() http.Handler {
 			reply = getDeleteAllAddressExclusionsReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addressExclusionOverview"
+// Address Exclusion Overview godoc
+//
+//	@Summary	Address exclusion overview
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Success	200	{object}	server.addressExclusionOverviewReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/addressExclusionOverview/ [get]
 func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -629,15 +537,19 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 			reply = getAddressExclusionOverviewReply(s.db, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristics/<hash>"
+// Heuristic godoc
+//
+//	@Summary	Get all heuristic defined for a transaction
+//	@Tags		heuristic
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.heuristicReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/heuristics/{hash} [get]
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -658,15 +570,19 @@ func (s *Server) handlerHeuristics() http.Handler {
 			reply = getHeuristicReply(s.db, s.worker, txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/hmiLookup/<hash>"
+// HMI clusters godoc
+//
+//	@Summary	Get HMI clusters per transaction
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.hmiLookupReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/hmiLookup/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -680,15 +596,19 @@ func (s *Server) handlerHMILookup() http.Handler {
 
 		reply := getHMILookupReply(s.db, addressHash)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristicStatus/<hash>"
+// Heuristic Status godoc
+//
+//	@Summary	Get the status of all heuristics per transaction
+//	@Tags		heuristic
+//	@Produce	json
+//	@Param		hash	path		string	true	"0x123"
+//	@Success	200		{object}	server.heuristicReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/heuristicStatus/{hash} [get]
 func (s *Server) handlerHeuristicStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -710,16 +630,25 @@ func (s *Server) handlerHeuristicStatus() http.Handler {
 			reply.Status = s.worker.GetStatus(txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristicDetails/"
+// Heuristic Details godoc
+//
+//	@Summary	Get the details of a heuristic
+//	@Tags		heuristic
+//	@Produce	json
+//	@Accept		json
+//	@Param		heuristic	body		server.handlerHeuristicsDetails.request	true	"Heuristic UID"
+//	@Success	200			{object}	dbtxh.FrontendHeuristicShort
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/heuristicDetails/ [post]
 func (s *Server) handlerHeuristicsDetails() http.Handler {
+	type request struct {
+		HeuristicUID string `json:"uid,omitempty"`
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
@@ -730,9 +659,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 			return
 		}
 
-		var heuristicRequest struct {
-			HeuristicUID string `json:"uid,omitempty"`
-		}
+		var heuristicRequest request
 
 		if err = json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
@@ -745,22 +672,29 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 			return
 		}
 
-		frontendHeuristic, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
+		reply, err := dbtxh.GetFrontendHeuristicByUID(s.db, heuristicRequest.HeuristicUID, tUser.ID)
 		if err != nil {
 			http.Error(w, errorHeuristicDetails, http.StatusNotFound)
 			warn(err)
 			return
 		}
 
-		// encoding
-		if err = json.NewEncoder(w).Encode(frontendHeuristic); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/executeHeuristics/<hash>"
+// Execute Heuristics godoc
+//
+//	@Summary		Queues the execution of heuristics for the given transaction
+//	@Description	This call queues the given heuristics for the given transaction. Does not wait until the heuristic execution is finished.
+//	@Tags			heuristic
+//	@Produce		json
+//	@Accept			json
+//	@Param			hash		path		string										true	"0x123"
+//	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
+//	@Success		200			{object}	server.heuristicExecutionReply
+//	@Failure		500			{string}	string	"encoding error"
+//	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -781,15 +715,18 @@ func (s *Server) handlerHeuristicsExecution() http.Handler {
 			reply = getHeuristicExecutionReply(s.db, s.worker, r.Body, txHashString, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristicList/"
+// List Heuristics godoc
+//
+//	@Summary	Lists all heuristics of the current user
+//	@Tags		heuristic
+//	@Produce	json
+//	@Success	200	{object}	server.heuristicListReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/heuristicList/ [get]
 func (s *Server) handlerHeuristicList() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -809,15 +746,19 @@ func (s *Server) handlerHeuristicList() http.Handler {
 			}
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/heuristicDescriptors/"
+// Heuristic Descriptors godoc
+//
+//	@Summary		Gets available heuristic descriptors
+//	@Description	Returns available heuristic descriptors, which define the heuristic interface
+//	@Tags			heuristic
+//	@Produce		json
+//	@Success		200	{object}	server.heuristicDescriptorReply
+//	@Failure		500	{string}	string	"encoding error"
+//	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -830,15 +771,21 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 
 		reply.Success = true
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteHeuristic/"
+// Delete Heuristic godoc
+//
+//	@Summary		Deletes either all heuristics or all heuristics of a transaction
+//	@Description	Deletes either all heuristics of the current user or all heuristics of a transaction of the current user
+//	@Tags			heuristic
+//	@Produce		json
+//	@Accept			json
+//	@Param			heuristic	body		dbtxh.DeleteHeuristicRequest	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
+//	@Success		200			{object}	server.deleteHeuristicReply
+//	@Failure		500			{string}	string	"encoding error"
+//	@Router			/deleteHeuristic/ [post]
 func (s *Server) handlerDeleteHeuristic() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -851,15 +798,21 @@ func (s *Server) handlerDeleteHeuristic() http.Handler {
 			reply = getDeleteHeuristicReply(s.db, r.Body, tUser.ID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/createIdentity/"
+// Create Identity godoc
+//
+//	@Summary	Create a new identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Accept		json
+//	@Param		identity	body		server.getCreateIdentityReply.request	true	"Identity details"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/createIdentity/ [post]
+//
 // handlerCreateIdentity creates a new identity. This is an admin endpoint.
 func (s *Server) handlerCreateIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -867,33 +820,40 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 
 		reply := getCreateIdentityReply(s.db, s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/adminDeleteIdentity/<identityUID>"
+// Admin Delete Identity godoc
+//
+//	@Summary	Delete an arbitrary identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Param		identityUID	path		string	true	"0x123"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/adminDeleteIdentity/{identityUID} [get]
+//
 // handlerAdminDeleteIdentity deletes an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
-		identityUID := path.Base(r.URL.Path)
+		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, path.Base(r.URL.Path))
 
-		reply := getDeleteIdentityReply(s.db, s.adminAuth, r, identityUID)
-
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/deleteIdentity/"
+// Delete Identity godoc
+//
+//	@Summary	Delete the identity of the current user
+//	@Tags		authentication
+//	@Produce	json
+//	@Success	200	{object}	server.identityReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/deleteIdentity/ [get]
+//
 // handlerDeleteIdentity deletes the calling users identity.
 func (s *Server) handlerDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -908,15 +868,21 @@ func (s *Server) handlerDeleteIdentity() http.Handler {
 			reply = getDeleteIdentityReply(s.db, s.adminAuth, r, tUser.KratosID)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/modifyIdentity/"
+// Modify Identity godoc
+//
+//	@Summary	Modify an arbitrary identity
+//	@Tags		authentication
+//	@Produce	json
+//	@Accept		json
+//	@Param		identity	body		server.getModifyIdentityReply.request	true	"Identity modification details"
+//	@Success	200			{object}	server.identityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/modifyIdentity/ [post]
+//
 // handlerModifyIdentity modifies an arbitrary identity. This is an admin endpoint.
 func (s *Server) handlerModifyIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -924,112 +890,144 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 
 		reply := getModifyIdentityReply(s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/getIdentities/"
+// Get Identities godoc
+//
+//	@Summary	Get all identities
+//	@Tags		authentication
+//	@Produce	json
+//	@Success	200	{object}	server.identitiesReply
+//	@Failure	500	{string}	string	"encoding error"
+//	@Router		/getIdentities/ [get]
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getIdentitiesReply(s.db, s.adminAuth, r)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/shortestTransactionPath/"
+// Shortest Transaction Path godoc
+//
+//	@Summary	Get the shortest path between two transactions
+//	@Tags		tools
+//	@Produce	json
+//	@Accept		json
+//	@Param		transactions	body		dbtxh.ShortestTransactionPathRequest	true	"transactions between which the path should be found"
+//	@Success	200				{object}	server.shortestTransactionPathReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/shortestTransactionPath/ [post]
 func (s *Server) handlerShortestTransactionPath() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getShortestTransactionPathReply(s.db, r.Body)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/reverseLookup/<txhash>?forward=true&t=30"
+// Connection Lookup Path godoc
+//
+//	@Summary	Connection lookup
+//	@Tags		tools
+//	@Produce	json
+//	@Param		txhash	path		string	true	"Transaction hash"
+//	@Param		forward	query		bool	false	"search direction"
+//	@Param		t		query		int		false	"number of days to look back"	maximum(90)
+//	@Success	200		{object}	server.connectionLookupReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/connectionLookup/{txhash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getConnectionLookupReply(s.db, s.worker, r.URL)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/clusterLookup/<addressHash>"
+// Cluster Lookup Path godoc
+//
+//	@Summary	Get all clusters of the given address
+//	@Tags		cluster
+//	@Produce	json
+//	@Param		addressHash	path		string	true	"Address hash"
+//	@Success	200			{object}	server.clusterLookupReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/clusterLookup/{addressHash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
+		addressHash := path.Base(r.URL.Path)
 		var reply clusterLookupReply
 
 		if tUser, err := extractTokenUser(r.Context()); err != nil {
 			reply.Msg = "error modifying user"
 			warn(err)
 		} else {
-			reply = getClusterLookupReply(s.db, r.Body, tUser)
+			reply = getClusterLookupReply(s.db, addressHash, tUser)
 		}
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/mixingActivity/"
+// Mixing Activity Path godoc
+//
+//	@Summary	Mixing Activity of an address
+//	@Tags		tools
+//	@Produce	json
+//	@Accept		json
+//	@Param		activity	body		server.getMixingActivity.request	true	"Mixing activity request details"
+//	@Success	200			{object}	server.mixingActivityReply
+//	@Failure	500			{string}	string	"encoding error"
+//	@Router		/mixingActivity/ [post]
 func (s *Server) handlerMixingActivity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getMixingActivity(s.db, r.Body)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/addressExclusionStatus/<address_hash>"
+// Address Exclusion Status godoc
+//
+//	@Summary	Get the exclusion status of an address
+//	@Tags		address exclusions
+//	@Produce	json
+//	@Param		address_hash	path		string	true	"address hash"
+//	@Success	200				{object}	server.addressExclusionStatusReply
+//	@Failure	500				{string}	string	"encoding error"
+//	@Router		/addressExclusionStatus/{address_hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
 
 		reply := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
-// API pattern: "/api/v1/spendingFingerprint/<hash>"
+// Spending Fingerprint godoc
+//
+//	@Summary	Get the spending fingerprint of a transaction
+//	@Tags		tools
+//	@Produce	json
+//	@Param		hash	path		string	true	"transaction hash"
+//	@Success	200		{object}	server.spendingFingerprintReply
+//	@Failure	500		{string}	string	"encoding error"
+//	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		setDefaultHeader(w)
@@ -1043,14 +1041,17 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 
 		reply := getSpendingFingerprintReply(s.db, s.worker, txHashString)
 
-		// encoding
-		if err := json.NewEncoder(w).Encode(reply); err != nil {
-			http.Error(w, "encoding error", http.StatusInternalServerError)
-			warn(err)
-		}
+		writeReply(w, reply)
 	})
 }
 
+// todo: when https://github.com/golang/go/issues/61410 is merged and released,
+// refactor API design to use consistent endpoint naming:
+// - GET clusters - returns all clusters
+// - GET clusters/{addresshash} - returns all clusters belonging to a specific address
+// - DELETE clusters - deletes all clusters
+// - DELETE clusters/{addresshash} - deletes all clusters belonging to a specific address
+// - POST clusters - creates a new clusters
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
@@ -1122,13 +1123,13 @@ func (s *Server) setupHandlers() {
 	// Clusters
 	s.handler.Handle(getRouteClusterLookup(),
 		adapt(s.handlerClusterLookup(), getRouteClusterLookup(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHMILookup(),
 		adapt(s.handlerHMILookup(), getRouteHMILookup(),
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteClusterSummary(),
 		adapt(s.handlerClusterSummary(), getRouteClusterSummary(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddCluster(),
 		adapt(s.handlerAddCluster(), getRouteAddCluster(),
 			limitMethod("POST"), s.authorization(), maxBody()))

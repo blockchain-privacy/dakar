@@ -1,7 +1,8 @@
 BUILD_DIR := "build"
 CRAWLER_DIR := "./cmd/crawler"
+SWAGGER_DIR := "./cmd/apidoc"
 
-.PHONY: all dep build clean test lint tidy update_dependencies
+.PHONY: all dep build dash bitcoin clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt apidoc
 
 all: build
 
@@ -41,6 +42,15 @@ tidy: ## Run go mod tidy on the default go.mod file and bitcoin go.mod file
 
 clean: ## Remove previous build
 	@rm -rf $(BUILD_DIR)
+
+swagger-create: ## Creates openapi docs
+	./swag init --pd -d cmd/crawler,server -o openapi
+
+swagger-fmt: ## Formats swagger annotations
+	./swag fmt -d cmd/crawler,server
+
+apidoc: ## Builds the swagger server
+	go build -v -o $(BUILD_DIR)/apidoc $(SWAGGER_DIR)
 
 help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
