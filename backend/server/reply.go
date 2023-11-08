@@ -31,70 +31,84 @@ import (
 	"strconv"
 )
 
-const msgCouldNotDecodeRequest = "could not decode request data"
-const msgCouldNotDecodeUser = "could not decode user data"
-const msgInvalidRequest = "invalid request"
-const msgUserNotFound = "User not found"
+const (
+	errorClusterSummary   = "error getting cluster summary"
+	errorHeuristicSummary = "error getting heuristic summary"
+)
 
 // getSearchReply searches for the given query in the database
-func getSearchReply(dgraph external.Database, query string) searchReply {
+func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
 	}
 
-	if isValid(query) {
-		searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
+	status := http.StatusOK
 
-		if isLikelyBlock(query) {
-			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
-		} else if isLikelyAddress(query) {
-			searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
-		}
+	if !isValid(query) {
+		return reply, http.StatusBadRequest
+	}
+	searchOrder := []func(external.Database, string) (SearchResult, bool, error){GetTransaction, GetAddress, GetBlock}
 
-		// iterate over db access functions
-		for _, fn := range searchOrder {
-			data, ok, err := fn(dgraph, query)
-			if err != nil {
-				warn(err)
-				break
-			}
-			// nothing found -> next try
-			if !ok {
-				continue
-			}
+	if isLikelyBlock(query) {
+		searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetBlock, GetTransaction, GetAddress}
+	} else if isLikelyAddress(query) {
+		searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
+	}
 
-			reply.Payload = data.result
-			reply.Type = data.resultType
+	// iterate over db access functions
+	for _, fn := range searchOrder {
+		data, ok, err := fn(dgraph, query)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
 			break
 		}
+		// nothing found -> next try
+		if !ok {
+			continue
+		}
+
+		reply.Payload = data.result
+		reply.Type = data.resultType
+		break
 	}
-	return reply
+
+	if reply.Type == typeEmpty {
+		status = http.StatusNotFound
+	}
+
+	return reply, status
 }
 
 // getDataDetailsReply searches for the given query in the database via the provided function fn
-func getDataDetailsReply(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) searchReply {
+func getDataDetailsReply(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) (searchReply, int) {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
 	}
 
-	if isValid(query) {
-		data, ok, fnErr := fn(dgraph, query)
-		if fnErr != nil {
-			return reply
-		}
-
-		if ok {
-			reply.Payload = data.result
-			reply.Type = data.resultType
-		}
+	status := http.StatusOK
+	if !isValid(query) {
+		return reply, http.StatusBadRequest
 	}
-	return reply
+
+	data, ok, err := fn(dgraph, query)
+	if err != nil {
+		warn(err)
+		status = http.StatusInternalServerError
+	} else if ok {
+		reply.Payload = data.result
+		reply.Type = data.resultType
+	} else {
+		status = http.StatusNotFound
+	}
+
+	return reply, status
 }
 
 // getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request
-func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addressHash string) searchReply {
+func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addressHash string) (searchReply, int) {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
@@ -106,52 +120,52 @@ func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addre
 		Filter []int `json:"filter"`
 	}
 
-	if isValid(addressHash) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			return reply
-		}
-
-		var addressRequest request
-		addressRequest.Offset = -1
-		addressRequest.Order = -1
-
-		if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
-			reply.Msg = msgCouldNotDecodeRequest
-			return reply
-		}
-
-		if !db.IsValidSortOrder(addressRequest.Order) {
-			reply.Msg = errorInvalidSortOrder
-			return reply
-		}
-
-		if !db.IsValidFilter(addressRequest.Filter) {
-			reply.Msg = errorInvalidFilter
-			return reply
-		}
-
-		if addressRequest.Offset < 0 {
-			reply.Msg = errorInvalidOffset
-			return reply
-		}
-
-		data, ok, addrErr := GetAddressWithOptions(dgraph, addressHash,
-			addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
-		if addrErr != nil {
-			return reply
-		}
-		if ok {
-			reply.Payload = data.result
-			reply.Type = data.resultType
-		}
+	if !isValid(addressHash) {
+		return reply, http.StatusBadRequest
 	}
 
-	return reply
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return reply, http.StatusBadRequest
+	}
+
+	var addressRequest request
+	addressRequest.Offset = -1
+	addressRequest.Order = -1
+
+	if decodeErr := json.Unmarshal(body, &addressRequest); decodeErr != nil {
+		return reply, http.StatusBadRequest
+	}
+
+	if !db.IsValidSortOrder(addressRequest.Order) {
+		return reply, http.StatusBadRequest
+	}
+
+	if !db.IsValidFilter(addressRequest.Filter) {
+		return reply, http.StatusBadRequest
+	}
+
+	if addressRequest.Offset < 0 {
+		return reply, http.StatusBadRequest
+	}
+
+	status := http.StatusOK
+	data, ok, addrErr := GetAddressWithOptions(dgraph, addressHash,
+		addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
+	if addrErr != nil {
+		status = http.StatusInternalServerError
+	} else if ok {
+		reply.Payload = data.result
+		reply.Type = data.resultType
+	} else {
+		status = http.StatusNotFound
+	}
+
+	return reply, status
 }
 
 // getBlockRangeReply searches for the given block hash in the database with the options stored in the request
-func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash string) searchReply {
+func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash string) (searchReply, int) {
 	reply := searchReply{
 		Type:    "response_empty",
 		Payload: nil,
@@ -161,40 +175,42 @@ func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash str
 		Offset int `json:"offset"`
 	}
 
-	if isValid(blockHash) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			return reply
-		}
-
-		var blockRequest request
-		blockRequest.Offset = -1
-
-		if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
-			reply.Msg = msgCouldNotDecodeRequest
-			return reply
-		}
-
-		if blockRequest.Offset < 0 {
-			reply.Msg = errorInvalidOffset
-			return reply
-		}
-
-		data, ok, blockErr := GetBlockWithOptions(dgraph, blockHash, blockRequest.Offset)
-		if blockErr != nil {
-			warn(blockErr)
-			return reply
-		}
-		if ok {
-			reply.Payload = data.result
-			reply.Type = data.resultType
-		}
+	if !isValid(blockHash) {
+		return reply, http.StatusBadRequest
 	}
 
-	return reply
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return reply, http.StatusBadRequest
+	}
+
+	var blockRequest request
+	blockRequest.Offset = -1
+
+	if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
+		return reply, http.StatusBadRequest
+	}
+
+	if blockRequest.Offset < 0 {
+		return reply, http.StatusBadRequest
+	}
+
+	status := http.StatusOK
+	data, ok, blockErr := GetBlockWithOptions(dgraph, blockHash, blockRequest.Offset)
+	if blockErr != nil {
+		warn(blockErr)
+		status = http.StatusBadRequest
+	} else if ok {
+		reply.Payload = data.result
+		reply.Type = data.resultType
+	} else {
+		status = http.StatusNotFound
+	}
+
+	return reply, status
 }
 
-func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) metaReply {
+func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaReply, int) {
 	var reply metaReply
 	// async request rpc info
 	futureBlockchainInfo := rpcClient.GetBlockChainInfoAsync()
@@ -202,32 +218,32 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) metaRe
 	// get data from db
 	verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
 	if err != nil {
-		return reply
+		return reply, http.StatusInternalServerError
 	}
 
 	// receive async rpc info
 	rpcInfo, err := futureBlockchainInfo.Receive()
 	if err != nil {
-		return reply
+		return reply, http.StatusInternalServerError
 	}
 
 	// set response struct
 	return metaReply{
-		Status: verboseStatus,
-		RPCInfo: prunedRPCInfo{
+		Status: &verboseStatus,
+		RPCInfo: &prunedRPCInfo{
 			Blocks:               rpcInfo.Blocks,
 			Difficulty:           rpcInfo.Difficulty,
 			VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
 			Pruned:               rpcInfo.Pruned,
 			SizeOnDisk:           rpcInfo.SizeOnDisk,
 		},
-		Success: true,
-	}
+	}, http.StatusOK
 }
 
-func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply) {
+func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply, status int) {
 	users, err := dbus.GetUsers(dgraph)
 	if err != nil {
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -235,7 +251,8 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	// get identity list
 	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
-		warn(err)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -245,7 +262,8 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
-		warn(err)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -262,106 +280,202 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 	reply.Users = users
 	reply.Identities = identities
 	reply.Sessions = activeSession
-	reply.Success = true
 
 	return
 }
 
-func getHeuristicReply(dgraph external.Database, worker *heuristics.Worker,
-	txHashString string, userUID string) (reply heuristicReply) {
-	if !isValid(txHashString) {
-		reply.Msg = msgInvalidRequest
-		return
-	}
-
-	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, userUID)
+func getHeuristicReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker) (reply heuristicReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "no heuristics found"
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
-	transformedFrontendHeuristics := make([]dbHeuristic.TransformedFrontendHeuristic, len(results))
+	txHashString := path.Base(r.URL.Path)
 
-	for i, h := range results {
-		transformedFrontendHeuristics[i] = h.Transform()
+	if !isValid(txHashString) {
+		status = http.StatusBadRequest
+		return
 	}
 
-	reply.Success = true
-	reply.Heuristics = transformedFrontendHeuristics
-	reply.Status = worker.GetStatus(txHashString, userUID)
+	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Heuristics = results
+	reply.Status = worker.GetStatus(txHashString, tUser.ID)
 
 	return
 }
 
-func getHeuristicExecutionReply(dgraph external.Database, worker *heuristics.Worker, body io.Reader,
-	txHashString string, userUID string) (reply heuristicExecutionReply) {
-	if !worker.IsReady() {
-		reply.Success = true
-		reply.Status = heuristics.StatusHeuristicWorkerNotReady
+func getHeuristicStatusReply(r *http.Request, worker *heuristics.Worker) (reply heuristicStatusReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
 		return
 	}
 
-	if worker.IsInQueue(txHashString, userUID) {
-		reply.Success = true
-		reply.Status = heuristics.StatusHeuristicDuplicate
-		info("heuristic already in queue")
+	txHashString := path.Base(r.URL.Path)
+	if !isValid(txHashString) {
+		status = http.StatusBadRequest
 		return
 	}
+
+	reply.Status = worker.GetStatus(txHashString, tUser.ID)
+
+	return
+}
+
+func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply heuristicDetailsReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
 	type request struct {
-		Changed []dbHeuristic.TransformedFrontendHeuristicRequest `json:"changed,omitempty"`
-		Deleted []string                                          `json:"deleted,omitempty"`
+		HeuristicUID string `json:"uid,omitempty"`
 	}
 
 	var heuristicRequest request
 
-	if err := json.NewDecoder(body).Decode(&heuristicRequest); err != nil {
-		reply.Msg = msgCouldNotDecodeRequest
+	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if len(heuristicRequest.HeuristicUID) == 0 {
+		status = http.StatusBadRequest
+		return
+	}
+
+	heuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicRequest.HeuristicUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
 		warn(err)
+		return
+	}
+
+	reply.Heuristic = heuristic
+
+	return
+}
+
+func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	txHashString := path.Base(r.URL.Path)
+	if !isValid(txHashString) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if !worker.IsReady() {
+		reply.Status = heuristics.StatusHeuristicWorkerNotReady
+		return
+	}
+
+	if worker.IsInQueue(txHashString, tUser.ID) {
+		reply.Status = heuristics.StatusHeuristicDuplicate
+		info("heuristic already in queue")
+		return
+	}
+
+	type request struct {
+		Changed []ClientHeuristicRequest `json:"changed,omitempty"`
+		Deleted []string                 `json:"deleted,omitempty"`
+	}
+
+	var heuristicRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&heuristicRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
 		return
 	}
 
 	if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
-		reply.Msg = msgInvalidRequest
+		status = http.StatusBadRequest
 		return
 	}
 
-	changes := make([]dbHeuristic.FrontendHeuristicRequest, len(heuristicRequest.Changed))
+	changes := make([]dbHeuristic.DatabaseHeuristicRequest, len(heuristicRequest.Changed))
 	for i, c := range heuristicRequest.Changed {
-		changes[i] = c.Transform()
+		changes[i] = c.ToDatabaseRequest()
 	}
 
-	work, err := heuristics.CreateWork(dgraph, txHashString, changes, heuristicRequest.Deleted, userUID)
+	work, err := heuristics.CreateWork(dgraph, txHashString, changes, heuristicRequest.Deleted, tUser.ID)
 	if err != nil {
-		reply.Msg = msgInvalidRequest
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	if worker.AddWork(txHashString, userUID, work) {
+	if worker.AddWork(txHashString, tUser.ID, work) {
 		reply.Status = heuristics.StatusHeuristicAdded
 	} else {
 		reply.Status = heuristics.StatusHeuristicDuplicate
 	}
 
-	reply.Success = true
+	return
+}
 
+func getHeuristicListReply(r *http.Request, dgraph external.Database) (reply heuristicListReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	items, err := dbHeuristic.GetHeuristicListByUser(dgraph, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Item = items
 	return
 }
 
 // getShortestTransactionPathReply searches for the shortest path between two transactions
-func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply) {
-	const msgErrorPathSearch = "error while searching for paths"
+func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (reply shortestTransactionPathReply, status int) {
+	type request struct {
+		// From is the starting point of the shortest path lookup
+		From string `json:"from,omitempty"`
+		// To is the end point of the shortest path lookup
+		To string `json:"to,omitempty"`
+		// IncludePrivacyTransactions determines if privacy transactions
+		// should be considered when doing the shortest path lookup
+		IncludePrivacyTransactions bool `json:"includePrivacyTransactions"`
+		// AnyDirection determines the search direction of the shortest transaction path query
+		// True: Both inputs and outputs are traversed
+		// False: Only inputs are traversed
+		AnyDirection bool `json:"anyDirection"`
+	}
 
 	// parse request
-	var req dbHeuristic.ShortestTransactionPathRequest
+	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = msgCouldNotDecodeRequest
+		status = http.StatusBadRequest
 		return
 	}
 
 	if req.From == req.To {
-		reply.Success = true
+		status = http.StatusBadRequest
 		reply.Msg = "Transaction hashes are equal"
 		return
 	}
@@ -369,12 +483,12 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	fromBlockID, err := db.GetTransactionBlockID(dgraph, req.From)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
-			reply.Success = true
+			status = http.StatusNotFound
 			reply.Msg = "Transaction " + req.From + " does not exist"
 			return
 		}
 
-		reply.Msg = msgErrorPathSearch
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -382,11 +496,12 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	toBlockID, err := db.GetTransactionBlockID(dgraph, req.To)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
+			status = http.StatusBadRequest
 			reply.Msg = "error transaction" + req.To + " does not exist"
 			return
 		}
 
-		reply.Msg = msgErrorPathSearch
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -414,7 +529,7 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	txs, err := dbHeuristic.GetShortestTransactionPathAnyDirection(dgraph, oldTx, youngTx,
 		req.IncludePrivacyTransactions, anyDirection)
 	if err != nil {
-		reply.Msg = msgErrorPathSearch
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -425,137 +540,136 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 		reply.Transactions = txs
 	}
 
-	reply.Success = true
-
 	return
 }
 
 // getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
-func getDeleteHeuristicReply(dgraph external.Database, body io.Reader, userUID string) (reply deleteHeuristicReply) {
-	var req dbHeuristic.DeleteHeuristicRequest
+func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
 
-	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		reply.Msg = msgCouldNotDecodeRequest
+	type request struct {
+		DeleteAll       bool   `json:"delete_all"`
+		TransactionHash string `json:"tx_hash,omitempty"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
 		return
 	}
 
 	if (req.DeleteAll && len(req.TransactionHash) > 0) ||
 		(!req.DeleteAll && len(req.TransactionHash) == 0) {
-		reply.Msg = msgInvalidRequest
+		status = http.StatusBadRequest
 		return
 	}
 
 	if req.DeleteAll {
-		if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, userUID); err != nil {
+		if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, tUser.ID); err != nil {
 			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 				reply.Msg = "No data was deleted. The user may not have any heuristics."
+				status = http.StatusNotFound
 			} else {
 				reply.Msg = "could not delete data"
+				status = http.StatusInternalServerError
 				warn(err)
 			}
 			return
 		}
 
-		reply.Success = true
 		return
 	}
 
-	if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, userUID); err != nil {
+	if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, tUser.ID); err != nil {
 		if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
+			status = http.StatusNotFound
 		} else {
 			reply.Msg = "could not delete data"
+			status = http.StatusInternalServerError
 			warn(err)
 		}
 		return
 	}
-
-	reply.Success = true
 
 	return
 }
 
 // getConnectionLookupReply returns the result of a reverse lookup
-func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker, urlHandle *url.URL) (reply connectionLookupReply) {
+func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker,
+	urlHandle *url.URL) (reply connectionLookupReply, status int) {
 	if !worker.IsReady() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
-		reply.Warning = true
 		return
 	}
 
 	urlValues := urlHandle.Query()
 
-	// get time parameter
-	fLockBackTime := urlValues.Get("t")
-	var lookBackTime time.Duration
-	if len(fLockBackTime) > 0 {
-		n, err := strconv.Atoi(fLockBackTime)
-		if err != nil {
-			reply.Msg = "error parsing input"
-			warn(err)
-			return
-		}
-
-		if n > 90 {
-			n = 90
-		}
-
-		lookBackTime = time.Duration(n)
+	isLookupForward, err := strconv.ParseBool(urlValues.Get("forward"))
+	if err != nil {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 'forward'"
+		return
 	}
 
-	// get direction parameter
-	direction := urlValues.Get("forward")
-	var isLookupForward bool
-	// direction is either "0" or "1", thus check for a string with length equal to 1.
-	if len(direction) == 1 {
-		n, err := strconv.Atoi(direction)
-		if err != nil {
-			reply.Msg = "error parsing input"
-			warn(err)
-			return
-		}
-
-		isLookupForward = n == 1
+	numDays, err := strconv.Atoi(urlValues.Get("t"))
+	if err != nil {
+		status = http.StatusBadRequest
+		reply.Msg = "invalid value for parameter 't'"
+		return
 	}
+
+	if numDays > 90 {
+		status = http.StatusBadRequest
+		reply.Msg = "value for parameter 't' must be lower of equal then 90"
+		return
+	}
+
+	if numDays <= 0 {
+		status = http.StatusBadRequest
+		reply.Msg = "value for parameter 't' must be greater than 0"
+		return
+	}
+
+	lookBackTime := time.Duration(numDays)
 
 	txhash := path.Base(urlHandle.Path)
 
 	uid, err := db.GetTransactionUID(dgraph, txhash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
-			reply.Success = true
+			status = http.StatusNotFound
 			reply.Msg = "Transaction " + txhash + " does not exist"
 			return
 		}
 
-		reply.Msg = "error while searching for connections"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	info("Connection Lookup Request Start", "transaction_hash", txhash, "look_back_time_days", int(lookBackTime), "forward", isLookupForward)
-
-	const msgLookupNotSuccessful = "Lookup not successful"
-
 	var endpoints map[string]bool
-	rLookupTime := time.Now()
 	if isLookupForward {
 		endpoints, err = worker.ForwardLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
-			reply.Msg = msgLookupNotSuccessful
+			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 	} else {
 		endpoints, err = worker.ReverseLookup(uid, time.Hour*24*lookBackTime)
 		if err != nil {
-			reply.Msg = msgLookupNotSuccessful
+			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 	}
-
-	info("Connection Lookup Request End", "elapsed_time", time.Since(rLookupTime), "num_endpoints", len(endpoints))
 
 	// reply with the first 30 endpoints
 	const numOutputNodes = 30
@@ -571,7 +685,7 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	frontendTransactions, err := db.GetFrontendTransactionsByUID(dgraph, transactionUids)
 	if err != nil {
-		reply.Msg = msgLookupNotSuccessful
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -579,80 +693,77 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 	endpointCount := len(endpoints)
 	reply.TransactionCount = &endpointCount
 	reply.Transactions = frontendTransactions
-	reply.Success = true
-
-	return
-}
-
-// getFrontendCluster returns the requested (by address hash) clusters. In case an error occurred msg and err is filled.
-func getFrontendCluster(dgraph external.Database, addressHash string, maxAddresses int,
-	userID string) (clusters []clustering.FrontendCluster, msg string, err error) {
-	if addressHash == "" {
-		msg = "address hash is empty"
-		return
-	}
-
-	if !isValid(addressHash) {
-		msg = "address hash was not valid"
-		return
-	}
-
-	clusterResponse, getErr := clustering.GetClusters(dgraph, addressHash, maxAddresses, userID)
-	if getErr != nil {
-		msg = "error while searching for clusters"
-		err = getErr
-		return
-	}
-	clusters = clusterResponse
 
 	return
 }
 
 // getClusterLookupReply returns the result of a cluster lookup
-func getClusterLookupReply(dgraph external.Database, addressHash string, user tokenUser) (reply clusterLookupReply) {
+func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clusterLookupReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	addressHash := path.Base(r.URL.Path)
 	if !isValid(addressHash) {
-		reply.Msg = msgInvalidRequest
+		status = http.StatusBadRequest
 		return
 	}
 
 	const maxAddresses = 30
-
-	clusters, msg, err := getFrontendCluster(dgraph, addressHash, maxAddresses, user.ID)
-	reply.Msg = msg
+	clusters, err := clustering.GetClusters(dgraph, addressHash, maxAddresses, tUser.ID)
 	if err != nil {
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	reply.Clusters = clusters
-	reply.Success = true
 
 	return
 }
 
 // getHMILookupReply returns all hmi clusters connected to the given address hash
-func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply) {
+func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiLookupReply, status int) {
 	if !isValid(addressHash) {
+		status = http.StatusBadRequest
 		return
 	}
 
 	addressCluster, clusters, err := clustering.GetHMIClusters(dgraph, addressHash)
 	if err != nil {
 		warn(err)
-		return reply
+		status = http.StatusInternalServerError
+		return
 	}
-	reply.Success = true
+
 	reply.Clusters = clusters
 	reply.AddressCluster = addressCluster
 
-	return reply
+	return
 }
 
 // writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUser tokenUser, heuristicUID string) {
+func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+	setCORSHeaders(w)
+	heuristicUID := path.Base(r.URL.Path)
+	if heuristicUID == "" {
+		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
+		return
+	}
+
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		warn(err)
+		return
+	}
+
 	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
-		handleError(w, err)
+		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
 		warn(err)
 		return
 	}
@@ -674,7 +785,8 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 	if err = csvWriter.Write(header); err != nil {
 		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(err)
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
 	var clusterCount int
@@ -695,8 +807,9 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 				transaction.Timestamp, strconv.Itoa(transaction.DestinationCount)}
 
 			if err = csvWriter.Write(row); err != nil {
-				handleError(w, err)
-				warn(err)
+				// communication with client is not possible, can only log error
+				// this is because as soon as we write the CSV header, the HTTP response status is also sent
+				warn(cliutil.NewStackError(err))
 				return
 			}
 		}
@@ -708,18 +821,24 @@ func writeHeuristicSummary(w http.ResponseWriter, dgraph external.Database, tUse
 
 // writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
-	tUser, err := extractTokenUser(r.Context())
-	if err != nil {
-		http.Error(w, errorClusterSummary, http.StatusNotFound)
+	setCORSHeaders(w)
+	addressHash := path.Base(r.URL.Path)
+	if !isValid(addressHash) {
+		http.Error(w, "no address hash provided", http.StatusNotFound)
 		return
 	}
 
-	addressHash := path.Base(r.URL.Path)
-
-	clusters, msg, err := getFrontendCluster(dgraph, addressHash, 0, tUser.ID)
+	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		handleError(w, err)
-		info(msg)
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		warn(err)
+		return
+	}
+
+	clusters, err := clustering.GetClusters(dgraph, addressHash, 0, tUser.ID)
+	if err != nil {
+		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		warn(err)
 		return
 	}
 
@@ -743,8 +862,9 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 		"address hash", "output count", "unspent output count"}
 
 	if err = csvWriter.Write(header); err != nil {
-		http.Error(w, "Error writing to csv stream", http.StatusInternalServerError)
-		warn(err)
+		http.Error(w, "error writing to file", http.StatusInternalServerError)
+		warn(cliutil.NewStackError(err))
+		return
 	}
 
 	for _, c := range clusters {
@@ -759,7 +879,10 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 			row = append(row, strconv.Itoa(a.OutputCount-a.SpentOutputCount))
 
 			if err = csvWriter.Write(row); err != nil {
-				handleError(w, err)
+				// communication with client is not possible, can only log error
+				// this is because as soon as we write the CSV header, the HTTP response status is also sent
+				warn(cliutil.NewStackError(err))
+				return
 			}
 		}
 		csvWriter.Flush()
@@ -767,7 +890,7 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 }
 
 // getMixingActivity returns the result of a mixing activity lookup
-func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply) {
+func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingActivityReply, status int) {
 	type request struct {
 		// AddressHash is the address hash for which the lookup will be done
 		AddressHash string `json:"addressHash,omitempty"`
@@ -776,32 +899,34 @@ func getMixingActivity(dgraph external.Database, body io.Reader) (reply mixingAc
 	}
 	var req request
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		warn(err)
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	const maxAddressCount = 2000
 	if req.IsClusterLookup {
 		addressCount, err := clustering.GetClusterAddressCount(dgraph, req.AddressHash)
 		if err != nil {
+			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 
 		if addressCount > maxAddressCount {
 			reply.Msg = "too_many_addresses"
-			reply.Success = true
+			status = http.StatusBadRequest
 			return
 		}
 	}
 
 	activities, err := dbAnalytics.GetMixingActivity(dgraph, req.AddressHash, req.IsClusterLookup)
 	if err != nil {
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	reply.Activities = activities
-	reply.Success = true
 
 	return
 }
@@ -818,27 +943,30 @@ const (
 	CsvErrorImporting    = "file_error_importing"
 )
 
-func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClusterReply) {
+func getAddClusterReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = msgUserNotFound
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
 	if err := r.ParseMultipartForm(maxBodySize); err != nil {
+		status = http.StatusBadRequest
 		return
 	}
 
 	separator := r.FormValue("separator")
 	if separator == "" {
 		reply.Msg = CsvInvalidSeparator
+		status = http.StatusBadRequest
 		return
 	}
 
 	var rSeparator rune
 	if separator != ";" && separator != "," {
 		reply.Msg = CsvInvalidSeparator
+		status = http.StatusBadRequest
 		return
 	}
 	rSeparator = []rune(separator)[0]
@@ -846,13 +974,14 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 	headerFlag := r.FormValue("hasHeader")
 	if headerFlag == "" {
 		reply.Msg = CsvEmptyHeader
+		status = http.StatusBadRequest
 		return
 	}
 
-	// Get handler for filename, size and headers
 	file, _, err := r.FormFile("file")
 	if err != nil {
 		reply.Msg = CsvReadError
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -875,9 +1004,11 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 		if err != nil {
 			if errors.Is(err, csv.ErrFieldCount) {
 				reply.Msg = CsvInvalidFieldCount
+				status = http.StatusBadRequest
 				return
 			} else if !errors.Is(err, io.EOF) {
 				reply.Msg = CsvInvalidData
+				status = http.StatusBadRequest
 				return
 			}
 			break
@@ -894,6 +1025,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 
 		if newAddress.ClusterID == "" || newAddress.AddressHash == "" {
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 			return
 		}
 
@@ -902,6 +1034,7 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 
 	if len(addresses) == 0 {
 		reply.Msg = CsvNoData
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -909,26 +1042,29 @@ func getAddClusterReply(dgraph external.Database, r *http.Request) (reply addClu
 		switch {
 		case errors.Is(err, analyticsClustering.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
+			status = http.StatusBadRequest
 		case errors.Is(err, analyticsClustering.ErrShallowCluster):
 			reply.Msg = CsvShallowCluster
+			status = http.StatusBadRequest
 		case errors.Is(err, analyticsClustering.ErrNonExistentAddress):
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 		default:
 			reply.Msg = CsvErrorImporting
+			status = http.StatusInternalServerError
 			warn(err)
 		}
 
 		return
 	}
 
-	reply.Success = true
 	return
 }
 
-func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic bool) (reply addAttributionReply) {
+func getAddAttributionReply(r *http.Request, dgraph external.Database, isPublic bool) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = msgUserNotFound
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
@@ -940,12 +1076,14 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	separator := r.FormValue("separator")
 	if separator == "" {
 		reply.Msg = CsvInvalidSeparator
+		status = http.StatusBadRequest
 		return
 	}
 
 	var rSeparator rune
 	if separator != ";" && separator != "," {
 		reply.Msg = CsvInvalidSeparator
+		status = http.StatusBadRequest
 		return
 	}
 	rSeparator = []rune(separator)[0]
@@ -953,6 +1091,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	headerFlag := r.FormValue("hasHeader")
 	if headerFlag == "" {
 		reply.Msg = CsvEmptyHeader
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -960,6 +1099,7 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	file, _, err := r.FormFile("file")
 	if err != nil {
 		reply.Msg = CsvReadError
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -975,16 +1115,18 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 	csvReader.FieldsPerRecord = 5
 	var line []string
 
-	var addresses []analytics.Attribution
+	var attributions []analytics.Attribution
 	var index int
 	for ; ; index++ {
 		line, err = csvReader.Read()
 		if err != nil {
 			if errors.Is(err, csv.ErrFieldCount) {
 				reply.Msg = CsvInvalidFieldCount
+				status = http.StatusBadRequest
 				return
 			} else if !errors.Is(err, io.EOF) {
 				reply.Msg = CsvInvalidData
+				status = http.StatusBadRequest
 				return
 			}
 			break
@@ -1004,172 +1146,220 @@ func getAddAttributionReply(dgraph external.Database, r *http.Request, isPublic 
 
 		if newAttribution.AddressHash == "" || newAttribution.Tag == "" {
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 			return
 		}
 
-		addresses = append(addresses, newAttribution)
+		attributions = append(attributions, newAttribution)
 	}
 
-	if len(addresses) == 0 {
+	if len(attributions) == 0 {
 		reply.Msg = CsvNoData
+		status = http.StatusBadRequest
 		return
 	}
 
-	if err := analytics.ImportAttribution(dgraph, addresses, tUser.ID, isPublic); err != nil {
+	if err := analytics.ImportAttribution(dgraph, attributions, tUser.ID, isPublic); err != nil {
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
+			status = http.StatusBadRequest
 		case errors.Is(err, analytics.ErrNonExistentAddress):
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 		default:
 			reply.Msg = CsvErrorImporting
+			status = http.StatusInternalServerError
 			warn(err)
 		}
 
 		return
 	}
 
-	reply.Success = true
 	return
 }
 
-func getClusterOverviewReply(dgraph external.Database, userUID string) (reply clusterOverviewReply) {
-	clusters, err := clustering.GetUserClusters(dgraph, userUID)
+func getClusterOverviewReply(r *http.Request, dgraph external.Database) (reply clusterOverviewReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	clusters, err := clustering.GetUserClusters(dgraph, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
 		reply.Msg = "no clusters found"
 		warn(err)
 		return
 	}
 
-	reply.Success = true
 	reply.Clusters = clusters
 
 	return
 }
 
-func getDeleteClusterReply(dgraph external.Database, userUID string, clusterUID string) (reply deleteClusterReply) {
+func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	clusterUID := path.Base(r.URL.Path)
 	if clusterUID == "" {
+		status = http.StatusBadRequest
 		reply.Msg = "cluster uid was not set"
 		return
 	}
 
-	if err := clustering.DeleteCluster(dgraph, userUID, clusterUID); err != nil {
+	if err := clustering.DeleteCluster(dgraph, tUser.ID, clusterUID); err != nil {
 		reply.Msg = "could not delete cluster"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Success = true
-
 	return
 }
 
-func getDeleteAllClustersReply(dgraph external.Database, userUID string) (reply deleteClusterReply) {
-	if err := clustering.DeleteAllClusters(dgraph, userUID); err != nil {
-		reply.Msg = "could not delete clusters"
-		warn(err)
-		return
-	}
-
-	reply.Success = true
-
-	return
-}
-
-func getAttributionOverviewReply(dgraph external.Database, userUID string) (reply attributionOverviewReply) {
-	attributions, err := attribution.GetUserAttributions(dgraph, userUID)
+func getDeleteAllClustersReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "no attributions found"
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
-	reply.Success = true
+	if err := clustering.DeleteAllClusters(dgraph, tUser.ID); err != nil {
+		reply.Msg = "could not delete clusters"
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func getAttributionOverviewReply(r *http.Request, dgraph external.Database) (reply attributionOverviewReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	attributions, err := attribution.GetUserAttributions(dgraph, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
 	reply.Attributions = attributions
 
 	return
 }
 
-func getDeleteAttributionReply(dgraph external.Database, userUID string,
-	attributionUID string, isPublicDeletion bool) (reply deleteAttributionReply) {
-	if attributionUID == "" {
-		reply.Msg = "attribution uid was not set"
+func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
+	isPublicDeletion bool) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
 		return
 	}
 
-	var err error
+	attributionUID := path.Base(r.URL.Path)
+	if attributionUID == "" {
+		reply.Msg = "attribution uid was not set"
+		status = http.StatusBadRequest
+		return
+	}
+
 	if isPublicDeletion {
 		err = attribution.DeletePublicAttribution(dgraph, attributionUID)
 	} else {
-		err = attribution.DeletePrivateAttribution(dgraph, userUID, attributionUID)
+		err = attribution.DeletePrivateAttribution(dgraph, tUser.ID, attributionUID)
 	}
 
 	if err != nil {
 		reply.Msg = "could not delete attribution"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Success = true
-
 	return
 }
 
-func getDeleteAllAttributionsReply(dgraph external.Database, userUID string) (reply deleteAttributionReply) {
-	if err := attribution.DeleteAllAttributions(dgraph, userUID); err != nil {
+func getDeleteAllAttributionsReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	if err := attribution.DeleteAllAttributions(dgraph, tUser.ID); err != nil {
 		reply.Msg = "could not delete clusters"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Success = true
-
 	return
 }
 
-func getAttributionSearchReply(dgraph external.Database, userUID string,
-	body io.Reader) (reply attributionOverviewReply) {
+func getAttributionSearchReply(r *http.Request, dgraph external.Database) (reply attributionOverviewReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
 	type request struct {
 		Query string `json:"q,omitempty"`
 	}
 
 	var searchRequest request
 
-	if err := json.NewDecoder(body).Decode(&searchRequest); err != nil {
-		reply.Success = false
-		reply.Msg = "error decoding request"
-		warn(err)
+	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
 		return
 	}
 
 	if searchRequest.Query == "" {
-		reply.Success = false
-		reply.Msg = "empty query string"
+		status = http.StatusBadRequest
 		return
 	}
 
-	attributions, err := attribution.SearchAttributions(dgraph, userUID, searchRequest.Query)
+	attributions, err := attribution.SearchAttributions(dgraph, tUser.ID, searchRequest.Query)
 	if err != nil {
-		reply.Msg = "no attributions found"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Success = true
 	reply.Attributions = attributions
 
 	return
 }
 
-func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply addAddressExclusionsReply) {
+func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = msgUserNotFound
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
 	if err := r.ParseMultipartForm(maxBodySize); err != nil {
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -1177,6 +1367,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 	file, _, err := r.FormFile("file")
 	if err != nil {
 		reply.Msg = CsvReadError
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -1198,9 +1389,11 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 		if err != nil {
 			if errors.Is(err, csv.ErrFieldCount) {
 				reply.Msg = CsvInvalidFieldCount
+				status = http.StatusBadRequest
 				return
 			} else if !errors.Is(err, io.EOF) {
 				reply.Msg = CsvInvalidData
+				status = http.StatusBadRequest
 				return
 			}
 			break
@@ -1210,6 +1403,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 
 		if trimmed == "" {
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 			return
 		}
 
@@ -1218,6 +1412,7 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 
 	if len(addresses) == 0 {
 		reply.Msg = CsvNoData
+		status = http.StatusBadRequest
 		return
 	}
 
@@ -1225,94 +1420,107 @@ func getAddAddressExclusionsReply(dgraph external.Database, r *http.Request) (re
 		switch {
 		case errors.Is(err, analytics.ErrTooManyAddresses):
 			reply.Msg = CsvTooManyAddresses
+			status = http.StatusBadRequest
 		case errors.Is(err, analytics.ErrNonExistentAddress):
 			reply.Msg = CsvInvalidData
+			status = http.StatusBadRequest
 		default:
 			reply.Msg = CsvErrorImporting
+			status = http.StatusInternalServerError
 			warn(err)
 		}
 
 		return
 	}
 
-	reply.Success = true
 	return
 }
 
-func getAddressExclusionOverviewReply(dgraph external.Database, userUID string) (reply addressExclusionOverviewReply) {
-	addresses, count, err := exclusion.GetAddressExclusions(dgraph, userUID)
+func getAddressExclusionOverviewReply(r *http.Request, dgraph external.Database) (reply addressExclusionOverviewReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = "no addresses found"
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
-	reply.Success = true
+	addresses, count, err := exclusion.GetAddressExclusions(dgraph, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
 	reply.AddressHashes = addresses
 	reply.Count = count
 
 	return
 }
 
-func getDeleteAddressExclusionReply(dgraph external.Database, userUID string,
-	addressHash string) (reply deleteAddressExclusionReply) {
-	if !isValid(addressHash) {
-		reply.Msg = msgInvalidRequest
-		return
-	}
-
-	if err := exclusion.DeleteAddressExclusion(dgraph, userUID, addressHash); err != nil {
-		reply.Msg = "could not delete address exclusion"
+func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) int {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
 		warn(err)
-		return
+		return http.StatusUnauthorized
 	}
 
-	reply.Success = true
+	addressHash := path.Base(r.URL.Path)
+	if !isValid(addressHash) {
+		return http.StatusBadRequest
+	}
 
-	return
+	if err := exclusion.DeleteAddressExclusion(dgraph, tUser.ID, addressHash); err != nil {
+		warn(err)
+		return http.StatusInternalServerError
+	}
+
+	return http.StatusOK
 }
 
-func getDeleteAllAddressExclusionsReply(dgraph external.Database, userUID string) (reply deleteAddressExclusionReply) {
-	if err := exclusion.DeleteAllAddressExclusions(dgraph, userUID); err != nil {
-		reply.Msg = "could not delete address exclusions"
+func getDeleteAllAddressExclusionsReply(r *http.Request, dgraph external.Database) int {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
 		warn(err)
-		return
+		return http.StatusUnauthorized
 	}
 
-	reply.Success = true
+	if err := exclusion.DeleteAllAddressExclusions(dgraph, tUser.ID); err != nil {
+		warn(err)
+		return http.StatusInternalServerError
+	}
 
-	return
+	return http.StatusOK
 }
 
 func getAddressExclusionStatusReply(r *http.Request, dgraph external.Database, addressHash string) (
-	reply addressExclusionStatusReply) {
-	if !isValid(addressHash) {
-		reply.Msg = "address hash is not valid"
-		return
-	}
-
+	reply addressExclusionStatusReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		reply.Msg = msgUserNotFound
+		status = http.StatusUnauthorized
 		warn(err)
 		return
 	}
 
-	status, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
+	if !isValid(addressHash) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	exclusionStatus, err := exclusion.GetAddressExclusionStatus(dgraph, addressHash, tUser.ID)
 	if err != nil {
-		reply.Msg = "error getting exclusion status"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Success = true
-	reply.IsExclusion = status
+	reply.IsExclusion = exclusionStatus
 
 	return
 }
 
 // getCreateIdentityReply reads the data from body and constructs a identityReply
-func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
+func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
+	r *http.Request) (reply msgReply, status int) {
 	type request struct {
 		Email string   `json:"email"`
 		Roles []string `json:"roles"`
@@ -1322,22 +1530,20 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 	var frontEndUser request
 
 	if err := json.NewDecoder(r.Body).Decode(&frontEndUser); err != nil {
-		reply.Msg = msgCouldNotDecodeUser
+		status = http.StatusBadRequest
 		return
 	}
 
-	const msgInvalidUser = "user data invalid"
-
 	if len(frontEndUser.Email) == 0 || len(frontEndUser.Roles) == 0 ||
 		len(frontEndUser.State) == 0 || !isValidEmail(frontEndUser.Email) {
-		reply.Msg = msgInvalidUser
+		status = http.StatusBadRequest
 		return
 	}
 
 	// check if all roles have valid values
 	for _, ur := range frontEndUser.Roles {
 		if _, err := getRoleByName(ur); err != nil {
-			reply.Msg = msgInvalidUser
+			status = http.StatusBadRequest
 			return
 		}
 	}
@@ -1345,28 +1551,40 @@ func getCreateIdentityReply(dgraph external.Database, adminAuth *ory.APIClient, 
 	err := dbus.CreateDgraphAndKratosUser(r.Context(), dgraph, adminAuth,
 		frontEndUser.Email, nil, frontEndUser.Roles, frontEndUser.State)
 	if err != nil {
-		reply.Msg = "unable to create identity"
+		status = http.StatusInternalServerError
 		warn(err)
 	}
-
-	reply.Success = true
 
 	return
 }
 
 // getDeleteIdentityReply deletes the given user
-func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
-	r *http.Request, delUID string) (reply identityReply) {
-	if delUID == "" {
-		reply.Msg = msgInvalidRequest
+func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
+	adminAuth *ory.APIClient, isAdmin bool) (reply msgReply, status int) {
+	var kratosID string
+	if isAdmin {
+		kratosID = path.Base(r.URL.Path)
+	} else {
+		tUser, err := extractTokenUser(r.Context())
+		if err != nil {
+			status = http.StatusUnauthorized
+			warn(err)
+			return
+		}
+
+		kratosID = tUser.KratosID
+	}
+
+	if kratosID == "" {
+		status = http.StatusBadRequest
 		return
 	}
 
 	// get identity data
-	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
+	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
 	if err != nil {
-		reply.Msg = "could not delete identity"
-		warn(err)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1375,25 +1593,28 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 
 	uid, err := extractDgraphUID(identity.MetadataPublic)
 	if err != nil {
-		reply.Msg = "could not extract dgraph uid"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if err := attribution.DeleteAllAttributions(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " attributions"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if err := clustering.DeleteAllClusters(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " clusters"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " heuristics"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -1401,20 +1622,20 @@ func getDeleteIdentityReply(dgraph external.Database, adminAuth *ory.APIClient,
 	err = dbus.DeleteUser(dgraph, uid)
 	if err != nil {
 		reply.Msg = "could not delete dgraph user"
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), delUID).Execute() //nolint:bodyclose
+	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
-		warn(err)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
 		return
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(response.Body)
-
-	reply.Success = true
 
 	return
 }
@@ -1444,7 +1665,7 @@ func setEmail(traits any, email string) error {
 }
 
 // getModifyIdentityReply modifies an identity with the given values in the request body
-func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply identityReply) {
+func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply msgReply, status int) {
 	type request struct {
 		UID   string              `json:"uid,omitempty"`
 		Email string              `json:"email,omitempty"`
@@ -1454,23 +1675,21 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 	var modRequest request
 	if err := json.NewDecoder(r.Body).Decode(&modRequest); err != nil {
-		reply.Msg = msgCouldNotDecodeUser
+		status = http.StatusBadRequest
 		return
 	}
 
 	if len(modRequest.UID) == 0 || (len(modRequest.Roles) == 0 && len(modRequest.Email) == 0 &&
 		len(modRequest.State) == 0) && !isValidEmail(modRequest.Email) {
-		reply.Msg = "nothing to change"
+		status = http.StatusBadRequest
 		return
 	}
-
-	const msgErrModifyingUser = "error modifying user"
 
 	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
-		reply.Msg = msgErrModifyingUser
-		warn(err, "modification_request", modRequest)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
@@ -1481,12 +1700,13 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	if len(modRequest.Email) > 0 {
 		if !isValidEmail(modRequest.Email) {
 			reply.Msg = "invalid email"
+			status = http.StatusBadRequest
 			return
 		}
 
 		// replace email
 		if err = setEmail(initialIdentity.Traits, modRequest.Email); err != nil {
-			reply.Msg = "invalid meta data"
+			status = http.StatusInternalServerError
 			warn(err, "modification_request", modRequest)
 			return
 		}
@@ -1500,6 +1720,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		for _, role := range modRequest.Roles {
 			if _, err := getRoleByName(role.Name); err != nil {
 				reply.Msg = msgInvalidRole
+				status = http.StatusBadRequest
 				warn(err, "modification_request", modRequest)
 				return
 			}
@@ -1508,7 +1729,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 
 		// replace roles
 		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
-			reply.Msg = "invalid role"
+			status = http.StatusInternalServerError
 			warn(err, "modification_request", modRequest)
 			return
 		}
@@ -1518,8 +1739,8 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 	if len(modRequest.State) > 0 {
 		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
 		if err != nil {
-			reply.Msg = "invalid state"
-			warn(err, "modification_request", modRequest)
+			status = http.StatusBadRequest
+			warn(cliutil.NewStackError(err), "modification_request", modRequest)
 			return
 		}
 		initialIdentity.SetState(*newState)
@@ -1533,45 +1754,45 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply id
 		Traits:         initialIdentity.Traits.(map[string]any),
 	}).Execute() //nolint:bodyclose
 	if err != nil {
-		reply.Msg = msgErrModifyingUser
-		warn(err, "modification_request", modRequest)
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err), "modification_request", modRequest)
 		return
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(response.Body)
 
-	reply.Success = true
-
 	return
 }
 
 func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Worker,
-	txhash string) (reply spendingFingerprintReply) {
-	if !worker.IsReady() {
-		reply.Msg = "Server is not ready to receive lookups. Please try again later."
-		reply.Warning = true
+	txhash string) (reply spendingFingerprintReply, status int) {
+	if !isValid(txhash) {
+		status = http.StatusBadRequest
 		return
 	}
 
-	const frontendError = "An error occurred while analyzing the transaction."
+	if !worker.IsReady() {
+		reply.Msg = "Server is not ready to receive lookups. Please try again later."
+		return
+	}
 
 	uid, err := db.GetTransactionUID(dgraph, txhash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
-			reply.Success = true
+			status = http.StatusBadRequest
 			reply.Msg = "Transaction " + txhash + " does not exist."
 			return
 		}
 
-		reply.Msg = frontendError
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	similarTransactions, sessionCount, err := worker.SpendingFingerprint(uid)
 	if err != nil {
-		reply.Msg = frontendError
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
@@ -1585,13 +1806,13 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 
 	transactions, err := db.GetTransactionUIDMapping(dgraph, uids)
 	if err != nil {
-		reply.Msg = frontendError
+		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
 	if len(transactions) != len(uids) {
-		reply.Msg = frontendError
+		status = http.StatusInternalServerError
 		warn(cliutil.NewStackErrorf("length of uids and hashes is not equal for %s", txhash))
 		return
 	}
@@ -1599,7 +1820,7 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	for _, tx := range transactions {
 		fingerprint, ok := uidToFingerprint[tx.UID]
 		if !ok {
-			reply.Msg = frontendError
+			status = http.StatusInternalServerError
 			warn(cliutil.NewStackErrorf("could not find uid to tx hash mapping for %s in request for %s", txhash, tx.UID))
 			return
 		}
@@ -1609,7 +1830,16 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 	}
 
 	reply.SessionCount = sessionCount
-	reply.Success = true
+
+	return
+}
+
+func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
+	reply.Descriptors = make([]heuristics.Descriptor, len(heuristics.ValidHeuristicTypes))
+
+	for i, t := range heuristics.ValidHeuristicTypes {
+		reply.Descriptors[i] = t.GetDescriptor()
+	}
 
 	return
 }

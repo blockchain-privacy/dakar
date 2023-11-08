@@ -24,6 +24,16 @@ func adapt(h http.Handler, route string, adapters ...adapter) http.Handler {
 	return h
 }
 
+// handleError conditionally logs and writes the error to the http response
+func handleError(w http.ResponseWriter, err error) {
+	if err == nil || w == nil {
+		return
+	}
+
+	http.Error(w, "an error occurred", http.StatusInternalServerError)
+	warn(err)
+}
+
 // writeUnauthorized sets the http.StatusUnauthorized status code and writes an error message
 func writeUnauthorized(w http.ResponseWriter, msg string) {
 	if len(msg) == 0 {
@@ -32,17 +42,15 @@ func writeUnauthorized(w http.ResponseWriter, msg string) {
 
 	w.WriteHeader(http.StatusUnauthorized)
 	if _, err := w.Write([]byte(msg)); err != nil {
-		warn(err)
+		warn(cliutil.NewStackError(err))
 	}
 }
 
-// sendRedirectMessage sends a redirect message
-func sendRedirectMessage(w http.ResponseWriter) {
-	setDefaultHeader(w)
-	if _, err := w.Write([]byte(`{"invalidToken": true}`)); err != nil {
-		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(err)
-	}
+// sendUnauthorizedMessage sends an unauthorized message
+func sendUnauthorizedMessage(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 // extractRoles tries to extract roles from the given metadata
@@ -102,8 +110,8 @@ func (s *Server) authorization() adapter {
 			session, sessionResponse, err := s.auth.FrontendApi.ToSession(r.Context()).
 				Cookie(r.Header.Get("Cookie")).Execute() //nolint:bodyclose
 			if err != nil {
-				sendRedirectMessage(w)
-				warn(err)
+				sendUnauthorizedMessage(w)
+				warn(cliutil.NewStackError(err))
 				return
 			}
 
@@ -114,7 +122,7 @@ func (s *Server) authorization() adapter {
 			// check if session active and not expired
 			if session.Active == nil || session.ExpiresAt == nil ||
 				!*session.Active || time.Until(*session.ExpiresAt) <= 0 {
-				sendRedirectMessage(w)
+				sendUnauthorizedMessage(w)
 				return
 			}
 
@@ -125,8 +133,8 @@ func (s *Server) authorization() adapter {
 				_, extensionResponse, extensionErr := s.adminAuth.IdentityApi.
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
-					sendRedirectMessage(w)
-					warn(extensionErr)
+					sendUnauthorizedMessage(w)
+					warn(cliutil.NewStackError(extensionErr))
 					return
 				}
 				_ = extensionResponse.Body.Close()
@@ -134,14 +142,14 @@ func (s *Server) authorization() adapter {
 
 			dgraphUID, err := extractDgraphUID(session.Identity.MetadataPublic)
 			if err != nil {
-				sendRedirectMessage(w)
+				sendUnauthorizedMessage(w)
 				warn(err)
 				return
 			}
 
 			roles, err := extractRoles(session.Identity.MetadataPublic)
 			if err != nil {
-				sendRedirectMessage(w)
+				sendUnauthorizedMessage(w)
 				warn(err)
 				return
 			}

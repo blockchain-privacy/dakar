@@ -3,7 +3,6 @@ package db
 import (
 	"backend/cmd/cliutil"
 	"backend/external"
-
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -339,10 +338,16 @@ func UpsertAddresses(c external.Database, addresses []Address) error {
 	})
 }
 
-// GetAddressUIDs returns all requested address nodes
+// GetAddressUIDs returns all requested address nodes.
 func GetAddressUIDs(c external.Database, addressHashes []string) (addresses []Address, err error) {
 	if len(addressHashes) == 0 {
 		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+	}
+
+	for _, a := range addressHashes {
+		if !isValidQueryInput(a) {
+			return nil, cliutil.NewStackErrorStr("invalid address hash")
+		}
 	}
 
 	query := `{

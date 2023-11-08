@@ -45,10 +45,9 @@ func isValid(input string) bool {
 	return isValidInput(input)
 }
 
-func setDefaultHeader(w http.ResponseWriter) {
+func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	w.Header().Set("Access-Control-Allow-Headers", "X-Requested-With, Content-Type, Authorization, Origin, Accept")
-	w.Header().Set("Content-Type", "application/json")
 }
 
 // setCacheHeader sets the client side caching to a third of the server side cache
@@ -59,11 +58,34 @@ func setCacheHeader(w http.ResponseWriter, duration time.Duration) {
 	w.Header().Set("Cache-Control", "max-age="+strconv.FormatInt(int64(duration/time.Second/3), 10))
 }
 
-// writeReply encodes the given reply into JSON
-func writeReply(w http.ResponseWriter, reply any) {
-	if err := json.NewEncoder(w).Encode(reply); err != nil {
+// sendReply encodes the given reply into JSON and sends it
+func sendReply(w http.ResponseWriter, reply any, statusCode int) {
+	setCORSHeaders(w)
+
+	// use marshalling instead of encoding (streaming), as it gives better error handling
+	// and because encoding buffers all data before writing: https://github.com/golang/go/issues/7872
+	// todo check if https://github.com/golang/go/discussions/63397 has been accepted, merged and released and then rework json handling.
+	replyBuffer, err := json.Marshal(reply)
+	if err != nil {
 		http.Error(w, "encoding error", http.StatusInternalServerError)
-		warn(err)
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if reply == "" {
+		w.Header().Set("Content-Type", "text/plain")
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+	}
+
+	if statusCode == 0 {
+		statusCode = http.StatusOK
+	}
+	w.WriteHeader(statusCode)
+
+	if _, err := w.Write(replyBuffer); err != nil {
+		// not possible to send response to client, so just log error
+		warn(cliutil.NewStackError(err))
 	}
 }
 
@@ -80,7 +102,6 @@ func isLikelyAddress(query string) bool {
 type searchReply struct {
 	Type    queryResultType `json:"type,omitempty"`
 	Payload interface{}     `json:"payload,omitempty"`
-	Msg     string          `json:"msg,omitempty"`
 }
 
 type prunedRPCInfo struct {
@@ -92,50 +113,38 @@ type prunedRPCInfo struct {
 }
 
 type metaReply struct {
-	Status  dbstat.FrontendStatus `json:"status"`
-	RPCInfo prunedRPCInfo         `json:"rpcinfo"`
-	Success bool                  `json:"success"`
+	Status  *dbstat.FrontendStatus `json:"status,omitempty"`
+	RPCInfo *prunedRPCInfo         `json:"rpcinfo,omitempty"`
 }
 
 type heuristicReply struct {
-	Success    bool                               `json:"success"`
-	Msg        string                             `json:"msg,omitempty"`
-	Heuristics []dbh.TransformedFrontendHeuristic `json:"heuristics,omitempty"`
-	Status     heuristics.HeuristicQueueStatus    `json:"status"`
+	Heuristics []dbh.FrontendHeuristic         `json:"heuristics,omitempty"`
+	Status     heuristics.HeuristicQueueStatus `json:"status"`
+}
+
+type heuristicStatusReply struct {
+	Status heuristics.HeuristicQueueStatus `json:"status"`
 }
 
 type heuristicExecutionReply struct {
-	Success bool                            `json:"success"`
-	Msg     string                          `json:"msg,omitempty"`
-	Status  heuristics.HeuristicQueueStatus `json:"status"`
+	Status heuristics.HeuristicQueueStatus `json:"status"`
 }
 
-type identityReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
+type heuristicDetailsReply struct {
+	Heuristic dbh.FrontendHeuristicShort `json:"heuristic,omitempty"`
 }
 
 type shortestTransactionPathReply struct {
-	Success      bool                     `json:"success"`
 	Msg          string                   `json:"msg,omitempty"`
 	Transactions []db.FrontendTransaction `json:"transactions"`
 }
 
 type heuristicListReply struct {
-	Success bool                    `json:"success"`
-	Msg     string                  `json:"msg,omitempty"`
-	Item    []dbh.HeuristicListItem `json:"items"`
+	Item []dbh.HeuristicListItem `json:"items"`
 }
 
 type heuristicDescriptorReply struct {
-	Success     bool                    `json:"success"`
-	Msg         string                  `json:"msg,omitempty"`
 	Descriptors []heuristics.Descriptor `json:"descriptors"`
-}
-
-type deleteHeuristicReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
 }
 
 type fingerprintScore struct {
@@ -145,8 +154,6 @@ type fingerprintScore struct {
 }
 
 type spendingFingerprintReply struct {
-	Success           bool               `json:"success"`
-	Warning           bool               `json:"warning,omitempty"`
 	Msg               string             `json:"msg,omitempty"`
 	SessionCount      int                `json:"session_count,omitempty"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores,omitempty"`
@@ -163,16 +170,6 @@ const typeEmpty queryResultType = "response_empty"
 type SearchResult struct {
 	resultType queryResultType
 	result     interface{}
-}
-
-// handleError conditionally logs and writes the error to the http response
-func handleError(w http.ResponseWriter, err error) {
-	if err == nil || w == nil {
-		return
-	}
-
-	http.Error(w, "an error occurred", http.StatusInternalServerError)
-	warn(err)
 }
 
 // buildKey build a key from the given arguments
@@ -248,17 +245,17 @@ type tokenUser struct {
 	Roles    []dbus.Role `json:"roles,omitempty"`
 }
 
-// extractTokenUser extracts the tokenUser from the context.
-// Returns an error if no user data could be extracted
+// extractTokenUser extracts a tokenUser from the context.
 func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 	userInfo := ctx.Value(middlewareContextUser)
 	if userInfo == nil {
 		err = cliutil.NewStackErrorStr("could not extract token user from context")
 		return
 	}
-	tUser := userInfo.(tokenUser)
-	if len(tUser.ID) == 0 {
-		err = cliutil.NewStackErrorStr("invalid user id extracted from context")
+
+	tUser, ok := userInfo.(tokenUser)
+	if !ok || len(tUser.ID) == 0 {
+		err = cliutil.NewStackErrorStr("invalid user extracted from context")
 		return
 	}
 
@@ -268,91 +265,86 @@ func extractTokenUser(ctx context.Context) (t tokenUser, err error) {
 }
 
 type connectionLookupReply struct {
-	Success          bool                     `json:"success"`
-	Warning          bool                     `json:"warning,omitempty"`
 	Msg              string                   `json:"msg,omitempty"`
 	Transactions     []db.FrontendTransaction `json:"transactions"`
 	TransactionCount *int                     `json:"count,omitempty"`
 }
 
 type clusterLookupReply struct {
-	Success  bool                         `json:"success"`
-	Msg      string                       `json:"msg,omitempty"`
 	Clusters []clustering.FrontendCluster `json:"clusters"`
 }
 
 type hmiLookupReply struct {
-	Success        bool                            `json:"success"`
 	Clusters       []clustering.FrontendHMICluster `json:"clusters,omitempty"`
 	AddressCluster string                          `json:"address_cluster,omitempty"`
 }
 
 type mixingActivityReply struct {
-	Success    bool                       `json:"success"`
 	Msg        string                     `json:"msg,omitempty"`
 	Activities []analytics.MixingActivity `json:"activities,omitempty"`
 }
 
-type addClusterReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type clusterOverviewReply struct {
-	Success  bool                             `json:"success"`
 	Msg      string                           `json:"msg,omitempty"`
 	Clusters []clustering.FrontendUserCluster `json:"clusters"`
 }
 
-type deleteClusterReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
-type addAttributionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type attributionOverviewReply struct {
-	Success      bool                              `json:"success"`
-	Msg          string                            `json:"msg,omitempty"`
 	Attributions []attribution.FrontendAttribution `json:"attributions"`
 }
 
-type deleteAttributionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
-type addAddressExclusionsReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
+type msgReply struct {
+	Msg string `json:"msg"`
 }
 
 type addressExclusionOverviewReply struct {
-	Success       bool     `json:"success"`
-	Msg           string   `json:"msg,omitempty"`
 	AddressHashes []string `json:"addresses"`
 	Count         int64    `json:"addressCount,omitempty"`
 }
 
-type deleteAddressExclusionReply struct {
-	Success bool   `json:"success"`
-	Msg     string `json:"msg,omitempty"`
-}
-
 type addressExclusionStatusReply struct {
-	Success     bool   `json:"success"`
-	IsExclusion bool   `json:"isExclusion"`
-	Msg         string `json:"msg,omitempty"`
+	IsExclusion bool `json:"isExclusion"`
 }
 
 type identitiesReply struct {
-	Success    bool                            `json:"success"`
 	Users      []dbus.FrontendUserBackendState `json:"users"`
 	Identities []client.Identity               `json:"identities"`
 	Sessions   []client.Session                `json:"sessions"`
+}
+
+// ClientHeuristicRequest is the client type representation of a DatabaseHeuristicRequest
+type ClientHeuristicRequest struct {
+	UID                 string                   `json:"uid,omitempty"`
+	Type                string                   `json:"type,omitempty"`
+	Parameter           string                   `json:"parameter,omitempty"`
+	ParentHeuristic     []dbh.HollowHeuristic    `json:"parent,omitempty"`
+	ChildHeuristics     []dbh.HollowHeuristic    `json:"children,omitempty"`
+	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
+	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
+	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
+}
+
+func (t ClientHeuristicRequest) ToDatabaseRequest() dbh.DatabaseHeuristicRequest {
+	parentHeuristics := make([]dbh.Heuristic, len(t.ParentHeuristic))
+	for i, ph := range t.ParentHeuristic {
+		parentHeuristics[i].UID = ph.UID
+	}
+
+	childHeuristics := make([]dbh.Heuristic, len(t.ChildHeuristics))
+	for i, ch := range t.ChildHeuristics {
+		childHeuristics[i].UID = ch.UID
+	}
+
+	return dbh.DatabaseHeuristicRequest{
+		UID:                 t.UID,
+		Type:                t.Type,
+		Parameter:           t.Parameter,
+		ParentHeuristic:     parentHeuristics,
+		ChildHeuristics:     childHeuristics,
+		ClusterTypes:        t.ClusterTypes,
+		ExcludeAddresses:    t.ExcludeAddresses,
+		ExcludeSpendingGaps: t.ExcludeSpendingGaps,
+	}
 }
 
 // isValidEmail is a regex filter which checks if the input conforms to an email string

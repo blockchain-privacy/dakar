@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -229,6 +230,11 @@ func CreateCommaList(uids []string) string {
 		}
 	}
 	return uidEnum
+}
+
+// returns true if the given input does not contain special characters
+func isValidQueryInput(input string) bool {
+	return !strings.ContainsAny(input, ";,():{}\"'.^`")
 }
 
 // CreateCommaArray returns a formatted string which contains all given uids for usage with Dgraph
