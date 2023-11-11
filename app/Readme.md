@@ -5,8 +5,8 @@ Additionally, it serves as an analytics platform for Dash private send transacti
 
 ## Dependencies
 
-* `vue` - frontend framework
-* `vuetify` - vue component library
+* `vue v3` - frontend framework
+* `vuetify v3` - vue component library
 * `d3` -  chart and graph library
 
 For a more detailed overview check [here](./package.json).
