@@ -1,63 +1,71 @@
 <template>
   <v-list-item>
-    <v-list-item-avatar>
-      <v-icon v-if="!isColor" style="max-width: 32px">{{ icon }}</v-icon>
-      <v-icon style="max-width: 32px"
-              v-if="isColor"
-              v-bind:class="{ 'green--text': !isRed, 'red--text': isRed }">
+    <template #prepend>
+      <v-icon
+        v-if="!isColor"
+        size="xx-large"
+      >
         {{ icon }}
       </v-icon>
-    </v-list-item-avatar>
-    <v-list-item-content>
+      <v-icon
+        v-if="isColor"
+        :class="{ 'green-icon': !isRed, 'red-icon': isRed }"
+        size="xx-large"
+      >
+        {{ icon }}
+      </v-icon>
+    </template>
+    <div>
       <v-list-item-title>
         {{ title }}
-        <v-hover v-slot:default="{ hover }" open-delay="0" v-if="tooltip" style="margin-top: -2px">
-          <v-icon small :id="uuid">
-            {{ hover ? icons.mdiHelpCircle : icons.mdiHelpCircleOutline }}
-          </v-icon>
-        </v-hover>
-        <v-tooltip right v-if="tooltip" :activator="`#${uuid}`">
-          <span>{{ tooltip }}</span>
+        <v-tooltip
+          v-if="tooltip"
+          :text="tooltip"
+          location="right"
+        >
+          <template #activator="{ props }">
+            <v-icon
+              size="x-small"
+              v-bind="props"
+              :icon="icons.mdiHelpCircleOutline"
+            />
+          </template>
         </v-tooltip>
       </v-list-item-title>
       <v-list-item-subtitle>
-        <slot/>
+        <slot />
       </v-list-item-subtitle>
-    </v-list-item-content>
+    </div>
   </v-list-item>
 </template>
 
 <script>
-import {
-  mdiHelpCircle, mdiHelpCircleOutline,
-} from '@mdi/js';
-
-import { uuidv4 } from '../../utilities';
+import {mdiHelpCircleOutline} from '@mdi/js';
 
 export default {
-  name: 'IconItem',
-  props: {
-    title: { type: String, required: true },
-    icon: { type: String, required: true },
-    tooltip: { type: String, default: '' },
-    isColor: { type: Boolean, default: false },
-    isRed: { type: Boolean, default: false },
-  },
-  data() {
-    return {
-      icons: {
-        mdiHelpCircle, mdiHelpCircleOutline,
-      },
-      uuid: '',
-    };
-  },
-  beforeMount() {
-    // calculate uuid if tooltip is set
-    if (this.tooltip !== '') this.uuid = `a${uuidv4()}`;
-  },
+	name: 'IconItem',
+	props: {
+		title: {type: String, required: true},
+		icon: {type: String, required: true},
+		tooltip: {type: String, default: ''},
+		isColor: {type: Boolean, default: false},
+		isRed: {type: Boolean, default: false},
+	},
+	data() {
+		return {
+			icons: {mdiHelpCircleOutline},
+		};
+	},
 };
 </script>
 
 <style scoped>
+:deep(.green-icon .v-icon__svg) {
+  fill: green;
+}
+
+:deep(.red-icon .v-icon__svg) {
+  fill: red;
+}
 
 </style>

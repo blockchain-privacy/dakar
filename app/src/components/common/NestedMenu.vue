@@ -1,36 +1,57 @@
 <!-- source: https://github.com/vuetifyjs/vuetify/issues/1877#issuecomment-593273676  -->
 <template>
   <v-menu
-      v-model="inputVal"
-      :position-x="positionX"
-      :position-y="positionY"
-      :absolute="absolute"
-      :offset-x='isOffsetX'
-      :offset-y='isOffsetY'
-      :open-on-hover='isOpenOnHover'
-      :transition='transition'>
-    <template v-slot:activator="{ on }">
-      <v-btn v-if='icon' :color='color' v-on="on">
+    v-model="inputVal"
+    :style="{'position':absolute?'absolute':null,
+             'left': !!positionX?positionX + 'px':null, 'top': !!positionY?positionY + 'px':null}"
+    :offset="isOffset?5:null"
+    :open-on-hover="isOpenOnHover"
+    :transition="transition"
+  >
+    <template #activator="{ props }">
+      <v-btn
+        v-if="icon"
+        :color="color"
+        v-bind="props"
+      >
         <v-icon>{{ icon }}</v-icon>
       </v-btn>
-      <v-list-item v-else-if='isSubMenu' class='d-flex justify-space-between' v-on="on">
+      <v-list-item
+        v-else-if="isSubMenu"
+        class="d-flex justify-space-between"
+        v-bind="props"
+      >
         {{ name }}
         <v-icon>{{ icons.mdiChevronRight }}</v-icon>
       </v-list-item>
-      <!--      <v-btn v-else :color='color' v-on="on" text tile>{{ name }}</v-btn>-->
     </template>
     <v-list>
-      <template v-for="(item, index) in menuItems">
-        <v-divider v-if='item.isDivider' :key='index'/>
-        <nested-menu v-else-if='item.menu' :key='index' :name='item.title' :menu-items='item.menu'
-                     @nested-menu-click='emitClickEvent'
-                     :is-open-on-hover=false :is-offset-x=true :is-offset-y=false :is-sub-menu=true
+      <template
+        v-for="(item, index) in menuItems"
+        :key="index"
+      >
+        <v-divider v-if="item.isDivider" />
+        <nested-menu
+          v-else-if="item.menu"
+          :name="item.title"
+          :menu-items="item.menu"
+          :is-open-on-hover="false"
+          is-offset
+          is-sub-menu
+          @nested-menu-click="emitClickEvent"
         />
-        <v-list-item v-else :key='index' @click='emitClickEvent(item)'
-                     :disabled="item.disabled && !item.disabled()">
-          <v-list-item-icon v-if="item.icon">
+        <v-list-item
+          v-else
+          :key="index"
+          :disabled="item.disabled && !item.disabled()"
+          @click="emitClickEvent(item)"
+        >
+          <template
+            v-if="item.icon"
+            #prepend
+          >
             <v-icon>{{ item.icon }}</v-icon>
-          </v-list-item-icon>
+          </template>
           <v-list-item-title>{{ item.title }}</v-list-item-title>
         </v-list-item>
       </template>
@@ -40,49 +61,49 @@
 
 <script>
 import {
-  mdiChevronRight,
+	mdiChevronRight,
 } from '@mdi/js';
 
 export default {
-  name: 'NestedMenu',
-  props: {
-    value: Boolean,
-    name: String,
-    icon: String,
-    menuItems: Array,
-    absolute: { type: Boolean, default: false },
-    color: { type: String, default: 'secondary' },
-    positionX: { type: Number, default: 0 },
-    positionY: { type: Number, default: 0 },
-    isOffsetX: { type: Boolean, default: false },
-    isOffsetY: { type: Boolean, default: true },
-    isOpenOnHover: { type: Boolean, default: false },
-    isSubMenu: { type: Boolean, default: false },
-    transition: { type: String, default: 'scale-transition' },
-  },
-  data() {
-    return {
-      icons: {
-        mdiChevronRight,
-      },
-    };
-  },
-  methods: {
-    emitClickEvent(item) {
-      // this.closeAllMenus() // Theoretically, create a method that does this as a workaround
-      this.$emit('nested-menu-click', item);
-    },
-  },
-  computed: {
-    inputVal: {
-      get() {
-        return this.value;
-      },
-      set(val) {
-        this.$emit('input', val);
-      },
-    },
-  },
+	name: 'NestedMenu',
+	props: {
+		modelValue: Boolean,
+		name: {type: String, default: ''},
+		icon: {type: String, default: ''},
+		menuItems: {type: Array, default: () => []},
+		absolute: {type: Boolean, default: false},
+		color: {type: String, default: 'secondary'},
+		positionX: {type: Number, default: 0},
+		positionY: {type: Number, default: 0},
+		isOffset: {type: Boolean, default: false},
+		isOpenOnHover: {type: Boolean, default: false},
+		isSubMenu: {type: Boolean, default: false},
+		transition: {type: String, default: 'fade-transition'},
+	},
+	emits: ['update:modelValue', 'nested-menu-click'],
+	data() {
+		return {
+			icons: {
+				mdiChevronRight,
+			},
+		};
+	},
+	computed: {
+		inputVal: {
+			get() {
+				return this.modelValue;
+			},
+			set(val) {
+				this.$emit('update:modelValue', val);
+			},
+		},
+	},
+	methods: {
+		emitClickEvent(item) {
+			// This.closeAllMenus() // Theoretically, create a method that does this as a workaround
+			this.$emit('nested-menu-click', item);
+		},
+	},
 };
 </script>
 

@@ -1,144 +1,158 @@
 import * as d3 from 'd3';
-import { isFunction } from './util';
+import {isFunction} from '@/utilities';
 
 function drag(simulation) {
-  function dragstarted(event) {
-    if (!event.active) simulation.alphaTarget(0.3).restart();
-    event.subject.fx = event.subject.x;
-    event.subject.fy = event.subject.y;
-  }
+	function dragStarted(event) {
+		if (!event.active) {
+			simulation.alphaTarget(0.3).restart();
+		}
 
-  function dragged(event) {
-    event.subject.fx = event.x;
-    event.subject.fy = event.y;
-  }
+		event.subject.fx = event.subject.x;
+		event.subject.fy = event.subject.y;
+	}
 
-  function dragended(event) {
-    if (!event.active) simulation.alphaTarget(0);
-    event.subject.fx = null;
-    event.subject.fy = null;
-  }
+	function dragged(event) {
+		event.subject.fx = event.x;
+		event.subject.fy = event.y;
+	}
 
-  return d3.drag()
-    .on('start', dragstarted)
-    .on('drag', dragged)
-    .on('end', dragended);
+	function dragEnded(event) {
+		if (!event.active) {
+			simulation.alphaTarget(0);
+		}
+
+		event.subject.fx = null;
+		event.subject.fy = null;
+	}
+
+	return d3.drag()
+		.on('start', dragStarted)
+		.on('drag', dragged)
+		.on('end', dragEnded);
 }
 
 export default class ForceGraph {
-  constructor(width, height, svgId, colorMap) {
-    this.svgId = svgId;
-    this.width = width;
-    this.height = height;
-    this.colorMap = colorMap;
+	constructor(width, height, svgId, colorMap) {
+		this.svgId = svgId;
+		this.width = width;
+		this.height = height;
+		this.colorMap = colorMap;
 
-    this.initSvg();
+		this.initSvg();
 
-    // click
-    this.clickCallBack = null;
-  }
+		this.clickCallBack = null;
+		this.simulation = null;
+	}
 
-  initSvg() {
-    // add attributes to root svg
-    this.rootSvg = d3.select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
-    this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
+	initSvg() {
+		// Add attributes to root svg
+		this.rootSvg = d3.select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
+		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 
-    this.lineGroup = this.rootGroup.append('g')
-      .attr('stroke', '#999')
-      .attr('stroke-opacity', 0.6);
+		this.lineGroup = this.rootGroup.append('g')
+			.attr('stroke', '#999')
+			.attr('stroke-opacity', 0.6);
 
-    this.nodeGroup = this.rootGroup
-      .append('g')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', '#C2C2C2');
+		this.nodeGroup = this.rootGroup
+			.append('g')
+			.attr('stroke', '#fff')
+			.attr('stroke-width', '#C2C2C2');
 
-    // add zoom and drag
-    this.zoom = d3.zoom()
-      .on('zoom', (event) => {
-        this.rootGroup.attr('transform', event.transform);
-      })
-      .scaleExtent([0.25, 8]);
-    this.rootSvg.call(this.zoom);
+		// Add zoom and drag
+		this.zoom = d3.zoom()
+			.on('zoom', event => {
+				this.rootGroup.attr('transform', event.transform);
+			})
+			.scaleExtent([0.25, 8]);
+		this.rootSvg.call(this.zoom);
 
-    // add arrow defintion
-    this.rootSvg
-      .append('svg:defs')
-      .append('svg:marker')
-      .attr('id', 'arrowhead')
-      .attr('viewBox', '0 -5 10 10')
-      .attr('refX', 22)
-      .attr('refY', 0)
-      .attr('markerWidth', 6)
-      .attr('markerHeight', 6)
-      .attr('orient', 'auto')
-      .append('svg:path')
-      .attr('d', 'M0,-5L10,0L0,5')
-      .attr('fill', '#999');
-  }
+		// Add arrow definition
+		this.rootSvg
+			.append('svg:defs')
+			.append('svg:marker')
+			.attr('id', 'arrowhead')
+			.attr('viewBox', '0 -5 10 10')
+			.attr('refX', 22)
+			.attr('refY', 0)
+			.attr('markerWidth', 6)
+			.attr('markerHeight', 6)
+			.attr('orient', 'auto')
+			.append('svg:path')
+			.attr('d', 'M0,-5L10,0L0,5')
+			.attr('fill', '#999');
+	}
 
-  draw(nodes, links) {
-    if (this.clickCallBack === null) {
-      throw new Error('click call back is not set');
-    }
+	draw(nodes, links) {
+		if (this.clickCallBack === null) {
+			throw new Error('click call back is not set');
+		}
 
-    // check if the svg is still initialized
-    if (d3.select(`#${this.svgId}`).nodes()[0].childElementCount === 0) {
-      this.initSvg();
-    }
+		// If there is a simulation ongoing from a previous call, stop it
+		if (this.simulation) {
+			this.simulation.stop();
+		}
 
-    const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id((d) => d.txhash))
-      .force('charge', d3.forceManyBody().strength(-80))
-      .force('x', d3.forceX(this.width / 2).strength(0.04))
-      .force('y', d3.forceY(this.height / 2).strength(0.04))
-      .force('radial', d3.forceRadial(240, this.width / 2, this.height / 2))
-      .force('center', d3.forceCenter(this.width / 2, this.height / 2));
+		// Check if the svg is still initialized
+		if (d3.select(`#${this.svgId}`).nodes()[0].childElementCount === 0) {
+			this.initSvg();
+		}
 
-    const link = this.lineGroup
-      .selectAll('.arrow')
-      .data(links, (d) => `${d.source}${d.target}`)
-      .join('line')
-      .attr('class', 'arrow')
-      .attr('marker-end', 'url(#arrowhead)')
-      .attr('stroke-width', 1);
+		this.simulation = d3.forceSimulation(nodes)
+			.force('link', d3.forceLink(links).id(d => d.txhash))
+			.force('charge', d3.forceManyBody().strength(-80))
+			.force('x', d3.forceX(this.width / 2).strength(0.04))
+			.force('y', d3.forceY(this.height / 2).strength(0.04))
+			.force('radial', d3.forceRadial(240, this.width / 2, this.height / 2))
+			.force('center', d3.forceCenter(this.width / 2, this.height / 2));
 
-    const node = this.nodeGroup
-      .selectAll('circle')
-      .data(nodes, (d) => d.txhash)
-      .join('circle')
-      .attr('r', 7)
-      .attr('fill', (d) => this.colorMap.get(d.privacytype))
-      .on('click', (e, d) => { this.clickCallBack(d); })
-      .on('mouseover', function mouseOver() {
-        d3.select(this).attr('r', 10).classed('nodeMouseOver', true);
-      })
-      .on('mouseout', function mouseOut() {
-        d3.select(this).attr('r', 7).classed('nodeMouseOver', false);
-      })
-      .call(drag(simulation));
+		const link = this.lineGroup
+			.selectAll('.arrow')
+			.data(links, d => `${d.source}${d.target}`)
+			.join('line')
+			.attr('class', 'arrow')
+			.attr('marker-end', 'url(#arrowhead)')
+			.attr('stroke-width', 1);
 
-    node.append('title')
-      .text((d) => `${d.txhash}\n${d.privacytype}`);
+		const node = this.nodeGroup
+			.selectAll('circle')
+			.data(nodes, d => d.txhash)
+			.join('circle')
+			.attr('r', 7)
+			.attr('fill', d => this.colorMap.get(d.privacytype))
+			.on('click', (e, d) => {
+				this.clickCallBack(d);
+			})
+		// eslint-disable-next-line func-names
+			.on('mouseover', function mouseOver() {
+				d3.select(this).attr('r', 10).classed('nodeMouseOver', true);
+			})
+		// eslint-disable-next-line func-names
+			.on('mouseout', function mouseOut() {
+				d3.select(this).attr('r', 7).classed('nodeMouseOver', false);
+			}).call(drag(this.simulation));
 
-    simulation.on('tick', () => {
-      link
-        .attr('x1', (d) => d.source.x)
-        .attr('y1', (d) => d.source.y)
-        .attr('x2', (d) => d.target.x)
-        .attr('y2', (d) => d.target.y);
+		node.append('title')
+			.text(d => `${d.txhash}\n${d.privacytype}`);
 
-      node
-        .attr('cx', (d) => d.x)
-        .attr('cy', (d) => d.y);
-    });
-  }
+		this.simulation.on('tick', () => {
+			link
+				.attr('x1', d => d.source.x)
+				.attr('y1', d => d.source.y)
+				.attr('x2', d => d.target.x)
+				.attr('y2', d => d.target.y);
 
-  setClickHandler(callback) {
-    if (!isFunction(callback)) {
-      return false;
-    }
+			node
+				.attr('cx', d => d.x)
+				.attr('cy', d => d.y);
+		});
+	}
 
-    this.clickCallBack = callback;
-    return true;
-  }
+	setClickHandler(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.clickCallBack = callback;
+		return true;
+	}
 }

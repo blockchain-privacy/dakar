@@ -1,256 +1,277 @@
-import Vue from 'vue';
-import Router from 'vue-router';
+import {createRouter, createWebHistory} from 'vue-router';
 import {
-  isAdminIdentity, isPrivilegedIdentity, isSessionExpired,
-} from '../utilities';
-import EntryView from '../components/EntryView.vue';
-import ConnectionLookup from '../components/tools/ConnectionLookup.vue';
-import Settings from '../components/user/Settings.vue';
-import Profile from '../components/user/Profile.vue';
-import Administration from '../components/user/Administration.vue';
-import Login from '../components/user/Login.vue';
-import TxLookup from '../components/data/TxLookup.vue';
-import BlockLookup from '../components/data/BlockLookup.vue';
-import AddressLookup from '../components/data/address/AddressLookup.vue';
-import NoResults from '../components/NoResults.vue';
-import Editor from '../components/heuristic/Editor.vue';
-import StatusView from '../components/StatusView.vue';
-import PageNotFound from '../components/PageNotFound.vue';
-import Tools from '../components/tools/Tools.vue';
-import ShortestPath from '../components/tools/ShortestPath.vue';
-import Heuristics from '../components/tools/Heuristics.vue';
+	isAdminIdentity, isPrivilegedIdentity, isSessionExpired,
+} from '@/utilities';
+import EntryPage from '../components/EntryPage.vue';
+import ConnectionLookupPage from '../components/tools/ConnectionLookupPage.vue';
+import SettingsPage from '../components/user/SettingsPage.vue';
+import ProfilePage from '../components/user/ProfilePage.vue';
+import AdministrationPage from '../components/user/AdministrationPage.vue';
+import LoginPage from '../components/user/LoginPage.vue';
+import TransactionPage from '../components/explorer/transaction/TransactionPage.vue';
+import BlockPage from '../components/explorer/BlockPage.vue';
+import AddressPage from '../components/explorer/address/AddressPage.vue';
+import HeuristicEditorPage from '../components/heuristic/HeuristicEditorPage.vue';
+import StatusPage from '../components/StatusPage.vue';
+import ToolsPage from '../components/tools/ToolsPage.vue';
+import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
+import HeuristicsPage from '../components/tools/HeuristicsPage.vue';
 import * as Constants from '../constants';
 import Store from '../state';
-import HMIView from '../components/cluster/HMIView.vue';
-import ClusterOverview from '../components/tools/ClusterOverview.vue';
-import Attributions from '../components/tools/attributions/Attributions.vue';
-import AddressExclusions from '../components/tools/AddressExclusions.vue';
-import Recovery from '../components/user/Recovery.vue';
-import Wiki from '../components/wiki/Wiki.vue';
-import TextLoader from '../components/TextLoader.vue';
-
-Vue.use(Router);
+import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
+import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
+import AddressExclusionsPage from '../components/tools/addressExclusions/AddressExclusionsPage.vue';
+import RecoveryPage from '../components/user/RecoveryPage.vue';
+import WikiPage from '../components/wiki/WikiPage.vue';
+import TextLoaderPage from '../components/TextLoaderPage.vue';
+import ErrorPage from '@/components/ErrorPage.vue';
 
 function getSessionData() {
-  return Store.getters.getSession;
+	return Store.getters.getSession;
 }
 
 function isPrivileged() {
-  const sessionData = getSessionData();
+	const sessionData = getSessionData();
 
-  return isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
+	return isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
 }
 
 function isAdmin() {
-  return isAdminIdentity(getSessionData());
+	return isAdminIdentity(getSessionData());
 }
 
-function checkSession(to, next, fn) {
-  const sessionData = getSessionData();
+async function checkSession(to, next, fn) {
+	const sessionData = getSessionData();
 
-  if (!sessionData) {
-    Store.dispatch('setFailedRoute', to);
-    next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
-    return;
-  }
+	if (!sessionData) {
+		await Store.dispatch('setFailedRoute', to);
+		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
+		return;
+	}
 
-  // check if token timeout has been reached
-  if (isSessionExpired(sessionData)) {
-    Store.dispatch('setFailedRoute', to);
-    Store.dispatch('setSession', null);
-    Store.dispatch('addMessage', { type: 'info', text: 'Your session timed out', temporary: true });
-    next({ name: Constants.ROUTE_NAME_LOGIN_PAGE });
-    return;
-  }
+	// Check if token timeout has been reached
+	if (isSessionExpired(sessionData)) {
+		await Store.dispatch('setFailedRoute', to);
+		await Store.dispatch('setSession', null);
+		await Store.dispatch('addMessage', {type: 'info', text: 'Your session timed out', temporary: true, category: Constants.ROUTE_NAME_LOGIN_PAGE});
+		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
+		return;
+	}
 
-  if ((fn) ? !fn() : false) {
-    next({ name: Constants.ROUTE_NAME_ENTRY_PAGE });
-    return;
-  }
+	if ((fn) ? !fn() : false) {
+		next({name: Constants.ROUTE_NAME_ENTRY_PAGE});
+		return;
+	}
 
-  next();
+	next();
 }
 
-export default new Router({
-  mode: 'history',
-  routes: [
-    {
-      path: '/',
-      name: Constants.ROUTE_NAME_ENTRY_PAGE,
-      component: EntryView,
-      meta: { title: 'Entry' },
-    },
-    {
-      path: '/status',
-      name: Constants.ROUTE_NAME_STATUS_PAGE,
-      component: StatusView,
-      meta: { title: 'Status' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-    },
-    {
-      path: '/block/:id',
-      name: Constants.ROUTE_NAME_BLOCK_PAGE,
-      component: BlockLookup,
-      meta: { title: 'Block' },
-    },
-    {
-      path: '/tx/:id',
-      name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
-      component: TxLookup,
-      meta: { title: 'Transaction' },
-    },
-    {
-      path: '/address/:id',
-      name: Constants.ROUTE_NAME_ADDRESS_PAGE,
-      component: AddressLookup,
-      meta: { title: 'Address' },
-    },
-    {
-      path: '/heuristic/:id',
-      name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
-      component: Editor,
-      meta: { title: 'Heuristic' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-    },
-    {
-      path: '/hmiLookup/:id',
-      name: Constants.ROUTE_NAME_CLUSTER_VIEW_PAGE,
-      component: HMIView,
-      meta: { title: 'Cluster View' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-    },
-    {
-      path: '/login',
-      name: Constants.ROUTE_NAME_LOGIN_PAGE,
-      component: Login,
-      meta: { title: 'Login' },
-    },
-    {
-      // wiki root page
-      path: '/wiki',
-      name: Constants.ROUTE_NAME_WIKI_ROOT,
-      component: Wiki,
-      meta: { title: 'Wiki' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-    },
-    {
-      // wiki content page
-      // allow additional slashes in path
-      path: '/wiki/:file(.*)',
-      name: Constants.ROUTE_NAME_WIKI,
-      component: Wiki,
-      meta: { title: 'Wiki' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-    },
-    {
-      path: '/recovery',
-      name: Constants.ROUTE_NAME_ACCOUNT_RECOVERY,
-      component: Recovery,
-      meta: { title: 'Password Reset' },
-    },
-    {
-      path: '/settings',
-      component: Settings,
-      meta: { title: 'Settings' },
-      children: [
-        {
-          path: 'profile',
-          name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
-          component: Profile,
-        },
-      ],
-    },
-    {
-      path: '/tools',
-      component: Tools,
-      meta: { title: 'Tools' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isPrivileged);
-      },
-      children: [
-        {
-          path: 'shortestPath',
-          name: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
-          component: ShortestPath,
-        },
-        {
-          path: 'heuristics',
-          name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
-          component: Heuristics,
-        },
-        {
-          path: 'connectionLookup',
-          name: Constants.ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-          component: ConnectionLookup,
-        },
-        {
-          path: 'clusterOverview',
-          name: Constants.ROUTE_NAME_CLUSTER_OVERVIEW,
-          component: ClusterOverview,
-        },
-        {
-          path: 'attributions',
-          name: Constants.ROUTE_NAME_ATTRIBUTIONS,
-          component: Attributions,
-        },
-        {
-          path: 'addressExclusions',
-          name: Constants.ROUTE_NAME_ADDRESS_EXCLUSIONS,
-          component: AddressExclusions,
-        },
-      ],
-    },
-    {
-      path: '/userAdministration',
-      name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
-      component: Administration,
-      meta: { title: 'User Administration' },
-      beforeEnter: (to, from, next) => {
-        checkSession(to, next, isAdmin);
-      },
-    },
-    {
-      path: '/about',
-      name: Constants.ROUTE_NAME_ABOUT,
-      component: TextLoader,
-      props: { pageTitle: 'About', url: 'about.html' },
-      meta: { title: 'About' },
-    },
-    {
-      path: '/privacy',
-      name: Constants.ROUTE_NAME_PRIVACY,
-      component: TextLoader,
-      props: { pageTitle: 'Privacy Policy', url: 'privacy_policy.html' },
-      meta: { title: 'Privacy Policy' },
-    },
-    {
-      path: '/termsOfUse',
-      name: Constants.ROUTE_NAME_TERMS_OF_USE,
-      component: TextLoader,
-      props: { pageTitle: 'Terms of Use', url: 'terms_of_use.html' },
-      meta: { title: 'Terms of Use' },
-    },
-    {
-      path: '/noresults',
-      name: Constants.ROUTE_NAME_NO_RESULTS,
-      component: NoResults,
-      meta: { title: 'No results found' },
-    },
-    {
-      path: '*',
-      name: Constants.ROUTE_NAME_404_PAGE,
-      component: PageNotFound,
-      meta: { title: 'Page not found' },
-    },
-  ],
+const router = createRouter({
+	history: createWebHistory(),
+	routes: [
+		{
+			path: '/',
+			name: Constants.ROUTE_NAME_ENTRY_PAGE,
+			component: EntryPage,
+			meta: {title: 'Entry'},
+		},
+		{
+			path: '/status',
+			name: Constants.ROUTE_NAME_STATUS_PAGE,
+			component: StatusPage,
+			meta: {title: 'Status'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isPrivileged);
+			},
+		},
+		{
+			path: '/block/:id',
+			name: Constants.ROUTE_NAME_BLOCK_PAGE,
+			component: BlockPage,
+			meta: {title: 'Block'},
+		},
+		{
+			path: '/tx/:id',
+			name: Constants.ROUTE_NAME_TRANSACTION_PAGE,
+			component: TransactionPage,
+			meta: {title: 'Transaction'},
+		},
+		{
+			path: '/address/:id',
+			name: Constants.ROUTE_NAME_ADDRESS_PAGE,
+			component: AddressPage,
+			meta: {title: 'Address'},
+		},
+		{
+			path: '/heuristic/:id',
+			name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
+			component: HeuristicEditorPage,
+			meta: {title: 'Heuristic'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isPrivileged);
+			},
+		},
+		{
+			path: '/login',
+			name: Constants.ROUTE_NAME_LOGIN_PAGE,
+			component: LoginPage,
+			meta: {title: 'Login'},
+		},
+		{
+			// Wiki root page
+			path: '/wiki',
+			name: Constants.ROUTE_NAME_WIKI_ROOT,
+			component: WikiPage,
+			meta: {title: 'Wiki'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isPrivileged);
+			},
+		},
+		{
+			// Wiki content page
+			// allow additional slashes in path
+			path: '/wiki/:file(.*)',
+			name: Constants.ROUTE_NAME_WIKI,
+			component: WikiPage,
+			meta: {title: 'Wiki'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isPrivileged);
+			},
+		},
+		{
+			path: '/recovery',
+			name: Constants.ROUTE_NAME_ACCOUNT_RECOVERY,
+			component: RecoveryPage,
+			meta: {title: 'Password Reset'},
+		},
+		{
+			path: '/settings',
+			component: SettingsPage,
+			meta: {title: 'Settings'},
+			children: [
+				{
+					path: 'profile',
+					name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
+					component: ProfilePage,
+				},
+			],
+		},
+		{
+			path: '/tools',
+			component: ToolsPage,
+			meta: {title: 'Tools'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isPrivileged);
+			},
+			children: [
+				{
+					path: 'shortestPath',
+					name: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
+					component: ShortestPathPage,
+				},
+				{
+					path: 'heuristics',
+					name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
+					component: HeuristicsPage,
+				},
+				{
+					path: 'connectionLookup',
+					name: Constants.ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
+					component: ConnectionLookupPage,
+				},
+				{
+					path: 'clusterOverview',
+					name: Constants.ROUTE_NAME_CLUSTER_OVERVIEW,
+					component: ClusterPage,
+				},
+				{
+					path: 'attributions',
+					name: Constants.ROUTE_NAME_ATTRIBUTIONS,
+					component: AttributionsPage,
+				},
+				{
+					path: 'addressExclusions',
+					name: Constants.ROUTE_NAME_ADDRESS_EXCLUSIONS,
+					component: AddressExclusionsPage,
+				},
+			],
+		},
+		{
+			path: '/userAdministration',
+			name: Constants.ROUTE_NAME_USER_ADMIN_PAGE,
+			component: AdministrationPage,
+			meta: {title: 'User Administration'},
+			async beforeEnter(to, from, next) {
+				await checkSession(to, next, isAdmin);
+			},
+		},
+		{
+			path: '/about',
+			name: Constants.ROUTE_NAME_ABOUT,
+			component: TextLoaderPage,
+			props: {pageTitle: 'About', url: 'about.html'},
+			meta: {title: 'About'},
+		},
+		{
+			path: '/privacy',
+			name: Constants.ROUTE_NAME_PRIVACY,
+			component: TextLoaderPage,
+			props: {pageTitle: 'Privacy Policy', url: 'privacy_policy.html'},
+			meta: {title: 'Privacy Policy'},
+		},
+		{
+			path: '/termsOfUse',
+			name: Constants.ROUTE_NAME_TERMS_OF_USE,
+			component: TextLoaderPage,
+			props: {pageTitle: 'Terms of Use', url: 'terms_of_use.html'},
+			meta: {title: 'Terms of Use'},
+		},
+		{
+			path: '/noResults',
+			name: Constants.ROUTE_NAME_NO_RESULTS,
+			component: ErrorPage,
+			meta: {title: 'No results found!'},
+			props: {
+				default: true,
+				title: 'No results found!',
+				description: 'Your search query did not return any results. Either navigate back or click below to get back to the entry page.',
+				imageSource: '/src/assets/no_results.webp',
+			},
+		},
+		{
+			path: '/error',
+			name: Constants.ROUTE_NAME_ERROR,
+			component: ErrorPage,
+			meta: {title: 'Error'},
+			props: {
+				default: true,
+				title: 'Error',
+				description: '',
+				imageSource: '/src/assets/bugs.webp',
+			},
+		},
+		{
+			path: '/:catchAll(.*)',
+			name: Constants.ROUTE_NAME_404_PAGE,
+			component: ErrorPage,
+			meta: {title: '404 - Page not found!'},
+			props: {
+				default: true,
+				title: '404 - Page not found!',
+				description: 'The requested page does not exist. Either navigate back or click below to get back to the entry page.',
+				imageSource: '/src/assets/bugs.webp',
+			},
+		},
+	],
 });
+
+router.beforeEach(async (to, from) => {
+	if (from && to.name !== from.name) {
+		// Clear all notifications belonging to the previous page
+		await Store.dispatch('filterMessages', from.name);
+	}
+
+	return true;
+});
+
+export default router;

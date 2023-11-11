@@ -11,39 +11,57 @@ Additionally, it serves as an analytics platform for Dash private send transacti
 
 For a more detailed overview check [here](./package.json).
 
+
 ## Getting started
 
-* Build the front-end
-* Build `crawler` on the backend project
+* Install [yarn version 4](https://github.com/yarnpkg/berry) or higher
+* To use private javascript packages, write the following content in your `.yarnrc.yml` located in your home folder:
+
+```yaml
+yarnPath: .yarn/releases/yarn-4.0.0.cjs # set right path/version here
+
+npmScopes:
+  blockchain:
+    npmRegistryServer: "https://git.gvk.idi.ntnu.no/api/v4/projects/410/packages/npm/"
+    npmAlwaysAuth: true
+    npmAuthToken: "<your-deploy-token>"
+```
+
+* Build the front-end (see below)
+* Build `crawler` of the backend project
+* Run Dash daemon (`dashd`)
 * Run `crawler` for a small-test block range, such that the Dgraph DB gets generated
 * Build `explorer` on the backend project
-* Run Dash daemon (`dashd`)
-* Run `explorer`
 * Deploy the front-end app
-* Seach for transactions, blocks or addresses that are stored in the Dgraph DB
+* Search for transactions, blocks or addresses that are stored in the Dgraph DB
 
 
 ## Front-end setup
-```
+
+```shell
 yarn install
 ```
 
 ### Compiles and hot-reloads for development
-```
-yarn serve
+```shell
+yarn dev
 ```
 
 ### Compiles and minifies for production
-```
+```shell
 yarn build
 ```
 
-### Lints and fixes files
-```
-yarn lint
+### Starts a local server using the files produced by `yarn build`
+```shell
+yarn preview
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+### Update project
+
+```shell
+yarn up '*'
+```
+
 
 

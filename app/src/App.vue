@@ -1,12 +1,15 @@
 <template>
   <v-app>
-    <!-- show custom nav bar on entry page -->
-    <AppBar :minimize="isEntryPage"/>
+    <AppBar :minimize="isEntryPage" />
     <v-main>
-      <MsgBox/>
-      <transition name="component-fade" mode="out-in">
-        <router-view/>
-      </transition>
+      <div style="position: relative">
+        <MsgBox />
+      </div>
+      <router-view v-slot="{ Component }">
+        <FadeTransition>
+          <component :is="Component" />
+        </FadeTransition>
+      </router-view>
     </v-main>
   </v-app>
 </template>
@@ -15,87 +18,81 @@
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-  DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
+	DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
 } from './constants';
-import AppBar from './components/AppBar.vue';
-import { isSessionExpired } from './utilities';
+import AppBar from './components/appbar/AppBar.vue';
+import {isSessionExpired} from './utilities';
+import FadeTransition from '@/components/common/FadeTransition.vue';
 
 export default {
-  name: 'App',
-  components: {
-    AppBar,
-    MsgBox,
-  },
-  data() {
-    return {
-      applicationName: APPLICATION_NAME,
-      route: {
-        rootPage: ROUTE_NAME_ENTRY_PAGE,
+	name: 'App',
+	components: {
+		FadeTransition,
+		AppBar,
+		MsgBox,
+	},
+	data() {
+		return {
+			applicationName: APPLICATION_NAME,
+			route: {
+				rootPage: ROUTE_NAME_ENTRY_PAGE,
 
-      },
-    };
-  },
-  computed: {
-    settings: {
-      get() {
-        return this.$store.getters.getSettings;
-      },
-      set(value) {
-        this.$store.dispatch('setSettings', value);
-      },
-    },
-    session: {
-      get() {
-        return this.$store.getters.getSession;
-      },
-      set(value) {
-        this.$store.dispatch('setSession', value);
-      },
-    },
-    isEntryPage() {
-      return this.$route.name === this.route.rootPage;
-    },
-  },
-  methods: {
-    persistDarkTheme(isDark) {
-      const set = this.settings;
-      set.dark = isDark;
-      this.settings = set;
-    },
-    setDarkTheme() {
-      if (this.settings !== null) {
-        this.$vuetify.theme.dark = this.settings.dark;
-      } else {
-        const defaultSettings = DEFAULT_SETTINGS;
-        defaultSettings.dark = this.$vuetify.theme.dark;
-        this.settings = defaultSettings;
-      }
+			},
+		};
+	},
+	computed: {
+		settings: {
+			get() {
+				return this.$store.getters.getSettings;
+			},
+			set(value) {
+				this.$store.dispatch('setSettings', value);
+			},
+		},
+		session: {
+			get() {
+				return this.$store.getters.getSession;
+			},
+			set(value) {
+				this.$store.dispatch('setSession', value);
+			},
+		},
+		isEntryPage() {
+			return this.$route.name === this.route.rootPage;
+		},
+	},
+	mounted() {
+		if (isSessionExpired(this.session)) {
+			this.session = null;
+		}
+	},
+	beforeMount() {
+		this.setDarkTheme();
+		window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+			this.persistDarkTheme(e.matches);
+			this.setDarkTheme();
+		});
+	},
+	methods: {
+		persistDarkTheme(isDark) {
+			const set = this.settings;
+			set.dark = isDark;
+			this.settings = set;
+		},
+		setDarkTheme() {
+			// Create new settings object if necessary
+			if (this.settings === null) {
+				const defaultSettings = DEFAULT_SETTINGS;
+				defaultSettings.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				this.settings = defaultSettings;
+			}
 
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        this.persistDarkTheme(e.matches);
-      });
-    },
-  },
-  mounted() {
-    if (isSessionExpired(this.session)) {
-      this.session = null;
-    }
-  },
-  beforeMount() {
-    // eslint-disable-next-line no-console
-    console.info(`Branch: ${__BRANCH__}, commit: ${__COMMIT_HASH__}`);
-    this.setDarkTheme();
-  },
+			this.$vuetify.theme.global.name = this.settings.dark ? 'dark' : 'light';
+		},
+	},
 };
 </script>
 
-<style>
-.component-fade-enter-active, .component-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.component-fade-enter, .component-fade-leave-to {
-  opacity: 0;
-}
+<style scoped>
 
 </style>

@@ -1,31 +1,39 @@
 <template>
   <span>
-    <v-hover open-delay="0">
-      <v-chip :id="uuid" label class="overflow-x-auto" :color="attribution.isPublic?'primary':null">
-        {{ attribution.tag }}
-      </v-chip>
-    </v-hover>
-    <v-tooltip bottom :activator="`#${uuid}`" v-if="attribution.isPublic">
-      <span>This is a public attribution</span>
+    <v-tooltip
+      location="bottom"
+      :text="tooltipText"
+    >
+      <template #activator="{ props }">
+        <v-chip
+          :label="true"
+          class="overflow-x-auto"
+          :color="attribution.isPublic?'primary':null"
+          v-bind="props"
+          :rounded="true"
+        >
+          {{ attribution.tag }}
+        </v-chip>
+      </template>
     </v-tooltip>
   </span>
 </template>
 
 <script>
-import { uuidv4 } from '../../../utilities';
-
 export default {
-  name: 'AttributionTag',
-  props: { attribution: { type: Object, required: true } },
-  data() {
-    return {
-      uuid: '',
-    };
-  },
-  beforeMount() {
-    // calculate uuid if tooltip is set
-    if (this.attribution.isPublic) this.uuid = `tag_${uuidv4()}`;
-  },
+	name: 'AttributionTag',
+	props: {attribution: {type: Object, required: true}},
+	data() {
+		return {
+			privateTooltip: 'This is a private attribution. It is only visible to you.',
+			publicTooltip: 'This is a public attribution',
+		};
+	},
+	computed: {
+		tooltipText() {
+			return this.attribution.isPublic ? this.publicTooltip : this.privateTooltip;
+		},
+	},
 };
 </script>
 
