@@ -8,6 +8,7 @@
       <IconTitle
         title="Custom Clusters"
         :icon="icon.mdiMerge"
+        :one-line="true"
       >
         <v-menu location="bottom">
           <template #activator="{ props }">
