@@ -3,105 +3,107 @@
     v-model="show"
     max-width="700px"
   >
-    <v-card class="mx-auto pb-2">
+    <v-card class="pb-2">
       <v-card-title class="text-h5 text-wrap">
         Similar Destination Transactions
       </v-card-title>
       <v-card-text>
-        <div
-          v-if="isLoading"
-          class="text-subtitle-1"
-        >
-          Search for similar destination transactions ... {{ transactionHash }}
-          <v-skeleton-loader type="table" />
-        </div>
-        <div v-if="!isLoading">
-          <p class="text-subtitle-1">
-            The following transactions spend outputs from similar mixing timeframe(s)
-            as this transaction. Therefore, it is likely that they were created by the same user.
-          </p>
-          <v-alert
-            :icon="icons.mdiTestTube"
-            type="info"
-            variant="text"
-          >
-            This feature is under active development. Results may change.
-          </v-alert>
-          <v-alert
-            v-if="sessionCount !== -1 && sessionCount < 2"
-            type="warning"
-            variant="text"
-          >
-            This transaction uses outputs from only one mixing session.
-            The results are therefore likely not relevant.
-          </v-alert>
-          <v-alert
-            v-if="errorMsg"
-            type="error"
-            variant="outlined"
-          >
-            {{ errorMsg }}
-          </v-alert>
-          <div v-else-if="fingerprintScores && fingerprintScores.length > 0">
-            <v-row>
-              <v-col>
-                <p
-                  v-if="sessionCount !== -1"
-                  class="text-caption"
-                >
-                  Number of mixing sessions: {{ sessionCount.toLocaleString() }}
-                </p>
-              </v-col>
-              <v-col>
-                <div class="d-flex align-center">
-                  <div class="ml-auto text-caption">
-                    More similar
-                  </div>
-                  <div class="gradient" />
-                  <div class="text-caption">
-                    Less similar
-                  </div>
-                </div>
-              </v-col>
-            </v-row>
-            <v-table>
-              <template #default>
-                <thead>
-                  <tr>
-                    <th />
-                    <th class="text-left">
-                      Transaction
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="item in fingerprintScores"
-                    :key="item.txhash"
-                  >
-                    <td
-                      :style="{background: scoreToColor(item.score),
-                               width: '20px', padding: '0px 0px 0px 0px'}"
-                    />
-                    <td class="transaction-hash">
-                      <router-link
-                        :to="{ name: routes.transactionRoute, params: { id: item.txhash }}"
-                      >
-                        {{ item.txhash }}
-                      </router-link>
-                    </td>
-                  </tr>
-                </tbody>
-              </template>
-            </v-table>
-          </div>
+        <fade-transition>
           <div
-            v-else
-            class="text-body-1"
+            v-if="isLoading"
+            class="text-subtitle-1"
           >
-            No similar transactions found
+            Searching for similar destination transactions ... {{ transactionHash }}
+            <v-skeleton-loader type="article,article" />
           </div>
-        </div>
+          <div v-else>
+            <p class="text-subtitle-1">
+              The following transactions spend outputs from similar mixing timeframe(s)
+              as this transaction. Therefore, it is likely that they were created by the same user.
+            </p>
+            <v-alert
+              :icon="icons.mdiTestTube"
+              type="info"
+              variant="text"
+            >
+              This feature is under active development. Results may change.
+            </v-alert>
+            <v-alert
+              v-if="sessionCount !== -1 && sessionCount < 2"
+              type="warning"
+              variant="text"
+            >
+              This transaction uses outputs from only one mixing session.
+              The results are therefore likely not relevant.
+            </v-alert>
+            <v-alert
+              v-if="errorMsg"
+              type="error"
+              variant="outlined"
+            >
+              {{ errorMsg }}
+            </v-alert>
+            <div v-else-if="fingerprintScores && fingerprintScores.length > 0">
+              <v-row>
+                <v-col>
+                  <p
+                    v-if="sessionCount !== -1"
+                    class="text-caption"
+                  >
+                    Number of mixing sessions: {{ sessionCount.toLocaleString() }}
+                  </p>
+                </v-col>
+                <v-col>
+                  <div class="d-flex align-center">
+                    <div class="ml-auto text-caption">
+                      More similar
+                    </div>
+                    <div class="gradient" />
+                    <div class="text-caption">
+                      Less similar
+                    </div>
+                  </div>
+                </v-col>
+              </v-row>
+              <v-table>
+                <template #default>
+                  <thead>
+                    <tr>
+                      <th />
+                      <th class="text-left">
+                        Transaction
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="item in fingerprintScores"
+                      :key="item.txhash"
+                    >
+                      <td
+                        :style="{background: scoreToColor(item.score),
+                                 width: '20px', padding: '0px 0px 0px 0px'}"
+                      />
+                      <td class="transaction-hash">
+                        <router-link
+                          :to="{ name: routes.transactionRoute, params: { id: item.txhash }}"
+                        >
+                          {{ item.txhash }}
+                        </router-link>
+                      </td>
+                    </tr>
+                  </tbody>
+                </template>
+              </v-table>
+            </div>
+            <div
+              v-else
+              class="text-body-1"
+            >
+              No similar transactions found
+            </div>
+          </div>
+        </fade-transition>
         <v-row class="mt-4">
           <v-col class="d-flex justify-end align-center">
             <v-btn
@@ -121,6 +123,7 @@
 <script>
 import {mdiTestTube} from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import FadeTransition from '@/components/common/FadeTransition.vue';
 function scoreToColor(scaleNum) {
 	if (scaleNum <= 0.6) {
 		return '#E53935';
@@ -139,6 +142,7 @@ function scoreToColor(scaleNum) {
 
 export default {
 	name: 'FingerprintTransactionsDialog',
+	components: {FadeTransition},
 	props: {
 		modelValue: {type: Boolean, required: true},
 		transactionHash: {type: String, required: true},

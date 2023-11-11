@@ -6,9 +6,9 @@
         <MsgBox />
       </div>
       <router-view v-slot="{ Component }">
-        <FadeTransition>
+        <fade-transition>
           <component :is="Component" />
-        </FadeTransition>
+        </fade-transition>
       </router-view>
     </v-main>
   </v-app>
