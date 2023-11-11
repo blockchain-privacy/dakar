@@ -109,7 +109,7 @@
     <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
       <v-dialog
-        :model-value="executionStatus.value.executing || true"
+        :model-value="executionStatus.value.executing"
         :persistent="true"
         max-width="700px"
         :contained="true"
