@@ -106,43 +106,34 @@
         </v-list>
       </v-menu>
     </v-toolbar>
-    <!-- position: relative; is needed so the overlay is contained in its parent -->
+    <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
-      <v-overlay
-        :model-value="executionStatus.value.executing"
-        class="align-center justify-center"
+      <v-dialog
+        :model-value="executionStatus.value.executing || true"
         :persistent="true"
+        max-width="700px"
         :contained="true"
-        scrim="black-darken-3"
+        :no-click-animation="true"
       >
-        <v-row justify="center">
-          <v-col
-            v-if="executionStatus.value.processing"
-            class="ma-5"
-          >
-            Heuristics are executing now.
+        <v-card>
+          <v-card-text class="text-subtitle-1">
+            <template v-if="executionStatus.value.processing">
+              Heuristics are executing now.
+            </template>
+            <template v-else>
+              Heuristics are waiting to be processed.
+            </template>
             This may take several minutes depending on the chosen parameters and
             number of heuristics. You can wait or close this page and come back later.
-          </v-col>
-          <v-col
-            v-else
-            class="ma-5"
-          >
-            Heuristics are waiting for processing.
-            This may take several minutes depending on the chosen parameters and
-            number of heuristics. You can wait or close this page and come back later.
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-progress-linear
-            style="max-width: 350px;"
-            :indeterminate="true"
-            rounded
-            height="6"
-            :color="executionStatus.value.processing?'green darken-3':'primary'"
-          />
-        </v-row>
-      </v-overlay>
+            <v-progress-linear
+              class="mt-3"
+              :indeterminate="true"
+              rounded
+              :color="executionStatus.value.processing?'primary':''"
+            />
+          </v-card-text>
+        </v-card>
+      </v-dialog>
       <heuristic-details-sidebar
         v-model="heuristicSheet.isOpen"
         :heuristic-data="heuristicSheet"
@@ -488,10 +479,14 @@ export default {
 			return this.deletedData.length > 0;
 		},
 		async executeHeuristics() {
-			// Prevent execution if not data is available
+			// Prevent execution if data is not available
 			if (!this.isExecutable()) {
 				return;
 			}
+
+			// Close sidebars
+			this.isAddHeuristicSheetOpen = false;
+			this.heuristicSheet.isOpen = false;
 
 			try {
 				const response = await this.dakar.heuristic.executeHeuristicsHashPost({
