@@ -46,7 +46,11 @@
           </WikiTooltip>
           created here can be used to refine transaction heuristics.
         </p>
-        <v-row v-if="items.length === 0">
+        <v-progress-linear
+          v-if="isLoading"
+          :indeterminate="true"
+        />
+        <v-row v-else-if="items.length === 0">
           <v-col>
             <div class="d-flex justify-center">
               <v-btn
@@ -157,6 +161,7 @@ export default {
 			addClusterDialog: false,
 			deleteClusterDialog: false,
 			deleteAllClustersDialog: false,
+			isLoading: false,
 			deleteClusterUid: '',
 			deleteClusterSize: -1,
 			items: [],
@@ -169,6 +174,7 @@ export default {
 	methods: {
 		async loadData() {
 			this.items = [];
+			this.isLoading = true;
 
 			try {
 				const response = await 	this.dakar.cluster.clusterOverviewGet();
@@ -186,6 +192,8 @@ export default {
 			} catch (e) {
 				handleError(this, e);
 			}
+
+			this.isLoading = false;
 		},
 		deleteItem(clusterUid, clusterSize) {
 			this.deleteClusterUid = clusterUid;
