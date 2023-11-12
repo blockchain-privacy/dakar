@@ -3,7 +3,7 @@
     <v-card variant="text">
       <v-card-text>
         <v-progress-linear
-          v-if="loading"
+          v-if="isLoading"
           :indeterminate="true"
         />
         <div v-else>
@@ -114,7 +114,7 @@ export default {
 				mdiTagPlus,
 				mdiClose,
 			},
-			loading: false,
+			isLoading: false,
 			addAttributionDialog: false,
 			deleteAllAttributionsDialog: false,
 			items: [],
@@ -127,7 +127,7 @@ export default {
 	},
 	methods: {
 		async loadOverviewData() {
-			this.loading = true;
+			this.isLoading = true;
 			this.items = [];
 
 			try {
@@ -147,7 +147,7 @@ export default {
 				handleError(this, e);
 			}
 
-			this.loading = false;
+			this.isLoading = false;
 		},
 		handleAttributionDeletion(attributionUid) {
 			this.items = this.items.filter(d => d.uid !== attributionUid);
