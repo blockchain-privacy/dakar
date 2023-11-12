@@ -38,15 +38,23 @@
           </v-list>
         </v-menu>
       </IconTitle>
-      <v-card-text v-if="items.length > 0">
-        <p class="text-subtitle-1">
+      <v-card-text>
+        <v-progress-linear
+          v-if="isLoading"
+          :indeterminate="true"
+        />
+        <p
+          v-else-if="items.length > 0"
+          class="text-subtitle-1"
+        >
           The addresses part of this list can be excluded from processing by heuristics.
           This list contains {{ Number(addressCount).toLocaleString() }} address exclusions.
           The list below is limited to 30 addresses.
         </p>
-      </v-card-text>
-      <v-card-text v-else>
-        <div class="d-flex justify-center">
+        <div
+          v-else
+          class="d-flex justify-center"
+        >
           <v-btn
             variant="text"
             @click="addAddressExclusions = true"
@@ -159,6 +167,7 @@ export default {
 			addAddressExclusions: false,
 			deleteExclusionDialog: false,
 			deleteAllExclusionsDialog: false,
+			isLoading: false,
 			deleteAddressHash: '',
 			items: [],
 			addressCount: -1,
@@ -173,6 +182,7 @@ export default {
 		async loadData() {
 			this.items = [];
 			this.addressCount = -1;
+			this.isLoading = true;
 
 			try {
 				const response = await this.dakar.addressExclusion.addressExclusionOverviewGet();
@@ -184,6 +194,8 @@ export default {
 			} catch (e) {
 				handleError(this, e);
 			}
+
+			this.isLoading = false;
 		},
 		deleteItem(addressHash) {
 			this.deleteAddressHash = addressHash;
