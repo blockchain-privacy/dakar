@@ -3,7 +3,10 @@
     v-if="resultItems && resultItems.length > 0"
     :fluid="true"
   >
-    <div class="d-flex align-center flex-wrap">
+    <div
+      v-if="resultItems.length > 1"
+      class="d-flex align-center flex-wrap"
+    >
       <v-text-field
         v-model="search"
         class="me-3 mb-3"
@@ -101,8 +104,8 @@
 
 <script>
 import {
-	mdiChevronLeft, mdiChevronRight, mdiMagnify, mdiArrowUp, mdiArrowDown,
-	mdiChevronDown,
+	mdiChevronLeft, mdiChevronRight, mdiMagnify,
+	mdiArrowUp, mdiArrowDown,	mdiChevronDown,
 } from '@mdi/js';
 import AttributionTag from '../tools/attributions/AttributionTag.vue';
 import ResultItem from '@/components/heuristic/ResultItem.vue';
@@ -149,6 +152,7 @@ export default {
 			}
 
 			// Todo use toSorted (ES2023) when new Firefox ESR is released (1. October 2024)
+			// const sortedResults = this.results.toSorted((a, b) => {
 			const sortedResults = [...this.results].sort((a, b) => {
 				let valA;
 				let valB;
