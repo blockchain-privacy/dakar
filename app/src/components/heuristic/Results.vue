@@ -151,9 +151,7 @@ export default {
 				return [];
 			}
 
-			// Todo use toSorted (ES2023) when new Firefox ESR is released (1. October 2024)
-			// const sortedResults = this.results.toSorted((a, b) => {
-			const sortedResults = [...this.results].sort((a, b) => {
+			const sortedResults = this.results.toSorted((a, b) => {
 				let valA;
 				let valB;
 
