@@ -109,28 +109,41 @@
     <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
       <v-dialog
-        :model-value="executionStatus.value.executing"
+        :model-value="executionStatus.value.executing || true"
         :persistent="true"
         max-width="700px"
         :contained="true"
         :no-click-animation="true"
       >
         <v-card>
-          <v-card-text class="text-subtitle-1">
-            <template v-if="executionStatus.value.processing">
-              Heuristics are executing now.
-            </template>
-            <template v-else>
-              Heuristics are waiting to be processed.
-            </template>
-            This may take several minutes depending on the chosen parameters and
-            number of heuristics. You can wait or close this page and come back later.
-            <v-progress-linear
-              class="mt-3"
-              :indeterminate="true"
-              rounded
-              :color="executionStatus.value.processing?'primary':''"
+          <v-card-text class="text-subtitle-1 d-flex align-center">
+            <v-icon
+              :icon="icon.mdiTimerSand"
+              size="50"
+              class="me-3"
             />
+            <div>
+              <p
+                v-if="executionStatus.value.processing"
+                class="text-center mb-3"
+              >
+                Heuristics are executing now
+              </p>
+              <p
+                v-else
+                class="text-center mb-3"
+              >
+                Heuristics are waiting to be processed
+              </p>
+              This may take several minutes depending on the chosen parameters and
+              number of heuristics. You can wait or close this page and come back later.
+              <v-progress-linear
+                class="mt-3"
+                :indeterminate="true"
+                rounded
+                :color="executionStatus.value.processing?'primary':''"
+              />
+            </div>
           </v-card-text>
         </v-card>
       </v-dialog>
@@ -166,6 +179,7 @@ import {
 	mdiShapeSquareRoundedPlus,
 	mdiSourceBranchCheck,
 	mdiTransfer,
+	mdiTimerSand,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -258,6 +272,7 @@ export default {
 				mdiSourceBranchCheck,
 				mdiDotsVertical,
 				mdiAlertOctagon,
+				mdiTimerSand,
 			},
 			routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
 			routeHeuristicOverview: ROUTE_NAME_USER_HEURISTIC_PAGE,
