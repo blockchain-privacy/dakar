@@ -18,7 +18,7 @@
             <v-expansion-panel-title>
               Example file
             </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: scroll">
+            <v-expansion-panel-text style="overflow: auto">
               <p>The following file content would add 3 addresses to the address exclusion list.</p>
               <pre style="width: 200px"><code>Xf36MqBkoK8G5wBbjUSwDRy6XTjdNq8hgB
 XatWuw7BhTxHvjPLbnvPArWgW9r6hjpt8o

@@ -172,7 +172,7 @@
                   :end-date="barTable.endDate"
                 />
               </v-card-text>
-              <div style="overflow:scroll">
+              <div style="overflow: auto">
                 <svg
                   v-show="showHistogram"
                   id="mixing_activity_histogram"

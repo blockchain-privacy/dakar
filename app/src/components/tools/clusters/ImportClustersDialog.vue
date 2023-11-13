@@ -19,7 +19,7 @@
             <v-expansion-panel-title>
               Example CSV-file
             </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: scroll">
+            <v-expansion-panel-text style="overflow: auto">
               <p>The following file content would generate two clusters with two addresses each.</p>
               <pre style="width: 200px"><code>cluster-id,address
 1,XgG6Nosmei5woQ2VTDzwmLX7SzdNYKHdiz

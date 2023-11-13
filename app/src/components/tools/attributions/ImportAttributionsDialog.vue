@@ -21,7 +21,7 @@
             <v-expansion-panel-title>
               Example CSV-file
             </v-expansion-panel-title>
-            <v-expansion-panel-text style="overflow: scroll">
+            <v-expansion-panel-text style="overflow: auto">
               <p>
                 The following file content would generate five attributions,
                 with one address having two tags.

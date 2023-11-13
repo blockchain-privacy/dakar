@@ -70,6 +70,6 @@ export default {
   height: 100%;
   /* Heuristic toolbar a z-index of 1004, therefore set z-index to the same so top shadow is not visible */
   z-index: 1004;
-  overflow: scroll;
+  overflow: auto;
 }
 </style>
