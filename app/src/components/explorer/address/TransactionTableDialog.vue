@@ -1,7 +1,7 @@
 <template>
   <v-dialog
     v-model="show"
-    max-width="700px"
+    max-width="1200px"
   >
     <v-card class="pb-2">
       <v-card-title>
