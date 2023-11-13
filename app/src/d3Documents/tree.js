@@ -10,7 +10,7 @@ export default class Tree {
 		this.clickCallBack = null;
 		this.drawClicked = null;
 		this.drawResetClick = null;
-		this.resetClickCallback = null;
+		this.svgClickCallback = null;
 
 		// Root svg elements
 		this.rootSvg = null;
@@ -119,19 +119,18 @@ export default class Tree {
 		this.drawTree(treeLayout(nodes));
 	}
 
-	resetClick() {
+	svgClick() {
 		if (this.drawResetClick === null) {
 			throw new Error('drawResetClick is not implemented');
+		}
+
+		if (this.svgClickCallback !== null) {
+			this.svgClickCallback();
 		}
 
 		// Only do work if needed
 		if (!this.isClicked) {
 			return;
-		}
-
-		// Execute callback
-		if (this.resetClickCallback !== null) {
-			this.resetClickCallback();
 		}
 
 		// Reset click representation
@@ -143,7 +142,7 @@ export default class Tree {
 	// SetupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
 	setupSvg(context, canvasId) {
 		// Add attributes to root svg
-		this.rootSvg = d3.select(`#${canvasId}`).on('click', () => this.resetClick());
+		this.rootSvg = d3.select(`#${canvasId}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 
 		// Add zoom and drag
@@ -162,7 +161,7 @@ export default class Tree {
 			throw new Error('drawClicked is not implemented');
 		}
 
-		this.resetClick();
+		this.svgClick();
 		// Set click representation
 		this.drawClicked(node);
 		// Set clicked
@@ -184,14 +183,14 @@ export default class Tree {
 		return true;
 	}
 
-	// SetResetNodeClickHandler receives a function as an argument.
-	// The function is going to be called each time a node is deselected
-	setResetNodeClickHandler(callback) {
+	// SetSvgClickCallback receives a function as an argument.
+	// The function is going to be called each time the root SVG is clicked
+	setSvgClickCallback(callback) {
 		if (!isFunction(callback)) {
 			return false;
 		}
 
-		this.resetClickCallback = callback;
+		this.svgClickCallback = callback;
 		return true;
 	}
 

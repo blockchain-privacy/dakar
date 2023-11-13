@@ -412,8 +412,8 @@ export default {
 			}
 		},
 		openTypeSelectionSheet() {
-			this.isAddHeuristicSheetOpen = true;
 			this.heuristicSheet.isOpen = false;
+			this.isAddHeuristicSheetOpen = true;
 		},
 		async openPropertySheet(heuristic) {
 			const sheet = this.heuristicSheet;
@@ -467,8 +467,9 @@ export default {
 			sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
 			sheet.isLoaded = true;
 		},
-		closePropertySheet() {
+		closeSideBars() {
 			this.heuristicSheet.isOpen = false;
+			this.isAddHeuristicSheetOpen = false;
 		},
 		isExecutable() {
 			if (!this.banner.show && this.dbState !== null
@@ -485,8 +486,7 @@ export default {
 			}
 
 			// Close sidebars
-			this.isAddHeuristicSheetOpen = false;
-			this.heuristicSheet.isOpen = false;
+			this.closeSideBars();
 
 			try {
 				const response = await this.dakar.heuristic.executeHeuristicsHashPost({
@@ -710,8 +710,8 @@ export default {
 				return false;
 			}
 
-			if (!this.ht.setResetNodeClickHandler(this.closePropertySheet)) {
-				this.setErrorMessage('error setting heuristic reset click handler');
+			if (!this.ht.setSvgClickCallback(this.closeSideBars)) {
+				this.setErrorMessage('error setting svg click handler');
 				return false;
 			}
 

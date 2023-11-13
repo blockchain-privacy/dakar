@@ -151,6 +151,11 @@ export default {
 				return;
 			}
 
+			// Hide component on small screen devices after adding a new heuristic
+			if (this.$vuetify.display.smAndDown) {
+				this.inputVal = false;
+			}
+
 			this.$emit('add-heuristic', item);
 		},
 	},
