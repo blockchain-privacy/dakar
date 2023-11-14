@@ -96,7 +96,7 @@
     </v-card>
     <template v-if="hasLoaded && !isLoading">
       <v-card
-        v-if="showEmptyResponseMsg"
+        v-if="showEmptyResponseMsg && !showTooManyAddressesMsg"
         class="my-3"
         variant="text"
       >
