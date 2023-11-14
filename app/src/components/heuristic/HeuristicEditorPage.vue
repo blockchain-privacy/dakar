@@ -327,6 +327,7 @@ export default {
 				heuristicParameter: '',
 				heuristicCustomClusters: false,
 				heuristicExcludeAddresses: false,
+				heuristicTimestamp: null,
 				clusterCount: null,
 				clusters: [],
 			},
@@ -456,6 +457,7 @@ export default {
 			sheet.heuristicTypeTitle = displayType;
 			sheet.clusterCount = heuristic.clusterCount;
 			sheet.heuristicUid = heuristic.uid;
+			sheet.heuristicTimestamp = new Date(heuristic.ts);
 			sheet.clusters = [];
 
 			// Check if data has to be loaded from backend

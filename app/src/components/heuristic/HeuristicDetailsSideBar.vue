@@ -38,7 +38,22 @@
                 {{ heuristicData.heuristicTypeTitle }}
               </IconItem>
             </v-col>
-            <v-col v-if="heuristicData.heuristicParameter">
+            <v-col>
+              <icon-item
+                title="Timestamp"
+                :icon="icon.mdiCalendar"
+              >
+                {{ heuristicData.heuristicTimestamp.toLocaleString() }}
+              </icon-item>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col
+              v-if="heuristicData.heuristicParameter"
+              cols="12"
+              xs="12"
+              sm="6"
+            >
               <IconItem
                 title="Parameter"
                 :icon="icon.mdiTune"
@@ -46,14 +61,7 @@
                 {{ heuristicData.heuristicParameter }}
               </IconItem>
             </v-col>
-          </v-row>
-          <v-row>
-            <v-col
-              v-if="heuristicData.heuristicCustomClusters"
-              cols="12"
-              xs="12"
-              sm="6"
-            >
+            <v-col v-if="heuristicData.heuristicCustomClusters">
               <IconItem
                 title="Custom clusters"
                 :icon="icon.mdiMerge"
@@ -61,7 +69,14 @@
                 yes
               </IconItem>
             </v-col>
-            <v-col v-if="heuristicData.heuristicExcludeAddresses">
+          </v-row>
+          <v-row>
+            <v-col
+              v-if="heuristicData.heuristicExcludeAddresses"
+              cols="12"
+              xs="12"
+              sm="6"
+            >
               <IconItem
                 title="Exclude addresses"
                 :icon="icon.mdiPlaylistRemove"
@@ -69,9 +84,7 @@
                 yes
               </IconItem>
             </v-col>
-          </v-row>
-          <v-row v-if="heuristicData.heuristicExcludeSpendingGaps">
-            <v-col>
+            <v-col v-if="heuristicData.heuristicExcludeSpendingGaps">
               <IconItem
                 title="Exclude spending gaps"
                 :icon="icon.mdiClockAlertOutline"
@@ -185,6 +198,7 @@ import {
 	mdiPlaylistRemove,
 	mdiPoundBoxOutline,
 	mdiTune,
+	mdiCalendar,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram';
 import {getCurrentDate} from '@/utilities';
@@ -212,6 +226,7 @@ export default {
 				mdiPlaylistRemove,
 				mdiFileDownloadOutline,
 				mdiClockAlertOutline,
+				mdiCalendar,
 			},
 			chart: null,
 			svgHistogram: null,
