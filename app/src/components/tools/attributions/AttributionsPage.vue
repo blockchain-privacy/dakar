@@ -17,7 +17,7 @@
           Private Attributions
         </v-tab>
         <v-tab>
-          Search
+          Search Public Attributions
         </v-tab>
       </v-tabs>
     </v-card>
