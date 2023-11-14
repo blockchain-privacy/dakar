@@ -16,22 +16,22 @@
     autocomplete="current-password"
     @click:append-inner="password.show = !password.show"
   />
-  <!--  todo: enable if v-otp-input is usable on mobile -->
-  <!--  <div-->
-  <!--    v-else-if="attributes?.type === 'text' && attributes?.name === 'totp_code'"-->
-  <!--    class="d-flex flex-column align-center"-->
-  <!--  >-->
-  <!--    <v-label :text="metaLabel" />-->
-  <!--    &lt;!&ndash; Use a random number for key so the content always gets cleared on field update.-->
-  <!--     Otherwise the finish event gets called on each field update if the input is full &ndash;&gt;-->
-  <!--    <v-otp-input-->
-  <!--      :key="Math.random()"-->
-  <!--      autofocus-->
-  <!--      :model-value="attributes.value?attributes.value:''"-->
-  <!--      :name="attributes.name"-->
-  <!--      @finish="emitSubmitEvent(null, id)"-->
-  <!--    />-->
-  <!--  </div>-->
+  <div
+    v-else-if="attributes?.type === 'text' && attributes?.name === 'totp_code'"
+    class="d-flex flex-column align-center"
+  >
+    <v-label :text="metaLabel" />
+    <!-- Use a random number for 'key', so the content always gets
+    cleared when it is replaced by the result of a call to Kratos.
+    Otherwise the finish event gets called on each field update if the input is full -->
+    <v-otp-input
+      :key="Math.random()"
+      :model-value="attributes.value?attributes.value:''"
+      :autofocus="true"
+      :name="attributes.name"
+      @finish="emitSubmitEvent(null, id)"
+    />
+  </div>
   <v-text-field
     v-else-if="attributes.type === 'text'"
     :key="meta?.label?.id"
