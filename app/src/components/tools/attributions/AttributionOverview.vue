@@ -1,32 +1,44 @@
 <template>
   <div class="my-2 mx-1">
-    <v-card elevation="4">
+    <v-card variant="text">
       <v-card-text>
-        <v-progress-linear v-if="loading" indeterminate/>
+        <v-progress-linear
+          v-if="isLoading"
+          :indeterminate="true"
+        />
         <div v-else>
           <v-row>
-            <v-col v-if="items.length > 0" class="d-flex">
-              <div class="my-auto mr-auto">
-                <v-icon>{{ icon.mdiInformationOutline }}</v-icon>
-                These attributions have been created by you.
-              </div>
-              <v-menu bottom left>
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn icon v-bind="attrs" v-on="on">
+            <v-col
+              v-if="items.length > 0"
+              class="d-flex"
+            >
+              <p class="text-subtitle-1 my-auto mr-auto">
+                Attributions help to easier identify addresses belonging to the same
+                <WikiTooltip description-url="addressCluster.md">
+                  address cluster
+                </WikiTooltip>.
+              </p>
+              <v-menu location="bottom">
+                <template #activator="{ props }">
+                  <v-btn
+                    icon
+                    variant="text"
+                    v-bind="props"
+                  >
                     <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
                   </v-btn>
                 </template>
                 <v-list>
                   <v-list-item @click="addAttributionDialog = true">
-                    <v-list-item-icon>
+                    <template #prepend>
                       <v-icon>{{ icon.mdiTagPlus }}</v-icon>
-                    </v-list-item-icon>
+                    </template>
                     <v-list-item-title>Import Attributions</v-list-item-title>
                   </v-list-item>
                   <v-list-item @click="deleteAllAttributionsDialog = true">
-                    <v-list-item-icon>
+                    <template #prepend>
                       <v-icon>{{ icon.mdiDelete }}</v-icon>
-                    </v-list-item-icon>
+                    </template>
                     <v-list-item-title>Delete All Attributions</v-list-item-title>
                   </v-list-item>
                 </v-list>
@@ -34,7 +46,10 @@
             </v-col>
             <v-col v-else>
               <div class="d-flex justify-center">
-                <v-btn @click="addAttributionDialog = true" text>
+                <v-btn
+                  variant="text"
+                  @click="addAttributionDialog = true"
+                >
                   <v-icon>{{ icon.mdiFileImport }}</v-icon>
                   Import attributions
                 </v-btn>
@@ -43,88 +58,101 @@
           </v-row>
         </div>
       </v-card-text>
-      <import-attribution v-model="addAttributionDialog" @added="loadData"/>
-      <delete-all-attributions v-model="deleteAllAttributionsDialog" @deleted="loadData"/>
+      <import-attribution-dialog
+        v-model="addAttributionDialog"
+        @added="loadOverviewData"
+      />
+      <delete-all-attributions-dialog
+        v-model="deleteAllAttributionsDialog"
+        @deleted="loadOverviewData"
+      />
     </v-card>
-    <v-row v-if="items.length > 0" class="mt-2">
-      <v-col v-for="(item, i) in items" :key="i" cols="12" sm="6" md="4" lg="4">
-        <attribution-details :attribution="item" @deleted="handleAttributionDeletion"/>
-      </v-col>
+    <v-row
+      v-if="items.length > 0"
+      class="mt-3 mx-auto mb-2"
+    >
+      <div
+        class="d-flex flex-wrap align-baseline"
+        style="gap: 20px 20px"
+      >
+        <attribution-details
+          v-for="(item, i) in items"
+          :key="i"
+          :attribution="item"
+          @deleted="handleAttributionDeletion"
+        />
+      </div>
     </v-row>
   </div>
 </template>
 
 <script>
 import {
-  mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport, mdiTagPlus,
-  mdiInformationOutline, mdiClose,
+	mdiMerge, mdiDelete, mdiDotsVertical,
+	mdiFileImport, mdiTagPlus, mdiClose,
 } from '@mdi/js';
-import { PAGE_TITLE, ROUTE_ATTRIBUTION_OVERVIEW } from '../../../constants';
-import { doGet, handleError } from '../../../utilities';
-import ImportAttribution from '../../dialogs/ImportAttributions.vue';
-import DeleteAllAttributions from '../../dialogs/DeleteAllAttributions.vue';
+import {PAGE_TITLE} from '@/constants';
+import {handleError} from '@/utilities';
+import ImportAttributionDialog from './ImportAttributionsDialog.vue';
+import DeleteAllAttributionsDialog from './DeleteAllAttributionsDialog.vue';
 import AttributionDetails from './AttributionDetails.vue';
+import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 
 export default {
-  name: 'AttributionOverview',
-  components: {
-    AttributionDetails, DeleteAllAttributions, ImportAttribution,
-  },
-  data() {
-    return {
-      icon: {
-        mdiMerge,
-        mdiDelete,
-        mdiDotsVertical,
-        mdiFileImport,
-        mdiTagPlus,
-        mdiInformationOutline,
-        mdiClose,
-      },
-      loading: false,
-      addAttributionDialog: false,
-      deleteAllAttributionsDialog: false,
-      items: [],
-      fab: false,
-    };
-  },
-  methods: {
-    loadData() {
-      this.loading = true;
-      this.items = [];
-      doGet(ROUTE_ATTRIBUTION_OVERVIEW, this.$router, this.$store)
-        .then((data) => {
-          if (!data.success || data.attributions === undefined) throw new Error('could not get attribution data');
+	name: 'AttributionOverview',
+	components: {
+		WikiTooltip,
+		AttributionDetails, DeleteAllAttributionsDialog, ImportAttributionDialog,
+	},
+	data() {
+		return {
+			icon: {
+				mdiMerge,
+				mdiDelete,
+				mdiDotsVertical,
+				mdiFileImport,
+				mdiTagPlus,
+				mdiClose,
+			},
+			isLoading: false,
+			addAttributionDialog: false,
+			deleteAllAttributionsDialog: false,
+			items: [],
+			fab: false,
+		};
+	},
+	async mounted() {
+		document.title = `Attribution Overview - ${PAGE_TITLE}`;
+		await this.loadOverviewData();
+	},
+	methods: {
+		async loadOverviewData() {
+			this.isLoading = true;
+			this.items = [];
 
-          if (data.attributions === null) {
-            this.items = [];
-            return;
-          }
+			try {
+				const response = await this.dakar.attribution.attributionOverviewGet();
 
-          // parse date
-          data.attributions = data.attributions.map((d) => {
-            d.ts = new Date(d.ts);
-            return d;
-          });
+				if (response.attributions) {
+					// Parse date
+					response.attributions = response.attributions.map(d => {
+						d.ts = new Date(d.ts);
+						return d;
+					});
 
-          // sort attributions by time stamp
-          this.items = data.attributions.sort((a, b) => b.ts - a.ts);
-        })
-        .catch((e) => {
-          handleError(this.$store, e);
-        })
-        .finally(() => {
-          this.loading = false;
-        });
-    },
-    handleAttributionDeletion(attributionUid) {
-      this.items = this.items.filter((d) => d.uid !== attributionUid);
-    },
-  },
-  mounted() {
-    document.title = `Attribution Overview - ${PAGE_TITLE}`;
-    this.loadData();
-  },
+					// Sort attributions by time stamp
+					this.items = response.attributions.sort((a, b) => b.ts - a.ts);
+				}
+			} catch (e) {
+				handleError(this, e);
+			}
+
+			this.isLoading = false;
+		},
+		handleAttributionDeletion(attributionUid) {
+			this.items = this.items.filter(d => d.uid !== attributionUid);
+		},
+	},
 };
 </script>
 
