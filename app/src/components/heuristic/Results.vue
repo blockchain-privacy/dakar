@@ -60,13 +60,13 @@
             class="my-2"
             variant="flat"
           >
-            <AttributionTag
+            <attribution-tag
               v-for="(attribution, y) in cluster.raw.attributions"
               :key="y"
               :attribution="attribution"
               class="ms-2"
             />
-            <ResultItem
+            <result-item
               :max-items="5"
               :items="cluster.raw.txs"
             />

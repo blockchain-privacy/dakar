@@ -4,7 +4,7 @@
     class="mx-auto"
   >
     <v-card variant="text">
-      <IconTitle
+      <icon-title
         title="Address Exclusions"
         :icon="icon.mdiPlaylistRemove"
         :one-line="true"
@@ -37,7 +37,7 @@
             </v-list-item>
           </v-list>
         </v-menu>
-      </IconTitle>
+      </icon-title>
       <v-card-text>
         <v-progress-linear
           v-if="isLoading"

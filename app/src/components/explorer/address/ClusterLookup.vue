@@ -7,9 +7,9 @@
       <v-card-text class="d-flex align-center">
         <p>
           The following
-          <WikiTooltip description-url="addressCluster.md">
+          <wiki-tooltip description-url="addressCluster.md">
             clusters
-          </WikiTooltip>
+          </wiki-tooltip>
           are attached to this address. New clusters can be created at the
           <router-link
             :to="{ name: clusterOverview}"
@@ -94,7 +94,7 @@
           <p class="text-subtitle-1">
             Last updated by
           </p>
-          <ClusterDetails
+          <cluster-details
             :tx-hash="c.txhash"
             :block-hash="c.bhash"
             :block-id="c.bid"
@@ -104,7 +104,7 @@
             <p class="text-subtitle-1">
               First included by
             </p>
-            <ClusterDetails
+            <cluster-details
               :tx-hash="c.hmi.txhash"
               :block-hash="c.hmi.bhash"
               :block-id="c.hmi.bid"

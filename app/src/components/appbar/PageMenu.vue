@@ -8,7 +8,7 @@
       <div v-if="showTools">
         <v-row no-gutters>
           <v-col>
-            <LinkCard
+            <link-card
               title="Heuristics"
               :icon="icons.mdiGraph"
               :color="iconColor.default"
@@ -16,7 +16,7 @@
             />
           </v-col>
           <v-col>
-            <LinkCard
+            <link-card
               title="Attributions"
               :icon="icons.mdiTag"
               :color="iconColor.default"
@@ -24,7 +24,7 @@
             />
           </v-col>
           <v-col>
-            <LinkCard
+            <link-card
               title="Custom Clusters"
               :icon="icons.mdiMerge"
               :color="iconColor.default"
@@ -34,7 +34,7 @@
         </v-row>
         <v-row no-gutters>
           <v-col>
-            <LinkCard
+            <link-card
               title="Address Exclusions"
               :icon="icons.mdiPlaylistRemove"
               :color="iconColor.default"
@@ -42,7 +42,7 @@
             />
           </v-col>
           <v-col>
-            <LinkCard
+            <link-card
               title="Shortest Path"
               :icon="icons.mdiChartTimelineVariant"
               :color="iconColor.default"
@@ -50,7 +50,7 @@
             />
           </v-col>
           <v-col>
-            <LinkCard
+            <link-card
               title="Connection Lookup"
               :icon="icons.mdiTextBoxSearch"
               :color="iconColor.default"
@@ -62,7 +62,7 @@
       <v-divider class="my-2" />
       <v-row no-gutters>
         <v-col>
-          <LinkCard
+          <link-card
             title="Server Status"
             :icon="icons.mdiServer"
             :color="iconColor.default"
@@ -70,7 +70,7 @@
           />
         </v-col>
         <v-col>
-          <LinkCard
+          <link-card
             title="Wiki"
             :icon="icons.mdiBookOpen"
             :color="iconColor.default"
@@ -78,7 +78,7 @@
           />
         </v-col>
         <v-col v-if="showUserAdmin">
-          <LinkCard
+          <link-card
             title="User Admin"
             :icon="icons.mdiAccountSupervisor"
             :color="iconColor.admin"

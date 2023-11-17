@@ -6,9 +6,9 @@
     <v-row class="fill-height">
       <v-col class="fill-height">
         <router-view v-slot="{ Component }">
-          <FadeTransition>
+          <fade-transition>
             <component :is="Component" />
-          </FadeTransition>
+          </fade-transition>
         </router-view>
       </v-col>
     </v-row>

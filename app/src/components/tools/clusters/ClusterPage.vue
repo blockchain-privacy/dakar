@@ -5,7 +5,7 @@
       class="mx-auto"
       max-width="1200"
     >
-      <IconTitle
+      <icon-title
         title="Custom Clusters"
         :icon="icon.mdiMerge"
         :one-line="true"
@@ -38,12 +38,12 @@
             </v-list-item>
           </v-list>
         </v-menu>
-      </IconTitle>
+      </icon-title>
       <v-card-text>
         <p class="text-subtitle-1 mb-3">
-          <WikiTooltip description-url="addressCluster.md">
+          <wiki-tooltip description-url="addressCluster.md">
             Clusters
-          </WikiTooltip>
+          </wiki-tooltip>
           created here can be used to refine transaction heuristics.
         </p>
         <v-progress-linear

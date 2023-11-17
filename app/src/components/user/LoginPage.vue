@@ -8,7 +8,7 @@
       style="flex:1"
     >
       <div class="pa-5">
-        <h3 class="text-h3 font-weight-bold text-center">
+        <h3 class="text-h3 font-weight-bold text-center mb-2">
           Login
         </h3>
         <ory-flow

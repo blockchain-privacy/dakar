@@ -28,7 +28,7 @@
         {{ applicationName }}
       </v-app-bar-title>
     </router-link>
-    <QueryInput
+    <query-input
       v-if="!minimize"
       class="mx-auto px-2"
       style="max-width: 600px"
@@ -38,7 +38,7 @@
       icon
     >
       <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
-      <PageMenu />
+      <page-menu />
     </v-btn>
     <!-- todo: check if https://github.com/vuetifyjs/vuetify/issues/17234 is fixed (wrong menu position after window resize) -->
     <v-menu
@@ -78,7 +78,7 @@
             <v-list-item-title style="display:flex; align-items:center">
               Dark Mode
             </v-list-item-title>
-            <DarkModeSwitch class="mt-0 ml-2" />
+            <dark-mode-switch class="mt-0 ml-2" />
           </div>
         </v-list-item>
         <v-list-item @click="initLogoutFlow">

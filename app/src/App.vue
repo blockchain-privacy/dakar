@@ -1,9 +1,9 @@
 <template>
   <v-app>
-    <AppBar :minimize="isEntryPage" />
+    <app-bar :minimize="isEntryPage" />
     <v-main>
       <div style="position: relative">
-        <MsgBox />
+        <msg-box />
       </div>
       <router-view v-slot="{ Component }">
         <fade-transition>

@@ -4,7 +4,7 @@
     variant="text"
     max-width="1200"
   >
-    <IconTitle
+    <icon-title
       title="Heuristics"
       :icon="icon.mdiGraph"
       :one-line="true"
@@ -45,7 +45,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-    </IconTitle>
+    </icon-title>
     <fade-transition>
       <div
         v-if="showSearchField"

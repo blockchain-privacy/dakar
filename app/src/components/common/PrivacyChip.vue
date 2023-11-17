@@ -8,12 +8,12 @@
       :icon="icons.mdiIncognito"
       class="me-2"
     />
-    <WikiTooltip
+    <wiki-tooltip
       :description-url="getPrivacyTypeTooltip(privacyType)"
       :show-link="false"
     >
       {{ getPrivacyTypeLabel(privacyType) }}
-    </WikiTooltip>
+    </wiki-tooltip>
   </v-chip>
 </template>
 

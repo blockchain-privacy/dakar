@@ -68,7 +68,7 @@
         </v-navigation-drawer>
       </v-col>
       <v-col class="fill-height mx-lg-16">
-        <FadeTransition>
+        <fade-transition>
           <v-card
             v-if="showRootPage"
             :flat="true"
@@ -100,7 +100,7 @@
               type="article"
             />
           </template>
-        </FadeTransition>
+        </fade-transition>
       </v-col>
     </v-row>
   </div>

@@ -2,13 +2,13 @@
   <div>
     <v-card variant="text">
       <v-card-text>
-        <WikiTooltip description-url="transactionTypes/privacyTransactions.md">
+        <wiki-tooltip description-url="transactionTypes/privacyTransactions.md">
           Privacy transactions
-        </WikiTooltip>
+        </wiki-tooltip>
         which are directly connected to this address show partially the
-        <WikiTooltip description-url="mixingActivity.md">
+        <wiki-tooltip description-url="mixingActivity.md">
           mixing activity
-        </WikiTooltip>.
+        </wiki-tooltip>.
         <v-row class="mt-2">
           <v-col class="d-flex align-center justify-center flex-wrap">
             <p class="v-label me-2">
