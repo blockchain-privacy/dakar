@@ -89,6 +89,8 @@
             </v-card-text>
           </v-card>
           <template v-else>
+            <!-- html is loaded from safe source -->
+            <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="fileHTML"
               :class="{'wikiFileContentFullSize': $vuetify.display.smAndDown,

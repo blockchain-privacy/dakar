@@ -62,6 +62,8 @@
             cols="12"
             lg="9"
           >
+            <!-- vuetify lint plugin has some errors, disable for now -->
+            <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
               :disabled="!activities || activities.length === 0"

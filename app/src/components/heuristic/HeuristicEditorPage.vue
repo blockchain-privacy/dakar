@@ -353,7 +353,7 @@ export default {
 						action: this.openTypeSelectionSheet,
 						disabled: () => !this.banner.show,
 					},
-					// Todo: enable when https://github.com/vuetifyjs/vuetify/issues/17004 is fixed
+					// Reminder: enable when https://github.com/vuetifyjs/vuetify/issues/17004 is fixed
 					// {
 					// 	title: 'Actions',
 					// 	menu: [
