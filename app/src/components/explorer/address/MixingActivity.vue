@@ -310,6 +310,7 @@ export default {
 				show: false,
 			},
 			clickedNode: {
+				// eslint-disable-next-line camelcase
 				input_txs: [],
 				dateTime: null,
 				privacytype: '',

@@ -199,11 +199,11 @@
               </v-list>
             </v-menu>
           </template>
-          <template #item.created_at="{ item }">
-            <span>{{ new Date(item.created_at).toLocaleString() }}</span>
+          <template #item.createdAt="{ item }">
+            <span>{{ new Date(item.createdAt).toLocaleString() }}</span>
           </template>
-          <template #item.updated_at="{ item }">
-            <span>{{ new Date(item.updated_at).toLocaleString() }}</span>
+          <template #item.updatedAt="{ item }">
+            <span>{{ new Date(item.updatedAt).toLocaleString() }}</span>
           </template>
         </v-data-table>
         <v-data-table
@@ -366,7 +366,7 @@ export default {
 				title: 'ID', key: 'id', align: 'start', sortable: false,
 			},
 			{
-				title: 'Dgraph UID', key: 'dgraph_uid',
+				title: 'Dgraph UID', key: 'dgraphUID',
 			},
 			{
 				title: 'E-Mail', key: 'email',
@@ -381,10 +381,10 @@ export default {
 				title: 'Roles', key: 'renderedRoles',
 			},
 			{
-				title: 'Created', key: 'created_at',
+				title: 'Created', key: 'createdAt',
 			},
 			{
-				title: 'Updated', key: 'updated_at',
+				title: 'Updated', key: 'updatedAt',
 			},
 			{
 				title: '', key: 'actions', sortable: false, align: 'end',
@@ -478,8 +478,8 @@ export default {
 
 			this.identities = this.identities.map(d => {
 				// Convert dates to unix time so, they can be sorted in data table
-				d.updated_at = new Date(d.updated_at).getTime();
-				d.created_at = new Date(d.created_at).getTime();
+				d.updatedAt = new Date(d.updated_at).getTime();
+				d.createdAt = new Date(d.created_at).getTime();
 				d.email = d.traits.email;
 
 				if (d.metadata_public) {
@@ -493,7 +493,7 @@ export default {
 
 					// Extract dgraph uid
 					if (d.metadata_public.dgraph_uid) {
-						d.dgraph_uid = d.metadata_public.dgraph_uid;
+						d.dgraphUID = d.metadata_public.dgraph_uid;
 					}
 				}
 
