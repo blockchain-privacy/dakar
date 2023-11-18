@@ -64,6 +64,11 @@ type ExportBlocksModule struct {
 	EndBlock   int    `yaml:"endBlock"`
 }
 
+type DestinationCountModule struct {
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
+}
+
 type ExportPrivacyTransactionsModule struct {
 	Active           bool   `yaml:"active"`
 	Filename         string `yaml:"filename"`
@@ -81,6 +86,7 @@ type Config struct {
 	OriginGap                 OriginGapModule                 `yaml:"originGap"`
 	ExportBlocks              ExportBlocksModule              `yaml:"exportBlocks"`
 	ExportPrivacyTransactions ExportPrivacyTransactionsModule `yaml:"exportPrivacyTransactions"`
+	DestinationCount          DestinationCountModule          `yaml:"destinationCount"`
 }
 
 var defaultConfig = Config{
@@ -125,6 +131,10 @@ var defaultConfig = Config{
 		Active:           false,
 		Filename:         "",
 		StartTransaction: "",
+	},
+	DestinationCount: DestinationCountModule{
+		Active:   false,
+		Filename: "",
 	},
 }
 
@@ -244,6 +254,10 @@ func main() {
 	if config.ExportPrivacyTransactions.Active {
 		doExportPrivacyTransactions(dgraph, config.ExportPrivacyTransactions.Filename,
 			config.ExportPrivacyTransactions.StartTransaction)
+	}
+
+	if config.DestinationCount.Active {
+		doDestinationCountAnalysis(dgraph, config.DestinationCount.Filename)
 	}
 }
 

@@ -456,3 +456,105 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 
 	return
 }
+
+type SpenderTransaction struct {
+	TxHash       string
+	ClusterSize  int
+	Destinations []string
+}
+
+// GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
+func GetDestinationTransactionSpenders(c external.Database) (transactions []SpenderTransaction, err error) {
+	const query = `{
+		destinations as var(func: between(privacytype,100,199))@cascade{
+			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
+		}
+
+		var(func: uid(destinations)){
+			tx_outputs{
+				using_dst as ~tx_inputs
+			}
+		}
+		
+		q(func: uid(using_dst)){
+			uid
+			txhash
+			tx_inputs@normalize{
+				~tx_outputs@filter(between(privacytype,100,199)){
+					txhash:txhash
+				}
+				~addr_outputs {
+					~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+						clusterCount:Cluster.addressCount
+					}
+				}
+			}
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return
+	}
+	var r struct {
+		Transactions []struct {
+			UID               string `json:"uid,omitempty"`
+			TransactionHash   string `json:"txhash,omitempty"`
+			InputTransactions []struct {
+				TransactionHash string `json:"txhash,omitempty"`
+				ClusterCount    int    `json:"clusterCount,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	spentDestinationTransactions := map[string]int{}
+	usingDestinationTransactionsCount := 0
+	excludedBecauseOfClusterSize := 0
+	for _, tx := range r.Transactions {
+		txCount := len(tx.InputTransactions)
+		if txCount < 2 {
+			continue
+		}
+
+		uniqueTxs := map[string]int{}
+		var clusterCount int
+		for _, it := range tx.InputTransactions {
+			if it.TransactionHash == "" {
+				// filter out artifacts from normalization
+				continue
+			}
+			uniqueTxs[it.TransactionHash] = it.ClusterCount
+			clusterCount = it.ClusterCount
+		}
+
+		if len(uniqueTxs) < 2 {
+			continue
+		}
+
+		if clusterCount > 1000 {
+			excludedBecauseOfClusterSize++
+			continue
+		}
+
+		for k, v := range uniqueTxs {
+			spentDestinationTransactions[k] = v
+		}
+		usingDestinationTransactionsCount++
+
+		transactions = append(transactions, SpenderTransaction{
+			TxHash:       tx.TransactionHash,
+			ClusterSize:  clusterCount,
+			Destinations: cliutil.GetMapKeys(uniqueTxs),
+		})
+	}
+
+	fmt.Println("spentDestinationTransactions", len(spentDestinationTransactions))
+	fmt.Println("excludedBecauseOfClusterSize", excludedBecauseOfClusterSize)
+	fmt.Println("usingDestinationTransactionsCount", usingDestinationTransactionsCount)
+	return
+}
