@@ -8,6 +8,11 @@ import (
 	"strconv"
 )
 
+// doDestinationCountAnalysis investigates if outputs of destination transactions
+// which are spent in the same transaction can be linked via destination input
+// timestamp fingerprinting. This is achieved by collecting all transactions
+// (spending transactions) which are directly connected to multiple (>=2) destination
+// transactions. Spending transactions created by large clusters (>1000) are excluded.
 func doDestinationCountAnalysis(dgraph external.Database, fileName string) {
 	spenders, err := analytics.GetDestinationTransactionSpenders(dgraph)
 	if err != nil {

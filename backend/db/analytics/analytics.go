@@ -553,8 +553,8 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 		})
 	}
 
-	fmt.Println("spentDestinationTransactions", len(spentDestinationTransactions))
-	fmt.Println("excludedBecauseOfClusterSize", excludedBecauseOfClusterSize)
-	fmt.Println("usingDestinationTransactionsCount", usingDestinationTransactionsCount)
+	fmt.Println("spent destination transactions", len(spentDestinationTransactions))
+	fmt.Println("excluded because of cluster size", excludedBecauseOfClusterSize)
+	fmt.Println("using destination transactions count", usingDestinationTransactionsCount)
 	return
 }
