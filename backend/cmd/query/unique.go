@@ -68,7 +68,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 	// write header
 	header := []string{"Timestamp", "Addresses", "Clusters", "Addresses Without Cluster"}
 	if err := w.Write(header); err != nil {
-		info("error writing header to file", err)
+		warn(err, "msg", "error writing header to file")
 		return
 	}
 
@@ -86,7 +86,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 			strconv.FormatUint(addressesWithClusterCount, 10)}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 

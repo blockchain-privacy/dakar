@@ -4,6 +4,7 @@ import (
 	"backend/constants"
 	dban "backend/db/analytics"
 	"backend/external"
+	"fmt"
 
 	"encoding/csv"
 	"os"
@@ -20,7 +21,7 @@ type privacyTypePair struct {
 func exportTransactionData(database external.Database, directory string) {
 	info("Creating privacy transaction charts")
 	if len(directory) == 0 {
-		info("invalid directory:", directory)
+		info(fmt.Sprintf("invalid directory: %s", directory))
 		return
 	}
 
@@ -71,7 +72,7 @@ func writeTimestampsToCSV(fileName string, txs []time.Time) {
 	for _, t := range txs {
 		line := []string{t.Format(time.RFC3339)}
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 	}

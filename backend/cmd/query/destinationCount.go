@@ -106,7 +106,7 @@ func writeSpendersToCSV(fileName string, txs []analytics.SpenderTransaction) {
 		}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 	}

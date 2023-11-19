@@ -69,7 +69,7 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 		}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 	}
