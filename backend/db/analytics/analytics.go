@@ -475,6 +475,10 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 				using_dst as ~tx_inputs
 			}
 		}
+
+		c(func: uid(destinations)){
+			count:count(uid)
+		}
 		
 		q(func: uid(using_dst)){
 			uid
@@ -498,6 +502,9 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 		return
 	}
 	var r struct {
+		DestinationCount []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"c,omitempty"`
 		Transactions []struct {
 			UID               string `json:"uid,omitempty"`
 			TransactionHash   string `json:"txhash,omitempty"`
@@ -564,7 +571,7 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			Destinations: spentDestinations,
 		})
 	}
-
+	fmt.Println("global destination count", r.DestinationCount[0].Count)
 	fmt.Println("spent destination transactions", len(spentDestinationTransactions))
 	fmt.Println("excluded because of cluster size", excludedBecauseOfClusterSize)
 	fmt.Println("using destination transactions count", usingDestinationTransactionsCount)
