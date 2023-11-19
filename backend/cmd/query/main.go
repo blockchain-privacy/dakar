@@ -38,8 +38,6 @@ func initAllLoggers(fileHandle *os.File) {
 	processor.InitLogger()
 	server.InitLogger()
 	heuristic.InitLogger()
-
-	thisLogger.Info("test")
 }
 
 func info(msg string, v ...any) {
