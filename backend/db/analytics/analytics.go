@@ -464,7 +464,10 @@ type SpenderTransaction struct {
 }
 
 // GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
-func GetDestinationTransactionSpenders(c external.Database) (transactions []SpenderTransaction, err error) {
+func GetDestinationTransactionSpenders(c external.Database) (
+	transactions []SpenderTransaction, globalDestinationCount int,
+	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
+	usingDestinationTransactionsCount int, err error) {
 	const query = `{
 		destinations as var(func: between(privacytype,100,199))@cascade{
 			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
@@ -522,8 +525,6 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 	}
 
 	spentDestinationTransactions := map[string]bool{}
-	usingDestinationTransactionsCount := 0
-	excludedBecauseOfClusterSize := 0
 	for _, tx := range r.Transactions {
 		txCount := len(tx.InputTransactions)
 		if txCount < 2 {
@@ -549,7 +550,7 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 		}
 
 		if clusterCount > 1000 {
-			excludedBecauseOfClusterSize++
+			excludedBecauseOfClusterSizeCount++
 			continue
 		}
 
@@ -571,9 +572,9 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			Destinations: spentDestinations,
 		})
 	}
-	fmt.Println("global destination count", r.DestinationCount[0].Count)
-	fmt.Println("spent destination transactions", len(spentDestinationTransactions))
-	fmt.Println("excluded because of cluster size", excludedBecauseOfClusterSize)
-	fmt.Println("using destination transactions count", usingDestinationTransactionsCount)
+
+	globalDestinationCount = r.DestinationCount[0].Count
+	spentDestinationTransactionCount = len(spentDestinationTransactions)
+
 	return
 }

@@ -6,7 +6,6 @@ import (
 	"backend/db/analytics"
 	"backend/external"
 	"encoding/csv"
-	"fmt"
 	"os"
 	"slices"
 	"strconv"
@@ -20,11 +19,18 @@ import (
 // (spending transactions) which are directly connected to multiple (>=2) destination
 // transactions. Spending transactions created by large clusters (>1000) are excluded.
 func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGraph, fileName string) {
-	spenders, err := analytics.GetDestinationTransactionSpenders(dgraph)
+	spenders, globalDestinationCount, spentDestinationTransactionCount, excludedBecauseOfClusterSizeCount, usingDestinationTransactionsCount, err :=
+		analytics.GetDestinationTransactionSpenders(dgraph)
 	if err != nil {
 		warn(err)
 		return
 	}
+
+	info("destination counts",
+		"global destination count", globalDestinationCount,
+		"spent destination transactions", spentDestinationTransactionCount,
+		"excluded because of cluster size", excludedBecauseOfClusterSizeCount,
+		"using destination transactions count", usingDestinationTransactionsCount)
 
 	var foundCount atomic.Int64
 
@@ -71,9 +77,10 @@ func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGra
 	close(jobs)
 	wg.Wait()
 
-	fmt.Println("Spender count", len(spenders))
-	fmt.Println("Successful fingerprint count", foundCount.Load())
-	fmt.Println("Percent", float64(foundCount.Load())/float64(len(spenders)))
+	info("fingerprint analysis",
+		"Spender count", len(spenders),
+		"Successful fingerprint count", foundCount.Load(),
+		"Percent", float64(foundCount.Load())/float64(len(spenders)))
 
 	writeSpendersToCSV(fileName, spenders)
 }
