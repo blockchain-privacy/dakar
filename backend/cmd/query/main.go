@@ -1,25 +1,53 @@
 package main
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
+	heuristic "backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
+	"backend/processor"
+	"backend/server"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"time"
 )
 
-var thisLogger *log.Logger
+var thisLogger *slog.Logger
 
-func initLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;31mquery\033[0m\t", log.Flags())
+func initAllLoggers(fileHandle *os.File) {
+	var outputWriter io.Writer
+	if fileHandle != nil {
+		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
+	} else {
+		outputWriter = os.Stdout
+	}
+
+	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
+	slog.SetDefault(logger)
+
+	thisLogger = slog.With(slog.String("module", "query"))
+
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	heuristic.InitLogger()
+
+	thisLogger.Info("test")
 }
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
+
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cli.LogError(thisLogger, err, v...)
 }
 
 type UniqueAddressesModule struct {
@@ -170,8 +198,10 @@ func main() {
 	}
 
 	// setup Logging
+	var f *os.File
 	if len(config.Logfile) > 0 {
-		if f, err := cli.GetLogfile(config.Logfile); err == nil {
+		var err error
+		if f, err = cli.GetLogfile(config.Logfile); err == nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.SetOutput(io.MultiWriter(os.Stdout, f))
 			defer func() {
@@ -179,27 +209,28 @@ func main() {
 					fmt.Println(err)
 				}
 			}()
+		} else {
+			fmt.Println("error setting up log file")
 		}
 	}
 
-	initLogger()
-	db.InitLogger()
+	initAllLoggers(f)
 
 	endpoint, err := cli.BuildEndpoint(config.DBHost, config.DBPort)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	// create dgraph client
 	dgraph, c, err := external.CreateClient(endpoint)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	defer func() {
 		if err = c.Close(); err != nil {
-			info(err)
+			warn(err)
 		}
 	}()
 
@@ -219,10 +250,9 @@ func main() {
 		config.ExclusionSimulations.Active ||
 		config.OriginGap.Active ||
 		config.DestinationCount.Active {
-		graph.InitLogger()
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 	}

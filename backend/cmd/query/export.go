@@ -47,12 +47,12 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -149,13 +149,13 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	maxLookBackTime int, addressExclusions []string, getInputs bool, checkSpendingGaps bool) {
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	node := g.Node(nodeID)
 	if node == nil {
-		info(mgraph.ErrNodeNotFound(nodeID))
+		warn(mgraph.ErrNodeNotFound(nodeID))
 	}
 
 	nodeTS := node.(mgraph.TransactionNode).TS
@@ -167,7 +167,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	for _, e := range addressExclusions {
 		integer, err := mgraph.ToInteger(e)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 

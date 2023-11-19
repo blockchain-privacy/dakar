@@ -22,7 +22,7 @@ import (
 func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGraph, fileName string) {
 	spenders, err := analytics.GetDestinationTransactionSpenders(dgraph)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -40,7 +40,7 @@ func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGra
 				for _, destination := range spender.Destinations {
 					fingerprints, _, err := graph.SpendingFingerprint(g, destination.UID)
 					if err != nil {
-						info(err)
+						warn(err)
 						return
 					}
 
@@ -83,12 +83,12 @@ func writeSpendersToCSV(fileName string, txs []analytics.SpenderTransaction) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 

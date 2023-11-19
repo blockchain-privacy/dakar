@@ -41,7 +41,7 @@ var blockchainMode = ""
 
 var thisLogger *slog.Logger
 
-func initAllLoggers(fileHandle io.Writer) {
+func initAllLoggers(fileHandle *os.File) {
 	var outputWriter io.Writer
 	if fileHandle != nil {
 		outputWriter = io.MultiWriter(fileHandle, os.Stdout)

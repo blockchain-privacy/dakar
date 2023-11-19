@@ -14,13 +14,13 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	nodeIDStr string, userUID string, lookBackTimeHours int) {
 	exclusionMap, err := getExclusionMap(database, userUID)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -29,7 +29,7 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	info("###### Random simulation for ", maxLookBackTime.String(), "starting")
 	err = doRandomSimulation(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -38,7 +38,7 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	info("###### Semi simulation for ", maxLookBackTime.String(), "starting")
 	err = doSemiRandomSimulation(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	info("###### Semi simulation for ", maxLookBackTime.String(), "ended")
@@ -46,7 +46,7 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	info("###### Semi simulation V2 for ", maxLookBackTime.String(), "starting")
 	err = doSemiRandomSimulationV2(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	info("###### Semi simulation V2 for ", maxLookBackTime.String(), "ended")

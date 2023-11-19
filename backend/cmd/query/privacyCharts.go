@@ -44,7 +44,7 @@ func exportTransactionData(database external.Database, directory string) {
 	for _, privacyType := range privacyTypes {
 		ts, dbErr := dban.GetPrivacyTypeData(database, privacyType.start, privacyType.stop)
 		if dbErr != nil {
-			info(dbErr)
+			warn(dbErr)
 			return
 		}
 		writeTimestampsToCSV(directory+"/"+privacyType.label, ts)
@@ -56,12 +56,12 @@ func writeTimestampsToCSV(fileName string, txs []time.Time) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
