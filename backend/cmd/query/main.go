@@ -183,6 +183,7 @@ func main() {
 	}
 
 	initLogger()
+	db.InitLogger()
 
 	endpoint, err := cli.BuildEndpoint(config.DBHost, config.DBPort)
 	if err != nil {
@@ -216,7 +217,9 @@ func main() {
 		config.TimestampAnalytics.ExportDestinationTransactions ||
 		config.TimestampAnalytics.ExportReverseLookup.Active ||
 		config.ExclusionSimulations.Active ||
-		config.OriginGap.Active {
+		config.OriginGap.Active ||
+		config.DestinationCount.Active {
+		graph.InitLogger()
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
 			info(err)
@@ -257,7 +260,7 @@ func main() {
 	}
 
 	if config.DestinationCount.Active {
-		doDestinationCountAnalysis(dgraph, config.DestinationCount.Filename)
+		doDestinationCountAnalysis(dgraph, g, config.DestinationCount.Filename)
 	}
 }
 

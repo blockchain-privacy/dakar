@@ -458,9 +458,9 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 }
 
 type SpenderTransaction struct {
-	TxHash       string
+	Transaction  db.Transaction
 	ClusterSize  int
-	Destinations []string
+	Destinations []db.Transaction
 }
 
 // GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
@@ -481,6 +481,7 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			txhash
 			tx_inputs@normalize{
 				~tx_outputs@filter(between(privacytype,100,199)){
+					uid:uid
 					txhash:txhash
 				}
 				~addr_outputs {
@@ -501,6 +502,7 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			UID               string `json:"uid,omitempty"`
 			TransactionHash   string `json:"txhash,omitempty"`
 			InputTransactions []struct {
+				UID             string `json:"uid,omitempty"`
 				TransactionHash string `json:"txhash,omitempty"`
 				ClusterCount    int    `json:"clusterCount,omitempty"`
 			} `json:"tx_inputs,omitempty"`
@@ -512,7 +514,7 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 		return
 	}
 
-	spentDestinationTransactions := map[string]int{}
+	spentDestinationTransactions := map[string]bool{}
 	usingDestinationTransactionsCount := 0
 	excludedBecauseOfClusterSize := 0
 	for _, tx := range r.Transactions {
@@ -521,14 +523,17 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			continue
 		}
 
-		uniqueTxs := map[string]int{}
+		uniqueTxs := map[string]db.Transaction{}
 		var clusterCount int
 		for _, it := range tx.InputTransactions {
 			if it.TransactionHash == "" {
 				// filter out artifacts from normalization
 				continue
 			}
-			uniqueTxs[it.TransactionHash] = it.ClusterCount
+			uniqueTxs[it.TransactionHash] = db.Transaction{
+				UID:  it.UID,
+				Hash: it.TransactionHash,
+			}
 			clusterCount = it.ClusterCount
 		}
 
@@ -541,15 +546,22 @@ func GetDestinationTransactionSpenders(c external.Database) (transactions []Spen
 			continue
 		}
 
+		var spentDestinations []db.Transaction
+
 		for k, v := range uniqueTxs {
-			spentDestinationTransactions[k] = v
+			spentDestinationTransactions[k] = true
+			spentDestinations = append(spentDestinations, v)
 		}
 		usingDestinationTransactionsCount++
 
 		transactions = append(transactions, SpenderTransaction{
-			TxHash:       tx.TransactionHash,
+
+			Transaction: db.Transaction{
+				UID:  tx.UID,
+				Hash: tx.TransactionHash,
+			},
 			ClusterSize:  clusterCount,
-			Destinations: cliutil.GetMapKeys(uniqueTxs),
+			Destinations: spentDestinations,
 		})
 	}
 
