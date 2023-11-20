@@ -3027,8 +3027,8 @@ const docTemplate = `{
         "server.metaReply": {
             "type": "object",
             "properties": {
-                "rpcinfo": {
-                    "$ref": "#/definitions/server.prunedRPCInfo"
+                "blocks": {
+                    "type": "integer"
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
@@ -3054,26 +3054,6 @@ const docTemplate = `{
             "properties": {
                 "msg": {
                     "type": "string"
-                }
-            }
-        },
-        "server.prunedRPCInfo": {
-            "type": "object",
-            "properties": {
-                "blocks": {
-                    "type": "integer"
-                },
-                "difficulty": {
-                    "type": "number"
-                },
-                "pruned": {
-                    "type": "boolean"
-                },
-                "size_on_disk": {
-                    "type": "integer"
-                },
-                "verificationprogress": {
-                    "type": "number"
                 }
             }
         },
@@ -3203,7 +3183,7 @@ const docTemplate = `{
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "1.0.2",
 	Host:             "localhost",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},

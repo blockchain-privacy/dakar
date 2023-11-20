@@ -798,8 +798,8 @@ definitions:
     type: object
   server.metaReply:
     properties:
-      rpcinfo:
-        $ref: '#/definitions/server.prunedRPCInfo'
+      blocks:
+        type: integer
       status:
         $ref: '#/definitions/status.FrontendStatus'
     type: object
@@ -816,19 +816,6 @@ definitions:
     properties:
       msg:
         type: string
-    type: object
-  server.prunedRPCInfo:
-    properties:
-      blocks:
-        type: integer
-      difficulty:
-        type: number
-      pruned:
-        type: boolean
-      size_on_disk:
-        type: integer
-      verificationprogress:
-        type: number
     type: object
   server.queryResultType:
     enum:
@@ -916,7 +903,7 @@ info:
   contact: {}
   description: This is the REST API for Dakar
   title: Dakar API
-  version: "1.0"
+  version: 1.0.2
 paths:
   /addAddressExclusions/:
     post:
