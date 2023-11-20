@@ -24,7 +24,7 @@ After a while the heuristic will be finished, and you can view your results.
 
 ![execute heuristic](img/execute_heuristic.png)
 
-In this case the heuristic returned 176 address clusters which could be the source of the transaction
+In this case the heuristic returned 173 address clusters which could be the source of the transaction
 (addresses are clustered via [multi-input address clustering](addressCluster.md)).
 
 ![executed heuristic](img/heuristic_executed.png)
@@ -43,7 +43,7 @@ This shows which [privacy transactions](transactionTypes/privacyTransactions.md)
 are directly connected to an address. This is useful for detecting if an address or cluster
 has been part of a CoinJoin process.
 
-Example for address ``XyUyturx3xTEMGK7FtZcbhbfbzFSQiUQng``:
+Example for address ``XgyNK8t1wdrK8dqwTcKgWwyt1aMTu1jUVC``:
 
 
 ![mixing activity example](img/mixing_activity.png)
