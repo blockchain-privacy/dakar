@@ -212,8 +212,7 @@
 
 <script>
 import {
-	mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
-	mdiCounter, mdiProgressWrench, mdiCubeOffOutline, mdiWeight,
+	mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch, mdiCounter,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
@@ -231,9 +230,6 @@ export default {
 				mdiDatabaseSync,
 				mdiDatabaseSearch,
 				mdiCounter,
-				mdiProgressWrench,
-				mdiCubeOffOutline,
-				mdiWeight,
 			},
 			blockRoute: ROUTE_NAME_BLOCK_PAGE,
 			tooltips: {
