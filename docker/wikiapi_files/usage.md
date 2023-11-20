@@ -3,7 +3,7 @@
 ## CoinJoin analysis
 
 To start with a CoinJoin analysis, a transaction which spends mixed funds
-(we call this a [destination transaction](transactionTypes/destinationTransaction.md) is needed. Transaction
+(we call this a [destination transaction](transactionTypes/destinationTransaction.md)) is needed. Transaction
 ``6f8332cb9785b17a402a5e801e4e55aa1d395a117c1ace1735cc570b9f6d7e59`` is of that transaction type.
 After searching for the transaction, via the search bar, the transaction details are shown (see screenshot below).
 Via a button on the top right of the transaction details page, the heuristic editor can be opened, which allows
