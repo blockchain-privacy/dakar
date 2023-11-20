@@ -15,7 +15,6 @@ import (
 	dbus "backend/db/user"
 	"backend/external"
 	"io"
-	"math"
 	"path"
 	"strings"
 	"time"
@@ -212,31 +211,25 @@ func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash str
 
 func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaReply, int) {
 	var reply metaReply
-	// async request rpc info
-	futureBlockchainInfo := rpcClient.GetBlockChainInfoAsync()
+
+	// get block info
+	blocks, err := rpcClient.GetBlockCount()
+	if err != nil {
+		warn(cliutil.NewStackError(err))
+		return reply, http.StatusInternalServerError
+	}
 
 	// get data from db
 	verboseStatus, err := dbstat.GetFrontendStatus(dgraph)
 	if err != nil {
-		return reply, http.StatusInternalServerError
-	}
-
-	// receive async rpc info
-	rpcInfo, err := futureBlockchainInfo.Receive()
-	if err != nil {
+		warn(err)
 		return reply, http.StatusInternalServerError
 	}
 
 	// set response struct
 	return metaReply{
 		Status: &verboseStatus,
-		RPCInfo: &prunedRPCInfo{
-			Blocks:               rpcInfo.Blocks,
-			Difficulty:           rpcInfo.Difficulty,
-			VerificationProgress: math.Round(rpcInfo.VerificationProgress*10000) / 100,
-			Pruned:               rpcInfo.Pruned,
-			SizeOnDisk:           rpcInfo.SizeOnDisk,
-		},
+		Blocks: &blocks,
 	}, http.StatusOK
 }
 

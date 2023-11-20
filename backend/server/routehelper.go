@@ -104,17 +104,9 @@ type searchReply struct {
 	Payload interface{}     `json:"payload,omitempty"`
 }
 
-type prunedRPCInfo struct {
-	Difficulty           float64 `json:"difficulty"`
-	VerificationProgress float64 `json:"verificationprogress,omitempty"`
-	SizeOnDisk           int64   `json:"size_on_disk,omitempty"`
-	Pruned               bool    `json:"pruned"`
-	Blocks               int32   `json:"blocks"`
-}
-
 type metaReply struct {
-	Status  *dbstat.FrontendStatus `json:"status,omitempty"`
-	RPCInfo *prunedRPCInfo         `json:"rpcinfo,omitempty"`
+	Status *dbstat.FrontendStatus `json:"status,omitempty"`
+	Blocks *int64                 `json:"blocks,omitempty"`
 }
 
 type heuristicReply struct {
