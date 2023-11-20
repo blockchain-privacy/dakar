@@ -459,16 +459,16 @@ func waitForNextRPCBlock(client external.RPCClient, interrupt <-chan struct{}, h
 
 // getRPCNumberOfBlocks returns the number of blocks currently in the chain of the RPC client
 func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
-	rpcInfo, err := client.GetBlockChainInfo()
+	blocksCount, err := client.GetBlockCount()
 	if err != nil {
 		return 0, cliutil.NewStackError(err)
 	}
 
-	if rpcInfo.Blocks < 0 {
+	if blocksCount < 0 {
 		return 0, cliutil.NewStackErrorStr("error RPC client block count is negative")
 	}
 
-	return uint64(rpcInfo.Blocks), nil
+	return uint64(blocksCount), nil
 }
 
 // getInitialState creates the initial state of the processing loop
