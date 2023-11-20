@@ -123,23 +123,7 @@
                     </v-col>
                   </v-row>
                   <v-row>
-                    <v-col>
-                      <icon-item
-                        :icon="icon.mdiProgressWrench"
-                        title="RPC Verification Progress"
-                        :tooltip="tooltips.rpcVerificationProgress"
-                      >
-                        <v-progress-linear
-                          :color="data.rpcinfo.verificationprogress > 98?'green'
-                            :data.rpcinfo.verificationprogress > 90?'light-green':'light-blue'"
-                          height="17"
-                          :model-value="data.rpcinfo.verificationprogress"
-                          rounded
-                        >
-                          {{ Math.round(data.rpcinfo.verificationprogress) }}%
-                        </v-progress-linear>
-                      </icon-item>
-                    </v-col>
+                    <v-col />
                   </v-row>
                 </v-col>
                 <v-col
@@ -212,56 +196,10 @@
                         :icon="icon.mdiCounter"
                         title="RPC Client Block Height"
                       >
-                        {{ data.rpcinfo.blocks.toLocaleString() }}
+                        {{ data.blocks.toLocaleString() }}
                       </icon-item>
                     </v-col>
                   </v-row>
-                </v-col>
-              </v-row>
-              <named-divider
-                v-if="data.rpcinfo"
-                title="RPC-Client Data"
-              />
-              <v-row>
-                <v-col
-                  cols="12"
-                  sm="6"
-                  lg="4"
-                >
-                  <icon-item
-                    :icon="icon.mdiCubeOffOutline"
-                    title="Pruned"
-                    :tooltip="tooltips.rpcPruned"
-                  >
-                    {{ data.rpcinfo.pruned ? 'Yes' : 'No' }}
-                  </icon-item>
-                </v-col>
-                <v-col
-                  cols="12"
-                  sm="6"
-                  lg="4"
-                >
-                  <icon-item
-                    :icon="icon.mdiWeight"
-                    title="Difficulty"
-                    :tooltip="tooltips.rpcDifficulty"
-                  >
-                    {{ data.rpcinfo.difficulty.toLocaleString() }}
-                  </icon-item>
-                </v-col>
-                <v-col
-                  v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0"
-                  cols="12"
-                  sm="6"
-                  lg="4"
-                >
-                  <icon-item
-                    :icon="icon.mdiHarddisk"
-                    title="Blockchain Size"
-                    :tooltip="tooltips.rpcBlockchainSize"
-                  >
-                    {{ (data.rpcinfo.size_on_disk / 1073741824).toLocaleString() }} GiB
-                  </icon-item>
                 </v-col>
               </v-row>
             </div>
@@ -276,17 +214,15 @@
 import {
 	mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch,
 	mdiCounter, mdiProgressWrench, mdiCubeOffOutline, mdiWeight,
-	mdiHarddisk,
 } from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
 import {handleError} from '@/utilities';
-import NamedDivider from './common/NamedDivider.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 
 export default {
 	name: 'StatusPage',
-	components: {IconTitle, NamedDivider, IconItem},
+	components: {IconTitle, IconItem},
 	data() {
 		return {
 			icon: {
@@ -298,7 +234,6 @@ export default {
 				mdiProgressWrench,
 				mdiCubeOffOutline,
 				mdiWeight,
-				mdiHarddisk,
 			},
 			blockRoute: ROUTE_NAME_BLOCK_PAGE,
 			tooltips: {
@@ -324,7 +259,7 @@ export default {
 				return 0.0;
 			}
 
-			return this.data.status.lastblockid / this.data.rpcinfo.blocks * 100;
+			return this.data.status.lastblockid / this.data.blocks * 100;
 		},
 		classifierSyncProgress() {
 			if (!this.data) {
