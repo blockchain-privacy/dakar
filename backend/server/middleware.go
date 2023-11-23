@@ -24,16 +24,6 @@ func adapt(h http.Handler, route string, adapters ...adapter) http.Handler {
 	return h
 }
 
-// handleError conditionally logs and writes the error to the http response
-func handleError(w http.ResponseWriter, err error) {
-	if err == nil || w == nil {
-		return
-	}
-
-	http.Error(w, "an error occurred", http.StatusInternalServerError)
-	warn(err)
-}
-
 // writeUnauthorized sets the http.StatusUnauthorized status code and writes an error message
 func writeUnauthorized(w http.ResponseWriter, msg string) {
 	if len(msg) == 0 {
@@ -199,7 +189,8 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			// extract body
 			body, err := io.ReadAll(r.Body)
 			if err != nil {
-				handleError(w, err)
+				http.Error(w, "an error occurred", http.StatusInternalServerError)
+				warn(cliutil.NewStackError(err))
 				return
 			}
 			// reset body, so it can be read by the next handler
@@ -246,7 +237,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			w.WriteHeader(response.statusCode)
 
 			if _, err = w.Write(response.buffer); err != nil {
-				handleError(w, err)
+				warn(cliutil.NewStackError(err))
 			}
 		})
 	}
