@@ -63,7 +63,7 @@ import {
 	isUiNodeAnchorAttributes,
 	isUiNodeScriptAttributes,
 	isUiNodeTextAttributes,
-} from '@ory/integrations/ui';
+} from '@/components/user/ory/utils';
 import OryUiNodeInput from './OryUiNodeInput.vue';
 import OryUiMessage from './OryUiMessage.vue';
 

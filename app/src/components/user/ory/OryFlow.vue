@@ -28,12 +28,10 @@
               :action="flow.ui.action"
               :method="flow.ui.method"
             >
-              <!-- getNodeId returns a not globally unique id,
-              therefore do not use it as and HTML id -->
               <ory-ui-node
-                v-for="node in formNodes"
-                :key="getNodeId(node)"
-                :name="getNodeId(node)"
+                v-for="(node, y) in formNodes"
+                :key="y"
+                :name="getNodeName(node)"
                 :node="node"
                 :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
                 @submit="propagateSubmitEvent(`${formId}_${i}`)"
@@ -58,7 +56,7 @@
         <ory-ui-node
           v-for="(node, y) in formNodes"
           :key="y"
-          :name="getNodeId(node)"
+          :name="getNodeName(node)"
           :node="node"
           :submit-enabled="!disabledForms.includes(`${formId}_${i}`)"
           @submit="(btnName) => propagateSubmitEvent(`${formId}_${i}`,btnName)"
@@ -73,8 +71,8 @@
 </template>
 
 <script>
-import {getNodeId} from '@ory/integrations/ui';
 import OryUiNode from './OryUiNode.vue';
+import {getNodeName} from '@/components/user/ory/utils';
 
 export default {
 	name: 'OryFlow',
@@ -131,7 +129,7 @@ export default {
 		this.displayMessages();
 	},
 	methods: {
-		getNodeId,
+		getNodeName,
 		setMessage(msg, msgType) {
 			this.$store.dispatch('addMessage', {text: msg, type: msgType, temporary: false, category: this.$route.name});
 		},
