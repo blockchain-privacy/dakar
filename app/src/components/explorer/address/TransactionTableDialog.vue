@@ -44,12 +44,6 @@ export default {
 	emits: ['update:modelValue'],
 	data() {
 		return {
-			isLoading: false,
-			fingerprintScores: [],
-			sessionCount: -1,
-			// LoadedSuccessful controls if a data load request needs to be sent
-			loadedSuccessful: false,
-			errorMsg: '',
 			routes: {
 				transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
 			},
