@@ -4,7 +4,7 @@
         "description": "This is the REST API for Dakar",
         "title": "Dakar API",
         "contact": {},
-        "version": "1.0"
+        "version": "1.0.2"
     },
     "host": "localhost",
     "basePath": "/api/v1",
@@ -3021,8 +3021,8 @@
         "server.metaReply": {
             "type": "object",
             "properties": {
-                "rpcinfo": {
-                    "$ref": "#/definitions/server.prunedRPCInfo"
+                "blocks": {
+                    "type": "integer"
                 },
                 "status": {
                     "$ref": "#/definitions/status.FrontendStatus"
@@ -3048,26 +3048,6 @@
             "properties": {
                 "msg": {
                     "type": "string"
-                }
-            }
-        },
-        "server.prunedRPCInfo": {
-            "type": "object",
-            "properties": {
-                "blocks": {
-                    "type": "integer"
-                },
-                "difficulty": {
-                    "type": "number"
-                },
-                "pruned": {
-                    "type": "boolean"
-                },
-                "size_on_disk": {
-                    "type": "integer"
-                },
-                "verificationprogress": {
-                    "type": "number"
                 }
             }
         },
