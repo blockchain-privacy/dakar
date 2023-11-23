@@ -1,25 +1,51 @@
 package main
 
 import (
+	"backend/analytics"
 	"backend/analytics/graph"
+	heuristic "backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
 	"backend/external"
+	"backend/processor"
+	"backend/server"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"os"
 	"time"
 )
 
-var thisLogger *log.Logger
+var thisLogger *slog.Logger
 
-func initLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;31mquery\033[0m\t", log.Flags())
+func initAllLoggers(fileHandle *os.File) {
+	var outputWriter io.Writer
+	if fileHandle != nil {
+		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
+	} else {
+		outputWriter = os.Stdout
+	}
+
+	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
+	slog.SetDefault(logger)
+
+	thisLogger = slog.With(slog.String("module", "query"))
+
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	heuristic.InitLogger()
 }
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
+
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cli.LogError(thisLogger, err, v...)
 }
 
 type UniqueAddressesModule struct {
@@ -64,6 +90,11 @@ type ExportBlocksModule struct {
 	EndBlock   int    `yaml:"endBlock"`
 }
 
+type DestinationCountModule struct {
+	Active   bool   `yaml:"active"`
+	Filename string `yaml:"filename"`
+}
+
 type ExportPrivacyTransactionsModule struct {
 	Active           bool   `yaml:"active"`
 	Filename         string `yaml:"filename"`
@@ -81,6 +112,7 @@ type Config struct {
 	OriginGap                 OriginGapModule                 `yaml:"originGap"`
 	ExportBlocks              ExportBlocksModule              `yaml:"exportBlocks"`
 	ExportPrivacyTransactions ExportPrivacyTransactionsModule `yaml:"exportPrivacyTransactions"`
+	DestinationCount          DestinationCountModule          `yaml:"destinationCount"`
 }
 
 var defaultConfig = Config{
@@ -126,6 +158,10 @@ var defaultConfig = Config{
 		Filename:         "",
 		StartTransaction: "",
 	},
+	DestinationCount: DestinationCountModule{
+		Active:   false,
+		Filename: "",
+	},
 }
 
 //nolint:gocyclo
@@ -160,8 +196,10 @@ func main() {
 	}
 
 	// setup Logging
+	var f *os.File
 	if len(config.Logfile) > 0 {
-		if f, err := cli.GetLogfile(config.Logfile); err == nil {
+		var err error
+		if f, err = cli.GetLogfile(config.Logfile); err == nil {
 			log.SetFlags(log.LstdFlags | log.Lshortfile)
 			log.SetOutput(io.MultiWriter(os.Stdout, f))
 			defer func() {
@@ -169,26 +207,28 @@ func main() {
 					fmt.Println(err)
 				}
 			}()
+		} else {
+			fmt.Println("error setting up log file")
 		}
 	}
 
-	initLogger()
+	initAllLoggers(f)
 
 	endpoint, err := cli.BuildEndpoint(config.DBHost, config.DBPort)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	// create dgraph client
 	dgraph, c, err := external.CreateClient(endpoint)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	defer func() {
 		if err = c.Close(); err != nil {
-			info(err)
+			warn(err)
 		}
 	}()
 
@@ -206,10 +246,11 @@ func main() {
 		config.TimestampAnalytics.ExportDestinationTransactions ||
 		config.TimestampAnalytics.ExportReverseLookup.Active ||
 		config.ExclusionSimulations.Active ||
-		config.OriginGap.Active {
+		config.OriginGap.Active ||
+		config.DestinationCount.Active {
 		g, err = graph.LoadTransactionGraph(dgraph, 0)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 	}
@@ -244,6 +285,10 @@ func main() {
 	if config.ExportPrivacyTransactions.Active {
 		doExportPrivacyTransactions(dgraph, config.ExportPrivacyTransactions.Filename,
 			config.ExportPrivacyTransactions.StartTransaction)
+	}
+
+	if config.DestinationCount.Active {
+		doDestinationCountAnalysis(dgraph, g, config.DestinationCount.Filename)
 	}
 }
 

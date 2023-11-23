@@ -456,3 +456,125 @@ func GetForwardLookupTransactions(c external.Database, startTxHash string) (bloc
 
 	return
 }
+
+type SpenderTransaction struct {
+	Transaction  db.Transaction
+	ClusterSize  int
+	Destinations []db.Transaction
+}
+
+// GetDestinationTransactionSpenders returns all transactions which spend at least one output of a destination transaction
+func GetDestinationTransactionSpenders(c external.Database) (
+	transactions []SpenderTransaction, globalDestinationCount int,
+	spentDestinationTransactionCount int, excludedBecauseOfClusterSizeCount int,
+	usingDestinationTransactionsCount int, err error) {
+	const query = `{
+		destinations as var(func: between(privacytype,100,199))@cascade{
+			~transactions@filter(gt(ts,"2018-01-01T00:00:00"))
+		}
+
+		var(func: uid(destinations)){
+			tx_outputs{
+				using_dst as ~tx_inputs
+			}
+		}
+
+		c(func: uid(destinations)){
+			count:count(uid)
+		}
+		
+		q(func: uid(using_dst)){
+			uid
+			txhash
+			tx_inputs@normalize{
+				~tx_outputs@filter(between(privacytype,100,199)){
+					uid:uid
+					txhash:txhash
+				}
+				~addr_outputs {
+					~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+						clusterCount:Cluster.addressCount
+					}
+				}
+			}
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return
+	}
+	var r struct {
+		DestinationCount []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"c,omitempty"`
+		Transactions []struct {
+			UID               string `json:"uid,omitempty"`
+			TransactionHash   string `json:"txhash,omitempty"`
+			InputTransactions []struct {
+				UID             string `json:"uid,omitempty"`
+				TransactionHash string `json:"txhash,omitempty"`
+				ClusterCount    int    `json:"clusterCount,omitempty"`
+			} `json:"tx_inputs,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	spentDestinationTransactions := map[string]bool{}
+	for _, tx := range r.Transactions {
+		txCount := len(tx.InputTransactions)
+		if txCount < 2 {
+			continue
+		}
+
+		uniqueTxs := map[string]db.Transaction{}
+		var clusterCount int
+		for _, it := range tx.InputTransactions {
+			if it.TransactionHash == "" {
+				// filter out artifacts from normalization
+				continue
+			}
+			uniqueTxs[it.TransactionHash] = db.Transaction{
+				UID:  it.UID,
+				Hash: it.TransactionHash,
+			}
+			clusterCount = it.ClusterCount
+		}
+
+		if len(uniqueTxs) < 2 {
+			continue
+		}
+
+		if clusterCount > 1000 {
+			excludedBecauseOfClusterSizeCount++
+			continue
+		}
+
+		var spentDestinations []db.Transaction
+
+		for k, v := range uniqueTxs {
+			spentDestinationTransactions[k] = true
+			spentDestinations = append(spentDestinations, v)
+		}
+		usingDestinationTransactionsCount++
+
+		transactions = append(transactions, SpenderTransaction{
+
+			Transaction: db.Transaction{
+				UID:  tx.UID,
+				Hash: tx.TransactionHash,
+			},
+			ClusterSize:  clusterCount,
+			Destinations: spentDestinations,
+		})
+	}
+
+	globalDestinationCount = r.DestinationCount[0].Count
+	spentDestinationTransactionCount = len(spentDestinationTransactions)
+
+	return
+}

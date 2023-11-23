@@ -6,6 +6,7 @@ import (
 	"backend/external"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
 	"os"
@@ -23,7 +24,7 @@ type exportTransaction struct {
 func doDestinationTimestampAnalysis(g *mgraph.ReversibleGraph) {
 	info("export of destination transactions starting")
 	dstTransactions := getDestinationTransactions(g)
-	info("number of destination transactions in graph", len(dstTransactions))
+	info(fmt.Sprintf("number of destination transactions in graph %d", len(dstTransactions)))
 
 	writeTxToCSV("destination_transactions", dstTransactions)
 
@@ -35,7 +36,7 @@ func exportMixingTimestamps(g *mgraph.ReversibleGraph, getInputs bool) {
 	info("export of mixing transactions starting")
 
 	mixingTransactions := getMixingTransactions(g, getInputs)
-	info("number of mixing transactions in graph", len(mixingTransactions))
+	info(fmt.Sprintf("number of mixing transactions in graph %d", len(mixingTransactions)))
 
 	writeTxToCSV("mixing_transactions", mixingTransactions)
 
@@ -47,12 +48,12 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -68,7 +69,7 @@ func writeTxToCSV(fileName string, txs []exportTransaction) {
 		}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 	}
@@ -110,7 +111,7 @@ func getDestinationTransactions(g *mgraph.ReversibleGraph) []exportTransaction {
 func getMixingTransactions(g *mgraph.ReversibleGraph, getInputs bool) []exportTransaction {
 	year2016, err := time.Parse("2006-01-02", "2016-01-01")
 	if err != nil {
-		info("error while creating date", err)
+		warn(err, "msg", "error while creating date")
 		return nil
 	}
 
@@ -149,13 +150,13 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	maxLookBackTime int, addressExclusions []string, getInputs bool, checkSpendingGaps bool) {
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	node := g.Node(nodeID)
 	if node == nil {
-		info(mgraph.ErrNodeNotFound(nodeID))
+		warn(mgraph.ErrNodeNotFound(nodeID))
 	}
 
 	nodeTS := node.(mgraph.TransactionNode).TS
@@ -167,7 +168,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 	for _, e := range addressExclusions {
 		integer, err := mgraph.ToInteger(e)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 
@@ -246,8 +247,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 		// false: do not stop traversing nodes
 		return false
 	})
-
-	info("number of edges not traversed due to spending gap:", spendingGapCounter)
+	info(fmt.Sprintf("number of edges not traversed due to spending gap: %d", spendingGapCounter))
 
 	writeTxToCSV(mgraph.ToHex(nodeID)+"_mixing_transactions", exportTransactions)
 }
@@ -255,7 +255,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 func doExportBlocks(dgraph external.Database, fileName string, startBlock int, endBlock int) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		info("error creating file", err)
+		warn(err, "msg", "error creating file")
 		return
 	}
 	defer func(file *os.File) {
@@ -264,7 +264,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 
 	blockRange, err := getBlockRange(dgraph, startBlock, endBlock)
 	if err != nil {
-		info("error getting blocks", err)
+		warn(err, "msg", "error getting blocks")
 		return
 	}
 
@@ -275,7 +275,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 
 	addressRange, err := getAddressRange(dgraph, startBlock, endBlock)
 	if err != nil {
-		info("error getting addresses", err)
+		warn(err, "msg", "error getting addresses")
 		return
 	}
 
@@ -296,7 +296,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 
 	err = json.NewEncoder(file).Encode(toEncode)
 	if err != nil {
-		info("error encoding data", err)
+		warn(err, "msg", "error encoding data")
 		return
 	}
 }
@@ -304,7 +304,7 @@ func doExportBlocks(dgraph external.Database, fileName string, startBlock int, e
 func doExportPrivacyTransactions(dgraph external.Database, fileName string, startTransaction string) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.ModePerm)
 	if err != nil {
-		info("error creating file", err)
+		warn(err, "msg", "error creating file")
 		return
 	}
 	defer func(file *os.File) {
@@ -347,7 +347,7 @@ func doExportPrivacyTransactions(dgraph external.Database, fileName string, star
 
 	err = json.NewEncoder(file).Encode(toEncode)
 	if err != nil {
-		info("error encoding data", err)
+		warn(err, "msg", "error encoding data")
 		return
 	}
 }

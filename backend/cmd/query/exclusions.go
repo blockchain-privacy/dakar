@@ -4,6 +4,7 @@ import (
 	mgraph "backend/analytics/graph"
 	"backend/db/analytics/exclusion"
 	"backend/external"
+	"fmt"
 	"gonum.org/v1/gonum/graph"
 	"gonum.org/v1/gonum/graph/traverse"
 	"math/rand"
@@ -14,42 +15,42 @@ func doSimulation(database external.Database, g *mgraph.ReversibleGraph,
 	nodeIDStr string, userUID string, lookBackTimeHours int) {
 	exclusionMap, err := getExclusionMap(database, userUID)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	nodeID, err := mgraph.ToInteger(nodeIDStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	maxLookBackTime := time.Hour * time.Duration(lookBackTimeHours)
 
-	info("###### Random simulation for ", maxLookBackTime.String(), "starting")
+	info(fmt.Sprintf("Random simulation for %s starting", maxLookBackTime.String()))
 	err = doRandomSimulation(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
-	info("###### Random simulation for ", maxLookBackTime.String(), "ended")
+	info(fmt.Sprintf("Random simulation for %s ended", maxLookBackTime.String()))
 
-	info("###### Semi simulation for ", maxLookBackTime.String(), "starting")
+	info(fmt.Sprintf("Semi simulation for %s starting", maxLookBackTime.String()))
 	err = doSemiRandomSimulation(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
-	info("###### Semi simulation for ", maxLookBackTime.String(), "ended")
+	info(fmt.Sprintf("Semi simulation for %s ended", maxLookBackTime.String()))
 
-	info("###### Semi simulation V2 for ", maxLookBackTime.String(), "starting")
+	info(fmt.Sprintf("Semi simulation V2 for %s starting", maxLookBackTime.String()))
 	err = doSemiRandomSimulationV2(g, nodeID, maxLookBackTime, exclusionMap)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
-	info("###### Semi simulation V2 for ", maxLookBackTime.String(), "ended")
+	info(fmt.Sprintf("Semi simulation V2 for %s ended", maxLookBackTime.String()))
 }
 
 func getExclusionMap(c external.Database, userID string) (exclusions map[int64]bool, err error) {
@@ -319,9 +320,9 @@ func doRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime
 	}
 
 	if len(usedAddresses) > 0 {
-		info("Node numbers without real filter: addresses", len(usedAddresses),
-			"endpoints:", len(endpoints), "mixing txs:", len(mixingTxs),
-			"endpoint reduction:", 1-float64(len(endpoints))/float64(len(endpoints)))
+		info("Node numbers without real filter", "addresses", len(usedAddresses),
+			"endpoints", len(endpoints), "mixing txs", len(mixingTxs),
+			"endpoint reduction", 1-float64(len(endpoints))/float64(len(endpoints)))
 
 		simulations := []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
 
@@ -331,16 +332,17 @@ func doRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime
 			if err != nil {
 				return err
 			}
-			info("###### Simulated", s, "Node numbers with filter: addresses", len(a), "endpoints:",
-				len(e), "mixing txs:", len(m), "endpoint reduction:", 1-float64(len(e))/float64(len(endpoints)))
+
+			info(fmt.Sprintf("Simulated %f node numbers with filter", s), "addresses", len(a), "endpoints",
+				len(e), "mixing txs", len(m), "endpoint reduction", 1-float64(len(e))/float64(len(endpoints)))
 		}
 
 		_, a, e, m, err := getNodeNumbers(g, nodeID, maxLookBackTime, addressExclusions)
 		if err != nil {
 			return err
 		}
-		info("Node numbers with real filter: addresses", len(a), "endpoints:", len(e), "mixing txs:", len(m),
-			"endpoint reduction:", 1-float64(len(e))/float64(len(endpoints)))
+		info("Node numbers with real filter", "addresses", len(a), "endpoints", len(e), "mixing txs", len(m),
+			"endpoint reduction", 1-float64(len(e))/float64(len(endpoints)))
 	}
 
 	return nil
@@ -354,9 +356,9 @@ func doSemiRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBack
 	}
 
 	if len(usedAddresses) > 0 {
-		info("Node numbers without real filter: addresses", len(usedAddresses),
-			"endpoints:", len(endpoints), "mixing txs:", len(mixingTxs),
-			"endpoint reduction:", 1-float64(len(endpoints))/float64(len(endpoints)))
+		info("Node numbers without real filter", "addresses", len(usedAddresses),
+			"endpoints", len(endpoints), "mixing txs", len(mixingTxs),
+			"endpoint reduction", 1-float64(len(endpoints))/float64(len(endpoints)))
 
 		simulationParticipants := []int{1, 2, 3}
 		simulationPercentages := []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}
@@ -368,9 +370,9 @@ func doSemiRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBack
 				if err != nil {
 					return err
 				}
-				info("###### Simulated: participants:", p, "percentage:", s,
-					"Node numbers with filter: addresses", len(a), "endpoints:",
-					len(e), "mixing txs:", len(m), "endpoint reduction:",
+				info("Simulated", "participants", p, "percentage", s,
+					"Node numbers with filter: addresses", len(a), "endpoints",
+					len(e), "mixing txs", len(m), "endpoint reduction",
 					1-float64(len(e))/float64(len(endpoints)))
 			}
 		}
@@ -379,8 +381,8 @@ func doSemiRandomSimulation(g *mgraph.ReversibleGraph, nodeID int64, maxLookBack
 		if err != nil {
 			return err
 		}
-		info("Node numbers with real filter: addresses", len(a), "endpoints:", len(e), "mixing txs:", len(m),
-			"endpoint reduction:", 1-float64(len(e))/float64(len(endpoints)))
+		info("Node numbers with real filter", "addresses", len(a), "endpoints", len(e), "mixing txs", len(m),
+			"endpoint reduction", 1-float64(len(e))/float64(len(endpoints)))
 	}
 
 	return nil
@@ -394,9 +396,9 @@ func doSemiRandomSimulationV2(g *mgraph.ReversibleGraph, nodeID int64, maxLookBa
 	}
 
 	if len(usedAddresses) > 0 {
-		info("Node numbers without real filter: addresses", len(usedAddresses), "endpoints:",
-			len(endpoints), "mixing txs:", len(mixingTxs),
-			"endpoint reduction:", 1-float64(len(endpoints))/float64(len(endpoints)))
+		info("Node numbers without real filter", "addresses", len(usedAddresses), "endpoints",
+			len(endpoints), "mixing txs", len(mixingTxs),
+			"endpoint reduction", 1-float64(len(endpoints))/float64(len(endpoints)))
 
 		simulationParticipants := []int{1, 2, 3, 4, 5}
 		simulationMixingParticipants := []int{5, 10, 15, 20, 25, 30}
@@ -408,9 +410,9 @@ func doSemiRandomSimulationV2(g *mgraph.ReversibleGraph, nodeID int64, maxLookBa
 				if err != nil {
 					return err
 				}
-				info("###### Simulated: participants:", p, "global mixing participants:", s,
-					"Node numbers with filter: addresses", len(a), "endpoints:",
-					len(e), "mixing txs:", len(m), "endpoint reduction:",
+				info("Simulated", "participants", p, "global mixing participants", s,
+					"Node numbers with filter: addresses", len(a), "endpoints",
+					len(e), "mixing txs", len(m), "endpoint reduction",
 					1-float64(len(e))/float64(len(endpoints)))
 			}
 		}
@@ -419,8 +421,8 @@ func doSemiRandomSimulationV2(g *mgraph.ReversibleGraph, nodeID int64, maxLookBa
 		if err != nil {
 			return err
 		}
-		info("Node numbers with real filter: addresses", len(a), "endpoints:", len(e), "mixing txs:", len(m),
-			"endpoint reduction:", 1-float64(len(e))/float64(len(endpoints)))
+		info("Node numbers with real filter", "addresses", len(a), "endpoints", len(e), "mixing txs", len(m),
+			"endpoint reduction", 1-float64(len(e))/float64(len(endpoints)))
 	}
 
 	return nil

@@ -15,7 +15,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 	// get the highest clustered block ID
 	fmiStatus, err := status.GetClusteringFMIStatus(database)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -27,7 +27,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 
 	startDate, err := time.Parse(time.RFC3339, startDateStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 
 	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -53,12 +53,12 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 	// write header
 	header := []string{"Timestamp", "Addresses", "Clusters", "Addresses Without Cluster"}
 	if err := w.Write(header); err != nil {
-		info("error writing header to file", err)
+		warn(err, "msg", "error writing header to file")
 		return
 	}
 
@@ -77,7 +77,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 		addressCount, clusterCount, addressesWithClusterCount, err :=
 			dban.GetUniqueAddressCountsPerBlock(database, i, option)
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 
@@ -86,7 +86,7 @@ func doUniqueAddressAnalysis(database external.Database, option int, fileName st
 			strconv.FormatUint(addressesWithClusterCount, 10)}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 

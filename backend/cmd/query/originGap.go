@@ -19,7 +19,7 @@ func doOriginGapAnalysis(g *mgraph.ReversibleGraph, minGap time.Duration, filena
 func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration, filename string) {
 	year2016, err := time.Parse("2006-01-02", "2016-01-01")
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -27,12 +27,12 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 	defer func(f *os.File) {
 		err := f.Close()
 		if err != nil {
-			info(err)
+			warn(err)
 		}
 	}(f)
 
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 
 		distances, err := getOriginDistance(g, txNode.ID())
 		if err != nil {
-			info(err)
+			warn(err)
 			return
 		}
 
@@ -69,7 +69,7 @@ func getSpendingGapTransactions(g *mgraph.ReversibleGraph, minGap time.Duration,
 		}
 
 		if err := w.Write(line); err != nil {
-			info("error writing record to file", err)
+			warn(err, "msg", "error writing record to file")
 			return
 		}
 	}
