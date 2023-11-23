@@ -16,6 +16,8 @@
             <v-toolbar-title>{{ pageTitle }}</v-toolbar-title>
           </v-toolbar>
           <v-card-text>
+            <!-- html is loaded from safe source -->
+            <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="loadedHTML"
               v-html="loadedHTML"

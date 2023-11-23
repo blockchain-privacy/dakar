@@ -5,7 +5,7 @@
       class="mx-auto"
       max-width="1200"
     >
-      <IconTitle
+      <icon-title
         title="Connection Lookup"
         :icon="icon.mdiTextBoxSearch"
       />

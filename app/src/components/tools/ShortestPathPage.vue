@@ -4,7 +4,7 @@
     class="mx-auto"
     max-width="1200"
   >
-    <IconTitle
+    <icon-title
       title="Shortest Path"
       :icon="icon.mdiChartTimelineVariant"
     />

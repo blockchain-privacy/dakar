@@ -5,7 +5,7 @@
       max-width="1200"
       variant="text"
     >
-      <IconTitle
+      <icon-title
         title="Attributions"
         :icon="icon.mdiTag"
       />

@@ -16,7 +16,7 @@
         lg="10"
         xl="8"
       >
-        <Transaction
+        <transaction
           :tx="tx"
           :show-heuristic-editor-link="isAtLeastPrivileged"
           :show-fingerprint-link="isAtLeastPrivileged"

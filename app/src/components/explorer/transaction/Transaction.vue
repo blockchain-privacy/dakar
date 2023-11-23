@@ -55,22 +55,22 @@
               cols="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 :icon="icons.mdiFormatListNumbered"
                 title="Block Height"
               >
                 <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
                   {{ tx.bid.toLocaleString() }}
                 </router-link>
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col>
-              <IconItem
+              <icon-item
                 :icon="icons.mdiCalendar"
                 title="Timestamp"
               >
                 {{ new Date(tx.bts).toLocaleString() }}
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <v-row>
@@ -79,32 +79,32 @@
               cols="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 :icon="icons.mdiCash"
                 title="Fee"
               >
                 {{ convertAmount(tx.fee) }}
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col>
-              <IconItem
+              <icon-item
                 :icon="icons.mdiFormatHeaderPound"
                 title="Block"
               >
                 <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
                   {{ shortenHash(tx.bhash) }}
                 </router-link>
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <v-row v-if="isCoinBaseTx(tx)">
             <v-col>
-              <IconItem
+              <icon-item
                 :icon="icons.mdiPickaxe"
                 title="Coinbase"
               >
                 yes
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <!-- bottom spacer for transition -->
@@ -154,7 +154,7 @@
                 v-for="(i,y) in getResidualInputs"
                 :key="i.addresshash + i.inputindex"
               >
-                <OutputItem
+                <output-item
 
                   :is-input="true"
                   :amount="i.amount"
@@ -185,7 +185,7 @@
             v-for="(i,y) in getOutputs"
             :key="i.addresshash + i.outputindex"
           >
-            <OutputItem
+            <output-item
               :is-input="false"
               :amount="i.amount"
               :address-hash="i.addresshash"
@@ -211,7 +211,7 @@
                 v-for="(i,y) in getResidualOutputs"
                 :key="i.addresshash + i.outputindex"
               >
-                <OutputItem
+                <output-item
                   :is-input="false"
                   :amount="i.amount"
                   :address-hash="i.addresshash"

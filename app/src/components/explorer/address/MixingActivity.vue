@@ -2,13 +2,13 @@
   <div>
     <v-card variant="text">
       <v-card-text>
-        <WikiTooltip description-url="transactionTypes/privacyTransactions.md">
+        <wiki-tooltip description-url="transactionTypes/privacyTransactions.md">
           Privacy transactions
-        </WikiTooltip>
+        </wiki-tooltip>
         which are directly connected to this address show partially the
-        <WikiTooltip description-url="mixingActivity.md">
+        <wiki-tooltip description-url="mixingActivity.md">
           mixing activity
-        </WikiTooltip>.
+        </wiki-tooltip>.
         <v-row class="mt-2">
           <v-col class="d-flex align-center justify-center flex-wrap">
             <p class="v-label me-2">
@@ -62,6 +62,8 @@
             cols="12"
             lg="9"
           >
+            <!-- vuetify lint plugin has some errors, disable for now -->
+            <!-- eslint-disable vuetify/no-deprecated-props vuetify/no-deprecated-events -->
             <v-range-slider
               v-model="rangePicker.model"
               :disabled="!activities || activities.length === 0"
@@ -308,6 +310,7 @@ export default {
 				show: false,
 			},
 			clickedNode: {
+				// eslint-disable-next-line camelcase
 				input_txs: [],
 				dateTime: null,
 				privacytype: '',

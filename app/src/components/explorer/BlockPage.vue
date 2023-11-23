@@ -11,12 +11,12 @@
         lg="10"
         xl="8"
       >
-        <FadeTransition>
+        <fade-transition>
           <div v-if="data">
             <v-row>
               <v-col>
                 <v-card variant="text">
-                  <IconTitle
+                  <icon-title
                     :title="`Block ${data.blockhash}`"
                     :icon="icon.mdiCubeOutline"
                   />
@@ -27,20 +27,20 @@
                         cols="12"
                         sm="6"
                       >
-                        <IconItem
+                        <icon-item
                           :icon="icon.mdiFormatListNumbered"
                           title="Block Height"
                         >
                           {{ data.id.toLocaleString() }}
-                        </IconItem>
+                        </icon-item>
                       </v-col>
                       <v-col v-if="data.ts">
-                        <IconItem
+                        <icon-item
                           :icon="icon.mdiCalendar"
                           title="Timestamp"
                         >
                           {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
-                        </IconItem>
+                        </icon-item>
                       </v-col>
                     </v-row>
                     <v-row>
@@ -49,7 +49,7 @@
                         cols="12"
                         sm="6"
                       >
-                        <IconItem
+                        <icon-item
                           :icon="icon.mdiFormatHeaderPound"
                           title="Previous Block"
                         >
@@ -59,10 +59,10 @@
                           >
                             {{ shortenHash(data.prevblockhash) }}
                           </router-link>
-                        </IconItem>
+                        </icon-item>
                       </v-col>
                       <v-col v-if="data.nextblockhash">
-                        <IconItem
+                        <icon-item
                           :icon="icon.mdiFormatHeaderPound"
                           title="Next Block"
                         >
@@ -72,17 +72,17 @@
                           >
                             {{ shortenHash(data.nextblockhash) }}
                           </router-link>
-                        </IconItem>
+                        </icon-item>
                       </v-col>
                     </v-row>
                     <v-row>
                       <v-col>
-                        <IconItem
+                        <icon-item
                           :icon="icon.mdiPound"
                           title="Number of Transactions"
                         >
                           {{ data.txcount.toLocaleString() }}
-                        </IconItem>
+                        </icon-item>
                       </v-col>
                     </v-row>
                   </v-card-text>
@@ -97,7 +97,7 @@
                       :key="tx.txhash+tx.bid"
                     >
                       <v-col>
-                        <Transaction
+                        <transaction
                           :tx="tx"
                           show-title-link
                           :show-heuristic-editor-link="showHeuristicEditor"
@@ -126,7 +126,7 @@
             class="mx-auto"
             type="list-item-three-line, list-item-three-line, list-item-three-line"
           />
-        </FadeTransition>
+        </fade-transition>
       </v-col>
     </v-row>
   </v-container>

@@ -8,7 +8,7 @@
       style="flex:1"
     >
       <div class="pa-5">
-        <h3 class="text-h3 font-weight-bold text-center">
+        <h3 class="text-h3 font-weight-bold text-center mb-2">
           Login
         </h3>
         <ory-flow
@@ -207,7 +207,7 @@ export default {
 				const response = await this.ory.frontend.updateLoginFlow({flow, updateLoginFlowBody: body});
 
 				if (response.status === 200 && response.data?.session) {
-					// Todo check when https://github.com/ory/kratos/pull/3572 is released
+					// Reminder: check when https://github.com/ory/kratos/pull/3572 is released
 					if (response.data.session.identity) {
 						this.session = response.data.session;
 						this.leave();
@@ -269,7 +269,7 @@ export default {
 				this.setFlowData(response.data);
 			} catch (e) {
 				if (e.response?.data?.error?.id === 'session_already_available') {
-					// Todo check when https://github.com/ory/kratos/pull/3572 is released
+					// Reminder: check when https://github.com/ory/kratos/pull/3572 is released
 					// If the response indicates that the session is already available,
 					// it might be only aal1 even though aal2 might be required.
 					// This can be checked by requesting the session. If it fails the aal2 dialog will be rendered

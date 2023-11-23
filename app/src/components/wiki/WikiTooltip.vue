@@ -18,6 +18,8 @@
       min-width="300px"
     >
       <v-card-text>
+        <!-- html is loaded from safe source -->
+        <!-- eslint-disable vue/no-v-html -->
         <div
           v-if="requestedDescription"
           class="wikiBlurbDescription"

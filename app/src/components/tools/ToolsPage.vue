@@ -45,11 +45,11 @@
         style="padding: 12px 10px 50px 10px"
       >
         <router-view v-slot="{ Component }">
-          <FadeTransition>
+          <fade-transition>
             <component
               :is="Component"
             />
-          </FadeTransition>
+          </fade-transition>
         </router-view>
       </div>
     </v-main>

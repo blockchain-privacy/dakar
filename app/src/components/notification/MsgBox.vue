@@ -5,7 +5,7 @@
       mode="out-in"
       tag="span"
     >
-      <Messages
+      <messages
         v-for="msg in messages"
         :key="msg.key"
         class="mt-3"
@@ -14,7 +14,7 @@
         :text="msg.value.text"
         @destructed="removeMessage(msg.key)"
       />
-      <Messages
+      <messages
         v-if="numHiddenMessages > 0"
         key="hidden_message_display"
         type="info"

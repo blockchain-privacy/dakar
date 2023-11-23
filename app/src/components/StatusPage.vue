@@ -12,7 +12,7 @@
       >
         <v-card variant="text">
           <div class="d-flex align-center">
-            <IconTitle
+            <icon-title
               title="Server Status"
               :icon="icon.mdiDatabase"
             />
@@ -40,7 +40,7 @@
                 >
                   <v-row>
                     <v-col>
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiDatabaseSync"
                         title="Chain Synchronisation"
                         :tooltip="tooltips.databaseSync"
@@ -56,12 +56,12 @@
                         >
                           {{ Math.round(crawlerSyncProgress) }}%
                         </v-progress-linear>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col>
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiDatabaseSearch"
                         title="Transaction Classification"
                         :tooltip="tooltips.databaseClassification"
@@ -77,12 +77,12 @@
                         >
                           {{ Math.round(classifierSyncProgress) }}%
                         </v-progress-linear>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col v-if="data.status.lastclusteredhmiid > 0">
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiDatabaseSearch"
                         title="Hierarchical Multi-Input Clustering"
                         :tooltip="tooltips.databaseClusteringHMI"
@@ -98,12 +98,12 @@
                         >
                           {{ Math.round(clusteringHMISyncProgress) }}%
                         </v-progress-linear>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col v-if="data.status.lastclusteredfmiid > 0">
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiDatabaseSearch"
                         title="Flat Multi-Input Clustering"
                         :tooltip="tooltips.databaseClusteringFMI"
@@ -119,12 +119,12 @@
                         >
                           {{ Math.round(clusteringFMISyncProgress) }}%
                         </v-progress-linear>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col>
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiProgressWrench"
                         title="RPC Verification Progress"
                         :tooltip="tooltips.rpcVerificationProgress"
@@ -138,7 +138,7 @@
                         >
                           {{ Math.round(data.rpcinfo.verificationprogress) }}%
                         </v-progress-linear>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                 </v-col>
@@ -148,7 +148,7 @@
                 >
                   <v-row>
                     <v-col>
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiCounter"
                         title="Last crawled Block"
                       >
@@ -158,12 +158,12 @@
                         >
                           {{ data.status.lastblockid.toLocaleString() }}
                         </router-link>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col v-if="data.status.lastclassifiedid">
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiCounter"
                         title="Last classified Block"
                       >
@@ -173,12 +173,12 @@
                         >
                           {{ data.status.lastclassifiedid.toLocaleString() }}
                         </router-link>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col v-if="data.status.lastclusteredhmiid">
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiCounter"
                         title="Last HMI Block"
                       >
@@ -188,12 +188,12 @@
                         >
                           {{ data.status.lastclusteredhmiid.toLocaleString() }}
                         </router-link>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col v-if="data.status.lastclusteredfmiid">
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiCounter"
                         title="Last FMI Block"
                       >
@@ -203,17 +203,17 @@
                         >
                           {{ data.status.lastclusteredfmiid.toLocaleString() }}
                         </router-link>
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                   <v-row>
                     <v-col>
-                      <IconItem
+                      <icon-item
                         :icon="icon.mdiCounter"
                         title="RPC Client Block Height"
                       >
                         {{ data.rpcinfo.blocks.toLocaleString() }}
-                      </IconItem>
+                      </icon-item>
                     </v-col>
                   </v-row>
                 </v-col>
@@ -228,26 +228,26 @@
                   sm="6"
                   lg="4"
                 >
-                  <IconItem
+                  <icon-item
                     :icon="icon.mdiCubeOffOutline"
                     title="Pruned"
                     :tooltip="tooltips.rpcPruned"
                   >
                     {{ data.rpcinfo.pruned ? 'Yes' : 'No' }}
-                  </IconItem>
+                  </icon-item>
                 </v-col>
                 <v-col
                   cols="12"
                   sm="6"
                   lg="4"
                 >
-                  <IconItem
+                  <icon-item
                     :icon="icon.mdiWeight"
                     title="Difficulty"
                     :tooltip="tooltips.rpcDifficulty"
                   >
                     {{ data.rpcinfo.difficulty.toLocaleString() }}
-                  </IconItem>
+                  </icon-item>
                 </v-col>
                 <v-col
                   v-if="data.rpcinfo.size_on_disk && data.rpcinfo.size_on_disk > 0"
@@ -255,13 +255,13 @@
                   sm="6"
                   lg="4"
                 >
-                  <IconItem
+                  <icon-item
                     :icon="icon.mdiHarddisk"
                     title="Blockchain Size"
                     :tooltip="tooltips.rpcBlockchainSize"
                   >
                     {{ (data.rpcinfo.size_on_disk / 1073741824).toLocaleString() }} GiB
-                  </IconItem>
+                  </icon-item>
                 </v-col>
               </v-row>
             </div>

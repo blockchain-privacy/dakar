@@ -4,7 +4,7 @@
     variant="text"
     max-width="1200"
   >
-    <IconTitle
+    <icon-title
       title="Heuristics"
       :icon="icon.mdiGraph"
       :one-line="true"
@@ -45,7 +45,7 @@
           </v-list-item>
         </v-list>
       </v-menu>
-    </IconTitle>
+    </icon-title>
     <fade-transition>
       <div
         v-if="showSearchField"
@@ -79,8 +79,8 @@
       <template #item.h_count="{ item }">
         {{ item.h_count.toLocaleString() }}
       </template>
-      <template #item.mod_time="{ item }">
-        <span>{{ new Date(item.mod_time).toLocaleString() }}</span>
+      <template #item.modTimeUnix="{ item }">
+        <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
       </template>
       <template #[`item.actions`]="{ item }">
         <v-icon @click="showDeleteHeuristicDialog(item)">
@@ -182,7 +182,7 @@ export default {
 			isLoading: false,
 			showSearchField: false,
 			search: '',
-			sortBy: [{key: 'mod_time', order: 'desc'}],
+			sortBy: [{key: 'modTimeUnix', order: 'desc'}],
 			headers: [
 				{
 					title: 'Transaction', key: 'txhash', align: 'start', sortable: false,
@@ -191,7 +191,7 @@ export default {
 					title: 'Number of heuristics', key: 'h_count',
 				},
 				{
-					title: 'Last modification', key: 'mod_time',
+					title: 'Last modification', key: 'modTimeUnix',
 				},
 				{
 					title: '', key: 'actions', sortable: false, align: 'end',
@@ -237,7 +237,7 @@ export default {
 
 			this.heuristicList = this.heuristicList.map(d => {
 				// Convert date to unix time, so it can be sorted in data table
-				d.mod_time = new Date(d.mod_time).getTime();
+				d.modTimeUnix = new Date(d.mod_time).getTime();
 				return d;
 			});
 		},
@@ -245,8 +245,10 @@ export default {
 			this.isLoading = true;
 			let arg = null;
 			if (all) {
+				// eslint-disable-next-line camelcase
 				arg = {delete_all: true};
 			} else {
+				// eslint-disable-next-line camelcase
 				arg = {tx_hash: this.transactionToDelete.txhash};
 			}
 

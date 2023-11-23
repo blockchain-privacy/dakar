@@ -31,12 +31,12 @@
               xs="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 title="Type"
                 :icon="icon.mdiApplicationVariableOutline"
               >
                 {{ heuristicData.heuristicTypeTitle }}
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col>
               <icon-item
@@ -54,20 +54,20 @@
               xs="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 title="Parameter"
                 :icon="icon.mdiTune"
               >
                 {{ heuristicData.heuristicParameter }}
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col v-if="heuristicData.heuristicCustomClusters">
-              <IconItem
+              <icon-item
                 title="Custom clusters"
                 :icon="icon.mdiMerge"
               >
                 yes
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <v-row>
@@ -77,20 +77,20 @@
               xs="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 title="Exclude addresses"
                 :icon="icon.mdiPlaylistRemove"
               >
                 yes
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col v-if="heuristicData.heuristicExcludeSpendingGaps">
-              <IconItem
+              <icon-item
                 title="Exclude spending gaps"
                 :icon="icon.mdiClockAlertOutline"
               >
                 yes
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <v-row v-if="isHollow">
@@ -109,20 +109,20 @@
               xs="12"
               sm="6"
             >
-              <IconItem
+              <icon-item
                 title="Number of origins"
                 :icon="icon.mdiPoundBoxOutline"
               >
                 {{ transactionCount }}
-              </IconItem>
+              </icon-item>
             </v-col>
             <v-col>
-              <IconItem
+              <icon-item
                 title="Number of clusters"
                 :icon="icon.mdiPoundBoxOutline"
               >
                 {{ heuristicData.clusterCount ? heuristicData.clusterCount : 0 }}
-              </IconItem>
+              </icon-item>
             </v-col>
           </v-row>
           <v-row v-else>

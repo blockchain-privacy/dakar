@@ -49,34 +49,34 @@
                     cols="12"
                     sm="4"
                   >
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiScaleBalance"
                       title="Balance"
                     >
                       {{ convertAmount(addressData.output_sum - addressData.input_sum) }}
                       {{ coinUnit }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                   <v-col
                     cols="12"
                     sm="4"
                   >
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiBankTransferIn"
                       title="Total amount received"
                     >
                       {{ convertAmount(addressData.output_sum) }}
                       {{ coinUnit }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                   <v-col>
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiBankTransferOut"
                       title="Total amount spent"
                     >
                       {{ convertAmount(addressData.input_sum) }}
                       {{ coinUnit }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                 </v-row>
                 <v-row>
@@ -84,31 +84,31 @@
                     cols="12"
                     sm="4"
                   >
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiPound"
                       title="Outputs"
                     >
                       {{ addressData.output_count }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                   <v-col
                     cols="12"
                     sm="4"
                   >
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiPound"
                       title="Unspent outputs"
                     >
                       {{ addressData.output_count - addressData.input_count }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                   <v-col>
-                    <IconItem
+                    <icon-item
                       :icon="icon.mdiPound"
                       title="Coinbase outputs"
                     >
                       {{ addressData.coinbase_count }}
-                    </IconItem>
+                    </icon-item>
                   </v-col>
                 </v-row>
               </v-container>

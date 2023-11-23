@@ -14,9 +14,9 @@
             >
               <p class="text-subtitle-1 my-auto mr-auto">
                 Attributions help to easier identify addresses belonging to the same
-                <WikiTooltip description-url="addressCluster.md">
+                <wiki-tooltip description-url="addressCluster.md">
                   address cluster
-                </WikiTooltip>.
+                </wiki-tooltip>.
               </p>
               <v-menu location="bottom">
                 <template #activator="{ props }">

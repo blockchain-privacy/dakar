@@ -68,7 +68,7 @@
         </v-navigation-drawer>
       </v-col>
       <v-col class="fill-height mx-lg-16">
-        <FadeTransition>
+        <fade-transition>
           <v-card
             v-if="showRootPage"
             :flat="true"
@@ -89,6 +89,8 @@
             </v-card-text>
           </v-card>
           <template v-else>
+            <!-- html is loaded from safe source -->
+            <!-- eslint-disable vue/no-v-html -->
             <div
               v-if="fileHTML"
               :class="{'wikiFileContentFullSize': $vuetify.display.smAndDown,
@@ -100,7 +102,7 @@
               type="article"
             />
           </template>
-        </FadeTransition>
+        </fade-transition>
       </v-col>
     </v-row>
   </div>
