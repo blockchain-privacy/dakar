@@ -1790,6 +1790,11 @@ func getSpendingFingerprintReply(dgraph external.Database, worker *heuristics.Wo
 		return
 	}
 
+	// no fingerprints -> nothing to do
+	if len(similarTransactions) == 0 {
+		return
+	}
+
 	uids := make([]string, len(similarTransactions))
 	uidToFingerprint := make(map[string]fingerprintScore, len(similarTransactions))
 	for i, tx := range similarTransactions {
