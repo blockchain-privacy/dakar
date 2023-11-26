@@ -707,7 +707,7 @@ definitions:
         type: string
       roles:
         items:
-          $ref: '#/definitions/user.FrontendRole'
+          type: string
         type: array
       state:
         type: string
@@ -870,19 +870,12 @@ definitions:
       lastclusteredhmiid:
         type: integer
     type: object
-  user.FrontendRole:
-    properties:
-      name:
-        type: string
-      uid:
-        type: string
-    type: object
 host: localhost
 info:
   contact: {}
   description: This is the REST API for Dakar
   title: Dakar API
-  version: 1.0.3
+  version: 1.0.4
 paths:
   /addAddressExclusions/:
     post:

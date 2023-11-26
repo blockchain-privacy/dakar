@@ -2895,7 +2895,7 @@ const docTemplate = `{
                 "roles": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/user.FrontendRole"
+                        "type": "string"
                     }
                 },
                 "state": {
@@ -3134,24 +3134,13 @@ const docTemplate = `{
                     "type": "integer"
                 }
             }
-        },
-        "user.FrontendRole": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0.3",
+	Version:          "1.0.4",
 	Host:             "localhost",
 	BasePath:         "/api/v1",
 	Schemes:          []string{},
