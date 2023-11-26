@@ -13,7 +13,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required
-const SchemaVersion uint64 = 2
+const SchemaVersion uint64 = 3
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -160,26 +160,10 @@ func SetupSchema(c external.Database) error {
 				HeuristicCluster.attributions
 			}
 
-			Role.name: string @index(hash) .
-
-			type Role {
-				Role.name
-			}
-
-			User.email: string @index(term, fulltext) .
-			User.pwhash: string .
-			User.roles: [uid] @reverse .
-			User.created: dateTime @index(day) .
-			User.modified: dateTime @index(day) .
 			User.heuristics: [uid] @reverse .
 			User.addressExclusions: [uid] @count @reverse .
 	
 			type User {
-				User.email
-				User.pwhash
-				User.roles
-				User.created
-				User.modified
 				User.heuristics
 				User.addressExclusions
 			}

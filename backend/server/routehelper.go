@@ -9,7 +9,6 @@ import (
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
-	dbus "backend/db/user"
 	"backend/external"
 	"encoding/json"
 	"time"
@@ -232,9 +231,9 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 }
 
 type tokenUser struct {
-	ID       string      `json:"uid,omitempty"`
-	KratosID string      `json:"kratos_id,omitempty"`
-	Roles    []dbus.Role `json:"roles,omitempty"`
+	ID       string         `json:"uid,omitempty"`
+	KratosID string         `json:"kratos_id,omitempty"`
+	Roles    []FrontendRole `json:"roles,omitempty"`
 }
 
 // extractTokenUser extracts a tokenUser from the context.

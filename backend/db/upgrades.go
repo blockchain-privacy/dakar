@@ -1,28 +1,72 @@
 package db
 
 import (
+	"backend/cmd/cliutil"
 	"backend/external"
 	"context"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 )
 
-// AlterSchemaAddSpendingGaps adds the spending gap predicate
-func AlterSchemaAddSpendingGaps(c external.Database) error {
+// AlterSchemaDropRoles removes the Role type
+func AlterSchemaDropRoles(c external.Database) error {
+	err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "Role.name",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	return c.Alter(context.Background(), &api.Operation{
+		DropOp:    api.Operation_TYPE,
+		DropValue: "Role",
+	})
+}
+
+// AlterSchemaDropUserPredicates removes all not needed User predicates
+func AlterSchemaDropUserPredicates(c external.Database) error {
+	err := c.Alter(context.Background(), &api.Operation{
+		DropAttr: "User.email",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	err = c.Alter(context.Background(), &api.Operation{
+		DropAttr: "User.pwhash",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	err = c.Alter(context.Background(), &api.Operation{
+		DropAttr: "User.created",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	err = c.Alter(context.Background(), &api.Operation{
+		DropAttr: "User.modified",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
+	err = c.Alter(context.Background(), &api.Operation{
+		DropAttr: "User.roles",
+	})
+	if err != nil {
+		return cliutil.NewStackError(err)
+	}
+
 	return c.Alter(context.Background(), &api.Operation{
 		Schema: `
-			Heuristic.excludeSpendingGaps: bool .
-
-			type Heuristic {
-				Heuristic.type
-				Heuristic.parameter
-				Heuristic.transaction
-				Heuristic.clusters
-				Heuristic.ts
-				Heuristic.parent
-				Heuristic.clusterTypes
-				Heuristic.excludeAddresses
-				Heuristic.excludeSpendingGaps
-			}
-		`,
+			User.heuristics: [uid] @reverse .
+			User.addressExclusions: [uid] @count @reverse .
+	
+			type User {
+				User.heuristics
+				User.addressExclusions
+			}`,
 	})
 }

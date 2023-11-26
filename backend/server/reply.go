@@ -1652,10 +1652,10 @@ func setEmail(traits any, email string) error {
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply msgReply, status int) {
 	type request struct {
-		UID   string              `json:"uid,omitempty"`
-		Email string              `json:"email,omitempty"`
-		State string              `json:"state,omitempty"`
-		Roles []dbus.FrontendRole `json:"roles,omitempty"`
+		UID   string         `json:"uid,omitempty"`
+		Email string         `json:"email,omitempty"`
+		State string         `json:"state,omitempty"`
+		Roles []FrontendRole `json:"roles,omitempty"`
 	}
 
 	var modRequest request
