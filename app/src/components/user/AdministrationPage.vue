@@ -7,81 +7,8 @@
       <v-col
         cols="12"
         sm="12"
-        md="10"
-        lg="9"
-        xl="8"
+        xl="9"
       >
-        <v-data-table
-          v-model:sort-by="usersSortBy"
-          :headers="headers"
-          :items="users?users:[]"
-          :search="search"
-          :loading="isLoading || !users"
-          item-value="uid"
-          class="elevation-2"
-        >
-          <template #top>
-            <v-toolbar
-              :flat="true"
-              class="hidden-sm-and-up"
-            >
-              <v-toolbar-title>User Administration</v-toolbar-title>
-            </v-toolbar>
-            <v-toolbar
-              :flat="true"
-              class="hidden-sm-and-up"
-            >
-              <v-text-field
-                v-model="search"
-                :append-inner-icon="icons.mdiMagnify"
-                label="Filter users"
-                single-line
-                hide-details
-                style="max-width: 500px"
-              />
-              <v-spacer />
-              <v-btn
-                variant="outlined"
-                :disabled="isLoading"
-                @click="refreshUsers"
-              >
-                <v-icon>{{ icons.mdiRefresh }}</v-icon>
-              </v-btn>
-            </v-toolbar>
-            <v-toolbar
-              :flat="true"
-              class="d-none d-sm-flex"
-            >
-              <v-toolbar-title>User Administration</v-toolbar-title>
-              <v-spacer />
-              <v-text-field
-                v-model="search"
-                :append-inner-icon="icons.mdiMagnify"
-                label="Filter users"
-                single-line
-                hide-details
-                style="max-width: 500px"
-              />
-              <v-spacer />
-              <v-btn
-                variant="outlined"
-                :disabled="isLoading"
-                @click="refreshUsers"
-              >
-                <v-icon>{{ icons.mdiRefresh }}</v-icon>
-                <div class="ml-2 hidden-sm-and-down">
-                  Refresh
-                </div>
-              </v-btn>
-            </v-toolbar>
-          </template>
-          <template #item.created="{ item }">
-            <span>{{ new Date(item.created).toLocaleString() }}</span>
-          </template>
-          <template #item.modified="{ item }">
-            <span>{{ new Date(item.modified).toLocaleString() }}</span>
-          </template>
-        </v-data-table>
         <v-data-table
           v-model:sort-by="identitiesSortBy"
           :headers="identityHeaders"
@@ -89,7 +16,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="elevation-4 mt-2"
+          class="my-10"
         >
           <template #top>
             <v-toolbar
@@ -213,7 +140,7 @@
           :search="searchSessions"
           :loading="isLoading || !sessions"
           item-key="id"
-          class="elevation-4 mt-2"
+          class="my-10"
         >
           <template #top>
             <v-toolbar
@@ -342,24 +269,6 @@ export default {
 		identityToDelete: null,
 		search: '',
 		searchSessions: '',
-		usersSortBy: [{key: 'modified', order: 'desc'}],
-		headers: [
-			{
-				title: 'ID', key: 'uid', align: 'start', sortable: false,
-			},
-			{
-				title: 'E-Mail', key: 'email',
-			},
-			{
-				title: 'Roles', key: 'renderedRoles',
-			},
-			{
-				title: 'Created', key: 'created',
-			},
-			{
-				title: 'Modified', key: 'modified',
-			},
-		],
 		identitiesSortBy: [{key: 'modified', order: 'desc'}],
 		identityHeaders: [
 			{
@@ -421,7 +330,6 @@ export default {
 			state: '',
 			roles: [],
 		},
-		users: null,
 		identities: null,
 		sessions: null,
 		identityPropertyDialogData: null,
@@ -444,7 +352,6 @@ export default {
 			try {
 				const response = await this.dakar.authentication.getIdentitiesGet();
 
-				this.users = response.users;
 				this.identities = response.identities;
 				this.sessions = response.sessions;
 				this.$store.dispatch('resetMessages');
@@ -458,23 +365,9 @@ export default {
 			await this.loadUserList();
 
 			this.search = '';
-			if (!this.users || !this.identities) {
+			if (!this.identities) {
 				return;
 			}
-
-			this.users = this.users.map(d => {
-				// Convert dates to unix time so, they can be sorted in data table
-				d.modified = new Date(d.modified).getTime();
-				d.created = new Date(d.created).getTime();
-				if (d.roles) {
-					d.roles = d.roles.map(f => f.name);
-					d.renderedRoles = d.roles.toString();
-				} else {
-					d.renderedRoles = '';
-				}
-
-				return d;
-			});
 
 			this.identities = this.identities.map(d => {
 				// Convert dates to unix time so, they can be sorted in data table
