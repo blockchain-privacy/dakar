@@ -231,9 +231,9 @@ func GetAddressWithOptions(dgraph external.Database, query string, sortOrder int
 }
 
 type tokenUser struct {
-	ID       string         `json:"uid,omitempty"`
-	KratosID string         `json:"kratos_id,omitempty"`
-	Roles    []FrontendRole `json:"roles,omitempty"`
+	ID       string   `json:"uid,omitempty"`
+	KratosID string   `json:"kratos_id,omitempty"`
+	Roles    []string `json:"roles,omitempty"`
 }
 
 // extractTokenUser extracts a tokenUser from the context.

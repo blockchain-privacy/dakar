@@ -1652,10 +1652,10 @@ func setEmail(traits any, email string) error {
 // getModifyIdentityReply modifies an identity with the given values in the request body
 func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply msgReply, status int) {
 	type request struct {
-		UID   string         `json:"uid,omitempty"`
-		Email string         `json:"email,omitempty"`
-		State string         `json:"state,omitempty"`
-		Roles []FrontendRole `json:"roles,omitempty"`
+		UID   string   `json:"uid,omitempty"`
+		Email string   `json:"email,omitempty"`
+		State string   `json:"state,omitempty"`
+		Roles []string `json:"roles,omitempty"`
 	}
 
 	var modRequest request
@@ -1700,20 +1700,18 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 
 	// handle role change
 	if len(modRequest.Roles) > 0 {
-		var roles []string
 		// check if all roles exists
 		for _, role := range modRequest.Roles {
-			if _, err := getRoleByName(role.Name); err != nil {
+			if _, err := getRoleByName(role); err != nil {
 				reply.Msg = msgInvalidRole
 				status = http.StatusBadRequest
 				warn(err, "modification_request", modRequest)
 				return
 			}
-			roles = append(roles, role.Name)
 		}
 
 		// replace roles
-		if err = setRoles(initialIdentity.MetadataPublic, roles); err != nil {
+		if err = setRoles(initialIdentity.MetadataPublic, modRequest.Roles); err != nil {
 			status = http.StatusInternalServerError
 			warn(err, "modification_request", modRequest)
 			return

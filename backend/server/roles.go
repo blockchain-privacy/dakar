@@ -12,12 +12,6 @@ const (
 	AdminRoleName = "admin"
 )
 
-// FrontendRole should be used for client facing responses
-type FrontendRole struct {
-	UID  string `json:"uid,omitempty"`
-	Name string `json:"name"`
-}
-
 var (
 	// roleMap holds all possible Role mappings
 	roleMap = map[string]Role{AdminRoleName: NewAdminRole(),
