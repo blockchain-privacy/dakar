@@ -15,25 +15,9 @@
   </div>
 </template>
 
-<script>
-import {
-	mdiAccountDetails, mdiCog,
-} from '@mdi/js';
-import {ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
+<script setup>
 import FadeTransition from '../common/FadeTransition.vue';
 
-export default {
-	name: 'SettingsPage',
-	components: {FadeTransition},
-	data() {
-		return {
-			profileRoute: ROUTE_NAME_USER_PROFILE_PAGE,
-			icon: {
-				mdiAccountDetails, mdiCog,
-			},
-		};
-	},
-};
 </script>
 
 <style scoped>

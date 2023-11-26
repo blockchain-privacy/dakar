@@ -14,83 +14,78 @@
   </v-app>
 </template>
 
-<script>
+<script setup>
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
 import {
-	DEFAULT_SETTINGS, APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE,
+	DEFAULT_SETTINGS, ROUTE_NAME_ENTRY_PAGE,
 } from './constants';
 import AppBar from './components/appbar/AppBar.vue';
 import {isSessionExpired} from './utilities';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import {computed, onBeforeMount, onMounted, toRaw} from 'vue';
+import {useRoute} from 'vue-router';
+import {useStore} from 'vuex';
+import {useTheme} from 'vuetify';
 
-export default {
-	name: 'App',
-	components: {
-		FadeTransition,
-		AppBar,
-		MsgBox,
-	},
-	data() {
-		return {
-			applicationName: APPLICATION_NAME,
-			route: {
-				rootPage: ROUTE_NAME_ENTRY_PAGE,
+const route = useRoute();
+const store = useStore();
+const theme = useTheme();
 
-			},
-		};
+// Computed
+const settings = computed({
+	get() {
+		return store.getters.getSettings;
 	},
-	computed: {
-		settings: {
-			get() {
-				return this.$store.getters.getSettings;
-			},
-			set(value) {
-				this.$store.dispatch('setSettings', value);
-			},
-		},
-		session: {
-			get() {
-				return this.$store.getters.getSession;
-			},
-			set(value) {
-				this.$store.dispatch('setSession', value);
-			},
-		},
-		isEntryPage() {
-			return this.$route.name === this.route.rootPage;
-		},
+	set(value) {
+		store.dispatch('setSettings', value);
 	},
-	mounted() {
-		if (isSessionExpired(this.session)) {
-			this.session = null;
-		}
-	},
-	beforeMount() {
-		this.setDarkTheme();
-		window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-			this.persistDarkTheme(e.matches);
-			this.setDarkTheme();
-		});
-	},
-	methods: {
-		persistDarkTheme(isDark) {
-			const set = this.settings;
-			set.dark = isDark;
-			this.settings = set;
-		},
-		setDarkTheme() {
-			// Create new settings object if necessary
-			if (this.settings === null) {
-				const defaultSettings = DEFAULT_SETTINGS;
-				defaultSettings.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-				this.settings = defaultSettings;
-			}
+});
 
-			this.$vuetify.theme.global.name = this.settings.dark ? 'dark' : 'light';
-		},
+const session = computed({
+	get() {
+		return store.getters.getSession;
 	},
-};
+	set(value) {
+		store.dispatch('setSession', value);
+	},
+});
+
+const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
+
+// Functions
+function persistDarkTheme(isDark) {
+	const set = settings.value;
+	set.dark = isDark;
+	settings.value = set;
+}
+
+function setDarkTheme() {
+	// Create new settings object if necessary
+	if (settings.value === null) {
+		const defaultSettings = DEFAULT_SETTINGS;
+		defaultSettings.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		settings.value = defaultSettings;
+	}
+
+	theme.global.name.value = settings.value.dark ? 'dark' : 'light';
+}
+
+// Hooks
+onMounted(() => {
+	if (isSessionExpired(toRaw(session.value))) {
+		session.value = null;
+	}
+});
+
+onBeforeMount(() => {
+	setDarkTheme();
+	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+		persistDarkTheme(e.matches);
+		setDarkTheme();
+	});
+});
+
 </script>
 
 <style scoped>

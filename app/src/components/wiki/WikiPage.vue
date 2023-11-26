@@ -10,9 +10,9 @@
         class="pa-0"
       >
         <v-navigation-drawer style="position:absolute">
-          <v-list-item :to="{name: routeWikiRoot}">
+          <v-list-item :to="{name: ROUTE_NAME_WIKI_ROOT}">
             <template #prepend>
-              <v-icon>{{ icons.mdiBookOpen }}</v-icon>
+              <v-icon>{{ mdiBookOpen }}</v-icon>
             </template>
             <v-list-item-title class="text-h6">
               Wiki
@@ -36,27 +36,27 @@
                   <v-list-item
                     v-bind="props"
                     :title="fileItem.name"
-                    :prepend-icon="icons.mdiBook"
+                    :prepend-icon="mdiBook"
                   />
                 </template>
                 <v-list-item
                   v-for="child in fileItem.items"
                   :key="child.title"
-                  :to="{name: routeWiki, params: { file: child.path }}"
+                  :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
                   :title="child.name"
                 >
                   <template #prepend>
-                    <v-icon>{{ icons.mdiBook }}</v-icon>
+                    <v-icon>{{ mdiBook }}</v-icon>
                   </template>
                 </v-list-item>
               </v-list-group>
               <v-list-item
                 v-else
-                :to="{name: routeWiki, params: { file: fileItem.path }}"
+                :to="{name: ROUTE_NAME_WIKI, params: { file: fileItem.path }}"
                 :title="fileItem.name"
               >
                 <template #prepend>
-                  <v-icon>{{ icons.mdiBook }}</v-icon>
+                  <v-icon>{{ mdiBook }}</v-icon>
                 </template>
               </v-list-item>
             </div>
@@ -81,7 +81,7 @@
                 item-value="path"
                 label="Search for wiki pages"
                 variant="outlined"
-                :append-icon="icons.mdiMagnify"
+                :append-icon="mdiMagnify"
                 @update:model-value="navigateToWikiPage"
                 @keydown.enter="navigateToWikiPage"
                 @click:append="navigateToWikiPage"
@@ -108,12 +108,48 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiBookOpen, mdiBook, mdiMagnify} from '@mdi/js';
-import {
-	PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT,
-} from '@/constants';
+import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
+import {computed, inject, onMounted, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useStore} from 'vuex';
+
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
+const wikiapi = inject('wikiapi');
+
+const fileHTML = ref('');
+
+// FileSet is going to hold a set with all possible file paths
+const fileSet = ref(null);
+
+// IsRoot determines if the root page of the wiki is shown
+const showRootPage = ref(true);
+const query = ref(null);
+
+// Computed
+const fileHierarchy = computed(() => getFileHierarchy());
+
+// NamePathPairs returns an array of name and
+// path pairs [{name: filename, path: filename.md}, ...]
+const namePathPairs = computed(() => {
+	const pairs = [];
+
+	fileHierarchy.value.forEach(d => {
+		if (d.items) {
+			d.items.forEach(l => {
+				pairs.push(l);
+			});
+		} else {
+			pairs.push(d);
+		}
+	});
+
+	return pairs;
+});
 
 // SeparateWords adds a space before each capitalized letter
 function separateWords(string) {
@@ -154,14 +190,14 @@ function cleanName(fileName) {
 //     "path": "transactionTypes/destination.md"
 //   }
 // ]
-function getFileHierarchy(fileSet) {
-	if (fileSet === null) {
+function getFileHierarchy() {
+	if (fileSet.value === null) {
 		return [];
 	}
 
 	const hierarchy = new Map();
 
-	fileSet.forEach(d => {
+	fileSet.value.forEach(d => {
 		const pathParts = d.split('/');
 
 		if (pathParts.length > 2) {
@@ -203,113 +239,75 @@ function getFileHierarchy(fileSet) {
 	return hierarchyArray;
 }
 
-export default {
-	name: 'WikiPage',
-	components: {FadeTransition},
-	data() {
-		return {
-			icons: {
-				mdiBookOpen, mdiBook, mdiMagnify,
-			},
-			routeWiki: ROUTE_NAME_WIKI,
-			routeWikiRoot: ROUTE_NAME_WIKI_ROOT,
-			fileHTML: '',
-			// FileSet will hold a set with all possible file paths
-			fileSet: null,
-			// IsRoot determines of the root page of the wiki is shown
-			showRootPage: true,
-			query: null,
-		};
-	},
-	computed: {
-		fileHierarchy() {
-			return getFileHierarchy(this.fileSet);
-		},
-		// NamePathPairs returns an array of name and
-		// path pairs [{name: filename, path: filename.md}, ...]
-		namePathPairs() {
-			const pairs = [];
+function setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
 
-			this.fileHierarchy.forEach(d => {
-				if (d.items) {
-					d.items.forEach(l => {
-						pairs.push(l);
-					});
-				} else {
-					pairs.push(d);
-				}
-			});
+async function getFileIndex() {
+	try {
+		const response = await wikiapi.indexGet();
+		if (response.index) {
+			fileSet.value = new Set(response.index);
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
 
-			return pairs;
-		},
-	},
-	watch: {
-		$route() {
-			if (this.$route.params.file) {
-				this.showRootPage = false;
-				this.getFile(this.$route.params.file);
-			} else {
-				this.showRootPage = true;
-				document.title = `Wiki - ${PAGE_TITLE}`;
-			}
-		},
-	},
-	async mounted() {
+async function getFile(filePath) {
+	// Only try to get file if it is in list of known files
+	if (fileSet.value === null || !fileSet.value.has(filePath)) {
+		return;
+	}
+
+	fileHTML.value = '';
+
+	document.title = `Wiki - ${cleanName(filePath)} - ${PAGE_TITLE}`;
+
+	try {
+		const response = await wikiapi.fileFileNameGet({fileName: filePath});
+
+		if (response.html) {
+			fileHTML.value = response.html;
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
+function navigateToWikiPage() {
+	if (!query.value) {
+		return;
+	}
+
+	router.push({name: ROUTE_NAME_WIKI, params: {file: query.value}});
+}
+
+watch(route, () => {
+	if (route.params.file) {
+		showRootPage.value = false;
+		getFile(route.params.file);
+	} else {
+		showRootPage.value = true;
 		document.title = `Wiki - ${PAGE_TITLE}`;
+	}
+});
 
-		if (this.$route.params.file) {
-			this.showRootPage = false;
-		}
+// Hooks
+onMounted(async () => {
+	document.title = `Wiki - ${PAGE_TITLE}`;
 
-		await this.getFileIndex();
+	if (route.params.file) {
+		showRootPage.value = false;
+	}
 
-		if (!this.showRootPage) {
-			await this.getFile(this.$route.params.file);
-		}
-	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		async getFileIndex() {
-			try {
-				const response = await this.wikiapi.indexGet();
-				if (response.index) {
-					this.fileSet = new Set(response.index);
-				}
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
-		async getFile(filePath) {
-			// Only try to get file if it is in list of known files
-			if (this.fileSet === null || !this.fileSet.has(filePath)) {
-				return;
-			}
+	await getFileIndex();
 
-			this.fileHTML = '';
+	if (!showRootPage.value) {
+		await getFile(route.params.file);
+	}
+});
 
-			document.title = `Wiki - ${cleanName(filePath)} - ${PAGE_TITLE}`;
-
-			try {
-				const response = await this.wikiapi.fileFileNameGet({fileName: filePath});
-
-				if (response.html) {
-					this.fileHTML = response.html;
-				}
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
-		navigateToWikiPage() {
-			if (!this.query) {
-				return;
-			}
-
-			this.$router.push({name: this.routeWiki, params: {file: this.query}});
-		},
-	},
-};
 </script>
 
 <style scoped>

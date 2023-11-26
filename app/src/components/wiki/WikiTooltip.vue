@@ -5,9 +5,9 @@
     transition="slide-y-transition"
     content-class="mt-7"
   >
-    <template #activator="{ props }">
+    <template #activator="item">
       <a
-        v-bind="props"
+        v-bind="item.props"
         :class="{'anchor': true,'d-inline-block':true, 'underline': showLink}"
         @click="requestBlurb"
       ><slot /></a>
@@ -32,11 +32,11 @@
       </v-card-text>
       <v-card-actions class="d-flex">
         <v-btn
-          :to="{name: routeWiki, params: { file: descriptionUrl }}"
+          :to="{name: ROUTE_NAME_WIKI, params: { file: descriptionUrl }}"
           variant="text"
           class="ml-auto"
         >
-          <v-icon>{{ icons.mdiOpenInNew }}</v-icon>
+          <v-icon>{{ mdiOpenInNew }}</v-icon>
           Show full Page
         </v-btn>
       </v-card-actions>
@@ -44,45 +44,47 @@
   </v-menu>
 </template>
 
-<script>
+<script setup>
 import {mdiOpenInNew} from '@mdi/js';
 import {ROUTE_NAME_WIKI} from '@/constants';
+import {inject, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
-export default {
-	name: 'WikiTooltip',
-	props: {
-		descriptionUrl: {type: String, required: true},
-		showLink: {type: Boolean, required: false, default: true},
-	},
-	data() {
-		return {
-			icons: {mdiOpenInNew},
-			routeWiki: ROUTE_NAME_WIKI,
-			showTooltip: false,
-			description: '',
-			requestedDescription: false,
-		};
-	},
-	methods: {
-		async requestBlurb() {
-			// Check if already tried to request description
-			if (this.requestedDescription) {
-				return;
-			}
+const store = useStore();
+const route = useRoute();
+const wikiapi = inject('wikiapi');
 
-			this.requestedDescription = true;
+const props = defineProps({
+	descriptionUrl: {type: String, required: true},
+	showLink: {type: Boolean, required: false, default: true},
+});
 
-			try {
-				const response = await this.wikiapi.blurbFileNameGet({fileName: this.descriptionUrl});
-				if (response.blurb) {
-					this.description = response.blurb;
-				}
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
-	},
-};
+const description = ref('');
+const requestedDescription = ref(false);
+
+function setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+async function requestBlurb() {
+	// Check if already tried to request description
+	if (requestedDescription.value) {
+		return;
+	}
+
+	requestedDescription.value = true;
+
+	try {
+		const response = await wikiapi.blurbFileNameGet({fileName: props.descriptionUrl});
+		if (response.blurb) {
+			description.value = response.blurb;
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
 </script>
 
 <style scoped>

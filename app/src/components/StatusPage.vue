@@ -14,7 +14,7 @@
           <div class="d-flex align-center">
             <icon-title
               title="Server Status"
-              :icon="icon.mdiDatabase"
+              :icon="mdiDatabase"
             />
             <v-spacer />
             <v-btn
@@ -23,7 +23,7 @@
               @click="refreshData"
             >
               <v-icon>
-                {{ icon.mdiRefresh }}
+                {{ mdiRefresh }}
               </v-icon>
             </v-btn>
           </div>
@@ -41,7 +41,7 @@
                   <v-row>
                     <v-col>
                       <icon-item
-                        :icon="icon.mdiDatabaseSync"
+                        :icon="mdiDatabaseSync"
                         title="Chain Synchronisation"
                         :tooltip="tooltips.databaseSync"
                         is-color
@@ -62,7 +62,7 @@
                   <v-row>
                     <v-col>
                       <icon-item
-                        :icon="icon.mdiDatabaseSearch"
+                        :icon="mdiDatabaseSearch"
                         title="Transaction Classification"
                         :tooltip="tooltips.databaseClassification"
                         is-color
@@ -83,7 +83,7 @@
                   <v-row>
                     <v-col v-if="data.status.lastclusteredhmiid > 0">
                       <icon-item
-                        :icon="icon.mdiDatabaseSearch"
+                        :icon="mdiDatabaseSearch"
                         title="Hierarchical Multi-Input Clustering"
                         :tooltip="tooltips.databaseClusteringHMI"
                         is-color
@@ -104,7 +104,7 @@
                   <v-row>
                     <v-col v-if="data.status.lastclusteredfmiid > 0">
                       <icon-item
-                        :icon="icon.mdiDatabaseSearch"
+                        :icon="mdiDatabaseSearch"
                         title="Flat Multi-Input Clustering"
                         :tooltip="tooltips.databaseClusteringFMI"
                         is-color
@@ -133,11 +133,11 @@
                   <v-row>
                     <v-col>
                       <icon-item
-                        :icon="icon.mdiCounter"
+                        :icon="mdiCounter"
                         title="Last crawled Block"
                       >
                         <router-link
-                          :to="{ name: blockRoute,
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                  params: { id: data.status.lastblockid }}"
                         >
                           {{ data.status.lastblockid.toLocaleString() }}
@@ -148,11 +148,11 @@
                   <v-row>
                     <v-col v-if="data.status.lastclassifiedid">
                       <icon-item
-                        :icon="icon.mdiCounter"
+                        :icon="mdiCounter"
                         title="Last classified Block"
                       >
                         <router-link
-                          :to="{ name: blockRoute,
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                  params: { id: data.status.lastclassifiedid }}"
                         >
                           {{ data.status.lastclassifiedid.toLocaleString() }}
@@ -163,11 +163,11 @@
                   <v-row>
                     <v-col v-if="data.status.lastclusteredhmiid">
                       <icon-item
-                        :icon="icon.mdiCounter"
+                        :icon="mdiCounter"
                         title="Last HMI Block"
                       >
                         <router-link
-                          :to="{ name: blockRoute,
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                  params: { id: data.status.lastclusteredhmiid }}"
                         >
                           {{ data.status.lastclusteredhmiid.toLocaleString() }}
@@ -178,11 +178,11 @@
                   <v-row>
                     <v-col v-if="data.status.lastclusteredfmiid">
                       <icon-item
-                        :icon="icon.mdiCounter"
+                        :icon="mdiCounter"
                         title="Last FMI Block"
                       >
                         <router-link
-                          :to="{ name: blockRoute,
+                          :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                  params: { id: data.status.lastclusteredfmiid }}"
                         >
                           {{ data.status.lastclusteredfmiid.toLocaleString() }}
@@ -193,7 +193,7 @@
                   <v-row>
                     <v-col>
                       <icon-item
-                        :icon="icon.mdiCounter"
+                        :icon="mdiCounter"
                         title="RPC Client Block Height"
                       >
                         {{ data.blocks.toLocaleString() }}
@@ -210,7 +210,7 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiRefresh, mdiDatabase, mdiDatabaseSync, mdiDatabaseSearch, mdiCounter,
 } from '@mdi/js';
@@ -218,108 +218,110 @@ import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from './common/IconItem.vue';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {computed, ref, onMounted, onBeforeUnmount, inject} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
-export default {
-	name: 'StatusPage',
-	components: {IconTitle, IconItem},
-	data() {
-		return {
-			icon: {
-				mdiRefresh,
-				mdiDatabase,
-				mdiDatabaseSync,
-				mdiDatabaseSearch,
-				mdiCounter,
-			},
-			blockRoute: ROUTE_NAME_BLOCK_PAGE,
-			tooltips: {
-				databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
-				databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
-				databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
-            + 'Clustering is ongoing if the icon is green.',
-				databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
-            + 'Clustering is ongoing if the icon is green.',
-				rpcDifficulty: 'Current mining difficulty',
-				rpcPruned: 'Whether the RPC client prunes blocks',
-				rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
-				rpcBlockchainSize: 'The estimated size of the block and undo files on disk',
-			},
-			timer: null,
-			refreshStep: 10000,
-			data: null,
-		};
-	},
-	computed: {
-		crawlerSyncProgress() {
-			if (!this.data) {
-				return 0.0;
-			}
+const dakar = inject('dakar');
+const context = {$store: useStore(), $route: useRoute()};
 
-			return this.data.status.lastblockid / this.data.blocks * 100;
-		},
-		classifierSyncProgress() {
-			if (!this.data) {
-				return 0.0;
-			}
-
-			const percentage = this.data.status.lastclassifiedid / this.data.status.lastblockid * 100;
-
-			return percentage > 100 ? 100 : percentage;
-		},
-		clusteringHMISyncProgress() {
-			if (!this.data) {
-				return 0.0;
-			}
-
-			const percentage = this.data.status.lastclusteredhmiid / this.data.status.lastblockid * 100;
-
-			return percentage > 100 ? 100 : percentage;
-		},
-		clusteringFMISyncProgress() {
-			if (!this.data) {
-				return 0.0;
-			}
-
-			const percentage = this.data.status.lastclusteredfmiid / this.data.status.lastblockid * 100;
-
-			return percentage > 100 ? 100 : percentage;
-		},
-	},
-	created() {
-		this.refreshData();
-	},
-	mounted() {
-		document.title = `Status - ${PAGE_TITLE}`;
-	},
-	beforeUnmount() {
-		this.resetTimers();
-	},
-	methods: {
-		startTimer() {
-			this.timer = setInterval(async () => {
-				await this.loadStatusData();
-			}, this.refreshStep);
-		},
-		resetTimers() {
-			clearInterval(this.timer);
-		},
-		async loadStatusData() {
-			try {
-				this.data = await this.dakar.meta.metaGet();
-				return true;
-			} catch (e) {
-				handleError(this, e);
-				return false;
-			}
-		},
-		async refreshData() {
-			this.resetTimers();
-			if (await this.loadStatusData()) {
-				this.startTimer();
-			}
-		},
-	},
+const tooltips = {
+	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',
+	databaseClassification: 'Percentage of classified blocks in the database. The classifier is active if the icon is green.',
+	databaseClusteringHMI: 'Percentage of hierarchical multi-input clustered blocks in the database. '
+    + 'Clustering is ongoing if the icon is green.',
+	databaseClusteringFMI: 'Percentage of flat multi-input clustered blocks in the database. '
+    + 'Clustering is ongoing if the icon is green.',
+	rpcDifficulty: 'Current mining difficulty',
+	rpcPruned: 'Whether the RPC client prunes blocks',
+	rpcVerificationProgress: 'Estimate of verification progress of the RPC client',
+	rpcBlockchainSize: 'The estimated size of the block and undo files on disk',
 };
+
+const refreshStep = 10000;
+let timer = null;
+const data = ref(null);
+
+// Computed
+
+const crawlerSyncProgress = computed(() => {
+	if (!data.value) {
+		return 0.0;
+	}
+
+	return data.value.status.lastblockid / data.value.blocks * 100;
+});
+
+const classifierSyncProgress = computed(() => {
+	if (!data.value) {
+		return 0.0;
+	}
+
+	const percentage = data.value.status.lastclassifiedid / data.value.status.lastblockid * 100;
+
+	return percentage > 100 ? 100 : percentage;
+});
+
+const clusteringHMISyncProgress = computed(() => {
+	if (!data.value) {
+		return 0.0;
+	}
+
+	const percentage = data.value.status.lastclusteredhmiid / data.value.status.lastblockid * 100;
+
+	return percentage > 100 ? 100 : percentage;
+});
+
+const clusteringFMISyncProgress = computed(() => {
+	if (!data.value) {
+		return 0.0;
+	}
+
+	const percentage = data.value.status.lastclusteredfmiid / data.value.status.lastblockid * 100;
+
+	return percentage > 100 ? 100 : percentage;
+});
+
+// Functions
+
+function startTimer() {
+	timer = setInterval(async () => {
+		await loadStatusData();
+	}, refreshStep);
+}
+
+function resetTimers() {
+	clearInterval(timer);
+}
+
+async function loadStatusData() {
+	try {
+		data.value = await dakar.meta.metaGet();
+		return true;
+	} catch (e) {
+		handleError(context, e);
+		return false;
+	}
+}
+
+async function refreshData() {
+	resetTimers();
+	if (await loadStatusData()) {
+		startTimer();
+	}
+}
+
+onMounted(() => {
+	document.title = `Status - ${PAGE_TITLE}`;
+});
+
+onBeforeUnmount(() => {
+	resetTimers();
+});
+
+// Initially get data
+refreshData();
+
 </script>
 
 <style scoped>

@@ -25,36 +25,36 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {ROUTE_NAME_ENTRY_PAGE, PAGE_TITLE} from '@/constants';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
 
-export default {
-	name: 'ErrorPage',
-	props: {
-		title: {type: String, required: true},
-		description: {type: String, required: true},
-		imageSource: {type: String, required: true},
-	},
-	data() {
-		return {
-			ROUTE_NAME_ENTRY_PAGE,
-			errorDescription: '',
-		};
-	},
-	async mounted() {
-		document.title = `${this.$route.meta.title} - ${PAGE_TITLE}`;
-		// Set description from prop
-		this.errorDescription = this.description;
+const props = defineProps({
+	title: {type: String, required: true},
+	description: {type: String, required: true},
+	imageSource: {type: String, required: true},
+});
 
-		// If id query parameter is present, then check if error messages  can be pulled
-		if (this.$route.query.id) {
-			const response = await this.ory.frontend.getFlowError({id: this.$route.query.id});
-			if (response.data?.error?.message) {
-				this.errorDescription = `${response.data.error.message}. ${response.data.error.reason}`;
-			}
+const errorDescription = ref('');
+
+const route = useRoute();
+const ory = inject('ory');
+
+onMounted(async () => {
+	document.title = `${route.meta.title} - ${PAGE_TITLE}`;
+	// Set description from prop
+	errorDescription.value = props.description;
+
+	// If id query parameter is present, then check if error messages can be pulled
+	if (route.query.id) {
+		const response = await ory.frontend.getFlowError({id: route.query.id});
+		if (response.data?.error?.message) {
+			errorDescription.value = `${response.data.error.message}. ${response.data.error.reason}`;
 		}
-	},
-};
+	}
+});
+
 </script>
 
 <style scoped>
