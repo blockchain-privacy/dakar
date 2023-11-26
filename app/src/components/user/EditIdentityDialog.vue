@@ -144,7 +144,7 @@ export default {
 							uid: this.shadowIdentity.id,
 							email: this.shadowIdentity.email,
 							state: this.shadowIdentity.state,
-							roles: this.shadowIdentity.roles.map(d => ({name: d})),
+							roles: this.shadowIdentity.roles,
 						},
 					});
 
