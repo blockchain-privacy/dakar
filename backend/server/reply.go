@@ -233,14 +233,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaR
 	}, http.StatusOK
 }
 
-func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply, status int) {
-	users, err := dbus.GetUsers(dgraph)
-	if err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
-
+func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply, status int) {
 	// get identity list
 	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
@@ -270,7 +263,6 @@ func getIdentitiesReply(dgraph external.Database, adminAuth *ory.APIClient, r *h
 		}
 	}
 
-	reply.Users = users
 	reply.Identities = identities
 	reply.Sessions = activeSession
 

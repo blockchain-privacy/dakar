@@ -299,9 +299,8 @@ type addressExclusionStatusReply struct {
 }
 
 type identitiesReply struct {
-	Users      []dbus.FrontendUserBackendState `json:"users"`
-	Identities []client.Identity               `json:"identities"`
-	Sessions   []client.Session                `json:"sessions"`
+	Identities []client.Identity `json:"identities"`
+	Sessions   []client.Session  `json:"sessions"`
 }
 
 // ClientHeuristicRequest is the client type representation of a DatabaseHeuristicRequest
