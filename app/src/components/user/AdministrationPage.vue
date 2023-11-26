@@ -16,7 +16,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="my-10"
+          class="my-10 elevation-4"
         >
           <template #top>
             <v-toolbar
@@ -140,7 +140,7 @@
           :search="searchSessions"
           :loading="isLoading || !sessions"
           item-key="id"
-          class="my-10"
+          class="my-10 elevation-4"
         >
           <template #top>
             <v-toolbar
