@@ -216,7 +216,7 @@ func connectBlockchainRPCClient(rpcConfig RPCConfig) (*rpcclient.Client, *rpccli
 }
 
 //	@title			Dakar API
-//	@version		1.0.2
+//	@version		1.0.3
 //	@description	This is the REST API for Dakar
 //	@host			localhost
 //	@BasePath		/api/v1
