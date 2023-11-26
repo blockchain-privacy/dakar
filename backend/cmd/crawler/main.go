@@ -14,7 +14,6 @@ import (
 	"backend/processor"
 	"backend/server"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
@@ -152,13 +151,13 @@ func resetDatabaseDialog(database external.Database) bool {
 // prints the credentials to stdout
 func createAdminUser(database external.Database, adminAuth *ory.APIClient) error {
 	// check if users already exist
-	_, userErr := dbus.GetUsers(database)
-	if userErr == nil {
-		return nil
+	userCount, userErr := dbus.GetUserCount(database)
+	if userErr != nil {
+		return userErr
 	}
 
 	// no users exists -> create admin user
-	if errors.Is(userErr, dbus.ErrorUsersNotFound) {
+	if userCount == 0 {
 		adminEmail := "admin@dakar.null"
 		pw, userCreationError := dbus.CreateAdminUser(database, adminAuth, adminEmail)
 		if userCreationError != nil {
@@ -166,9 +165,7 @@ func createAdminUser(database external.Database, adminAuth *ory.APIClient) error
 		}
 		// do not log
 		fmt.Println("New admin user created. Email:", adminEmail, "Pw:", pw)
-		fmt.Println("Write the credentials down.")
-	} else {
-		return userErr
+		fmt.Println("Save the credentials, they won't be shown again.")
 	}
 
 	return nil
