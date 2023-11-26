@@ -4,7 +4,7 @@
         "description": "This is the REST API for Dakar",
         "title": "Dakar API",
         "contact": {},
-        "version": "1.0.2"
+        "version": "1.0.3"
     },
     "host": "localhost",
     "basePath": "/api/v1",
@@ -3009,12 +3009,6 @@
                     "items": {
                         "$ref": "#/definitions/client.Session"
                     }
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/user.FrontendUserBackendState"
-                    }
                 }
             }
         },
@@ -3140,32 +3134,6 @@
             "properties": {
                 "name": {
                     "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "user.FrontendUserBackendState": {
-            "type": "object",
-            "properties": {
-                "created": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "kratosID": {
-                    "type": "string"
-                },
-                "modified": {
-                    "type": "string"
-                },
-                "roles": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/user.FrontendRole"
-                    }
                 },
                 "uid": {
                     "type": "string"
