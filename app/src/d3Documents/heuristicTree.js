@@ -11,7 +11,7 @@ import {isFunction} from '@/utilities';
 export const rootIdentifier = 'root';
 
 export class HeuristicTree extends Tree {
-	constructor(width, context) {
+	constructor(width) {
 		super(width);
 
 		// Dragging
@@ -34,6 +34,8 @@ export class HeuristicTree extends Tree {
 
 		// Callbacks
 		this.contextMenuCallback = null;
+		this.dragEndCallback = null;
+		this.subTreeMoveCallback = null;
 
 		this.drawClicked = node => {
 			node.selectAll('.rect').classed('clicked', true);
@@ -59,7 +61,7 @@ export class HeuristicTree extends Tree {
 
 		this.drawTree = data => {
 			this.drawLinks(this.rootGroup, data);
-			this.drawNodes(this.rootGroup, data, context);
+			this.drawNodes(this.rootGroup, data);
 		};
 	}
 
@@ -118,58 +120,9 @@ export class HeuristicTree extends Tree {
 		}
 	}
 
-	// MoveNode sets parent as the parent node of the child subgraph
-	static moveNode(context, parent, child) {
-		if (!context.data || !context.data.heuristics) {
-			return;
-		}
-
-		const parentData = parent.data()[0].data.data;
-		const childData = child.data()[0].data.data;
-		let formerParentUid = null;
-
-		if (childData.parent !== undefined) {
-			formerParentUid = childData.parent[0].uid;
-		}
-
-		const newData = context.data.heuristics;
-
-		for (let i = 0; i < newData.length; i += 1) {
-			const dataElement = newData[i];
-			if (dataElement.uid === parentData.uid) {
-				if (dataElement.children === undefined) {
-					dataElement.children = [];
-				}
-
-				let alreadyExists = false;
-				dataElement.children.forEach(c => {
-					if (c.uid === childData.uid) {
-						alreadyExists = true;
-					}
-				});
-
-				if (!alreadyExists) {
-					dataElement.children.push({uid: childData.uid});
-				}
-			} else if (dataElement.uid === childData.uid) {
-				if (dataElement.parent === undefined) {
-					dataElement.parent = [];
-				}
-
-				dataElement.parent = [];
-				dataElement.parent.push({uid: parentData.uid});
-			} else if (dataElement.uid === formerParentUid) {
-				dataElement.children = dataElement.children.filter(c => c.uid !== childData.uid);
-			}
-		}
-
-		// Set new state
-		context.data.heuristics = newData;
-	}
-
 	// DragEnd gets called when the drag event ends.
 	// If applicable it moves a dragged subtree to its new parent
-	static dragEnd(context, classContext) {
+	static dragEnd(classContext) {
 		classContext.dragNode = classContext.dragNode.attr('pointer-events', null);
 		classContext.rootGroup.selectAll('.selected').classed('selected', false);
 		classContext.rootSvg.selectAll('.rect').classed('valid-target', false);
@@ -186,7 +139,20 @@ export class HeuristicTree extends Tree {
             && classContext.activeMouseOverNode.attr('opacity') > 0
             && HeuristicTree.isValidMoveTarget(classContext.dragNode, classContext.activeMouseOverNode,
             )) {
-			HeuristicTree.moveNode(context, classContext.activeMouseOverNode, classContext.dragNode);
+			if (classContext.subTreeMoveCallback !== null) {
+				const childData = classContext.dragNode.data()[0].data.data;
+				let formerParentUID = null;
+
+				if (childData.parent !== undefined) {
+					formerParentUID = childData.parent[0].uid;
+				}
+
+				classContext.subTreeMoveCallback(
+					childData.uid, // Child
+					classContext.activeMouseOverNode.data()[0].data.data.uid, // Parent
+					formerParentUID, // Former child
+				);
+			}
 		}
 
 		// Housekeeping
@@ -198,7 +164,10 @@ export class HeuristicTree extends Tree {
 		classContext.dragLayoutHiddenNodes = null;
 
 		classContext.dragNode = null;
-		context.updateGraph();
+
+		if (classContext.dragEndCallback !== null) {
+			classContext.dragEndCallback();
+		}
 	}
 
 	setNodesChanged(changedNodes) {
@@ -519,7 +488,7 @@ export class HeuristicTree extends Tree {
 		this.drawClickedState(this.activeContextMenuSelection);
 	}
 
-	drawNodes(group, nodeData, context) {
+	drawNodes(group, nodeData) {
 		const self = this;
 
 		// Adds each node as a group
@@ -560,7 +529,7 @@ export class HeuristicTree extends Tree {
 							HeuristicTree.dragEvent(e, self, this);
 						})
 						.on('end', () => {
-							HeuristicTree.dragEnd(context, self);
+							HeuristicTree.dragEnd(self);
 						}));
 				// Draw outline and text
 				self.drawRect(g);
@@ -635,6 +604,28 @@ export class HeuristicTree extends Tree {
 		}
 
 		this.contextMenuCallback = callback;
+		return true;
+	}
+
+	// SetDragEndCallback receives a function as an argument.
+	// The function is going to be called when a drag action has ended
+	setDragEndCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.dragEndCallback = callback;
+		return true;
+	}
+
+	// SetSubTreeMoveCallback receives a function as an argument.
+	// The function is going to be called when a subtree is moved to a new parent
+	setSubTreeMoveCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.subTreeMoveCallback = callback;
 		return true;
 	}
 }

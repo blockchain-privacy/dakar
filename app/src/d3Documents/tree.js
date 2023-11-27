@@ -11,6 +11,7 @@ export default class Tree {
 		this.drawClicked = null;
 		this.drawResetClick = null;
 		this.svgClickCallback = null;
+		this.svgZoomCallback = null;
 
 		// Root svg elements
 		this.rootSvg = null;
@@ -140,7 +141,7 @@ export default class Tree {
 	}
 
 	// SetupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
-	setupSvg(context, canvasId) {
+	setupSvg(canvasId) {
 		// Add attributes to root svg
 		this.rootSvg = d3.select(`#${canvasId}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
@@ -148,7 +149,10 @@ export default class Tree {
 		// Add zoom and drag
 		this.zoom = d3.zoom()
 			.on('zoom', event => {
-				context.displayContextMenu = false;
+				if (this.svgZoomCallback !== null) {
+					this.svgZoomCallback();
+				}
+
 				this.rootGroup.attr('transform', event.transform);
 			})
 			.scaleExtent([0.5, 8]);
@@ -191,6 +195,17 @@ export default class Tree {
 		}
 
 		this.svgClickCallback = callback;
+		return true;
+	}
+
+	// SetZoomCallback receives a function as an argument.
+	// The function is going to be called each time the root SVG zoomed upon
+	setSvgZoomCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.svgZoomCallback = callback;
 		return true;
 	}
 
