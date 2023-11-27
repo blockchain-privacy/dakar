@@ -4,7 +4,7 @@
       cols="12"
       sm="6"
     >
-      <v-list-item :to="{ name: txRoute,params: { id: txHash }}">
+      <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,params: { id: txHash }}">
         <v-list-item-title>
           Transaction Hash
         </v-list-item-title>
@@ -29,7 +29,7 @@
       cols="12"
       sm="6"
     >
-      <v-list-item :to="{ name: blockRoute, params: { id: blockHash }}">
+      <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: blockHash }}">
         <v-list-item-title>
           Block Hash
         </v-list-item-title>
@@ -39,7 +39,7 @@
       </v-list-item>
     </v-col>
     <v-col>
-      <v-list-item :to="{ name: blockRoute, params: { id: blockId }}">
+      <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: blockId }}">
         <v-list-item-title>
           Block Id
         </v-list-item-title>
@@ -51,24 +51,16 @@
   </v-row>
 </template>
 
-<script>
+<script setup>
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 
-export default {
-	name: 'ClusterDetails',
-	props: {
-		txHash: {type: String, required: true},
-		blockHash: {type: String, required: true},
-		blockId: {type: Number, required: true},
-		timestamp: {type: String, required: true},
-	},
-	data() {
-		return {
-			blockRoute: ROUTE_NAME_BLOCK_PAGE,
-			txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-		};
-	},
-};
+defineProps({
+	txHash: {type: String, required: true},
+	blockHash: {type: String, required: true},
+	blockId: {type: Number, required: true},
+	timestamp: {type: String, required: true},
+});
+
 </script>
 
 <style scoped>
