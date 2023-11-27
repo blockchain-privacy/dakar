@@ -44,12 +44,6 @@ export const COIN_UNIT_BTC = 'BTC';
 export const COIN_UNIT_DOGE = 'Doge';
 export const COIN_UNIT = COIN_UNIT_DASH;
 
-// User management
-// PASSWORD_MIN_CHARACTERS is the number of characters a password must have at least
-export const PASSWORD_MIN_CHARACTERS = 10;
-// PASSWORD_MAX_CHARACTERS is the number of characters a password can have at most
-export const PASSWORD_MAX_CHARACTERS = 250;
-
 // Cluster
 export const CLUSTER_TYPE_HMI = 'hmi';
 export const CLUSTER_TYPE_FMI = 'fmi';

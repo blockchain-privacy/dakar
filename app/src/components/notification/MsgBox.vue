@@ -35,7 +35,7 @@ import {useStore} from 'vuex';
 
 const store = useStore();
 
-const 	maxNumberOfMessagesToDisplay = 3;
+const maxNumberOfMessagesToDisplay = 3;
 
 // Computed
 const allMessages = computed(() => {
