@@ -10,25 +10,25 @@
           <v-col>
             <link-card
               title="Heuristics"
-              :icon="icons.mdiGraph"
+              :icon="mdiGraph"
               :color="iconColor.default"
-              :to="{ name: routes.heuristicsPage }"
+              :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE }"
             />
           </v-col>
           <v-col>
             <link-card
               title="Attributions"
-              :icon="icons.mdiTag"
+              :icon="mdiTag"
               :color="iconColor.default"
-              :to="{ name: routes.attributionsPage }"
+              :to="{ name: ROUTE_NAME_ATTRIBUTIONS }"
             />
           </v-col>
           <v-col>
             <link-card
               title="Custom Clusters"
-              :icon="icons.mdiMerge"
+              :icon="mdiMerge"
               :color="iconColor.default"
-              :to="{ name: routes.clusterOverviewPage }"
+              :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW }"
             />
           </v-col>
         </v-row>
@@ -36,25 +36,25 @@
           <v-col>
             <link-card
               title="Address Exclusions"
-              :icon="icons.mdiPlaylistRemove"
+              :icon="mdiPlaylistRemove"
               :color="iconColor.default"
-              :to="{ name: routes.addressExclusionPage }"
+              :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS }"
             />
           </v-col>
           <v-col>
             <link-card
               title="Shortest Path"
-              :icon="icons.mdiChartTimelineVariant"
+              :icon="mdiChartTimelineVariant"
               :color="iconColor.default"
-              :to="{ name: routes.shortestPathPage }"
+              :to="{ name: ROUTE_NAME_SHORTEST_PATH_PAGE }"
             />
           </v-col>
           <v-col>
             <link-card
               title="Connection Lookup"
-              :icon="icons.mdiTextBoxSearch"
+              :icon="mdiTextBoxSearch"
               :color="iconColor.default"
-              :to="{ name: routes.connectionLookupPage }"
+              :to="{ name: ROUTE_NAME_CONNECTION_LOOKUP_PAGE }"
             />
           </v-col>
         </v-row>
@@ -64,25 +64,25 @@
         <v-col>
           <link-card
             title="Server Status"
-            :icon="icons.mdiServer"
+            :icon="mdiServer"
             :color="iconColor.default"
-            :to="{ name: routes.serverStatusPage }"
+            :to="{ name: ROUTE_NAME_STATUS_PAGE }"
           />
         </v-col>
         <v-col>
           <link-card
             title="Wiki"
-            :icon="icons.mdiBookOpen"
+            :icon="mdiBookOpen"
             :color="iconColor.default"
-            :to="{ name: routes.wikiRootPage }"
+            :to="{ name: ROUTE_NAME_WIKI_ROOT }"
           />
         </v-col>
         <v-col v-if="showUserAdmin">
           <link-card
             title="User Admin"
-            :icon="icons.mdiAccountSupervisor"
+            :icon="mdiAccountSupervisor"
             :color="iconColor.admin"
-            :to="{ name: routes.userAdminPage }"
+            :to="{ name: ROUTE_NAME_USER_ADMIN_PAGE }"
           />
         </v-col>
       </v-row>
@@ -90,9 +90,9 @@
   </v-menu>
 </template>
 
-<script>
+<script setup>
 import {
-	mdiAccount, mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
+	mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
 	mdiMerge, mdiTag, mdiPlaylistRemove, mdiBookOpen,
 } from '@mdi/js';
 import {
@@ -102,53 +102,18 @@ import {
 } from '@/constants';
 import LinkCard from '../common/LinkCard.vue';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {computed} from 'vue';
+import {useStore} from 'vuex';
 
-export default {
-	name: 'PageMenu',
-	components: {LinkCard},
-	data() {
-		return {
-			icons: {
-				mdiAccount,
-				mdiGraph,
-				mdiChartTimelineVariant,
-				mdiTextBoxSearch,
-				mdiAccountSupervisor,
-				mdiServer,
-				mdiMerge,
-				mdiTag,
-				mdiPlaylistRemove,
-				mdiBookOpen,
-			},
-			iconColor: {
-				default: 'primary',
-				admin: 'red darken-3',
-			},
-			routes: {
-				userAdminPage: ROUTE_NAME_USER_ADMIN_PAGE,
-				shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
-				heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
-				connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-				serverStatusPage: ROUTE_NAME_STATUS_PAGE,
-				clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
-				attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
-				addressExclusionPage: ROUTE_NAME_ADDRESS_EXCLUSIONS,
-				wikiRootPage: ROUTE_NAME_WIKI_ROOT,
-			},
-		};
-	},
-	computed: {
-		session() {
-			return this.$store.getters.getSession;
-		},
-		showUserAdmin() {
-			return isAdminIdentity(this.session);
-		},
-		showTools() {
-			return isPrivilegedIdentity(this.session) || this.showUserAdmin;
-		},
-	},
-};
+const store = useStore();
+
+const iconColor = {default: 'primary', admin: 'red darken-3'};
+
+// Computed
+const session = computed(() => store.getters.getSession);
+const showUserAdmin = computed(() => isAdminIdentity(session.value));
+const showTools = computed(() => isPrivilegedIdentity(session.value) || showUserAdmin);
+
 </script>
 
 <style scoped>
