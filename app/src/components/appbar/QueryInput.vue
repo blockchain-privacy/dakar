@@ -54,13 +54,13 @@ const isPushFromUserInput = computed({
 // Functions
 function newRouting() {
 	const {id} = route.params;
-	const pushFromUserInput = isPushFromUserInput;
+	const pushFromUserInput = isPushFromUserInput.value;
 
-	if (pushFromUserInput.value) {
+	if (pushFromUserInput) {
 		isPushFromUserInput.value = false;
 	}
 
-	if (pushFromUserInput.value || !id
+	if (pushFromUserInput || !id
       || !(route.name === ROUTE_NAME_BLOCK_PAGE
           || route.name === ROUTE_NAME_ADDRESS_PAGE
           || route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
