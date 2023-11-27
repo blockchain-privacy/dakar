@@ -3,7 +3,7 @@
     <v-list-item
       v-for="tx in getLimitedItems"
       :key="tx.txhash"
-      :to="{ name: routes.ROUTE_NAME_TRANSACTION_PAGE,
+      :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
              params: { id: tx.txhash }}"
     >
       <v-list-item-title>
@@ -18,7 +18,7 @@
         <v-list-item
           v-for="tx in getResidualItems"
           :key="tx.txhash"
-          :to="{ name: routes.ROUTE_NAME_TRANSACTION_PAGE,
+          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                  params: { id: tx.txhash }}"
         >
           <v-list-item-title>
@@ -41,65 +41,49 @@
   >
     {{ items.length - maxItems }} additional
     {{ plural('transaction', items.length - maxItems) }}
-    <v-icon>{{ showAllOutputs ? icons.mdiChevronUp : icons.mdiChevronDown }}</v-icon>
+    <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
   </v-btn>
 </template>
 
-<script>
+<script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import {mdiChevronDown, mdiChevronUp} from '@mdi/js';
 import {plural} from '@/utilities';
-import loginPage from '../user/LoginPage.vue';
+import {computed, ref} from 'vue';
 
-export default {
-	name: 'ResultItem',
-	props: {
-		items: {type: Array, required: true},
-		maxItems: {type: Number, required: true},
-	},
-	data() {
-		return {
-			showAllOutputs: false,
-			routes: {
-				ROUTE_NAME_TRANSACTION_PAGE,
-			},
-			icons: {
-				mdiChevronUp, mdiChevronDown,
-			},
-		};
-	},
-	computed: {
-		loginPage() {
-			return loginPage;
-		},
-		areItemsLimited() {
-			return this.items.length > this.maxItems;
-		},
-		getLimitedItems() {
-			if (!this.items) {
-				return [];
-			}
+const props = defineProps({
+	items: {type: Array, required: true},
+	maxItems: {type: Number, required: true},
+});
 
-			return this.items.slice(0, this.maxItems);
-		},
-		getResidualItems() {
-			if (!this.items) {
-				return [];
-			}
+const showAllOutputs = ref(false);
 
-			if (this.items.length <= this.maxItems) {
-				return [];
-			}
+// Computed
+const areItemsLimited = computed(() => props.items.length > props.maxItems);
+const getLimitedItems = computed(() => {
+	if (!props.items) {
+		return [];
+	}
 
-			if (this.showAllOutputs) {
-				return this.items.slice(this.maxItems);
-			}
+	return props.items.slice(0, props.maxItems);
+});
 
-			return [];
-		},
-	},
-	methods: {plural},
-};
+const getResidualItems = computed(() => {
+	if (!props.items) {
+		return [];
+	}
+
+	if (props.items.length <= props.maxItems) {
+		return [];
+	}
+
+	if (showAllOutputs.value) {
+		return props.items.slice(props.maxItems);
+	}
+
+	return [];
+});
+
 </script>
 
 <style scoped>
