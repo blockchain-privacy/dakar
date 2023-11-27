@@ -22,7 +22,7 @@
               as this transaction. Therefore, it is likely that they were created by the same user.
             </p>
             <v-alert
-              :icon="icons.mdiTestTube"
+              :icon="mdiTestTube"
               type="info"
               variant="text"
             >
@@ -86,7 +86,7 @@
                       />
                       <td class="transaction-hash">
                         <router-link
-                          :to="{ name: routes.transactionRoute, params: { id: item.txhash }}"
+                          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: item.txhash }}"
                         >
                           {{ item.txhash }}
                         </router-link>
@@ -120,10 +120,48 @@
   </v-dialog>
 </template>
 
-<script>
+<script setup>
 import {mdiTestTube} from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import {computed, inject, ref, watch} from 'vue';
+
+const dakar = inject('dakar');
+
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	transactionHash: {type: String, required: true},
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const isLoading = ref(false);
+const fingerprintScores = ref([]);
+const sessionCount = ref(-1);
+// LoadedSuccessful controls if a data load request needs to be sent
+let loadedSuccessful = false;
+const errorMsg = ref('');
+
+// Watchers
+watch(() => props.modelValue, newVal => {
+	if (!newVal) {
+		return;
+	}
+
+	searchForSimilarTransactions();
+});
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
+	},
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
 function scoreToColor(scaleNum) {
 	if (scaleNum <= 0.6) {
 		return '#E53935';
@@ -140,85 +178,41 @@ function scoreToColor(scaleNum) {
 	return '#388E3C';
 }
 
-export default {
-	name: 'FingerprintTransactionsDialog',
-	components: {FadeTransition},
-	props: {
-		modelValue: {type: Boolean, required: true},
-		transactionHash: {type: String, required: true},
-	},
-	emits: ['update:modelValue'],
-	data() {
-		return {
-			isLoading: false,
-			fingerprintScores: [],
-			sessionCount: -1,
-			// LoadedSuccessful controls if a data load request needs to be sent
-			loadedSuccessful: false,
-			errorMsg: '',
-			icons: {mdiTestTube},
-			routes: {
-				transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			},
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	watch: {
-		modelValue(newVal) {
-			if (!newVal) {
-				return;
-			}
+async function searchForSimilarTransactions() {
+	// Check if data was already loaded
+	if (loadedSuccessful) {
+		return;
+	}
 
-			this.searchForSimilarTransactions();
-		},
-	},
-	methods: {
-		scoreToColor,
-		async searchForSimilarTransactions() {
-			// Check if data was already loaded
-			if (this.loadedSuccessful) {
-				return;
-			}
+	fingerprintScores.value = [];
+	sessionCount.value = -1;
+	errorMsg.value = '';
+	isLoading.value = true;
 
-			this.fingerprintScores = [];
-			this.sessionCount = -1;
-			this.errorMsg = '';
-			this.isLoading = true;
+	try {
+		const response = await dakar.tools.spendingFingerprintHashGet({hash: props.transactionHash});
 
-			try {
-				const response = await this.dakar.tools.spendingFingerprintHashGet({hash: this.transactionHash});
+		loadedSuccessful = true;
 
-				this.loadedSuccessful = true;
+		if (response.fingerprint_scores) {
+			fingerprintScores.value = response.fingerprint_scores
+				.sort((item1, item2) => item2.score - item1.score);
+		}
 
-				if (response.fingerprint_scores) {
-					this.fingerprintScores = response.fingerprint_scores
-						.sort((item1, item2) => item2.score - item1.score);
-				}
+		if (response.session_count) {
+			sessionCount.value = response.session_count;
+		}
+	} catch (e) {
+		if (e.cause?.status === 500) {
+			errorMsg.value = 'Error requesting data from server. Please try again later.';
+		} else {
+			errorMsg.value = e.message;
+		}
+	}
 
-				if (response.session_count) {
-					this.sessionCount = response.session_count;
-				}
-			} catch (e) {
-				if (e.cause?.status === 500) {
-					this.errorMsg = 'Error requesting data from server. Please try again later.';
-				} else {
-					this.errorMsg = e.message;
-				}
-			}
+	isLoading.value = false;
+}
 
-			this.isLoading = false;
-		},
-	},
-};
 </script>
 
 <style scoped>
