@@ -15,7 +15,7 @@
           v-if="recoveryFlow"
           class="mt-3"
           :flow="recoveryFlow"
-          :form-id="formID"
+          form-id="recovery-form"
           :disabled-forms="disabledForms"
           @submit="handleOrySubmitRecovery"
         />
@@ -29,113 +29,116 @@
   </div>
 </template>
 
-<script>
-import {APPLICATION_NAME, PAGE_TITLE} from '@/constants';
+<script setup>
+import {PAGE_TITLE} from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
-export default {
-	name: 'RecoveryPage',
-	components: {OryFlow},
-	data() {
-		return {
-			isSubmittingForm: false,
-			loginFailed: false,
-			applicationName: APPLICATION_NAME,
-			recoveryFlow: null,
-			formID: 'recovery-form',
-			disabledForms: [],
-		};
-	},
-	async mounted() {
-		document.title = `Account Recovery - ${PAGE_TITLE}`;
+import {inject, onMounted, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute, useRouter} from 'vue-router';
 
-		const {flow} = this.$route.query;
+const ory = inject('ory');
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
 
-		if (typeof flow === 'string') {
-			try {
-				const response = await this.ory.frontend.getRecoveryFlow({id: flow});
-				this.setFlowData(response.data);
-			} catch (e) {
-				await handleGetFlowError(this, e, this.initRecoveryFlow);
-			}
-		} else {
-			// If there's no flow in our route,
-			// we need to initialize our login flow
-			await this.initRecoveryFlow();
+const recoveryFlow = ref(null);
+const disabledForms = ref([]);
+
+// Hooks
+onMounted(async () => {
+	document.title = `Account Recovery - ${PAGE_TITLE}`;
+
+	const {flow} = route.query;
+
+	if (typeof flow === 'string') {
+		try {
+			const response = await ory.frontend.getRecoveryFlow({id: flow});
+			setFlowData(response.data);
+		} catch (e) {
+			await handleGetFlowError(this, e, initRecoveryFlow);
 		}
-	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		async initRecoveryFlow() {
-			try {
-				const response = await 	this.ory.frontend.createBrowserRecoveryFlow();
-				this.setFlowData(response.data);
-			} catch (e) {
-				await handleGetFlowError(this, e, null);
-			}
-		},
-		setFlowData(d) {
-			this.recoveryFlow = d;
-			if (!this.$route.query.flow || this.$route.query.flow !== d.id) {
-				this.$router.replace({query: {flow: d.id}});
-			}
-		},
-		async handleOrySubmitRecovery(formID, btnName) {
-			const form = document.getElementById(formID);
-			if (!form || !this.recoveryFlow.ui.action) {
-				return;
-			}
+	} else {
+		// If there's no flow in our route,
+		// we need to initialize our login flow
+		await initRecoveryFlow();
+	}
+});
 
-			// Disable submitting from this form
-			this.disabledForms.push(formID);
+// Functions
+function setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
 
-			const body = Object.fromEntries(new FormData(form));
-			const {flow} = this.$route.query;
+async function initRecoveryFlow() {
+	try {
+		const response = await 	ory.frontend.createBrowserRecoveryFlow();
+		setFlowData(response.data);
+	} catch (e) {
+		await handleGetFlowError(this, e, null);
+	}
+}
 
-			// The recovery form has two submit buttons:
-			// - submit code (button id: method)
-			// - resend code (button id: email)
-			if (btnName === 'method' && body.code !== undefined) {
-				const c = body.code.trim();
-				if (c.length > 0) {
-					body.code = c;
-					delete body.email;
-				} else {
-					// Enable submitting for this form again
-					this.disabledForms = this.disabledForms.filter(d => d !== formID);
-					// Nothing to submit -> just return
-					return;
-				}
-			}
+function setFlowData(d) {
+	recoveryFlow.value = d;
+	if (!route.query.flow || route.query.flow !== d.id) {
+		router.replace({query: {flow: d.id}});
+	}
+}
 
-			try {
-				const response = await this.ory.frontend.updateRecoveryFlow({flow, updateRecoveryFlowBody: body});
-				if (response.data?.ui) {
-					this.setFlowData(response.data);
-				}
+async function handleOrySubmitRecovery(formID, btnName) {
+	const form = document.getElementById(formID);
+	if (!form || !recoveryFlow.value.ui.action) {
+		return;
+	}
 
-				if (response.error?.reason) {
-					this.setErrorMessage(response.error.reason);
-				}
-			} catch (e) {
-				if (e.response?.data?.ui) {
-					this.setFlowData(e.response.data);
-				} else {
-					try {
-						await handleGetFlowError(this, e, this.initRecoveryFlow);
-					} catch (e) {
-						this.setErrorMessage(e);
-					}
-				}
-			}
+	// Disable submitting from this form
+	disabledForms.value.push(formID);
 
+	const body = Object.fromEntries(new FormData(form));
+	const {flow} = route.query;
+
+	// The recovery form has two submit buttons:
+	// - submit code (button id: method)
+	// - resend code (button id: email)
+	if (btnName === 'method' && body.code !== undefined) {
+		const c = body.code.trim();
+		if (c.length > 0) {
+			body.code = c;
+			delete body.email;
+		} else {
 			// Enable submitting for this form again
-			this.disabledForms = this.disabledForms.filter(d => d !== formID);
-		},
-	},
-};
+			disabledForms.value = disabledForms.value.filter(d => d !== formID);
+			// Nothing to submit -> just return
+			return;
+		}
+	}
+
+	try {
+		const response = await ory.frontend.updateRecoveryFlow({flow, updateRecoveryFlowBody: body});
+		if (response.data?.ui) {
+			setFlowData(response.data);
+		}
+
+		if (response.error?.reason) {
+			setErrorMessage(response.error.reason);
+		}
+	} catch (e) {
+		if (e.response?.data?.ui) {
+			setFlowData(e.response.data);
+		} else {
+			try {
+				await handleGetFlowError(this, e, initRecoveryFlow);
+			} catch (e) {
+				setErrorMessage(e);
+			}
+		}
+	}
+
+	// Enable submitting for this form again
+	disabledForms.value = disabledForms.value.filter(d => d !== formID);
+}
+
 </script>
 
 <style scoped>
