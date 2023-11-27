@@ -18,7 +18,7 @@
                 <v-card variant="text">
                   <icon-title
                     :title="`Block ${data.blockhash}`"
-                    :icon="icon.mdiCubeOutline"
+                    :icon="mdiCubeOutline"
                   />
                   <v-card-text>
                     <v-row>
@@ -28,7 +28,7 @@
                         sm="6"
                       >
                         <icon-item
-                          :icon="icon.mdiFormatListNumbered"
+                          :icon="mdiFormatListNumbered"
                           title="Block Height"
                         >
                           {{ data.id.toLocaleString() }}
@@ -36,7 +36,7 @@
                       </v-col>
                       <v-col v-if="data.ts">
                         <icon-item
-                          :icon="icon.mdiCalendar"
+                          :icon="mdiCalendar"
                           title="Timestamp"
                         >
                           {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
@@ -50,11 +50,11 @@
                         sm="6"
                       >
                         <icon-item
-                          :icon="icon.mdiFormatHeaderPound"
+                          :icon="mdiFormatHeaderPound"
                           title="Previous Block"
                         >
                           <router-link
-                            :to="{ name: blockRoute,
+                            :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                    params: { id: data.prevblockhash }}"
                           >
                             {{ shortenHash(data.prevblockhash) }}
@@ -63,11 +63,11 @@
                       </v-col>
                       <v-col v-if="data.nextblockhash">
                         <icon-item
-                          :icon="icon.mdiFormatHeaderPound"
+                          :icon="mdiFormatHeaderPound"
                           title="Next Block"
                         >
                           <router-link
-                            :to="{ name: blockRoute,
+                            :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                    params: { id: data.nextblockhash }}"
                           >
                             {{ shortenHash(data.nextblockhash) }}
@@ -78,7 +78,7 @@
                     <v-row>
                       <v-col>
                         <icon-item
-                          :icon="icon.mdiPound"
+                          :icon="mdiPound"
                           title="Number of Transactions"
                         >
                           {{ data.txcount.toLocaleString() }}
@@ -100,8 +100,8 @@
                         <transaction
                           :tx="tx"
                           show-title-link
-                          :show-heuristic-editor-link="showHeuristicEditor"
-                          :show-fingerprint-link="showHeuristicEditor"
+                          :show-heuristic-editor-link="isPrivilegedOrHigher"
+                          :show-fingerprint-link="isPrivilegedOrHigher"
                           :embed="true"
                         />
                       </v-col>
@@ -132,113 +132,100 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiCubeOutline, mdiFormatListNumbered, mdiCalendar,
-	mdiFormatHeaderPound, mdiTransfer, mdiPound,
+	mdiFormatHeaderPound, mdiPound,
 } from '@mdi/js';
 import {
 	handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
 } from '@/utilities';
-import {
-	PAGE_TITLE,
-	ROUTE_NAME_BLOCK_PAGE,
-	ROUTE_NAME_TRANSACTION_PAGE,
-} from '@/constants';
+import {PAGE_TITLE, ROUTE_NAME_BLOCK_PAGE} from '@/constants';
 import IconItem from '../common/IconItem.vue';
 import Transaction from './transaction/Transaction.vue';
 import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {computed, inject, onMounted, onUpdated, watch} from 'vue';
+import {useRoute} from 'vue-router';
+import {useStore} from 'vuex';
 
-export default {
-	name: 'BlockPage',
-	components: {IconTitle, FadeTransition, IconItem, Transaction},
-	data() {
-		return {
-			icon: {
-				mdiCubeOutline,
-				mdiFormatListNumbered,
-				mdiCalendar,
-				mdiFormatHeaderPound,
-				mdiTransfer,
-				mdiPound,
-			},
-			blockRoute: ROUTE_NAME_BLOCK_PAGE,
-			transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			offset: 0,
-		};
-	},
-	computed: {
-		data() {
-			return this.$store.getters.getBlockData;
-		},
-		session() {
-			return this.$store.getters.getSession;
-		},
-		showHeuristicEditor() {
-			return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
-		},
-	},
-	watch: {
-		$route() {
-			// If route gets changed the component could still be loaded but now with different data.
-			// Because of this the internal state has to be reset.
-			this.offset = 0;
-		},
-		data() {
-			this.setPageTitle();
-		},
-	},
-	mounted() {
-		this.setPageTitle();
-		// Register scroll handler
-		this.offset = 0;
-	},
-	updated() {
-		this.setPageTitle();
-	},
-	methods: {
-		shortenHash,
-		setPageTitle() {
-			let id = ' ';
-			if (this.data && this.data.id) {
-				id = ` ${this.data.id} `;
-			}
+const dakar = inject('dakar');
+const route = useRoute();
+const store = useStore();
+const context = {$store: store, $route: route};
 
-			document.title = `Block${id}- ${PAGE_TITLE}`;
-		},
-		isResponseValid(data) {
-			return !(!data.type || data.type !== 'block' || !data.payload || !data.payload.transactions
-          || data.payload.transactions.length === 0);
-		},
-		async addNewData({done}) {
-			if (!this.data) {
-				done('empty');
-				return;
-			}
+let offset = 0;
 
-			this.offset += 10;
+// Computed
+const data = computed(() => store.getters.getBlockData);
 
-			// Do nothing if all data is already loaded
-			if (this.offset >= this.data.txcount) {
-				done('empty');
-				return;
-			}
+const session = computed(() => store.getters.getSession);
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 
-			try {
-				const response = await this.dakar.data.blkRangeBlockHashPost({blockHash: this.data.blockhash, offset: {offset: this.offset}});
+// Watchers
+watch(route, () => {
+	// If route gets changed the component could still be loaded but now with different data.
+	// Because of this the internal state has to be reset.
+	offset = 0;
+});
 
-				if (this.isResponseValid(response)) {
-					this.data.transactions = [...this.data.transactions, ...response.payload.transactions];
-					this.$store.dispatch('resetMessages');
-				}
+watch(data, () => {
+	setPageTitle();
+});
 
-				done('ok');
-			} catch (e) {
-				handleError(this, e);
-				done('error');
-			}
-		},
-	},
-};
+// Hooks
+onMounted(() => {
+	setPageTitle();
+	// Register scroll handler
+	offset = 0;
+});
+
+onUpdated(() => {
+	setPageTitle();
+});
+
+// Functions
+function setPageTitle() {
+	let id = ' ';
+	if (data.value && data.value.id) {
+		id = ` ${data.value.id} `;
+	}
+
+	document.title = `Block${id}- ${PAGE_TITLE}`;
+}
+
+function 	isResponseValid(data) {
+	return !(!data.type || data.type !== 'block' || !data.payload || !data.payload.transactions
+      || data.payload.transactions.length === 0);
+}
+
+async function addNewData({done}) {
+	if (!data.value) {
+		done('empty');
+		return;
+	}
+
+	offset += 10;
+
+	// Do nothing if all data is already loaded
+	if (offset >= data.value.txcount) {
+		done('empty');
+		return;
+	}
+
+	try {
+		const response = await dakar.data.blkRangeBlockHashPost({blockHash: data.value.blockhash, offset: {offset}});
+
+		if (isResponseValid(response)) {
+			data.value.transactions = [...data.value.transactions, ...response.payload.transactions];
+			await store.dispatch('resetMessages');
+		}
+
+		done('ok');
+	} catch (e) {
+		handleError(context, e);
+		done('error');
+	}
+}
+
 </script>
