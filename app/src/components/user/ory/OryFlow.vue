@@ -97,7 +97,8 @@ const groupTitles = new Map([
 ]);
 const tab = ref(null);
 
-watch(props.flow, () => {
+// Need to use getter for nested prop
+watch(() => props.flow, () => {
 	displayMessages();
 });
 
