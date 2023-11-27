@@ -10,9 +10,9 @@
     :label="metaLabel"
     :model-value="attributes.value"
     :name="attributes.name"
-    :prepend-inner-icon="icons.mdiLockOutline"
+    :prepend-inner-icon="mdiLockOutline"
     :type="password.show ? 'text' : 'password'"
-    :append-inner-icon="password.show ? icons.mdiEye : icons.mdiEyeOff"
+    :append-inner-icon="password.show ? mdiEye : mdiEyeOff"
     autocomplete="current-password"
     @click:append-inner="password.show = !password.show"
   />
@@ -29,7 +29,7 @@
       :model-value="attributes.value?attributes.value:''"
       :autofocus="true"
       :name="attributes.name"
-      @finish="emitSubmitEvent(null, id)"
+      @finish="emitSubmitEvent(null, 'otp-input')"
     />
   </div>
   <v-text-field
@@ -46,7 +46,7 @@
     :model-value="attributes.value"
     :name="attributes.name"
     type="email"
-    :prepend-inner-icon="icons.mdiEmail"
+    :prepend-inner-icon="mdiEmail"
   />
   <div v-else-if="attributes.type === 'submit'">
     <input
@@ -69,67 +69,60 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiLockOutline, mdiEmail, mdiAccount, mdiEye, mdiEyeOff, mdiFormTextboxPassword,
 } from '@mdi/js';
+import {computed, nextTick, ref} from 'vue';
 
-export default {
-	name: 'OryUiNodeInput',
-	props: {
-		meta: {type: Object, required: true},
-		attributes: {type: Object, required: true},
-		name: {type: String, required: true},
-		submitEnabled: {type: Boolean, require: false, default: true},
-	},
-	emits: ['submit'],
-	data() {
-		return {
-			icons: {
-				mdiLockOutline, mdiEmail, mdiAccount, mdiEye, mdiEyeOff, mdiFormTextboxPassword,
-			},
-			password: {
-				show: false,
-			},
-		};
-	},
-	computed: {
-		metaLabel() {
-			if (this.meta.label && this.meta.label.text) {
-				return this.meta.label.text;
-			}
+const props = defineProps({
+	meta: {type: Object, required: true},
+	attributes: {type: Object, required: true},
+	name: {type: String, required: true},
+	submitEnabled: {type: Boolean, require: false, default: true},
+});
 
-			return '';
-		},
-		inputIcon() {
-			if (this.attributes?.name === 'totp_code') {
-				return this.icons.mdiFormTextboxPassword;
-			}
+const emit = defineEmits(['submit']);
 
-			if (this.attributes?.name === 'code') {
-				return this.icons.mdiFormTextboxPassword;
-			}
+const password = ref({show: false});
 
-			if (this.metaLabel === 'ID') {
-				return this.icons.mdiAccount;
-			}
+// Computed
+const metaLabel = computed(() => {
+	if (props.meta.label && props.meta.label.text) {
+		return props.meta.label.text;
+	}
 
-			return null;
-		},
-	},
-	methods: {
-		emitSubmitEvent(event, btnName) {
-			if (event) {
-				event.preventDefault();
-			}
+	return '';
+});
 
-			// NextTick is needed so the complete otp-input is getting submitted
-			this.$nextTick(() => {
-				this.$emit('submit', btnName);
-			});
-		},
-	},
-};
+const inputIcon = computed(() => {
+	if (props.attributes?.name === 'totp_code') {
+		return mdiFormTextboxPassword;
+	}
+
+	if (props.attributes?.name === 'code') {
+		return mdiFormTextboxPassword;
+	}
+
+	if (metaLabel.value === 'ID') {
+		return mdiAccount;
+	}
+
+	return null;
+});
+
+// Functions
+function emitSubmitEvent(event, btnName) {
+	if (event) {
+		event.preventDefault();
+	}
+
+	// NextTick is needed so the complete otp-input is getting submitted
+	nextTick(() => {
+		emit('submit', btnName);
+	});
+}
+
 </script>
 
 <style scoped>
