@@ -9,7 +9,7 @@
           Transaction
           <router-link
             class="ml-1"
-            :to="{ name: routes.transactionRoute, params: { id: txHash }}"
+            :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}"
           >
             {{ txHash }}
           </router-link>
@@ -33,7 +33,7 @@
             <v-list-item
               v-for="(t) in inputTxs"
               :key="t.txhash"
-              :to="{ name: routes.transactionRoute, params: { id: t.txhash }}"
+              :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: t.txhash }}"
             >
               <v-list-item-title>{{ t.txhash }}</v-list-item-title>
             </v-list-item>
@@ -44,37 +44,29 @@
   </v-dialog>
 </template>
 
-<script>
+<script setup>
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {computed} from 'vue';
 
-export default {
-	name: 'TransactionDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		txHash: {type: String, required: true},
-		privacyType: {type: String, required: true},
-		dateTime: {type: Date, required: true},
-		inputTxs: {type: Array, required: true},
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	txHash: {type: String, required: true},
+	privacyType: {type: String, required: true},
+	dateTime: {type: Date, required: true},
+	inputTxs: {type: Array, required: true},
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-	emits: ['update:modelValue'],
-	data() {
-		return {
-			routes: {
-				transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			},
-		};
+	set(value) {
+		emit('update:modelValue', value);
 	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-};
+});
+
 </script>
 
 <style scoped>
