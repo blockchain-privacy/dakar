@@ -8,7 +8,7 @@
       <v-menu>
         <template #activator="{ props }">
           <v-btn
-            :icon="icons.mdiDotsVertical"
+            :icon="mdiDotsVertical"
             variant="text"
             v-bind="props"
           />
@@ -23,7 +23,7 @@
                 color="red"
                 class="me-2"
               >
-                {{ icons.mdiAlert }}
+                {{ mdiAlert }}
               </v-icon>
               Delete Account
             </v-list-item-title>
@@ -40,7 +40,7 @@
         <ory-flow
           class="mt-4"
           :flow="settingsFlow"
-          :form-id="formID"
+          form-id="settings-form"
           :disabled-forms="disabledForms"
           embed
           @submit="handleOrySubmitSettings"
@@ -65,7 +65,7 @@
       class="mb-10"
       :headers="userSessionHeaders"
       :items="userSessions?userSessions:[]"
-      :loading="!userSessions"
+      :loading="userSessionsLoading"
     >
       <template #item.authenticatedAt="{ item }">
         <span>{{ new Date(item.authenticatedAt).toLocaleString() }}</span>
@@ -82,7 +82,7 @@
           size="small"
           @click="deleteUserSession(item)"
         >
-          {{ icons.mdiDelete }}
+          {{ mdiDelete }}
         </v-icon>
       </template>
       <template #no-data>
@@ -117,9 +117,9 @@
   </div>
 </template>
 
-<script>
-import {mdiAccountDetails, mdiDelete, mdiAlert, mdiDotsVertical,
-	mdiLinux, mdiAndroid, mdiApple, mdiLaptop, mdiMicrosoftWindows,
+<script setup>
+import {mdiDelete, mdiAlert, mdiDotsVertical, mdiLinux,
+	mdiAndroid, mdiApple, mdiLaptop, mdiMicrosoftWindows,
 } from '@mdi/js';
 import {
 	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE,
@@ -127,263 +127,271 @@ import {
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
+import {computed, inject, onMounted, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useStore} from 'vuex';
 
-export default {
-	name: 'ProfilePage',
-	components: {OryFlow},
-	data() {
-		return {
-			icons: {mdiAccountDetails, mdiDelete, mdiAlert, mdiDotsVertical,
-				mdiLinux, mdiAndroid, mdiApple, mdiLaptop, mdiMicrosoftWindows},
-			formID: 'settings-form',
-			settingsFlow: null,
-			userSessions: [],
-			userSessionsLoading: false,
-			disabledForms: [],
-			showAccountDeletionDialog: false,
-			route: {
-				rootPage: ROUTE_NAME_ENTRY_PAGE,
-			},
-			userSessionSortBy: [{key: 'authenticated_at', order: 'desc'}],
-			userSessionHeaders: [
-				{
-					title: 'Authentication Date', key: 'authenticatedAt', align: 'start',
-				},
-				{
-					title: 'Expiration Date', key: 'expiresAt',
-				},
-				{
-					title: 'Device', key: 'userAgent',
-				},
-				{
-					title: 'IP Address', key: 'ipAddress',
-				},
-				{
-					title: '', key: 'actions', sortable: false,
-				},
-			],
-		};
+const ory = inject('ory');
+const dakar = inject('dakar');
+const route = useRoute();
+const router = useRouter();
+const store = useStore();
+
+const settingsFlow = ref(null);
+const userSessions = ref([]);
+const userSessionsLoading = ref(false);
+const disabledForms = ref([]);
+const showAccountDeletionDialog = ref(false);
+const userSessionSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
+const userSessionHeaders = [
+	{
+		title: 'Authentication Date', key: 'authenticatedAt', align: 'start',
 	},
-	computed: {
-		session: {
-			get() {
-				return this.$store.getters.getSession;
-			},
-			set(value) {
-				this.$store.dispatch('setSession', value);
-			},
-		},
+	{
+		title: 'Expiration Date', key: 'expiresAt',
 	},
-	watch: {
-		$route(to) {
-			if (to.name === ROUTE_NAME_USER_PROFILE_PAGE && !to.query.flow) {
-				// This happens if the users manually navigates to the route of this page,
-				// in this case flow is not set and needs to be reinitialized
-				this.initFlow();
-			}
-		},
+	{
+		title: 'Device', key: 'userAgent',
 	},
-	mounted() {
-		document.title = `Profile - ${PAGE_TITLE}`;
-
-		// Init the flow and get sessions in parallel
-		Promise.all([this.initFlow(), this.getSessions()]);
+	{
+		title: 'IP Address', key: 'ipAddress',
 	},
-	methods: {
-		getDeviceIcon(userAgent) {
-			if (userAgent.length === 0) {
-				return '';
-			}
-
-			const ua = userAgent.toLowerCase();
-			if (ua.includes('linux')) {
-				return this.icons.mdiLinux;
-			}
-
-			if (ua.includes('android')) {
-				return this.icons.mdiAndroid;
-			}
-
-			if (ua.includes('iphone') || ua.includes('mac')) {
-				return this.icons.mdiApple;
-			}
-
-			if (ua.includes('windows')) {
-				return this.icons.mdiMicrosoftWindows;
-			}
-
-			return this.icons.mdiLaptop;
-		},
-		setSuccessMessage(msg) {
-			// Do not limit message to current route
-			this.$store.dispatch('addMessage', {text: msg, type: 'success', temporary: true});
-		},
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		async deleteIdentity() {
-			try {
-				await this.dakar.authentication.deleteIdentityGet();
-				this.$store.dispatch('resetMessages');
-				this.setSuccessMessage('Your account was successfully deleted. Goodbye!');
-				this.session = null;
-				this.$router.push({name: this.route.rootPage});
-			} catch (e) {
-				handleError(this, e);
-			}
-
-			this.showAccountDeletionDialog = false;
-		},
-		async deleteUserSession(session) {
-			if (!session.id) {
-				return;
-			}
-
-			try {
-				const response = await this.ory.frontend.disableMySession({id: session.id});
-
-				if (response.status === 204) {
-					this.userSessions = this.userSessions.filter(d => d.id !== session.id);
-				} else {
-					throw new Error('unable to delete session');
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
-		},
-		async getSessions() {
-			this.userSessionsLoading = true;
-
-			try {
-				// Get a maximum of 30 sessions
-				const response = await 	this.ory.frontend.listMySessions({page: 1, perPage: 30});
-
-				this.userSessions = response.data.map(d => {
-					d.authenticatedAt = new Date(d.authenticated_at).getTime();
-					d.expiresAt = new Date(d.expires_at).getTime();
-					if (d.devices?.length > 0) {
-						if (d.devices[0].user_agent) {
-							d.userAgent = d.devices[0].user_agent;
-						}
-
-						if (d.devices[0].ip_address) {
-							d.ipAddress = d.devices[0].ip_address.split(':')[0];
-						}
-					}
-
-					return d;
-				});
-			} catch (e) {
-				handleError(this, e);
-			}
-
-			this.userSessionsLoading = false;
-		},
-		async initSettingsFlow() {
-			try {
-				const response = await this.ory.frontend.createBrowserSettingsFlow();
-				this.setFlowData(response.data);
-			} catch (e) {
-				await handleGetFlowError(this, e, null);
-			}
-		},
-		setFlowData(d) {
-			this.settingsFlow = d;
-			if (!this.$route.query.flow || this.$route.query.flow !== d.id) {
-				this.$router.replace({query: {flow: d.id}});
-			}
-		},
-		async handleOrySubmitSettings(formID) {
-			const form = document.getElementById(formID);
-			if (!form || !this.settingsFlow.ui.action) {
-				return;
-			}
-
-			// Disable submitting from this form
-			this.disabledForms.push(formID);
-
-			const body = Object.fromEntries(new FormData(form));
-			const {flow} = this.$route.query;
-
-			try {
-				const response = await this.ory.frontend.updateSettingsFlow({flow, updateSettingsFlowBody: body});
-
-				// Something went wrong and we need to display some data
-				if (response.data && response.data.ui) {
-					this.setFlowData(response.data);
-				}
-
-				// If an account is being recovered the session is empty,
-				// therefore it has to be refreshed.
-				await this.refreshSession();
-
-				if (response.error && response.error.reason) {
-					this.setErrorMessage(response.error.reason);
-				}
-			} catch (e) {
-				if (e.response?.data?.ui) {
-					this.setFlowData(e.response.data);
-				} else {
-					handleGetFlowError(this, e, async () => {
-						await this.initSettingsFlow();
-						this.setErrorMessage('The settings flow has expired, please try again.');
-					}).catch(e => {
-						this.setErrorMessage(e);
-					});
-				}
-			}
-
-			// Enable submitting for this form again
-			this.disabledForms = this.disabledForms.filter(d => d !== formID);
-		},
-		async refreshSession() {
-			try {
-				const response = await this.ory.frontend.toSession();
-
-				if (response.status === 200) {
-					this.session = response.data;
-				}
-			} catch (e) {
-				await handleGetFlowError(this, e, null);
-			}
-		},
-		async tryRefreshSession() {
-			let success = false;
-
-			try {
-				const response = await 	this.ory.frontend.toSession();
-				if (response.status === 200) {
-					this.session = response.data;
-					success = true;
-				}
-			} catch (_) {
-				success = false;
-			}
-
-			return success;
-		},
-		async initFlow() {
-			const {flow} = this.$route.query;
-
-			if (typeof flow === 'string') {
-				try {
-					const response = await this.ory.frontend.getSettingsFlow({id: flow});
-					this.setFlowData(response.data);
-
-					// Try to refresh session. This might fail if the identity
-					// is in the process of being recovered and aal2 is set.
-					await this.tryRefreshSession();
-				} catch (e) {
-					await handleGetFlowError(this, e, this.initSettingsFlow);
-				}
-			} else {
-				// If there's no flow in our route,
-				// we need to initialize our login flow
-				await this.initSettingsFlow();
-			}
-		},
+	{
+		title: '', key: 'actions', sortable: false,
 	},
-};
+];
+
+// Computed
+const session = computed({
+	get() {
+		return store.getters.getSession;
+	},
+	set(value) {
+		store.dispatch('setSession', value);
+	},
+});
+
+watch(route, to => {
+	if (to.name === ROUTE_NAME_USER_PROFILE_PAGE && !to.query.flow) {
+		// This happens if the users manually navigates to the route of this page,
+		// in this case flow is not set and needs to be reinitialized
+		initFlow();
+	}
+});
+
+// Hooks
+onMounted(() => {
+	document.title = `Profile - ${PAGE_TITLE}`;
+
+	// Init the flow and get sessions in parallel
+	Promise.all([initFlow(), getSessions()]);
+});
+
+// Functions
+function getDeviceIcon(userAgent) {
+	if (userAgent.length === 0) {
+		return '';
+	}
+
+	const ua = userAgent.toLowerCase();
+	if (ua.includes('linux')) {
+		return mdiLinux;
+	}
+
+	if (ua.includes('android')) {
+		return mdiAndroid;
+	}
+
+	if (ua.includes('iphone') || ua.includes('mac')) {
+		return mdiApple;
+	}
+
+	if (ua.includes('windows')) {
+		return mdiMicrosoftWindows;
+	}
+
+	return mdiLaptop;
+}
+
+function setSuccessMessage(msg) {
+	// Do not limit message to current route
+	store.dispatch('addMessage', {text: msg, type: 'success', temporary: true});
+}
+
+function 	setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+async function deleteIdentity() {
+	try {
+		await dakar.authentication.deleteIdentityGet();
+		await store.dispatch('resetMessages');
+		setSuccessMessage('Your account was successfully deleted. Goodbye!');
+		session.value = null;
+		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
+	} catch (e) {
+		handleError(this, e);
+	}
+
+	showAccountDeletionDialog.value = false;
+}
+
+async function deleteUserSession(session) {
+	if (!session.id) {
+		return;
+	}
+
+	try {
+		const response = await ory.frontend.disableMySession({id: session.id});
+
+		if (response.status === 204) {
+			userSessions.value = userSessions.value.filter(d => d.id !== session.id);
+		} else {
+			throw new Error('unable to delete session');
+		}
+	} catch (e) {
+		handleError(this, e);
+	}
+}
+
+async function getSessions() {
+	userSessionsLoading.value = true;
+
+	try {
+		// Get a maximum of 30 sessions
+		const response = await 	ory.frontend.listMySessions({page: 1, perPage: 30});
+
+		userSessions.value = response.data.map(d => {
+			d.authenticatedAt = new Date(d.authenticated_at).getTime();
+			d.expiresAt = new Date(d.expires_at).getTime();
+			if (d.devices?.length > 0) {
+				if (d.devices[0].user_agent) {
+					d.userAgent = d.devices[0].user_agent;
+				}
+
+				if (d.devices[0].ip_address) {
+					d.ipAddress = d.devices[0].ip_address.split(':')[0];
+				}
+			}
+
+			return d;
+		});
+	} catch (e) {
+		handleError(this, e);
+	}
+
+	userSessionsLoading.value = false;
+}
+
+async function initSettingsFlow() {
+	try {
+		const response = await ory.frontend.createBrowserSettingsFlow();
+		setFlowData(response.data);
+	} catch (e) {
+		await handleGetFlowError(this, e, null);
+	}
+}
+
+function setFlowData(d) {
+	settingsFlow.value = d;
+	if (!route.query.flow || route.query.flow !== d.id) {
+		router.replace({query: {flow: d.id}});
+	}
+}
+
+async function handleOrySubmitSettings(formID) {
+	const form = document.getElementById(formID);
+	if (!form || !settingsFlow.value.ui.action) {
+		return;
+	}
+
+	// Disable submitting from this form
+	disabledForms.value.push(formID);
+
+	const body = Object.fromEntries(new FormData(form));
+	const {flow} = route.query;
+
+	try {
+		const response = await ory.frontend.updateSettingsFlow({flow, updateSettingsFlowBody: body});
+
+		// Something went wrong and we need to display some data
+		if (response.data && response.data.ui) {
+			setFlowData(response.data);
+		}
+
+		// If an account is being recovered the session is empty,
+		// therefore it has to be refreshed.
+		await refreshSession();
+
+		if (response.error && response.error.reason) {
+			setErrorMessage(response.error.reason);
+		}
+	} catch (e) {
+		if (e.response?.data?.ui) {
+			setFlowData(e.response.data);
+		} else {
+			handleGetFlowError(this, e, async () => {
+				await initSettingsFlow();
+				setErrorMessage('The settings flow has expired, please try again.');
+			}).catch(e => {
+				setErrorMessage(e);
+			});
+		}
+	}
+
+	// Enable submitting for this form again
+	disabledForms.value = disabledForms.value.filter(d => d !== formID);
+}
+
+async function refreshSession() {
+	try {
+		const response = await ory.frontend.toSession();
+
+		if (response.status === 200) {
+			session.value = response.data;
+		}
+	} catch (e) {
+		await handleGetFlowError(this, e, null);
+	}
+}
+
+async function tryRefreshSession() {
+	let success = false;
+
+	try {
+		const response = await 	ory.frontend.toSession();
+		if (response.status === 200) {
+			session.value = response.data;
+			success = true;
+		}
+	} catch (_) {
+		success = false;
+	}
+
+	return success;
+}
+
+async function initFlow() {
+	const {flow} = route.query;
+
+	if (typeof flow === 'string') {
+		try {
+			const response = await ory.frontend.getSettingsFlow({id: flow});
+			setFlowData(response.data);
+
+			// Try to refresh session. This might fail if the identity
+			// is in the process of being recovered and aal2 is set.
+			await tryRefreshSession();
+		} catch (e) {
+			await handleGetFlowError(this, e, initSettingsFlow);
+		}
+	} else {
+		// If there's no flow in our route,
+		// we need to initialize our login flow
+		await initSettingsFlow();
+	}
+}
+
 </script>
 
 <style scoped>
