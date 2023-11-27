@@ -2,7 +2,7 @@
   <side-bar
     v-model="inputVal"
     title="Add Heuristic"
-    :icon="icon.mdiShapeSquareRoundedPlus"
+    :icon="mdiShapeSquareRoundedPlus"
     max-width="648px"
   >
     <template #body>
@@ -94,72 +94,68 @@
   </side-bar>
 </template>
 
-<script>
+<script setup>
 import {mdiShapeSquareRoundedPlus} from '@mdi/js';
 import SideBar from '@/components/heuristic/SideBar.vue';
+import {computed, ref} from 'vue';
+import {useDisplay} from 'vuetify';
 
-export default {
-	name: 'HeuristicTypeSelectionSideBar',
-	components: {SideBar},
-	props: {
-		modelValue: {type: Boolean, required: true},
-		tabItems: {type: Array, required: true},
-		descriptors: {type: Array, required: true},
-		// Events: add-heuristic
-	},
-	emits: ['update:modelValue', 'add-heuristic'],
-	data() {
-		return {
-			icon: {mdiShapeSquareRoundedPlus},
-			heuristicTabs: null,
-			parameterRules: new Map([
-				['int', [v => {
-					if (!/^\d+$/.test(v)) {
-						return false;
-					}
+const display = useDisplay();
 
-					const num = parseInt(v, 10);
-					return Number.isInteger(num) && num > 0;
-				}]],
-				// String rule is not implemented yet
-				['string', null],
-			]),
-		};
-	},
-	computed: {
-		heuristicTypes() {
-			return this.descriptors.map(descriptor => {
-				// Extend descriptor objects with default values for the switches
-				descriptor.useCustomClusters = false;
-				descriptor.useAddressExclusionList = false;
-				descriptor.excludeSpendingGaps = false;
-				return descriptor;
-			});
-		},
-		inputVal: {
-			get() {
-				return this.modelValue;
-			},
-			set(val) {
-				this.$emit('update:modelValue', val);
-			},
-		},
-	},
-	methods: {
-		addNewHeuristicAction(item) {
-			if (item.parameter !== undefined && !item.parameter.valid) {
-				return;
-			}
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	tabItems: {type: Array, required: true},
+	descriptors: {type: Array, required: true},
+});
 
-			// Hide component on small screen devices after adding a new heuristic
-			if (this.$vuetify.display.smAndDown) {
-				this.inputVal = false;
-			}
+const emit = defineEmits(['update:modelValue', 'add-heuristic']);
 
-			this.$emit('add-heuristic', item);
-		},
+const parameterRules = new Map([
+	['int', [v => {
+		if (!/^\d+$/.test(v)) {
+			return false;
+		}
+
+		const num = parseInt(v, 10);
+		return Number.isInteger(num) && num > 0;
+	}]],
+	// String rule is not implemented yet
+	['string', null],
+]);
+
+const heuristicTabs = ref(null);
+
+const heuristicTypes = computed(() => props.descriptors.map(descriptor => {
+	// Extend descriptor objects with default values for the switches
+	descriptor.useCustomClusters = false;
+	descriptor.useAddressExclusionList = false;
+	descriptor.excludeSpendingGaps = false;
+	return descriptor;
+}));
+
+const inputVal = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(val) {
+		emit('update:modelValue', val);
+	},
+});
+
+// Functions
+function addNewHeuristicAction(item) {
+	if (item.parameter !== undefined && !item.parameter.valid) {
+		return;
+	}
+
+	// Hide component on small screen devices after adding a new heuristic
+	if (display.smAndDown.value) {
+		inputVal.value = false;
+	}
+
+	emit('add-heuristic', item);
+}
+
 </script>
 
 <style scoped>
