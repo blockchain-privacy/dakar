@@ -23,15 +23,14 @@
   </div>
 </template>
 
-<script>
-export default {
-	name: 'NamedDivider',
-	props: {
-		title: {type: String, required: false, default: ''},
-		verticalMargin: {type: Number, required: false, default: 8},
-		titleClass: {type: String, required: false, default: ''},
-	},
-};
+<script setup>
+
+defineProps({
+	title: {type: String, required: false, default: ''},
+	verticalMargin: {type: Number, required: false, default: 8},
+	titleClass: {type: String, required: false, default: ''},
+});
+
 </script>
 
 <style scoped>

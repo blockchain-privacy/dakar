@@ -8,11 +8,11 @@
     :open-on-hover="isOpenOnHover"
     :transition="transition"
   >
-    <template #activator="{ props }">
+    <template #activator="item">
       <v-btn
         v-if="icon"
         :color="color"
-        v-bind="props"
+        v-bind="item.props"
       >
         <v-icon>{{ icon }}</v-icon>
       </v-btn>
@@ -22,7 +22,7 @@
         v-bind="props"
       >
         {{ name }}
-        <v-icon>{{ icons.mdiChevronRight }}</v-icon>
+        <v-icon>{{ mdiChevronRight }}</v-icon>
       </v-list-item>
     </template>
     <v-list>
@@ -59,52 +59,43 @@
   </v-menu>
 </template>
 
-<script>
-import {
-	mdiChevronRight,
-} from '@mdi/js';
+<script setup>
+import {mdiChevronRight} from '@mdi/js';
+import {computed} from 'vue';
 
-export default {
-	name: 'NestedMenu',
-	props: {
-		modelValue: Boolean,
-		name: {type: String, default: ''},
-		icon: {type: String, default: ''},
-		menuItems: {type: Array, default: () => []},
-		absolute: {type: Boolean, default: false},
-		color: {type: String, default: 'secondary'},
-		positionX: {type: Number, default: 0},
-		positionY: {type: Number, default: 0},
-		isOffset: {type: Boolean, default: false},
-		isOpenOnHover: {type: Boolean, default: false},
-		isSubMenu: {type: Boolean, default: false},
-		transition: {type: String, default: 'fade-transition'},
+const props = defineProps({
+	modelValue: Boolean,
+	name: {type: String, default: ''},
+	icon: {type: String, default: ''},
+	menuItems: {type: Array, default: () => []},
+	absolute: {type: Boolean, default: false},
+	color: {type: String, default: 'secondary'},
+	positionX: {type: Number, default: 0},
+	positionY: {type: Number, default: 0},
+	isOffset: {type: Boolean, default: false},
+	isOpenOnHover: {type: Boolean, default: false},
+	isSubMenu: {type: Boolean, default: false},
+	transition: {type: String, default: 'fade-transition'},
+});
+
+const emit = defineEmits(['update:modelValue', 'nested-menu-click']);
+
+// Computed
+const inputVal = computed({
+	get() {
+		return props.modelValue;
 	},
-	emits: ['update:modelValue', 'nested-menu-click'],
-	data() {
-		return {
-			icons: {
-				mdiChevronRight,
-			},
-		};
+	set(val) {
+		emit('update:modelValue', val);
 	},
-	computed: {
-		inputVal: {
-			get() {
-				return this.modelValue;
-			},
-			set(val) {
-				this.$emit('update:modelValue', val);
-			},
-		},
-	},
-	methods: {
-		emitClickEvent(item) {
-			// This.closeAllMenus() // Theoretically, create a method that does this as a workaround
-			this.$emit('nested-menu-click', item);
-		},
-	},
-};
+});
+
+// Functions
+function emitClickEvent(item) {
+	// This.closeAllMenus() // Theoretically, create a method that does this as a workaround
+	emit('nested-menu-click', item);
+}
+
 </script>
 
 <style scoped>
