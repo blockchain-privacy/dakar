@@ -246,375 +246,378 @@
   </div>
 </template>
 
-<script>
-import {mdiCalendarRange} from '@mdi/js';
+<script setup>
 import Histogram from '@/d3Documents/histogram';
 import ForceGraph from '@/d3Documents/forceGraph';
 import {getPrivacyTypeLabel} from '@/utilities';
-import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
+import {computed, inject, onBeforeMount, onMounted, ref, watch} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
+
+const props = defineProps({addressHash: {type: String, required: true}});
+
+const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
+const colorMap = new Map();
+let svgHistogram = null;
+let svgGraph = null;
+const tooManyTransactionsThreshold = 500;
+let initialLoadDone = false;
+let graphMode = false;
+
+// Select all labels by default
+const selectedPrivacyID = ref([0, 1, 2, 3, 4]);
+const showHistogram = ref(false);
+const showGraph = ref(false);
+const isLoading = ref(false);
+const showEmptyResponseMsg = ref(false);
+const showTooManyAddressesMsg = ref(false);
+const showNotEnoughDataMsg = ref(false);
+const showTooManyTransactionsMsg = ref(false);
+const overrideTooManyTransactionsWarning = ref(false);
+const activities = ref(null);
+const includeCusterAddresses = ref(false);
+const rangePicker = ref({
+	model: null,
+	min: 0,
+	max: 0,
+	events: [],
+});
+const graphTabs = ref(null);
+const barTable = ref({
+	headers: [{
+		title: 'Transaction', align: 'start', key: 'txhash',
+	},
+	{title: 'Timestamp', key: 'dateTime'},
+	{title: 'Transaction Type', key: 'privacytype'}],
+	transactions: [],
+	startDate: '',
+	endDate: '',
+	show: false,
+});
+const clickedNode = ref({
+	// eslint-disable-next-line camelcase
+	input_txs: [],
+	dateTime: null,
+	privacytype: '',
+	txhash: '',
+});
+const showNodeDialog = ref(false);
+const hasLoaded = ref(false);
+
+watch(() => props.addressHash, () => {
+	// Prop was changed -> pull new data
+	updateSvgData(true);
+});
+
+// Computed
+const privacyLabels = computed(() => {
+	const labels = [];
+
+	colorMap.forEach((v, k) => {
+		labels.push({text: capitalize(k), color: v, id: k});
+	});
+
+	return labels;
+});
+
+// Returns truer if min and max or on the same calendar day
+const isSameDay = computed(() => {
+	const day1 = new Date(rangePicker.value.min);
+	const day2 = new Date(rangePicker.value.max);
+	// Cut off time
+	day1.setHours(0, 0, 0, 0);
+	day2.setHours(0, 0, 0, 0);
+	// Compare numbers
+	return day1.getTime() === day2.getTime();
+});
+
+const selectedPrivacyLabel = computed(() => {
+	const selectedLabels = [];
+
+	selectedPrivacyID.value.forEach(i => {
+		selectedLabels.push(allPrivacyLabels[i]);
+	});
+
+	return selectedLabels;
+});
+
+// Hooks
+onBeforeMount(() => {
+	includeCusterAddresses.value = false;
+	colorMap.set('destination', '#0072B2');
+	colorMap.set('collateral creation', '#E69F00');
+	colorMap.set('collateral payment', '#009E73');
+	colorMap.set('origin', '#D55E00');
+	colorMap.set('mixing', '#56B4E9');
+
+	svgHistogram = new Histogram(
+		'mixing_activity_histogram',
+		1200,
+		300,
+		false,
+	);
+	svgHistogram.setClickHandler(onBarClick);
+});
+
+onMounted(() => {
+	// Has to be called after the SVG is included in the DOM
+	svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph', colorMap);
+	svgGraph.setClickHandler(onNodeClick);
+});
+
+// Functions
 // Capitalize returns the first letter of each word (separated by a space) in str capitalized
 function capitalize(str) {
 	return str.split(' ').map(d => d[0].toUpperCase() + d.slice(1)).join(' ');
 }
 
-export default {
-	name: 'MixingActivity',
-	components: {TransactionDialog, TransactionTableDialog, WikiTooltip},
-	props: {
-		addressHash: {type: String, required: true},
-	},
-	data() {
-		return {
-			icons: {mdiCalendarRange},
-			txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			lastQuery: '',
-			includeCluster: false,
-			// Select all labels by default
-			selectedPrivacyID: [0, 1, 2, 3, 4],
-			allPrivacyLabels: ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'],
-			showHistogram: false,
-			showGraph: false,
-			colorMap: new Map(),
-			svgHistogram: null,
-			svgGraph: null,
-			isLoading: false,
-			showEmptyResponseMsg: false,
-			showTooManyAddressesMsg: false,
-			showNotEnoughDataMsg: false,
-			showTooManyTransactionsMsg: false,
-			overrideTooManyTransactionsWarning: false,
-			tooManyTransactionsThreshold: 500,
-			activities: null,
-			initialLoadDone: false,
-			includeCusterAddresses: false,
-			rangePicker: {
-				model: null,
-				min: 0,
-				max: 0,
-				events: [],
-			},
-			graphTabs: null,
-			barTable: {
-				headers: [{
-					title: 'Transaction', align: 'start', key: 'txhash',
-				},
-				{title: 'Timestamp', key: 'dateTime'},
-				{title: 'Transaction Type', key: 'privacytype'}],
-				transactions: [],
-				startDate: '',
-				endDate: '',
-				show: false,
-			},
-			clickedNode: {
-				// eslint-disable-next-line camelcase
-				input_txs: [],
-				dateTime: null,
-				privacytype: '',
-				txhash: '',
-			},
-			showNodeDialog: false,
-			graphMode: false,
-			hasLoaded: false,
-		};
-	},
-	computed: {
-		privacyLabels() {
-			const labels = [];
+function setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
 
-			this.colorMap.forEach((v, k) => {
-				labels.push({text: capitalize(k), color: v, id: k});
+function onBarClick(data) {
+	if (data.x0.getHours() === data.x1.getHours()
+      && data.x0.getMinutes() === data.x1.getMinutes()) {
+		barTable.value.startDate = data.x0.toLocaleDateString();
+		barTable.value.endDate = data.x1.toLocaleDateString();
+	} else {
+		barTable.value.startDate = data.x0.toLocaleString();
+		barTable.value.endDate = data.x1.toLocaleString();
+	}
+
+	barTable.value.transactions = data;
+	barTable.value.show = true;
+}
+
+function onNodeClick(data) {
+	clickedNode.value = data;
+	showNodeDialog.value = true;
+}
+
+async function getMixingActivity() {
+	const response = {ok: false, data: null, msg: null};
+	try {
+		response.data = await dakar.tools.mixingActivityPost({
+			activity: {
+				addressHash: props.addressHash,
+				isClusterLookup: includeCusterAddresses.value,
+			},
+		});
+		response.ok = true;
+	} catch (e) {
+		if (e.message === 'too_many_addresses') {
+			response.msg = e.message;
+		}
+	}
+
+	return response;
+}
+
+function getFilteredData(withLinks) {
+	let fromDate = null;
+	let toDate = null;
+	let considerDate = true;
+
+	if (rangePicker.value.model === null) {
+		considerDate = false;
+	} else {
+		fromDate = new Date(rangePicker.value.model[0]);
+		toDate = new Date(rangePicker.value.model[1]);
+	}
+
+	const ret = {items: [], links: []};
+	const events = new Set();
+	const numActivities = activities.value.length;
+	ret.items = activities.value.filter(d => {
+		if (selectedPrivacyLabel.value.length < 5
+        && !selectedPrivacyLabel.value.includes(d.privacytype)) {
+			return false;
+		}
+
+		if (!considerDate) {
+			return true;
+		}
+
+		const eventTime = d.dateTime;
+
+		// Decrease accuracy of range picker ticks when many activities exist
+		if (numActivities > 500) {
+			eventTime.setHours(0, 0, 0, 0);
+		} else if (numActivities > 200) {
+			eventTime.setMinutes(0, 0, 0);
+		}
+
+		events.add(eventTime.getTime());
+
+		return d.dateTime <= toDate && d.dateTime >= fromDate;
+	});
+
+	// Construct event objet
+	const eventObj = {};
+	Array.from(events).forEach(val => {
+		eventObj[val] = '';
+	});
+	rangePicker.value.events = eventObj;
+
+	if (withLinks) {
+		const filteredHashes = new Set(ret.items.map(d => d.txhash));
+
+		ret.items.forEach(d => {
+			if (!d.input_txs) {
+				return;
+			}
+
+			d.input_txs.forEach(it => {
+				if (!filteredHashes.has(it.txhash)) {
+					return;
+				}
+
+				ret.links.push({source: it.txhash, target: d.txhash});
 			});
+		});
+	}
 
-			return labels;
-		},
-		// Returns truer if min and max or on the same calendar day
-		isSameDay() {
-			const day1 = new Date(this.rangePicker.min);
-			const day2 = new Date(this.rangePicker.max);
-			// Cut off time
-			day1.setHours(0, 0, 0, 0);
-			day2.setHours(0, 0, 0, 0);
-			// Compare numbers
-			return day1.getTime() === day2.getTime();
-		},
-		selectedPrivacyLabel() {
-			const selectedLabels = [];
+	return ret;
+}
 
-			this.selectedPrivacyID.forEach(i => {
-				selectedLabels.push(this.allPrivacyLabels[i]);
-			});
+function getCategories(filtered) {
+	if (selectedPrivacyLabel.value.length < 5) {
+		return selectedPrivacyLabel;
+	}
 
-			return selectedLabels;
-		},
-	},
-	watch: {
-		addressHash() {
-			// Prop was changed -> pull new data
-			this.updateSvgData(true);
-		},
-	},
-	beforeMount() {
-		this.includeCusterAddresses = this.includeCluster;
-		this.colorMap.set('destination', '#0072B2');
-		this.colorMap.set('collateral creation', '#E69F00');
-		this.colorMap.set('collateral payment', '#009E73');
-		this.colorMap.set('origin', '#D55E00');
-		this.colorMap.set('mixing', '#56B4E9');
+	return [...new Set(filtered.map(d => d.privacytype))];
+}
 
-		this.svgHistogram = new Histogram(
-			'mixing_activity_histogram',
-			1200,
-			300,
-			false,
+function showForceGraphDespiteWarning() {
+	overrideTooManyTransactionsWarning.value = true;
+	onTabChange(1);
+}
+
+function onTabChange(tab) {
+	// Tab === 0: histogram
+	// tab === 1: force graph
+	const wantGraph = tab === 1;
+	// Check if tab was actually changed. @changed:modelValue also fires on initial load of component
+	if (graphMode === wantGraph) {
+		return;
+	}
+
+	graphMode = wantGraph;
+
+	if (graphMode) {
+		if (!showTooManyTransactionsMsg.value
+        || overrideTooManyTransactionsWarning) {
+			updateSvgData();
+		}
+
+		return;
+	}
+
+	updateSvgData();
+}
+
+async function updateSvgData(pullNewData) {
+	showHistogram.value = false;
+	showGraph.value = false;
+	isLoading.value = true;
+	showTooManyAddressesMsg.value = false;
+	clickedNode.value = null;
+	barTable.value.transactions = [];
+	// Check if new data has to be loaded
+	if (pullNewData || !initialLoadDone) {
+		const mixingActivity = await getMixingActivity();
+		hasLoaded.value = true;
+
+		if (!mixingActivity.ok) {
+			isLoading.value = false;
+			activities.value = [];
+
+			if (mixingActivity.msg === 'too_many_addresses') {
+				showTooManyAddressesMsg.value = true;
+				initialLoadDone = true;
+				return;
+			}
+
+			setErrorMessage('error getting mixing activity');
+			return;
+		}
+
+		if (!mixingActivity.data.activities) {
+			showEmptyResponseMsg.value = true;
+			isLoading.value = false;
+			activities.value = [];
+			return;
+		}
+
+		// Used to set boundaries for the date picker
+		let maxDate = null;
+		let minDate = null;
+
+		activities.value = mixingActivity.data.activities.map(d => {
+			d.privacytype = getPrivacyTypeLabel(d.privacytype);
+			d.dateTime = new Date(d.block[0].ts);
+
+			if (maxDate === null || d.dateTime > maxDate) {
+				maxDate = new Date(d.dateTime);
+			}
+
+			if (minDate === null || d.dateTime < minDate) {
+				minDate = new Date(d.dateTime);
+			}
+
+			return d;
+		});
+
+		rangePicker.value.min = new Date(minDate).getTime();
+		rangePicker.value.max = new Date(maxDate).getTime();
+		rangePicker.value.model = [rangePicker.value.min, rangePicker.value.max];
+		initialLoadDone = true;
+	}
+
+	showEmptyResponseMsg.value = false;
+
+	const filtered = getFilteredData(graphMode);
+
+	if (!filtered.items) {
+		isLoading.value = false;
+		showGraph.value = false;
+		showHistogram.value = false;
+		showNotEnoughDataMsg.value = true;
+		return;
+	}
+
+	showTooManyTransactionsMsg.value = filtered.items.length > tooManyTransactionsThreshold;
+
+	// Draw
+	if (graphMode) {
+		if (!showTooManyTransactionsMsg.value
+        || overrideTooManyTransactionsWarning) {
+			svgGraph.draw(filtered.items, filtered.links);
+			showGraph.value = true;
+		}
+	} else {
+		svgHistogram.reset();
+		svgHistogram.drawStacked(
+			filtered.items,
+			getCategories(filtered.items),
+			colorMap,
 		);
-		this.svgHistogram.setClickHandler(this.onBarClick);
-	},
-	mounted() {
-		// Has to be called after the SVG is included in the DOM
-		this.svgGraph = new ForceGraph(1200, 500, 'mixing_activity_force_graph', this.colorMap);
-		this.svgGraph.setClickHandler(this.onNodeClick);
-	},
-	created() {
-		this.updateSvgData(true);
-	},
-	methods: {
-		capitalize,
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		onBarClick(data) {
-			if (data.x0.getHours() === data.x1.getHours()
-          && data.x0.getMinutes() === data.x1.getMinutes()) {
-				this.barTable.startDate = data.x0.toLocaleDateString();
-				this.barTable.endDate = data.x1.toLocaleDateString();
-			} else {
-				this.barTable.startDate = data.x0.toLocaleString();
-				this.barTable.endDate = data.x1.toLocaleString();
-			}
+		showHistogram.value = !svgHistogram.empty;
+		showNotEnoughDataMsg.value = svgHistogram.empty;
+	}
 
-			this.barTable.transactions = data;
-			this.barTable.show = true;
-		},
-		onNodeClick(data) {
-			this.clickedNode = data;
-			this.showNodeDialog = true;
-		},
-		async getMixingActivity() {
-			this.lastQuery = this.addressHash;
-			const response = {ok: false, data: null, msg: null};
-			try {
-				response.data = await this.dakar.tools.mixingActivityPost({
-					activity: {
-						addressHash: this.addressHash,
-						isClusterLookup: this.includeCusterAddresses,
-					},
-				});
-				response.ok = true;
-			} catch (e) {
-				if (e.message === 'too_many_addresses') {
-					response.msg = e.message;
-				}
-			}
+	isLoading.value = false;
+}
 
-			return response;
-		},
-		getFilteredData(withLinks) {
-			let fromDate = null;
-			let toDate = null;
-			let considerDate = true;
-
-			if (this.rangePicker.model === null) {
-				considerDate = false;
-			} else {
-				fromDate = new Date(this.rangePicker.model[0]);
-				toDate = new Date(this.rangePicker.model[1]);
-			}
-
-			const ret = {items: [], links: []};
-			const events = new Set();
-			const numActivities = this.activities.length;
-			ret.items = this.activities.filter(d => {
-				if (this.selectedPrivacyLabel.length < 5
-            && !this.selectedPrivacyLabel.includes(d.privacytype)) {
-					return false;
-				}
-
-				if (!considerDate) {
-					return true;
-				}
-
-				const eventTime = d.dateTime;
-
-				// Decrease accuracy of range picker ticks when many activities exist
-				if (numActivities > 500) {
-					eventTime.setHours(0, 0, 0, 0);
-				} else if (numActivities > 200) {
-					eventTime.setMinutes(0, 0, 0);
-				}
-
-				events.add(eventTime.getTime());
-
-				return d.dateTime <= toDate && d.dateTime >= fromDate;
-			});
-
-			// Construct event objet
-			const eventObj = {};
-			Array.from(events).forEach(val => {
-				eventObj[val] = '';
-			});
-			this.rangePicker.events = eventObj;
-
-			if (withLinks) {
-				const filteredHashes = new Set(ret.items.map(d => d.txhash));
-
-				ret.items.forEach(d => {
-					if (!d.input_txs) {
-						return;
-					}
-
-					d.input_txs.forEach(it => {
-						if (!filteredHashes.has(it.txhash)) {
-							return;
-						}
-
-						ret.links.push({source: it.txhash, target: d.txhash});
-					});
-				});
-			}
-
-			return ret;
-		},
-		getCategories(filtered) {
-			if (this.selectedPrivacyLabel.length < 5) {
-				return this.selectedPrivacyLabel;
-			}
-
-			return [...new Set(filtered.map(d => d.privacytype))];
-		},
-		showForceGraphDespiteWarning() {
-			this.overrideTooManyTransactionsWarning = true;
-			this.onTabChange(1);
-		},
-		onTabChange(tab) {
-			// Tab === 0: histogram
-			// tab === 1: force graph
-			const wantGraph = tab === 1;
-			// Check if tab was actually changed. @changed:modelValue also fires on initial load of component
-			if (this.graphMode === wantGraph) {
-				return;
-			}
-
-			this.graphMode = wantGraph;
-
-			if (this.graphMode) {
-				if (!this.showTooManyTransactionsMsg
-            || this.overrideTooManyTransactionsWarning) {
-					this.updateSvgData();
-				}
-
-				return;
-			}
-
-			this.updateSvgData();
-		},
-		async updateSvgData(pullNewData) {
-			this.showHistogram = false;
-			this.showGraph = false;
-			this.isLoading = true;
-			this.showTooManyAddressesMsg = false;
-			this.clickedNode = null;
-			this.barTable.transactions = [];
-			// Check if new data has to be loaded
-			if (pullNewData || !this.initialLoadDone) {
-				const mixingActivity = await this.getMixingActivity();
-				this.hasLoaded = true;
-
-				if (!mixingActivity.ok) {
-					this.isLoading = false;
-					this.activities = [];
-
-					if (mixingActivity.msg === 'too_many_addresses') {
-						this.showTooManyAddressesMsg = true;
-						this.initialLoadDone = true;
-						return;
-					}
-
-					this.setErrorMessage('error getting mixing activity');
-					return;
-				}
-
-				if (!mixingActivity.data.activities) {
-					this.showEmptyResponseMsg = true;
-					this.isLoading = false;
-					this.activities = [];
-					return;
-				}
-
-				// Used to set boundaries for the date picker
-				let maxDate = null;
-				let minDate = null;
-
-				this.activities = mixingActivity.data.activities.map(d => {
-					d.privacytype = getPrivacyTypeLabel(d.privacytype);
-					d.dateTime = new Date(d.block[0].ts);
-
-					if (maxDate === null || d.dateTime > maxDate) {
-						maxDate = new Date(d.dateTime);
-					}
-
-					if (minDate === null || d.dateTime < minDate) {
-						minDate = new Date(d.dateTime);
-					}
-
-					return d;
-				});
-
-				this.rangePicker.min = new Date(minDate).getTime();
-				this.rangePicker.max = new Date(maxDate).getTime();
-				this.rangePicker.model = [this.rangePicker.min, this.rangePicker.max];
-				this.initialLoadDone = true;
-			}
-
-			this.showEmptyResponseMsg = false;
-
-			const filtered = this.getFilteredData(this.graphMode);
-
-			if (!filtered.items) {
-				this.isLoading = false;
-				this.showGraph = false;
-				this.showHistogram = false;
-				this.showNotEnoughDataMsg = true;
-				return;
-			}
-
-			this.showTooManyTransactionsMsg = filtered.items.length > this.tooManyTransactionsThreshold;
-
-			// Draw
-			if (this.graphMode) {
-				if (!this.showTooManyTransactionsMsg
-            || this.overrideTooManyTransactionsWarning) {
-					this.svgGraph.draw(filtered.items, filtered.links);
-					this.showGraph = true;
-				}
-			} else {
-				this.svgHistogram.reset();
-				this.svgHistogram.drawStacked(
-					filtered.items,
-					this.getCategories(filtered.items),
-					this.colorMap,
-				);
-				this.showHistogram = !this.svgHistogram.empty;
-				this.showNotEnoughDataMsg = this.svgHistogram.empty;
-			}
-
-			this.isLoading = false;
-		},
-	},
-};
+// Initial load
+updateSvgData(true);
 </script>
 
 <style scoped>
