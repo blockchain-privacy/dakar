@@ -18,8 +18,8 @@
       >
         <transaction
           :tx="tx"
-          :show-heuristic-editor-link="isAtLeastPrivileged"
-          :show-fingerprint-link="isAtLeastPrivileged"
+          :show-heuristic-editor-link="isPrivilegedOrHigher"
+          :show-fingerprint-link="isPrivilegedOrHigher"
           show-details
         />
       </v-col>
@@ -32,45 +32,40 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import Transaction from './Transaction.vue';
 import {PAGE_TITLE} from '@/constants';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {computed, onMounted, onUpdated, watch} from 'vue';
+import {useStore} from 'vuex';
 
-export default {
-	name: 'TransactionPage',
-	components: {Transaction},
-	computed: {
-		data() {
-			return this.$store.getters.getTransactionData;
-		},
-		session() {
-			return this.$store.getters.getSession;
-		},
-		isAtLeastPrivileged() {
-			return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
-		},
-	},
-	watch: {
-		data() {
-			this.setPageTitle();
-		},
-	},
-	mounted() {
-		this.setPageTitle();
-	},
-	updated() {
-		this.setPageTitle();
-	},
-	methods: {
-		setPageTitle() {
-			let h = ' ';
-			if (this.data && this.data[0].txhash) {
-				h = ` ${this.data[0].txhash} `;
-			}
+const store = useStore();
 
-			document.title = `Transaction${h}- ${PAGE_TITLE}`;
-		},
-	},
-};
+// Computed
+const data = computed(() => store.getters.getTransactionData);
+const session = computed(() => store.getters.getSession);
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+
+// Watchers
+watch(data, () => {
+	setPageTitle();
+});
+
+// Hooks
+onMounted(() => {
+	setPageTitle();
+});
+onUpdated(() => {
+	setPageTitle();
+});
+
+// Functions
+function setPageTitle() {
+	let h = ' ';
+	if (data.value && data.value[0].txhash) {
+		h = ` ${data.value[0].txhash} `;
+	}
+
+	document.title = `Transaction${h}- ${PAGE_TITLE}`;
+}
 </script>
