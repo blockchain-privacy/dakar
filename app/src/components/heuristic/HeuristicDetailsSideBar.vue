@@ -2,7 +2,7 @@
   <side-bar
     v-model="inputVal"
     title="Heuristic Properties"
-    :icon="icon.mdiChartBar"
+    :icon="mdiChartBar"
   >
     <template #actions>
       <v-btn
@@ -13,7 +13,7 @@
         class="ms-auto"
         @click="downloadSummary"
       >
-        <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+        <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
       </v-btn>
       <v-tooltip
         location="bottom"
@@ -33,7 +33,7 @@
             >
               <icon-item
                 title="Type"
-                :icon="icon.mdiApplicationVariableOutline"
+                :icon="mdiApplicationVariableOutline"
               >
                 {{ heuristicData.heuristicTypeTitle }}
               </icon-item>
@@ -41,7 +41,7 @@
             <v-col>
               <icon-item
                 title="Timestamp"
-                :icon="icon.mdiCalendar"
+                :icon="mdiCalendar"
               >
                 {{ heuristicData.heuristicTimestamp.toLocaleString() }}
               </icon-item>
@@ -56,7 +56,7 @@
             >
               <icon-item
                 title="Parameter"
-                :icon="icon.mdiTune"
+                :icon="mdiTune"
               >
                 {{ heuristicData.heuristicParameter }}
               </icon-item>
@@ -64,7 +64,7 @@
             <v-col v-if="heuristicData.heuristicCustomClusters">
               <icon-item
                 title="Custom clusters"
-                :icon="icon.mdiMerge"
+                :icon="mdiMerge"
               >
                 yes
               </icon-item>
@@ -79,7 +79,7 @@
             >
               <icon-item
                 title="Exclude addresses"
-                :icon="icon.mdiPlaylistRemove"
+                :icon="mdiPlaylistRemove"
               >
                 yes
               </icon-item>
@@ -87,7 +87,7 @@
             <v-col v-if="heuristicData.heuristicExcludeSpendingGaps">
               <icon-item
                 title="Exclude spending gaps"
-                :icon="icon.mdiClockAlertOutline"
+                :icon="mdiClockAlertOutline"
               >
                 yes
               </icon-item>
@@ -111,7 +111,7 @@
             >
               <icon-item
                 title="Number of origins"
-                :icon="icon.mdiPoundBoxOutline"
+                :icon="mdiPoundBoxOutline"
               >
                 {{ transactionCount }}
               </icon-item>
@@ -119,7 +119,7 @@
             <v-col>
               <icon-item
                 title="Number of clusters"
-                :icon="icon.mdiPoundBoxOutline"
+                :icon="mdiPoundBoxOutline"
               >
                 {{ heuristicData.clusterCount ? heuristicData.clusterCount : 0 }}
               </icon-item>
@@ -188,126 +188,115 @@
   </side-bar>
 </template>
 
-<script>
+<script setup>
 import Results from '@/components/heuristic/Results.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiApplicationVariableOutline,
-	mdiChartBar, mdiClockAlertOutline, mdiFileDownloadOutline,
-	mdiMerge,
-	mdiPlaylistRemove,
-	mdiPoundBoxOutline,
-	mdiTune,
-	mdiCalendar,
+	mdiApplicationVariableOutline, mdiChartBar, mdiClockAlertOutline, mdiFileDownloadOutline,
+	mdiMerge, mdiPlaylistRemove, mdiPoundBoxOutline, mdiTune, mdiCalendar,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram';
 import {getCurrentDate} from '@/utilities';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import SideBar from '@/components/heuristic/SideBar.vue';
+import {computed, inject, onMounted, onUpdated, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
-export default {
-	name: 'HeuristicDetailsSidebar',
-	components: {SideBar, NamedDivider, Results, IconItem},
-	props: {
-		modelValue: {type: Boolean, required: true},
-		heuristicData: {type: Object, required: true},
-		clusters: {type: Array, required: true},
-		newHeuristicPrefix: {type: String, required: true},
-	},
-	emits: ['update:modelValue'],
-	data() {
-		return {
-			icon: {
-				mdiApplicationVariableOutline,
-				mdiTune,
-				mdiPoundBoxOutline,
-				mdiChartBar,
-				mdiMerge,
-				mdiPlaylistRemove,
-				mdiFileDownloadOutline,
-				mdiClockAlertOutline,
-				mdiCalendar,
-			},
-			chart: null,
-			svgHistogram: null,
-			enoughDataForGraph: true,
-			durationInMinutes: 0,
-		};
-	},
-	computed: {
-		isHollow() {
-			return this.heuristicData.heuristicUid.startsWith(this.newHeuristicPrefix);
-		},
-		transactionCount() {
-			if (!this.heuristicData.clusters) {
-				return 0;
-			}
+const dakar = inject('dakar');
+const route = useRoute();
+const store = useStore();
 
-			let count = 0;
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	heuristicData: {type: Object, required: true},
+	clusters: {type: Array, required: true},
+	newHeuristicPrefix: {type: String, required: true},
+});
 
-			this.heuristicData.clusters.forEach(cluster => {
-				count += cluster.txs.length;
-			});
-			return count;
-		},
-		inputVal: {
-			get() {
-				return this.modelValue;
-			},
-			set(val) {
-				this.$emit('update:modelValue', val);
-			},
-		},
-	},
-	updated() {
-		this.doUpdate();
-	},
-	mounted() {
-		this.svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, false);
-	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		doUpdate() {
-			// Do nothing if sheet is not open
-			if (!this.modelValue || !this.clusters) {
-				return;
-			}
+const emit = defineEmits(['update:modelValue']);
 
-			this.svgHistogram.reset();
-			this.updateData(this.clusters);
-		},
-		updateData(graphData) {
-			// Flatten
-			const detailArray = [];
-			graphData.forEach(d => {
-				detailArray.push(...d.txs);
-			});
+let svgHistogram = null;
+const enoughDataForGraph = ref(true);
+const durationInMinutes = ref(0);
 
-			this.svgHistogram.draw(detailArray);
-			this.enoughDataForGraph = !this.svgHistogram.empty;
-			this.durationInMinutes = this.svgHistogram.getDurationInMinutes;
-		},
-		async downloadSummary() {
-			try {
-				const response = await this.dakar.heuristic.heuristicsSummaryHeuristicUIDGet({heuristicUID: this.heuristicData.heuristicUid});
-				// Looks hacky, but it is the only way with good UX
-				const a = document.createElement('a');
-				a.href = URL.createObjectURL(response);
+// Computed
+const isHollow = computed(() => props.heuristicData.heuristicUid.startsWith(props.newHeuristicPrefix));
+const transactionCount = computed(() => {
+	if (!props.heuristicData.clusters) {
+		return 0;
+	}
 
-				a.setAttribute(
-					'download',
-					`heuristic_summary_${getCurrentDate()}_${this.heuristicData.heuristicUid}.csv`,
-				);
-				a.click();
-				a.remove();
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
+	let count = 0;
+
+	props.heuristicData.clusters.forEach(cluster => {
+		count += cluster.txs.length;
+	});
+	return count;
+});
+
+const inputVal = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(val) {
+		emit('update:modelValue', val);
+	},
+});
+
+// Hooks
+onUpdated(() => {
+	doUpdate();
+});
+
+onMounted(() => {
+	svgHistogram = new Histogram('heuristic_details_canvas', 600, 300, false);
+});
+
+// Function
+function setErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+function doUpdate() {
+	// Do nothing if sheet is not open
+	if (!props.modelValue || !props.clusters) {
+		return;
+	}
+
+	svgHistogram.reset();
+	updateData(props.clusters);
+}
+
+function updateData(graphData) {
+	// Flatten
+	const detailArray = [];
+	graphData.forEach(d => {
+		detailArray.push(...d.txs);
+	});
+
+	svgHistogram.draw(detailArray);
+	enoughDataForGraph.value = !svgHistogram.empty;
+	durationInMinutes.value = svgHistogram.getDurationInMinutes;
+}
+
+async function downloadSummary() {
+	try {
+		const response = await dakar.heuristic.heuristicsSummaryHeuristicUIDGet({heuristicUID: props.heuristicData.heuristicUid});
+		// Looks hacky, but it is the only way with good UX
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(response);
+
+		a.setAttribute(
+			'download',
+			`heuristic_summary_${getCurrentDate()}_${props.heuristicData.heuristicUid}.csv`,
+		);
+		a.click();
+		a.remove();
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
 </script>
 
 <style scoped>
