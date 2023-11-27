@@ -1,11 +1,14 @@
-
-import * as d3 from 'd3';
 import {
 	mdiMerge, mdiPlaylistRemove, mdiTune, mdiClockAlertOutline,
 } from '@mdi/js';
 import Tree from './tree';
 import {abbreviateNumber} from './util';
 import {isFunction} from '@/utilities';
+import {stratify} from 'd3-hierarchy';
+import {select as d3Select} from 'd3-selection';
+import {drag} from 'd3-drag';
+import {transition} from 'd3-transition';
+import {easeLinear} from 'd3-ease';
 
 // Phantom node id
 export const rootIdentifier = 'root';
@@ -45,7 +48,7 @@ export class HeuristicTree extends Tree {
 			this.rootSvg.selectAll('.rect').classed('clicked', false);
 		};
 
-		this.stratify = d3.stratify()
+		this.stratify = stratify()
 			.id(d => d.uid)
 			.parentId(d => {
 				if (d.uid === rootIdentifier) {
@@ -66,7 +69,7 @@ export class HeuristicTree extends Tree {
 	}
 
 	static dragStart(d, classContext, d3This) {
-		classContext.dragNode = d3.select(d3This);
+		classContext.dragNode = d3Select(d3This);
 		classContext.dragActive = true;
 		classContext.dragLayoutData = d;
 	}
@@ -99,7 +102,7 @@ export class HeuristicTree extends Tree {
 
 		const transformationMatrix = d3This.transform.baseVal.getItem(0).matrix;
 
-		d3.select(d3This)
+		d3Select(d3This)
 		// Raise() causes bug in chrome: click is only
 		// recognized on second time. moved here from dragStart
 			.raise()
@@ -414,7 +417,7 @@ export class HeuristicTree extends Tree {
 	static mouseOverNode(d, classContext, d3This) {
 		if (classContext.dragActive && d !== classContext.dragLayoutData) {
 			if (d !== classContext.lastMouseOverNode) {
-				HeuristicTree.setNodeSelected(classContext, d, d3.select(d3This));
+				HeuristicTree.setNodeSelected(classContext, d, d3Select(d3This));
 			}
 		}
 	}
@@ -452,7 +455,7 @@ export class HeuristicTree extends Tree {
             && element.tagName === 'rect'
             && classContext.lastMouseOverNode !== elementData
             && elementData.data.data.uid !== startUID) {
-				HeuristicTree.setNodeSelected(classContext, elementData, d3.select(element.parentElement));
+				HeuristicTree.setNodeSelected(classContext, elementData, d3Select(element.parentElement));
 			}
 		});
 
@@ -466,7 +469,7 @@ export class HeuristicTree extends Tree {
 	static contextMenuHandler(event, d, classContext, d3This) {
 		classContext.contextMenuCallback(event);
 		classContext.activeContextMenuNode = d;
-		classContext.activeContextMenuSelection = d3.select(d3This);
+		classContext.activeContextMenuSelection = d3Select(d3This);
 	}
 
 	populateHeuristicMap(heuristicDescriptions) {
@@ -517,7 +520,7 @@ export class HeuristicTree extends Tree {
 						HeuristicTree.contextMenuHandler(e, d, self, this);
 					})
 				// Set drag handler
-					.call(d3.drag()
+					.call(drag()
 					// Functions can not be defined as arrow functions,
 					// because then 'this' will not be set to the d3Context
 					// eslint-disable-next-line func-names
@@ -544,7 +547,7 @@ export class HeuristicTree extends Tree {
 				return `node${
 					d.children ? ' node--internal' : ' node--leaf'}`;
 			})
-			.transition(d3.transition().duration(300).ease(d3.easeLinear))
+			.transition(transition().duration(300).ease(easeLinear))
 			.attr('transform', d => `translate(${d.y},${d.x})`);
 	}
 
@@ -554,7 +557,7 @@ export class HeuristicTree extends Tree {
 			.data(nodeData.descendants().slice(1), d => d.data.data.uid)
 			.join('path')
 			.attr('class', 'link')
-			.transition(d3.transition().duration(300).ease(d3.easeLinear))
+			.transition(transition().duration(300).ease(easeLinear))
 			.attr('stroke-opacity', d => {
 				// Only draw link if parent is not the root node
 				if (d.parent.data.data.uid !== rootIdentifier) {

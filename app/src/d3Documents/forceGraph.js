@@ -1,5 +1,8 @@
-import * as d3 from 'd3';
 import {isFunction} from '@/utilities';
+import {drag as d3Drag} from 'd3-drag';
+import {select as d3Select} from 'd3-selection';
+import {zoom} from 'd3-zoom';
+import {forceSimulation, forceLink, forceManyBody, forceX, forceY, forceRadial, forceCenter} from 'd3-force';
 
 function drag(simulation) {
 	function dragStarted(event) {
@@ -25,7 +28,7 @@ function drag(simulation) {
 		event.subject.fy = null;
 	}
 
-	return d3.drag()
+	return d3Drag()
 		.on('start', dragStarted)
 		.on('drag', dragged)
 		.on('end', dragEnded);
@@ -46,7 +49,7 @@ export default class ForceGraph {
 
 	initSvg() {
 		// Add attributes to root svg
-		this.rootSvg = d3.select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
+		this.rootSvg = d3Select(`#${this.svgId}`).attr('viewBox', `0 0 ${this.width} ${this.height}`);
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 
 		this.lineGroup = this.rootGroup.append('g')
@@ -59,7 +62,7 @@ export default class ForceGraph {
 			.attr('stroke-width', '#C2C2C2');
 
 		// Add zoom and drag
-		this.zoom = d3.zoom()
+		this.zoom = zoom()
 			.on('zoom', event => {
 				this.rootGroup.attr('transform', event.transform);
 			})
@@ -93,17 +96,17 @@ export default class ForceGraph {
 		}
 
 		// Check if the svg is still initialized
-		if (d3.select(`#${this.svgId}`).nodes()[0].childElementCount === 0) {
+		if (d3Select(`#${this.svgId}`).nodes()[0].childElementCount === 0) {
 			this.initSvg();
 		}
 
-		this.simulation = d3.forceSimulation(nodes)
-			.force('link', d3.forceLink(links).id(d => d.txhash))
-			.force('charge', d3.forceManyBody().strength(-80))
-			.force('x', d3.forceX(this.width / 2).strength(0.04))
-			.force('y', d3.forceY(this.height / 2).strength(0.04))
-			.force('radial', d3.forceRadial(240, this.width / 2, this.height / 2))
-			.force('center', d3.forceCenter(this.width / 2, this.height / 2));
+		this.simulation = forceSimulation(nodes)
+			.force('link', forceLink(links).id(d => d.txhash))
+			.force('charge', forceManyBody().strength(-80))
+			.force('x', forceX(this.width / 2).strength(0.04))
+			.force('y', forceY(this.height / 2).strength(0.04))
+			.force('radial', forceRadial(240, this.width / 2, this.height / 2))
+			.force('center', forceCenter(this.width / 2, this.height / 2));
 
 		const link = this.lineGroup
 			.selectAll('.arrow')
@@ -124,11 +127,11 @@ export default class ForceGraph {
 			})
 		// eslint-disable-next-line func-names
 			.on('mouseover', function mouseOver() {
-				d3.select(this).attr('r', 10).classed('nodeMouseOver', true);
+				d3Select(this).attr('r', 10).classed('nodeMouseOver', true);
 			})
 		// eslint-disable-next-line func-names
 			.on('mouseout', function mouseOut() {
-				d3.select(this).attr('r', 7).classed('nodeMouseOver', false);
+				d3Select(this).attr('r', 7).classed('nodeMouseOver', false);
 			}).call(drag(this.simulation));
 
 		node.append('title')
