@@ -35,66 +35,72 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-	name: 'DeleteAttributionDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		attributionUid: {type: String, required: true},
-		tag: {type: String, required: true},
-		public: {type: Boolean, required: true},
+<script setup>
+
+import {computed, inject, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
+
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
+
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	attributionUid: {type: String, required: true},
+	tag: {type: String, required: true},
+	public: {type: Boolean, required: true},
+});
+
+const emit = defineEmits(['update:modelValue', 'deleted']);
+
+const isLoading = ref(false);
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-	emits: ['update:modelValue', 'deleted'],
-	data() {
-		return {
-			isLoading: false,
-		};
+	set(value) {
+		emit('update:modelValue', value);
 	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async deleteAttribution() {
-			if (this.attributionUid === '' || this.numAddresses <= 0) {
-				this.setPersistentErrorMessage('could not delete attribution');
-				this.show = false;
-				return;
-			}
+});
 
-			this.isLoading = true;
+// Functions
+function setPersistentErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+}
 
-			try {
-				const response = this.public
-					? await this.dakar.attribution.deletePublicAttributionAttributionUidGet({attributionUid: this.attributionUid})
-					: await this.dakar.attribution.deletePrivateAttributionAttributionUidGet({attributionUid: this.attributionUid});
+function setInfoMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+}
 
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
+async function deleteAttribution() {
+	if (props.attributionUid === '') {
+		setPersistentErrorMessage('could not delete attribution');
+		show.value = false;
+		return;
+	}
 
-				this.$emit('deleted', this.attributionUid);
-			} catch (e) {
-				this.setPersistentErrorMessage(e);
-			}
+	isLoading.value = true;
 
-			this.isLoading = false;
-			this.show = false;
-		},
-	},
-};
+	try {
+		const response = props.public
+			? await dakar.attribution.deletePublicAttributionAttributionUidGet({attributionUid: props.attributionUid})
+			: await dakar.attribution.deletePrivateAttributionAttributionUidGet({attributionUid: props.attributionUid});
+
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		emit('deleted', props.attributionUid);
+	} catch (e) {
+		setPersistentErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
 </script>
 
 <style scoped>
