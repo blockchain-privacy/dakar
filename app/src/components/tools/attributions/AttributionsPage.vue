@@ -7,7 +7,7 @@
     >
       <icon-title
         title="Attributions"
-        :icon="icon.mdiTag"
+        :icon="mdiTag"
       />
       <v-tabs
         v-model="tab"
@@ -37,24 +37,15 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiTag} from '@mdi/js';
 import AttributionOverview from './AttributionOverview.vue';
 import AttributionSearch from './AttributionSearch.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {ref} from 'vue';
 
-export default {
-	name: 'AttributionsPage',
-	components: {IconTitle, AttributionSearch, AttributionOverview},
-	data() {
-		return {
-			icon: {
-				mdiTag,
-			},
-			tab: null,
-		};
-	},
-};
+const tab = ref(null);
+
 </script>
 
 <style scoped>
