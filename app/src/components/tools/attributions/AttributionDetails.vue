@@ -17,13 +17,13 @@
             v-bind="props"
             variant="plain"
           >
-            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+            <v-icon>{{ mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
         <v-list>
           <v-list-item @click="deleteItem(attribution.uid, attribution.tag, attribution.isPublic)">
             <template #prepend>
-              <v-icon>{{ icon.mdiDelete }}</v-icon>
+              <v-icon>{{ mdiDelete }}</v-icon>
             </template>
             <v-list-item-title>Delete</v-list-item-title>
           </v-list-item>
@@ -31,7 +31,7 @@
       </v-menu>
     </v-card-title>
     <v-divider />
-    <v-list-item :to="{ name: routes.addressRoute, params: { id: attribution.address }}">
+    <v-list-item :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: attribution.address }}">
       {{ attribution.address }}
     </v-list-item>
     <v-list-item v-if="attribution.description">
@@ -51,7 +51,7 @@
       Category: {{ attribution.category }}
     </v-list-item>
     <delete-attribution-dialog
-      v-model="deleteAttributionDialog"
+      v-model="deleteAttributionDialogModel"
       :attribution-uid="deleteAttributionUid"
       :tag="deleteAttributionTag"
       :public="deleteAttributionPublic"
@@ -60,13 +60,29 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
 import {mdiDelete, mdiDotsVertical} from '@mdi/js';
 import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import DeleteAttributionDialog from './DeleteAttributionDialog.vue';
 import AttributionTag from './AttributionTag.vue';
 import {isAdminIdentity} from '@/utilities';
+import {computed, ref} from 'vue';
+import {useStore} from 'vuex';
 
+const store = useStore();
+
+defineProps({attribution: {type: Object, required: true}});
+const emit = defineEmits(['deleted']);
+
+const deleteAttributionDialogModel = ref(false);
+const deleteAttributionTag = ref('');
+const deleteAttributionUid = ref('');
+const deleteAttributionPublic = ref(false);
+
+// Computed
+const session = computed(() => store.getters.getSession);
+
+// Functions
 // Credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144
 function isValidHttpUrl(string) {
 	let url;
@@ -80,45 +96,17 @@ function isValidHttpUrl(string) {
 	return url.protocol === 'http:' || url.protocol === 'https:';
 }
 
-export default {
-	name: 'AttributionDetails',
-	components: {AttributionTag, DeleteAttributionDialog},
-	props: {
-		attribution: {type: Object, required: true},
-	},
-	emits: ['deleted'],
-	data() {
-		return {
-			icon: {mdiDelete, mdiDotsVertical},
-			routes: {
-				addressRoute: ROUTE_NAME_ADDRESS_PAGE,
-			},
-			deleteAttributionDialog: false,
-			deleteAttributionTag: '',
-			deleteAttributionUid: '',
-			deleteAttributionPublic: false,
-			uuid: '',
-		};
-	},
-	computed: {
-		session() {
-			return this.$store.getters.getSession;
-		},
-	},
-	methods: {
-		isAdminIdentity,
-		isValidHttpUrl,
-		deleteItem(clusterUid, tag, isPublic) {
-			this.deleteAttributionUid = clusterUid;
-			this.deleteAttributionTag = tag;
-			this.deleteAttributionPublic = isPublic;
-			this.deleteAttributionDialog = true;
-		},
-		repeatDeletionSignal(attributionUid) {
-			this.$emit('deleted', attributionUid);
-		},
-	},
-};
+// Functions
+function deleteItem(clusterUid, tag, isPublic) {
+	deleteAttributionUid.value = clusterUid;
+	deleteAttributionTag.value = tag;
+	deleteAttributionPublic.value = isPublic;
+	deleteAttributionDialogModel.value = true;
+}
+
+function repeatDeletionSignal(attributionUid) {
+	emit('deleted', attributionUid);
+}
 </script>
 
 <style scoped>
