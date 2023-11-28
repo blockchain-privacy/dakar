@@ -18,7 +18,7 @@ import (
 
 // maxBodySize is the maximum number of bytes a body can contain
 // without an error being thrown while it being read
-const maxBodySize = 1048576 // 1048576 = 1024 * 1024 -> 1 MiB
+const maxBodySize = 5242880 // 5242880 = 1024 * 1024 * 5 -> 5 MiB
 
 var thisLogger *slog.Logger
 
