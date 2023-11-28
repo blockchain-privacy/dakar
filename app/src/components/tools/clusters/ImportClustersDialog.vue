@@ -83,6 +83,7 @@
 import {computed, inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useStore} from 'vuex';
+import {fileRule} from '@/utilities';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -115,13 +116,6 @@ const separatorItems = [
 	{text: 'Colon (,)', value: ','},
 	{text: 'Semicolon (;)', value: ';'},
 ];
-const fileRule = [v => {
-	if (!v) {
-		return false;
-	}
-
-	return v.length > 0 || 'File is required';
-}];
 
 // Functions
 function setSuccessMessage(msg) {

@@ -128,6 +128,14 @@ export const emailRules = [
 	v => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 ];
 
+export const fileRule = [v => {
+	if (!v) {
+		return false;
+	}
+
+	return v.length > 0 || 'File is required';
+}];
+
 // IsValidQueryInput returns true if the input query is valid. This function
 // should be used instead of isValidQuery if the input is expected to be trimmed.
 export function isValidQueryInput(str) {
