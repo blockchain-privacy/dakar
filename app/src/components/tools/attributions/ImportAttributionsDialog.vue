@@ -42,7 +42,7 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
         >
           <v-file-input
             v-model="csv.file"
-            :rules="rules.file"
+            :rules="fileRule"
             show-size
             accept="text/csv"
             label="Click here to select a file"
@@ -91,9 +91,49 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
   </v-dialog>
 </template>
 
-<script>
+<script setup>
 import {isAdminIdentity} from '@/utilities';
+import {computed, inject, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
+import {fileRule} from '@/utilities';
 
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
+
+const props = defineProps({modelValue: {type: Boolean, required: true}});
+const emit = defineEmits(['added', 'update:modelValue']);
+
+// Template ref
+const csvForm = ref(null);
+const isLoading = ref(false);
+const areAttributionsPublic = ref(false);
+const csv = ref({
+	valid: false,
+	file: null,
+	separator: ',',
+	firstRowContainsHeader: false,
+});
+
+const separatorItems = [
+	{text: 'Colon (,)', value: ','},
+	{text: 'Semicolon (;)', value: ';'},
+];
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
+	},
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+const isAdmin = computed(() => isAdminIdentity(store.getters.getSession));
+
+// Functions
 // CodeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
 	switch (msgCode) {
@@ -118,87 +158,44 @@ function codeToMsg(msgCode) {
 	}
 }
 
-export default {
-	name: 'ImportAttributionDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-	},
-	emits: ['added', 'update:modelValue'],
-	data() {
-		return {
-			isLoading: false,
-			separatorItems: [
-				{text: 'Colon (,)', value: ','},
-				{text: 'Semicolon (;)', value: ';'},
-			],
-			areAttributionsPublic: false,
-			csv: {
-				valid: false,
-				file: null,
-				separator: ',',
-				firstRowContainsHeader: false,
-			},
-			rules: {
-				file: [v => Boolean(v) || 'File is required'],
-				separator: [
-					v => Boolean(v) || 'Separator is required',
-					v => (v && v.length <= 10) || 'Separator must not greater than 10 characters',
-				],
-			},
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-		isAdmin() {
-			return isAdminIdentity(this.$store.getters.getSession);
-		},
-	},
-	methods: {
-		setSuccessMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'success', temporary: true, category: this.$route.name});
-		},
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		async handleCSVUpload() {
-			const {valid} = await this.$refs.csvForm.validate();
-			if (!valid) {
-				return;
-			}
+function setSuccessMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'success', temporary: true, category: route.name});
+}
 
-			this.isLoading = true;
-			const attributionData = {
-				separator: this.csv.separator,
-				hasHeader: this.csv.firstRowContainsHeader,
-				file: this.csv.file[0],
-			};
+function setPersistentErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+}
 
-			try {
-				if (this.areAttributionsPublic) {
-					await this.dakar.attribution.addPublicAttributionPost(attributionData);
-				} else {
-					await this.dakar.attribution.addPrivateAttributionPost(attributionData);
-				}
+async function handleCSVUpload() {
+	const {valid} = await csvForm.value.validate();
+	if (!valid) {
+		return;
+	}
 
-				this.setSuccessMessage('import was successful');
-				this.$emit('added');
-			} catch (e) {
-				this.setPersistentErrorMessage(codeToMsg(e.message));
-			}
+	isLoading.value = true;
+	const attributionData = {
+		separator: csv.value.separator,
+		hasHeader: csv.value.firstRowContainsHeader,
+		file: csv.value.file[0],
+	};
 
-			this.isLoading = false;
-			this.csv.file = null;
-			this.show = false;
-		},
-	},
-};
+	try {
+		if (areAttributionsPublic.value) {
+			await dakar.attribution.addPublicAttributionPost(attributionData);
+		} else {
+			await dakar.attribution.addPrivateAttributionPost(attributionData);
+		}
+
+		setSuccessMessage('import was successful');
+		emit('added');
+	} catch (e) {
+		setPersistentErrorMessage(codeToMsg(e.message));
+	}
+
+	isLoading.value = false;
+	csv.value.file = null;
+	show.value = false;
+}
 </script>
 
 <style scoped>
