@@ -6,7 +6,7 @@
   >
     <icon-title
       title="Shortest Path"
-      :icon="icon.mdiChartTimelineVariant"
+      :icon="mdiChartTimelineVariant"
     />
     <v-card-text>
       <div class="text-subtitle-1 mb-5">
@@ -90,82 +90,84 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
 import {mdiChartTimelineVariant} from '@mdi/js';
 import {handleError} from '@/utilities';
 import {PAGE_TITLE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import TransactionItem from '@/components/common/TransactionItem.vue';
+import {computed, inject, onMounted, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
-export default {
-	name: 'ShortestPathPage',
-	components: {TransactionItem, IconTitle},
-	data() {
-		return {
-			icon: {mdiChartTimelineVariant},
-			// V-model
-			fromTransaction: '',
-			toTransaction: '',
-			includePrivacyTransactions: true,
-			anyDirection: false,
-			isLoading: false,
-			transactions: [],
-		};
-	},
-	computed: {
-		isSearchable() {
-			return this.toTransaction && this.fromTransaction
-          && this.toTransaction.trim().length > 0 && this.fromTransaction.trim().length > 0
-          && this.toTransaction !== this.fromTransaction;
-		},
-	},
-	mounted() {
-		document.title = `Shortest Path - ${PAGE_TITLE}`;
-	},
-	methods: {
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async handleSearch() {
-			if (this.isLoading || !this.isSearchable) {
-				return;
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
+const context = {$store: store, $route: route};
+
+// V-model
+const fromTransaction = ref('');
+const toTransaction = ref('');
+const includePrivacyTransactions = ref(true);
+const anyDirection = ref(false);
+const isLoading = ref(false);
+const transactions = ref([]);
+
+// Computed
+const isSearchable = computed(() => toTransaction.value && fromTransaction
+    && toTransaction.value.trim().length > 0 && fromTransaction.value.trim().length > 0
+    && toTransaction.value !== fromTransaction.value);
+
+// Hooks
+onMounted(() => {
+	document.title = `Shortest Path - ${PAGE_TITLE}`;
+});
+
+// Functions
+function setInfoMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function handleSearch() {
+	if (isLoading.value || !isSearchable.value) {
+		return;
+	}
+
+	await store.dispatch('resetMessages');
+
+	transactions.value = [];
+	await doLookup();
+}
+
+async function doLookup() {
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.tools.shortestTransactionPathPost({transactions: {
+			to: fromTransaction.value.trim(),
+			from: toTransaction.value.trim(),
+			includePrivacyTransactions: includePrivacyTransactions.value,
+			anyDirection: anyDirection.value,
+		}});
+
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		if (response.transactions && response.transactions.length > 0) {
+			if (fromTransaction.value.trim() !== response.transactions[0].txhash) {
+				response.transactions = response.transactions.reverse();
 			}
 
-			this.$store.dispatch('resetMessages');
+			transactions.value = response.transactions;
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
 
-			this.transactions = [];
-			await this.doLookup();
-		},
-		async doLookup() {
-			this.isLoading = true;
+	isLoading.value = false;
+}
 
-			try {
-				const response = await this.dakar.tools.shortestTransactionPathPost({transactions: {
-					to: this.fromTransaction.trim(),
-					from: this.toTransaction.trim(),
-					includePrivacyTransactions: this.includePrivacyTransactions,
-					anyDirection: this.anyDirection,
-				}});
-
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
-
-				if (response.transactions && response.transactions.length > 0) {
-					if (this.fromTransaction.trim() !== response.transactions[0].txhash) {
-						response.transactions = response.transactions.reverse();
-					}
-
-					this.transactions = response.transactions;
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
-
-			this.isLoading = false;
-		},
-	},
-};
 </script>
 
 <style scoped>
