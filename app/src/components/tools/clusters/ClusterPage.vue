@@ -7,7 +7,7 @@
     >
       <icon-title
         title="Custom Clusters"
-        :icon="icon.mdiMerge"
+        :icon="mdiMerge"
         :one-line="true"
       >
         <v-menu location="bottom">
@@ -17,22 +17,22 @@
               v-bind="props"
               variant="text"
             >
-              <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+              <v-icon>{{ mdiDotsVertical }}</v-icon>
             </v-btn>
           </template>
           <v-list>
-            <v-list-item @click="addClusterDialog = true">
+            <v-list-item @click="addClusterDialogModel = true">
               <template #prepend>
-                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                <v-icon>{{ mdiFileImport }}</v-icon>
               </template>
               <v-list-item-title>Import Clusters</v-list-item-title>
             </v-list-item>
             <v-list-item
               :disabled="items.length === 0"
-              @click="deleteAllClustersDialog = true"
+              @click="deleteAllClustersDialogModel = true"
             >
               <template #prepend>
-                <v-icon>{{ icon.mdiDelete }}</v-icon>
+                <v-icon>{{ mdiDelete }}</v-icon>
               </template>
               <v-list-item-title>Delete All Custom Clusters</v-list-item-title>
             </v-list-item>
@@ -55,9 +55,9 @@
             <div class="d-flex justify-center">
               <v-btn
                 variant="text"
-                @click="addClusterDialog = true"
+                @click="addClusterDialogModel = true"
               >
-                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                <v-icon>{{ mdiFileImport }}</v-icon>
                 Import Clusters
               </v-btn>
             </div>
@@ -65,15 +65,15 @@
         </v-row>
       </v-card-text>
       <import-cluster-dialog
-        v-model="addClusterDialog"
+        v-model="addClusterDialogModel"
         @added="loadData"
       />
       <delete-all-clusters-dialog
-        v-model="deleteAllClustersDialog"
+        v-model="deleteAllClustersDialogModel"
         @deleted="loadData"
       />
       <delete-cluster-dialog
-        v-model="deleteClusterDialog"
+        v-model="deleteClusterDialogModel"
         :cluster-uid="deleteClusterUid"
         :num-addresses="deleteClusterSize"
         @deleted="handleClusterDeletion"
@@ -106,13 +106,13 @@
                   v-bind="props"
                   variant="plain"
                 >
-                  <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                  <v-icon>{{ mdiDotsVertical }}</v-icon>
                 </v-btn>
               </template>
               <v-list>
                 <v-list-item @click="deleteItem(item.uid, item.address_count)">
                   <template #prepend>
-                    <v-icon>{{ icon.mdiDelete }}</v-icon>
+                    <v-icon>{{ mdiDelete }}</v-icon>
                   </template>
                   <v-list-item-title>Delete</v-list-item-title>
                 </v-list-item>
@@ -123,7 +123,7 @@
           <v-list-item
             v-for="address in item.addresses"
             :key="address"
-            :to="{ name: routes.addressRoute, params: { id: address }}"
+            :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: address }}"
           >
             <div>
               {{ address }}
@@ -135,7 +135,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
@@ -144,67 +144,64 @@ import DeleteClusterDialog from './DeleteClusterDialog.vue';
 import DeleteAllClustersDialog from './DeleteAllClustersDialog.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useStore} from 'vuex';
 
-export default {
-	name: 'ClusterPage',
-	components: {
-		IconTitle, WikiTooltip, DeleteAllClustersDialog, DeleteClusterDialog, ImportClusterDialog,
-	},
-	data() {
-		return {
-			icon: {
-				mdiMerge, mdiDelete, mdiDotsVertical, mdiFileImport,
-			},
-			routes: {
-				addressRoute: ROUTE_NAME_ADDRESS_PAGE,
-			},
-			addClusterDialog: false,
-			deleteClusterDialog: false,
-			deleteAllClustersDialog: false,
-			isLoading: false,
-			deleteClusterUid: '',
-			deleteClusterSize: -1,
-			items: [],
-		};
-	},
-	async mounted() {
-		document.title = `Custom Clusters - ${PAGE_TITLE}`;
-		await this.loadData();
-	},
-	methods: {
-		async loadData() {
-			this.items = [];
-			this.isLoading = true;
+const dakar = inject('dakar');
+const route = useRoute();
+const store = useStore();
+const context = {$store: store, $route: route};
 
-			try {
-				const response = await 	this.dakar.cluster.clusterOverviewGet();
+const addClusterDialogModel = ref(false);
+const deleteClusterDialogModel = ref(false);
+const deleteAllClustersDialogModel = ref(false);
+const isLoading = ref(false);
+const deleteClusterUid = ref('');
+const deleteClusterSize = ref(-1);
+const items = ref([]);
 
-				if (response.clusters) {
-					// Parse date
-					response.clusters = response.clusters.map(d => {
-						d.ts = new Date(d.ts);
-						return d;
-					});
+// Hooks
+onMounted(async () => {
+	document.title = `Custom Clusters - ${PAGE_TITLE}`;
+	await loadData();
+});
 
-					// Sort clusters by time stamp
-					this.items = response.clusters.sort((a, b) => b.ts - a.ts);
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+// Functions
+async function loadData() {
+	items.value = [];
+	isLoading.value = true;
 
-			this.isLoading = false;
-		},
-		deleteItem(clusterUid, clusterSize) {
-			this.deleteClusterUid = clusterUid;
-			this.deleteClusterSize = clusterSize;
-			this.deleteClusterDialog = true;
-		},
-		handleClusterDeletion(clusterUid) {
-			this.items = this.items.filter(d => d.uid !== clusterUid);
-		},
-	},
-};
+	try {
+		const response = await 	dakar.cluster.clusterOverviewGet();
+
+		if (response.clusters) {
+			// Parse date
+			response.clusters = response.clusters.map(d => {
+				d.ts = new Date(d.ts);
+				return d;
+			});
+
+			// Sort clusters by time stamp
+			items.value = response.clusters.sort((a, b) => b.ts - a.ts);
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
+function deleteItem(clusterUid, clusterSize) {
+	deleteClusterUid.value = clusterUid;
+	deleteClusterSize.value = clusterSize;
+	deleteClusterDialogModel.value = true;
+}
+
+function handleClusterDeletion(clusterUid) {
+	items.value = items.value.filter(d => d.uid !== clusterUid);
+}
+
 </script>
 
 <style scoped>
