@@ -5,7 +5,7 @@
         <v-text-field
           v-model="query"
           label="Search for attributions"
-          :append-icon="icon.mdiMagnify"
+          :append-inner-icon="mdiMagnify"
           @click:append="handleQuery"
           @keydown.enter="handleQuery"
         />
@@ -31,69 +31,70 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiMagnify} from '@mdi/js';
 import AttributionDetails from './AttributionDetails.vue';
 import {handleError} from '@/utilities';
+import {inject, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
+const context = {$store: store, $route: route};
+
+const loading = ref(false);
+const query = ref('');
+const attributions = ref([]);
+
+// Functions
 function isValidQuery(query) {
 	return query.trim().length > 0;
 }
 
-export default {
-	name: 'AttributionSearch',
-	components: {AttributionDetails},
-	data() {
-		return {
-			icon: {
-				mdiMagnify,
-			},
-			loading: false,
-			query: '',
-			attributions: [],
-		};
-	},
-	methods: {
-		setWarningMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: this.$route.name});
-		},
-		async handleQuery() {
-			const q = this.query;
-			if (!isValidQuery(q)) {
-				this.setWarningMessage('search query is not valid');
-				return;
-			}
+function setWarningMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: route.name});
+}
 
-			await this.loadSearchData(q);
-		},
-		async loadSearchData(query) {
-			this.loading = true;
-			this.attributions = [];
+async function handleQuery() {
+	const q = query.value;
+	if (!isValidQuery(q)) {
+		setWarningMessage('search query is not valid');
+		return;
+	}
 
-			try {
-				const response = await this.dakar.attribution.searchAttributionsPost({attribution: {q: query}});
+	await loadSearchData(q);
+}
 
-				if (response.attributions) {
-					// Parse date
-					response.attributions = response.attributions.map(d => {
-						d.ts = new Date(d.ts);
-						return d;
-					});
+async function loadSearchData(query) {
+	loading.value = true;
+	attributions.value = [];
 
-					// Sort attributions by time stamp
-					this.attributions = response.attributions.sort((a, b) => b.ts - a.ts);
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+	try {
+		const response = await dakar.attribution.searchAttributionsPost({attribution: {q: query}});
 
-			this.loading = false;
-		},
-		handleAttributionDeletion(attributionUid) {
-			this.attributions = this.attributions.filter(d => d.uid !== attributionUid);
-		},
-	},
-};
+		if (response.attributions) {
+			// Parse date
+			response.attributions = response.attributions.map(d => {
+				d.ts = new Date(d.ts);
+				return d;
+			});
+
+			// Sort attributions by time stamp
+			attributions.value = response.attributions.sort((a, b) => b.ts - a.ts);
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	loading.value = false;
+}
+
+function handleAttributionDeletion(attributionUid) {
+	attributions.value = attributions.value.filter(d => d.uid !== attributionUid);
+}
+
 </script>
 
 <style scoped>
