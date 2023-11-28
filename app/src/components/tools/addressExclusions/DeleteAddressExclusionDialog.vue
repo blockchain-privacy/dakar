@@ -36,54 +36,58 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-	name: 'DeleteAddressExclusionDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		addressHash: {type: String, required: true},
-	},
-	emits: ['update:modelValue', 'deleted'],
-	data() {
-		return {
-			isLoading: false,
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		async deleteAddressExclusion() {
-			if (this.addressHash === '') {
-				this.setPersistentErrorMessage('could not delete address exclusion');
-				this.show = false;
-				return;
-			}
+<script setup>
+import {computed, inject, ref} from 'vue';
+import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
 
-			this.isLoading = true;
+const dakar = inject('dakar');
+const store = useStore();
+const route = useRoute();
 
-			try {
-				await this.dakar.addressExclusion.deleteAddressExclusionAddressHashGet({addressHash: this.addressHash});
-				this.$emit('deleted', this.addressHash);
-			} catch (e) {
-				this.setPersistentErrorMessage(e);
-			}
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	addressHash: {type: String, required: true},
+});
+const emit = defineEmits(['update:modelValue', 'deleted']);
 
-			this.isLoading = false;
-			this.show = false;
-		},
+const isLoading = ref(false);
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
+function setPersistentErrorMessage(msg) {
+	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+async function deleteAddressExclusion() {
+	if (props.addressHash === '') {
+		setPersistentErrorMessage('could not delete address exclusion');
+		show.value = false;
+		return;
+	}
+
+	isLoading.value = true;
+
+	try {
+		await dakar.addressExclusion.deleteAddressExclusionAddressHashGet({addressHash: props.addressHash});
+		emit('deleted', props.addressHash);
+	} catch (e) {
+		setPersistentErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
+
 </script>
 
 <style scoped>
