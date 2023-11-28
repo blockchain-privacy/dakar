@@ -36,7 +36,6 @@
 </template>
 
 <script setup>
-
 import {computed, inject, ref} from 'vue';
 import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
