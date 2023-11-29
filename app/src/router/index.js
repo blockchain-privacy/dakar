@@ -150,7 +150,7 @@ const router = createRouter({
 			meta: {title: 'Settings'},
 			children: [
 				{
-					path: 'profile',
+					path: 'profile/:tabName?',
 					name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
 					component: ProfilePage,
 				},
