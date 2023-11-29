@@ -64,9 +64,9 @@
     <v-data-table
       v-model:sort-by="sortBy"
       :search="search"
-      :loading="isLoading || !heuristicList"
+      :loading="isLoading"
       :headers="headers"
-      :items="heuristicList?heuristicList:[]"
+      :items="heuristicList"
     >
       <template #item.txhash="{ item }">
         <router-link
@@ -173,7 +173,7 @@ const store = useStore();
 const route = useRoute();
 const context = {$store: store, $route: route};
 
-const heuristicList = ref(null);
+const heuristicList = ref([]);
 const showDeleteAllDialog = ref(false);
 const showDeleteTransactionHeuristicDialog = ref(false);
 const transactionToDelete = ref(null);
