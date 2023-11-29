@@ -21,7 +21,6 @@
           <v-divider />
           <v-list
             v-if="fileSet"
-            density="compact"
             :nav="true"
           >
             <div
@@ -44,11 +43,7 @@
                   :key="child.title"
                   :to="{name: ROUTE_NAME_WIKI, params: { file: child.path }}"
                   :title="child.name"
-                >
-                  <template #prepend>
-                    <v-icon>{{ mdiBook }}</v-icon>
-                  </template>
-                </v-list-item>
+                />
               </v-list-group>
               <v-list-item
                 v-else
