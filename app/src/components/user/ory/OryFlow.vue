@@ -3,6 +3,7 @@
     <v-tabs
       v-model="tab"
       align-tabs="center"
+      @click="onTabChange"
     >
       <v-tab
         v-for="(formNodes, i) in getForms"
@@ -75,10 +76,11 @@ import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
 import {computed, onMounted, ref, watch} from 'vue';
 import {useStore} from 'vuex';
-import {useRoute} from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 
 const store = useStore();
 const route = useRoute();
+const router = useRouter();
 
 const props = defineProps({
 	flow: {type: Object, required: true},
@@ -104,9 +106,36 @@ watch(() => props.flow, () => {
 
 onMounted(() => {
 	displayMessages();
+
+	if (!props.embed) {
+		return;
+	}
+
+	// Set correct tab index based on route parameter
+	const tabIndex = getFormGroupNames.value.indexOf(route.params.tabName);
+
+	if (tabIndex >= 0) {
+		tab.value = `${props.formId}_${tabIndex}`;
+	}
 });
 
 // Computed
+// getFormGroupNames returns a unique array including all form group names except the 'default' group
+const getFormGroupNames = computed(() => {
+	if (!props.flow || !props.flow.ui || !props.flow.ui.nodes) {
+		return [];
+	}
+
+	// Find unique group names
+	const groupNames = new Set();
+	props.flow.ui.nodes.forEach(e => {
+		if (e.group !== 'default') {
+			groupNames.add(e.group);
+		}
+	});
+	return Array.from(groupNames);
+});
+
 // GetForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).
 // This is needed because the initial set of nodes contained in the flow property can have
 // more than one group. Nodes of the default group (e.g. csrf tokens) are included in
@@ -114,15 +143,7 @@ onMounted(() => {
 const getForms = computed(() => {
 	const forms = [];
 
-	if (!props.flow || !props.flow.ui || !props.flow.ui.nodes) {
-		return forms;
-	}
-
-	// Find unique group names
-	const groupNames = new Set();
-	props.flow.ui.nodes.forEach(e => groupNames.add(e.group));
-
-	groupNames.forEach(e => {
+	getFormGroupNames.value.forEach(e => {
 		if (e !== 'default') {
 			const formNodes = props.flow.ui.nodes.filter(d => d.group === 'default' || d.group === e);
 			forms.push(formNodes);
@@ -132,6 +153,28 @@ const getForms = computed(() => {
 });
 
 // Functions
+function onTabChange() {
+	// Extract the ID of the current tab
+	const tabNameParts = tab.value.split('_');
+	if (tabNameParts.length === 0) {
+		return;
+	}
+
+	const tabID = parseInt(tabNameParts[tabNameParts.length - 1], 10);
+	if (isNaN(tabID)) {
+		return;
+	}
+
+	// Return if tabID is too large or if the tab name is already set in the route params
+	const tabNames = getFormGroupNames.value;
+	if (tabID + 1 > tabNames.length || tabNames[tabID] === route.params.tabName) {
+		return;
+	}
+
+	// Replace current route
+	router.replace({name: route.name, params: {tabName: tabNames[tabID]}, query: route.query});
+}
+
 function setMessage(msg, msgType) {
 	store.dispatch('addMessage', {text: msg, type: msgType, temporary: false, category: route.name});
 }
