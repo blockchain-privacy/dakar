@@ -365,12 +365,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client@npm:^1.4.2":
-  version: 1.4.2
-  resolution: "@ory/client@npm:1.4.2"
+"@ory/client@npm:^1.4.3":
+  version: 1.4.3
+  resolution: "@ory/client@npm:1.4.3"
   dependencies:
     axios: "npm:^0.27.2"
-  checksum: b555e56324e85aa46f56d76d2cdc511516deeceaa2c4211d711a5584e30c05dbf3ef89c132a98333dbb669006134265a97a8e1e022697306e5437705bee3824c
+  checksum: 8b91b0f7217b8e345870949e9bff8c358f52923fe56df3279e0ff2024cfb661d62693f7b0adf46a1252d0081327c27e95ca6cc3e8bd576956dd605e5029cf34a
   languageName: node
   linkType: hard
 
@@ -1011,7 +1011,7 @@ __metadata:
     "@fontsource/roboto": "npm:^5.0.8"
     "@mdi/js": "npm:^7.3.67"
     "@neondark/wikiapi": "npm:^1.2.24"
-    "@ory/client": "npm:^1.4.2"
+    "@ory/client": "npm:^1.4.3"
     "@vitejs/plugin-vue": "npm:^4.5.0"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"
@@ -1034,7 +1034,7 @@ __metadata:
     vite-plugin-vuetify: "npm:^1.0.2"
     vue: "npm:^3.3.9"
     vue-router: "npm:^4.2.5"
-    vuetify: "npm:^3.4.3"
+    vuetify: "npm:^3.4.4"
     vuex: "npm:^4.1.0"
   languageName: unknown
   linkType: soft
@@ -2764,9 +2764,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.4.3":
-  version: 3.4.3
-  resolution: "vuetify@npm:3.4.3"
+"vuetify@npm:^3.4.4":
+  version: 3.4.4
+  resolution: "vuetify@npm:3.4.4"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ^1.0.0-alpha.12
@@ -2782,7 +2782,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 140978b26f2ebe00db537e5ea74853f1512f910445129756d6d4d0ee7ceaf475706ba7143f54394fed37b1259e6c788e2e5db39f24e76ed0e3000ea140f29614
+  checksum: 02591164db45c6b51721757bcc1e8f02a2e7f582117399f7d84b0a6ccfd0fc108b055f4b4e22d0c63065f62a46ac045f6be8c8d2d53b5ee1d774fb06da9f0509
   languageName: node
   linkType: hard
 

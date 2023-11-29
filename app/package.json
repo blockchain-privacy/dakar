@@ -13,7 +13,7 @@
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.3.67",
     "@neondark/wikiapi": "^1.2.24",
-    "@ory/client": "^1.4.2",
+    "@ory/client": "^1.4.3",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -28,7 +28,7 @@
     "d3-zoom": "^3.0.0",
     "vue": "^3.3.9",
     "vue-router": "^4.2.5",
-    "vuetify": "^3.4.3",
+    "vuetify": "^3.4.4",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
