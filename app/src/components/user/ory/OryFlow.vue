@@ -3,12 +3,12 @@
     <v-tabs
       v-model="tab"
       align-tabs="center"
-      @click="onTabChange"
     >
       <v-tab
         v-for="(formNodes, i) in getForms"
         :key="`${formId}_${i}`"
         :value="`${formId}_${i}`"
+        :to="{ name: route.name, params: { tabName: getFormGroupName(formNodes) }, query: route.query}"
       >
         {{ groupTitles.get(getFormGroupName(formNodes)) }}
       </v-tab>
@@ -76,11 +76,10 @@ import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
 import {computed, onMounted, ref, watch} from 'vue';
 import {useStore} from 'vuex';
-import {useRoute, useRouter} from 'vue-router';
+import {useRoute} from 'vue-router';
 
 const store = useStore();
 const route = useRoute();
-const router = useRouter();
 
 const props = defineProps({
 	flow: {type: Object, required: true},
@@ -106,17 +105,6 @@ watch(() => props.flow, () => {
 
 onMounted(() => {
 	displayMessages();
-
-	if (!props.embed) {
-		return;
-	}
-
-	// Set correct tab index based on route parameter
-	const tabIndex = getFormGroupNames.value.indexOf(route.params.tabName);
-
-	if (tabIndex >= 0) {
-		tab.value = `${props.formId}_${tabIndex}`;
-	}
 });
 
 // Computed
@@ -153,28 +141,6 @@ const getForms = computed(() => {
 });
 
 // Functions
-function onTabChange() {
-	// Extract the ID of the current tab
-	const tabNameParts = tab.value.split('_');
-	if (tabNameParts.length === 0) {
-		return;
-	}
-
-	const tabID = parseInt(tabNameParts[tabNameParts.length - 1], 10);
-	if (isNaN(tabID)) {
-		return;
-	}
-
-	// Return if tabID is too large or if the tab name is already set in the route params
-	const tabNames = getFormGroupNames.value;
-	if (tabID + 1 > tabNames.length || tabNames[tabID] === route.params.tabName) {
-		return;
-	}
-
-	// Replace current route
-	router.replace({name: route.name, params: {tabName: tabNames[tabID]}, query: route.query});
-}
-
 function setMessage(msg, msgType) {
 	store.dispatch('addMessage', {text: msg, type: msgType, temporary: false, category: route.name});
 }
