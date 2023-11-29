@@ -41,7 +41,6 @@ export const DEFAULT_SETTINGS = {dark: false};
 // Blockchain
 export const COIN_UNIT_DASH = 'Dash';
 export const COIN_UNIT_BTC = 'BTC';
-export const COIN_UNIT_DOGE = 'Doge';
 export const COIN_UNIT = COIN_UNIT_DASH;
 
 // Cluster
