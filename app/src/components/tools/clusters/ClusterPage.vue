@@ -146,12 +146,12 @@ import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {inject, onMounted, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useStore} from 'vuex';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
 const route = useRoute();
-const store = useStore();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const addClusterDialogModel = ref(false);
 const deleteClusterDialogModel = ref(false);

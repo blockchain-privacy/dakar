@@ -37,11 +37,11 @@
 
 <script setup>
 import {computed, inject, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
+const msgStore = useMsgStore();
 const route = useRoute();
 
 const props = defineProps({modelValue: {type: Boolean, required: true}});
@@ -60,11 +60,11 @@ const show = computed({
 });
 // Functions
 function setPersistentErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
 }
 
 function setInfoMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 async function deleteAllAttributions() {

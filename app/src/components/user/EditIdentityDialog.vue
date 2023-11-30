@@ -59,13 +59,13 @@
 <script setup>
 import {emailRules, handleError} from '@/utilities';
 import {computed, inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-const store = useStore();
 const route = useRoute();
 const dakar = inject('dakar');
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const emit = defineEmits(['update:modelValue', 'saved']);
 
@@ -109,11 +109,11 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 function setInfoMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 async function saveIdentity() {

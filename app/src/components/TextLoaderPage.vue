@@ -36,8 +36,8 @@
 <script setup>
 import {PAGE_TITLE} from '@/constants';
 import {onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const props = defineProps({
 	pageTitle: {type: String, required: true},
@@ -45,11 +45,11 @@ const props = defineProps({
 });
 
 const loadedHTML = ref('');
-const store = useStore();
 const route = useRoute();
+const msgStore = useMsgStore();
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 onMounted(async () => {

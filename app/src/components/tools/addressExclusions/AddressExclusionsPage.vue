@@ -150,13 +150,12 @@ import DeleteAddressExclusionDialog from './DeleteAddressExclusionDialog.vue';
 import DeleteAllAddressExclusionsDialog from './DeleteAllAddressExclusionsDialog.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
 const addAddressExclusions = ref(false);
 const deleteExclusionDialog = ref(false);

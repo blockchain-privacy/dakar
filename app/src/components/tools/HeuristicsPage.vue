@@ -165,13 +165,13 @@ import {handleError, shortenHash} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const heuristicList = ref([]);
 const showDeleteAllDialog = ref(false);
@@ -204,11 +204,11 @@ onMounted(() => {
 
 // Functions
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
 }
 
 function setInfoMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 async function loadHeuristicList() {
@@ -221,7 +221,7 @@ async function loadHeuristicList() {
 		}
 
 		heuristicList.value = response.items;
-		await store.dispatch('resetMessages');
+		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}

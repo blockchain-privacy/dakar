@@ -254,12 +254,13 @@ import {PAGE_TITLE} from '@/constants';
 import {handleError} from '@/utilities';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const route = useStore();
-const store = useStore();
-const context = {$store: store, $route: route};
+const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const isLoading = ref(false);
 const showCreateIdentityDialog = ref(false);
@@ -333,7 +334,7 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 async function loadUserList() {
@@ -343,7 +344,7 @@ async function loadUserList() {
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
-		await store.dispatch('resetMessages');
+		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}

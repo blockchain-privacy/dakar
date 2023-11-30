@@ -54,37 +54,26 @@ import {
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {inject, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useStore} from 'vuex';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
+import {useNavStore} from '@/pinia/nav';
+import {useMsgStore} from '@/pinia/msg';
 
 const ory = inject('ory');
 const router = useRouter();
 const route = useRoute();
-const store = useStore();
+const localStore = useLocalStore();
+const navStore = useNavStore();
+const msgStore = useMsgStore();
+const {session} = storeToRefs(localStore);
+const {failedRoute} = storeToRefs(navStore);
+const context = {$route: route, $router: router, navStore, localStore, msgStore};
 
 const loginFlow = ref(null);
 const showLogoutButton = ref(false);
 const disabledForms = ref([]);
-
-// Computed
-const session = computed({
-	get() {
-		return store.getters.getSession;
-	},
-	set(value) {
-		store.dispatch('setSession', value);
-	},
-});
-
-const failedRoute = computed({
-	get() {
-		return store.getters.getFailedRoute;
-	},
-	set(value) {
-		store.dispatch('setFailedRoute', value);
-	},
-});
 
 // Watch
 watch(route, to => {
@@ -115,7 +104,7 @@ onMounted(() => {
 
 // Functions
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 function goToPage(pageObj) {
@@ -170,7 +159,7 @@ async function logoutAndGoToPage(pageName) {
 		if (e.response?.data?.error?.id === 'session_inactive') {
 			goToPage({name: pageName});
 		} else {
-			await handleGetFlowError(this, e, null);
+			await handleGetFlowError(context, e, null);
 		}
 	}
 }
@@ -216,7 +205,7 @@ async function handleOrySubmitLogin(formID) {
 		if (e.response?.data?.ui) {
 			setFlowData(e.response.data);
 		} else {
-			handleGetFlowError(this, e, () => {
+			handleGetFlowError(context, e, () => {
 				initLoginFlow('aal1');
 				setErrorMessage('The login flow has expired, please try again.');
 			}).catch(e => {
@@ -237,7 +226,7 @@ async function initFlow() {
 			const response = await ory.frontend.getLoginFlow({id: flow});
 			setFlowData(response.data);
 		} catch (e) {
-			await handleGetFlowError(this, e, () => initLoginFlow('aal1'));
+			await handleGetFlowError(context, e, () => initLoginFlow('aal1'));
 		}
 	} else {
 		// If there's no flow in our route,
@@ -263,7 +252,7 @@ async function initLoginFlow(aal) {
 			return;
 		}
 
-		await handleGetFlowError(this, e, null);
+		await handleGetFlowError(context, e, null);
 	}
 }
 

@@ -111,27 +111,24 @@ import {
 } from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
 import {computed, inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute, useRouter} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
+import {useExplorerStore} from '@/pinia/explorer';
+import {storeToRefs} from 'pinia';
+import {useNavStore} from '@/pinia/nav';
 
 const dakar = inject('dakar');
-const store = useStore();
 const router = useRouter();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const explorerStore = useExplorerStore();
+const {pushFromUserInput} = storeToRefs(useNavStore());
+const context = {$route: route, addMessage: msgStore.addMessage};
 
 const query = ref('');
 
 // Computed
-const searchResultType = computed(() => store.getters.getSearchResultType);
-const isPushFromUserInput = computed({
-	async set(value) {
-		await store.dispatch('setPushFromUserInput', value);
-	},
-	get() {
-		return store.getters.getPushFromUserInput;
-	},
-});
+const searchResultType = computed(() => explorerStore.getSearchResultType);
 
 // Hooks
 onMounted(() => {
@@ -140,7 +137,7 @@ onMounted(() => {
 
 // Functions
 function setWarningMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
 }
 
 async function executeQuery(query) {
@@ -149,7 +146,7 @@ async function executeQuery(query) {
 	try {
 		const response = await dakar.data.searchQueryGet({query});
 
-		await store.dispatch('updateSearchResult', response);
+		explorerStore.updateSearchResult(response);
 		ok = response?.type !== RESPONSE_EMPTY;
 		if (!ok) {
 			setWarningMessage('server error');
@@ -175,15 +172,15 @@ async function handleQuery(q) {
 			await router.push({name: ROUTE_NAME_NO_RESULTS});
 			break;
 		case RESPONSE_TYPE_ADDRESS:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: query}});
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: query}});
 			break;
 		case RESPONSE_TYPE_TRANSACTION:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: query}});
 			break;
 		default:

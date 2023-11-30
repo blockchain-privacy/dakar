@@ -12,18 +12,18 @@
         xl="8"
       >
         <fade-transition>
-          <div v-if="data">
+          <div v-if="block">
             <v-row>
               <v-col>
                 <v-card variant="text">
                   <icon-title
-                    :title="`Block ${data.blockhash}`"
+                    :title="`Block ${block.blockhash}`"
                     :icon="mdiCubeOutline"
                   />
                   <v-card-text>
                     <v-row>
                       <v-col
-                        v-if="data.id"
+                        v-if="block.id"
                         cols="12"
                         sm="6"
                       >
@@ -31,21 +31,21 @@
                           :icon="mdiFormatListNumbered"
                           title="Block Height"
                         >
-                          {{ data.id.toLocaleString() }}
+                          {{ block.id.toLocaleString() }}
                         </icon-item>
                       </v-col>
-                      <v-col v-if="data.ts">
+                      <v-col v-if="block.ts">
                         <icon-item
                           :icon="mdiCalendar"
                           title="Timestamp"
                         >
-                          {{ data.ts != null ? new Date(data.ts).toLocaleString() : "" }}
+                          {{ block.ts != null ? new Date(block.ts).toLocaleString() : "" }}
                         </icon-item>
                       </v-col>
                     </v-row>
                     <v-row>
                       <v-col
-                        v-if="data.prevblockhash"
+                        v-if="block.prevblockhash"
                         cols="12"
                         sm="6"
                       >
@@ -55,22 +55,22 @@
                         >
                           <router-link
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: data.prevblockhash }}"
+                                   params: { id: block.prevblockhash }}"
                           >
-                            {{ shortenHash(data.prevblockhash) }}
+                            {{ shortenHash(block.prevblockhash) }}
                           </router-link>
                         </icon-item>
                       </v-col>
-                      <v-col v-if="data.nextblockhash">
+                      <v-col v-if="block.nextblockhash">
                         <icon-item
                           :icon="mdiFormatHeaderPound"
                           title="Next Block"
                         >
                           <router-link
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
-                                   params: { id: data.nextblockhash }}"
+                                   params: { id: block.nextblockhash }}"
                           >
-                            {{ shortenHash(data.nextblockhash) }}
+                            {{ shortenHash(block.nextblockhash) }}
                           </router-link>
                         </icon-item>
                       </v-col>
@@ -81,19 +81,19 @@
                           :icon="mdiPound"
                           title="Number of Transactions"
                         >
-                          {{ data.txcount.toLocaleString() }}
+                          {{ block.txcount.toLocaleString() }}
                         </icon-item>
                       </v-col>
                     </v-row>
                   </v-card-text>
                 </v-card>
               </v-col>
-              <template v-if="data.transactions">
+              <template v-if="block.transactions">
                 <v-divider />
                 <v-col>
                   <v-infinite-scroll @load="addNewData">
                     <template
-                      v-for="tx in data.transactions"
+                      v-for="tx in block.transactions"
                       :key="tx.txhash+tx.bid"
                     >
                       <v-col>
@@ -147,19 +147,21 @@ import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {computed, inject, onMounted, onUpdated, watch} from 'vue';
 import {useRoute} from 'vue-router';
-import {useStore} from 'vuex';
+import {useExplorerStore} from '@/pinia/explorer';
+import {storeToRefs} from 'pinia';
+import {useMsgStore} from '@/pinia/msg';
+import {useLocalStore} from '@/pinia/local';
 
 const dakar = inject('dakar');
 const route = useRoute();
-const store = useStore();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {$route: route, addMessage: msgStore.addMessage};
+const {block} = storeToRefs(useExplorerStore());
+const {session} = storeToRefs(useLocalStore());
 
 let offset = 0;
 
 // Computed
-const data = computed(() => store.getters.getBlockData);
-
-const session = computed(() => store.getters.getSession);
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 
 // Watchers
@@ -169,7 +171,7 @@ watch(route, () => {
 	offset = 0;
 });
 
-watch(data, () => {
+watch(block, () => {
 	setPageTitle();
 });
 
@@ -187,20 +189,20 @@ onUpdated(() => {
 // Functions
 function setPageTitle() {
 	let id = ' ';
-	if (data.value && data.value.id) {
-		id = ` ${data.value.id} `;
+	if (block.value && block.value.id) {
+		id = ` ${block.value.id} `;
 	}
 
 	document.title = `Block${id}- ${PAGE_TITLE}`;
 }
 
-function 	isResponseValid(data) {
+function isResponseValid(data) {
 	return !(!data.type || data.type !== 'block' || !data.payload || !data.payload.transactions
       || data.payload.transactions.length === 0);
 }
 
 async function addNewData({done}) {
-	if (!data.value) {
+	if (!block.value) {
 		done('empty');
 		return;
 	}
@@ -208,17 +210,17 @@ async function addNewData({done}) {
 	offset += 10;
 
 	// Do nothing if all data is already loaded
-	if (offset >= data.value.txcount) {
+	if (offset >= block.value.txcount) {
 		done('empty');
 		return;
 	}
 
 	try {
-		const response = await dakar.data.blkRangeBlockHashPost({blockHash: data.value.blockhash, offset: {offset}});
+		const response = await dakar.data.blkRangeBlockHashPost({blockHash: block.value.blockhash, offset: {offset}});
 
 		if (isResponseValid(response)) {
-			data.value.transactions = [...data.value.transactions, ...response.payload.transactions];
-			await store.dispatch('resetMessages');
+			block.value.transactions = [...block.value.transactions, ...response.payload.transactions];
+			msgStore.resetMessages();
 		}
 
 		done('ok');

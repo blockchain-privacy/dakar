@@ -245,13 +245,17 @@ import ClusterLookup from './ClusterLookup.vue';
 import DeleteAddressExclusionDialog from '../../tools/addressExclusions/DeleteAddressExclusionDialog.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {computed, inject, onMounted, onUpdated, ref, watch} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
+import {useExplorerStore} from '@/pinia/explorer';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const {address: addressData} = storeToRefs(useExplorerStore());
+const {session} = storeToRefs(useLocalStore());
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
 const itemsPerPage = 20;
 
@@ -278,16 +282,6 @@ const table = ref({
 });
 
 // Computed
-const addressData = computed({
-	get() {
-		return store.getters.getAddressData;
-	},
-	set(value) {
-		store.dispatch('setAddressData', value);
-	},
-});
-
-const session = computed(() => store.getters.getSession);
 const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 const offset = computed(() => table.value.page * itemsPerPage - itemsPerPage);
 

@@ -75,11 +75,11 @@
 import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
 import {computed, onMounted, ref, watch} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-const store = useStore();
 const route = useRoute();
+const msgStore = useMsgStore();
 
 const props = defineProps({
 	flow: {type: Object, required: true},
@@ -142,7 +142,7 @@ const getForms = computed(() => {
 
 // Functions
 function setMessage(msg, msgType) {
-	store.dispatch('addMessage', {text: msg, type: msgType, temporary: false, category: route.name});
+	msgStore.addMessage({text: msg, type: msgType, temporary: false, category: route.name});
 }
 
 function propagateSubmitEvent(formID, btnName) {

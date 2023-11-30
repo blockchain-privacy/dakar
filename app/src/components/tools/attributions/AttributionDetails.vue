@@ -66,10 +66,11 @@ import {ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import DeleteAttributionDialog from './DeleteAttributionDialog.vue';
 import AttributionTag from './AttributionTag.vue';
 import {isAdminIdentity} from '@/utilities';
-import {computed, ref} from 'vue';
-import {useStore} from 'vuex';
+import {ref} from 'vue';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
 
-const store = useStore();
+const {session} = storeToRefs(useLocalStore());
 
 defineProps({attribution: {type: Object, required: true}});
 const emit = defineEmits(['deleted']);
@@ -78,9 +79,6 @@ const deleteAttributionDialogModel = ref(false);
 const deleteAttributionTag = ref('');
 const deleteAttributionUid = ref('');
 const deleteAttributionPublic = ref(false);
-
-// Computed
-const session = computed(() => store.getters.getSession);
 
 // Functions
 // Credit: https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url/43467144#43467144

@@ -103,14 +103,14 @@ import {
 import LinkCard from '../common/LinkCard.vue';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import {computed} from 'vue';
-import {useStore} from 'vuex';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
 
-const store = useStore();
+const {session} = storeToRefs(useLocalStore());
 
 const iconColor = {default: 'primary', admin: 'red darken-3'};
 
 // Computed
-const session = computed(() => store.getters.getSession);
 const showUserAdmin = computed(() => isAdminIdentity(session.value));
 const showTools = computed(() => isPrivilegedIdentity(session.value) || showUserAdmin);
 

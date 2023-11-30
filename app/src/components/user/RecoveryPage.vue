@@ -34,13 +34,18 @@ import {PAGE_TITLE} from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute, useRouter} from 'vue-router';
+import {useLocalStore} from '@/pinia/local';
+import {useNavStore} from '@/pinia/nav';
+import {useMsgStore} from '@/pinia/msg';
 
 const ory = inject('ory');
-const store = useStore();
 const route = useRoute();
 const router = useRouter();
+const localStore = useLocalStore();
+const navStore = useNavStore();
+const msgStore = useMsgStore();
+const context = {$route: route, $router: router, navStore, localStore, msgStore};
 
 const recoveryFlow = ref(null);
 const disabledForms = ref([]);
@@ -56,7 +61,7 @@ onMounted(async () => {
 			const response = await ory.frontend.getRecoveryFlow({id: flow});
 			setFlowData(response.data);
 		} catch (e) {
-			await handleGetFlowError(this, e, initRecoveryFlow);
+			await handleGetFlowError(context, e, initRecoveryFlow);
 		}
 	} else {
 		// If there's no flow in our route,
@@ -67,7 +72,7 @@ onMounted(async () => {
 
 // Functions
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 async function initRecoveryFlow() {
@@ -75,7 +80,7 @@ async function initRecoveryFlow() {
 		const response = await 	ory.frontend.createBrowserRecoveryFlow();
 		setFlowData(response.data);
 	} catch (e) {
-		await handleGetFlowError(this, e, null);
+		await handleGetFlowError(context, e, null);
 	}
 }
 
@@ -128,7 +133,7 @@ async function handleOrySubmitRecovery(formID, btnName) {
 			setFlowData(e.response.data);
 		} else {
 			try {
-				await handleGetFlowError(this, e, initRecoveryFlow);
+				await handleGetFlowError(context, e, initRecoveryFlow);
 			} catch (e) {
 				setErrorMessage(e);
 			}

@@ -23,13 +23,18 @@ import {
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
 import {computed, inject, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useStore} from 'vuex';
+import {useExplorerStore} from '@/pinia/explorer';
+import {useMsgStore} from '@/pinia/msg';
+import {useNavStore} from '@/pinia/nav';
+import {storeToRefs} from 'pinia';
 
 const dakar = inject('dakar');
 const route = useRoute();
 const router = useRouter();
-const store = useStore();
-const context = {$store: useStore(), $route: useRoute()};
+const msgStore = useMsgStore();
+const explorerStore = useExplorerStore();
+const {pushFromUserInput} = storeToRefs(useNavStore());
+const context = {addMessage: msgStore.addMessage, $route: useRoute()};
 
 const query = ref('');
 let lastQuery = '';
@@ -40,27 +45,18 @@ watch(route, () => {
 });
 
 // Computed
-const searchResultType = computed(() => store.getters.getSearchResultType);
-
-const isPushFromUserInput = computed({
-	async set(value) {
-		await store.dispatch('setPushFromUserInput', value);
-	},
-	get() {
-		return store.getters.getPushFromUserInput;
-	},
-});
+const searchResultType = computed(() => explorerStore.getSearchResultType);
 
 // Functions
 function newRouting() {
 	const {id} = route.params;
-	const pushFromUserInput = isPushFromUserInput.value;
+	const isPushFromUserInput = pushFromUserInput.value;
 
-	if (pushFromUserInput) {
-		isPushFromUserInput.value = false;
+	if (isPushFromUserInput) {
+		pushFromUserInput.value = false;
 	}
 
-	if (pushFromUserInput || !id
+	if (isPushFromUserInput || !id
       || !(route.name === ROUTE_NAME_BLOCK_PAGE
           || route.name === ROUTE_NAME_ADDRESS_PAGE
           || route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
@@ -99,15 +95,15 @@ async function handleInput(q) {
 			await router.push({name: ROUTE_NAME_NO_RESULTS});
 			break;
 		case RESPONSE_TYPE_ADDRESS:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery}});
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery}});
 			break;
 		case RESPONSE_TYPE_TRANSACTION:
-			isPushFromUserInput.value = true;
+			pushFromUserInput.value = true;
 			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery}});
 			break;
 		default:
@@ -116,10 +112,10 @@ async function handleInput(q) {
 	}
 }
 
-async function storeResult(promise, action) {
+async function storeResult(promise, action, piniaAction) {
 	try {
 		const response = await promise;
-		await store.dispatch(action, response);
+		piniaAction(response);
 	} catch (e) {
 		handleError(context, e);
 	}
@@ -141,30 +137,31 @@ async function handleQuery(q, type) {
 		return false;
 	}
 
-	await store.dispatch('resetMessages');
-	await store.dispatch('setBlockData', null);
-	await store.dispatch('setTransactionData', null);
-	await store.dispatch('setAddressData', null);
+	// Reset messages here
+	msgStore.resetMessages();
+	explorerStore.setAddress(null);
+	explorerStore.setBlock(null);
+	explorerStore.setTransaction(null);
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.txHashGet({hash: trimmedQuery}), 'updateTransactionData');
+			await storeResult(dakar.data.txHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blkHashGet({hash: trimmedQuery}), 'updateBlockData');
+			await storeResult(dakar.data.blkHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
-			await storeResult(dakar.data.addressHashGet({hash: trimmedQuery}), 'updateAddressData');
+			await storeResult(dakar.data.addressHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.searchQueryGet({query: trimmedQuery}), 'updateSearchResult');
+			await storeResult(dakar.data.searchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
 	}
 
 	return true;
 }
 
 function setWarningMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
 }
 
 // Initial routing

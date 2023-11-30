@@ -94,13 +94,15 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 <script setup>
 import {isAdminIdentity} from '@/utilities';
 import {computed, inject, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
 import {fileRule} from '@/utilities';
+import {useLocalStore} from '@/pinia/local';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
+const localStore = useLocalStore();
+const msgStore = useMsgStore();
 
 const props = defineProps({modelValue: {type: Boolean, required: true}});
 const emit = defineEmits(['added', 'update:modelValue']);
@@ -131,7 +133,7 @@ const show = computed({
 	},
 });
 
-const isAdmin = computed(() => isAdminIdentity(store.getters.getSession));
+const isAdmin = computed(() => isAdminIdentity(localStore.getSession));
 
 // Functions
 // CodeToMsg returns a message for the given message code
@@ -159,11 +161,11 @@ function codeToMsg(msgCode) {
 }
 
 function setSuccessMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
 }
 
 function setPersistentErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
 }
 
 async function handleCSVUpload() {

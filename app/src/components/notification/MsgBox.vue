@@ -31,9 +31,9 @@
 import Messages from './Messages.vue';
 import {plural} from '@/utilities';
 import {computed} from 'vue';
-import {useStore} from 'vuex';
+import {useMsgStore} from '@/pinia/msg';
 
-const store = useStore();
+const msgStore = useMsgStore();
 
 const maxNumberOfMessagesToDisplay = 3;
 
@@ -41,7 +41,8 @@ const maxNumberOfMessagesToDisplay = 3;
 const allMessages = computed(() => {
 	// Show only limited number of messages
 	const messages = [];
-	const mapMessages = store.getters.getMessages;
+
+	const mapMessages = msgStore.getMessages;
 	for (const [key, value] of mapMessages) {
 		messages.push({key, value});
 		if (messages.length + 1 > maxNumberOfMessagesToDisplay) {
@@ -52,7 +53,7 @@ const allMessages = computed(() => {
 	return messages;
 });
 
-const numHiddenMessages = computed(() => store.getters.getMessages.size - maxNumberOfMessagesToDisplay);
+const numHiddenMessages = computed(() => msgStore.getMessages.size - maxNumberOfMessagesToDisplay);
 const hiddenMessageText = computed(() => {
 	if (numHiddenMessages.value < 1) {
 		return '';
@@ -61,7 +62,7 @@ const hiddenMessageText = computed(() => {
 	return `${numHiddenMessages.value} additional ${plural('message', numHiddenMessages)}`;
 });
 function removeMessage(key) {
-	store.dispatch('removeMessage', key);
+	msgStore.removeMessage(key);
 }
 
 </script>

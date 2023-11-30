@@ -187,12 +187,12 @@ import {handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
 import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject, computed} from 'vue';
 import {useRoute} from 'vue-router';
-import {useStore} from 'vuex';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
 const route = useRoute();
-const store = useStore();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const newUidPrefix = 'newUid_';
 const ht = new HeuristicTree(150);
@@ -389,7 +389,7 @@ function simulateClick() {
 }
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 function addNewHeuristic(heuristic) {
@@ -420,7 +420,7 @@ async function loadHeuristicDetails(uid) {
 		}
 
 		heuristicDetailsMap.set(response.heuristic.uid, response.heuristic);
-		await store.dispatch('resetMessages');
+		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}
@@ -628,7 +628,7 @@ function updateGraph() {
 async function loadHeuristicData() {
 	try {
 		data = await dakar.heuristic.heuristicsHashGet({hash: transactionHash.value});
-		await store.dispatch('resetMessages');
+		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}

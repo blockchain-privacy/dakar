@@ -109,12 +109,12 @@ import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 import {computed, inject, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useStore} from 'vuex';
+import {useMsgStore} from '@/pinia/msg';
 
 const route = useRoute();
 const router = useRouter();
-const store = useStore();
 const wikiapi = inject('wikiapi');
+const msgStore = useMsgStore();
 
 const fileHTML = ref('');
 
@@ -235,7 +235,7 @@ function getFileHierarchy() {
 }
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 async function getFileIndex() {

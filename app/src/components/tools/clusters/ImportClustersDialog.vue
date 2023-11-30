@@ -82,12 +82,12 @@
 <script setup>
 import {computed, inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {useStore} from 'vuex';
 import {fileRule} from '@/utilities';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
 const route = useRoute();
-const store = useStore();
+const msgStore = useMsgStore();
 
 const props = defineProps({modelValue: {type: Boolean, required: true}});
 const emit = defineEmits(['added', 'update:modelValue']);
@@ -119,11 +119,11 @@ const separatorItems = [
 
 // Functions
 function setSuccessMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
 }
 
 function setPersistentErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
 }
 
 async function handleCSVUpload() {

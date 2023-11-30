@@ -36,13 +36,13 @@ import {mdiMagnify} from '@mdi/js';
 import AttributionDetails from './AttributionDetails.vue';
 import {handleError} from '@/utilities';
 import {inject, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const loading = ref(false);
 const query = ref('');
@@ -54,7 +54,7 @@ function isValidQuery(query) {
 }
 
 function setWarningMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
 }
 
 async function handleQuery() {

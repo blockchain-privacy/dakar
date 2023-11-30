@@ -95,13 +95,12 @@ import DeleteAllAttributionsDialog from './DeleteAllAttributionsDialog.vue';
 import AttributionDetails from './AttributionDetails.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import {inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
 const isLoading = ref(false);
 const addAttributionDialog = ref(false);

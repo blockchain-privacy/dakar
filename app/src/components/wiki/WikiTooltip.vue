@@ -48,12 +48,12 @@
 import {mdiOpenInNew} from '@mdi/js';
 import {ROUTE_NAME_WIKI} from '@/constants';
 import {inject, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-const store = useStore();
 const route = useRoute();
 const wikiapi = inject('wikiapi');
+const msgStore = useMsgStore();
 
 const props = defineProps({
 	descriptionUrl: {type: String, required: true},
@@ -64,7 +64,7 @@ const description = ref('');
 const requestedDescription = ref(false);
 
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 async function requestBlurb() {

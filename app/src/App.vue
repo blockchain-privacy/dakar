@@ -25,32 +25,15 @@ import {isSessionExpired} from './utilities';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {computed, onBeforeMount, onMounted, toRaw} from 'vue';
 import {useRoute} from 'vue-router';
-import {useStore} from 'vuex';
 import {useTheme} from 'vuetify';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
 
 const route = useRoute();
-const store = useStore();
 const theme = useTheme();
+const {settings, session} = storeToRefs(useLocalStore());
 
 // Computed
-const settings = computed({
-	get() {
-		return store.getters.getSettings;
-	},
-	set(value) {
-		store.dispatch('setSettings', value);
-	},
-});
-
-const session = computed({
-	get() {
-		return store.getters.getSession;
-	},
-	set(value) {
-		store.dispatch('setSession', value);
-	},
-});
-
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
 
 // Functions

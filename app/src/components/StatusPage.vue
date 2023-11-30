@@ -219,11 +219,11 @@ import IconItem from './common/IconItem.vue';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {computed, ref, onMounted, onBeforeUnmount, inject} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const context = {$store: useStore(), $route: useRoute()};
+const context = {$route: useRoute(), addMessage: useMsgStore().addMessage};
 
 const tooltips = {
 	databaseSync: 'Percentage of blocks synced from the RPC client to the database. The crawler is active if the icon is green.',

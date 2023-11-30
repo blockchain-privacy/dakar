@@ -15,10 +15,10 @@
 import {getLocalSettings} from '@/utilities';
 import {mdiWeatherNight, mdiWeatherSunny} from '@mdi/js';
 import {onBeforeMount, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useTheme} from 'vuetify';
+import {useLocalStore} from '@/pinia/local';
 
-const store = useStore();
+const localStore = useLocalStore();
 const theme = useTheme();
 
 const darkModeEnabled = ref(false);
@@ -30,16 +30,14 @@ onBeforeMount(() => {
 });
 
 // Functions
-function persistDarkTheme(isDark) {
-	const set = store.getters.getSettings;
-	set.dark = isDark;
-	store.dispatch('setSettings', set);
-}
-
 function darkModeChange(enabled) {
 	darkModeEnabled.value = enabled;
 	theme.global.name.value = enabled ? 'dark' : 'light';
-	persistDarkTheme(enabled);
+
+	// Persist dark theme
+	const set = localStore.getSettings;
+	set.dark = enabled;
+	localStore.setSettings(set);
 }
 
 </script>

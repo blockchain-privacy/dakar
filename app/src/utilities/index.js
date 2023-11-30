@@ -59,13 +59,13 @@ export function getCurrentDate() {
 }
 
 // CheckResponseStatus throws an error depending on the provided response status
-export async function checkResponseStatus(context, response) {
+export async function checkResponseStatus(context, navStore, localStore, response) {
 	if (response.ok) {
 		return;
 	}
 
 	if (response.status === 401) {
-		handleUnauthorizedRequest(context.$router, context.$store, context.$route);
+		handleUnauthorizedRequest(context.$router, navStore, localStore, context.$route);
 		throw new Error('Please login again.', {cause: response});
 	}
 
@@ -98,10 +98,10 @@ export async function checkResponseStatus(context, response) {
 }
 
 // HandleUnauthorizedRequest directs to the login page
-export function handleUnauthorizedRequest(router, store, currentRoute) {
+export function handleUnauthorizedRequest(router, navStore, localStore, currentRoute) {
 	// Set failed route so we can reroute to it later
-	store.dispatch('setFailedRoute', currentRoute);
-	store.dispatch('setSession', null);
+	navStore.setFailedRoute(currentRoute);
+	localStore.setSession(null);
 	router.push({name: ROUTE_NAME_LOGIN_PAGE});
 }
 
@@ -119,7 +119,7 @@ export function handleError(context, error) {
 		errMsg = error.message;
 	}
 
-	context.$store.dispatch('addMessage', {text: errMsg, type: 'error', temporary: true, category: context.$route.name});
+	context.addMessage({text: errMsg, type: 'error', temporary: true, category: context.$route.name});
 }
 
 export const emailRules = [

@@ -200,12 +200,12 @@ import {getCurrentDate} from '@/utilities';
 import NamedDivider from '@/components/common/NamedDivider.vue';
 import SideBar from '@/components/heuristic/SideBar.vue';
 import {computed, inject, onMounted, onUpdated, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
 const route = useRoute();
-const store = useStore();
+const msgStore = useMsgStore();
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -255,7 +255,7 @@ onMounted(() => {
 
 // Function
 function setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 function doUpdate() {

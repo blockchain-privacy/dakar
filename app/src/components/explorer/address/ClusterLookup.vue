@@ -160,13 +160,12 @@ import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
 import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
 import {inject, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
-const context = {$store: store, $route: route};
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
 const props = defineProps({addressHash: {type: String, required: true}});
 

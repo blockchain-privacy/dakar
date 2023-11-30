@@ -177,12 +177,13 @@ import {PAGE_TITLE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import TransactionItem from '@/components/common/TransactionItem.vue';
 import {computed, inject, onMounted, ref} from 'vue';
-import {useStore} from 'vuex';
 import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
 const dakar = inject('dakar');
-const store = useStore();
 const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
 const fromTransaction = ref('');
 const isDirectionForward = ref(false);
@@ -190,7 +191,6 @@ const isLoading = ref(false);
 const transactions = ref([]);
 const transactionCount = ref(-1);
 const maxLookBackTime = ref(5);
-const context = {$store: store, $route: route};
 
 // Computed
 const isSearchable = computed(() => fromTransaction.value && fromTransaction.value.trim().length > 0);
@@ -202,7 +202,7 @@ onMounted(() => {
 
 // Functions
 function setInfoMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 async function handleSearch() {
@@ -210,7 +210,7 @@ async function handleSearch() {
 		return;
 	}
 
-	await store.dispatch('resetMessages');
+	msgStore.resetMessages();
 
 	transactions.value = [];
 	await doLookup();

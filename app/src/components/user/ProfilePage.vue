@@ -127,15 +127,22 @@ import {
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {inject, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {useStore} from 'vuex';
+import {useLocalStore} from '@/pinia/local';
+import {useNavStore} from '@/pinia/nav';
+import {useMsgStore} from '@/pinia/msg';
+import {storeToRefs} from 'pinia';
 
 const ory = inject('ory');
 const dakar = inject('dakar');
 const route = useRoute();
 const router = useRouter();
-const store = useStore();
+const localStore = useLocalStore();
+const navStore = useNavStore();
+const msgStore = useMsgStore();
+const {session} = storeToRefs(localStore);
+const context = {$route: route, $router: router, navStore, localStore, msgStore};
 
 const settingsFlow = ref(null);
 const userSessions = ref([]);
@@ -160,16 +167,6 @@ const userSessionHeaders = [
 		title: '', key: 'actions', sortable: false,
 	},
 ];
-
-// Computed
-const session = computed({
-	get() {
-		return store.getters.getSession;
-	},
-	set(value) {
-		store.dispatch('setSession', value);
-	},
-});
 
 watch(route, to => {
 	if (to.name === ROUTE_NAME_USER_PROFILE_PAGE && !to.query.flow) {
@@ -215,22 +212,22 @@ function getDeviceIcon(userAgent) {
 
 function setSuccessMessage(msg) {
 	// Do not limit message to current route
-	store.dispatch('addMessage', {text: msg, type: 'success', temporary: true});
+	msgStore.addMessage({text: msg, type: 'success', temporary: true});
 }
 
 function 	setErrorMessage(msg) {
-	store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
 async function deleteIdentity() {
 	try {
 		await dakar.authentication.deleteIdentityGet();
-		await store.dispatch('resetMessages');
+		msgStore.resetMessages();
 		setSuccessMessage('Your account was successfully deleted. Goodbye!');
 		session.value = null;
 		await router.push({name: ROUTE_NAME_ENTRY_PAGE});
 	} catch (e) {
-		handleError(this, e);
+		handleError(context, e);
 	}
 
 	showAccountDeletionDialog.value = false;
@@ -250,7 +247,7 @@ async function deleteUserSession(session) {
 			throw new Error('unable to delete session');
 		}
 	} catch (e) {
-		handleError(this, e);
+		handleError(context, e);
 	}
 }
 
@@ -277,7 +274,7 @@ async function getSessions() {
 			return d;
 		});
 	} catch (e) {
-		handleError(this, e);
+		handleError({addMessage: msgStore.addMessage, $route: route}, e);
 	}
 
 	userSessionsLoading.value = false;
@@ -288,7 +285,7 @@ async function initSettingsFlow() {
 		const response = await ory.frontend.createBrowserSettingsFlow();
 		setFlowData(response.data);
 	} catch (e) {
-		await handleGetFlowError(this, e, null);
+		await handleGetFlowError(context, e, null);
 	}
 }
 
@@ -330,7 +327,7 @@ async function handleOrySubmitSettings(formID) {
 		if (e.response?.data?.ui) {
 			setFlowData(e.response.data);
 		} else {
-			handleGetFlowError(this, e, async () => {
+			handleGetFlowError(context, e, async () => {
 				await initSettingsFlow();
 				setErrorMessage('The settings flow has expired, please try again.');
 			}).catch(e => {
@@ -351,7 +348,7 @@ async function refreshSession() {
 			session.value = response.data;
 		}
 	} catch (e) {
-		await handleGetFlowError(this, e, null);
+		await handleGetFlowError(context, e, null);
 	}
 }
 
@@ -383,7 +380,7 @@ async function initFlow() {
 			// is in the process of being recovered and aal2 is set.
 			await tryRefreshSession();
 		} catch (e) {
-			await handleGetFlowError(this, e, initSettingsFlow);
+			await handleGetFlowError(context, e, initSettingsFlow);
 		}
 	} else {
 		// If there's no flow in our route,

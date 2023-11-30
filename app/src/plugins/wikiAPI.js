@@ -3,6 +3,8 @@ import {
 	Configuration,
 } from '@neondark/wikiapi';
 import {checkResponseStatus} from '@/utilities';
+import {useNavStore} from '@/pinia/nav';
+import {useLocalStore} from '@/pinia/local';
 
 function newConfig(v) {
 	return new Configuration({
@@ -10,7 +12,7 @@ function newConfig(v) {
 		credentials: 'include',
 		middleware: [{
 			async post(d) {
-				await checkResponseStatus(v, d.response);
+				await checkResponseStatus(v, useNavStore(), useLocalStore(), d.response);
 			},
 		}],
 	});

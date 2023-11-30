@@ -28,17 +28,17 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 				await refreshFlow(onRefreshFlow);
 				return Promise.resolve();
 			case 'security_csrf_violation': // A CSRF violation occurred, remove session and let user login anew
-				context.$store.dispatch('setFailedRoute', context.$route);
-				context.$store.dispatch('setSession', null);
+				context.localStore.setFailedRoute(context.$route);
+				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				if (error.response.data.error.message) {
-					context.$store.dispatch('addMessage', {text: error.response.data.error.reason, type: 'error', temporary: true, category: context.$route.name});
+					context.msgStore.addMessage({text: error.response.data.error.reason, type: 'error', temporary: true, category: context.$route.name});
 				}
 
 				return Promise.resolve();
 			case 'session_inactive':
-				context.$store.dispatch('setFailedRoute', context.$route);
-				context.$store.dispatch('setSession', null);
+				context.localStore.setFailedRoute(context.$route);
+				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				return Promise.resolve();
 			default:
@@ -59,7 +59,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 					msg = error.response.statusText;
 				}
 
-				context.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true});
+				context.msgStore.addMessage({text: msg, type: 'error', temporary: true});
 				return Promise.resolve();
 			}
 
@@ -68,7 +68,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 	}
 
 	if (error.message) {
-		context.$store.dispatch('addMessage', {text: error.message, type: 'error', temporary: true, category: context.$route.name});
+		context.msgStore.addMessage({text: error.message, type: 'error', temporary: true, category: context.$route.name});
 	}
 
 	// Return error if it was not possible to handle it
