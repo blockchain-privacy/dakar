@@ -4,7 +4,7 @@ import {createApp} from 'vue';
 import {createPinia} from 'pinia';
 
 import vuetify from './plugins/vuetify';
-import router from '@/router';
+import {router, setupStore} from '@/router';
 import oryConfig from './plugins/ory';
 import dakarConfig from './plugins/dakarAPI';
 import wikiapiConfig from './plugins/wikiAPI';
@@ -14,6 +14,9 @@ const app = createApp(App);
 
 app.use(pinia);
 app.use(vuetify).use(router);
+
+// Must not be called before app.use(pinia)
+setupStore();
 
 // Provide global variables here, so they can be later injected
 app.provide('ory', oryConfig);
