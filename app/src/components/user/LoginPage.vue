@@ -54,7 +54,7 @@ import {
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
-import {inject, onMounted, ref, watch} from 'vue';
+import {computed, inject, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
@@ -67,13 +67,22 @@ const route = useRoute();
 const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
-const {session} = storeToRefs(localStore);
 const {failedRoute} = storeToRefs(navStore);
 const context = {$route: route, $router: router, navStore, localStore, msgStore};
 
 const loginFlow = ref(null);
 const showLogoutButton = ref(false);
 const disabledForms = ref([]);
+
+// Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
+	},
+	set(value) {
+		localStore.setSession(value);
+	},
+});
 
 // Watch
 watch(route, to => {
@@ -133,7 +142,7 @@ function leave() {
 	if (loginFlow.value && loginFlow.value.return_to) {
 		window.location.href = loginFlow.value.return_to;
 	} else if (failedRoute.value) {
-		goToPage(failedRoute);
+		goToPage(failedRoute.value);
 		failedRoute.value = null;
 	} else {
 		goToPage({name: ROUTE_NAME_ENTRY_PAGE});
@@ -236,9 +245,6 @@ async function initFlow() {
 }
 
 async function initLoginFlow(aal) {
-	// Set refresh to true, for the case when the local
-	// session data was deleted but the user is still logged in
-
 	try {
 		const response = await ory.frontend.createBrowserLoginFlow({refresh: false, aal});
 		setFlowData(response.data);

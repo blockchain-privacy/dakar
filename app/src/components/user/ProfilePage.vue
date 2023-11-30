@@ -127,12 +127,11 @@ import {
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
-import {inject, onMounted, ref, watch} from 'vue';
+import {computed, inject, onMounted, ref, watch} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
-import {storeToRefs} from 'pinia';
 
 const ory = inject('ory');
 const dakar = inject('dakar');
@@ -141,7 +140,6 @@ const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
-const {session} = storeToRefs(localStore);
 const context = {$route: route, $router: router, navStore, localStore, msgStore};
 
 const settingsFlow = ref(null);
@@ -168,6 +166,17 @@ const userSessionHeaders = [
 	},
 ];
 
+// Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
+	},
+	set(value) {
+		localStore.setSession(value);
+	},
+});
+
+// Watchers
 watch(route, to => {
 	if (to.name === ROUTE_NAME_USER_PROFILE_PAGE && !to.query.flow) {
 		// This happens if the users manually navigates to the route of this page,

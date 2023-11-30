@@ -121,19 +121,27 @@ import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import handleGetFlowError from '@/kratos';
 import {computed, inject} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
-import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 
 const ory = inject('ory');
 const localStore = useLocalStore();
-const {session} = storeToRefs(localStore);
 const route = useRoute();
 const router = useRouter();
 const context = {$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore()};
 
 defineProps({minimize: {type: Boolean, required: true}});
+
+// Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
+	},
+	set(value) {
+		localStore.setSession(value);
+	},
+});
 
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 

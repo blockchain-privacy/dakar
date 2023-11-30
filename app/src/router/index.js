@@ -30,7 +30,6 @@ import {useMsgStore} from '@/pinia/msg';
 
 function isPrivileged() {
 	const localStore = useLocalStore();
-
 	return isPrivilegedIdentity(localStore.getSession) || isAdminIdentity(localStore.getSession);
 }
 

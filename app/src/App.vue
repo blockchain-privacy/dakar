@@ -26,14 +26,29 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import {computed, onBeforeMount, onMounted, toRaw} from 'vue';
 import {useRoute} from 'vue-router';
 import {useTheme} from 'vuetify';
-import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
 
 const route = useRoute();
 const theme = useTheme();
-const {settings, session} = storeToRefs(useLocalStore());
+const localStore = useLocalStore();
 
 // Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
+	},
+	set(value) {
+		localStore.setSession(value);
+	},
+});
+const settings = computed({
+	get() {
+		return localStore.getSettings;
+	},
+	set(value) {
+		localStore.setSettings(value);
+	},
+});
 const isEntryPage = computed(() => route.name === ROUTE_NAME_ENTRY_PAGE);
 
 // Functions
