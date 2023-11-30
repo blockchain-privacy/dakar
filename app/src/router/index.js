@@ -28,21 +28,26 @@ import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
 import {useMsgStore} from '@/pinia/msg';
 
+let msgStore = null;
+let navStore = null;
+let localStore = null;
+
+// Call this right after the pinia store was created and added to the vue instance
+export function setupStore() {
+	msgStore = useMsgStore();
+	navStore = useNavStore();
+	localStore = useLocalStore();
+}
+
 function isPrivileged() {
-	const localStore = useLocalStore();
 	return isPrivilegedIdentity(localStore.getSession) || isAdminIdentity(localStore.getSession);
 }
 
 function isAdmin() {
-	const localStore = useLocalStore();
 	return isAdminIdentity(localStore.getSession);
 }
 
 function checkSession(to, next, fn) {
-	const localStore = useLocalStore();
-	const navStore = useNavStore();
-	const msgStore = useMsgStore();
-
 	if (!localStore.getSession) {
 		navStore.setFailedRoute(to);
 		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
@@ -66,7 +71,7 @@ function checkSession(to, next, fn) {
 	next();
 }
 
-const router = createRouter({
+export const router = createRouter({
 	history: createWebHistory(),
 	routes: [
 		{
@@ -142,7 +147,7 @@ const router = createRouter({
 			path: '/recovery',
 			name: Constants.ROUTE_NAME_ACCOUNT_RECOVERY,
 			component: RecoveryPage,
-			meta: {title: 'Password Reset'},
+			meta: {title: 'Account Recovery'},
 		},
 		{
 			path: '/settings',
@@ -267,8 +272,6 @@ const router = createRouter({
 
 router.beforeEach((to, from) => {
 	if (from && to.name !== from.name) {
-		const msgStore = useMsgStore();
-
 		// Clear all notifications belonging to the previous page
 		msgStore.filterMessages(from.name);
 	}
@@ -276,4 +279,3 @@ router.beforeEach((to, from) => {
 	return true;
 });
 
-export default router;
