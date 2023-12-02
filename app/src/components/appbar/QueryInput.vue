@@ -1,5 +1,6 @@
 <template>
   <v-text-field
+    id="query-input"
     v-model="query"
     style="margin: 23px 0 0 0;min-width:220px"
     variant="outlined"

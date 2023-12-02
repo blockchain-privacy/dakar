@@ -20,7 +20,7 @@
           style="width: 105px; height: 187px"
         >
           <v-img
-            src="../assets/dakar_dash.svg"
+            src="../assets/dakar_animated.svg"
             max-width="105px"
             transition="fade-transition"
           />
@@ -34,6 +34,7 @@
           </p>
         </div>
         <v-text-field
+          id="entry-page-search"
           v-model="query"
           class="mt-3"
           :append-inner-icon="mdiMagnify"

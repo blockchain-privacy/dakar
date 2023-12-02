@@ -54,6 +54,7 @@
                           title="Previous Block"
                         >
                           <router-link
+                            id="block-page-previous-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                    params: { id: block.prevblockhash }}"
                           >
@@ -67,6 +68,7 @@
                           title="Next Block"
                         >
                           <router-link
+                            id="block-page-next-block"
                             :to="{ name: ROUTE_NAME_BLOCK_PAGE,
                                    params: { id: block.nextblockhash }}"
                           >

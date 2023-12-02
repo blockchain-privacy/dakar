@@ -7,6 +7,7 @@
     <v-spacer v-if="minimize" />
     <router-link
       v-if="!minimize"
+      id="app-logo"
       :to="{name: ROUTE_NAME_ENTRY_PAGE}"
       class="ms-2"
     >
@@ -14,7 +15,7 @@
         style="cursor:pointer"
         alt="Dakar Logo"
         class="shrink mr-2"
-        src="../../assets/dakar_dash.svg"
+        src="../../assets/dakar.svg"
         transition="fade-transition"
         width="32"
       />
@@ -47,8 +48,9 @@
     >
       <template #activator="{ props }">
         <v-btn
-          icon
           v-bind="props"
+          id="app-bar-menu"
+          icon
         >
           <v-icon>{{ mdiAccount }}</v-icon>
         </v-btn>
@@ -64,7 +66,10 @@
           <v-list-item-title> {{ session.identity.traits.email }}</v-list-item-title>
         </v-list-item>
         <v-divider />
-        <v-list-item :to="{name: ROUTE_NAME_USER_PROFILE_PAGE}">
+        <v-list-item
+          id="app-bar-settings"
+          :to="{name: ROUTE_NAME_USER_PROFILE_PAGE}"
+        >
           <template #prepend>
             <v-icon :icon="mdiCog" />
           </template>
@@ -81,7 +86,10 @@
             <dark-mode-switch class="mt-0 ml-2" />
           </div>
         </v-list-item>
-        <v-list-item @click="initLogoutFlow">
+        <v-list-item
+          id="app-bar-logout"
+          @click="initLogoutFlow"
+        >
           <template #prepend>
             <v-icon
               color="red"
