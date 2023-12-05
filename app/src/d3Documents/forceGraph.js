@@ -58,8 +58,7 @@ export default class ForceGraph {
 
 		this.nodeGroup = this.rootGroup
 			.append('g')
-			.attr('stroke', '#fff')
-			.attr('stroke-width', '#C2C2C2');
+			.attr('stroke', '#fff');
 
 		// Add zoom and drag
 		this.zoom = zoom()
