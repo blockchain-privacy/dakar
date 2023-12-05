@@ -114,15 +114,12 @@ function updateSortState() {
 	if (props.dataAvailable && props.inputCount === 0) {
 		isUnspentFilterSelected = true;
 	} else {
-		filter.value.selected.some(d => {
-			if (d === 1) {
+		for (const s of filter.value.selected) {
+			if (s === 1) {
 				isUnspentFilterSelected = true;
-				// Break
-				return true;
+				break;
 			}
-
-			return false;
-		});
+		}
 	}
 
 	sort.value.items.forEach(d => {

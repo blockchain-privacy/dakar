@@ -65,16 +65,12 @@ export default class Tree {
 	getDescendants(uid) {
 		// Find the node
 		let changedNode = null;
-
-		// Use some() instead of a proper for loop to comply with eslint
-		this.rootSvg.selectAll('g').data().some(d => {
+		for (const d of this.rootSvg.selectAll('g').data()) {
 			if (d !== undefined && uid === d.data.data.uid) {
 				changedNode = d;
-				return true;
+				break;
 			}
-
-			return false;
-		});
+		}
 
 		if (changedNode === null) {
 			return [];

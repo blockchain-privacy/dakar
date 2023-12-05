@@ -436,14 +436,12 @@ async function openPropertySheet(heuristic) {
 
 	// Lookup type title from type id
 	let displayType = '';
-	heuristicDescriptors.value.some(d => {
-		if (d.type === heuristic.type) {
-			displayType = d.title;
-			return true;
+	for (const descriptor of heuristicDescriptors.value) {
+		if (descriptor.type === heuristic.type) {
+			displayType = descriptor.title;
+			break;
 		}
-
-		return false;
-	});
+	}
 
 	// Open sheet immediately, but show skeleton loader
 	isAddHeuristicSheetOpen.value = false;
