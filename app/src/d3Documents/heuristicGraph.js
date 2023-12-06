@@ -5,16 +5,14 @@ import {zoom, zoomIdentity} from 'd3-zoom';
 import {forceSimulation, forceLink, forceManyBody} from 'd3-force';
 import {reduceX, reduceY, sleep} from '@/d3Documents/util';
 
-// Sets all nodes with a valid x attribute fixed
-function setFixed(nodes) {
-	return nodes.map(d => {
-		if (d.x !== undefined) {
-			d.fx = d.x;
-			d.fy = d.y;
-		}
+// Sets a node with a valid x attribute to be excluded from force simulations
+function setFxFy(node) {
+	if (node.x !== undefined) {
+		node.fx = node.x;
+		node.fy = node.y;
+	}
 
-		return d;
-	});
+	return node;
 }
 
 function drag(simulation) {
@@ -47,6 +45,8 @@ function drag(simulation) {
 export default class HeuristicGraph {
 	constructor() {
 		this.nodeClickCallBack = null;
+
+		// Svg
 		this.simulation = null;
 		this.nodeRadius = 7;
 		this.rootSvg = null;
@@ -54,7 +54,9 @@ export default class HeuristicGraph {
 		this.lineGroup = null;
 		this.nodeGroup = null;
 		this.zoom = null;
-		this.nodes = [];
+
+		// Data
+		this.nodeMap = new Map();
 	}
 
 	initSvg(svgID) {
@@ -73,19 +75,17 @@ export default class HeuristicGraph {
 		this.rootSvg.call(this.zoom);
 
 		// Add arrow definition
-		this.rootSvg
-			.append('svg:defs')
-			.append('svg:marker')
-			.attr('id', 'arrowhead')
-			.attr('viewBox', '0 -5 10 10')
-			.attr('refX', this.nodeRadius)
-			.attr('refY', 0)
-			.attr('markerWidth', 6)
-			.attr('markerHeight', 6)
-			.attr('orient', 'auto')
-			.append('svg:path')
-			.attr('d', 'M0,-5L10,0L0,5')
-			.attr('fill', '#999');
+		const defs = this.rootSvg.append('svg:defs');
+
+		// Set pattern and marker
+		defs.node().innerHTML
+      = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
+          <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
+          <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
+        </pattern>
+        <marker id="arrowhead" viewBox="0 -5 10 10" refX="7" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,-5L10,0L0,5" fill="#999"/>
+        </marker>`;
 	}
 
 	// Creates links based on the given nodes
@@ -104,7 +104,45 @@ export default class HeuristicGraph {
 		return links;
 	}
 
-	draw(nodes) {
+	checkNode(node) {
+		if (!node.uid || !node.type) {
+			throw new Error('node does not have required attributes: uid, type');
+		}
+	}
+
+	// Adds the given node to the graph. If a node with the
+	// provided node.uid already exist the existing node is instead updated.
+	// Set draw to false, if the graph should not be redrawn.
+	addNode(node, draw) {
+		this.checkNode(node);
+
+		// Check if properties have to be copied
+		let mapNode = this.nodeMap.get(node.uid);
+		if (mapNode === undefined) {
+			mapNode = node;
+		} else {
+			Object.assign(mapNode, node);
+		}
+
+		this.nodeMap.set(node.uid, setFxFy(mapNode));
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
+	// Adds the given nodes to the graph. Nodes which have an
+	// already existing UID are instead updated.
+	// Set draw to false, if the graph should not be redrawn.
+	addNodes(nodes, draw) {
+		nodes.forEach(node => {
+			this.addNode(node, false);
+		});
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
+	draw() {
 		if (this.nodeClickCallBack === null) {
 			throw new Error('click call back is not set');
 		}
@@ -114,11 +152,10 @@ export default class HeuristicGraph {
 			this.simulation.stop();
 		}
 
-		this.nodes = setFixed(nodes);
+		const nodes = [...this.nodeMap.values()];
+		const links = this.getLinks(nodes);
 
-		const links = this.getLinks(this.nodes);
-
-		this.simulation = forceSimulation(this.nodes)
+		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
 			.force('charge', forceManyBody().strength(-50)).stop();
 
@@ -141,12 +178,19 @@ export default class HeuristicGraph {
 		const nodeCallBack = this.nodeClickCallBack;
 		const node = this.nodeGroup
 			.selectAll('circle')
-			.data(this.nodes, d => d.uid)
+			.data(nodes, d => d.uid)
 			.join('circle')
 			.attr('cx', d => d.x)
 			.attr('cy', d => d.y)
 			.attr('r', this.nodeRadius)
 			.attr('class', 'node')
+			.attr('fill', d => {
+				if (d.type === 'transaction') {
+					return 'url(#striped)';
+				}
+
+				return 'green';
+			})
 			.each(d => {
 				// Exclude every node from force simulation
 				d.fx = d.x;
@@ -210,14 +254,19 @@ export default class HeuristicGraph {
 	}
 
 	// Returns all nodes with their attached attributes from the force simulation performed in draw()
-	getSimulatedNodes() {
-		return this.nodes.map(d => {
+	exportNodes() {
+		const nodes = [...this.nodeMap.values()];
+		return nodes.map(d => {
 			// Remove redundant attributes
 			delete d.vx;
 			delete d.vy;
 			delete d.index;
 			delete d.fx;
 			delete d.fy;
+
+			// Reduce precision to reduce space requirements
+			d.x = Math.round(d.x * 10000) / 10000;
+			d.y = Math.round(d.y * 10000) / 10000;
 			return d;
 		});
 	}
