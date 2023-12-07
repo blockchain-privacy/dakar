@@ -1,8 +1,8 @@
 import {isFunction} from '@/utilities';
-import {drag as d3Drag} from 'd3-drag';
+import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom, zoomIdentity} from 'd3-zoom';
-import {forceSimulation, forceLink, forceManyBody} from 'd3-force';
+import {forceSimulation, forceLink, forceManyBody, forceCollide} from 'd3-force';
 import {reduceX, reduceY, sleep} from '@/d3Documents/util';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
@@ -15,31 +15,27 @@ function setFxFy(node) {
 	return node;
 }
 
-function drag(simulation) {
-	function dragStarted(event) {
-		if (!event.active) {
-			simulation.alphaTarget(0.3).restart();
-		}
-
-		event.subject.fx = event.subject.x;
-		event.subject.fy = event.subject.y;
+function dragStarted(event, simulation) {
+	if (!event.active) {
+		simulation.alphaTarget(0.3).restart();
 	}
 
-	function dragged(event) {
-		event.subject.fx = event.x;
-		event.subject.fy = event.y;
-	}
+	event.subject.fx = event.subject.x;
+	event.subject.fy = event.subject.y;
+}
 
-	function dragEnded(event) {
-		if (!event.active) {
-			simulation.alphaTarget(0);
-		}
-	}
+function dragged(event, d3This) {
+	event.subject.fx = event.x;
+	event.subject.fy = event.y;
+	// Raise() causes bug in chrome: click is only
+	// recognized on second time. moved here from dragStart
+	d3Select(d3This).raise();
+}
 
-	return d3Drag()
-		.on('start', dragStarted)
-		.on('drag', dragged)
-		.on('end', dragEnded);
+function dragEnded(event, simulation) {
+	if (!event.active) {
+		simulation.alphaTarget(0);
+	}
 }
 
 export default class HeuristicGraph {
@@ -48,7 +44,7 @@ export default class HeuristicGraph {
 
 		// Svg
 		this.simulation = null;
-		this.nodeRadius = 7;
+		this.nodeRadius = 14;
 		this.rootSvg = null;
 		this.rootGroup = null;
 		this.lineGroup = null;
@@ -83,7 +79,7 @@ export default class HeuristicGraph {
           <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
           <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
         </pattern>
-        <marker id="arrowhead" viewBox="0 -5 10 10" refX="7" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+        <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="#999"/>
         </marker>`;
 	}
@@ -142,6 +138,50 @@ export default class HeuristicGraph {
 		}
 	}
 
+	drawNode(groupElement) {
+		const textAreaWidth = 150;
+		const textAreaMargin = 3;
+		const textHeight = 10;
+
+		groupElement.append('circle')
+			.attr('r', this.nodeRadius)
+			.attr('fill', d => {
+				if (d.type === 'transaction') {
+					return 'url(#striped)';
+				}
+
+				return 'green';
+			});
+
+		function wrap() {
+			const self = d3Select(this);
+			let textLength = self.node().getComputedTextLength();
+			let text = self.text();
+			while (textLength > (textAreaWidth) && text.length > 0) {
+				text = text.slice(0, -1);
+				self.text(text + '...');
+				textLength = self.node().getComputedTextLength();
+			}
+		}
+
+		groupElement
+			.append('text')
+			.style('text-anchor', 'middle')
+			.attr('fill', 'currentColor')
+			.attr('stroke-width', 0)
+			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
+			.text(d => `${d.uid}`)
+			.each(wrap);
+		groupElement
+			.append('text')
+			.style('text-anchor', 'middle')
+			.attr('fill', 'currentColor')
+			.attr('stroke-width', 0)
+			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
+			.text(d => `${d.type}`)
+			.each(wrap);
+	}
+
 	draw() {
 		if (this.nodeClickCallBack === null) {
 			throw new Error('click call back is not set');
@@ -157,7 +197,8 @@ export default class HeuristicGraph {
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			.force('charge', forceManyBody().strength(-50)).stop();
+			.force('charge', forceManyBody().strength(-50))
+			.force('collide', forceCollide(this.nodeRadius * 5)).stop();
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
@@ -175,41 +216,44 @@ export default class HeuristicGraph {
 			.attr('stroke-opacity', 1)
 			.attr('marker-end', 'url(#arrowhead)')
 			.attr('stroke-width', 1);
+
+		const self = this;
 		const nodeCallBack = this.nodeClickCallBack;
 		const node = this.nodeGroup
-			.selectAll('circle')
+			.selectAll('.node')
 			.data(nodes, d => d.uid)
-			.join('circle')
-			.attr('cx', d => d.x)
-			.attr('cy', d => d.y)
-			.attr('r', this.nodeRadius)
-			.attr('class', 'node')
-			.attr('fill', d => {
-				if (d.type === 'transaction') {
-					return 'url(#striped)';
-				}
+			.join(enter => {
+				const g = enter.append('g')
+					.on('click', (e, d) => {
+						if (nodeCallBack !== null) {
+							nodeCallBack(d);
+						}
+					});
 
-				return 'green';
+				this.drawNode(g);
+				return g;
 			})
+			.attr('class', 'node')
+			.call(drag()
+				.on('start', e => {
+					dragStarted(e, self.simulation);
+				})
+				.on('drag', function (e) {
+					dragged(e, this);
+				})
+				.on('end', e => {
+					dragEnded(e, self.simulation);
+				}),
+			)
 			.each(d => {
 				// Exclude every node from force simulation
 				d.fx = d.x;
 				d.fy = d.y;
 			})
-			.on('click', (e, d) => {
-				if (nodeCallBack !== null) {
-					nodeCallBack(d);
-				}
-			})
-			.on('mouseover', function () {
-				d3Select(this).attr('r', 10).classed('nodeMouseOver', true);
-			})
-			.on('mouseout', function () {
-				d3Select(this).attr('r', 7).classed('nodeMouseOver', false);
-			}).call(drag(this.simulation));
+			.attr('transform', d => `translate(${d.x},${d.y})`);
 
-		node.append('title')
-			.text(d => `${d.uid}\n${d.type}`);
+		// Node.append('title')
+		// 	.text(d => `${d.uid}\n${d.type}`);
 
 		this.simulation.on('tick', () => {
 			link
@@ -218,9 +262,7 @@ export default class HeuristicGraph {
 				.attr('x2', d => reduceX(d, this.nodeRadius))
 				.attr('y2', d => reduceY(d, this.nodeRadius));
 
-			node
-				.attr('cx', d => d.x)
-				.attr('cy', d => d.y);
+			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
 	}
 
