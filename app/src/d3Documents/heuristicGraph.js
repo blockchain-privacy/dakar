@@ -41,6 +41,8 @@ function dragEnded(event, simulation) {
 export default class HeuristicGraph {
 	constructor() {
 		this.nodeClickCallBack = null;
+		this.svgZoomCallback = null;
+		this.svgClickCallback = null;
 
 		// Svg
 		this.simulation = null;
@@ -55,9 +57,24 @@ export default class HeuristicGraph {
 		this.nodeMap = new Map();
 	}
 
+	svgClick() {
+		this.rootGroup.selectAll('circle').classed('clicked', false);
+		if (this.svgClickCallback !== null) {
+			this.svgClickCallback();
+		}
+	}
+
+	nodeClick(e, d, d3This) {
+		if (this.nodeClickCallBack !== null) {
+			d3Select(d3This).select('circle').classed('clicked', true);
+			this.nodeClickCallBack(d);
+			e.stopPropagation();
+		}
+	}
+
 	initSvg(svgID) {
 		// Add attributes to root svg
-		this.rootSvg = d3Select(`#${svgID}`);
+		this.rootSvg = d3Select(`#${svgID}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 		this.lineGroup = this.rootGroup.append('g');
 		this.nodeGroup = this.rootGroup.append('g');
@@ -65,6 +82,10 @@ export default class HeuristicGraph {
 		// Add zoom and drag
 		this.zoom = zoom()
 			.on('zoom', event => {
+				if (this.svgZoomCallback !== null) {
+					this.svgZoomCallback();
+				}
+
 				this.rootGroup.attr('transform', event.transform);
 			})
 			.scaleExtent([0.25, 8]);
@@ -183,10 +204,6 @@ export default class HeuristicGraph {
 	}
 
 	draw() {
-		if (this.nodeClickCallBack === null) {
-			throw new Error('click call back is not set');
-		}
-
 		// If there is a simulation ongoing from a previous call, stop it
 		if (this.simulation) {
 			this.simulation.stop();
@@ -218,16 +235,13 @@ export default class HeuristicGraph {
 			.attr('stroke-width', 1);
 
 		const self = this;
-		const nodeCallBack = this.nodeClickCallBack;
 		const node = this.nodeGroup
 			.selectAll('.node')
 			.data(nodes, d => d.uid)
 			.join(enter => {
 				const g = enter.append('g')
-					.on('click', (e, d) => {
-						if (nodeCallBack !== null) {
-							nodeCallBack(d);
-						}
+					.on('click', function (e, d) {
+						self.nodeClick(e, d, this);
 					});
 
 				this.drawNode(g);
@@ -319,6 +333,28 @@ export default class HeuristicGraph {
 		}
 
 		this.nodeClickCallBack = callback;
+		return true;
+	}
+
+	// SetZoomCallback receives a function as an argument.
+	// The function is going to be called each time the root SVG zoomed upon
+	setSvgZoomCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.svgZoomCallback = callback;
+		return true;
+	}
+
+	// SetSvgClickCallback receives a function as an argument.
+	// The function is going to be called each time the root SVG is clicked
+	setSvgClickCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.svgClickCallback = callback;
 		return true;
 	}
 }
