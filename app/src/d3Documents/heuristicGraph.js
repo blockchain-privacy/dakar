@@ -58,18 +58,24 @@ export default class HeuristicGraph {
 	}
 
 	svgClick() {
-		this.rootGroup.selectAll('circle').classed('clicked', false);
+		this.resetClick();
 		if (this.svgClickCallback !== null) {
 			this.svgClickCallback();
 		}
 	}
 
+	resetClick() {
+		this.nodeGroup.selectAll('circle').classed('clicked', false);
+	}
+
 	nodeClick(e, d, d3This) {
+		this.resetClick();
+		d3Select(d3This).select('circle').classed('clicked', true);
 		if (this.nodeClickCallBack !== null) {
-			d3Select(d3This).select('circle').classed('clicked', true);
 			this.nodeClickCallBack(d);
-			e.stopPropagation();
 		}
+
+		e.stopPropagation();
 	}
 
 	initSvg(svgID) {
