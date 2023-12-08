@@ -70,7 +70,7 @@ export default class HeuristicGraph {
 
 	nodeClick(e, d, d3This) {
 		this.resetClick();
-		d3Select(d3This).select('circle').classed('clicked', true);
+		d3Select(d3This).classed('clicked', true);
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
 		}
@@ -166,11 +166,9 @@ export default class HeuristicGraph {
 	}
 
 	drawNode(groupElement) {
-		const textAreaWidth = 150;
-		const textAreaMargin = 3;
-		const textHeight = 10;
-
+		const self = this;
 		groupElement.append('circle')
+			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
 			.attr('fill', d => {
 				if (d.type === 'transaction') {
@@ -178,7 +176,21 @@ export default class HeuristicGraph {
 				}
 
 				return 'green';
+			})
+			.on('click', function (e, d) {
+				self.nodeClick(e, d, this);
+			})
+			.on('mouseenter', function () {
+				d3Select(this.parentNode).raise();
+				d3Select(this).transition().duration(100).attr('r', self.nodeRadius * 1.5);
+			})
+			.on('mouseleave', function () {
+				d3Select(this).transition().duration(100).attr('r', self.nodeRadius);
 			});
+
+		const textAreaWidth = 150;
+		const textAreaMargin = 3;
+		const textHeight = 15;
 
 		function wrap() {
 			const self = d3Select(this);
@@ -194,6 +206,7 @@ export default class HeuristicGraph {
 		groupElement
 			.append('text')
 			.style('text-anchor', 'middle')
+			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
@@ -202,6 +215,7 @@ export default class HeuristicGraph {
 		groupElement
 			.append('text')
 			.style('text-anchor', 'middle')
+			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
@@ -242,18 +256,15 @@ export default class HeuristicGraph {
 
 		const self = this;
 		const node = this.nodeGroup
-			.selectAll('.node')
+			.selectAll('.nodeContainer')
 			.data(nodes, d => d.uid)
 			.join(enter => {
-				const g = enter.append('g')
-					.on('click', function (e, d) {
-						self.nodeClick(e, d, this);
-					});
+				const g = enter.append('g');
 
 				this.drawNode(g);
 				return g;
 			})
-			.attr('class', 'node')
+			.attr('class', 'nodeContainer')
 			.call(drag()
 				.on('start', e => {
 					dragStarted(e, self.simulation);
