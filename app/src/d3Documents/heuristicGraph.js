@@ -65,12 +65,20 @@ export default class HeuristicGraph {
 	}
 
 	resetClick() {
-		this.nodeGroup.selectAll('circle').classed('clicked', false);
+		this.nodeGroup.selectAll('.clicked')
+			.classed('clicked', false)
+			.transition().duration(250)
+			.attr('stroke', 'white')
+			.attr('stroke-width', 1);
 	}
 
 	nodeClick(e, d, d3This) {
 		this.resetClick();
-		d3Select(d3This).classed('clicked', true);
+		d3Select(d3This)
+			.classed('clicked', true)
+			.transition().duration(250)
+			.attr('stroke', '#B71C1C')
+			.attr('stroke-width', 3);
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
 		}
@@ -170,6 +178,9 @@ export default class HeuristicGraph {
 		groupElement.append('circle')
 			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
+			.attr('stroke', 'white')
+			.attr('stroke-width', 1)
+			.attr('cursor', 'pointer')
 			.attr('fill', d => {
 				if (d.type === 'transaction') {
 					return 'url(#striped)';
@@ -190,7 +201,8 @@ export default class HeuristicGraph {
 
 		const textAreaWidth = 150;
 		const textAreaMargin = 3;
-		const textHeight = 15;
+		const textHeight = 12;
+		const fontSize = textHeight - 2;
 
 		function wrap() {
 			const self = d3Select(this);
@@ -205,6 +217,7 @@ export default class HeuristicGraph {
 
 		groupElement
 			.append('text')
+			.attr('font-size', fontSize)
 			.style('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
@@ -214,6 +227,7 @@ export default class HeuristicGraph {
 			.each(wrap);
 		groupElement
 			.append('text')
+			.attr('font-size', fontSize)
 			.style('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
@@ -282,9 +296,6 @@ export default class HeuristicGraph {
 				d.fy = d.y;
 			})
 			.attr('transform', d => `translate(${d.x},${d.y})`);
-
-		// Node.append('title')
-		// 	.text(d => `${d.uid}\n${d.type}`);
 
 		this.simulation.on('tick', () => {
 			link
