@@ -65,25 +65,24 @@ export default class HeuristicGraph {
 	}
 
 	resetClick() {
+		console.log('reset');
 		this.nodeGroup.selectAll('.clicked')
 			.classed('clicked', false)
-			.transition().duration(250)
 			.attr('stroke', 'white')
 			.attr('stroke-width', 1);
 	}
 
 	nodeClick(e, d, d3This) {
+		e.stopPropagation();
 		this.resetClick();
 		d3Select(d3This)
 			.classed('clicked', true)
-			.transition().duration(250)
 			.attr('stroke', '#B71C1C')
 			.attr('stroke-width', 3);
+
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
 		}
-
-		e.stopPropagation();
 	}
 
 	initSvg(svgID) {
@@ -193,7 +192,7 @@ export default class HeuristicGraph {
 			})
 			.on('mouseenter', function () {
 				d3Select(this.parentNode).raise();
-				d3Select(this).transition().duration(100).attr('r', self.nodeRadius * 1.5);
+				d3Select(this).transition().duration(100).attr('r', self.nodeRadius * 1.2);
 			})
 			.on('mouseleave', function () {
 				d3Select(this).transition().duration(100).attr('r', self.nodeRadius);
