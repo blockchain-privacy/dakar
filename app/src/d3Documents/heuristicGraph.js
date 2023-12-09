@@ -321,13 +321,14 @@ export default class HeuristicGraph {
 
 	// CenterGraph centers the graph in the center of the svg
 	async centerGraph() {
-		const svgRect = this.rootSvg.node().getBoundingClientRect();
-		const bbRect = this.rootGroup.node().getBoundingClientRect();
+		const svgBoundingRect = this.rootSvg.node().getBoundingClientRect();
+		const rgBoundingBox = this.rootGroup.node().getBBox();
+		const rgBoundingRect = this.rootGroup.node().getBoundingClientRect();
 
-		const scaleHeight = svgRect.height / (bbRect.height * 1.5);
-		const scaleWidth = svgRect.width / (bbRect.width * 1.5);
+		const scaleHeight = svgBoundingRect.height / (rgBoundingRect.height * 1.5);
+		const scaleWidth = svgBoundingRect.width / (rgBoundingRect.width * 1.5);
 
-		this.rootSvg.call(this.zoom.translateTo, bbRect.x + bbRect.width / 2, bbRect.y + bbRect.height / 2 - svgRect.y);
+		this.rootSvg.call(this.zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
 		// Scale between 0.1 and 5
 		this.rootSvg.call(this.zoom.scaleBy, Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1));
 	}
