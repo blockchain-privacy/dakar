@@ -1,9 +1,9 @@
 import {isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
-import {zoom, zoomIdentity} from 'd3-zoom';
+import {zoom} from 'd3-zoom';
 import {forceSimulation, forceLink, forceManyBody, forceCollide} from 'd3-force';
-import {reduceX, reduceY, sleep} from '@/d3Documents/util';
+import {reduceX, reduceY} from '@/d3Documents/util';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -322,30 +322,14 @@ export default class HeuristicGraph {
 	// CenterGraph centers the graph in the center of the svg
 	async centerGraph() {
 		const svgRect = this.rootSvg.node().getBoundingClientRect();
-		let bbRect = null;
+		const bbRect = this.rootGroup.node().getBoundingClientRect();
 
-		while (bbRect === null || bbRect.height === 0) {
-			bbRect = this.rootGroup.node().getBoundingClientRect();
+		const scaleHeight = svgRect.height / (bbRect.height * 1.5);
+		const scaleWidth = svgRect.width / (bbRect.width * 1.5);
 
-			// Wait until group has a size
-			if (bbRect.height === 0) {
-				// We have to use await here
-				// eslint-disable-next-line no-await-in-loop
-				await sleep(50);
-			} else {
-				break;
-			}
-		}
-
-		const scaleHeight = svgRect.height / (bbRect.height * 2);
-		const scaleWidth = svgRect.width / (bbRect.width * 2);
-
+		this.rootSvg.call(this.zoom.translateTo, bbRect.x + bbRect.width / 2, bbRect.y + bbRect.height / 2 - svgRect.y);
 		// Scale between 0.1 and 5
-		const scaleBy = Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1);
-		// Const transform = zoomIdentity.translate(-10, 0).scale(scaleBy);
-		const transform = zoomIdentity.translate(-bbRect.x + svgRect.width / 2 - bbRect.width / 2,
-			-bbRect.y + svgRect.height / 2 - bbRect.height / 2).scale(scaleBy);
-		this.rootSvg.call(this.zoom.transform, transform);
+		this.rootSvg.call(this.zoom.scaleBy, Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1));
 	}
 
 	// Returns all nodes with their attached attributes from the force simulation performed in draw()
