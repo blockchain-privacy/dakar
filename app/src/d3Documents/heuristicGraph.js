@@ -191,6 +191,21 @@ export default class HeuristicGraph {
 
 				return 'green';
 			})
+			.each(function (d) {
+				// Add marker to new nodes
+				if (d.fx !== undefined) {
+					return;
+				}
+
+				const thisElement = d3Select(this.parentNode);
+
+				const marker = thisElement.append('circle')
+					.attr('r', self.nodeRadius * 2)
+					.attr('fill', 'rgba(var(--v-theme-primary),0.1)')
+					.lower();
+
+				marker.transition().delay(1000).duration(500).attr('r', 0).remove();
+			})
 			.on('click', function (e, d) {
 				self.nodeClick(e, d, this);
 			})
