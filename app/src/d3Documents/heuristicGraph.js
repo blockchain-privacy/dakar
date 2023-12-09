@@ -43,6 +43,11 @@ export default class HeuristicGraph {
 		this.nodeClickCallBack = null;
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
+		this.contextMenuCallback = null;
+
+		// Context menu
+		this.activeContextMenuNode = null;
+		this.activeContextMenuSelection = null;
 
 		// Svg
 		this.simulation = null;
@@ -65,7 +70,6 @@ export default class HeuristicGraph {
 	}
 
 	resetClick() {
-		console.log('reset');
 		this.nodeGroup.selectAll('.clicked')
 			.classed('clicked', false)
 			.attr('stroke', 'white')
@@ -189,6 +193,14 @@ export default class HeuristicGraph {
 			})
 			.on('click', function (e, d) {
 				self.nodeClick(e, d, this);
+			})
+			.on('contextmenu', function (e, d) {
+				if (self.contextMenuCallback !== null) {
+					self.contextMenuCallback(e);
+				}
+
+				self.activeContextMenuNode = d;
+				self.activeContextMenuSelection = d3Select(this);
 			})
 			.on('mouseenter', function () {
 				d3Select(this.parentNode).raise();
@@ -382,6 +394,17 @@ export default class HeuristicGraph {
 		}
 
 		this.svgClickCallback = callback;
+		return true;
+	}
+
+	// SetContextMenuCallback receives a function as an argument.
+	// The function is going to be called each time the context menu is activated.
+	setContextMenuCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.contextMenuCallback = callback;
 		return true;
 	}
 }
