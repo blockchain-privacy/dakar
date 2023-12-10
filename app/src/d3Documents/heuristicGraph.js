@@ -57,6 +57,7 @@ export default class HeuristicGraph {
 		this.lineGroup = null;
 		this.nodeGroup = null;
 		this.zoom = null;
+		this.newNodes = null;
 
 		// Data
 		this.nodeMap = new Map();
@@ -176,6 +177,50 @@ export default class HeuristicGraph {
 		}
 	}
 
+	centerOnNewNodes() {
+		this.centerOnSelection(this.newNodes);
+	}
+
+	centerOnSelection(selection) {
+		if (selection === null) {
+			return;
+		}
+
+		let maxX = null;
+		let minX = null;
+		let maxY = null;
+		let minY = null;
+		selection.each(d => {
+			if (maxX === null || maxX < d.x) {
+				maxX = d.x;
+			}
+
+			if (minX === null || minX > d.x) {
+				minX = d.x;
+			}
+
+			if (maxY === null || maxY < d.y) {
+				maxY = d.y;
+			}
+
+			if (minY === null || minY > d.y) {
+				minY = d.y;
+			}
+		});
+
+		// Check if at least one element is in selection
+		if (maxX === null) {
+			return;
+		}
+
+		const width = maxX - minX;
+		const height = maxY - minY;
+		const centerX = minX + width / 2;
+		const centerY = minY + height / 2;
+
+		this.rootSvg.transition().duration(250).call(this.zoom.translateTo, centerX, centerY);
+	}
+
 	drawNode(groupElement) {
 		const self = this;
 		groupElement.append('circle')
@@ -229,13 +274,13 @@ export default class HeuristicGraph {
 				d3Select(this).transition().duration(100).attr('r', self.nodeRadius);
 			});
 
-		const loadingRadius = this.nodeRadius - 4;
+		const loadingRadius = this.nodeRadius - 6;
 		const gap = 2 * Math.PI * loadingRadius / 4;
 
 		const gapString = `${gap} ${gap}`;
 
 		groupElement.each(function (d) {
-		  if (d.status !== 'loading') {
+			if (d.status !== 'loading') {
 				return;
 			}
 
@@ -295,6 +340,7 @@ export default class HeuristicGraph {
 			.each(wrap);
 	}
 
+	// Draws the state of the graph, returns all newly added nodes
 	draw() {
 		// If there is a simulation ongoing from a previous call, stop it
 		if (this.simulation) {
@@ -334,6 +380,7 @@ export default class HeuristicGraph {
 				const g = enter.append('g');
 
 				this.drawNode(g);
+				this.newNodes = g;
 				return g;
 			})
 			.attr('class', 'nodeContainer')
