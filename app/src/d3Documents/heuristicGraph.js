@@ -189,6 +189,10 @@ export default class HeuristicGraph {
 					return 'url(#striped)';
 				}
 
+				if (d.type === 'heuristic') {
+					return 'orange';
+				}
+
 				return 'green';
 			})
 			.each(function (d) {
@@ -224,6 +228,34 @@ export default class HeuristicGraph {
 			.on('mouseleave', function () {
 				d3Select(this).transition().duration(100).attr('r', self.nodeRadius);
 			});
+
+		const loadingRadius = this.nodeRadius - 4;
+		const gap = 2 * Math.PI * loadingRadius / 4;
+
+		const gapString = `${gap} ${gap}`;
+
+		groupElement.each(function (d) {
+		  if (d.status !== 'loading') {
+				return;
+			}
+
+			d3Select(this).append('circle')
+				.attr('cx', 0)
+				.attr('cy', 0)
+				.attr('r', loadingRadius)
+				.attr('stroke-width', 3)
+				.attr('stroke', '#fff')
+				.attr('stroke-dasharray', gapString)
+				.attr('fill', 'none')
+				.attr('stroke-linecap', 'round')
+				.append('animateTransform')
+				.attr('attributeName', 'transform')
+				.attr('type', 'rotate')
+				.attr('repeatCount', 'indefinite')
+				.attr('dur', '2.941176470588235s')
+				.attr('keyTimes', '0;1')
+				.attr('values', '0 0 0;360 0 0');
+		});
 
 		const textAreaWidth = 150;
 		const textAreaMargin = 3;
