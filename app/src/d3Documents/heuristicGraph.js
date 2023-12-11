@@ -46,7 +46,7 @@ export default class HeuristicGraph {
 		this.contextMenuCallback = null;
 
 		// Context menu
-		this.activeContextMenuNode = null;
+		this.activeContextMenuData = null;
 		this.activeContextMenuSelection = null;
 
 		// Svg
@@ -77,8 +77,15 @@ export default class HeuristicGraph {
 			.attr('stroke-width', 1);
 	}
 
+	contextMenuNodeClick() {
+		this.nodeClick(null, this.activeContextMenuData, this.activeContextMenuSelection);
+	}
+
 	nodeClick(e, d, d3This) {
-		e.stopPropagation();
+		if (e) {
+			e.stopPropagation();
+		}
+
 		this.resetClick();
 		d3Select(d3This).select('.node')
 			.classed('clicked', true)
@@ -146,6 +153,14 @@ export default class HeuristicGraph {
 	checkNode(node) {
 		if (!node.uid || !node.type) {
 			throw new Error('node does not have required attributes: uid, type');
+		}
+	}
+
+	removeContextMenuNode() {
+		if (this.activeContextMenuData?.uid) {
+			this.removeNode(this.activeContextMenuData.uid);
+			this.activeContextMenuData = null;
+			this.activeContextMenuSelection = null;
 		}
 	}
 
@@ -293,8 +308,8 @@ export default class HeuristicGraph {
 					self.contextMenuCallback(e);
 				}
 
-				self.activeContextMenuNode = d;
-				self.activeContextMenuSelection = d3Select(this);
+				self.activeContextMenuData = d;
+				self.activeContextMenuSelection = this;
 			})
 			.on('mouseenter', function () {
 				d3Select(this.parentNode).raise();
@@ -451,7 +466,7 @@ export default class HeuristicGraph {
 	}
 
 	// CenterGraph centers the graph in the center of the svg
-	async centerGraph() {
+	centerGraph() {
 		const svgBoundingRect = this.rootSvg.node().getBoundingClientRect();
 		const rgBoundingBox = this.rootGroup.node().getBBox();
 		const rgBoundingRect = this.rootGroup.node().getBoundingClientRect();
