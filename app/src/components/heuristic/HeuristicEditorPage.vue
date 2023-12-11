@@ -48,6 +48,18 @@
         class="ms-3 pa-2"
         variant="outlined"
         :disabled="banner.show || executionStatus.executing"
+        @click="addRandomNode()"
+      >
+        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+        <div class="hidden-sm-and-down">
+          Add Node
+        </div>
+      </v-btn>
+      <v-btn
+        style="min-width: 32px !important;"
+        class="ms-3 pa-2"
+        variant="outlined"
+        :disabled="banner.show || executionStatus.executing"
         @click="hg.centerGraph()"
       >
         <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
@@ -241,6 +253,16 @@ onMounted(async () => {
 
 	startDormantTimer();
 });
+
+function addRandomNode() {
+	const allNodes = hg.exportNodes();
+
+	const childNode = allNodes[Math.floor(Math.random() * allNodes.length)];
+
+	// Hg.addNode({uid: `${Math.random()}`, type: 'address', children: [childNode.uid]});
+
+	hg.addNodes([{uid: '0x100', type: 'address', children: ['0x12']}]);
+}
 
 async function newRouting() {
 	const {id} = route.params;
