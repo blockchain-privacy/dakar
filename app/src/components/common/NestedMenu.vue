@@ -1,12 +1,10 @@
-<!-- source: https://github.com/vuetifyjs/vuetify/issues/1877#issuecomment-593273676  -->
 <template>
   <v-menu
     v-model="inputVal"
-    :style="{'position':absolute?'absolute':null,
-             'left': !!positionX?positionX + 'px':null, 'top': !!positionY?positionY + 'px':null}"
     :offset="isOffset?5:null"
     :open-on-hover="isOpenOnHover"
     :transition="transition"
+    :target="[positionX,positionY]"
   >
     <template #activator="item">
       <v-btn
