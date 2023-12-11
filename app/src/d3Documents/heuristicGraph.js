@@ -132,6 +132,10 @@ export default class HeuristicGraph {
 			}
 
 			d.children.forEach(child => {
+				if (!this.nodeMap.has(child)) {
+					return;
+				}
+
 				links.push({source: child, target: d.uid});
 			});
 		});
@@ -145,6 +149,22 @@ export default class HeuristicGraph {
 		}
 	}
 
+	removeNode(uid, draw) {
+		this.nodeMap.delete(uid);
+
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
+	removeNodes(uids, draw) {
+		uids.forEach(u => this.nodeMap.delete(u));
+
+		if (draw === undefined || draw === true) {
+			this.draw();
+		}
+	}
+
 	// Adds the given node to the graph. If a node with the
 	// provided node.uid already exist the existing node is instead updated.
 	// Set draw to false, if the graph should not be redrawn.
@@ -152,14 +172,13 @@ export default class HeuristicGraph {
 		this.checkNode(node);
 
 		// Check if properties have to be copied
-		let mapNode = this.nodeMap.get(node.uid);
-		if (mapNode === undefined) {
-			mapNode = node;
-		} else {
-			Object.assign(mapNode, node);
+		const mapNode = this.nodeMap.get(node.uid);
+		if (mapNode !== undefined) {
+			node.x = mapNode.x;
+			node.y = mapNode.y;
 		}
 
-		this.nodeMap.set(node.uid, setFxFy(mapNode));
+		this.nodeMap.set(node.uid, setFxFy(node));
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
@@ -392,6 +411,10 @@ export default class HeuristicGraph {
 				this.drawNode(g);
 				this.newNodes = g;
 				return g;
+			},
+			update => {
+				this.drawNode(update);
+				return update;
 			})
 			.attr('class', 'nodeContainer')
 			.call(drag()
