@@ -80,7 +80,7 @@ export default class HeuristicGraph {
 	nodeClick(e, d, d3This) {
 		e.stopPropagation();
 		this.resetClick();
-		d3Select(d3This)
+		d3Select(d3This).select('.node')
 			.classed('clicked', true)
 			.attr('stroke', '#B71C1C')
 			.attr('stroke-width', 3);
@@ -223,7 +223,11 @@ export default class HeuristicGraph {
 
 	drawNode(groupElement) {
 		const self = this;
-		groupElement.append('circle')
+		// CircleGroup contains the node circle and loading circle
+		const circleGroup = groupElement.append('g');
+
+		// Node circle
+		circleGroup.append('circle')
 			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
 			.attr('stroke', 'white')
@@ -254,7 +258,10 @@ export default class HeuristicGraph {
 					.lower();
 
 				marker.transition().delay(1000).duration(500).attr('r', 0).remove();
-			})
+			});
+
+		// Set event handlers
+		circleGroup
 			.on('click', function (e, d) {
 				self.nodeClick(e, d, this);
 			})
@@ -268,18 +275,19 @@ export default class HeuristicGraph {
 			})
 			.on('mouseenter', function () {
 				d3Select(this.parentNode).raise();
-				d3Select(this).transition().duration(100).attr('r', self.nodeRadius * 1.2);
+				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius * 1.2);
 			})
 			.on('mouseleave', function () {
-				d3Select(this).transition().duration(100).attr('r', self.nodeRadius);
+				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius);
 			});
 
+		// Add loading circle
 		const loadingRadius = this.nodeRadius - 6;
 		const gap = 2 * Math.PI * loadingRadius / 4;
 
 		const gapString = `${gap} ${gap}`;
 
-		groupElement.each(function (d) {
+		circleGroup.each(function (d) {
 			if (d.status !== 'loading') {
 				return;
 			}
@@ -288,6 +296,7 @@ export default class HeuristicGraph {
 				.attr('cx', 0)
 				.attr('cy', 0)
 				.attr('r', loadingRadius)
+				.attr('cursor', 'pointer')
 				.attr('stroke-width', 3)
 				.attr('stroke', '#fff')
 				.attr('stroke-dasharray', gapString)
@@ -302,6 +311,7 @@ export default class HeuristicGraph {
 				.attr('values', '0 0 0;360 0 0');
 		});
 
+		// Add node descriptions
 		const textAreaWidth = 150;
 		const textAreaMargin = 3;
 		const textHeight = 12;
