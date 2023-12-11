@@ -30,19 +30,7 @@
         </v-btn>
       </div>
     </v-expand-transition>
-    <nested-menu
-      v-model="contextMenu.display"
-      origin="center center"
-      :position-x="contextMenu.x"
-      :position-y="contextMenu.y"
-      absolute
-      is-offset
-      :close-on-click="true"
-      style="max-width: 600px"
-      name="File"
-      :menu-items="contextMenu.items"
-      @nested-menu-click="onMenuItemClick"
-    />
+
     <v-toolbar
       density="compact"
       color="rgb(var(--v-theme-surface))"
@@ -55,6 +43,18 @@
         <v-icon>{{ mdiTransfer }}</v-icon>
         Transaction {{ transactionHash }}
       </v-toolbar-title>
+      <v-btn
+        style="min-width: 32px !important;"
+        class="ms-3 pa-2"
+        variant="outlined"
+        :disabled="banner.show || executionStatus.executing"
+        @click="hg.centerGraph()"
+      >
+        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+        <div class="hidden-sm-and-down">
+          Center Graph
+        </div>
+      </v-btn>
 
       <v-btn
         style="min-width: 32px !important;"
@@ -66,18 +66,6 @@
         <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
         <div class="hidden-sm-and-down">
           Add Heuristic
-        </div>
-      </v-btn>
-      <v-btn
-        style="min-width: 32px !important;"
-        class="ms-3 pa-2"
-        variant="outlined"
-        :disabled="banner.show || executionStatus.executing || !isExecutable"
-        @click="executeHeuristics"
-      >
-        <v-icon>{{ mdiSourceBranchCheck }}</v-icon>
-        <div class="hidden-sm-and-down">
-          Execute
         </div>
       </v-btn>
       <v-menu location="bottom">
@@ -108,45 +96,6 @@
     </v-toolbar>
     <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
-      <v-dialog
-        :model-value="executionStatus.executing"
-        :persistent="true"
-        max-width="700px"
-        :contained="true"
-        :no-click-animation="true"
-      >
-        <v-card>
-          <v-card-text class="text-subtitle-1 d-flex align-center">
-            <v-icon
-              :icon="mdiTimerSand"
-              size="50"
-              class="me-3"
-            />
-            <div>
-              <p
-                v-if="executionStatus.processing"
-                class="text-center mb-3"
-              >
-                Heuristics are executing now
-              </p>
-              <p
-                v-else
-                class="text-center mb-3"
-              >
-                Heuristics are waiting to be processed
-              </p>
-              This may take several minutes depending on the chosen parameters and
-              number of heuristics. You can wait or close this page and come back later.
-              <v-progress-linear
-                class="mt-3"
-                :indeterminate="true"
-                rounded
-                :color="executionStatus.processing?'primary':''"
-              />
-            </div>
-          </v-card-text>
-        </v-card>
-      </v-dialog>
       <heuristic-details-sidebar
         v-model="heuristicSheet.isOpen"
         :heuristic-data="heuristicSheet"
@@ -159,19 +108,22 @@
         :descriptors="heuristicDescriptors"
         @add-heuristic="addNewHeuristic"
       />
-      <svg
-        id="svg_canvas"
-        style="width: 100%; height:100%"
+
+      <context-menu
+        v-model="contextMenu.display"
+        :position-x="contextMenu.x"
+        :position-y="contextMenu.y"
+        :menu-items="contextMenu.items"
       />
+      <svg id="svg_canvas" />
     </div>
   </div>
 </template>
 
 <script setup>
 import {
-	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical,
-	mdiOpenInNew, mdiShapeSquarePlus, mdiShapeSquareRoundedPlus,
-	mdiSourceBranchCheck, mdiTransfer, mdiTimerSand,
+	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiOpenInNew,
+	mdiShapeSquarePlus, mdiShapeSquareRoundedPlus, mdiTransfer,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -181,13 +133,13 @@ import {
 	ROUTE_NAME_TRANSACTION_PAGE,
 	ROUTE_NAME_USER_HEURISTIC_PAGE,
 } from '@/constants';
-import NestedMenu from '../common/NestedMenu.vue';
-import {HeuristicTree, rootIdentifier} from '@/d3Documents/heuristicTree';
+import ContextMenu from '../common/ContextMenu.vue';
 import {handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
-import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject, computed} from 'vue';
+import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import HeuristicGraph from '@/d3Documents/heuristicGraph';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -195,19 +147,12 @@ const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const newUidPrefix = 'newUid_';
-const ht = new HeuristicTree(150);
+const hg = new HeuristicGraph();
 let uidCounter = 1;
 let data = null;
 // HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
 const heuristicDetailsMap = new Map();
 
-// DeletedData holds all UIDs of the heuristic which are deleted
-const deletedData = ref([]);
-// ChangeSet holds all changes based on dbState and data.heuristics (computed)
-const changeSet = ref([]);
-// DbState holds the state of the database.
-// It is used to detect changes in data.heuristics (computed)
-const dbState = ref(null);
 const transactionHash = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const heuristicDescriptors = ref([]);
@@ -257,38 +202,30 @@ const contextMenu = ref({
 	x: 0,
 	y: 0,
 	items: [
-		{
-			title: 'Delete Heuristic',
-			icon: mdiDelete,
-			action: deleteSubTree,
-			disabled: () => !banner.value.show,
-		},
-		{title: 'Show Properties', icon: mdiChartBar, action: simulateClick},
+		{title: 'Show Properties', icon: mdiChartBar, action: () => hg.contextMenuNodeClick()},
 		{isDivider: true},
-		{
-			title: 'Add Heuristic',
-			icon: mdiShapeSquarePlus,
-			action: openTypeSelectionSheet,
-			disabled: () => !banner.value.show,
-		},
-		// Reminder: enable when https://github.com/vuetifyjs/vuetify/issues/17004 is fixed
-		// {
-		// 	title: 'Actions',
-		// 	menu: [
-		// 		{
-		// 			title: 'Execute Heuristics',
-		// 			icon: mdiSourceBranchCheck,
-		// 			action: executeHeuristics,
-		// 			disabled: isExecutable,
-		// 		},
-		// 	],
-		// },
+		{title: 'Add Heuristic', icon: mdiShapeSquarePlus, action: openTypeSelectionSheet, disabled: () => !banner.value.show},
+		{title: 'Delete Node', icon: mdiDelete, action: () => hg.removeContextMenuNode(), disabled: () => !banner.value.show},
 	],
 });
 
 // Watchers
 watch(route, () => {
 	newRouting();
+});
+
+watch(heuristicSheet.value, newVal => {
+	// If sheet is being closed reset click state of graph
+	if (!newVal.isOpen) {
+		hg.resetClick();
+	}
+});
+
+watch(isAddHeuristicSheetOpen, newVal => {
+	// If sheet is being closed reset click state of graph
+	if (!newVal.value) {
+		hg.resetClick();
+	}
 });
 
 // Hooks
@@ -305,59 +242,6 @@ onMounted(async () => {
 	startDormantTimer();
 });
 
-// Computed
-const isExecutable = computed(() => {
-	if (!banner.value.show && dbState.value !== null && changeSet.value !== null && changeSet.value.length > 0) {
-		return true;
-	}
-
-	return deletedData.value.length > 0;
-});
-
-// Functions
-function getDeletedData(oldStateMap, newStateMap) {
-	// Search for deleted items
-	const deletedUIDs = [];
-	oldStateMap.forEach((value, key) => {
-		if (!newStateMap.has(key)) {
-			deletedUIDs.push(key);
-		}
-	});
-
-	return deletedUIDs;
-}
-
-// PrepareData prepares the heuristic data, so it can be sent to be executed
-function prepareData(oldStateMap, newState, changeSet, deletedData) {
-	const changedItems = [];
-	const newStateMap = new Map(newState.map(d => [d.uid, d]));
-	changeSet.forEach(changedUid => {
-		changedItems.push(newStateMap.get(changedUid));
-	});
-
-	const filteredData = [];
-	// Filter properties which do not need to be sent over the wire: timestamp and result count
-	changedItems.forEach(d => {
-		// Filter out the dummy element
-		if (d.uid === rootIdentifier) {
-			return;
-		}
-
-		filteredData.push({
-			uid: d.uid,
-			type: d.type,
-			parameter: d.parameter,
-			children: d.children,
-			parent: d.parent,
-			useAddressExclusionList: d.excludeAddresses,
-			clusterTypes: d.clusterTypes,
-			excludeSpendingGaps: d.excludeSpendingGaps,
-		});
-	});
-
-	return {changed: filteredData, deleted: deletedData};
-}
-
 async function newRouting() {
 	const {id} = route.params;
 	if (id === undefined || route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
@@ -369,23 +253,6 @@ async function newRouting() {
 	}
 
 	startDormantTimer();
-}
-
-function areDataElementsEqual(a, b) {
-	if (a.uid !== b.uid || a.parameter !== b.parameter || a.type !== b.type) {
-		return false;
-	}
-
-	if (a.parent !== undefined && b.parent !== undefined) {
-		return a.parent[0].uid === b.parent[0].uid;
-	}
-
-	return !((a.parent !== undefined && b.parent === undefined)
-      || (b.parent !== undefined && a.parent === undefined));
-}
-
-function simulateClick() {
-	ht.simulateClick();
 }
 
 function setErrorMessage(msg) {
@@ -408,7 +275,6 @@ function addNewHeuristic(heuristic) {
 	uidCounter += 1;
 
 	data.heuristics.push(newHeuristic);
-	updateGraph();
 }
 
 async function loadHeuristicDetails(uid) {
@@ -429,6 +295,10 @@ async function loadHeuristicDetails(uid) {
 function openTypeSelectionSheet() {
 	heuristicSheet.value.isOpen = false;
 	isAddHeuristicSheetOpen.value = true;
+}
+
+function mockGetDBState() {
+	return '[{"uid":"0x1","type":"address","children":["0x2","0x3"],"x":365.7393,"y":-279.538},{"uid":"0x2","type":"transaction","children":["0x4","0x7"],"x":296.0357,"y":-400.9613},{"uid":"0x3","type":"transaction","children":["0x6","0x5"],"x":507.9497,"y":-280.7019},{"uid":"0x4","type":"address","x":156.0119,"y":-401.265},{"uid":"0x5","type":"transaction","x":435.9277,"y":-400.7161},{"uid":"0x6","type":"transaction","x":437.8707,"y":-159.5429},{"uid":"0x7","type":"address","x":225.7315,"y":-279.86},{"uid":"0x8","type":"transaction","x":-216.1006,"y":-297.2454}]';
 }
 
 async function openPropertySheet(heuristic) {
@@ -488,27 +358,6 @@ function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 }
 
-async function executeHeuristics() {
-	// Prevent execution if data is not available
-	if (!isExecutable.value) {
-		return;
-	}
-
-	// Close sidebars
-	closeSideBars();
-
-	try {
-		const response = await dakar.heuristic.executeHeuristicsHashPost({
-			hash: transactionHash.value,
-			heuristic: prepareData(dbState.value, data.heuristics, changeSet.value, deletedData.value),
-		});
-		setExecutionStatus(response.status);
-		startActiveTimer();
-	} catch (e) {
-		setErrorMessage(e);
-	}
-}
-
 function setExecutionStatus(status) {
 	switch (status) {
 		case executionStatus.value.enum.added:
@@ -538,71 +387,6 @@ function setExecutionStatus(status) {
 	}
 }
 
-// UpdateChangeSet updates the change set <changeSet> based
-// on the differences of data.heuristics and dbState
-function updateChangeSet() {
-	changeSet.value = [];
-	const originChangeSet = [];
-	data.heuristics.forEach(d => {
-		if (dbState.value.has(d.uid)) {
-			const thisElement = dbState.value.get(d.uid);
-			if (!areDataElementsEqual(thisElement, d)) {
-				// Changed element
-				originChangeSet.push(d);
-			}
-		} else {
-			// New element
-			originChangeSet.push(d);
-		}
-	});
-
-	// This set will have some duplicates, if changes are nested we get overlapping descendants
-	const descendantArray = [];
-	// Find descendants for each changed root element
-	originChangeSet.forEach(d => {
-		// Get subtree
-		const descendants = ht.getDescendants(d.uid);
-		descendantArray.push(...descendants);
-	});
-
-	// Remove duplicates
-	const descendantMap = new Map(descendantArray.map(
-		tempObject => [tempObject.data.data.uid, tempObject],
-	));
-
-	// Save in global changeSet
-	descendantMap.forEach(e => changeSet.value.push(e.data.data.uid));
-
-	ht.setNodesChanged(descendantMap);
-}
-
-function deleteSubTree() {
-	const toBeRemoved = ht.getRemovableNodes();
-	const rel = ht.getRemovableRelationship();
-
-	const updatedData = [];
-
-	data.heuristics.forEach(e => {
-		// Update children set of parent
-		if (rel.parentUid !== '' && e.uid === rel.parentUid) {
-			e.children = e.children.filter(c => c.uid !== rel.childUid);
-		}
-
-		// Remove removable nodes
-		if (!toBeRemoved.includes(e.uid)) {
-			updatedData.push(e);
-		}
-	});
-
-	data = {heuristics: updatedData, status: 0};
-
-	const newStateMap = new Map(data.heuristics.map(d => [d.uid, d]));
-	deletedData.value = getDeletedData(dbState.value, newStateMap);
-
-	// Update displayed graph
-	updateGraph();
-}
-
 function showContextMenu(e) {
 	contextMenu.value.display = false;
 
@@ -613,14 +397,6 @@ function showContextMenu(e) {
 	nextTick(() => {
 		contextMenu.value.display = true;
 	});
-}
-
-function updateGraph() {
-	// Maps the node data to the tree layout
-	ht.processGraphData(data.heuristics);
-	// UpdateChangeSet is called after a graph update,
-	// because otherwise it gets an out of date descendant state
-	updateChangeSet();
 }
 
 async function loadHeuristicData() {
@@ -649,15 +425,6 @@ async function refreshData() {
 	if (!data || !data.heuristics) {
 		data.heuristics = [];
 	}
-
-	data.heuristics.push({uid: 'root'});
-
-	// Reset deleted data
-	deletedData.value = [];
-
-	dbState.value = new Map(structuredClone(data.heuristics)
-		.map(d => [d.uid, d]));
-	updateGraph();
 
 	return true;
 }
@@ -722,35 +489,25 @@ async function whenMounted() {
 	// Set page title
 	document.title = `Heuristic ${transactionHash.value} - ${APPLICATION_NAME}`;
 
-	if (!ht.setNodeClickHandler(openPropertySheet)) {
+	if (!hg.setNodeClickHandler(openPropertySheet)) {
 		setErrorMessage('error setting heuristic click handler');
 		return false;
 	}
 
-	if (!ht.setSvgZoomCallback(() => {
+	if (!hg.setSvgZoomCallback(() => {
 		contextMenu.value.display = false;
 	})) {
 		setErrorMessage('error setting zoom handler');
 		return false;
 	}
 
-	if (!ht.setSvgClickCallback(closeSideBars)) {
+	if (!hg.setSvgClickCallback(closeSideBars)) {
 		setErrorMessage('error setting svg click handler');
 		return false;
 	}
 
-	if (!ht.setContextMenuCallback(showContextMenu)) {
-		setErrorMessage('error setting context menu handler');
-		return false;
-	}
-
-	if (!ht.setDragEndCallback(() => updateGraph())) {
-		setErrorMessage('error setting context drag end handler');
-		return false;
-	}
-
-	if (!ht.setSubTreeMoveCallback(moveSubTree)) {
-		setErrorMessage('error setting sub tree move handler');
+	if (!hg.setContextMenuCallback(showContextMenu)) {
+		setErrorMessage('error setting svg context menu handler');
 		return false;
 	}
 
@@ -762,62 +519,38 @@ async function whenMounted() {
 
 	// Creates the tab descriptions based on the heuristic categories
 	createTabs();
-	ht.populateHeuristicMap(heuristicDescriptors.value);
-	ht.setupSvg(svgCanvasId);
+
+	hg.initSvg(svgCanvasId);
+
+	const nodesFromDB = JSON.parse(mockGetDBState());
+
+	// Const nodesFromDB = [
+	// 	{uid: '0x1', type: 'address', children: ['0x2', '0x3']},
+	// 	{uid: '0x2', type: 'transaction', children: ['0x4', '0x7']},
+	// 	{uid: '0x3', type: 'transaction', children: ['0x6', '0x5']},
+	// 	{uid: '0x4', type: 'address'},
+	// 	{uid: '0x5', type: 'transaction'},
+	// 	{uid: '0x6', type: 'transaction'},
+	// 	{uid: '0x7', type: 'address'},
+	// 	{uid: '0x8', type: 'transaction'},
+	// ];
+	hg.addNodes(nodesFromDB);
+	hg.centerGraph();
+
+	// Await sleep(1000);
+	// hg.addNodes([
+	// 	{uid: '0x10', type: 'heuristic', status: 'loading'},
+	// 	{uid: '0x11', type: 'transaction', children: ['0x10']},
+	// ]);
+	// hg.centerOnNewNodes();
+
 	if (!await refreshData()) {
 		return false;
 	}
 
-	await ht.centerGraph();
+	// Await hg.centerGraph();
+
 	return true;
-}
-
-function onMenuItemClick(item) {
-	if (item.action) {
-		item.action();
-	}
-
-	contextMenu.value.display = false;
-}
-
-function moveSubTree(childUID, parentUID, formerParentUID) {
-	if (!data || !data.heuristics) {
-		return;
-	}
-
-	const newData = data.heuristics;
-
-	for (let i = 0; i < newData.length; i += 1) {
-		const dataElement = newData[i];
-		if (dataElement.uid === parentUID) {
-			if (dataElement.children === undefined) {
-				dataElement.children = [];
-			}
-
-			let alreadyExists = false;
-			dataElement.children.forEach(c => {
-				if (c.uid === childUID) {
-					alreadyExists = true;
-				}
-			});
-
-			if (!alreadyExists) {
-				dataElement.children.push({uid: childUID});
-			}
-		} else if (dataElement.uid === childUID) {
-			if (dataElement.parent === undefined) {
-				dataElement.parent = [];
-			}
-
-			dataElement.parent = [];
-			dataElement.parent.push({uid: parentUID});
-		} else if (dataElement.uid === formerParentUID) {
-			dataElement.children = dataElement.children.filter(c => c.uid !== childUID);
-		}
-	}
-
-	// Set new state
-	data.heuristics = newData;
 }
 
 async function updateExecutionStatus() {
@@ -868,44 +601,9 @@ function resetExecutionStatus() {
 
 <style scoped>
 
-:deep( .node text ) {
-  font: 12px sans-serif;
-  cursor: pointer;
-}
-
-:deep( .link ) {
-  fill: none;
-  stroke: darkslategrey;
-  stroke-width: 2px;
-}
-
-:deep( .rect ) {
-  stroke: rgb(var(--v-theme-primary));
-  fill: rgb(var(--v-theme-surface));
-  fill-opacity: 1;
-  cursor: pointer;
-}
-
-:deep( .clicked ) {
-  stroke: #FDD835;
-}
-
-:deep( .modified ) {
-  stroke-dasharray: 5;
-}
-
-:deep( .selected ){
-  fill: #9CCC65;
-  fill-opacity: 1;
-}
-
-:deep( .valid-target ) {
-  stroke: #2E7D32;
-  stroke-width: 4px;
-}
-
 :deep( #svg_canvas ) {
   height: 100%;
+  width: 100%;
   filter: drop-shadow(-4px 4px 2px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.2)));
 }
 
