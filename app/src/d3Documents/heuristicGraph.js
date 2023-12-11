@@ -149,6 +149,8 @@ export default class HeuristicGraph {
 		}
 	}
 
+	// Removes the node with the provided UID.
+	// Set draw to false, if the graph should not be redrawn.
 	removeNode(uid, draw) {
 		this.nodeMap.delete(uid);
 
@@ -157,6 +159,8 @@ export default class HeuristicGraph {
 		}
 	}
 
+	// Removes the nodes with the provided UIDs.
+	// Set draw to false, if the graph should not be redrawn.
 	removeNodes(uids, draw) {
 		uids.forEach(u => this.nodeMap.delete(u));
 
@@ -165,7 +169,7 @@ export default class HeuristicGraph {
 		}
 	}
 
-	// Adds the given node to the graph. If a node with the
+	// Adds the given node. If a node with the
 	// provided node.uid already exist the existing node is instead updated.
 	// Set draw to false, if the graph should not be redrawn.
 	addNode(node, draw) {
@@ -184,7 +188,7 @@ export default class HeuristicGraph {
 		}
 	}
 
-	// Adds the given nodes to the graph. Nodes which have an
+	// Adds the given nodes. Nodes which have an
 	// already existing UID are instead updated.
 	// Set draw to false, if the graph should not be redrawn.
 	addNodes(nodes, draw) {
