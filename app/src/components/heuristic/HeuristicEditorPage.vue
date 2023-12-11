@@ -48,6 +48,18 @@
         class="ms-3 pa-2"
         variant="outlined"
         :disabled="banner.show || executionStatus.executing"
+        @click="modifyNode()"
+      >
+        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+        <div class="hidden-sm-and-down">
+          Modify Node
+        </div>
+      </v-btn>
+      <v-btn
+        style="min-width: 32px !important;"
+        class="ms-3 pa-2"
+        variant="outlined"
+        :disabled="banner.show || executionStatus.executing"
         @click="addRandomNode()"
       >
         <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
@@ -259,9 +271,19 @@ function addRandomNode() {
 
 	const childNode = allNodes[Math.floor(Math.random() * allNodes.length)];
 
-	// Hg.addNode({uid: `${Math.random()}`, type: 'address', children: [childNode.uid]});
+	hg.addNode({uid: `${Math.random()}`, type: 'address', children: [childNode.uid]});
+	hg.centerOnNewNodes();
+}
 
-	hg.addNodes([{uid: '0x100', type: 'address', children: ['0x12']}]);
+let flag = false;
+function modifyNode() {
+	if (flag) {
+		hg.addNode({uid: '0x100', type: 'heuristic', status: 'loading'});
+	} else {
+		hg.addNode({uid: '0x100', type: 'heuristic'});
+	}
+
+	flag = !flag;
 }
 
 async function newRouting() {

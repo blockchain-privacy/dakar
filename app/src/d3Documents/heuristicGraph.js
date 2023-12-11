@@ -61,6 +61,7 @@ export default class HeuristicGraph {
 
 		// Data
 		this.nodeMap = new Map();
+		this.changedData = new Map();
 	}
 
 	svgClick() {
@@ -197,7 +198,9 @@ export default class HeuristicGraph {
 			node.y = mapNode.y;
 		}
 
-		this.nodeMap.set(node.uid, setFxFy(node));
+		const n = setFxFy(node);
+		this.nodeMap.set(n.uid, n);
+		this.changedData.set(n.uid, n);
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
@@ -262,7 +265,13 @@ export default class HeuristicGraph {
 	drawNode(groupElement) {
 		const self = this;
 		// CircleGroup contains the node circle and loading circle
-		const circleGroup = groupElement.append('g');
+
+		let circleGroup = groupElement.select('g');
+		if (circleGroup.empty()) {
+			circleGroup = groupElement.append('g');
+		}
+
+		circleGroup.selectAll('circle').remove();
 
 		// Node circle
 		circleGroup.append('circle')
@@ -366,8 +375,12 @@ export default class HeuristicGraph {
 			}
 		}
 
-		groupElement
-			.append('text')
+		let nodeDescription = groupElement.select('.nodeDescription');
+		if (nodeDescription.empty()) {
+			nodeDescription = groupElement.append('text').attr('class', 'nodeDescription');
+		}
+
+		nodeDescription
 			.attr('font-size', fontSize)
 			.style('text-anchor', 'middle')
 			.style('cursor', 'default')
@@ -376,8 +389,13 @@ export default class HeuristicGraph {
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
 			.text(d => `${d.uid}`)
 			.each(wrap);
-		groupElement
-			.append('text')
+
+		let nodeType = groupElement.select('.nodeType');
+		if (nodeType.empty()) {
+			nodeType = groupElement.append('text').attr('class', 'nodeType');
+		}
+
+		nodeType
 			.attr('font-size', fontSize)
 			.style('text-anchor', 'middle')
 			.style('cursor', 'default')
@@ -400,8 +418,8 @@ export default class HeuristicGraph {
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			.force('charge', forceManyBody().strength(-50))
-			.force('collide', forceCollide(this.nodeRadius * 4)).stop();
+			// .force('charge', forceManyBody().strength(-50))
+			.force('collide', forceCollide(this.nodeRadius * 5)).stop();
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
@@ -432,7 +450,11 @@ export default class HeuristicGraph {
 				return g;
 			},
 			update => {
-				this.drawNode(update);
+				if (this.changedData.size > 0) {
+					// Do drawing only for actually updated nodes
+					this.drawNode(update.filter(d => this.changedData.has(d.uid)));
+				}
+
 				return update;
 			})
 			.attr('class', 'nodeContainer')
@@ -463,6 +485,8 @@ export default class HeuristicGraph {
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
+
+		this.changedData.clear();
 	}
 
 	// CenterGraph centers the graph in the center of the svg
@@ -471,8 +495,8 @@ export default class HeuristicGraph {
 		const rgBoundingBox = this.rootGroup.node().getBBox();
 		const rgBoundingRect = this.rootGroup.node().getBoundingClientRect();
 
-		const scaleHeight = svgBoundingRect.height / (rgBoundingRect.height * 1.5);
-		const scaleWidth = svgBoundingRect.width / (rgBoundingRect.width * 1.5);
+		const scaleHeight = svgBoundingRect.height / (rgBoundingRect.height + 50);
+		const scaleWidth = svgBoundingRect.width / (rgBoundingRect.width + 50);
 
 		this.rootSvg.call(this.zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
 		// Scale between 0.1 and 5
@@ -481,7 +505,7 @@ export default class HeuristicGraph {
 
 	// Returns all nodes with their attached attributes from the force simulation performed in draw()
 	exportNodes() {
-		const nodes = [...this.nodeMap.values()];
+		const nodes = structuredClone([...this.nodeMap.values()]);
 		return nodes.map(d => {
 			// Remove redundant attributes
 			delete d.vx;
