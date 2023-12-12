@@ -134,10 +134,10 @@
       />
 
       <context-menu
-        v-model="contextMenu.display"
-        :position-x="contextMenu.x"
-        :position-y="contextMenu.y"
-        :menu-items="contextMenu.items"
+        v-model="contextMenuModel.display"
+        :position-x="contextMenuModel.x"
+        :position-y="contextMenuModel.y"
+        :menu-items="contextMenuModel.items"
       />
       <svg id="svg_canvas" />
     </div>
@@ -221,7 +221,7 @@ const heuristicSheet = ref({
 	clusterCount: null,
 	clusters: [],
 });
-const contextMenu = ref({
+const contextMenuModel = ref({
 	display: false,
 	x: 0,
 	y: 0,
@@ -432,14 +432,14 @@ function setExecutionStatus(status) {
 }
 
 function showContextMenu(e) {
-	contextMenu.value.display = false;
+	contextMenuModel.value.display = false;
 
 	e.preventDefault();
-	contextMenu.value.x = e.clientX;
-	contextMenu.value.y = e.clientY;
+	contextMenuModel.value.x = e.clientX;
+	contextMenuModel.value.y = e.clientY;
 
 	nextTick(() => {
-		contextMenu.value.display = true;
+		contextMenuModel.value.display = true;
 	});
 }
 
@@ -539,7 +539,7 @@ async function whenMounted() {
 	}
 
 	if (!hg.setSvgZoomCallback(() => {
-		contextMenu.value.display = false;
+		contextMenuModel.value.display = false;
 	})) {
 		setErrorMessage('error setting zoom handler');
 		return false;
