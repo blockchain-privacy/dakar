@@ -418,8 +418,11 @@ export default class HeuristicGraph {
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			// .force('charge', forceManyBody().strength(-50))
+			.force('charge', forceManyBody().strength(-50))
 			.force('collide', forceCollide(this.nodeRadius * 5)).stop();
+
+		// 100 iterations: 1-0.001^(1/100) = 0.06674569920300896
+		this.simulation.alphaDecay(0.06675);
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
