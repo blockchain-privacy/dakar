@@ -98,6 +98,18 @@
             Add Heuristic
           </div>
         </v-btn>
+        <v-btn
+          style="min-width: 32px !important;"
+          class="ms-3 px-2"
+          variant="outlined"
+          :disabled="banner.show || executionStatus.executing"
+          @click="hg.setEnableInteractions(!hg.getEnableInteractions())"
+        >
+          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="hidden-sm-and-down">
+            Toggle graph interaction
+          </div>
+        </v-btn>
         <v-menu location="bottom">
           <template #activator="{ props }">
             <v-btn

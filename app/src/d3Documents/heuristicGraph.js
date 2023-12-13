@@ -15,16 +15,24 @@ function setFxFy(node) {
 	return node;
 }
 
-function dragStarted(event, simulation) {
+function dragStarted(event, context) {
+	if (!context.enableInteractions) {
+		return;
+	}
+
 	if (!event.active) {
-		simulation.alphaTarget(0.3).restart();
+		context.simulation.alphaTarget(0.3).restart();
 	}
 
 	event.subject.fx = event.subject.x;
 	event.subject.fy = event.subject.y;
 }
 
-function dragged(event, d3This) {
+function dragged(event, context, d3This) {
+	if (!context.enableInteractions) {
+		return;
+	}
+
 	event.subject.fx = event.x;
 	event.subject.fy = event.y;
 	// Raise() causes bug in chrome: click is only
@@ -32,9 +40,13 @@ function dragged(event, d3This) {
 	d3Select(d3This).raise();
 }
 
-function dragEnded(event, simulation) {
+function dragEnded(event, context) {
+	if (!context.enableInteractions) {
+		return;
+	}
+
 	if (!event.active) {
-		simulation.alphaTarget(0);
+		context.simulation.alphaTarget(0);
 	}
 }
 
@@ -65,11 +77,21 @@ export default class HeuristicGraph {
 
 		// Node type
 		this.nodeTypeColorMap = nodeTypeColorMap;
+
+		this.enableInteractions = true;
+	}
+
+	setEnableInteractions(flag) {
+		this.enableInteractions = flag;
+	}
+
+	getEnableInteractions() {
+		return this.enableInteractions;
 	}
 
 	svgClick() {
 		this.resetClick();
-		if (this.svgClickCallback !== null) {
+		if (this.svgClickCallback !== null && this.enableInteractions) {
 			this.svgClickCallback();
 		}
 	}
@@ -91,6 +113,11 @@ export default class HeuristicGraph {
 		}
 
 		this.resetClick();
+
+		if (!this.enableInteractions) {
+			return;
+		}
+
 		d3Select(d3This).select('.node')
 			.classed('clicked', true)
 			.attr('stroke', '#B71C1C')
@@ -165,7 +192,7 @@ export default class HeuristicGraph {
 	}
 
 	removeContextMenuNode() {
-		if (this.activeContextMenuData?.uid) {
+		if (this.activeContextMenuData?.uid && this.enableInteractions) {
 			this.removeNode(this.activeContextMenuData.uid);
 			this.activeContextMenuData = null;
 			this.activeContextMenuSelection = null;
@@ -323,6 +350,10 @@ export default class HeuristicGraph {
 				self.nodeClick(e, d, this);
 			})
 			.on('contextmenu', function (e, d) {
+				if (!self.enableInteractions) {
+					return;
+				}
+
 				if (self.contextMenuCallback !== null) {
 					self.contextMenuCallback(e);
 				}
@@ -471,13 +502,13 @@ export default class HeuristicGraph {
 			.attr('class', 'nodeContainer')
 			.call(drag()
 				.on('start', e => {
-					dragStarted(e, self.simulation);
+					dragStarted(e, self);
 				})
 				.on('drag', function (e) {
-					dragged(e, this);
+					dragged(e, self, this);
 				})
 				.on('end', e => {
-					dragEnded(e, self.simulation);
+					dragEnded(e, self);
 				}),
 			)
 			.each(d => {
