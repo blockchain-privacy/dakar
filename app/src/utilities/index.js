@@ -3,8 +3,6 @@ import {
 	CLUSTER_TYPE_FMI,
 	LOCALSTORAGE_FIELD_SESSION,
 	LOCALSTORAGE_FIELD_SETTINGS,
-	PASSWORD_MAX_CHARACTERS,
-	PASSWORD_MIN_CHARACTERS,
 	ROUTE_NAME_LOGIN_PAGE,
 } from '@/constants';
 
@@ -61,13 +59,13 @@ export function getCurrentDate() {
 }
 
 // CheckResponseStatus throws an error depending on the provided response status
-export async function checkResponseStatus(context, response) {
+export async function checkResponseStatus(context, navStore, localStore, response) {
 	if (response.ok) {
 		return;
 	}
 
 	if (response.status === 401) {
-		handleUnauthorizedRequest(context.$router, context.$store, context.$route);
+		handleUnauthorizedRequest(context.$router, navStore, localStore, context.$route);
 		throw new Error('Please login again.', {cause: response});
 	}
 
@@ -100,10 +98,10 @@ export async function checkResponseStatus(context, response) {
 }
 
 // HandleUnauthorizedRequest directs to the login page
-export function handleUnauthorizedRequest(router, store, currentRoute) {
+export function handleUnauthorizedRequest(router, navStore, localStore, currentRoute) {
 	// Set failed route so we can reroute to it later
-	store.dispatch('setFailedRoute', currentRoute);
-	store.dispatch('setSession', null);
+	navStore.setFailedRoute(currentRoute);
+	localStore.setSession(null);
 	router.push({name: ROUTE_NAME_LOGIN_PAGE});
 }
 
@@ -121,7 +119,7 @@ export function handleError(context, error) {
 		errMsg = error.message;
 	}
 
-	context.$store.dispatch('addMessage', {text: errMsg, type: 'error', temporary: true, category: context.$route.name});
+	context.addMessage({text: errMsg, type: 'error', temporary: true, category: context.$route.name});
 }
 
 export const emailRules = [
@@ -130,43 +128,13 @@ export const emailRules = [
 	v => /.+@.+\..+/.test(v) || 'E-mail must be valid',
 ];
 
-const notAllowedWhitespaceCharacters = [
-	'\b',
-	'\t',
-	'\n',
-	'\v',
-	'\f',
-	'\r',
-	'\u0008',
-	'\u0009',
-	'\u000A',
-	'\u000B',
-	'\u000C',
-	'\u000D',
-	'\u0022',
-	'\u0027',
-	'\u005C',
-	'\u00A0',
-	'\u2028',
-	'\u2029',
-	'\uFEFF',
-];
+export const fileRule = [v => {
+	if (!v) {
+		return false;
+	}
 
-// HasWhitespace checks if the given string
-// contains any of the characters in notAllowedWhitespaceCharacters
-// credit: https://stackoverflow.com/questions/1731190/check-if-a-string-has-white-space
-const hasWhitespace = char => notAllowedWhitespaceCharacters.some(
-	w => char.indexOf(w) > -1,
-	notAllowedWhitespaceCharacters,
-);
-
-export const passwordRules = [
-	v => Boolean(v) || 'Password is required',
-	v => !hasWhitespace(v) || 'Password contains white space characters',
-	v => v.length >= PASSWORD_MIN_CHARACTERS || `At least ${PASSWORD_MIN_CHARACTERS} characters`,
-	v => (v && v.length < PASSWORD_MAX_CHARACTERS)
-        || `Password must be less than ${PASSWORD_MAX_CHARACTERS} characters`,
-];
+	return v.length > 0 || 'File is required';
+}];
 
 // IsValidQueryInput returns true if the input query is valid. This function
 // should be used instead of isValidQuery if the input is expected to be trimmed.

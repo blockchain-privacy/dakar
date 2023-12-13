@@ -10,7 +10,7 @@
           <div class="d-flex justify-space-between">
             <router-link
               v-if="addressHash"
-              :to="{ name: addressRoute, params: { id: addressHash }}"
+              :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
               class="shorten"
             >
               {{ addressHash }}
@@ -27,7 +27,7 @@
             class="d-flex justify-space-between align-center"
           >
             <div class="text-caption">
-              <router-link :to="{ name: txRoute, params: { id: txHash }}">
+              <router-link :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: txHash }}">
                 <span>{{ isInput ? 'created' : 'spent' }}</span>
               </router-link>
               on {{ timestamp ? new Date(timestamp).toLocaleString() : '' }}
@@ -74,7 +74,7 @@
                       icon
                       @click="showAscii = !showAscii"
                     >
-                      <v-icon>{{ icons.mdiFormatColorText }}</v-icon>
+                      <v-icon>{{ mdiFormatColorText }}</v-icon>
                     </v-btn>
                   </template>
                 </v-tooltip>
@@ -110,17 +110,35 @@
       size="x-small"
       @click="expanded = !expanded"
     >
-      <v-icon>{{ expanded ? icons.mdiChevronUp : icons.mdiChevronDown }}</v-icon>
+      <v-icon>{{ expanded ? mdiChevronUp : mdiChevronDown }}</v-icon>
     </v-btn>
   </v-card>
 </template>
 
-<script>
+<script setup>
 import {mdiChevronUp, mdiChevronDown, mdiFormatColorText} from '@mdi/js';
 import {convertAmount} from '@/utilities';
 import {COIN_UNIT, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
+import {ref} from 'vue';
 
+defineProps({
+	isInput: {type: Boolean, required: true},
+	addressHash: {type: String, required: true},
+	amount: {type: Number, required: true},
+	keyAsm: {type: String, required: false, default: ''},
+	sigAsm: {type: String, required: false, default: ''},
+	inputIndex: {type: Number, required: false, default: -1},
+	outputIndex: {type: Number, required: false, default: -1},
+	txHash: {type: String, required: false, default: ''},
+	timestamp: {type: String, required: false, default: ''},
+	privacyType: {type: Number, required: false, default: -1},
+});
+
+const expanded = ref(false);
+const showAscii = ref(false);
+
+// Functions
 const isHex = str => /^[A-F\d]+$/i.test(str);
 
 function hex2Ascii(hex) {
@@ -133,46 +151,16 @@ function hex2Ascii(hex) {
 	return str;
 }
 
-export default {
-	name: 'OutputItem',
-	components: {PrivacyChip},
-	props: {
-		isInput: {type: Boolean, required: true},
-		addressHash: {type: String, required: true},
-		amount: {type: Number, required: true},
-		keyAsm: {type: String, required: false, default: ''},
-		sigAsm: {type: String, required: false, default: ''},
-		inputIndex: {type: Number, required: false, default: -1},
-		outputIndex: {type: Number, required: false, default: -1},
-		txHash: {type: String, required: false, default: ''},
-		timestamp: {type: String, required: false, default: ''},
-		privacyType: {type: Number, required: false, default: -1},
-	},
-	data() {
-		return {
-			icons: {
-				mdiChevronUp, mdiChevronDown, mdiFormatColorText,
-			},
-			COIN_UNIT,
-			addressRoute: ROUTE_NAME_ADDRESS_PAGE,
-			txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			expanded: false,
-			showAscii: false,
-		};
-	},
-	methods: {
-		convertAmount,
-		scriptToAscii(script) {
-			const hex = script.split(' ').find(d => isHex(d));
+function scriptToAscii(script) {
+	const hex = script.split(' ').find(d => isHex(d));
 
-			if (hex === undefined) {
-				return '';
-			}
+	if (hex === undefined) {
+		return '';
+	}
 
-			return hex2Ascii(hex);
-		},
-	},
-};
+	return hex2Ascii(hex);
+}
+
 </script>
 
 <style scoped>

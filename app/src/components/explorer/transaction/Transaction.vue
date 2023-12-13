@@ -2,8 +2,8 @@
   <v-card :variant="embed?undefined:'text'">
     <icon-title
       :title="`Transaction ${tx.txhash}`"
-      :icon="icons.mdiTransfer"
-      :to="showTitleLink?{ name: routes.ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
+      :icon="mdiTransfer"
+      :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
     >
       <privacy-chip
         v-if="tx.privacytype > 0"
@@ -18,9 +18,9 @@
           icon
           :color="null"
           variant="text"
-          :to="{ name: routes.ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }"
+          :to="{ name: ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }"
         >
-          <v-icon>{{ icons.mdiGraph }}</v-icon>
+          <v-icon>{{ mdiGraph }}</v-icon>
         </v-btn>
         <v-tooltip
           location="bottom"
@@ -37,7 +37,7 @@
           variant="text"
           @click="showFingerprintDialog = true"
         >
-          <v-icon>{{ icons.mdiFingerprint }}</v-icon>
+          <v-icon>{{ mdiFingerprint }}</v-icon>
         </v-btn>
         <v-tooltip
           location="bottom"
@@ -56,17 +56,17 @@
               sm="6"
             >
               <icon-item
-                :icon="icons.mdiFormatListNumbered"
+                :icon="mdiFormatListNumbered"
                 title="Block Height"
               >
-                <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
                   {{ tx.bid.toLocaleString() }}
                 </router-link>
               </icon-item>
             </v-col>
             <v-col>
               <icon-item
-                :icon="icons.mdiCalendar"
+                :icon="mdiCalendar"
                 title="Timestamp"
               >
                 {{ new Date(tx.bts).toLocaleString() }}
@@ -80,7 +80,7 @@
               sm="6"
             >
               <icon-item
-                :icon="icons.mdiCash"
+                :icon="mdiCash"
                 title="Fee"
               >
                 {{ convertAmount(tx.fee) }}
@@ -88,10 +88,10 @@
             </v-col>
             <v-col>
               <icon-item
-                :icon="icons.mdiFormatHeaderPound"
+                :icon="mdiFormatHeaderPound"
                 title="Block"
               >
-                <router-link :to="{ name: routes.ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
+                <router-link :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
                   {{ shortenHash(tx.bhash) }}
                 </router-link>
               </icon-item>
@@ -100,7 +100,7 @@
           <v-row v-if="isCoinBaseTx(tx)">
             <v-col>
               <icon-item
-                :icon="icons.mdiPickaxe"
+                :icon="mdiPickaxe"
                 title="Coinbase"
               >
                 yes
@@ -118,7 +118,7 @@
         style="margin-top:-16px;"
         @click="showTransactionDetails = !showTransactionDetails"
       >
-        <v-icon>{{ showTransactionDetails ? icons.mdiChevronUp : icons.mdiChevronDown }}</v-icon>
+        <v-icon>{{ showTransactionDetails ? mdiChevronUp : mdiChevronDown }}</v-icon>
       </v-btn>
       <v-row>
         <v-col v-if="tx.inputs">
@@ -242,7 +242,7 @@
       size="x-small"
       @click="showAllOutputs = !showAllOutputs"
     >
-      <v-icon>{{ showAllOutputs ? icons.mdiChevronUp : icons.mdiChevronDown }}</v-icon>
+      <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
     </v-btn>
     <fingerprint-transactions-dialog
       v-model="showFingerprintDialog"
@@ -251,146 +251,115 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
-	mdiCash, mdiFormatHeaderPound, mdiCircleMultipleOutline,
-	mdiChevronDown, mdiChevronUp, mdiPickaxe, mdiFingerprint,
+	mdiCash, mdiFormatHeaderPound, 	mdiChevronDown,
+	mdiChevronUp, mdiPickaxe, mdiFingerprint,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
 import {shortenHash, convertAmount, isDestination} from '@/utilities';
 import {ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import FingerprintTransactionsDialog from './FingerprintTransactionsDialog.vue';
-import {isProxy, toRaw} from 'vue';
+import {computed, isProxy, ref, toRaw, toRef} from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
 
-export default {
-	name: 'Transaction',
-	components: {IconTitle, PrivacyChip, FingerprintTransactionsDialog, OutputItem, IconItem},
-	props: {
-		tx: {type: Object, required: true},
-		showHeuristicEditorLink: {type: Boolean, required: true},
-		showFingerprintLink: {type: Boolean, required: true},
-		showDetails: {type: Boolean, required: false, default: false},
-		showTitleLink: {type: Boolean, required: false, default: false},
-		embed: {type: Boolean, required: false, default: false},
-	},
-	data() {
-		return {
-			icons: {
-				mdiTransfer,
-				mdiGraph,
-				mdiFormatListNumbered,
-				mdiCalendar,
-				mdiCash,
-				mdiFormatHeaderPound,
-				mdiCircleMultipleOutline,
-				mdiChevronDown,
-				mdiChevronUp,
-				mdiPickaxe,
-				mdiFingerprint,
-			},
-			routes: {
-				ROUTE_NAME_HEURISTIC_PAGE,
-				ROUTE_NAME_BLOCK_PAGE,
-				ROUTE_NAME_TRANSACTION_PAGE,
-			},
-			showTransactionDetails: this.showDetails,
-			showAllOutputs: false,
-			showFingerprintDialog: false,
-			maxOutputs: 3,
-		};
-	},
-	computed: {
-		getInputs() {
-			return this.getLimitedItems(this.sortByTimestamp(this.tx.inputs));
-		},
-		getResidualInputs() {
-			return this.getResidualItems(this.sortByTimestamp(this.tx.inputs));
-		},
-		getOutputs() {
-			return this.getLimitedItems(this.sortByTimestamp(this.tx.outputs));
-		},
-		getResidualOutputs() {
-			return this.getResidualItems(this.sortByTimestamp(this.tx.outputs));
-		},
-		areItemsLimited() {
-			if (!this.tx) {
-				return false;
-			}
+const props = defineProps({
+	tx: {type: Object, required: true},
+	showHeuristicEditorLink: {type: Boolean, required: true},
+	showFingerprintLink: {type: Boolean, required: true},
+	showDetails: {type: Boolean, required: false, default: false},
+	showTitleLink: {type: Boolean, required: false, default: false},
+	embed: {type: Boolean, required: false, default: false},
+});
 
-			if (this.tx.inputs && this.tx.inputs.length > this.maxOutputs) {
-				return true;
-			}
+const showTransactionDetails = toRef(props.showDetails);
+const showAllOutputs = ref(false);
+const showFingerprintDialog = ref(false);
+const maxOutputs = ref(3);
 
-			return Boolean(this.tx.outputs && this.tx.outputs.length > this.maxOutputs);
-		},
-	},
-	methods: {
-		shortenHash,
-		convertAmount,
-		isDestination,
-		getLabel(count, label) {
-			if (count > 1) {
-				return `${count} ${label}s`;
-			}
+// Computed
+const getInputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.inputs)));
+const getResidualInputs = computed(() => getResidualItems(sortByTimestamp(props.tx.inputs)));
+const getOutputs = computed(() => getLimitedItems(sortByTimestamp(props.tx.outputs)));
+const getResidualOutputs = computed(() => getResidualItems(sortByTimestamp(props.tx.outputs)));
+const areItemsLimited = computed(() => {
+	if (!props.tx) {
+		return false;
+	}
 
-			return `${count} ${label}`;
-		},
-		sortByTimestamp(outputs) {
-			if (!outputs) {
-				return [];
-			}
+	if (props.tx.inputs && props.tx.inputs.length > maxOutputs.value) {
+		return true;
+	}
 
-			let copiedOutputs;
+	return Boolean(props.tx.outputs && props.tx.outputs.length > maxOutputs.value);
+});
 
-			if (isProxy(outputs)) {
-				copiedOutputs = structuredClone(toRaw(outputs));
-			} else {
-				copiedOutputs = structuredClone(outputs);
-			}
+// Functions
+function getLabel(count, label) {
+	if (count > 1) {
+		return `${count} ${label}s`;
+	}
 
-			return copiedOutputs.sort((a, b) => {
-				if (!a.ts || !b.ts) {
-					return true;
-				}
+	return `${count} ${label}`;
+}
 
-				return new Date(a.ts) - new Date(b.ts);
-			});
-		},
-		isCoinBaseTx(tx) {
-			if (!tx || !tx.outputs) {
-				return false;
-			}
+function 	sortByTimestamp(outputs) {
+	if (!outputs) {
+		return [];
+	}
 
-			return !tx.inputs || tx.inputs.length === 0;
-		},
-		getLimitedItems(items) {
-			if (!items) {
-				return [];
-			}
+	let copiedOutputs;
 
-			return items.slice(0, this.maxOutputs);
-		},
-		getResidualItems(items) {
-			if (!items) {
-				return [];
-			}
+	if (isProxy(outputs)) {
+		copiedOutputs = structuredClone(toRaw(outputs));
+	} else {
+		copiedOutputs = structuredClone(outputs);
+	}
 
-			if (items.length <= this.maxOutputs) {
-				return [];
-			}
+	return copiedOutputs.sort((a, b) => {
+		if (!a.ts || !b.ts) {
+			return true;
+		}
 
-			if (this.showAllOutputs) {
-				return items.slice(this.maxOutputs);
-			}
+		return new Date(a.ts) - new Date(b.ts);
+	});
+}
 
-			return [];
-		},
-	},
-};
+function isCoinBaseTx(tx) {
+	if (!tx || !tx.outputs) {
+		return false;
+	}
+
+	return !tx.inputs || tx.inputs.length === 0;
+}
+
+function getLimitedItems(items) {
+	if (!items) {
+		return [];
+	}
+
+	return items.slice(0, maxOutputs.value);
+}
+
+function getResidualItems(items) {
+	if (!items) {
+		return [];
+	}
+
+	if (items.length <= maxOutputs.value) {
+		return [];
+	}
+
+	if (showAllOutputs.value) {
+		return items.slice(maxOutputs.value);
+	}
+
+	return [];
+}
+
 </script>
 
 <style scoped>

@@ -7,7 +7,7 @@
     >
       <icon-title
         title="Connection Lookup"
-        :icon="icon.mdiTextBoxSearch"
+        :icon="mdiTextBoxSearch"
       />
       <v-card-text>
         <p class="text-subtitle-1 mb-5">
@@ -49,7 +49,7 @@
                       id="max_time_tooltip"
                       size="small"
                     >
-                      {{ hover ? icon.mdiInformation : icon.mdiInformationOutline }}
+                      {{ hover ? mdiInformation : mdiInformationOutline }}
                     </v-icon>
                   </v-hover>
                   <v-tooltip
@@ -89,7 +89,7 @@
                     id="reverse_lookup_tooltip"
                     size="small"
                   >
-                    {{ hover ? icon.mdiInformation : icon.mdiInformationOutline }}
+                    {{ hover ? mdiInformation : mdiInformationOutline }}
                   </v-icon>
                 </v-hover>
                 <v-tooltip
@@ -114,7 +114,7 @@
                       id="forward_lookup_tooltip"
                       size="small"
                     >
-                      {{ hover ? icon.mdiInformation : icon.mdiInformationOutline }}
+                      {{ hover ? mdiInformation : mdiInformationOutline }}
                     </v-icon>
                   </v-hover>
                   <v-tooltip
@@ -168,7 +168,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiTextBoxSearch, mdiInformation, mdiInformationOutline,
 } from '@mdi/js';
@@ -176,82 +176,76 @@ import {handleError, plural} from '@/utilities';
 import {PAGE_TITLE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import TransactionItem from '@/components/common/TransactionItem.vue';
+import {computed, inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'ConnectionLookupPage',
-	components: {TransactionItem, IconTitle},
-	data() {
-		return {
-			icon: {
-				mdiTextBoxSearch, mdiInformation, mdiInformationOutline,
-			},
-			// V-model
-			fromTransaction: '',
-			isDirectionForward: false,
-			isLoading: false,
-			transactions: [],
-			transactionCount: -1,
-			maxLookBackTime: 5,
-		};
-	},
-	computed: {
-		isSearchable() {
-			return this.fromTransaction && this.fromTransaction.trim().length > 0;
-		},
-	},
-	mounted() {
-		document.title = `Connection Lookup - ${PAGE_TITLE}`;
-	},
-	methods: {
-		plural,
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		setWarningMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: this.$route.name});
-		},
-		async handleSearch() {
-			if (this.isLoading || !this.isSearchable) {
-				return;
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
+
+const fromTransaction = ref('');
+const isDirectionForward = ref(false);
+const isLoading = ref(false);
+const transactions = ref([]);
+const transactionCount = ref(-1);
+const maxLookBackTime = ref(5);
+
+// Computed
+const isSearchable = computed(() => fromTransaction.value && fromTransaction.value.trim().length > 0);
+
+// Hooks
+onMounted(() => {
+	document.title = `Connection Lookup - ${PAGE_TITLE}`;
+});
+
+// Functions
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function handleSearch() {
+	if (isLoading.value || !isSearchable.value) {
+		return;
+	}
+
+	msgStore.resetMessages();
+
+	transactions.value = [];
+	await doLookup();
+}
+
+async function doLookup() {
+	transactionCount.value = -1;
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.tools.connectionLookupTxHashGet({
+			txHash: fromTransaction.value.trim(),
+			forward: isDirectionForward.value,
+			t: maxLookBackTime.value,
+		});
+
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		if (response.transactions && response.transactions.length > 0) {
+			if (response.count) {
+				transactionCount.value = response.count;
+			} else {
+				transactionCount.value = -1;
 			}
 
-			this.$store.dispatch('resetMessages');
+			transactions.value = response.transactions;
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
 
-			this.transactions = [];
-			await this.doLookup();
-		},
-		async doLookup() {
-			this.transactionCount = -1;
-			this.isLoading = true;
-
-			try {
-				const response = await this.dakar.tools.connectionLookupTxHashGet({
-					txHash: this.fromTransaction.trim(),
-					forward: this.isDirectionForward,
-					t: this.maxLookBackTime,
-				});
-
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
-
-				if (response.transactions && response.transactions.length > 0) {
-					if (response.count) {
-						this.transactionCount = response.count;
-					} else {
-						this.transactionCount = -1;
-					}
-
-					this.transactions = response.transactions;
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
-
-			this.isLoading = false;
-		},
-	},
-};
+	isLoading.value = false;
+}
 </script>
 
 <style scoped>

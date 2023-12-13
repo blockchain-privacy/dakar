@@ -24,68 +24,73 @@
   </v-alert>
 </template>
 
-<script>
-export default {
-	name: 'Messages',
-	props: {
-		type: {type: String, required: true},
-		temporary: {type: Boolean, default: false},
-		text: {type: String, required: true},
-		closable: {type: Boolean, required: false, default: true},
-	},
-	emits: ['destructed'],
-	data() {
-		return {
-			showMessage: true,
-			progressValue: 100,
-			interval: null,
-		};
-	},
-	mounted() {
-		this.startTimer();
-	},
-	methods: {
-		hideMessage() {
-			if (this.interval) {
-				clearInterval(this.interval);
-			}
+<script setup>
+import {onBeforeUnmount, onMounted, ref} from 'vue';
 
-			this.showMessage = false;
-			this.$emit('destructed');
-		},
-		startTimer() {
-			if (!this.temporary) {
-				return;
-			}
+const props = defineProps({
+	type: {type: String, required: true},
+	temporary: {type: Boolean, default: false},
+	text: {type: String, required: true},
+	closable: {type: Boolean, required: false, default: true},
+});
 
-			if (this.interval) {
-				clearInterval(this.interval);
-			}
+const emit = defineEmits(['destructed']);
+const showMessage = ref(true);
+const progressValue = ref(100);
+const interval = ref(null);
 
-			this.startProgressLoop();
-		},
-		stopTimer() {
-			if (!this.temporary || !this.interval) {
-				return;
-			}
+function hideMessage() {
+	if (interval.value) {
+		clearInterval(interval.value);
+	}
 
-			this.progressValue = 100;
-			clearInterval(this.interval);
-		},
-		startProgressLoop() {
-			// 15 seconds and 10 steps: 15000 / 10
-			const timeout = 150;
-			this.interval = setInterval(() => {
-				if (this.progressValue === 0) {
-					this.hideMessage();
-					return;
-				}
+	showMessage.value = false;
+	emit('destructed');
+}
 
-				this.progressValue -= 1;
-			}, timeout);
-		},
-	},
-};
+function startTimer() {
+	if (!props.temporary) {
+		return;
+	}
+
+	if (interval.value) {
+		clearInterval(interval.value);
+	}
+
+	startProgressLoop();
+}
+
+function stopTimer() {
+	if (!props.temporary || !interval.value) {
+		return;
+	}
+
+	progressValue.value = 100;
+	clearInterval(interval.value);
+}
+
+function startProgressLoop() {
+	// 15 seconds and 10 steps: 15000 / 10
+	const timeout = 150;
+	interval.value = setInterval(() => {
+		if (progressValue.value === 0) {
+			hideMessage();
+			return;
+		}
+
+		progressValue.value -= 1;
+	}, timeout);
+}
+
+// Hooks
+onMounted(() => {
+	startTimer();
+});
+
+onBeforeUnmount(() => {
+	clearInterval(interval.value);
+});
+
 </script>
 
 <style scoped>
@@ -97,10 +102,4 @@ export default {
   0 1px 10px 0 rgba(0, 0, 0, 0.12);
 }
 
-/* :deep for deep selection, 0 height and width for removing
-the border which 'prominent' introduces */
-:deep(.v-alert__icon) {
-  height: 0 !important;
-  width: 0 !important;
-}
 </style>

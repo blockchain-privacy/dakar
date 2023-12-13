@@ -6,7 +6,7 @@
     <v-card variant="text">
       <icon-title
         title="Address Exclusions"
-        :icon="icon.mdiPlaylistRemove"
+        :icon="mdiPlaylistRemove"
         :one-line="true"
       >
         <v-menu location="bottom">
@@ -16,13 +16,13 @@
               v-bind="props"
               variant="text"
             >
-              <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+              <v-icon>{{ mdiDotsVertical }}</v-icon>
             </v-btn>
           </template>
           <v-list>
             <v-list-item @click="addAddressExclusions = true">
               <template #prepend>
-                <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                <v-icon>{{ mdiFileImport }}</v-icon>
               </template>
               <v-list-item-title>Import Address Exclusions</v-list-item-title>
             </v-list-item>
@@ -31,7 +31,7 @@
               @click="deleteAllExclusionsDialog = true"
             >
               <template #prepend>
-                <v-icon>{{ icon.mdiDelete }}</v-icon>
+                <v-icon>{{ mdiDelete }}</v-icon>
               </template>
               <v-list-item-title>Delete All Address Exclusions</v-list-item-title>
             </v-list-item>
@@ -59,7 +59,7 @@
             variant="text"
             @click="addAddressExclusions = true"
           >
-            <v-icon>{{ icon.mdiFileImport }}</v-icon>
+            <v-icon>{{ mdiFileImport }}</v-icon>
             Import Address Exclusions
           </v-btn>
         </div>
@@ -91,7 +91,7 @@
               <!-- Add padding so the list item covers the full height of the card,
               therefore make the mouse over highlight make nicer -->
               <v-list-item
-                :to="{ name: routes.addressRoute, params: { id: addressHash }}"
+                :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: addressHash }}"
                 class="py-3"
               >
                 <v-list-item-title>
@@ -107,13 +107,13 @@
                     v-bind="props"
                     variant="plain"
                   >
-                    <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                    <v-icon>{{ mdiDotsVertical }}</v-icon>
                   </v-btn>
                 </template>
                 <v-list>
                   <v-list-item @click="deleteItem(addressHash)">
                     <template #prepend>
-                      <v-icon>{{ icon.mdiDelete }}</v-icon>
+                      <v-icon>{{ mdiDelete }}</v-icon>
                     </template>
                     <v-list-item-title>Delete</v-list-item-title>
                   </v-list-item>
@@ -141,7 +141,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
@@ -149,64 +149,58 @@ import ImportAddressExclusionsDialog from './ImportAddressExclusionsDialog.vue';
 import DeleteAddressExclusionDialog from './DeleteAddressExclusionDialog.vue';
 import DeleteAllAddressExclusionsDialog from './DeleteAllAddressExclusionsDialog.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'AddressExclusionsPage',
-	components: {
-		IconTitle,
-		DeleteAllAddressExclusionsDialog, DeleteAddressExclusionDialog, ImportAddressExclusionsDialog,
-	},
-	data() {
-		return {
-			icon: {
-				mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport,
-			},
-			routes: {
-				addressRoute: ROUTE_NAME_ADDRESS_PAGE,
-			},
-			addAddressExclusions: false,
-			deleteExclusionDialog: false,
-			deleteAllExclusionsDialog: false,
-			isLoading: false,
-			deleteAddressHash: '',
-			items: [],
-			addressCount: -1,
-		};
-	},
-	async mounted() {
-		document.title = `Address Exclusions - ${PAGE_TITLE}`;
+const dakar = inject('dakar');
+const route = useRoute();
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
-		await this.loadData();
-	},
-	methods: {
-		async loadData() {
-			this.items = [];
-			this.addressCount = -1;
-			this.isLoading = true;
+const addAddressExclusions = ref(false);
+const deleteExclusionDialog = ref(false);
+const deleteAllExclusionsDialog = ref(false);
+const isLoading = ref(false);
+const deleteAddressHash = ref('');
+const items = ref([]);
+const addressCount = ref(-1);
 
-			try {
-				const response = await this.dakar.addressExclusion.addressExclusionOverviewGet();
+// Hooks
+onMounted(async () => {
+	document.title = `Address Exclusions - ${PAGE_TITLE}`;
+	await loadData();
+});
 
-				if (response.addresses) {
-					this.items = response.addresses;
-					this.addressCount = response.addressCount;
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+// Functions
+async function loadData() {
+	items.value = [];
+	addressCount.value = -1;
+	isLoading.value = true;
 
-			this.isLoading = false;
-		},
-		deleteItem(addressHash) {
-			this.deleteAddressHash = addressHash;
-			this.deleteExclusionDialog = true;
-		},
-		handleExclusionDeletion(addressHash) {
-			this.addressCount -= 1;
-			this.items = this.items.filter(d => d !== addressHash);
-		},
-	},
-};
+	try {
+		const response = await dakar.addressExclusion.addressExclusionOverviewGet();
+
+		if (response.addresses) {
+			items.value = response.addresses;
+			addressCount.value = response.addressCount;
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
+function deleteItem(addressHash) {
+	deleteAddressHash.value = addressHash;
+	deleteExclusionDialog.value = true;
+}
+
+function handleExclusionDeletion(addressHash) {
+	addressCount.value -= 1;
+	items.value = items.value.filter(d => d !== addressHash);
+}
+
 </script>
 
 <style scoped>

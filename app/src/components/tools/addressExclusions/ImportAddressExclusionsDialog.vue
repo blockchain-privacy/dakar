@@ -33,7 +33,7 @@ XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
         >
           <v-file-input
             v-model="csv.file"
-            :rules="rules.file"
+            :rules="fileRule"
             show-size
             accept="text/csv,text/plain"
             label="Click here to select a file"
@@ -62,7 +62,75 @@ XcsCPgY67TqW9CpsJLCbizDw2Yq2zFoh74</code></pre>
   </v-dialog>
 </template>
 
-<script>
+<script setup>
+import {computed, inject, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {fileRule} from '@/utilities';
+import {useMsgStore} from '@/pinia/msg';
+
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
+
+const props = defineProps({modelValue: {type: Boolean, required: true}});
+const emit = defineEmits(['added', 'update:modelValue']);
+
+// Template ref
+const csvForm = ref(null);
+const isLoading = ref(false);
+const csv = ref({
+	valid: false,
+	file: null,
+});
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
+	},
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
+function setSuccessMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+function setPersistentErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+async function handleCSVUpload() {
+	const {valid} = await csvForm.value.validate();
+	if (!valid) {
+		return;
+	}
+
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.addressExclusion.addAddressExclusionsPost({file: csv.value.file[0]});
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		setSuccessMessage('import was successful');
+		emit('added');
+	} catch (e) {
+		setPersistentErrorMessage(codeToMsg(e.message));
+	}
+
+	isLoading.value = false;
+	csv.value.file = null;
+	show.value = false;
+}
+
 // CodeToMsg returns a message for the given message code
 function codeToMsg(msgCode) {
 	switch (msgCode) {
@@ -83,70 +151,6 @@ function codeToMsg(msgCode) {
 	}
 }
 
-export default {
-	name: 'ImportAddressExclusionsDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-	},
-	emits: ['added', 'update:modelValue'],
-	data() {
-		return {
-			isLoading: false,
-			csv: {
-				valid: false,
-				file: null,
-			},
-			rules: {
-				file: [v => Boolean(v) || 'File is required'],
-			},
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setSuccessMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'success', temporary: true, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		async handleCSVUpload() {
-			const {valid} = await this.$refs.csvForm.validate();
-			if (!valid) {
-				return;
-			}
-
-			this.isLoading = true;
-
-			try {
-				const response = await this.dakar.addressExclusion.addAddressExclusionsPost({file: this.csv.file[0]});
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
-
-				this.setSuccessMessage('import was successful');
-				this.$emit('added');
-			} catch (e) {
-				this.setPersistentErrorMessage(codeToMsg(e.message));
-			}
-
-			this.isLoading = false;
-			this.csv.file = null;
-			this.show = false;
-		},
-	},
-};
 </script>
 
 <style scoped>

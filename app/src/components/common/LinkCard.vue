@@ -24,16 +24,15 @@
   </v-hover>
 </template>
 
-<script>
-export default {
-	name: 'LinkCard',
-	props: {
-		title: {type: String, required: true},
-		to: {type: Object, required: true},
-		icon: {type: String, required: true},
-		color: {type: String, default: 'primary'},
-	},
-};
+<script setup>
+
+defineProps({
+	title: {type: String, required: true},
+	to: {type: Object, required: true},
+	icon: {type: String, required: true},
+	color: {type: String, default: 'primary'},
+});
+
 </script>
 
 <style scoped>

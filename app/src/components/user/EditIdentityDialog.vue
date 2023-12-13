@@ -56,113 +56,116 @@
   </v-dialog>
 </template>
 
-<script>
+<script setup>
 import {emailRules, handleError} from '@/utilities';
+import {computed, inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'EditIdentityDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		identity: {type: Object, required: true},
-		createNewUser: {type: Boolean, required: true},
-	},
-	emits: ['update:modelValue', 'saved'],
-	data() {
-		return {
-			isLoading: false,
-			shadowIdentity: {
-				id: '',
-				email: '',
-				roles: [],
-				state: '',
-			},
-			roles: ['admin', 'user', 'privileged'],
-			states: ['active', 'inactive'],
-			rules: {
-				roleRules: [
-					v => v.length > 0 || 'At least one role is required',
-				],
-				stateRules: [
-					v => v.length > 0 || 'State must be set',
-				],
-				emailRules,
-			},
-		};
-	},
-	computed: {
-		formTitle() {
-			return this.createNewUser ? 'Create Identity' : 'Edit Identity';
-		},
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	mounted() {
-		this.shadowIdentity = this.identity;
-	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async saveIdentity() {
-			const {valid} = await this.$refs.modifyIdentityForm.validate();
+const route = useRoute();
+const dakar = inject('dakar');
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
 
-			if (!valid) {
-				return;
-			}
+const emit = defineEmits(['update:modelValue', 'saved']);
 
-			this.isLoading = true;
-			if (this.createNewUser) {
-				try {
-					const response = await this.dakar.authentication.createIdentityPost({
-						identity: {
-							email: this.shadowIdentity.email,
-							roles: this.shadowIdentity.roles,
-							state: this.shadowIdentity.state,
-						},
-					});
-					if (response.msg) {
-						this.setInfoMessage(response.msg);
-					}
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	identity: {type: Object, required: true},
+	createNewUser: {type: Boolean, required: true},
+});
 
-					this.$emit('saved');
-				} catch (e) {
-					this.setErrorMessage(e);
-				}
-			} else {
-				try {
-					const response = await this.dakar.authentication.modifyIdentityPost({
-						identity: {
-							uid: this.shadowIdentity.id,
-							email: this.shadowIdentity.email,
-							state: this.shadowIdentity.state,
-							roles: this.shadowIdentity.roles,
-						},
-					});
+const isLoading = ref(false);
+const shadowIdentity = ref({id: '', email: '', roles: [], state: ''});
+// Template ref
+const modifyIdentityForm = ref(null);
 
-					if (response.msg) {
-						this.setInfoMessage(response.msg);
-					}
-
-					this.$emit('saved');
-				} catch (e) {
-					handleError(this, e);
-				}
-			}
-
-			this.isLoading = false;
-			this.show = false;
-		},
-	},
+const roles = ['admin', 'user', 'privileged'];
+const states = ['active', 'inactive'];
+const rules = {
+	roleRules: [
+		v => v.length > 0 || 'At least one role is required',
+	],
+	stateRules: [
+		v => v.length > 0 || 'State must be set',
+	],
+	emailRules,
 };
+
+// Computed
+const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit Identity');
+
+const show = computed({
+	get() {
+		return props.modelValue;
+	},
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+onMounted(() => {
+	shadowIdentity.value = props.identity;
+});
+
+function setErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function saveIdentity() {
+	const {valid} = await modifyIdentityForm.value.validate();
+
+	if (!valid) {
+		return;
+	}
+
+	isLoading.value = true;
+	if (props.createNewUser) {
+		try {
+			const response = await dakar.authentication.createIdentityPost({
+				identity: {
+					email: shadowIdentity.value.email,
+					roles: shadowIdentity.value.roles,
+					state: shadowIdentity.value.state,
+				},
+			});
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
+
+			emit('saved');
+		} catch (e) {
+			setErrorMessage(e);
+		}
+	} else {
+		try {
+			const response = await dakar.authentication.modifyIdentityPost({
+				identity: {
+					uid: shadowIdentity.value.id,
+					email: shadowIdentity.value.email,
+					state: shadowIdentity.value.state,
+					roles: shadowIdentity.value.roles,
+				},
+			});
+
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
+
+			emit('saved');
+		} catch (e) {
+			handleError(context, e);
+		}
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
+
 </script>
 
 <style scoped>

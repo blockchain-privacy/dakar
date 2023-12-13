@@ -1,6 +1,10 @@
-import * as d3 from 'd3';
 import {sleep} from './util';
 import {isFunction} from '@/utilities';
+import {select as d3Select} from 'd3-selection';
+import {zoomIdentity, zoom} from 'd3-zoom';
+import {hierarchy, tree} from 'd3-hierarchy';
+import {max} from 'd3-array';
+
 export default class Tree {
 	constructor(width) {
 		this.rectWidth = width;
@@ -11,6 +15,7 @@ export default class Tree {
 		this.drawClicked = null;
 		this.drawResetClick = null;
 		this.svgClickCallback = null;
+		this.svgZoomCallback = null;
 
 		// Root svg elements
 		this.rootSvg = null;
@@ -52,7 +57,7 @@ export default class Tree {
 
 		// Scale between 0.1 and 5
 		const scaleBy = Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1);
-		const transform = d3.zoomIdentity.translate(-10, 0).scale(scaleBy);
+		const transform = zoomIdentity.translate(-10, 0).scale(scaleBy);
 		this.rootSvg.transition().duration(250).call(this.zoom.transform, transform);
 	}
 
@@ -90,7 +95,7 @@ export default class Tree {
 		const treeData = this.stratify(graphData);
 
 		//  Assigns the data to a hierarchy using parent-child relationships
-		const nodes = d3.hierarchy(treeData, d => d.children);
+		const nodes = hierarchy(treeData, d => d.children);
 		const levelWidth = [1];
 		let levelDepth = 0;
 		const childCount = (level, n) => {
@@ -113,7 +118,7 @@ export default class Tree {
 		childCount(0, treeData);
 
 		// Declares a tree layout and assigns the size
-		const treeLayout = d3.tree().size([d3.max(levelWidth) * 150, levelDepth * 200]);
+		const treeLayout = tree().size([max(levelWidth) * 150, levelDepth * 200]);
 		// Maps the node data to the tree layout
 
 		this.drawTree(treeLayout(nodes));
@@ -140,15 +145,18 @@ export default class Tree {
 	}
 
 	// SetupSvg sets up the root svg, adds the zoom and drag handler and sets the heuristic titles
-	setupSvg(context, canvasId) {
+	setupSvg(canvasId) {
 		// Add attributes to root svg
-		this.rootSvg = d3.select(`#${canvasId}`).on('click', () => this.svgClick());
+		this.rootSvg = d3Select(`#${canvasId}`).on('click', () => this.svgClick());
 		this.rootGroup = this.rootSvg.append('g').attr('class', 'root-group');
 
 		// Add zoom and drag
-		this.zoom = d3.zoom()
+		this.zoom = zoom()
 			.on('zoom', event => {
-				context.displayContextMenu = false;
+				if (this.svgZoomCallback !== null) {
+					this.svgZoomCallback();
+				}
+
 				this.rootGroup.attr('transform', event.transform);
 			})
 			.scaleExtent([0.5, 8]);
@@ -194,8 +202,19 @@ export default class Tree {
 		return true;
 	}
 
+	// SetZoomCallback receives a function as an argument.
+	// The function is going to be called each time the root SVG zoomed upon
+	setSvgZoomCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.svgZoomCallback = callback;
+		return true;
+	}
+
 	static nodeClicked(e, classContext, d3This) {
-		const thisElement = d3.select(d3This);
+		const thisElement = d3Select(d3This);
 		if (!classContext.drawClickedState(thisElement)) {
 			return;
 		}

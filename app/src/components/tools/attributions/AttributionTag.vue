@@ -4,12 +4,12 @@
       location="bottom"
       :text="tooltipText"
     >
-      <template #activator="{ props }">
+      <template #activator="item">
         <v-chip
           :label="true"
           class="overflow-x-auto"
           :color="attribution.isPublic?'primary':null"
-          v-bind="props"
+          v-bind="item.props"
           :rounded="true"
         >
           {{ attribution.tag }}
@@ -19,22 +19,13 @@
   </span>
 </template>
 
-<script>
-export default {
-	name: 'AttributionTag',
-	props: {attribution: {type: Object, required: true}},
-	data() {
-		return {
-			privateTooltip: 'This is a private attribution. It is only visible to you.',
-			publicTooltip: 'This is a public attribution',
-		};
-	},
-	computed: {
-		tooltipText() {
-			return this.attribution.isPublic ? this.publicTooltip : this.privateTooltip;
-		},
-	},
-};
+<script setup>
+const props = defineProps({attribution: {type: Object, required: true}});
+
+const privateTooltip = 'This is a private attribution. It is only visible to you.';
+const publicTooltip = 'This is a public attribution';
+const tooltipText = props.attribution.isPublic ? publicTooltip : privateTooltip;
+
 </script>
 
 <style scoped>

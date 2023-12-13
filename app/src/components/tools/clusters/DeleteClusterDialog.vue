@@ -36,62 +36,67 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-	name: 'DeleteClusterDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		clusterUid: {type: String, required: true},
-		numAddresses: {type: Number, required: true},
-	},
-	emits: ['update:modelValue', 'deleted'],
-	data() {
-		return {
-			isLoading: false,
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async deleteCluster() {
-			if (this.clusterUid === '' || this.numAddresses <= 0) {
-				this.setPersistentErrorMessage('could not delete cluster');
-				this.show = false;
-				return;
-			}
+<script setup>
+import {computed, inject, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-			this.isLoading = true;
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
 
-			try {
-				const response = await this.dakar.cluster.deleteClusterClusterUidGet({clusterUid: this.clusterUid});
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	clusterUid: {type: String, required: true},
+	numAddresses: {type: Number, required: true},
+});
+const emit = defineEmits(['update:modelValue', 'deleted']);
 
-				this.$emit('deleted', this.clusterUid);
-			} catch (e) {
-				this.setPersistentErrorMessage(e);
-			}
+const isLoading = ref(false);
 
-			this.isLoading = false;
-			this.show = false;
-		},
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
+function setPersistentErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function deleteCluster() {
+	if (props.clusterUid === '' || props.numAddresses <= 0) {
+		setPersistentErrorMessage('could not delete cluster');
+		show.value = false;
+		return;
+	}
+
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.cluster.deleteClusterClusterUidGet({clusterUid: props.clusterUid});
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		emit('deleted', props.clusterUid);
+	} catch (e) {
+		setPersistentErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
+
 </script>
 
 <style scoped>

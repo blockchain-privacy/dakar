@@ -1,15 +1,15 @@
 <template>
   <v-container :fluid="true">
     <v-row
-      v-if="data"
+      v-if="tx"
       align="center"
       justify="center"
     >
       <!-- duplicate transaction hashes can exist -> loop through all results
       (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
       <v-col
-        v-for="tx in data"
-        :key="tx.txhash+tx.bid"
+        v-for="t in tx"
+        :key="t.txhash+t.bid"
         cols="12"
         sm="12"
         md="12"
@@ -17,9 +17,9 @@
         xl="8"
       >
         <transaction
-          :tx="tx"
-          :show-heuristic-editor-link="isAtLeastPrivileged"
-          :show-fingerprint-link="isAtLeastPrivileged"
+          :tx="t"
+          :show-heuristic-editor-link="isPrivilegedOrHigher"
+          :show-fingerprint-link="isPrivilegedOrHigher"
           show-details
         />
       </v-col>
@@ -32,45 +32,41 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import Transaction from './Transaction.vue';
 import {PAGE_TITLE} from '@/constants';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
+import {computed, onMounted, onUpdated, watch} from 'vue';
+import {storeToRefs} from 'pinia';
+import {useExplorerStore} from '@/pinia/explorer';
+import {useLocalStore} from '@/pinia/local';
 
-export default {
-	name: 'TransactionPage',
-	components: {Transaction},
-	computed: {
-		data() {
-			return this.$store.getters.getTransactionData;
-		},
-		session() {
-			return this.$store.getters.getSession;
-		},
-		isAtLeastPrivileged() {
-			return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
-		},
-	},
-	watch: {
-		data() {
-			this.setPageTitle();
-		},
-	},
-	mounted() {
-		this.setPageTitle();
-	},
-	updated() {
-		this.setPageTitle();
-	},
-	methods: {
-		setPageTitle() {
-			let h = ' ';
-			if (this.data && this.data[0].txhash) {
-				h = ` ${this.data[0].txhash} `;
-			}
+const {transaction: tx} = storeToRefs(useExplorerStore());
+const {session} = storeToRefs(useLocalStore());
 
-			document.title = `Transaction${h}- ${PAGE_TITLE}`;
-		},
-	},
-};
+// Computed
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+
+// Watchers
+watch(tx, () => {
+	setPageTitle();
+});
+
+// Hooks
+onMounted(() => {
+	setPageTitle();
+});
+onUpdated(() => {
+	setPageTitle();
+});
+
+// Functions
+function setPageTitle() {
+	let h = ' ';
+	if (tx.value && tx.value[0].txhash) {
+		h = ` ${tx.value[0].txhash} `;
+	}
+
+	document.title = `Transaction${h}- ${PAGE_TITLE}`;
+}
 </script>

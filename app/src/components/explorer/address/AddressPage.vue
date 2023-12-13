@@ -16,7 +16,7 @@
             <icon-title
               :title="`Address
               ${addressData.addresshash}`"
-              :icon="icon.mdiCardBulletedOutline"
+              :icon="mdiCardBulletedOutline"
             >
               <v-chip
                 v-if="showExclusionAlert"
@@ -26,7 +26,7 @@
                 <template #append>
                   <v-icon
                     class="ms-1"
-                    :icon="icon.mdiCloseCircle"
+                    :icon="mdiCloseCircle"
                     @click="deleteExclusionDialog = true"
                   />
                 </template>
@@ -50,11 +50,11 @@
                     sm="4"
                   >
                     <icon-item
-                      :icon="icon.mdiScaleBalance"
+                      :icon="mdiScaleBalance"
                       title="Balance"
                     >
                       {{ convertAmount(addressData.output_sum - addressData.input_sum) }}
-                      {{ coinUnit }}
+                      {{ COIN_UNIT }}
                     </icon-item>
                   </v-col>
                   <v-col
@@ -62,20 +62,20 @@
                     sm="4"
                   >
                     <icon-item
-                      :icon="icon.mdiBankTransferIn"
+                      :icon="mdiBankTransferIn"
                       title="Total amount received"
                     >
                       {{ convertAmount(addressData.output_sum) }}
-                      {{ coinUnit }}
+                      {{ COIN_UNIT }}
                     </icon-item>
                   </v-col>
                   <v-col>
                     <icon-item
-                      :icon="icon.mdiBankTransferOut"
+                      :icon="mdiBankTransferOut"
                       title="Total amount spent"
                     >
                       {{ convertAmount(addressData.input_sum) }}
-                      {{ coinUnit }}
+                      {{ COIN_UNIT }}
                     </icon-item>
                   </v-col>
                 </v-row>
@@ -85,7 +85,7 @@
                     sm="4"
                   >
                     <icon-item
-                      :icon="icon.mdiPound"
+                      :icon="mdiPound"
                       title="Outputs"
                     >
                       {{ addressData.output_count }}
@@ -96,7 +96,7 @@
                     sm="4"
                   >
                     <icon-item
-                      :icon="icon.mdiPound"
+                      :icon="mdiPound"
                       title="Unspent outputs"
                     >
                       {{ addressData.output_count - addressData.input_count }}
@@ -104,7 +104,7 @@
                   </v-col>
                   <v-col>
                     <icon-item
-                      :icon="icon.mdiPound"
+                      :icon="mdiPound"
                       title="Coinbase outputs"
                     >
                       {{ addressData.coinbase_count }}
@@ -138,7 +138,7 @@
                 <v-card-text>
                   <sort-and-filter
                     v-if="addressData?.output_count > 1"
-                    v-model="sortAndFilter"
+                    v-model="sortAndFilterModel"
                     :loading="isLoading"
                     :output-count="addressData.output_count"
                     :input-count="addressData.input_count"
@@ -166,7 +166,7 @@
                       <template #item.input_transaction="{ item }">
                         <router-link
                           v-if="item.input_transaction"
-                          :to="{ name: transactionRoute,
+                          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                                  params: { id: item.input_transaction }}"
                         >
                           {{ shortenHash(item.input_transaction) }}
@@ -175,7 +175,7 @@
                       <template #item.output_transaction="{ item }">
                         <router-link
                           v-if="item.output_transaction"
-                          :to="{ name: transactionRoute,
+                          :to="{ name: ROUTE_NAME_TRANSACTION_PAGE,
                                  params: { id: item.output_transaction }}"
                         >
                           {{ shortenHash(item.output_transaction) }}
@@ -225,10 +225,10 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiCardBulletedOutline, mdiScaleBalance, mdiBankTransferIn,
-	mdiBankTransferOut, mdiPound, mdiMerge, mdiDotsVertical, mdiDelete, mdiCloseCircle,
+	mdiBankTransferOut, mdiPound, mdiCloseCircle,
 } from '@mdi/js';
 import {
 	convertAmount,
@@ -244,178 +244,160 @@ import MixingActivity from './MixingActivity.vue';
 import ClusterLookup from './ClusterLookup.vue';
 import DeleteAddressExclusionDialog from '../../tools/addressExclusions/DeleteAddressExclusionDialog.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import {computed, inject, onMounted, onUpdated, ref, watch} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
+import {useExplorerStore} from '@/pinia/explorer';
+import {storeToRefs} from 'pinia';
+import {useLocalStore} from '@/pinia/local';
 
-export default {
-	name: 'AddressPage',
-	components: {
-		IconTitle,
-		ClusterLookup, MixingActivity, SortAndFilter, IconItem,
-		DeleteAddressExclusionDialog,
-	},
-	data() {
-		return {
-			icon: {
-				mdiCardBulletedOutline,
-				mdiScaleBalance,
-				mdiBankTransferIn,
-				mdiBankTransferOut,
-				mdiPound,
-				mdiMerge,
-				mdiDotsVertical,
-				mdiDelete,
-				mdiCloseCircle,
+const dakar = inject('dakar');
+const route = useRoute();
+const {address: addressData} = storeToRefs(useExplorerStore());
+const {session} = storeToRefs(useLocalStore());
+const context = {addMessage: useMsgStore().addMessage, $route: route};
+
+const itemsPerPage = 20;
+
+const addressHash = ref('');
+const tab = ref(null);
+const deleteExclusionDialog = ref(false);
+const showExclusionAlert = ref(false);
+const isLoading = ref(false);
+// EmptyResponse is only used for data loaded after the initial data load
+const emptyResponse = ref(false);
+const sortAndFilterModel = ref({
+	filter: [],
+	order: 0,
+});
+const table = ref({
+	page: 1,
+	headers: [
+		{title: 'Received', key: 'output_transaction', sortable: false},
+		{title: '', key: 'output_ts', sortable: false},
+		{title: 'Sent', key: 'input_transaction', sortable: false},
+		{title: '', key: 'input_ts', sortable: false},
+		{title: 'Amount', key: 'amount', sortable: false},
+	],
+});
+
+// Computed
+const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+const offset = computed(() => table.value.page * itemsPerPage - itemsPerPage);
+
+// Watchers
+watch(addressHash, () => {
+	// Only get exclusion status if this is an at least privileged user
+	if (showAdvanced.value) {
+		getExclusionStatus();
+	}
+});
+
+watch(addressData, () => {
+	setInitialState();
+});
+
+// Hooks
+onMounted(() => {
+	setInitialState();
+});
+
+onUpdated(() => {
+	setInitialState();
+});
+
+// Functions
+function isResponseValid(data) {
+	return !(!data.type || data.type !== 'addr' || !data.payload || !data.payload.addr_outputs
+      || data.payload.addr_outputs.length === 0);
+}
+
+async function getTableData() {
+	if (!addressData.value || addressHash.value === '') {
+		return;
+	}
+
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.data.addressOutputRangeAddressHashPost({
+			addressHash: addressHash.value,
+			options: {
+				offset: offset.value,
+				filter: sortAndFilterModel.value.filter,
+				order: sortAndFilterModel.value.order,
 			},
-			coinUnit: COIN_UNIT,
-			transactionRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			itemsPerPage: 20,
-			addressHash: '',
-			tab: null,
-			deleteExclusionDialog: false,
-			showExclusionAlert: false,
-			isLoading: false,
-			// EmptyResponse is only used for data loaded after the initial data load
-			emptyResponse: false,
-			sortAndFilter: {
-				filter: [],
-				order: 0,
-			},
-			table: {
-				page: 1,
-				headers: [
-					{title: 'Received', key: 'output_transaction', sortable: false},
-					{title: '', key: 'output_ts', sortable: false},
-					{title: 'Sent', key: 'input_transaction', sortable: false},
-					{title: '', key: 'input_ts', sortable: false},
-					{title: 'Amount', key: 'amount', sortable: false},
-				],
-			},
-		};
-	},
-	computed: {
-		addressData: {
-			get() {
-				return this.$store.getters.getAddressData;
-			},
-			set(value) {
-				this.$store.dispatch('setAddressData', value);
-			},
-		},
-		session() {
-			return this.$store.getters.getSession;
-		},
-		showAdvanced() {
-			return isPrivilegedIdentity(this.session) || isAdminIdentity(this.session);
-		},
-		offset() {
-			return this.table.page * this.itemsPerPage - this.itemsPerPage;
-		},
-	},
-	watch: {
-		addressHash() {
-			// Only get exclusion status if this is an at least privileged user
-			if (this.showAdvanced) {
-				this.getExclusionStatus();
-			}
-		},
-		addressData() {
-			this.setInitialState();
-		},
-	},
-	mounted() {
-		this.setInitialState();
-	},
-	updated() {
-		this.setInitialState();
-	},
-	methods: {
-		shortenHash,
-		convertAmount,
-		isResponseValid(data) {
-			return !(!data.type || data.type !== 'addr' || !data.payload || !data.payload.addr_outputs
-          || data.payload.addr_outputs.length === 0);
-		},
-		async getTableData() {
-			if (!this.addressData || this.addressHash === '') {
-				return;
-			}
+		});
 
-			this.isLoading = true;
+		if (isResponseValid(response)) {
+			addressData.value = response.payload;
+			emptyResponse.value = false;
+		} else {
+			emptyResponse.value = true;
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
 
-			try {
-				const response = await this.dakar.data.addressOutputRangeAddressHashPost({
-					addressHash: this.addressHash,
-					options: {
-						offset: this.offset,
-						filter: this.sortAndFilter.filter,
-						order: this.sortAndFilter.order,
-					},
-				});
+	isLoading.value = false;
+}
 
-				if (this.isResponseValid(response)) {
-					this.addressData = response.payload;
-					this.emptyResponse = false;
-				} else {
-					this.emptyResponse = true;
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+async function getExclusionStatus() {
+	if (addressHash.value === '') {
+		return;
+	}
 
-			this.isLoading = false;
-		},
-		async getExclusionStatus() {
-			if (this.addressHash === '') {
-				return;
-			}
+	isLoading.value = true;
 
-			this.isLoading = true;
+	try {
+		const response = await dakar.addressExclusion.addressExclusionStatusAddressHashGet({addressHash: addressHash.value});
+		showExclusionAlert.value = response.isExclusion;
+	} catch (e) {
+		handleError(context, e);
+	}
 
-			try {
-				const response = await this.dakar.addressExclusion.addressExclusionStatusAddressHashGet({addressHash: this.addressHash});
-				this.showExclusionAlert = response.isExclusion;
-			} catch (e) {
-				handleError(this, e);
-			}
+	isLoading.value = false;
+}
 
-			this.isLoading = false;
-		},
-		setInitialState() {
-			let h = ' ';
+function setInitialState() {
+	let h = ' ';
 
-			// Detect if address hash has changed
-			if (this.addressData && this.addressData.addresshash
-          && this.addressData.addresshash !== this.addressHash) {
-				this.addressHash = this.addressData.addresshash;
+	// Detect if address hash has changed
+	if (addressData.value && addressData.value.addresshash
+      && addressData.value.addresshash !== addressHash.value) {
+		addressHash.value = addressData.value.addresshash;
 
-				h = ` ${this.addressHash} `;
+		h = ` ${addressHash.value} `;
 
-				this.resetSorting();
-				this.table.page = 1;
-			} else if (this.addressHash) {
-				h = ` ${this.addressHash} `;
-			}
+		resetSorting();
+		table.value.page = 1;
+	} else if (addressHash.value) {
+		h = ` ${addressHash.value} `;
+	}
 
-			document.title = `Address${h}- ${PAGE_TITLE}`;
-		},
-		handleFilterOrSortChange() {
-			this.table.page = 1;
-			this.getTableData();
-		},
-		resetSorting() {
-			if (this.sortAndFilter.order === 0 && this.sortAndFilter.filter.length === 0) {
-				return;
-			}
+	document.title = `Address${h}- ${PAGE_TITLE}`;
+}
 
-			this.sortAndFilter = {
-				filter: [],
-				order: 0,
-			};
-		},
-		hideExclusionAlert() {
-			this.showExclusionAlert = false;
-		},
-	},
-};
+function handleFilterOrSortChange() {
+	table.value.page = 1;
+	getTableData();
+}
+
+function resetSorting() {
+	if (sortAndFilterModel.value.order === 0 && sortAndFilterModel.value.filter.length === 0) {
+		return;
+	}
+
+	sortAndFilterModel.value = {
+		filter: [],
+		order: 0,
+	};
+}
+
+function hideExclusionAlert() {
+	showExclusionAlert.value = false;
+}
+
 </script>
 
 <style scoped>

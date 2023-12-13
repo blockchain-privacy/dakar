@@ -18,7 +18,7 @@
           color="grey"
           @click="inputVal=false"
         >
-          <v-icon>{{ icons.mdiCloseCircle }}</v-icon>
+          <v-icon :icon="mdiCloseCircle" />
         </v-btn>
       </icon-title>
       <v-divider />
@@ -27,39 +27,30 @@
   </v-slide-x-reverse-transition>
 </template>
 
-<script>
+<script setup>
 import IconTitle from '@/components/common/IconTitle.vue';
 import {mdiCloseCircle} from '@mdi/js';
+import {computed} from 'vue';
 
-export default {
-	name: 'SideBar',
-	components: {IconTitle},
-	props: {
-		modelValue: {type: Boolean, required: true},
-		title: {type: String, required: true},
-		icon: {type: String, required: true},
-		maxWidth: {type: String, required: false, default: '600px'},
-		minWidth: {type: String, required: false, default: '300px'},
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	title: {type: String, required: true},
+	icon: {type: String, required: true},
+	maxWidth: {type: String, required: false, default: '600px'},
+	minWidth: {type: String, required: false, default: '300px'},
+});
+
+const emit = defineEmits(['update:modelValue']);
+
+const inputVal = computed({
+	get() {
+		return props.modelValue;
 	},
-	emits: ['update:modelValue'],
-	data() {
-		return {
-			icons: {
-				mdiCloseCircle,
-			},
-		};
+	set(val) {
+		emit('update:modelValue', val);
 	},
-	computed: {
-		inputVal: {
-			get() {
-				return this.modelValue;
-			},
-			set(val) {
-				this.$emit('update:modelValue', val);
-			},
-		},
-	},
-};
+});
+
 </script>
 
 <style scoped>

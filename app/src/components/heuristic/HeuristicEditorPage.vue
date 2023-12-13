@@ -10,7 +10,7 @@
         style="background-color: #FB8C00; z-index: 1004"
       >
         <v-icon
-          :icon="icon.mdiAlertOctagon"
+          :icon="mdiAlertOctagon"
           size="large"
           class="mx-2"
           color="white"
@@ -52,7 +52,7 @@
         {{ transactionHash }}
       </v-toolbar-title>
       <v-toolbar-title class="hidden-sm-and-down">
-        <v-icon>{{ icon.mdiTransfer }}</v-icon>
+        <v-icon>{{ mdiTransfer }}</v-icon>
         Transaction {{ transactionHash }}
       </v-toolbar-title>
 
@@ -60,10 +60,10 @@
         style="min-width: 32px !important;"
         class="ms-3 pa-2"
         variant="outlined"
-        :disabled="banner.show || executionStatus.value.executing"
+        :disabled="banner.show || executionStatus.executing"
         @click="openTypeSelectionSheet"
       >
-        <v-icon>{{ icon.mdiShapeSquareRoundedPlus }}</v-icon>
+        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
         <div class="hidden-sm-and-down">
           Add Heuristic
         </div>
@@ -72,10 +72,10 @@
         style="min-width: 32px !important;"
         class="ms-3 pa-2"
         variant="outlined"
-        :disabled="banner.show || executionStatus.value.executing || !isExecutable()"
+        :disabled="banner.show || executionStatus.executing || !isExecutable"
         @click="executeHeuristics"
       >
-        <v-icon>{{ icon.mdiSourceBranchCheck }}</v-icon>
+        <v-icon>{{ mdiSourceBranchCheck }}</v-icon>
         <div class="hidden-sm-and-down">
           Execute
         </div>
@@ -87,19 +87,19 @@
             v-bind="props"
             style="outline: 0"
           >
-            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+            <v-icon>{{ mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
         <v-list>
-          <v-list-item :to="{ name: routeTransaction, params: { id: transactionHash }}">
+          <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: transactionHash }}">
             <template #prepend>
-              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
+              <v-icon>{{ mdiOpenInNew }}</v-icon>
             </template>
             <v-list-item-title>Transaction Page</v-list-item-title>
           </v-list-item>
-          <v-list-item :to="{ name: routeHeuristicOverview}">
+          <v-list-item :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}">
             <template #prepend>
-              <v-icon>{{ icon.mdiOpenInNew }}</v-icon>
+              <v-icon>{{ mdiOpenInNew }}</v-icon>
             </template>
             <v-list-item-title>Heuristic Overview</v-list-item-title>
           </v-list-item>
@@ -109,7 +109,7 @@
     <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
       <v-dialog
-        :model-value="executionStatus.value.executing"
+        :model-value="executionStatus.executing"
         :persistent="true"
         max-width="700px"
         :contained="true"
@@ -118,13 +118,13 @@
         <v-card>
           <v-card-text class="text-subtitle-1 d-flex align-center">
             <v-icon
-              :icon="icon.mdiTimerSand"
+              :icon="mdiTimerSand"
               size="50"
               class="me-3"
             />
             <div>
               <p
-                v-if="executionStatus.value.processing"
+                v-if="executionStatus.processing"
                 class="text-center mb-3"
               >
                 Heuristics are executing now
@@ -141,7 +141,7 @@
                 class="mt-3"
                 :indeterminate="true"
                 rounded
-                :color="executionStatus.value.processing?'primary':''"
+                :color="executionStatus.processing?'primary':''"
               />
             </div>
           </v-card-text>
@@ -167,19 +167,11 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {
-	mdiAlertOctagon,
-	mdiChartBar,
-	mdiDelete,
-	mdiDotsVertical,
-	mdiFileDownloadOutline,
-	mdiOpenInNew,
-	mdiShapeSquarePlus,
-	mdiShapeSquareRoundedPlus,
-	mdiSourceBranchCheck,
-	mdiTransfer,
-	mdiTimerSand,
+	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical,
+	mdiOpenInNew, mdiShapeSquarePlus, mdiShapeSquareRoundedPlus,
+	mdiSourceBranchCheck, mdiTransfer, mdiTimerSand,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -193,7 +185,136 @@ import NestedMenu from '../common/NestedMenu.vue';
 import {HeuristicTree, rootIdentifier} from '@/d3Documents/heuristicTree';
 import {handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
+import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject, computed} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
+
+const newUidPrefix = 'newUid_';
+const ht = new HeuristicTree(150);
+let uidCounter = 1;
+let data = null;
+// HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
+const heuristicDetailsMap = new Map();
+
+// DeletedData holds all UIDs of the heuristic which are deleted
+const deletedData = ref([]);
+// ChangeSet holds all changes based on dbState and data.heuristics (computed)
+const changeSet = ref([]);
+// DbState holds the state of the database.
+// It is used to detect changes in data.heuristics (computed)
+const dbState = ref(null);
+const transactionHash = ref('');
+const isAddHeuristicSheetOpen = ref(false);
+const heuristicDescriptors = ref([]);
+const heuristicTabItems = ref([]);
+const banner = ref({
+	// Show is the switch for the warning banner
+	// which gets displayed if the heuristic worker is not ready to accept requests
+	show: false,
+	display: true,
+});
+const executionStatus = ref({
+	dormantTimer: {
+		timer: null,
+		refreshRate: 20000,
+	},
+	activeTimer: {
+		timer: null,
+		refreshRate: 2000,
+	},
+	value: {
+		executing: false,
+		processing: false,
+	},
+	enum: {
+		added: 0,
+		duplicate: 1,
+		notInQueue: 2,
+		inQueue: 3,
+		processing: 4,
+		notReady: 5,
+	},
+});
+const heuristicSheet = ref({
+	isOpen: false,
+	isLoaded: false,
+	heuristicUid: '',
+	heuristicTypeTitle: '',
+	heuristicParameter: '',
+	heuristicCustomClusters: false,
+	heuristicExcludeAddresses: false,
+	heuristicTimestamp: null,
+	clusterCount: null,
+	clusters: [],
+});
+const contextMenu = ref({
+	display: false,
+	x: 0,
+	y: 0,
+	items: [
+		{
+			title: 'Delete Heuristic',
+			icon: mdiDelete,
+			action: deleteSubTree,
+			disabled: () => !banner.value.show,
+		},
+		{title: 'Show Properties', icon: mdiChartBar, action: simulateClick},
+		{isDivider: true},
+		{
+			title: 'Add Heuristic',
+			icon: mdiShapeSquarePlus,
+			action: openTypeSelectionSheet,
+			disabled: () => !banner.value.show,
+		},
+		// Reminder: enable when https://github.com/vuetifyjs/vuetify/issues/17004 is fixed
+		// {
+		// 	title: 'Actions',
+		// 	menu: [
+		// 		{
+		// 			title: 'Execute Heuristics',
+		// 			icon: mdiSourceBranchCheck,
+		// 			action: executeHeuristics,
+		// 			disabled: isExecutable,
+		// 		},
+		// 	],
+		// },
+	],
+});
+
+// Watchers
+watch(route, () => {
+	newRouting();
+});
+
+// Hooks
+onBeforeUnmount(() => {
+	// Reset memory
+	resetExecutionStatus();
+});
+
+onMounted(async () => {
+	if (!await whenMounted()) {
+		return;
+	}
+
+	startDormantTimer();
+});
+
+// Computed
+const isExecutable = computed(() => {
+	if (!banner.value.show && dbState.value !== null && changeSet.value !== null && changeSet.value.length > 0) {
+		return true;
+	}
+
+	return deletedData.value.length > 0;
+});
+
+// Functions
 function getDeletedData(oldStateMap, newStateMap) {
 	// Search for deleted items
 	const deletedUIDs = [];
@@ -237,13 +358,17 @@ function prepareData(oldStateMap, newState, changeSet, deletedData) {
 	return {changed: filteredData, deleted: deletedData};
 }
 
-function newRouting(context) {
-	const {id} = context.$route.params;
-	if (id === undefined || context.$route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
+async function newRouting() {
+	const {id} = route.params;
+	if (id === undefined || route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
 		return;
 	}
 
-	context.onMounted();
+	if (!await whenMounted()) {
+		return;
+	}
+
+	startDormantTimer();
 }
 
 function areDataElementsEqual(a, b) {
@@ -259,549 +384,488 @@ function areDataElementsEqual(a, b) {
       || (b.parent !== undefined && a.parent === undefined));
 }
 
-export default {
-	name: 'HeuristicEditorPage',
-	components: {HeuristicDetailsSidebar, HeuristicTypeSelectionSideBar, NestedMenu},
-	data() {
-		return {
-			icon: {
-				mdiTransfer,
-				mdiOpenInNew,
-				mdiShapeSquareRoundedPlus,
-				mdiFileDownloadOutline,
-				mdiSourceBranchCheck,
-				mdiDotsVertical,
-				mdiAlertOctagon,
-				mdiTimerSand,
-			},
-			routeTransaction: ROUTE_NAME_TRANSACTION_PAGE,
-			routeHeuristicOverview: ROUTE_NAME_USER_HEURISTIC_PAGE,
-			isHeuristicExecuting: false,
-			banner: {
-				// Show is the switch for the warning banner
-				// which gets displayed if the heuristic worker is not ready to accept requests
-				show: false,
-				display: true,
-			},
-			executionStatus: {
-				dormantTimer: {
-					timer: null,
-					refreshRate: 20000,
-				},
-				activeTimer: {
-					timer: null,
-					refreshRate: 2000,
-				},
-				value: {
-					executing: false,
-					processing: false,
-				},
-				enum: {
-					added: 0,
-					duplicate: 1,
-					notInQueue: 2,
-					inQueue: 3,
-					processing: 4,
-					notReady: 5,
-				},
-			},
-			isLinkMenuOpen: false,
-			newUidPrefix: 'newUid_',
-			uidCounter: 1,
-			transactionHash: '',
-			// DbState holds the state of the database.
-			// It is used to detect changes in this.data.heuristics (computed)
-			dbState: null,
-			// ChangeSet holds all changes based on dbState and this.data.heuristics (computed)
-			changeSet: [],
-			// DeletedData holds all UIDs of the heuristic which are deleted
-			deletedData: [],
-			isAddHeuristicSheetOpen: false,
-			// HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
-			heuristicDetailsMap: new Map(),
-			heuristicSheet: {
-				isOpen: false,
-				isLoaded: false,
-				heuristicUid: '',
-				heuristicTypeTitle: '',
-				heuristicParameter: '',
-				heuristicCustomClusters: false,
-				heuristicExcludeAddresses: false,
-				heuristicTimestamp: null,
-				clusterCount: null,
-				clusters: [],
-			},
-			ht: new HeuristicTree(150, this),
-			heuristicDescriptors: [],
-			heuristicTabItems: [],
-			contextMenu: {
-				display: false,
-				x: 0,
-				y: 0,
-				items: [
-					{
-						title: 'Delete Heuristic',
-						icon: mdiDelete,
-						action: this.deleteSubTree,
-						disabled: () => !this.banner.show,
-					},
-					{title: 'Show Properties', icon: mdiChartBar, action: this.simulateClick},
-					{isDivider: true},
-					{
-						title: 'Add Heuristic',
-						icon: mdiShapeSquarePlus,
-						action: this.openTypeSelectionSheet,
-						disabled: () => !this.banner.show,
-					},
-					// Reminder: enable when https://github.com/vuetifyjs/vuetify/issues/17004 is fixed
-					// {
-					// 	title: 'Actions',
-					// 	menu: [
-					// 		{
-					// 			title: 'Execute Heuristics',
-					// 			icon: mdiSourceBranchCheck,
-					// 			action: this.executeHeuristics,
-					// 			disabled: this.isExecutable,
-					// 		},
-					// 	],
-					// },
-				],
-			},
-		};
-	},
-	watch: {
-		$route() {
-			newRouting(this);
-		},
-	},
-	beforeUnmount() {
-		// Reset memory
-		this.resetExecutionStatus();
-	},
-	async mounted() {
-		if (!await this.onMounted()) {
-			return;
+function simulateClick() {
+	ht.simulateClick();
+}
+
+function setErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+function addNewHeuristic(heuristic) {
+	const newHeuristic = {
+		uid: `${newUidPrefix}${uidCounter}`,
+		type: heuristic.type,
+		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
+		excludeAddresses: heuristic.useAddressExclusionList,
+		excludeSpendingGaps: heuristic.excludeSpendingGaps,
+	};
+
+	if (heuristic.parameter) {
+		newHeuristic.parameter = `${heuristic.parameter.value}`;
+	}
+
+	uidCounter += 1;
+
+	data.heuristics.push(newHeuristic);
+	updateGraph();
+}
+
+async function loadHeuristicDetails(uid) {
+	try {
+		const response = await dakar.heuristic.heuristicDetailsPost({heuristic: {uid}});
+
+		if (!response.heuristic) {
+			throw new Error('response contains no heuristics');
 		}
 
-		this.startDormantTimer();
-	},
-	methods: {
-		simulateClick() {
-			this.ht.simulateClick();
-		},
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		addNewHeuristic(heuristic) {
-			const newHeuristic = {
-				uid: `${this.newUidPrefix}${this.uidCounter}`,
-				type: heuristic.type,
-				clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-				excludeAddresses: heuristic.useAddressExclusionList,
-				excludeSpendingGaps: heuristic.excludeSpendingGaps,
-			};
+		heuristicDetailsMap.set(response.heuristic.uid, response.heuristic);
+		msgStore.resetMessages();
+	} catch (e) {
+		handleError(context, e);
+	}
+}
 
-			if (heuristic.parameter) {
-				newHeuristic.parameter = `${heuristic.parameter.value}`;
-			}
+function openTypeSelectionSheet() {
+	heuristicSheet.value.isOpen = false;
+	isAddHeuristicSheetOpen.value = true;
+}
 
-			this.uidCounter += 1;
+async function openPropertySheet(heuristic) {
+	const sheet = heuristicSheet;
 
-			this.data.heuristics.push(newHeuristic);
-			this.updateGraph();
-		},
-		async loadHeuristicDetails(uid) {
-			try {
-				const response = await this.dakar.heuristic.heuristicDetailsPost({heuristic: {uid}});
-
-				if (!response.heuristic) {
-					throw new Error('response contains no heuristics');
-				}
-
-				this.heuristicDetailsMap.set(response.heuristic.uid, response.heuristic);
-				this.$store.dispatch('resetMessages');
-			} catch (e) {
-				handleError(this, e);
-			}
-		},
-		openTypeSelectionSheet() {
-			this.heuristicSheet.isOpen = false;
-			this.isAddHeuristicSheetOpen = true;
-		},
-		async openPropertySheet(heuristic) {
-			const sheet = this.heuristicSheet;
-
-			// Lookup type title from type id
-			let displayType = '';
-			this.heuristicDescriptors.some(d => {
-				if (d.type === heuristic.type) {
-					displayType = d.title;
-					return true;
-				}
-
-				return false;
-			});
-
-			// Open sheet immediately, but show skeleton loader
-			this.isAddHeuristicSheetOpen = false;
-			sheet.isOpen = true;
-			sheet.isLoaded = false;
-
-			sheet.heuristicParameter = heuristic.parameter;
-			sheet.heuristicExcludeAddresses = heuristic.excludeAddresses;
-			sheet.heuristicExcludeSpendingGaps = heuristic.excludeSpendingGaps;
-			sheet.heuristicCustomClusters = heuristic.clusterTypes?.length > 0;
-			sheet.heuristicTypeTitle = displayType;
-			sheet.clusterCount = heuristic.clusterCount;
-			sheet.heuristicUid = heuristic.uid;
-			sheet.heuristicTimestamp = new Date(heuristic.ts);
-			sheet.clusters = [];
-
-			// Check if data has to be loaded from backend
-			if (!heuristic.clusterCount || heuristic.uid.startsWith(this.newUidPrefix)) {
-				sheet.isLoaded = true;
-				return;
-			}
-
-			if (this.heuristicDetailsMap.has(heuristic.uid)) {
-				sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
-				sheet.isLoaded = true;
-				return;
-			}
-
-			// Request data from backend
-			await this.loadHeuristicDetails(heuristic.uid);
-
-			// Return if request was not successful
-			if (this.heuristicDetailsMap.size === 0
-            || !this.heuristicDetailsMap.has(heuristic.uid)) {
-				return;
-			}
-
-			sheet.clusters = this.heuristicDetailsMap.get(heuristic.uid).clusters;
-			sheet.isLoaded = true;
-		},
-		closeSideBars() {
-			this.heuristicSheet.isOpen = false;
-			this.isAddHeuristicSheetOpen = false;
-		},
-		isExecutable() {
-			if (!this.banner.show && this.dbState !== null
-          && ((this.changeSet !== null && this.changeSet.length > 0))) {
-				return true;
-			}
-
-			return this.deletedData.length > 0;
-		},
-		async executeHeuristics() {
-			// Prevent execution if data is not available
-			if (!this.isExecutable()) {
-				return;
-			}
-
-			// Close sidebars
-			this.closeSideBars();
-
-			try {
-				const response = await this.dakar.heuristic.executeHeuristicsHashPost({
-					hash: this.transactionHash,
-					heuristic: prepareData(this.dbState, this.data.heuristics, this.changeSet, this.deletedData),
-				});
-				this.setExecutionStatus(response.status);
-				this.startActiveTimer();
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
-		setExecutionStatus(status) {
-			switch (status) {
-				case this.executionStatus.enum.added:
-					this.executionStatus.value.processing = false;
-					this.executionStatus.value.executing = true;
-					this.banner.show = false;
-					break;
-				case this.executionStatus.enum.inQueue:
-					this.executionStatus.value.processing = false;
-					this.executionStatus.value.executing = true;
-					this.banner.show = false;
-					break;
-				case this.executionStatus.enum.processing:
-					this.executionStatus.value.processing = true;
-					this.executionStatus.value.executing = true;
-					this.banner.show = false;
-					break;
-				case this.executionStatus.enum.notReady:
-					this.executionStatus.value.processing = false;
-					this.executionStatus.value.executing = false;
-					this.banner.show = true;
-					break;
-				default:
-					this.executionStatus.value.processing = false;
-					this.executionStatus.value.executing = false;
-					this.banner.show = false;
-			}
-		},
-		// UpdateChangeSet updates the change set <this.changeSet> based
-		// on the differences of this.data.heuristics and this.dbState
-		updateChangeSet() {
-			this.changeSet = [];
-			const originChangeSet = [];
-			this.data.heuristics.forEach(d => {
-				if (this.dbState.has(d.uid)) {
-					const thisElement = this.dbState.get(d.uid);
-					if (!areDataElementsEqual(thisElement, d)) {
-						// Changed element
-						originChangeSet.push(d);
-					}
-				} else {
-					// New element
-					originChangeSet.push(d);
-				}
-			});
-
-			// This set will have some duplicates, if changes are nested we get overlapping descendants
-			const descendantArray = [];
-			// Find descendants for each changed root element
-			originChangeSet.forEach(d => {
-				// Get subtree
-				const descendants = this.ht.getDescendants(d.uid);
-				descendantArray.push(...descendants);
-			});
-
-			// Remove duplicates
-			const descendantMap = new Map(descendantArray.map(
-				tempObject => [tempObject.data.data.uid, tempObject],
-			));
-
-			// Save in global changeSet
-			descendantMap.forEach(e => this.changeSet.push(e.data.data.uid));
-
-			this.ht.setNodesChanged(descendantMap);
-		},
-		deleteSubTree() {
-			const toBeRemoved = this.ht.getRemovableNodes();
-			const rel = this.ht.getRemovableRelationship();
-
-			const updatedData = [];
-
-			this.data.heuristics.forEach(e => {
-				// Update children set of parent
-				if (rel.parentUid !== '' && e.uid === rel.parentUid) {
-					e.children = e.children.filter(c => c.uid !== rel.childUid);
-				}
-
-				// Remove removable nodes
-				if (!toBeRemoved.includes(e.uid)) {
-					updatedData.push(e);
-				}
-			});
-
-			this.data = {heuristics: updatedData, status: 0};
-
-			const newStateMap = new Map(this.data.heuristics.map(d => [d.uid, d]));
-			this.deletedData = getDeletedData(this.dbState, newStateMap);
-
-			// Update displayed graph
-			this.updateGraph();
-		},
-		showContextMenu(e) {
-			this.contextMenu.display = false;
-
-			e.preventDefault();
-			this.contextMenu.x = e.clientX;
-			this.contextMenu.y = e.clientY;
-
-			this.$nextTick(() => {
-				this.contextMenu.display = true;
-			});
-		},
-		updateGraph() {
-			// Maps the node data to the tree layout
-			this.ht.processGraphData(this.data.heuristics);
-			// UpdateChangeSet is called after a graph update,
-			// because otherwise it gets an out of date descendant state
-			this.updateChangeSet();
-		},
-		async loadHeuristicData(transactionHash) {
-			try {
-				this.data = await this.dakar.heuristic.heuristicsHashGet({
-					hash: transactionHash,
-				});
-				this.$store.dispatch('resetMessages');
-			} catch (e) {
-				handleError(this, e);
-			}
-		},
-		async refreshData() {
-			await this.loadHeuristicData(this.transactionHash);
-
-			if (!this.data) {
-				return false;
-			}
-
-			this.setExecutionStatus(this.data.status);
-
-			if (this.executionStatus.value.executing) {
-				this.startActiveTimer();
-			}
-
-			// If the transaction has not yet any heuristics associated
-			if (!this.data || !this.data.heuristics) {
-				this.data.heuristics = [];
-			}
-
-			this.data.heuristics.push({uid: 'root'});
-
-			// Reset deleted data
-			this.deletedData = [];
-
-			this.dbState = new Map(structuredClone(this.data.heuristics)
-				.map(d => [d.uid, d]));
-			this.updateGraph();
-
+	// Lookup type title from type id
+	let displayType = '';
+	heuristicDescriptors.value.some(d => {
+		if (d.type === heuristic.type) {
+			displayType = d.title;
 			return true;
-		},
-		async getDescriptors() {
-			try {
-				const response = await this.dakar.heuristic.heuristicDescriptorsGet();
+		}
 
-				if (!response.descriptors) {
-					throw Error('heuristic descriptor list is empty');
-				}
+		return false;
+	});
 
-				this.heuristicDescriptors = response.descriptors.map(e => {
-					// Add valid property
-					if (e.parameter) {
-						e.parameter.valid = false;
-					}
+	// Open sheet immediately, but show skeleton loader
+	isAddHeuristicSheetOpen.value = false;
+	sheet.value.isOpen = true;
+	sheet.value.isLoaded = false;
 
-					return e;
-				}).sort((a, b) => {
-					if (a.title > b.title) {
-						return 1;
-					}
+	sheet.value.heuristicParameter = heuristic.parameter;
+	sheet.value.heuristicExcludeAddresses = heuristic.excludeAddresses;
+	sheet.value.heuristicExcludeSpendingGaps = heuristic.excludeSpendingGaps;
+	sheet.value.heuristicCustomClusters = heuristic.clusterTypes?.length > 0;
+	sheet.value.heuristicTypeTitle = displayType;
+	sheet.value.clusterCount = heuristic.clusterCount;
+	sheet.value.heuristicUid = heuristic.uid;
+	sheet.value.heuristicTimestamp = new Date(heuristic.ts);
+	sheet.value.clusters = [];
 
-					if (a.title < b.title) {
-						return -1;
-					}
+	// Check if data has to be loaded from backend
+	if (!heuristic.clusterCount || heuristic.uid.startsWith(newUidPrefix)) {
+		sheet.value.isLoaded = true;
+		return;
+	}
 
-					return 0;
-				});
-			} catch (e) {
-				this.setErrorMessage(e);
+	if (heuristicDetailsMap.has(heuristic.uid)) {
+		sheet.value.clusters = heuristicDetailsMap.get(heuristic.uid).clusters;
+		sheet.value.isLoaded = true;
+		return;
+	}
+
+	// Request data from backend
+	await loadHeuristicDetails(heuristic.uid);
+
+	// Return if request was not successful
+	if (heuristicDetailsMap.size === 0
+        || !heuristicDetailsMap.has(heuristic.uid)) {
+		return;
+	}
+
+	sheet.value.clusters = heuristicDetailsMap.get(heuristic.uid).clusters;
+	sheet.value.isLoaded = true;
+}
+
+function closeSideBars() {
+	heuristicSheet.value.isOpen = false;
+	isAddHeuristicSheetOpen.value = false;
+}
+
+async function executeHeuristics() {
+	// Prevent execution if data is not available
+	if (!isExecutable.value) {
+		return;
+	}
+
+	// Close sidebars
+	closeSideBars();
+
+	try {
+		const response = await dakar.heuristic.executeHeuristicsHashPost({
+			hash: transactionHash.value,
+			heuristic: prepareData(dbState.value, data.heuristics, changeSet.value, deletedData.value),
+		});
+		setExecutionStatus(response.status);
+		startActiveTimer();
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
+function setExecutionStatus(status) {
+	switch (status) {
+		case executionStatus.value.enum.added:
+			executionStatus.value.processing = false;
+			executionStatus.value.executing = true;
+			banner.value.show = false;
+			break;
+		case executionStatus.value.enum.inQueue:
+			executionStatus.value.processing = false;
+			executionStatus.value.executing = true;
+			banner.value.show = false;
+			break;
+		case executionStatus.value.enum.processing:
+			executionStatus.value.processing = true;
+			executionStatus.value.executing = true;
+			banner.value.show = false;
+			break;
+		case executionStatus.value.enum.notReady:
+			executionStatus.value.processing = false;
+			executionStatus.value.executing = false;
+			banner.value.show = true;
+			break;
+		default:
+			executionStatus.value.processing = false;
+			executionStatus.value.executing = false;
+			banner.value.show = false;
+	}
+}
+
+// UpdateChangeSet updates the change set <changeSet> based
+// on the differences of data.heuristics and dbState
+function updateChangeSet() {
+	changeSet.value = [];
+	const originChangeSet = [];
+	data.heuristics.forEach(d => {
+		if (dbState.value.has(d.uid)) {
+			const thisElement = dbState.value.get(d.uid);
+			if (!areDataElementsEqual(thisElement, d)) {
+				// Changed element
+				originChangeSet.push(d);
 			}
-		},
-		createTabs() {
-			const tabSet = new Set();
-			let isCategoryEmpty = false;
-			this.heuristicDescriptors.forEach(e => {
-				if (e.category) {
-					tabSet.add(e.category);
-				} else {
-					// If no category is set
-					isCategoryEmpty = true;
+		} else {
+			// New element
+			originChangeSet.push(d);
+		}
+	});
+
+	// This set will have some duplicates, if changes are nested we get overlapping descendants
+	const descendantArray = [];
+	// Find descendants for each changed root element
+	originChangeSet.forEach(d => {
+		// Get subtree
+		const descendants = ht.getDescendants(d.uid);
+		descendantArray.push(...descendants);
+	});
+
+	// Remove duplicates
+	const descendantMap = new Map(descendantArray.map(
+		tempObject => [tempObject.data.data.uid, tempObject],
+	));
+
+	// Save in global changeSet
+	descendantMap.forEach(e => changeSet.value.push(e.data.data.uid));
+
+	ht.setNodesChanged(descendantMap);
+}
+
+function deleteSubTree() {
+	const toBeRemoved = ht.getRemovableNodes();
+	const rel = ht.getRemovableRelationship();
+
+	const updatedData = [];
+
+	data.heuristics.forEach(e => {
+		// Update children set of parent
+		if (rel.parentUid !== '' && e.uid === rel.parentUid) {
+			e.children = e.children.filter(c => c.uid !== rel.childUid);
+		}
+
+		// Remove removable nodes
+		if (!toBeRemoved.includes(e.uid)) {
+			updatedData.push(e);
+		}
+	});
+
+	data = {heuristics: updatedData, status: 0};
+
+	const newStateMap = new Map(data.heuristics.map(d => [d.uid, d]));
+	deletedData.value = getDeletedData(dbState.value, newStateMap);
+
+	// Update displayed graph
+	updateGraph();
+}
+
+function showContextMenu(e) {
+	contextMenu.value.display = false;
+
+	e.preventDefault();
+	contextMenu.value.x = e.clientX;
+	contextMenu.value.y = e.clientY;
+
+	nextTick(() => {
+		contextMenu.value.display = true;
+	});
+}
+
+function updateGraph() {
+	// Maps the node data to the tree layout
+	ht.processGraphData(data.heuristics);
+	// UpdateChangeSet is called after a graph update,
+	// because otherwise it gets an out of date descendant state
+	updateChangeSet();
+}
+
+async function loadHeuristicData() {
+	try {
+		data = await dakar.heuristic.heuristicsHashGet({hash: transactionHash.value});
+		msgStore.resetMessages();
+	} catch (e) {
+		handleError(context, e);
+	}
+}
+
+async function refreshData() {
+	await loadHeuristicData();
+
+	if (!data) {
+		return false;
+	}
+
+	setExecutionStatus(data.status);
+
+	if (executionStatus.value.executing) {
+		startActiveTimer();
+	}
+
+	// If the transaction has not yet any heuristics associated
+	if (!data || !data.heuristics) {
+		data.heuristics = [];
+	}
+
+	data.heuristics.push({uid: 'root'});
+
+	// Reset deleted data
+	deletedData.value = [];
+
+	dbState.value = new Map(structuredClone(data.heuristics)
+		.map(d => [d.uid, d]));
+	updateGraph();
+
+	return true;
+}
+
+async function getDescriptors() {
+	try {
+		const response = await dakar.heuristic.heuristicDescriptorsGet();
+
+		if (!response.descriptors) {
+			throw Error('heuristic descriptor list is empty');
+		}
+
+		heuristicDescriptors.value = response.descriptors.map(e => {
+			// Add valid property
+			if (e.parameter) {
+				e.parameter.valid = false;
+			}
+
+			return e;
+		}).sort((a, b) => {
+			if (a.title > b.title) {
+				return 1;
+			}
+
+			if (a.title < b.title) {
+				return -1;
+			}
+
+			return 0;
+		});
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
+function createTabs() {
+	const tabSet = new Set();
+	let isCategoryEmpty = false;
+	heuristicDescriptors.value.forEach(e => {
+		if (e.category) {
+			tabSet.add(e.category);
+		} else {
+			// If no category is set
+			isCategoryEmpty = true;
+		}
+	});
+	heuristicTabItems.value = Array.from(tabSet).sort().reverse();
+
+	if (isCategoryEmpty) {
+		heuristicTabItems.value.push('Other');
+	}
+}
+
+async function whenMounted() {
+	const svgCanvasId = 'svg_canvas';
+	// Remove previous svg children
+	document.getElementById(svgCanvasId).innerHTML = '';
+
+	// Set transaction hashes for this page view
+	transactionHash.value = route.params.id;
+
+	// Set page title
+	document.title = `Heuristic ${transactionHash.value} - ${APPLICATION_NAME}`;
+
+	if (!ht.setNodeClickHandler(openPropertySheet)) {
+		setErrorMessage('error setting heuristic click handler');
+		return false;
+	}
+
+	if (!ht.setSvgZoomCallback(() => {
+		contextMenu.value.display = false;
+	})) {
+		setErrorMessage('error setting zoom handler');
+		return false;
+	}
+
+	if (!ht.setSvgClickCallback(closeSideBars)) {
+		setErrorMessage('error setting svg click handler');
+		return false;
+	}
+
+	if (!ht.setContextMenuCallback(showContextMenu)) {
+		setErrorMessage('error setting context menu handler');
+		return false;
+	}
+
+	if (!ht.setDragEndCallback(() => updateGraph())) {
+		setErrorMessage('error setting context drag end handler');
+		return false;
+	}
+
+	if (!ht.setSubTreeMoveCallback(moveSubTree)) {
+		setErrorMessage('error setting sub tree move handler');
+		return false;
+	}
+
+	// Gets all heuristic type configurations
+	await getDescriptors();
+	if (heuristicDescriptors.value.length === 0) {
+		return false;
+	}
+
+	// Creates the tab descriptions based on the heuristic categories
+	createTabs();
+	ht.populateHeuristicMap(heuristicDescriptors.value);
+	ht.setupSvg(svgCanvasId);
+	if (!await refreshData()) {
+		return false;
+	}
+
+	await ht.centerGraph();
+	return true;
+}
+
+function onMenuItemClick(item) {
+	if (item.action) {
+		item.action();
+	}
+
+	contextMenu.value.display = false;
+}
+
+function moveSubTree(childUID, parentUID, formerParentUID) {
+	if (!data || !data.heuristics) {
+		return;
+	}
+
+	const newData = data.heuristics;
+
+	for (let i = 0; i < newData.length; i += 1) {
+		const dataElement = newData[i];
+		if (dataElement.uid === parentUID) {
+			if (dataElement.children === undefined) {
+				dataElement.children = [];
+			}
+
+			let alreadyExists = false;
+			dataElement.children.forEach(c => {
+				if (c.uid === childUID) {
+					alreadyExists = true;
 				}
 			});
-			this.heuristicTabItems = Array.from(tabSet).sort().reverse();
 
-			if (isCategoryEmpty) {
-				this.heuristicTabItems.push('Other');
+			if (!alreadyExists) {
+				dataElement.children.push({uid: childUID});
 			}
-		},
-		async onMounted() {
-			const svgCanvasId = 'svg_canvas';
-			// Remove previous svg children
-			document.getElementById(svgCanvasId).innerHTML = '';
-
-			// Set transaction hashes for this page view
-			this.transactionHash = this.$route.params.id;
-
-			// Set page title
-			document.title = `Heuristic ${this.transactionHash} - ${APPLICATION_NAME}`;
-
-			if (!this.ht.setNodeClickHandler(this.openPropertySheet)) {
-				this.setErrorMessage('error setting heuristic click handler');
-				return false;
+		} else if (dataElement.uid === childUID) {
+			if (dataElement.parent === undefined) {
+				dataElement.parent = [];
 			}
 
-			if (!this.ht.setSvgClickCallback(this.closeSideBars)) {
-				this.setErrorMessage('error setting svg click handler');
-				return false;
-			}
+			dataElement.parent = [];
+			dataElement.parent.push({uid: parentUID});
+		} else if (dataElement.uid === formerParentUID) {
+			dataElement.children = dataElement.children.filter(c => c.uid !== childUID);
+		}
+	}
 
-			if (!this.ht.setContextMenuCallback(this.showContextMenu)) {
-				this.setErrorMessage('error setting context menu handler');
-				return false;
-			}
+	// Set new state
+	data.heuristics = newData;
+}
 
-			// Gets all heuristic type configurations
-			await this.getDescriptors();
-			if (this.heuristicDescriptors.length === 0) {
-				return false;
-			}
+async function updateExecutionStatus() {
+	try {
+		const response = await dakar.heuristic.heuristicStatusHashGet({hash: transactionHash.value});
+		if (!response.status) {
+			throw Error('execution status is not defined');
+		}
 
-			// Creates the tab descriptions based on the heuristic categories
-			this.createTabs();
-			this.ht.populateHeuristicMap(this.heuristicDescriptors);
-			this.ht.setupSvg(this, svgCanvasId);
-			if (!await this.refreshData()) {
-				return false;
-			}
+		const oldExecutionStatus = executionStatus.value.executing;
+		setExecutionStatus(response.status);
+		// If it was previously executing refresh data
+		if (oldExecutionStatus && !executionStatus.value.executing) {
+			await refreshData();
+			stopActiveTimer();
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
 
-			await this.ht.centerGraph();
-			return true;
-		},
-		onMenuItemClick(item) {
-			if (item.action) {
-				item.action();
-			}
+function startDormantTimer() {
+	executionStatus.value.dormantTimer.timer = setInterval(async () => {
+		await updateExecutionStatus();
+	}, executionStatus.value.dormantTimer.refreshRate);
+}
 
-			this.contextMenu.display = false;
-		},
-		async updateExecutionStatus() {
-			try {
-				const response = await this.dakar.heuristic.heuristicStatusHashGet({hash: this.transactionHash});
-				if (!response.status) {
-					throw Error('execution status is not defined');
-				}
+function startActiveTimer() {
+	executionStatus.value.activeTimer.timer = setInterval(async () => {
+		await updateExecutionStatus();
+	}, executionStatus.value.activeTimer.refreshRate);
+}
 
-				const oldExecutionStatus = this.executionStatus.value.executing;
-				this.setExecutionStatus(response.status);
-				// If it was previously executing refresh data
-				if (oldExecutionStatus && !this.executionStatus.value.executing) {
-					await this.refreshData();
-					this.stopActiveTimer();
-				}
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-		},
-		startDormantTimer() {
-			this.executionStatus.dormantTimer.timer = setInterval(async () => {
-				await this.updateExecutionStatus();
-			}, this.executionStatus.dormantTimer.refreshRate);
-		},
-		startActiveTimer() {
-			this.executionStatus.activeTimer.timer = setInterval(async () => {
-				await this.updateExecutionStatus();
-			}, this.executionStatus.activeTimer.refreshRate);
-		},
-		stopDormantTimer() {
-			clearInterval(this.executionStatus.dormantTimer.timer);
-		},
-		stopActiveTimer() {
-			clearInterval(this.executionStatus.activeTimer.timer);
-		},
-		resetExecutionStatus() {
-			this.isHeuristicExecuting = false;
-			this.stopDormantTimer();
-			this.stopActiveTimer();
-		},
-	},
-};
+function stopDormantTimer() {
+	clearInterval(executionStatus.value.dormantTimer.timer);
+}
+
+function stopActiveTimer() {
+	clearInterval(executionStatus.value.activeTimer.timer);
+}
+
+function resetExecutionStatus() {
+	stopDormantTimer();
+	stopActiveTimer();
+}
+
 </script>
 
 <style scoped>

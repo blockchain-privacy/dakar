@@ -7,25 +7,26 @@
     <v-spacer v-if="minimize" />
     <router-link
       v-if="!minimize"
-      :to="{name: route.rootPage}"
+      id="app-logo"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
       class="ms-2"
     >
       <v-img
         style="cursor:pointer"
         alt="Dakar Logo"
         class="shrink mr-2"
-        src="../../assets/dakar_dash.svg"
+        src="../../assets/dakar.svg"
         transition="fade-transition"
         width="32"
       />
     </router-link>
     <router-link
       v-if="!minimize"
-      :to="{name: route.rootPage}"
+      :to="{name: ROUTE_NAME_ENTRY_PAGE}"
       style="color: inherit; text-decoration: inherit"
     >
       <v-app-bar-title class="ms-2 d-none d-sm-flex">
-        {{ applicationName }}
+        {{ APPLICATION_NAME }}
       </v-app-bar-title>
     </router-link>
     <query-input
@@ -37,7 +38,7 @@
       v-if="isPrivilegedOrHigher"
       icon
     >
-      <v-icon>{{ icon.mdiDotsGrid }}</v-icon>
+      <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
     </v-btn>
     <!-- todo: check if https://github.com/vuetifyjs/vuetify/issues/17234 is fixed (wrong menu position after window resize) -->
@@ -47,10 +48,11 @@
     >
       <template #activator="{ props }">
         <v-btn
-          icon
           v-bind="props"
+          id="app-bar-menu"
+          icon
         >
-          <v-icon>{{ icon.mdiAccount }}</v-icon>
+          <v-icon>{{ mdiAccount }}</v-icon>
         </v-btn>
       </template>
       <v-list
@@ -59,20 +61,23 @@
       >
         <v-list-item>
           <template #prepend>
-            <v-icon :icon="icon.mdiAccountCircle" />
+            <v-icon :icon="mdiAccountCircle" />
           </template>
           <v-list-item-title> {{ session.identity.traits.email }}</v-list-item-title>
         </v-list-item>
         <v-divider />
-        <v-list-item :to="{name: route.userProfilePage}">
+        <v-list-item
+          id="app-bar-settings"
+          :to="{name: ROUTE_NAME_USER_PROFILE_PAGE}"
+        >
           <template #prepend>
-            <v-icon :icon="icon.mdiCog" />
+            <v-icon :icon="mdiCog" />
           </template>
           <v-list-item-title>Settings</v-list-item-title>
         </v-list-item>
         <v-list-item>
           <template #prepend>
-            <v-icon :icon="icon.mdiThemeLightDark" />
+            <v-icon :icon="mdiThemeLightDark" />
           </template>
           <div class="d-flex">
             <v-list-item-title style="display:flex; align-items:center">
@@ -81,11 +86,14 @@
             <dark-mode-switch class="mt-0 ml-2" />
           </div>
         </v-list-item>
-        <v-list-item @click="initLogoutFlow">
+        <v-list-item
+          id="app-bar-logout"
+          @click="initLogoutFlow"
+        >
           <template #prepend>
             <v-icon
               color="red"
-              :icon="icon.mdiLogout"
+              :icon="mdiLogout"
             />
           </template>
           <v-list-item-title>Logout</v-list-item-title>
@@ -96,15 +104,15 @@
       v-if="!session"
       variant="flat"
       color="primary"
-      :to="{ name: route.userLoginPage }"
+      :to="{ name: ROUTE_NAME_LOGIN_PAGE }"
     >
-      <v-icon>{{ icon.mdiLogin }}</v-icon>
+      <v-icon>{{ mdiLogin }}</v-icon>
       Login
     </v-btn>
   </v-app-bar>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiAccount, mdiAccountCircle, mdiCog, mdiLogin, mdiLogout,
 	mdiDotsGrid, mdiThemeLightDark,
@@ -113,99 +121,81 @@ import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
-	APPLICATION_NAME, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
+	APPLICATION_NAME,
+	ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import handleGetFlowError from '@/kratos';
+import {computed, inject} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useLocalStore} from '@/pinia/local';
+import {useNavStore} from '@/pinia/nav';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'AppBar',
-	components: {
-		DarkModeSwitch,
-		PageMenu,
-		QueryInput,
-	},
-	props: {
-		minimize: Boolean,
-	},
-	data() {
-		return {
-			applicationName: APPLICATION_NAME,
-			icon: {
-				mdiAccount,
-				mdiLogin,
-				mdiLogout,
-				mdiAccountCircle,
-				mdiCog,
-				mdiDotsGrid,
-				mdiThemeLightDark,
-			},
-			route: {
-				userProfilePage: ROUTE_NAME_USER_PROFILE_PAGE,
-				userLoginPage: ROUTE_NAME_LOGIN_PAGE,
-				rootPage: ROUTE_NAME_ENTRY_PAGE,
-			},
-		};
-	},
-	computed: {
-		session: {
-			get() {
-				return this.$store.getters.getSession;
-			},
-			set(value) {
-				this.$store.dispatch('setSession', value);
-			},
-		},
-		showUserAdmin() {
-			return isAdminIdentity(this.session);
-		},
-		isPrivilegedOrHigher() {
-			return isPrivilegedIdentity(this.session) || this.showUserAdmin;
-		},
-	},
-	methods: {
-		// Workaround for https://github.com/vuetifyjs/vuetify/issues/17234,
-		// trigger resize a few times so the menu size is updated.
-		async triggerMenuResize(val) {
-			if (!val) {
-				return;
-			}
+const ory = inject('ory');
+const localStore = useLocalStore();
+const route = useRoute();
+const router = useRouter();
+const context = {$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore()};
 
-			for (let i = 0; i < 20; i++) {
-				// eslint-disable-next-line no-await-in-loop
-				await new Promise(resolve => {
-					setTimeout(resolve, 10);
-				});
-				window.dispatchEvent(new Event('resize'));
-			}
-		},
-		// GoToPage should receive a page name from ./constants
-		goToPage(pageName) {
-			// Only change route if not already on page
-			if (this.$route.name !== pageName) {
-				this.$router.push({name: pageName});
-			}
-		},
-		async initLogoutFlow() {
-			try {
-				const response = await this.ory.frontend.createBrowserLogoutFlow();
-				if (!response.data.logout_token) {
-					return;
-				}
+defineProps({minimize: {type: Boolean, required: true}});
 
-				const logoutResponse = await this.ory.frontend.updateLogoutFlow({token: response.data.logout_token});
-
-				if (logoutResponse.status === 204) {
-					this.session = null;
-					this.goToPage(this.route.rootPage);
-				}
-			} catch (e) {
-				await handleGetFlowError(this, e, null);
-			}
-		},
+// Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
 	},
-};
+	set(value) {
+		localStore.setSession(value);
+	},
+});
+
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+
+// Function
+// Workaround for https://github.com/vuetifyjs/vuetify/issues/17234,
+// trigger resize a few times so the menu size is updated.
+async function triggerMenuResize(val) {
+	if (!val) {
+		return;
+	}
+
+	for (let i = 0; i < 20; i++) {
+		// eslint-disable-next-line no-await-in-loop
+		await new Promise(resolve => {
+			setTimeout(resolve, 10);
+		});
+		window.dispatchEvent(new Event('resize'));
+	}
+}
+
+// GoToPage should receive a page name from ./constants
+function goToPage(pageName) {
+	// Only change route if not already on page
+	if (route.name !== pageName) {
+		router.push({name: pageName});
+	}
+}
+
+async function initLogoutFlow() {
+	try {
+		const response = await ory.frontend.createBrowserLogoutFlow();
+		if (!response.data.logout_token) {
+			return;
+		}
+
+		const logoutResponse = await ory.frontend.updateLogoutFlow({token: response.data.logout_token});
+
+		if (logoutResponse.status === 204) {
+			session.value = null;
+			goToPage(ROUTE_NAME_ENTRY_PAGE);
+		}
+	} catch (e) {
+		await handleGetFlowError(context, e, null);
+	}
+}
+
 </script>
 
 <style scoped>

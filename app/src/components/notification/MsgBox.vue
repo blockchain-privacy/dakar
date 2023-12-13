@@ -6,7 +6,7 @@
       tag="span"
     >
       <messages
-        v-for="msg in messages"
+        v-for="msg in allMessages"
         :key="msg.key"
         class="mt-3"
         :type="msg.value.type"
@@ -27,49 +27,44 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import Messages from './Messages.vue';
 import {plural} from '@/utilities';
+import {computed} from 'vue';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'MsgBox',
-	components: {Messages},
-	data() {
-		return {
-			maxNumberOfMessagesToDisplay: 3,
-		};
-	},
-	computed: {
-		messages() {
-			// Show only limited number of messages
-			const messages = [];
-			const mapMessages = this.$store.getters.getMessages;
-			for (const [key, value] of mapMessages) {
-				messages.push({key, value});
-				if (messages.length + 1 > this.maxNumberOfMessagesToDisplay) {
-					break;
-				}
-			}
+const msgStore = useMsgStore();
 
-			return messages;
-		},
-		numHiddenMessages() {
-			return this.$store.getters.getMessages.size - this.maxNumberOfMessagesToDisplay;
-		},
-		hiddenMessageText() {
-			if (this.numHiddenMessages < 1) {
-				return '';
-			}
+const maxNumberOfMessagesToDisplay = 3;
 
-			return `${this.numHiddenMessages} additional ${plural('message', this.numHiddenMessages)}`;
-		},
-	},
-	methods: {
-		removeMessage(key) {
-			this.$store.dispatch('removeMessage', key);
-		},
-	},
-};
+// Computed
+const allMessages = computed(() => {
+	// Show only limited number of messages
+	const messages = [];
+
+	const mapMessages = msgStore.getMessages;
+	for (const [key, value] of mapMessages) {
+		messages.push({key, value});
+		if (messages.length + 1 > maxNumberOfMessagesToDisplay) {
+			break;
+		}
+	}
+
+	return messages;
+});
+
+const numHiddenMessages = computed(() => msgStore.getMessages.size - maxNumberOfMessagesToDisplay);
+const hiddenMessageText = computed(() => {
+	if (numHiddenMessages.value < 1) {
+		return '';
+	}
+
+	return `${numHiddenMessages.value} additional ${plural('message', numHiddenMessages)}`;
+});
+function removeMessage(key) {
+	msgStore.removeMessage(key);
+}
+
 </script>
 
 <style scoped>

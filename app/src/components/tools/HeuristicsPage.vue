@@ -6,7 +6,7 @@
   >
     <icon-title
       title="Heuristics"
-      :icon="icon.mdiGraph"
+      :icon="mdiGraph"
       :one-line="true"
     >
       <v-btn
@@ -15,7 +15,7 @@
         icon
         @click="showSearchField = !showSearchField"
       >
-        <v-icon>{{ icon.mdiMagnify }}</v-icon>
+        <v-icon>{{ mdiMagnify }}</v-icon>
       </v-btn>
       <v-menu location="bottom">
         <template #activator="{ props }">
@@ -24,7 +24,7 @@
             icon
             v-bind="props"
           >
-            <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+            <v-icon>{{ mdiDotsVertical }}</v-icon>
           </v-btn>
         </template>
         <v-list>
@@ -33,13 +33,13 @@
             @click="refreshHeuristicList"
           >
             <template #prepend>
-              <v-icon>{{ icon.mdiRefresh }}</v-icon>
+              <v-icon>{{ mdiRefresh }}</v-icon>
             </template>
             <v-list-item-title>Refresh</v-list-item-title>
           </v-list-item>
           <v-list-item @click="showDeleteAllHeuristicsDialog">
             <template #prepend>
-              <v-icon>{{ icon.mdiDelete }}</v-icon>
+              <v-icon>{{ mdiDelete }}</v-icon>
             </template>
             <v-list-item-title>Delete All Heuristics</v-list-item-title>
           </v-list-item>
@@ -53,7 +53,7 @@
       >
         <v-text-field
           v-model="search"
-          :append-inner-icon="icon.mdiMagnify"
+          :append-inner-icon="mdiMagnify"
           label="Filter items"
           single-line
           hide-details
@@ -64,13 +64,13 @@
     <v-data-table
       v-model:sort-by="sortBy"
       :search="search"
-      :loading="isLoading || !heuristicList"
+      :loading="isLoading"
       :headers="headers"
-      :items="heuristicList?heuristicList:[]"
+      :items="heuristicList"
     >
       <template #item.txhash="{ item }">
         <router-link
-          :to="{ name: heuristicRoute,
+          :to="{ name: ROUTE_NAME_HEURISTIC_PAGE,
                  params: { id: item.txhash }}"
         >
           {{ shortenHash(item.txhash) }}
@@ -84,7 +84,7 @@
       </template>
       <template #[`item.actions`]="{ item }">
         <v-icon @click="showDeleteHeuristicDialog(item)">
-          {{ icon.mdiDelete }}
+          {{ mdiDelete }}
         </v-icon>
       </template>
     </v-data-table>
@@ -156,8 +156,7 @@
   </v-card>
 </template>
 
-<script>
-
+<script setup>
 import {
 	mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
 } from '@mdi/js';
@@ -165,128 +164,135 @@ import {PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE} from '@/constants';
 import {handleError, shortenHash} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'HeuristicsPage',
-	components: {FadeTransition, IconTitle},
-	data() {
-		return {
-			icon: {
-				mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
-			},
-			heuristicList: null,
-			heuristicRoute: ROUTE_NAME_HEURISTIC_PAGE,
-			showDeleteAllDialog: false,
-			showDeleteTransactionHeuristicDialog: false,
-			transactionToDelete: null,
-			isLoading: false,
-			showSearchField: false,
-			search: '',
-			sortBy: [{key: 'modTimeUnix', order: 'desc'}],
-			headers: [
-				{
-					title: 'Transaction', key: 'txhash', align: 'start', sortable: false,
-				},
-				{
-					title: 'Number of heuristics', key: 'h_count',
-				},
-				{
-					title: 'Last modification', key: 'modTimeUnix',
-				},
-				{
-					title: '', key: 'actions', sortable: false, align: 'end',
-				},
-			],
-		};
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
+
+const heuristicList = ref([]);
+const showDeleteAllDialog = ref(false);
+const showDeleteTransactionHeuristicDialog = ref(false);
+const transactionToDelete = ref(null);
+const isLoading = ref(false);
+const showSearchField = ref(false);
+const search = ref('');
+const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
+const headers = [
+	{
+		title: 'Transaction', key: 'txhash', align: 'start', sortable: false,
 	},
-	mounted() {
-		document.title = `Heuristics - ${PAGE_TITLE}`;
-		this.refreshHeuristicList();
+	{
+		title: 'Number of heuristics', key: 'h_count',
 	},
-	methods: {
-		shortenHash,
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async loadHeuristicList() {
-			try {
-				const response = await this.dakar.heuristic.heuristicListGet();
-
-				if (!response.items) {
-					throw new Error('received malformed response');
-				}
-
-				this.heuristicList = response.items;
-				this.$store.dispatch('resetMessages');
-			} catch (e) {
-				handleError(this, e);
-			}
-		},
-		async refreshHeuristicList() {
-			this.isLoading = true;
-			await this.loadHeuristicList();
-			this.isLoading = false;
-			this.search = '';
-
-			if (!this.heuristicList) {
-				return;
-			}
-
-			this.heuristicList = this.heuristicList.map(d => {
-				// Convert date to unix time, so it can be sorted in data table
-				d.modTimeUnix = new Date(d.mod_time).getTime();
-				return d;
-			});
-		},
-		async deleteTransactionHeuristic(all) {
-			this.isLoading = true;
-			let arg = null;
-			if (all) {
-				// eslint-disable-next-line camelcase
-				arg = {delete_all: true};
-			} else {
-				// eslint-disable-next-line camelcase
-				arg = {tx_hash: this.transactionToDelete.txhash};
-			}
-
-			try {
-				const response = await this.dakar.heuristic.deleteHeuristicPost({heuristic: arg});
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
-
-				await this.refreshHeuristicList();
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-
-			this.isLoading = false;
-			this.showDeleteTransactionHeuristicDialog = false;
-			this.showDeleteAllDialog = false;
-		},
-		showDeleteHeuristicDialog(transaction) {
-			if (this.isLoading) {
-				return;
-			}
-
-			this.showDeleteTransactionHeuristicDialog = true;
-			this.transactionToDelete = transaction;
-		},
-		closeDeleteHeuristicDialog() {
-			this.showDeleteTransactionHeuristicDialog = false;
-		},
-
-		showDeleteAllHeuristicsDialog() {
-			this.showDeleteAllDialog = true;
-		},
-		closeDeleteAllHeuristicsDialog() {
-			this.showDeleteAllDialog = false;
-		},
+	{
+		title: 'Last modification', key: 'modTimeUnix',
 	},
-};
+	{
+		title: '', key: 'actions', sortable: false, align: 'end',
+	},
+];
+
+// Hooks
+onMounted(() => {
+	document.title = `Heuristics - ${PAGE_TITLE}`;
+	refreshHeuristicList();
+});
+
+// Functions
+function setErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function loadHeuristicList() {
+	isLoading.value = true;
+	try {
+		const response = await dakar.heuristic.heuristicListGet();
+
+		if (!response.items) {
+			throw new Error('received malformed response');
+		}
+
+		heuristicList.value = response.items;
+		msgStore.resetMessages();
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
+async function refreshHeuristicList() {
+	await loadHeuristicList();
+
+	search.value = '';
+
+	if (!heuristicList.value) {
+		return;
+	}
+
+	heuristicList.value = heuristicList.value.map(d => {
+		// Convert date to unix time, so it can be sorted in data table
+		d.modTimeUnix = new Date(d.mod_time).getTime();
+		return d;
+	});
+}
+
+async function deleteTransactionHeuristic(all) {
+	isLoading.value = true;
+	let arg;
+	if (all) {
+		// eslint-disable-next-line camelcase
+		arg = {delete_all: true};
+	} else {
+		// eslint-disable-next-line camelcase
+		arg = {tx_hash: transactionToDelete.value.txhash};
+	}
+
+	try {
+		const response = await dakar.heuristic.deleteHeuristicPost({heuristic: arg});
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		await refreshHeuristicList();
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	showDeleteTransactionHeuristicDialog.value = false;
+	showDeleteAllDialog.value = false;
+}
+
+function showDeleteHeuristicDialog(transaction) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteTransactionHeuristicDialog.value = true;
+	transactionToDelete.value = transaction;
+}
+
+function closeDeleteHeuristicDialog() {
+	showDeleteTransactionHeuristicDialog.value = false;
+}
+
+function 	showDeleteAllHeuristicsDialog() {
+	showDeleteAllDialog.value = true;
+}
+
+function 	closeDeleteAllHeuristicsDialog() {
+	showDeleteAllDialog.value = false;
+}
+
 </script>
 
 <style scoped>

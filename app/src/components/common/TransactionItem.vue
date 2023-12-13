@@ -2,8 +2,8 @@
   <v-card>
     <icon-title
       :title="`Transaction ${tx.txhash}`"
-      :icon="icons.mdiTransfer"
-      :to="{ name: route.tx, params: { id: tx.txhash }}"
+      :icon="mdiTransfer"
+      :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}"
     >
       <privacy-chip
         v-if="tx.privacytype"
@@ -13,7 +13,7 @@
     </icon-title>
     <v-card-text>
       <v-list>
-        <v-list-item :to="{ name: route.block, params: { id: tx.bhash }}">
+        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bhash }}">
           <v-list-item-title>
             Block Hash
           </v-list-item-title>
@@ -21,7 +21,7 @@
             {{ tx.bhash }}
           </v-list-item-subtitle>
         </v-list-item>
-        <v-list-item :to="{ name: route.block, params: { id: tx.bid }}">
+        <v-list-item :to="{ name: ROUTE_NAME_BLOCK_PAGE, params: { id: tx.bid }}">
           <v-list-item-title>
             Block ID
           </v-list-item-title>
@@ -34,30 +34,14 @@
   </v-card>
 </template>
 
-<script>
+<script setup>
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconTitle from '@/components/common/IconTitle.vue';
 import {mdiTransfer} from '@mdi/js';
 
-export default {
-	name: 'TransactionItem',
-	components: {IconTitle, PrivacyChip},
-	props: {
-		tx: {type: Object, required: true},
-	},
-	data() {
-		return {
-			route: {
-				block: ROUTE_NAME_BLOCK_PAGE,
-				tx: ROUTE_NAME_TRANSACTION_PAGE,
-			},
-			icons: {
-				mdiTransfer,
-			},
-		};
-	},
-};
+defineProps({tx: {type: Object, required: true}});
+
 </script>
 <style scoped>
 

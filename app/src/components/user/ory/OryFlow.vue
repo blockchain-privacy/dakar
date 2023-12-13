@@ -8,6 +8,7 @@
         v-for="(formNodes, i) in getForms"
         :key="`${formId}_${i}`"
         :value="`${formId}_${i}`"
+        :to="{ name: route.name, params: { tabName: getFormGroupName(formNodes) }, query: route.query}"
       >
         {{ groupTitles.get(getFormGroupName(formNodes)) }}
       </v-tab>
@@ -70,89 +71,101 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import OryUiNode from './OryUiNode.vue';
 import {getNodeName} from '@/components/user/ory/utils';
+import {computed, onMounted, ref, watch} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'OryFlow',
-	components: {OryUiNode},
-	props: {
-		flow: {type: Object, required: true},
-		formId: {type: String, required: true},
-		embed: {type: Boolean, required: false, default: false},
-		// DisabledForms is an array of formIDs for which submitting is disabled
-		disabledForms: {type: Array, require: false, default: () => []},
-	},
-	emits: ['submit'],
-	data() {
-		return {
-			groupTitles: new Map([
-				['totp', 'Two-Factor Authentication'],
-				['password', 'Password'],
-				['profile', 'Profile'],
-			]),
-			tab: null,
-		};
-	},
-	computed: {
-		// GetForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).
-		// This is needed because the initial set of nodes contained in the flow property can have
-		// more than one group. Nodes of the default group (e.g. csrf tokens) are included in
-		// each returned set.
-		getForms() {
-			const forms = [];
+const route = useRoute();
+const msgStore = useMsgStore();
 
-			if (!this.flow || !this.flow.ui || !this.flow.ui.nodes) {
-				return forms;
-			}
+const props = defineProps({
+	flow: {type: Object, required: true},
+	formId: {type: String, required: true},
+	embed: {type: Boolean, required: false, default: false},
+	// DisabledForms is an array of formIDs for which submitting is disabled
+	disabledForms: {type: Array, require: false, default: () => []},
+});
 
-			// Find unique group names
-			const groupNames = new Set();
-			this.flow.ui.nodes.forEach(e => groupNames.add(e.group));
+const emit = defineEmits(['submit']);
 
-			groupNames.forEach(e => {
-				if (e !== 'default') {
-					const formNodes = this.flow.ui.nodes.filter(d => d.group === 'default' || d.group === e);
-					forms.push(formNodes);
-				}
-			});
-			return forms;
-		},
-	},
-	watch: {
-		flow() {
-			this.displayMessages();
-		},
-	},
-	mounted() {
-		this.displayMessages();
-	},
-	methods: {
-		getNodeName,
-		setMessage(msg, msgType) {
-			this.$store.dispatch('addMessage', {text: msg, type: msgType, temporary: false, category: this.$route.name});
-		},
-		propagateSubmitEvent(formID, btnName) {
-			this.$emit('submit', formID, btnName);
-		},
-		getFormGroupName(formNodes) {
-			const nodes = formNodes.filter(d => d.group !== 'default');
-			if (nodes) {
-				return nodes[0].group;
-			}
+const groupTitles = new Map([
+	['totp', 'Two-Factor Authentication'],
+	['password', 'Password'],
+	['profile', 'Profile'],
+]);
+const tab = ref(null);
 
-			return '';
-		},
-		displayMessages() {
-			if (!this.flow.ui || !this.flow.ui.messages) {
-				return;
-			}
+// Need to use getter for nested prop
+watch(() => props.flow, () => {
+	displayMessages();
+});
 
-			this.flow.ui.messages.forEach(msg => this.setMessage(msg.text, msg.type));
-		},
-	},
-};
+onMounted(() => {
+	displayMessages();
+});
+
+// Computed
+// getFormGroupNames returns a unique array including all form group names except the 'default' group
+const getFormGroupNames = computed(() => {
+	if (!props.flow || !props.flow.ui || !props.flow.ui.nodes) {
+		return [];
+	}
+
+	// Find unique group names
+	const groupNames = new Set();
+	props.flow.ui.nodes.forEach(e => {
+		if (e.group !== 'default') {
+			groupNames.add(e.group);
+		}
+	});
+	return Array.from(groupNames);
+});
+
+// GetForms returns an array of node sets ([[node1, node2, ...],[node10, node11, ...]]).
+// This is needed because the initial set of nodes contained in the flow property can have
+// more than one group. Nodes of the default group (e.g. csrf tokens) are included in
+// each returned set.
+const getForms = computed(() => {
+	const forms = [];
+
+	getFormGroupNames.value.forEach(e => {
+		if (e !== 'default') {
+			const formNodes = props.flow.ui.nodes.filter(d => d.group === 'default' || d.group === e);
+			forms.push(formNodes);
+		}
+	});
+	return forms;
+});
+
+// Functions
+function setMessage(msg, msgType) {
+	msgStore.addMessage({text: msg, type: msgType, temporary: false, category: route.name});
+}
+
+function propagateSubmitEvent(formID, btnName) {
+	emit('submit', formID, btnName);
+}
+
+function getFormGroupName(formNodes) {
+	const nodes = formNodes.filter(d => d.group !== 'default');
+	if (nodes) {
+		return nodes[0].group;
+	}
+
+	return '';
+}
+
+function displayMessages() {
+	if (!props.flow.ui || !props.flow.ui.messages) {
+		return;
+	}
+
+	props.flow.ui.messages.forEach(msg => setMessage(msg.text, msg.type));
+}
+
 </script>
 
 <style scoped>

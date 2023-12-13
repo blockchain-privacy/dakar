@@ -33,36 +33,36 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {PAGE_TITLE} from '@/constants';
+import {onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'TextLoaderPage',
-	props: {
-		pageTitle: {type: String, required: true},
-		url: {type: String, required: true},
-	},
-	data() {
-		return {
-			loadedHTML: '',
-		};
-	},
-	async mounted() {
-		document.title = `${this.pageTitle} - ${PAGE_TITLE}`;
+const props = defineProps({
+	pageTitle: {type: String, required: true},
+	url: {type: String, required: true},
+});
 
-		try {
-			const response = await fetch(this.url);
-			this.loadedHTML = await response.text();
-		} catch (_) {
-			this.setErrorMessage('Unable to load data, try again later');
-		}
-	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-	},
-};
+const loadedHTML = ref('');
+const route = useRoute();
+const msgStore = useMsgStore();
+
+function setErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+onMounted(async () => {
+	document.title = `${props.pageTitle} - ${PAGE_TITLE}`;
+
+	try {
+		const response = await fetch(props.url);
+		loadedHTML.value = await response.text();
+	} catch (_) {
+		setErrorMessage('Unable to load data, try again later');
+	}
+});
+
 </script>
 
 <style scoped>

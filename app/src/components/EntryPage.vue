@@ -20,7 +20,7 @@
           style="width: 105px; height: 187px"
         >
           <v-img
-            src="../assets/dakar_dash.svg"
+            src="../assets/dakar_animated.svg"
             max-width="105px"
             transition="fade-transition"
           />
@@ -30,13 +30,14 @@
             class="text-h2"
             style="position:relative"
           >
-            {{ appName }}
+            {{ APPLICATION_NAME }}
           </p>
         </div>
         <v-text-field
+          id="entry-page-search"
           v-model="query"
           class="mt-3"
-          :append-inner-icon="icons.mdiMagnify"
+          :append-inner-icon="mdiMagnify"
           variant="outlined"
           label="Search for blocks, transactions and addresses"
           :rules="[isValidQuery]"
@@ -49,7 +50,7 @@
             class="text-h6"
             style="position:relative"
           >
-            {{ appSubtitle }}
+            {{ APPLICATION_SUBTITLE }}
           </p>
         </div>
       </v-col>
@@ -65,7 +66,7 @@
           class="text-center mx-1"
         >
           <v-btn
-            :to="{name: route.aboutPage}"
+            :to="{name: ROUTE_NAME_ABOUT}"
             variant="plain"
             size="small"
           >
@@ -77,7 +78,7 @@
           class="text-center mx-1"
         >
           <v-btn
-            :to="{name: route.termsOfUsePage}"
+            :to="{name: ROUTE_NAME_TERMS_OF_USE}"
             variant="plain"
             size="small"
           >
@@ -89,7 +90,7 @@
           class="text-center mx-1"
         >
           <v-btn
-            :to="{name: route.privacyPage}"
+            :to="{name: ROUTE_NAME_PRIVACY}"
             variant="plain"
             size="small"
           >
@@ -101,105 +102,94 @@
   </v-container>
 </template>
 
-<script>
-import {mdiMagnify, mdiAccount} from '@mdi/js';
+<script setup>
+import {mdiMagnify} from '@mdi/js';
 import {
-	ROUTE_NAME_LOGIN_PAGE, RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS, RESPONSE_TYPE_ADDRESS,
+	RESPONSE_EMPTY, ROUTE_NAME_NO_RESULTS, RESPONSE_TYPE_ADDRESS,
 	ROUTE_NAME_ADDRESS_PAGE, RESPONSE_TYPE_BLOCK, ROUTE_NAME_BLOCK_PAGE, RESPONSE_TYPE_TRANSACTION,
 	ROUTE_NAME_TRANSACTION_PAGE, APPLICATION_NAME, APPLICATION_SUBTITLE, ROUTE_NAME_ABOUT,
 	ROUTE_NAME_TERMS_OF_USE, ROUTE_NAME_PRIVACY,
 } from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
+import {computed, inject, onMounted, ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
+import {useExplorerStore} from '@/pinia/explorer';
+import {storeToRefs} from 'pinia';
+import {useNavStore} from '@/pinia/nav';
 
-export default {
-	name: 'EntryPage',
-	data() {
-		return {
-			query: '',
-			route: {
-				loginPage: ROUTE_NAME_LOGIN_PAGE,
-				aboutPage: ROUTE_NAME_ABOUT,
-				termsOfUsePage: ROUTE_NAME_TERMS_OF_USE,
-				privacyPage: ROUTE_NAME_PRIVACY,
-			},
-			icons: {mdiMagnify, mdiAccount},
-			isMenuVisible: false,
-			appName: APPLICATION_NAME,
-			appSubtitle: APPLICATION_SUBTITLE,
-		};
-	},
-	computed: {
-		searchResultType: {
-			get() {
-				return this.$store.getters.getSearchResultType;
-			},
-		},
-		isPushFromUserInput: {
-			async set(value) {
-				await this.$store.dispatch('setPushFromUserInput', value);
-			},
-			get() {
-				return this.$store.getters.getPushFromUserInput;
-			},
-		},
-	},
-	mounted() {
-		document.title = this.appName;
-	},
-	methods: {
-		isValidQuery,
-		async executeQuery(query) {
-			let ok = false;
+const dakar = inject('dakar');
+const router = useRouter();
+const route = useRoute();
+const msgStore = useMsgStore();
+const explorerStore = useExplorerStore();
+const {pushFromUserInput} = storeToRefs(useNavStore());
+const context = {$route: route, addMessage: msgStore.addMessage};
 
-			try {
-				const response = await this.dakar.data.searchQueryGet({query});
+const query = ref('');
 
-				this.$store.dispatch('updateSearchResult', response);
-				ok = response?.type !== RESPONSE_EMPTY;
-				if (!ok) {
-					this.setWarningMessage('server error');
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+// Computed
+const searchResultType = computed(() => explorerStore.getSearchResultType);
 
-			return ok;
-		},
-		async handleQuery(q) {
-			// Template string in case it is a number
-			const query = `${q}`.trim();
+// Hooks
+onMounted(() => {
+	document.title = APPLICATION_NAME;
+});
 
-			// ignore whitespace and empty queries
-			if (query.length === 0 || !isValidQueryInput(query) || !await this.executeQuery(query)) {
-				return;
-			}
+// Functions
+function setWarningMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+}
 
-			switch (this.searchResultType) {
-				case RESPONSE_EMPTY:
-					await this.$router.push({name: ROUTE_NAME_NO_RESULTS});
-					break;
-				case RESPONSE_TYPE_ADDRESS:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: query}});
-					break;
-				case RESPONSE_TYPE_BLOCK:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: query}});
-					break;
-				case RESPONSE_TYPE_TRANSACTION:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: query}});
-					break;
-				default:
-					await this.$router.push({name: ROUTE_NAME_NO_RESULTS});
-					break;
-			}
-		},
-		setWarningMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: this.$route.name});
-		},
-	},
-};
+async function executeQuery(query) {
+	let ok = false;
+
+	try {
+		const response = await dakar.data.searchQueryGet({query});
+
+		explorerStore.updateSearchResult(response);
+		ok = response?.type !== RESPONSE_EMPTY;
+		if (!ok) {
+			setWarningMessage('server error');
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	return ok;
+}
+
+async function handleQuery(q) {
+	// Template string in case it is a number
+	const query = `${q}`.trim();
+
+	// ignore whitespace and empty queries
+	if (query.length === 0 || !isValidQueryInput(query) || !await executeQuery(query)) {
+		return;
+	}
+
+	switch (searchResultType.value) {
+		case RESPONSE_EMPTY:
+			await router.push({name: ROUTE_NAME_NO_RESULTS});
+			break;
+		case RESPONSE_TYPE_ADDRESS:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: query}});
+			break;
+		case RESPONSE_TYPE_BLOCK:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: query}});
+			break;
+		case RESPONSE_TYPE_TRANSACTION:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: query}});
+			break;
+		default:
+			await router.push({name: ROUTE_NAME_NO_RESULTS});
+			break;
+	}
+}
+
 </script>
 
 <style scoped>

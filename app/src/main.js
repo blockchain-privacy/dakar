@@ -1,20 +1,27 @@
 import App from './App.vue';
 
 import {createApp} from 'vue';
+import {createPinia} from 'pinia';
 
 import vuetify from './plugins/vuetify';
-import router from '@/router';
-import store from '@/state';
+import {router, setupStore} from '@/router';
 import oryConfig from './plugins/ory';
 import dakarConfig from './plugins/dakarAPI';
 import wikiapiConfig from './plugins/wikiAPI';
 
+const pinia = createPinia();
 const app = createApp(App);
 
-app.use(vuetify).use(router).use(store);
-app.config.globalProperties.ory = oryConfig;
-app.config.globalProperties.dakar = dakarConfig.setup(app.config.globalProperties);
-app.config.globalProperties.wikiapi = wikiapiConfig.setup(app.config.globalProperties).default;
+app.use(pinia);
+app.use(vuetify).use(router);
+
+// Must not be called before app.use(pinia)
+setupStore();
+
+// Provide global variables here, so they can be later injected
+app.provide('ory', oryConfig);
+app.provide('dakar', dakarConfig.setup(app.config.globalProperties));
+app.provide('wikiapi', wikiapiConfig.setup(app.config.globalProperties).default);
 
 await router.isReady();
 app.mount('#app');

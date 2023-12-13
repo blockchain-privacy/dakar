@@ -16,7 +16,7 @@
           :search="search"
           :loading="isLoading || !identities"
           item-key="id"
-          class="my-10"
+          class="my-10 elevation-4"
         >
           <template #top>
             <v-toolbar
@@ -31,7 +31,7 @@
             >
               <v-text-field
                 v-model="search"
-                :append-inner-icon="icons.mdiMagnify"
+                :append-inner-icon="mdiMagnify"
                 label="Filter users"
                 single-line
                 hide-details
@@ -43,14 +43,14 @@
                 :disabled="isLoading"
                 @click="refreshUsers"
               >
-                <v-icon>{{ icons.mdiRefresh }}</v-icon>
+                <v-icon>{{ mdiRefresh }}</v-icon>
               </v-btn>
               <v-btn
                 variant="outlined"
                 class="ml-1"
                 @click="showCreateDialog"
               >
-                <v-icon>{{ icons.mdiAccountPlus }}</v-icon>
+                <v-icon>{{ mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
                   Create Identity
                 </div>
@@ -64,7 +64,7 @@
               <v-spacer />
               <v-text-field
                 v-model="search"
-                :append-inner-icon="icons.mdiMagnify"
+                :append-inner-icon="mdiMagnify"
                 label="Filter users"
                 single-line
                 hide-details
@@ -76,7 +76,7 @@
                 :disabled="isLoading"
                 @click="refreshUsers"
               >
-                <v-icon>{{ icons.mdiRefresh }}</v-icon>
+                <v-icon>{{ mdiRefresh }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
                   Refresh
                 </div>
@@ -86,7 +86,7 @@
                 class="ml-1"
                 @click="showCreateDialog"
               >
-                <v-icon>{{ icons.mdiAccountPlus }}</v-icon>
+                <v-icon>{{ mdiAccountPlus }}</v-icon>
                 <div class="ml-2 hidden-sm-and-down">
                   Create Identity
                 </div>
@@ -101,25 +101,25 @@
                   icon
                   variant="text"
                 >
-                  <v-icon>{{ icons.mdiDotsVertical }}</v-icon>
+                  <v-icon>{{ mdiDotsVertical }}</v-icon>
                 </v-btn>
               </template>
               <v-list>
                 <v-list-item @click="showEditDialog(item)">
                   <template #prepend>
-                    <v-icon :icon="icons.mdiPencil" />
+                    <v-icon :icon="mdiPencil" />
                   </template>
                   Edit
                 </v-list-item>
                 <v-list-item @click="showPropertyDialog(item)">
                   <template #prepend>
-                    <v-icon :icon="icons.mdiUnfoldMoreVertical" />
+                    <v-icon :icon="mdiUnfoldMoreVertical" />
                   </template>
                   Details
                 </v-list-item>
                 <v-list-item @click="showDeleteDialog(item)">
                   <template #prepend>
-                    <v-icon :icon="icons.mdiDelete" />
+                    <v-icon :icon="mdiDelete" />
                   </template>
                   Delete
                 </v-list-item>
@@ -140,7 +140,7 @@
           :search="searchSessions"
           :loading="isLoading || !sessions"
           item-key="id"
-          class="my-10"
+          class="my-10 elevation-4"
         >
           <template #top>
             <v-toolbar
@@ -155,7 +155,7 @@
             >
               <v-text-field
                 v-model="searchSessions"
-                :append-inner-icon="icons.mdiMagnify"
+                :append-inner-icon="mdiMagnify"
                 label="Filter sessions"
                 single-line
                 hide-details
@@ -170,7 +170,7 @@
               <v-spacer />
               <v-text-field
                 v-model="searchSessions"
-                :append-inner-icon="icons.mdiMagnify"
+                :append-inner-icon="mdiMagnify"
                 label="Filter sessions"
                 single-line
                 hide-details
@@ -245,7 +245,7 @@
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
 	mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
@@ -253,195 +253,191 @@ import {
 import {PAGE_TITLE} from '@/constants';
 import {handleError} from '@/utilities';
 import EditIdentityDialog from '@/components/user/EditIdentityDialog.vue';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'AdministrationPage',
-	components: {EditIdentityDialog},
-	data: () => ({
-		icons: {
-			mdiPencil, mdiDelete, mdiRefresh, mdiAccountPlus,
-			mdiMagnify, mdiUnfoldMoreVertical, mdiDotsVertical,
-		},
-		isLoading: false,
-		showCreateIdentityDialog: false,
-		showDeleteIdentityDialog: false,
-		showIdentityPropertyDialog: false,
-		identityToDelete: null,
-		search: '',
-		searchSessions: '',
-		identitiesSortBy: [{key: 'modified', order: 'desc'}],
-		identityHeaders: [
-			{
-				title: 'ID', key: 'id', align: 'start', sortable: false,
-			},
-			{
-				title: 'Dgraph UID', key: 'dgraphUID',
-			},
-			{
-				title: 'E-Mail', key: 'email',
-			},
-			{
-				title: 'State', key: 'state',
-			},
-			{
-				title: 'Schema ID', key: 'schema_id',
-			},
-			{
-				title: 'Roles', key: 'renderedRoles',
-			},
-			{
-				title: 'Created', key: 'createdAt',
-			},
-			{
-				title: 'Updated', key: 'updatedAt',
-			},
-			{
-				title: '', key: 'actions', sortable: false, align: 'end',
-			},
-		],
-		sessionsSortBy: [{key: 'authenticated_at', order: 'desc'}],
-		sessionHeaders: [
-			{
-				title: 'ID', key: 'id', align: 'start', sortable: false,
-			},
-			{
-				title: 'E-Mail', key: 'identity.traits.email',
-			},
-			{
-				title: 'Active', key: 'active',
-			},
-			{
-				title: 'Authentication Date', key: 'authenticated_at',
-			},
-			{
-				title: 'Expiry Date', key: 'expires_at',
-			},
-		],
-		createNewUser: false,
-		editedItem: {
-			id: '',
-			email: '',
-			state: '',
-			roles: [],
-		},
-		defaultItem: {
-			id: '',
-			email: '',
-			state: '',
-			roles: [],
-		},
-		identities: null,
-		sessions: null,
-		identityPropertyDialogData: null,
-	}),
-	computed: {
-		formTitle() {
-			return this.createNewUser ? 'Create Identity' : 'Edit Identity';
-		},
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
+const context = {addMessage: msgStore.addMessage, $route: route};
+
+const isLoading = ref(false);
+const showCreateIdentityDialog = ref(false);
+const showDeleteIdentityDialog = ref(false);
+const showIdentityPropertyDialog = ref(false);
+const identityToDelete = ref(null);
+const search = ref('');
+const searchSessions = ref('');
+
+const identitiesSortBy = ref([{key: 'modified', order: 'desc'}]);
+
+const identityHeaders = [
+	{
+		title: 'ID', key: 'id', align: 'start', sortable: false,
 	},
-	mounted() {
-		document.title = `User Administration - ${PAGE_TITLE}`;
-		this.refreshUsers();
+	{
+		title: 'Dgraph UID', key: 'dgraphUID',
 	},
-	methods: {
-		setErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: true, category: this.$route.name});
-		},
-		async loadUserList() {
-			this.isLoading = true;
-			try {
-				const response = await this.dakar.authentication.getIdentitiesGet();
-
-				this.identities = response.identities;
-				this.sessions = response.sessions;
-				this.$store.dispatch('resetMessages');
-			} catch (e) {
-				handleError(this, e);
-			}
-
-			this.isLoading = false;
-		},
-		async refreshUsers() {
-			await this.loadUserList();
-
-			this.search = '';
-			if (!this.identities) {
-				return;
-			}
-
-			this.identities = this.identities.map(d => {
-				// Convert dates to unix time so, they can be sorted in data table
-				d.updatedAt = new Date(d.updated_at).getTime();
-				d.createdAt = new Date(d.created_at).getTime();
-				d.email = d.traits.email;
-
-				if (d.metadata_public) {
-					// Extract roles
-					if (d.metadata_public.roles) {
-						d.roles = d.metadata_public.roles.map(f => f);
-						d.renderedRoles = d.roles.toString();
-					} else {
-						d.renderedRoles = '';
-					}
-
-					// Extract dgraph uid
-					if (d.metadata_public.dgraph_uid) {
-						d.dgraphUID = d.metadata_public.dgraph_uid;
-					}
-				}
-
-				return d;
-			});
-		},
-		showEditDialog(item) {
-			if (this.isLoading) {
-				return;
-			}
-
-			this.createNewUser = false;
-			this.editedItem = {...item};
-			this.showCreateIdentityDialog = true;
-		},
-		showCreateDialog() {
-			this.createNewUser = true;
-			this.editedItem = {...this.defaultItem};
-			this.showCreateIdentityDialog = true;
-		},
-		showDeleteDialog(identity) {
-			if (this.isLoading) {
-				return;
-			}
-
-			this.showDeleteIdentityDialog = true;
-			this.identityToDelete = identity;
-		},
-		showPropertyDialog(identity) {
-			if (this.isLoading) {
-				return;
-			}
-
-			this.showIdentityPropertyDialog = true;
-			this.identityPropertyDialogData = JSON.stringify(identity, null, '\t');
-		},
-		async deleteIdentity(identity) {
-			this.isLoading = true;
-
-			try {
-				await this.dakar.authentication.adminDeleteIdentityIdentityUIDGet({identityUID: identity.id});
-				await this.refreshUsers();
-			} catch (e) {
-				this.setErrorMessage(e);
-			}
-
-			this.isLoading = false;
-			this.closeDeletionDialog();
-		},
-		closeDeletionDialog() {
-			this.showDeleteIdentityDialog = false;
-			this.identityToDelete = null;
-		},
+	{
+		title: 'E-Mail', key: 'email',
 	},
-};
+	{
+		title: 'State', key: 'state',
+	},
+	{
+		title: 'Schema ID', key: 'schema_id',
+	},
+	{
+		title: 'Roles', key: 'renderedRoles',
+	},
+	{
+		title: 'Created', key: 'createdAt',
+	},
+	{
+		title: 'Updated', key: 'updatedAt',
+	},
+	{
+		title: '', key: 'actions', sortable: false, align: 'end',
+	},
+];
+
+const sessionsSortBy = ref([{key: 'authenticated_at', order: 'desc'}]);
+const sessionHeaders = [
+	{
+		title: 'ID', key: 'id', align: 'start', sortable: false,
+	},
+	{
+		title: 'E-Mail', key: 'identity.traits.email',
+	},
+	{
+		title: 'Active', key: 'active',
+	},
+	{
+		title: 'Authentication Date', key: 'authenticated_at',
+	},
+	{
+		title: 'Expiry Date', key: 'expires_at',
+	},
+];
+
+const createNewUser = ref(false);
+const editedItem = ref({id: '', email: '', state: '', roles: []});
+const defaultItem = ref({id: '', email: '', state: '', roles: []});
+const identities = ref(null);
+const sessions = ref(null);
+const identityPropertyDialogData = ref(null);
+
+onMounted(() => {
+	document.title = `User Administration - ${PAGE_TITLE}`;
+	refreshUsers();
+});
+
+function setErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+async function loadUserList() {
+	isLoading.value = true;
+	try {
+		const response = await dakar.authentication.getIdentitiesGet();
+
+		identities.value = response.identities;
+		sessions.value = response.sessions;
+		msgStore.resetMessages();
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
+async function refreshUsers() {
+	await loadUserList();
+
+	search.value = '';
+	if (!identities.value) {
+		return;
+	}
+
+	identities.value = identities.value.map(d => {
+		// Convert dates to unix time so, they can be sorted in data table
+		d.updatedAt = new Date(d.updated_at).getTime();
+		d.createdAt = new Date(d.created_at).getTime();
+		d.email = d.traits.email;
+
+		if (d.metadata_public) {
+			// Extract roles
+			if (d.metadata_public.roles) {
+				d.roles = d.metadata_public.roles.map(f => f);
+				d.renderedRoles = d.roles.toString();
+			} else {
+				d.renderedRoles = '';
+			}
+
+			// Extract dgraph uid
+			if (d.metadata_public.dgraph_uid) {
+				d.dgraphUID = d.metadata_public.dgraph_uid;
+			}
+		}
+
+		return d;
+	});
+}
+
+function showEditDialog(item) {
+	if (isLoading.value) {
+		return;
+	}
+
+	createNewUser.value = false;
+	editedItem.value = {...item};
+	showCreateIdentityDialog.value = true;
+}
+
+function showCreateDialog() {
+	createNewUser.value = true;
+	editedItem.value = {...defaultItem.value};
+	showCreateIdentityDialog.value = true;
+}
+
+function 	showDeleteDialog(identity) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showDeleteIdentityDialog.value = true;
+	identityToDelete.value = identity;
+}
+
+function showPropertyDialog(identity) {
+	if (isLoading.value) {
+		return;
+	}
+
+	showIdentityPropertyDialog.value = true;
+	identityPropertyDialogData.value = JSON.stringify(identity, null, '\t');
+}
+
+async function deleteIdentity(identity) {
+	isLoading.value = true;
+
+	try {
+		await dakar.authentication.adminDeleteIdentityIdentityUIDGet({identityUID: identity.id});
+		await refreshUsers();
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	closeDeletionDialog();
+}
+
+function 	closeDeletionDialog() {
+	showDeleteIdentityDialog.value = false;
+	identityToDelete.value = null;
+}
+
 </script>
 
 <style scoped>

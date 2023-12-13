@@ -17,7 +17,6 @@ import ToolsPage from '../components/tools/ToolsPage.vue';
 import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
 import HeuristicsPage from '../components/tools/HeuristicsPage.vue';
 import * as Constants from '../constants';
-import Store from '../state';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
 import AddressExclusionsPage from '../components/tools/addressExclusions/AddressExclusionsPage.vue';
@@ -25,35 +24,41 @@ import RecoveryPage from '../components/user/RecoveryPage.vue';
 import WikiPage from '../components/wiki/WikiPage.vue';
 import TextLoaderPage from '../components/TextLoaderPage.vue';
 import ErrorPage from '@/components/ErrorPage.vue';
+import {useLocalStore} from '@/pinia/local';
+import {useNavStore} from '@/pinia/nav';
+import {useMsgStore} from '@/pinia/msg';
 
-function getSessionData() {
-	return Store.getters.getSession;
+let msgStore = null;
+let navStore = null;
+let localStore = null;
+
+// Call this right after the pinia store was created and added to the vue instance
+export function setupStore() {
+	msgStore = useMsgStore();
+	navStore = useNavStore();
+	localStore = useLocalStore();
 }
 
 function isPrivileged() {
-	const sessionData = getSessionData();
-
-	return isPrivilegedIdentity(sessionData) || isAdminIdentity(sessionData);
+	return isPrivilegedIdentity(localStore.getSession) || isAdminIdentity(localStore.getSession);
 }
 
 function isAdmin() {
-	return isAdminIdentity(getSessionData());
+	return isAdminIdentity(localStore.getSession);
 }
 
-async function checkSession(to, next, fn) {
-	const sessionData = getSessionData();
-
-	if (!sessionData) {
-		await Store.dispatch('setFailedRoute', to);
+function checkSession(to, next, fn) {
+	if (!localStore.getSession) {
+		navStore.setFailedRoute(to);
 		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
 		return;
 	}
 
 	// Check if token timeout has been reached
-	if (isSessionExpired(sessionData)) {
-		await Store.dispatch('setFailedRoute', to);
-		await Store.dispatch('setSession', null);
-		await Store.dispatch('addMessage', {type: 'info', text: 'Your session timed out', temporary: true, category: Constants.ROUTE_NAME_LOGIN_PAGE});
+	if (isSessionExpired(localStore.getSession)) {
+		navStore.setFailedRoute(to);
+		localStore.setSession(null);
+		msgStore.addMessage({type: 'info', text: 'Your session timed out', temporary: true, category: Constants.ROUTE_NAME_LOGIN_PAGE});
 		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
 		return;
 	}
@@ -66,7 +71,7 @@ async function checkSession(to, next, fn) {
 	next();
 }
 
-const router = createRouter({
+export const router = createRouter({
 	history: createWebHistory(),
 	routes: [
 		{
@@ -81,7 +86,7 @@ const router = createRouter({
 			component: StatusPage,
 			meta: {title: 'Status'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isPrivileged);
+				checkSession(to, next, isPrivileged);
 			},
 		},
 		{
@@ -108,7 +113,7 @@ const router = createRouter({
 			component: HeuristicEditorPage,
 			meta: {title: 'Heuristic'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isPrivileged);
+				checkSession(to, next, isPrivileged);
 			},
 		},
 		{
@@ -124,7 +129,7 @@ const router = createRouter({
 			component: WikiPage,
 			meta: {title: 'Wiki'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isPrivileged);
+				checkSession(to, next, isPrivileged);
 			},
 		},
 		{
@@ -135,14 +140,14 @@ const router = createRouter({
 			component: WikiPage,
 			meta: {title: 'Wiki'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isPrivileged);
+				checkSession(to, next, isPrivileged);
 			},
 		},
 		{
 			path: '/recovery',
 			name: Constants.ROUTE_NAME_ACCOUNT_RECOVERY,
 			component: RecoveryPage,
-			meta: {title: 'Password Reset'},
+			meta: {title: 'Account Recovery'},
 		},
 		{
 			path: '/settings',
@@ -150,7 +155,7 @@ const router = createRouter({
 			meta: {title: 'Settings'},
 			children: [
 				{
-					path: 'profile',
+					path: 'profile/:tabName?',
 					name: Constants.ROUTE_NAME_USER_PROFILE_PAGE,
 					component: ProfilePage,
 				},
@@ -161,7 +166,7 @@ const router = createRouter({
 			component: ToolsPage,
 			meta: {title: 'Tools'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isPrivileged);
+				checkSession(to, next, isPrivileged);
 			},
 			children: [
 				{
@@ -202,7 +207,7 @@ const router = createRouter({
 			component: AdministrationPage,
 			meta: {title: 'User Administration'},
 			async beforeEnter(to, from, next) {
-				await checkSession(to, next, isAdmin);
+				checkSession(to, next, isAdmin);
 			},
 		},
 		{
@@ -265,13 +270,12 @@ const router = createRouter({
 	],
 });
 
-router.beforeEach(async (to, from) => {
+router.beforeEach((to, from) => {
 	if (from && to.name !== from.name) {
 		// Clear all notifications belonging to the previous page
-		await Store.dispatch('filterMessages', from.name);
+		msgStore.filterMessages(from.name);
 	}
 
 	return true;
 });
 
-export default router;

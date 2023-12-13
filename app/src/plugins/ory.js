@@ -1,5 +1,5 @@
 import {
-	Configuration, OAuth2Api, IdentityApi, FrontendApi,
+	Configuration, FrontendApi,
 } from '@ory/client';
 
 const config = new Configuration({
@@ -13,7 +13,5 @@ const config = new Configuration({
 });
 
 export default {
-	identity: new IdentityApi(config),
 	frontend: new FrontendApi(config),
-	oauth2: new OAuth2Api(config),
 };

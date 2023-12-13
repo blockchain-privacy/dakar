@@ -1,5 +1,12 @@
-import * as d3 from 'd3';
 import {isFunction} from '@/utilities';
+import {select as d3Select} from 'd3-selection';
+import {scaleTime, scaleLinear} from 'd3-scale';
+import {timeTickInterval} from 'd3-time';
+import {bin, max, group} from 'd3-array';
+import {transition} from 'd3-transition';
+import {easeLinear} from 'd3-ease';
+import {axisBottom, axisLeft} from 'd3-axis';
+import {format} from 'd3-format';
 
 // AddPercentageToDate returns a new date which has a percentage of duration added
 function addPercentageToDate(date, duration, percentage) {
@@ -82,7 +89,7 @@ export default class Histogram {
 		const lowestRange = addPercentageToDate(lowestDate, duration, -0.03);
 		const highestRange = addPercentageToDate(highestDate, duration, 0.03);
 
-		const svg = d3.select(`#${this.svgId}`);
+		const svg = d3Select(`#${this.svgId}`);
 
 		const margin = {
 			top: 10, right: 10, bottom: 50, left: 45,
@@ -91,14 +98,14 @@ export default class Histogram {
 		const height = this.height - margin.top - margin.bottom;
 
 		// Set the ranges
-		const x = d3.scaleTime().domain([lowestRange, highestRange]).rangeRound([0, width]);
-		const y = d3.scaleLinear().range([height, 0]);
+		const x = scaleTime().domain([lowestRange, highestRange]).rangeRound([0, width]);
+		const y = scaleLinear().range([height, 0]);
 
 		// Set the parameters for the histogram
-		const histogram = d3.bin()
+		const histogram = bin()
 			.value(d => d.dateTime)
 			.domain(x.domain())
-			.thresholds(x.ticks(d3.timeTickInterval(lowestRange, highestRange, 40)));
+			.thresholds(x.ticks(timeTickInterval(lowestRange, highestRange, 40)));
 
 		const svgGroup = svg
 			.attr('viewBox', `0 0 ${this.width} ${this.height}`)
@@ -109,7 +116,7 @@ export default class Histogram {
 		const bins = histogram(detailArray);
 
 		// Scale the range of the data in the y domain
-		y.domain([0, d3.max(bins, d => d.length)]);
+		y.domain([0, max(bins, d => d.length)]);
 
 		let bars;
 		if (categories.length === 0) {
@@ -136,7 +143,7 @@ export default class Histogram {
 					let parentSize = 0;
 
 					// All data of d grouped by privacy type
-					const privacyGroups = d3.group(d, e => e.privacytype);
+					const privacyGroups = group(d, e => e.privacytype);
 
 					if (privacyGroups.size === 0) {
 						return elements;
@@ -182,18 +189,18 @@ export default class Histogram {
 				})
 			// eslint-disable-next-line func-names
 				.on('mouseout', function mouseOut() {
-					d3.select(this).attr('opacity', 0);
+					d3Select(this).attr('opacity', 0);
 				})
 			// eslint-disable-next-line func-names
 				.on('mouseover', function mouseOver() {
-					d3.select(this).attr('opacity', 1);
+					d3Select(this).attr('opacity', 1);
 				});
 		}
 
 		if (this.enableTransition) {
 			bars
 				.attr('transform', d => `translate(${0},${y(d.length)})`)
-				.transition(d3.transition().duration(300).ease(d3.easeLinear))
+				.transition(transition().duration(300).ease(easeLinear))
 				.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
 		} else {
 			bars.attr('transform', d => `translate(${x(d.x0)},${y(d.length)})`);
@@ -202,7 +209,7 @@ export default class Histogram {
 		// Add the x Axis
 		svgGroup.append('g')
 			.attr('transform', `translate(0,${height})`)
-			.call(d3.axisBottom(x));
+			.call(axisBottom(x));
 
 		// Add x title description
 		svgGroup.append('text')
@@ -222,8 +229,8 @@ export default class Histogram {
 
 		// Add the y Axis
 		svgGroup.append('g')
-			.call(d3.axisLeft(y).tickValues(yAxisTicks)
-				.tickFormat(d3.format('d')));
+			.call(axisLeft(y).tickValues(yAxisTicks)
+				.tickFormat(format('d')));
 
 		// Add y title
 		svgGroup.append('text')

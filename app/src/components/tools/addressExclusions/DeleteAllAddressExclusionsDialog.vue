@@ -35,48 +35,53 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-	name: 'DeleteAllAddressExclusionsDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-		count: {type: Number, required: true},
-	},
-	emits: ['deleted', 'update:modelValue'],
-	data() {
-		return {
-			isLoading: false,
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		async deleteAllAddressExclusions() {
-			this.isLoading = true;
+<script setup>
+import {computed, inject, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-			try {
-				await this.dakar.addressExclusion.deleteAllAddressExclusionsGet();
-				this.$emit('deleted');
-			} catch (e) {
-				this.setPersistentErrorMessage(e);
-			}
+const dakar = inject('dakar');
+const msgStore = useMsgStore();
+const route = useRoute();
 
-			this.isLoading = false;
-			this.show = false;
-		},
+const props = defineProps({
+	modelValue: {type: Boolean, required: true},
+	count: {type: Number, required: true},
+});
+
+const emit = defineEmits(['deleted', 'update:modelValue']);
+
+const isLoading = ref(false);
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
+function setPersistentErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+async function deleteAllAddressExclusions() {
+	isLoading.value = true;
+
+	try {
+		await dakar.addressExclusion.deleteAllAddressExclusionsGet();
+		emit('deleted');
+	} catch (e) {
+		setPersistentErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
+
 </script>
 
 <style scoped>

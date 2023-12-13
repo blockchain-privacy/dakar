@@ -56,7 +56,7 @@
   </div>
 </template>
 
-<script>
+<script setup>
 import {
 	isUiNodeInputAttributes,
 	isUiNodeImageAttributes,
@@ -67,26 +67,18 @@ import {
 import OryUiNodeInput from './OryUiNodeInput.vue';
 import OryUiMessage from './OryUiMessage.vue';
 
-export default {
-	name: 'OryUiNode',
-	components: {OryUiMessage, OryUiNodeInput},
-	props: {
-		node: {type: Object, required: true},
-		name: {type: String, required: true},
-		submitEnabled: {type: Boolean, require: false, default: true},
-	},
-	emits: ['submit'],
-	methods: {
-		isUiNodeInputAttributes,
-		isUiNodeImageAttributes,
-		isUiNodeAnchorAttributes,
-		isUiNodeScriptAttributes,
-		isUiNodeTextAttributes,
-		propagateSubmitEvent(btnName) {
-			this.$emit('submit', btnName);
-		},
-	},
-};
+defineProps({
+	node: {type: Object, required: true},
+	name: {type: String, required: true},
+	submitEnabled: {type: Boolean, require: false, default: true},
+});
+
+const emit = defineEmits(['submit']);
+
+function propagateSubmitEvent(btnName) {
+	emit('submit', btnName);
+}
+
 </script>
 
 <style scoped>

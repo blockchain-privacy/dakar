@@ -2,39 +2,39 @@
   <v-layout class="fill-height">
     <v-navigation-drawer>
       <v-list-item
-        :prepend-icon="icon.mdiToolbox"
+        :prepend-icon="mdiToolbox"
         title="Tools"
       />
       <v-divider />
       <v-list :nav="true">
         <v-list-item
-          :to="{ name: heuristicsPage}"
-          :prepend-icon="icon.mdiGraph"
+          :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}"
+          :prepend-icon="mdiGraph"
           title="Heuristics"
         />
         <v-list-item
-          :to="{ name: attributionsPage}"
-          :prepend-icon="icon.mdiTag"
+          :to="{ name: ROUTE_NAME_ATTRIBUTIONS}"
+          :prepend-icon="mdiTag"
           title="Attributions"
         />
         <v-list-item
-          :to="{ name: clusterOverviewPage}"
-          :prepend-icon="icon.mdiMerge"
+          :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
+          :prepend-icon="mdiMerge"
           title="Custom Clusters"
         />
         <v-list-item
-          :to="{ name: addressExclusionPage}"
-          :prepend-icon="icon.mdiPlaylistRemove"
+          :to="{ name: ROUTE_NAME_ADDRESS_EXCLUSIONS}"
+          :prepend-icon="mdiPlaylistRemove"
           title="Address Exclusions"
         />
         <v-list-item
-          :to="{ name: shortestPathPage}"
-          :prepend-icon="icon.mdiChartTimelineVariant"
+          :to="{ name: ROUTE_NAME_SHORTEST_PATH_PAGE}"
+          :prepend-icon="mdiChartTimelineVariant"
           title="Shortest Path"
         />
         <v-list-item
-          :to="{ name: connectionLookupPage}"
-          :prepend-icon="icon.mdiTextBoxSearch"
+          :to="{ name: ROUTE_NAME_CONNECTION_LOOKUP_PAGE}"
+          :prepend-icon="mdiTextBoxSearch"
           title="Connection Lookup"
         />
       </v-list>
@@ -56,7 +56,7 @@
   </v-layout>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiGraph, mdiChartTimelineVariant, mdiToolbox, mdiTextBoxSearch, mdiMerge,
 	mdiTag, mdiPlaylistRemove,
@@ -70,29 +70,6 @@ import {
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 
-export default {
-	name: 'ToolsPage',
-	components: {FadeTransition},
-	data() {
-		return {
-			heuristicsPage: ROUTE_NAME_USER_HEURISTIC_PAGE,
-			shortestPathPage: ROUTE_NAME_SHORTEST_PATH_PAGE,
-			connectionLookupPage: ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-			clusterOverviewPage: ROUTE_NAME_CLUSTER_OVERVIEW,
-			attributionsPage: ROUTE_NAME_ATTRIBUTIONS,
-			addressExclusionPage: ROUTE_NAME_ADDRESS_EXCLUSIONS,
-			icon: {
-				mdiGraph,
-				mdiChartTimelineVariant,
-				mdiToolbox,
-				mdiTextBoxSearch,
-				mdiMerge,
-				mdiTag,
-				mdiPlaylistRemove,
-			},
-		};
-	},
-};
 </script>
 
 <style scoped>

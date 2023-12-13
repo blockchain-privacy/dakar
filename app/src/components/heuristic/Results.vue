@@ -14,7 +14,7 @@
         :flat="true"
         hide-details
         style="min-width: 200px"
-        :append-inner-icon="icons.mdiMagnify"
+        :append-inner-icon="mdiMagnify"
         label="Filter by tag and transaction hash"
       />
       <div class="d-flex align-center flex-wrap">
@@ -36,10 +36,10 @@
           density="default"
         >
           <v-btn :value="false">
-            <v-icon>{{ icons.mdiArrowUp }}</v-icon>
+            <v-icon>{{ mdiArrowUp }}</v-icon>
           </v-btn>
           <v-btn :value="true">
-            <v-icon>{{ icons.mdiArrowDown }}</v-icon>
+            <v-icon>{{ mdiArrowDown }}</v-icon>
           </v-btn>
         </v-btn-toggle>
       </div>
@@ -88,7 +88,7 @@
         :disabled="numberOfPages === 1"
         @click="formerPage"
       >
-        <v-icon :icon="icons.mdiChevronLeft" />
+        <v-icon :icon="mdiChevronLeft" />
       </v-btn>
       <v-btn
         icon
@@ -96,148 +96,132 @@
         :disabled="numberOfPages === 1"
         @click="nextPage"
       >
-        <v-icon :icon="icons.mdiChevronRight" />
+        <v-icon :icon="mdiChevronRight" />
       </v-btn>
     </div>
   </v-container>
 </template>
 
-<script>
+<script setup>
 import {
 	mdiChevronLeft, mdiChevronRight, mdiMagnify,
-	mdiArrowUp, mdiArrowDown,	mdiChevronDown,
+	mdiArrowUp, mdiArrowDown,
 } from '@mdi/js';
 import AttributionTag from '../tools/attributions/AttributionTag.vue';
 import ResultItem from '@/components/heuristic/ResultItem.vue';
+import {computed, onMounted, onUpdated, ref} from 'vue';
 
-export default {
-	name: 'Results',
-	components: {ResultItem, AttributionTag},
-	props: {
-		resultItems: {type: Array, required: true},
-	},
-	data() {
-		return {
-			results: [],
-			sortKey: 'transactionCount',
-			sortDesc: true,
-			itemsPerPage: 15,
-			itemsPerPageArray: [4, 8, 12],
-			search: '',
-			page: 1,
-			keys: [
-				{title: 'Number of Transactions', key: 'transactionCount'},
-				{title: 'Number of Attributions', key: 'attributionCount'},
-			],
-			icons: {
-				mdiChevronLeft,
-				mdiChevronRight,
-				mdiMagnify,
-				mdiArrowUp,
-				mdiArrowDown,
-				mdiChevronDown,
-			},
-		};
-	},
-	computed: {
-		sortBy() {
-			return [{key: this.sortKey, order: this.sortDesc}];
-		},
-		numberOfPages() {
-			return Math.ceil(this.resultItems.length / this.itemsPerPage);
-		},
-		clusters() {
-			if (!this.results) {
-				return [];
+const props = defineProps({resultItems: {type: Array, required: true}});
+
+const itemsPerPage = 15;
+const keys = [
+	{title: 'Number of Transactions', key: 'transactionCount'},
+	{title: 'Number of Attributions', key: 'attributionCount'},
+];
+
+const results = ref([]);
+const sortKey = ref('transactionCount');
+const sortDesc = ref(true);
+const search = ref('');
+const page = ref(1);
+
+const numberOfPages = computed(() => Math.ceil(props.resultItems.length / itemsPerPage));
+const clusters = computed(() => {
+	if (!results.value) {
+		return [];
+	}
+
+	const sortedResults = results.value.toSorted((a, b) => {
+		let valA;
+		let valB;
+
+		if (sortKey.value === 'transactionCount') {
+			valA = a.transactionCount;
+			valB = b.transactionCount;
+		} else {
+			valA = a.attributionCount;
+			valB = b.attributionCount;
+		}
+
+		if (sortDesc.value) {
+			return valB - valA;
+		}
+
+		return valA - valB;
+	});
+
+	if (!search.value) {
+		return sortedResults;
+	}
+
+	const query = search.value.trim();
+
+	// Filter items based on search query and set counts
+	return sortedResults.filter(cluster => {
+		// Check if any transaction hash contains the search query
+		for (const tx of cluster.txs) {
+			if (tx.txhash.includes(query)) {
+				return true;
 			}
+		}
 
-			const sortedResults = this.results.toSorted((a, b) => {
-				let valA;
-				let valB;
-
-				if (this.sortKey === 'transactionCount') {
-					valA = a.transactionCount;
-					valB = b.transactionCount;
-				} else {
-					valA = a.attributionCount;
-					valB = b.attributionCount;
+		// Check if any attribution contains the search query
+		if (cluster.attributions) {
+			for (const attribution of cluster.attributions) {
+				if (attribution.tag.includes(query)) {
+					return true;
 				}
-
-				if (this.sortDesc) {
-					return valB - valA;
-				}
-
-				return valA - valB;
-			});
-
-			if (!this.search) {
-				return sortedResults;
 			}
+		}
 
-			const query = this.search.trim();
+		return false;
+	});
+});
 
-			// Filter items based on search query and set counts
-			return sortedResults.filter(cluster => {
-				// Check if any transaction hash contains the search query
-				for (const tx of cluster.txs) {
-					if (tx.txhash.includes(query)) {
-						return true;
-					}
-				}
+// Hooks
+onMounted(() => {
+	setAdditionalAttributes();
+});
 
-				// Check if any attribution contains the search query
-				if (cluster.attributions) {
-					for (const attribution of cluster.attributions) {
-						if (attribution.tag.includes(query)) {
-							return true;
-						}
-					}
-				}
+onUpdated(() => {
+	setAdditionalAttributes();
+});
 
-				return false;
-			});
-		},
-	},
-	mounted() {
-		this.setAdditionalAttributes();
-	},
-	updated() {
-		this.setAdditionalAttributes();
-	},
-	methods: {
-		setAdditionalAttributes() {
-			let clusterCounter = 0;
-			this.results = this.resultItems.map(cluster => {
-				cluster.id = clusterCounter;
-				clusterCounter += 1;
+// Functions
+function setAdditionalAttributes() {
+	let clusterCounter = 0;
+	results.value = props.resultItems.map(cluster => {
+		cluster.id = clusterCounter;
+		clusterCounter += 1;
 
-				// Set transaction count
-				cluster.transactionCount = 0;
-				if (cluster.txs) {
-					cluster.transactionCount = cluster.txs.length;
-				}
+		// Set transaction count
+		cluster.transactionCount = 0;
+		if (cluster.txs) {
+			cluster.transactionCount = cluster.txs.length;
+		}
 
-				// Set attribution count
-				cluster.attributionCount = 0;
-				if (cluster.attributions) {
-					cluster.attributionCount = cluster.attributions.length;
-				}
+		// Set attribution count
+		cluster.attributionCount = 0;
+		if (cluster.attributions) {
+			cluster.attributionCount = cluster.attributions.length;
+		}
 
-				return cluster;
-			});
-		},
-		nextPage() {
-			if (this.page + 1 <= this.numberOfPages) {
-				this.page += 1;
-			}
-		},
-		formerPage() {
-			if (this.page - 1 >= 1) {
-				this.page -= 1;
-			}
-		},
-	},
-};
+		return cluster;
+	});
+}
+
+function nextPage() {
+	if (page.value + 1 <= numberOfPages.value) {
+		page.value += 1;
+	}
+}
+
+function formerPage() {
+	if (page.value - 1 >= 1) {
+		page.value -= 1;
+	}
+}
+
 </script>
 
 <style scoped>

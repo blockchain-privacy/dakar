@@ -35,54 +35,57 @@
   </v-dialog>
 </template>
 
-<script>
-export default {
-	name: 'DeleteAllClustersDialog',
-	props: {
-		modelValue: {type: Boolean, required: true},
-	},
-	emits: ['update:modelValue', 'deleted'],
-	data() {
-		return {
-			isLoading: false,
-		};
-	},
-	computed: {
-		show: {
-			get() {
-				return this.modelValue;
-			},
-			set(value) {
-				this.$emit('update:modelValue', value);
-			},
-		},
-	},
-	methods: {
-		setPersistentErrorMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'error', temporary: false, category: this.$route.name});
-		},
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		async deleteAllClusters() {
-			this.isLoading = true;
+<script setup>
+import {computed, inject, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-			try {
-				const response = await this.dakar.cluster.deleteAllClustersGet();
-				if (response.msg) {
-					this.setInfoMessage(response.msg);
-				}
+const dakar = inject('dakar');
+const route = useRoute();
+const msgStore = useMsgStore();
 
-				this.$emit('deleted');
-			} catch (e) {
-				this.setPersistentErrorMessage(e);
-			}
+const props = defineProps({modelValue: {type: Boolean, required: true}});
+const emit = defineEmits(['update:modelValue', 'deleted']);
 
-			this.isLoading = false;
-			this.show = false;
-		},
+const isLoading = ref(false);
+
+// Computed
+const show = computed({
+	get() {
+		return props.modelValue;
 	},
-};
+	set(value) {
+		emit('update:modelValue', value);
+	},
+});
+
+// Functions
+function setPersistentErrorMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+}
+
+async function deleteAllClusters() {
+	isLoading.value = true;
+
+	try {
+		const response = await dakar.cluster.deleteAllClustersGet();
+		if (response.msg) {
+			setInfoMessage(response.msg);
+		}
+
+		emit('deleted');
+	} catch (e) {
+		setPersistentErrorMessage(e);
+	}
+
+	isLoading.value = false;
+	show.value = false;
+}
+
 </script>
 
 <style scoped>

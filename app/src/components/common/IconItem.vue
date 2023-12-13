@@ -27,7 +27,7 @@
             <v-icon
               size="x-small"
               v-bind="props"
-              :icon="icons.mdiHelpCircleOutline"
+              :icon="mdiHelpCircleOutline"
             />
           </template>
         </v-tooltip>
@@ -39,24 +39,17 @@
   </v-list-item>
 </template>
 
-<script>
+<script setup>
 import {mdiHelpCircleOutline} from '@mdi/js';
 
-export default {
-	name: 'IconItem',
-	props: {
-		title: {type: String, required: true},
-		icon: {type: String, required: true},
-		tooltip: {type: String, default: ''},
-		isColor: {type: Boolean, default: false},
-		isRed: {type: Boolean, default: false},
-	},
-	data() {
-		return {
-			icons: {mdiHelpCircleOutline},
-		};
-	},
-};
+defineProps({
+	title: {type: String, required: true},
+	icon: {type: String, required: true},
+	tooltip: {type: String, default: ''},
+	isColor: {type: Boolean, default: false},
+	isRed: {type: Boolean, default: false},
+});
+
 </script>
 
 <style scoped>

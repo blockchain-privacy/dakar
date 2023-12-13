@@ -12,7 +12,7 @@
           </wiki-tooltip>
           are attached to this address. New clusters can be created at the
           <router-link
-            :to="{ name: clusterOverview}"
+            :to="{ name: ROUTE_NAME_CLUSTER_OVERVIEW}"
             class="d-inline-block"
           >
             custom clusters
@@ -25,9 +25,10 @@
             icon
             variant="text"
             class="ms-auto"
+            :loading="isClusterSummaryLoading"
             @click="downloadClusterSummary"
           >
-            <v-icon>{{ icon.mdiFileDownloadOutline }}</v-icon>
+            <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
           </v-btn>
         </v-fade-transition>
       </v-card-text>
@@ -79,7 +80,7 @@
             variant="text"
             @click="deleteCluster(c.uid, c.addressCount)"
           >
-            <v-icon>{{ icon.mdiDelete }}</v-icon>
+            <v-icon>{{ mdiDelete }}</v-icon>
           </v-btn>
         </v-card-title>
         <v-card-text v-if="c.attributions">
@@ -128,7 +129,7 @@
                 item-key="addresshash"
               >
                 <template #item.addresshash="{ item }">
-                  <router-link :to="{ name: addressRoute, params: { id: item.addresshash }}">
+                  <router-link :to="{ name: ROUTE_NAME_ADDRESS_PAGE, params: { id: item.addresshash }}">
                     {{ item.addresshash }}
                   </router-link>
                 </template>
@@ -142,163 +143,137 @@
       </v-card>
     </div>
     <delete-cluster-dialog
-      v-model="deleteClusterDialog.show"
-      :cluster-uid="deleteClusterDialog.uid"
-      :num-addresses="deleteClusterDialog.size"
+      v-model="deleteClusterDialogModel.show"
+      :cluster-uid="deleteClusterDialogModel.uid"
+      :num-addresses="deleteClusterDialogModel.size"
       @deleted="doLookup"
     />
   </div>
 </template>
 
-<script>
+<script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {
-	CLUSTER_TYPE_FMI,
-	CLUSTER_TYPE_HMI,
-	ROUTE_NAME_ADDRESS_PAGE,
-	ROUTE_NAME_BLOCK_PAGE,
-	ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_TRANSACTION_PAGE,
-} from '@/constants';
+import {CLUSTER_TYPE_FMI, CLUSTER_TYPE_HMI, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
 import {getClusterTypeLabel, getCurrentDate, handleError} from '@/utilities';
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
 import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
+import {inject, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'ClusterLookup',
-	components: {
-		AttributionTag, ClusterDetails, DeleteClusterDialog, WikiTooltip,
+const dakar = inject('dakar');
+const route = useRoute();
+const context = {addMessage: useMsgStore().addMessage, $route: route};
+
+const props = defineProps({addressHash: {type: String, required: true}});
+
+// V-model
+const isLoading = ref(false);
+const clusters = ref([]);
+const isClusterSummaryLoading = ref(false);
+const showEmptyText = ref(false);
+const tableHeaders = [
+	{
+		title: 'Address Hash',
+		align: 'start',
+		sortable: false,
+		key: 'addresshash',
 	},
-	props: {
-		addressHash: {type: String, required: true},
-	},
-	data() {
-		return {
-			icon: {
-				mdiFileDownloadOutline, mdiDelete,
-			},
-			blockRoute: ROUTE_NAME_BLOCK_PAGE,
-			txRoute: ROUTE_NAME_TRANSACTION_PAGE,
-			addressRoute: ROUTE_NAME_ADDRESS_PAGE,
-			clusterOverview: ROUTE_NAME_CLUSTER_OVERVIEW,
-			// V-model
-			isLoading: false,
-			clusters: [],
-			isClusterSummaryLoading: false,
-			showEmptyText: false,
-			tableHeaders: [
-				{
-					title: 'Address Hash',
-					align: 'start',
-					sortable: false,
-					key: 'addresshash',
-				},
-				{title: 'Output Count', key: 'output_count'},
-				{title: 'Unspent Output Count', key: 'unspent_output_count'},
-			],
-			deleteClusterDialog: {
-				show: false,
-				uid: '',
-				size: -1,
-			},
-		};
-	},
-	computed: {
-		isSearchable() {
-			return this.addressHash && this.addressHash.trim().length > 0;
-		},
-	},
-	created() {
-		this.doLookup();
-	},
-	methods: {
-		getClusterTypeLabel,
-		setInfoMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'info', temporary: true, category: this.$route.name});
-		},
-		setWarningMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: this.$route.name});
-		},
-		getQuery() {
-			return {addressHash: this.addressHash.trim()};
-		},
-		async doLookup() {
-			this.isLoading = true;
-			this.showEmptyText = false;
-			this.clusters = [];
+	{title: 'Output Count', key: 'output_count'},
+	{title: 'Unspent Output Count', key: 'unspent_output_count'},
+];
+const deleteClusterDialogModel = ref({
+	show: false,
+	uid: '',
+	size: -1,
+});
 
-			try {
-				const response = await this.dakar.cluster.clusterLookupAddressHashGet(this.getQuery());
+// Functions
+function getQuery() {
+	return {addressHash: props.addressHash.trim()};
+}
 
-				if (response.clusters && response.clusters.length > 0) {
-					const clusterMap = new Map();
-					const clusters = [];
+async function doLookup() {
+	isLoading.value = true;
+	showEmptyText.value = false;
+	clusters.value = [];
 
-					// Add all clusters to array if they are not hmi and fmi
-					response.clusters.forEach(d => {
-						clusterMap.set(d.type, d);
-						if (d.type !== CLUSTER_TYPE_HMI
-              && d.type !== CLUSTER_TYPE_FMI) {
-							clusters.push(d);
-						}
-					});
+	try {
+		const response = await dakar.cluster.clusterLookupAddressHashGet(getQuery());
 
-					// Insert hmi cluster into fmi cluster and add the composite cluster into the array
-					if (clusterMap.has(CLUSTER_TYPE_FMI)) {
-						const fmiCluster = clusterMap.get(CLUSTER_TYPE_FMI);
-						if (clusterMap.has(CLUSTER_TYPE_HMI)) {
-							fmiCluster.hmi = clusterMap.get(CLUSTER_TYPE_HMI);
-						}
+		if (response.clusters && response.clusters.length > 0) {
+			const clusterMap = new Map();
+			const filteredCluster = [];
 
-						clusters.push(fmiCluster);
-					}
-
-					this.clusters = clusters;
-				} else {
-					this.showEmptyText = true;
+			// Add all clusters to array if they are not hmi and fmi
+			response.clusters.forEach(d => {
+				clusterMap.set(d.type, d);
+				if (d.type !== CLUSTER_TYPE_HMI
+            && d.type !== CLUSTER_TYPE_FMI) {
+					filteredCluster.push(d);
 				}
-			} catch (e) {
-				handleError(this, e);
+			});
+
+			// Insert hmi cluster into fmi cluster and add the composite cluster into the array
+			if (clusterMap.has(CLUSTER_TYPE_FMI)) {
+				const fmiCluster = clusterMap.get(CLUSTER_TYPE_FMI);
+				if (clusterMap.has(CLUSTER_TYPE_HMI)) {
+					fmiCluster.hmi = clusterMap.get(CLUSTER_TYPE_HMI);
+				}
+
+				filteredCluster.push(fmiCluster);
 			}
 
-			this.isLoading = false;
-		},
-		async downloadClusterSummary() {
-			this.isClusterSummaryLoading = true;
-			const fileName = this.addressHash;
+			clusters.value = filteredCluster;
+		} else {
+			showEmptyText.value = true;
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
 
-			try {
-				const response = await 	this.dakar.cluster.clusterSummaryAddressHashGet({addressHash: this.addressHash.trim()});
+	isLoading.value = false;
+}
 
-				// Looks hacky, but it is the only way with good UX
-				const a = document.createElement('a');
-				a.href = URL.createObjectURL(response);
+async function downloadClusterSummary() {
+	isClusterSummaryLoading.value = true;
+	const fileName = props.addressHash.trim();
 
-				a.setAttribute(
-					'download',
-					`cluster_summary_${getCurrentDate()}_${fileName}.csv`,
-				);
-				a.click();
-				a.remove();
-			} catch (e) {
-				handleError(this, e);
-			}
+	try {
+		const response = await 	dakar.cluster.clusterSummaryAddressHashGet({addressHash: props.addressHash.trim()});
 
-			this.isClusterSummaryLoading = false;
-		},
-		deleteCluster(clusterUid, clusterSize) {
-			if (!clusterUid || clusterSize <= 0) {
-				return;
-			}
+		// Looks hacky, but it is the only way with good UX
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(response);
 
-			this.deleteClusterDialog.uid = clusterUid;
-			this.deleteClusterDialog.size = clusterSize;
-			this.deleteClusterDialog.show = true;
-		},
-	},
-};
+		a.setAttribute(
+			'download',
+			`cluster_summary_${getCurrentDate()}_${fileName}.csv`,
+		);
+		a.click();
+		a.remove();
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isClusterSummaryLoading.value = false;
+}
+
+function deleteCluster(clusterUid, clusterSize) {
+	if (!clusterUid || clusterSize <= 0) {
+		return;
+	}
+
+	deleteClusterDialogModel.value.uid = clusterUid;
+	deleteClusterDialogModel.value.size = clusterSize;
+	deleteClusterDialogModel.value.show = true;
+}
+
+// Initial lookup
+doLookup();
+
 </script>
 
 <style scoped>

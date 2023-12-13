@@ -1,5 +1,6 @@
 <template>
   <v-text-field
+    id="query-input"
     v-model="query"
     style="margin: 23px 0 0 0;min-width:220px"
     variant="outlined"
@@ -7,171 +8,166 @@
     color="primary"
     single-line
     label="Search for blocks, transactions and addresses"
-    :append-inner-icon="icon.mdiMagnify"
+    :append-inner-icon="mdiMagnify"
     :rules="[isValidQuery]"
     @click:append-inner="handleInput(query)"
     @keydown.enter="handleInput(query)"
   />
 </template>
 
-<script>
+<script setup>
+import {mdiMagnify} from '@mdi/js';
 import {
-	mdiMagnify,
-} from '@mdi/js';
-import * as Constants from '@/constants';
+	RESPONSE_EMPTY, RESPONSE_TYPE_ADDRESS, RESPONSE_TYPE_BLOCK, RESPONSE_TYPE_TRANSACTION,
+	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
+} from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
+import {computed, inject, ref, watch} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
+import {useExplorerStore} from '@/pinia/explorer';
+import {useMsgStore} from '@/pinia/msg';
+import {useNavStore} from '@/pinia/nav';
+import {storeToRefs} from 'pinia';
 
-export default {
-	name: 'QueryInput',
-	data() {
-		return {
-			// Query is not managed by the vuex store
-			// as it only needs to be accessed by this component
-			query: '',
-			lastQuery: '',
-			icon: {
-				mdiMagnify,
-			},
-		};
-	},
-	computed: {
-		searchResultType: {
-			get() {
-				return this.$store.getters.getSearchResultType;
-			},
-		},
-		isPushFromUserInput: {
-			async set(value) {
-				await this.$store.dispatch('setPushFromUserInput', value);
-			},
-			get() {
-				return this.$store.getters.getPushFromUserInput;
-			},
-		},
-	},
-	watch: {
-		$route() {
-			this.lastQuery = '';
-			this.newRouting(this);
-		},
-	},
-	created() {
-		this.newRouting(this);
-	},
-	methods: {
-		isValidQuery,
-		newRouting() {
-			const {id} = this.$route.params;
-			const pushFromUserInput = this.isPushFromUserInput;
+const dakar = inject('dakar');
+const route = useRoute();
+const router = useRouter();
+const msgStore = useMsgStore();
+const explorerStore = useExplorerStore();
+const {pushFromUserInput} = storeToRefs(useNavStore());
+const context = {addMessage: msgStore.addMessage, $route: useRoute()};
 
-			if (pushFromUserInput) {
-				this.isPushFromUserInput = false;
-			}
+const query = ref('');
+let lastQuery = '';
 
-			if (pushFromUserInput || !id
-        || !(this.$route.name === Constants.ROUTE_NAME_BLOCK_PAGE
-          || this.$route.name === Constants.ROUTE_NAME_ADDRESS_PAGE
-          || this.$route.name === Constants.ROUTE_NAME_TRANSACTION_PAGE)) {
-				return;
-			}
+watch(route, () => {
+	lastQuery = '';
+	newRouting();
+});
 
-			switch (this.$route.name) {
-				case Constants.ROUTE_NAME_TRANSACTION_PAGE:
-					this.handleQuery(id, Constants.RESPONSE_TYPE_TRANSACTION);
-					break;
-				case Constants.ROUTE_NAME_BLOCK_PAGE:
-					this.handleQuery(id, Constants.RESPONSE_TYPE_BLOCK);
-					break;
-				case Constants.ROUTE_NAME_ADDRESS_PAGE:
-					this.handleQuery(id, Constants.RESPONSE_TYPE_ADDRESS);
-					break;
-				default:
-					this.handleQuery(id);
-			}
-		},
-		async handleInput(q) {
-			// Template string in case it is a number
-			const query = `${q}`.trim();
-			// Update route only when input is from user and query is different
-			// ignore whitespace and empty queries
-			// Get data for route
-			if (query.length === 0 || query === this.lastQuery || !isValidQueryInput(query) || !await this.handleQuery(query)) {
-				this.setWarningMessage('Input was not valid');
-				return;
-			}
+// Computed
+const searchResultType = computed(() => explorerStore.getSearchResultType);
 
-			// Route to corresponding page
-			switch (this.searchResultType) {
-				case Constants.RESPONSE_EMPTY:
-					await this.$router.push({name: Constants.ROUTE_NAME_NO_RESULTS});
-					break;
-				case Constants.RESPONSE_TYPE_ADDRESS:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: Constants.ROUTE_NAME_ADDRESS_PAGE, params: {id: query}});
-					break;
-				case Constants.RESPONSE_TYPE_BLOCK:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: Constants.ROUTE_NAME_BLOCK_PAGE, params: {id: query}});
-					break;
-				case Constants.RESPONSE_TYPE_TRANSACTION:
-					this.isPushFromUserInput = true;
-					await this.$router.push({name: Constants.ROUTE_NAME_TRANSACTION_PAGE, params: {id: query}});
-					break;
-				default:
-					await this.$router.push({name: Constants.ROUTE_NAME_NO_RESULTS});
-					break;
-			}
-		},
-		async storeResult(promise, action) {
-			try {
-				const response = await promise;
-				this.$store.dispatch(action, response);
-			} catch (e) {
-				handleError(this, e);
-			}
-		},
-		async handleQuery(q, type) {
-			this.query = '';
-			// Template string in case it is a number
-			const query = `${q}`.trim();
+// Functions
+function newRouting() {
+	const {id} = route.params;
+	const isPushFromUserInput = pushFromUserInput.value;
 
-			if (this.lastQuery !== '' && this.lastQuery === query) {
-				return false;
-			}
+	if (isPushFromUserInput) {
+		pushFromUserInput.value = false;
+	}
 
-			this.lastQuery = query;
+	if (isPushFromUserInput || !id
+      || !(route.name === ROUTE_NAME_BLOCK_PAGE
+          || route.name === ROUTE_NAME_ADDRESS_PAGE
+          || route.name === ROUTE_NAME_TRANSACTION_PAGE)) {
+		return;
+	}
 
-			if (!isValidQueryInput(query)) {
-				this.setWarningMessage('Input was not valid');
-				return false;
-			}
+	switch (route.name) {
+		case ROUTE_NAME_TRANSACTION_PAGE:
+			handleQuery(id, RESPONSE_TYPE_TRANSACTION);
+			break;
+		case ROUTE_NAME_BLOCK_PAGE:
+			handleQuery(id, RESPONSE_TYPE_BLOCK);
+			break;
+		case ROUTE_NAME_ADDRESS_PAGE:
+			handleQuery(id, RESPONSE_TYPE_ADDRESS);
+			break;
+		default:
+			handleQuery(id);
+	}
+}
 
-			await this.$store.dispatch('resetMessages');
-			await this.$store.dispatch('setBlockData', null);
-			await this.$store.dispatch('setTransactionData', null);
-			await this.$store.dispatch('setAddressData', null);
+async function handleInput(q) {
+	// Template string in case it is a number
+	const trimmedQuery = `${q}`.trim();
+	// Update route only when input is from user and query is different
+	// ignore whitespace and empty queries
+	// Get data for route
+	if (trimmedQuery.length === 0 || trimmedQuery === lastQuery || !isValidQueryInput(trimmedQuery) || !await handleQuery(trimmedQuery)) {
+		setWarningMessage('Input was not valid');
+		return;
+	}
 
-			switch (type) {
-				case Constants.RESPONSE_TYPE_TRANSACTION:
-					await this.storeResult(this.dakar.data.txHashGet({hash: query}), 'updateTransactionData');
-					break;
-				case Constants.RESPONSE_TYPE_BLOCK:
-					await this.storeResult(this.dakar.data.blkHashGet({hash: query}), 'updateBlockData');
-					break;
-				case Constants.RESPONSE_TYPE_ADDRESS:
-					await this.storeResult(this.dakar.data.addressHashGet({hash: query}), 'updateAddressData');
-					break;
-				default:
-					await this.storeResult(this.dakar.data.searchQueryGet({query}), 'updateSearchResult');
-			}
+	// Route to corresponding page
+	switch (searchResultType.value) {
+		case RESPONSE_EMPTY:
+			await router.push({name: ROUTE_NAME_NO_RESULTS});
+			break;
+		case RESPONSE_TYPE_ADDRESS:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_ADDRESS_PAGE, params: {id: trimmedQuery}});
+			break;
+		case RESPONSE_TYPE_BLOCK:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_BLOCK_PAGE, params: {id: trimmedQuery}});
+			break;
+		case RESPONSE_TYPE_TRANSACTION:
+			pushFromUserInput.value = true;
+			await router.push({name: ROUTE_NAME_TRANSACTION_PAGE, params: {id: trimmedQuery}});
+			break;
+		default:
+			await router.push({name: ROUTE_NAME_NO_RESULTS});
+			break;
+	}
+}
 
-			return true;
-		},
-		setWarningMessage(msg) {
-			this.$store.dispatch('addMessage', {text: msg, type: 'warning', temporary: true, category: this.$route.name});
-		},
-	},
-};
+async function storeResult(promise, action, piniaAction) {
+	try {
+		const response = await promise;
+		piniaAction(response);
+	} catch (e) {
+		handleError(context, e);
+	}
+}
+
+async function handleQuery(q, type) {
+	query.value = '';
+	// Template string in case it is a number
+	const trimmedQuery = `${q}`.trim();
+
+	if (lastQuery !== '' && lastQuery === trimmedQuery) {
+		return false;
+	}
+
+	lastQuery = trimmedQuery;
+
+	if (!isValidQueryInput(trimmedQuery)) {
+		setWarningMessage('Input was not valid');
+		return false;
+	}
+
+	// Reset messages here
+	msgStore.resetMessages();
+	explorerStore.setAddress(null);
+	explorerStore.setBlock(null);
+	explorerStore.setTransaction(null);
+
+	switch (type) {
+		case RESPONSE_TYPE_TRANSACTION:
+			await storeResult(dakar.data.txHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
+			break;
+		case RESPONSE_TYPE_BLOCK:
+			await storeResult(dakar.data.blkHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
+			break;
+		case RESPONSE_TYPE_ADDRESS:
+			await storeResult(dakar.data.addressHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
+			break;
+		default:
+			await storeResult(dakar.data.searchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
+	}
+
+	return true;
+}
+
+function setWarningMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+}
+
+// Initial routing
+newRouting();
+
 </script>
 
 <style scoped>

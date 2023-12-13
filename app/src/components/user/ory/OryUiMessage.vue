@@ -9,13 +9,10 @@
   </v-alert>
 </template>
 
-<script>
-export default {
-	name: 'OryUiMessage',
-	props: {
-		message: {type: Object, required: true},
-	},
-};
+<script setup>
+
+defineProps({message: {type: Object, required: true}});
+
 </script>
 
 <style scoped>

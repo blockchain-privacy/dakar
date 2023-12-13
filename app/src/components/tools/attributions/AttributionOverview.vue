@@ -25,19 +25,19 @@
                     variant="text"
                     v-bind="props"
                   >
-                    <v-icon>{{ icon.mdiDotsVertical }}</v-icon>
+                    <v-icon>{{ mdiDotsVertical }}</v-icon>
                   </v-btn>
                 </template>
                 <v-list>
                   <v-list-item @click="addAttributionDialog = true">
                     <template #prepend>
-                      <v-icon>{{ icon.mdiTagPlus }}</v-icon>
+                      <v-icon>{{ mdiTagPlus }}</v-icon>
                     </template>
                     <v-list-item-title>Import Attributions</v-list-item-title>
                   </v-list-item>
-                  <v-list-item @click="deleteAllAttributionsDialog = true">
+                  <v-list-item @click="deleteAllAttributionsDialogModel = true">
                     <template #prepend>
-                      <v-icon>{{ icon.mdiDelete }}</v-icon>
+                      <v-icon>{{ mdiDelete }}</v-icon>
                     </template>
                     <v-list-item-title>Delete All Attributions</v-list-item-title>
                   </v-list-item>
@@ -50,7 +50,7 @@
                   variant="text"
                   @click="addAttributionDialog = true"
                 >
-                  <v-icon>{{ icon.mdiFileImport }}</v-icon>
+                  <v-icon>{{ mdiFileImport }}</v-icon>
                   Import attributions
                 </v-btn>
               </div>
@@ -63,7 +63,7 @@
         @added="loadOverviewData"
       />
       <delete-all-attributions-dialog
-        v-model="deleteAllAttributionsDialog"
+        v-model="deleteAllAttributionsDialogModel"
         @deleted="loadOverviewData"
       />
     </v-card>
@@ -86,74 +86,62 @@
   </div>
 </template>
 
-<script>
-import {
-	mdiMerge, mdiDelete, mdiDotsVertical,
-	mdiFileImport, mdiTagPlus, mdiClose,
-} from '@mdi/js';
+<script setup>
+import {mdiDelete, mdiDotsVertical,	mdiFileImport, mdiTagPlus} from '@mdi/js';
 import {PAGE_TITLE} from '@/constants';
 import {handleError} from '@/utilities';
 import ImportAttributionDialog from './ImportAttributionsDialog.vue';
 import DeleteAllAttributionsDialog from './DeleteAllAttributionsDialog.vue';
 import AttributionDetails from './AttributionDetails.vue';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
+import {inject, onMounted, ref} from 'vue';
+import {useRoute} from 'vue-router';
+import {useMsgStore} from '@/pinia/msg';
 
-export default {
-	name: 'AttributionOverview',
-	components: {
-		WikiTooltip,
-		AttributionDetails, DeleteAllAttributionsDialog, ImportAttributionDialog,
-	},
-	data() {
-		return {
-			icon: {
-				mdiMerge,
-				mdiDelete,
-				mdiDotsVertical,
-				mdiFileImport,
-				mdiTagPlus,
-				mdiClose,
-			},
-			isLoading: false,
-			addAttributionDialog: false,
-			deleteAllAttributionsDialog: false,
-			items: [],
-			fab: false,
-		};
-	},
-	async mounted() {
-		document.title = `Attribution Overview - ${PAGE_TITLE}`;
-		await this.loadOverviewData();
-	},
-	methods: {
-		async loadOverviewData() {
-			this.isLoading = true;
-			this.items = [];
+const dakar = inject('dakar');
+const route = useRoute();
+const context = {addMessage: useMsgStore().addMessage, $route: route};
 
-			try {
-				const response = await this.dakar.attribution.attributionOverviewGet();
+const isLoading = ref(false);
+const addAttributionDialog = ref(false);
+const deleteAllAttributionsDialogModel = ref(false);
+const items = ref([]);
 
-				if (response.attributions) {
-					// Parse date
-					response.attributions = response.attributions.map(d => {
-						d.ts = new Date(d.ts);
-						return d;
-					});
+// Hooks
+onMounted(async () => {
+	document.title = `Attribution Overview - ${PAGE_TITLE}`;
+	await loadOverviewData();
+});
 
-					// Sort attributions by time stamp
-					this.items = response.attributions.sort((a, b) => b.ts - a.ts);
-				}
-			} catch (e) {
-				handleError(this, e);
-			}
+// Function
+async function loadOverviewData() {
+	isLoading.value = true;
+	items.value = [];
 
-			this.isLoading = false;
-		},
-		handleAttributionDeletion(attributionUid) {
-			this.items = this.items.filter(d => d.uid !== attributionUid);
-		},
-	},
-};
+	try {
+		const response = await dakar.attribution.attributionOverviewGet();
+
+		if (response.attributions) {
+			// Parse date
+			response.attributions = response.attributions.map(d => {
+				d.ts = new Date(d.ts);
+				return d;
+			});
+
+			// Sort attributions by time stamp
+			items.value = response.attributions.sort((a, b) => b.ts - a.ts);
+		}
+	} catch (e) {
+		handleError(context, e);
+	}
+
+	isLoading.value = false;
+}
+
+function handleAttributionDeletion(attributionUid) {
+	items.value = items.value.filter(d => d.uid !== attributionUid);
+}
+
 </script>
 
 <style scoped>
