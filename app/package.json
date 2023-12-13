@@ -13,7 +13,7 @@
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.3.67",
     "@neondark/wikiapi": "^1.2.24",
-    "@ory/client": "^1.4.3",
+    "@ory/client": "^1.4.6",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
@@ -27,19 +27,19 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "pinia": "^2.1.7",
-    "vue": "^3.3.9",
+    "vue": "^3.3.11",
     "vue-router": "^4.2.5",
-    "vuetify": "^3.4.5"
+    "vuetify": "^3.4.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.5.0",
-    "eslint": "^8.54.0",
+    "@vitejs/plugin-vue": "^4.5.2",
+    "eslint": "^8.55.0",
     "eslint-config-xo": "^0.43.1",
-    "eslint-plugin-vue": "^9.18.1",
-    "eslint-plugin-vuetify": "^2.1.0",
+    "eslint-plugin-vue": "^9.19.2",
+    "eslint-plugin-vuetify": "^2.1.1",
     "sass": "^1.69.5",
-    "vite": "^4.5.0",
-    "vite-plugin-vuetify": "^1.0.2"
+    "vite": "^5.0.8",
+    "vite-plugin-vuetify": "^2.0.1"
   },
   "packageManager": "yarn@4.0.2"
 }
