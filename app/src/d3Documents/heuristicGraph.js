@@ -506,12 +506,11 @@ export default class HeuristicGraph {
 		const rgBoundingBox = this.rootGroup.node().getBBox();
 		const rgBoundingRect = this.rootGroup.node().getBoundingClientRect();
 
-		const scaleHeight = svgBoundingRect.height / (rgBoundingRect.height + 50);
-		const scaleWidth = svgBoundingRect.width / (rgBoundingRect.width + 50);
+		const scaleHeight = svgBoundingRect.height / (rgBoundingRect.height + 120);
+		const scaleWidth = svgBoundingRect.width / (rgBoundingRect.width + 100);
 
 		this.rootSvg.call(this.zoom.translateTo, rgBoundingBox.x + rgBoundingBox.width / 2, rgBoundingBox.y + rgBoundingBox.height / 2);
-		// Scale between 0.1 and 5
-		this.rootSvg.call(this.zoom.scaleBy, Math.max(Math.min(scaleHeight, scaleWidth, 5), 0.1));
+		this.rootSvg.call(this.zoom.scaleBy, Math.min(scaleHeight, scaleWidth));
 	}
 
 	// Returns all nodes with their attached attributes from the force simulation performed in draw()

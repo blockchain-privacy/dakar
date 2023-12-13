@@ -2,11 +2,12 @@
   <v-text-field
     id="query-input"
     v-model="query"
-    style="margin: 23px 0 0 0;min-width:220px"
+    :hide-details="true"
+    style="min-width:220px"
     variant="outlined"
     density="compact"
     color="primary"
-    single-line
+    :single-line="true"
     label="Search for blocks, transactions and addresses"
     :append-inner-icon="mdiMagnify"
     :rules="[isValidQuery]"

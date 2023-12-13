@@ -1,7 +1,7 @@
 <template>
   <div
     class="flex-column d-flex"
-    style="height: 100%;"
+    style="height: 100%;position:relative"
   >
     <v-expand-transition>
       <div
@@ -30,94 +30,102 @@
         </v-btn>
       </div>
     </v-expand-transition>
-
-    <v-toolbar
-      density="compact"
-      color="rgb(var(--v-theme-surface))"
-      class="heuristicToolbar"
+    <v-card
+      style="position:absolute; left: 10px; top:10px; z-index:1005; background-color: rgb(var(--v-theme-surface))"
     >
-      <v-toolbar-title class="hidden-md-and-up">
-        {{ transactionHash }}
-      </v-toolbar-title>
-      <v-toolbar-title class="hidden-sm-and-down">
-        <v-icon>{{ mdiTransfer }}</v-icon>
-        Transaction {{ transactionHash }}
-      </v-toolbar-title>
-      <v-btn
-        style="min-width: 32px !important;"
-        class="ms-3 pa-2"
-        variant="outlined"
-        :disabled="banner.show || executionStatus.executing"
-        @click="modifyNode()"
-      >
-        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-        <div class="hidden-sm-and-down">
-          Modify Node
-        </div>
-      </v-btn>
-      <v-btn
-        style="min-width: 32px !important;"
-        class="ms-3 pa-2"
-        variant="outlined"
-        :disabled="banner.show || executionStatus.executing"
-        @click="addRandomNode()"
-      >
-        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-        <div class="hidden-sm-and-down">
-          Add Node
-        </div>
-      </v-btn>
-      <v-btn
-        style="min-width: 32px !important;"
-        class="ms-3 pa-2"
-        variant="outlined"
-        :disabled="banner.show || executionStatus.executing"
-        @click="hg.centerGraph()"
-      >
-        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-        <div class="hidden-sm-and-down">
-          Center Graph
-        </div>
-      </v-btn>
-
-      <v-btn
-        style="min-width: 32px !important;"
-        class="ms-3 pa-2"
-        variant="outlined"
-        :disabled="banner.show || executionStatus.executing"
-        @click="openTypeSelectionSheet"
-      >
-        <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-        <div class="hidden-sm-and-down">
-          Add Heuristic
-        </div>
-      </v-btn>
-      <v-menu location="bottom">
-        <template #activator="{ props }">
-          <v-btn
-            :icon="true"
-            v-bind="props"
-            style="outline: 0"
-          >
-            <v-icon>{{ mdiDotsVertical }}</v-icon>
-          </v-btn>
-        </template>
-        <v-list>
-          <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: transactionHash }}">
-            <template #prepend>
-              <v-icon>{{ mdiOpenInNew }}</v-icon>
-            </template>
-            <v-list-item-title>Transaction Page</v-list-item-title>
-          </v-list-item>
-          <v-list-item :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}">
-            <template #prepend>
-              <v-icon>{{ mdiOpenInNew }}</v-icon>
-            </template>
-            <v-list-item-title>Heuristic Overview</v-list-item-title>
-          </v-list-item>
-        </v-list>
-      </v-menu>
-    </v-toolbar>
+      <v-card-text class="d-flex align-center pa-0">
+        <p class="mx-3 text-h6">
+          Workspace XYZ
+        </p>
+        <v-text-field
+          v-model="graphQuery"
+          style="min-width:220px; max-width:300px"
+          :hide-details="true"
+          variant="outlined"
+          density="compact"
+          color="primary"
+          :single-line="true"
+          label="Add transactions or clusters"
+          :append-inner-icon="mdiMagnify"
+          @click:append-inner="handleGraphQuery(graphQuery)"
+          @keydown.enter="handleGraphQuery(graphQuery)"
+        />
+        <v-btn
+          style="min-width: 32px !important;"
+          class="ms-3 px-2"
+          variant="outlined"
+          :disabled="banner.show || executionStatus.executing"
+          @click="modifyNode()"
+        >
+          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="hidden-sm-and-down">
+            Modify Node
+          </div>
+        </v-btn>
+        <v-btn
+          style="min-width: 32px !important;"
+          class="ms-3 px-2"
+          variant="outlined"
+          :disabled="banner.show || executionStatus.executing"
+          @click="addRandomNode()"
+        >
+          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="hidden-sm-and-down">
+            Add Node
+          </div>
+        </v-btn>
+        <v-btn
+          style="min-width: 32px !important;"
+          class="ms-3 px-2"
+          variant="outlined"
+          :disabled="banner.show || executionStatus.executing"
+          @click="hg.centerGraph()"
+        >
+          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="hidden-sm-and-down">
+            Center Graph
+          </div>
+        </v-btn>
+        <v-btn
+          style="min-width: 32px !important;"
+          class="ms-3 px-2"
+          variant="outlined"
+          :disabled="banner.show || executionStatus.executing"
+          @click="openTypeSelectionSheet"
+        >
+          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <div class="hidden-sm-and-down">
+            Add Heuristic
+          </div>
+        </v-btn>
+        <v-menu location="bottom">
+          <template #activator="{ props }">
+            <v-btn
+              :icon="true"
+              variant="text"
+              v-bind="props"
+              style="outline: 0"
+            >
+              <v-icon>{{ mdiDotsVertical }}</v-icon>
+            </v-btn>
+          </template>
+          <v-list>
+            <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: transactionHash }}">
+              <template #prepend>
+                <v-icon>{{ mdiOpenInNew }}</v-icon>
+              </template>
+              <v-list-item-title>Transaction Page</v-list-item-title>
+            </v-list-item>
+            <v-list-item :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}">
+              <template #prepend>
+                <v-icon>{{ mdiOpenInNew }}</v-icon>
+              </template>
+              <v-list-item-title>Heuristic Overview</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </v-card-text>
+    </v-card>
     <!-- position: relative; is needed so the dialog is contained in its parent -->
     <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
       <heuristic-details-sidebar
@@ -146,8 +154,8 @@
 
 <script setup>
 import {
-	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiOpenInNew,
-	mdiShapeSquarePlus, mdiShapeSquareRoundedPlus, mdiTransfer,
+	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiMagnify, mdiOpenInNew,
+	mdiShapeSquarePlus, mdiShapeSquareRoundedPlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -185,6 +193,7 @@ let data = null;
 // HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
 const heuristicDetailsMap = new Map();
 
+const graphQuery = ref('');
 const transactionHash = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const heuristicDescriptors = ref([]);
@@ -273,6 +282,16 @@ onMounted(async () => {
 
 	startDormantTimer();
 });
+
+// Functions
+function handleGraphQuery(query) {
+	if (!query) {
+		return;
+	}
+
+	console.log('received ' + query);
+	graphQuery.value = '';
+}
 
 function addRandomNode() {
 	const allNodes = hg.exportNodes();
@@ -663,10 +682,4 @@ function resetExecutionStatus() {
   padding-right: 0
 }
 
-.heuristicToolbar {
-  border-top: 0 lightgrey solid;
-  /* VAppbar has z-index 1004, therefore set z-index to the same so top shadow is not visible */
-  z-index: 1004;
-  filter: drop-shadow(-4px 4px 2px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.2)));
-}
 </style>
