@@ -5,7 +5,6 @@ import (
 	"backend/db"
 	dbus "backend/db/user"
 	"backend/external"
-	"context"
 	"flag"
 	"fmt"
 	ory "github.com/ory/kratos-client-go"
@@ -31,15 +30,13 @@ type Config struct {
 	Logfile         string `yaml:"logfile"`
 	Host            string `yaml:"host"`
 	Port            uint   `yaml:"port"`
-	MigrateUsers    bool   `yaml:"migrateUsers"`
 	CreateMassUsers bool   `yaml:"CreateMassUsers"`
 }
 
 var defaultConfig = Config{
-	Logfile:      "",
-	Host:         "0.0.0.0",
-	Port:         9080,
-	MigrateUsers: false,
+	Logfile: "",
+	Host:    "0.0.0.0",
+	Port:    9080,
 }
 
 // newKratosClient creates a new kratos client
@@ -135,46 +132,6 @@ func main() {
 	kratos, err := newKratosClient("http://localhost:4434")
 	if err != nil {
 		return
-	}
-
-	if config.MigrateUsers {
-		users, err := dbus.GetUsersWithCredentials(dgraph)
-		if err != nil {
-			info(err)
-			return
-		}
-
-		for _, u := range users {
-			// assign to variable to workaround G601
-			u := u
-			if u.Email == "" || u.Pwhash == "" {
-				info("email or password not set, not processing", u)
-				continue
-			}
-
-			var roles []string
-
-			for _, r := range u.Roles {
-				roles = append(roles, r.Name)
-			}
-
-			if len(roles) == 0 {
-				info("no roles found, not processing", u)
-				continue
-			}
-
-			createError := dbus.CreateKratosUser(context.Background(), u.UID, kratos,
-				u.Email, &ory.IdentityWithCredentials{
-					Password: &ory.IdentityWithCredentialsPassword{
-						Config: &ory.IdentityWithCredentialsPasswordConfig{
-							HashedPassword: &u.Pwhash,
-						}},
-				}, roles)
-			if createError != nil {
-				info(createError)
-				return
-			}
-		}
 	}
 
 	if config.CreateMassUsers {

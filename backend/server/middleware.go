@@ -2,7 +2,6 @@ package server
 
 import (
 	"backend/cmd/cliutil"
-	dbus "backend/db/user"
 	"bytes"
 	"context"
 	"io"
@@ -44,7 +43,7 @@ func sendUnauthorizedMessage(w http.ResponseWriter) {
 }
 
 // extractRoles tries to extract roles from the given metadata
-func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
+func extractRoles(metaDataPublic any) ([]string, error) {
 	metadata, ok := metaDataPublic.(map[string]any)
 	if !ok {
 		return nil, cliutil.NewStackErrorStr("identity has no public metadata")
@@ -60,14 +59,12 @@ func extractRoles(metaDataPublic any) ([]dbus.Role, error) {
 		return nil, cliutil.NewStackErrorStr("roles could not be cast from interface")
 	}
 
-	var roles []dbus.Role
+	var roles []string
 
 	for _, r := range roleInterfaces {
 		roleString, ok := r.(string)
 		if ok {
-			roles = append(roles, dbus.Role{
-				Name: roleString,
-			})
+			roles = append(roles, roleString)
 		}
 	}
 
@@ -147,7 +144,7 @@ func (s *Server) authorization() adapter {
 			// check if route is allowed and get typed role
 			routeAllowed := false
 			for _, role := range roles {
-				routeRole, roleErr := getRoleByName(role.Name)
+				routeRole, roleErr := getRoleByName(role)
 				if roleErr != nil {
 					writeUnauthorized(w, "")
 					warn(roleErr)

@@ -35,30 +35,21 @@ func TestCreateNewUser(t *testing.T) {
 	require.NotEmpty(t, user)
 }
 
-func TestGetUsers(t *testing.T) {
+func TestGetUserCount(t *testing.T) {
 	testhelper.SkipIfNoDB(t)
 	db.SetupDBWithoutData(t, dbHandle)
+
+	userCount, err := GetUserCount(dbHandle)
+	require.NoError(t, err)
+	require.Zero(t, userCount)
 
 	user, err := CreateNewUser(dbHandle)
 	require.NoError(t, err)
 	require.NotEmpty(t, user)
 
-	users, err := GetUsers(dbHandle)
+	userCount, err = GetUserCount(dbHandle)
 	require.NoError(t, err)
-	require.NotEmpty(t, users)
-}
-
-func TestGetUsersWithCredentials(t *testing.T) {
-	testhelper.SkipIfNoDB(t)
-	db.SetupDBWithoutData(t, dbHandle)
-
-	user, err := CreateNewUser(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, user)
-
-	users, err := GetUsersWithCredentials(dbHandle)
-	require.NoError(t, err)
-	require.NotEmpty(t, users)
+	require.Equal(t, 1, userCount)
 }
 
 func TestDeleteUser(t *testing.T) {

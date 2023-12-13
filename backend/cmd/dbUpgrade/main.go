@@ -3,22 +3,37 @@ package main
 import (
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/status"
 	"backend/external"
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 )
 
-var thisLogger *log.Logger
+var thisLogger *slog.Logger
 
-func initLogger() {
-	thisLogger = log.New(log.Writer(), "\033[0;31mdbup\033[0m\t", log.Flags())
+func initLogger(fileHandle *os.File) {
+	var outputWriter io.Writer
+	if fileHandle != nil {
+		outputWriter = io.MultiWriter(fileHandle, os.Stdout)
+	} else {
+		outputWriter = os.Stdout
+	}
+
+	logger := slog.New(slog.NewTextHandler(outputWriter, nil))
+	slog.SetDefault(logger)
+
+	thisLogger = slog.With(slog.String("module", "dbUpgrade"))
 }
 
-func info(v ...interface{}) {
-	thisLogger.Println(v...)
+func info(msg string, v ...any) {
+	thisLogger.Info(msg, v...)
+}
+
+func warn(err error, v ...any) {
+	cli.LogError(thisLogger, err, v...)
 }
 
 type Config struct {
@@ -65,41 +80,41 @@ func main() {
 	}
 
 	// setup Logging
-	if len(config.Logfile) > 0 {
-		if f, err := cli.GetLogfile(config.Logfile); err == nil {
-			log.SetFlags(log.LstdFlags | log.Lshortfile)
-			log.SetOutput(io.MultiWriter(os.Stdout, f))
-			defer func() {
-				if err = f.Close(); err != nil {
-					fmt.Println(err)
-				}
-			}()
-		}
+	f, err := cli.GetLogfile(config.Logfile)
+	if err == nil {
+		defer func() {
+			if err = f.Close(); err != nil {
+				fmt.Println(err)
+			}
+		}()
+	} else if len(config.Logfile) > 0 {
+		fmt.Println("Could not create logfile", config.Logfile)
+		return
 	}
 
-	initLogger()
+	initLogger(f)
 
 	endpoint, err := cli.BuildEndpoint(config.Host, config.Port)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
 	// create dgraph client
 	dgraph, c, err := external.CreateClient(endpoint)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 	defer func() {
 		if err = c.Close(); err != nil {
-			info(err)
+			warn(err)
 		}
 	}()
 
 	isSet, err := db.IsSchemaSet(dgraph)
 	if err != nil {
-		info(err)
+		warn(err)
 		return
 	}
 
@@ -108,11 +123,27 @@ func main() {
 		return
 	}
 
-	//info("increasing schema version ...")
-	//err = status.SetSchemaVersion(dgraph, 2)
-	//if err != nil {
-	//	info(err)
-	//	return
-	//}
-	//info("increased schema version")
+	info("dropping roles starting ...")
+	err = db.AlterSchemaDropRoles(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("dropping roles finished")
+
+	info("altering user starting ...")
+	err = db.AlterSchemaDropUserPredicates(dgraph)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("altering user finished")
+
+	info("increasing schema version ...")
+	err = status.SetSchemaVersion(dgraph, 3)
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("increased schema version")
 }

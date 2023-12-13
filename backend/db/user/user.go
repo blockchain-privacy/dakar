@@ -8,16 +8,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
+	"github.com/dgraph-io/dgo/v230/protos/api"
 	ory "github.com/ory/kratos-client-go"
 	"time"
-
-	"github.com/dgraph-io/dgo/v230/protos/api"
-)
-
-var (
-	// ErrorUsersNotFound is returned if no users are found
-	ErrorUsersNotFound = errors.New("error no users found")
 )
 
 // CreateNewUser creates a new user
@@ -57,18 +50,11 @@ func CreateNewUser(c external.Database) (string, error) {
 	return userUID, nil
 }
 
-// GetUsers gets all users currently in the database
-func GetUsers(c external.Database) (users []FrontendUserBackendState, err error) {
+// GetUserCount returns the number of user currently in the database
+func GetUserCount(c external.Database) (userCount int, err error) {
 	query := `{
 				q(func: type(User)){
-					uid
-					User.email
-					User.modified
-					User.created
-					User.kratosID
-					User.roles {
-						Role.name
-					}
+					count(uid)
 				}
 			  }`
 
@@ -79,7 +65,9 @@ func GetUsers(c external.Database) (users []FrontendUserBackendState, err error)
 
 	// json struct
 	var r struct {
-		Users []User `json:"q"`
+		Users []struct {
+			Count int `json:"count"`
+		} `json:"q"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
@@ -87,64 +75,13 @@ func GetUsers(c external.Database) (users []FrontendUserBackendState, err error)
 		return
 	}
 
-	if len(r.Users) == 0 {
-		err = cliutil.NewStackError(ErrorUsersNotFound)
-		return
-	}
-
-	for _, u := range r.Users {
-		users = append(users, u.ToFrontendUserBackendState())
-	}
-
-	return
-}
-
-// GetUsersWithCredentials gets all users currently in the database
-func GetUsersWithCredentials(c external.Database) (users []FrontendUserClientStateWithCredentials, err error) {
-	query := `{
-				q(func: type(User)){
-					uid
-					User.email
-					User.modified
-					User.created
-					User.kratosID
-					User.roles {
-						Role.name
-					}
-					User.pwhash
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*2, query)
-	if err != nil {
-		return
-	}
-
-	// json struct
-	var r struct {
-		Users []User `json:"q"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	if len(r.Users) == 0 {
-		err = cliutil.NewStackError(ErrorUsersNotFound)
-		return
-	}
-
-	for _, u := range r.Users {
-		users = append(users, u.ToFrontendUserStateWithCredentials())
-	}
-
+	userCount = r.Users[0].Count
 	return
 }
 
 // existsUser checks if a User with the given uid exists
 func existsUser(c external.Database, uid string) (found bool, err error) {
-	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + ")){uid}}"
+	query := "query Q($uid:string){q(func: uid($uid))@filter(eq(dgraph.type," + DType + ")){uid}}"
 
 	ctx, cancel := db.GetFrontendContext()
 	defer cancel()
@@ -187,7 +124,7 @@ func DeleteUser(c external.Database, uid string) (err error) {
 	}
 
 	req := &api.Request{
-		Query: "query Q($uid:string){h as var(func: uid($uid))@filter(eq(dgraph.type," + DTypeUser + "))}",
+		Query: "query Q($uid:string){h as var(func: uid($uid))@filter(eq(dgraph.type," + DType + "))}",
 		Vars:  map[string]string{"$uid": uid},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte("uid(h) * * ."),
@@ -223,25 +160,6 @@ func CreateDgraphAndKratosUser(ctx context.Context, c external.Database, adminAu
 		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": newUserUID},
 		Credentials:    credentials,
 		State:          newState,
-	}).Execute()
-	if err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
-}
-
-// CreateKratosUser creates a dgraph user.
-// The UID of the dgraph user is written the metadata_admin of the new kratos identity.
-// The credentials are set if not nil.
-func CreateKratosUser(ctx context.Context, dgraphUID string, adminAuth *ory.APIClient,
-	email string, credentials *ory.IdentityWithCredentials, roles []string) error {
-	// create kratos identity
-	_, _, err := adminAuth.IdentityApi.CreateIdentity(ctx).CreateIdentityBody(ory.CreateIdentityBody{
-		SchemaId:       "default_v0",
-		Traits:         map[string]interface{}{"email": email},
-		MetadataPublic: map[string]any{"roles": roles, "dgraph_uid": dgraphUID},
-		Credentials:    credentials,
 	}).Execute()
 	if err != nil {
 		return cliutil.NewStackError(err)

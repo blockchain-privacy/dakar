@@ -707,7 +707,7 @@ definitions:
         type: string
       roles:
         items:
-          $ref: '#/definitions/user.FrontendRole'
+          type: string
         type: array
       state:
         type: string
@@ -791,10 +791,6 @@ definitions:
         items:
           $ref: '#/definitions/client.Session'
         type: array
-      users:
-        items:
-          $ref: '#/definitions/user.FrontendUserBackendState'
-        type: array
     type: object
   server.metaReply:
     properties:
@@ -874,36 +870,12 @@ definitions:
       lastclusteredhmiid:
         type: integer
     type: object
-  user.FrontendRole:
-    properties:
-      name:
-        type: string
-      uid:
-        type: string
-    type: object
-  user.FrontendUserBackendState:
-    properties:
-      created:
-        type: string
-      email:
-        type: string
-      kratosID:
-        type: string
-      modified:
-        type: string
-      roles:
-        items:
-          $ref: '#/definitions/user.FrontendRole'
-        type: array
-      uid:
-        type: string
-    type: object
 host: localhost
 info:
   contact: {}
   description: This is the REST API for Dakar
   title: Dakar API
-  version: 1.0.2
+  version: 1.0.4
 paths:
   /addAddressExclusions/:
     post:

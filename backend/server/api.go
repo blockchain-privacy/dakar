@@ -657,7 +657,7 @@ func (s *Server) handlerModifyIdentity() http.Handler {
 //	@Router		/getIdentities/ [get]
 func (s *Server) handlerGetIdentities() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getIdentitiesReply(s.db, s.adminAuth, r)
+		reply, status := getIdentitiesReply(s.adminAuth, r)
 
 		sendReply(w, reply, status)
 	})
