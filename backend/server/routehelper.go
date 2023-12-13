@@ -142,13 +142,13 @@ type heuristicDescriptorReply struct {
 type fingerprintScore struct {
 	Score        float64 `json:"score"`
 	Txhash       string  `json:"txhash"`
-	SessionCount int     `json:"session_count,omitempty"`
+	SessionCount int     `json:"session_count"`
 }
 
 type spendingFingerprintReply struct {
 	Msg               string             `json:"msg,omitempty"`
-	SessionCount      int                `json:"session_count,omitempty"`
-	FingerprintScores []fingerprintScore `json:"fingerprint_scores,omitempty"`
+	SessionCount      int                `json:"session_count"`
+	FingerprintScores []fingerprintScore `json:"fingerprint_scores"`
 }
 
 type queryResultType string

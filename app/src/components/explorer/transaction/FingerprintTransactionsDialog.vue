@@ -98,7 +98,7 @@
             </div>
             <div
               v-else
-              class="text-body-1"
+              class="text-subtitle-1 text-center"
             >
               No similar transactions found
             </div>
@@ -190,6 +190,7 @@ export default {
 			}
 
 			this.fingerprintScores = [];
+			this.sessionCount = -1;
 			this.errorMsg = '';
 			this.isLoading = true;
 
