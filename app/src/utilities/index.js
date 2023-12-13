@@ -321,3 +321,14 @@ export function isFunction(functionToCheck) {
 export function plural(subject, count) {
 	return count > 1 ? `${subject}s` : subject;
 }
+
+// Returns a mapping between transaction types and their colors
+export function getColorMap() {
+	const colorMap = new Map();
+	colorMap.set('destination', '#0072B2');
+	colorMap.set('collateral creation', '#E69F00');
+	colorMap.set('collateral payment', '#009E73');
+	colorMap.set('origin', '#D55E00');
+	colorMap.set('mixing', '#56B4E9');
+	return colorMap;
+}

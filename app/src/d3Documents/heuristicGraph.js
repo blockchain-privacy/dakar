@@ -39,7 +39,7 @@ function dragEnded(event, simulation) {
 }
 
 export default class HeuristicGraph {
-	constructor() {
+	constructor(nodeTypeColorMap) {
 		this.nodeClickCallBack = null;
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
@@ -62,6 +62,9 @@ export default class HeuristicGraph {
 		// Data
 		this.nodeMap = new Map();
 		this.changedData = new Map();
+
+		// Node type
+		this.nodeTypeColorMap = nodeTypeColorMap;
 	}
 
 	svgClick() {
@@ -125,6 +128,10 @@ export default class HeuristicGraph {
       = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
           <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
           <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
+        </pattern>
+        <pattern id="checkers" viewBox="0,0,4,4" width="40%" height="40%" patternTransform="translate(-2, -2)">
+          <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
+          <path id="a" data-color="fill" fill="#000" d="M2 2h2v2H2zM0 0h2v2H0z"></path>
         </pattern>
         <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="#999"/>
@@ -281,15 +288,18 @@ export default class HeuristicGraph {
 			.attr('stroke-width', 1)
 			.attr('cursor', 'pointer')
 			.attr('fill', d => {
-				if (d.type === 'transaction') {
-					return 'url(#striped)';
+				if (this.nodeTypeColorMap) {
+					const nodeColor = this.nodeTypeColorMap.get(d.type);
+					if (nodeColor) {
+						if (nodeColor === 'striped' || nodeColor === 'checkers') {
+							return `url(#${nodeColor})`;
+						}
+
+						return nodeColor;
+					}
 				}
 
-				if (d.type === 'heuristic') {
-					return 'orange';
-				}
-
-				return 'green';
+				return 'rgb(var(--v-theme-primary))';
 			})
 			.each(function (d) {
 				// Add marker to new nodes
@@ -340,8 +350,6 @@ export default class HeuristicGraph {
 			}
 
 			d3Select(this).append('circle')
-				.attr('cx', 0)
-				.attr('cy', 0)
 				.attr('r', loadingRadius)
 				.attr('cursor', 'pointer')
 				.attr('stroke-width', 3)

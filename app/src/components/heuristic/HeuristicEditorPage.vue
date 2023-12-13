@@ -95,7 +95,7 @@
       <v-menu location="bottom">
         <template #activator="{ props }">
           <v-btn
-            icon
+            :icon="true"
             v-bind="props"
             style="outline: 0"
           >
@@ -158,7 +158,7 @@ import {
 	ROUTE_NAME_USER_HEURISTIC_PAGE,
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
-import {handleError} from '@/utilities';
+import {getColorMap, handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
 import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject} from 'vue';
 import {useRoute} from 'vue-router';
@@ -171,7 +171,15 @@ const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
 const newUidPrefix = 'newUid_';
-const hg = new HeuristicGraph();
+
+const colorMap = getColorMap();
+colorMap.set('heuristic', 'striped');
+colorMap.set('address', 'checkers');
+// Non-privacy transaction
+colorMap.set('transaction', 'grey');
+
+const hg = new HeuristicGraph(colorMap);
+
 let uidCounter = 1;
 let data = null;
 // HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
@@ -342,7 +350,7 @@ function openTypeSelectionSheet() {
 }
 
 function mockGetDBState() {
-	return '[{"uid":"0x1","type":"address","children":["0x2","0x3"],"x":365.7393,"y":-279.538},{"uid":"0x2","type":"transaction","children":["0x4","0x7"],"x":296.0357,"y":-400.9613},{"uid":"0x3","type":"transaction","children":["0x6","0x5"],"x":507.9497,"y":-280.7019},{"uid":"0x4","type":"address","x":156.0119,"y":-401.265},{"uid":"0x5","type":"transaction","x":435.9277,"y":-400.7161},{"uid":"0x6","type":"transaction","x":437.8707,"y":-159.5429},{"uid":"0x7","type":"address","x":225.7315,"y":-279.86},{"uid":"0x8","type":"transaction","x":-216.1006,"y":-297.2454}]';
+	return '[{"uid":"0x1","type":"address","children":["0x2","0x3"],"x":365.7393,"y":-279.538},{"uid":"0x2","type":"origin","children":["0x4","0x7"],"x":296.0357,"y":-400.9613},{"uid":"0x3","type":"destination","children":["0x6","0x5"],"x":507.9497,"y":-280.7019},{"uid":"0x4","type":"address","x":156.0119,"y":-401.265},{"uid":"0x5","type":"mixing","x":435.9277,"y":-400.7161},{"uid":"0x6","type":"transaction","x":437.8707,"y":-159.5429},{"uid":"0x7","type":"address","x":225.7315,"y":-279.86},{"uid":"0x8","type":"transaction","x":-216.1006,"y":-297.2454}]';
 }
 
 async function openPropertySheet(heuristic) {

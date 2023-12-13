@@ -249,7 +249,7 @@
 <script setup>
 import Histogram from '@/d3Documents/histogram';
 import ForceGraph from '@/d3Documents/forceGraph';
-import {getPrivacyTypeLabel} from '@/utilities';
+import {getColorMap, getPrivacyTypeLabel} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
@@ -263,7 +263,7 @@ const msgStore = useMsgStore();
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const allPrivacyLabels = ['destination', 'collateral creation', 'collateral payment', 'origin', 'mixing'];
-const colorMap = new Map();
+const colorMap = getColorMap();
 let svgHistogram = null;
 let svgGraph = null;
 const tooManyTransactionsThreshold = 500;
@@ -350,11 +350,6 @@ const selectedPrivacyLabel = computed(() => {
 // Hooks
 onBeforeMount(() => {
 	includeCusterAddresses.value = false;
-	colorMap.set('destination', '#0072B2');
-	colorMap.set('collateral creation', '#E69F00');
-	colorMap.set('collateral payment', '#009E73');
-	colorMap.set('origin', '#D55E00');
-	colorMap.set('mixing', '#56B4E9');
 
 	svgHistogram = new Histogram(
 		'mixing_activity_histogram',
