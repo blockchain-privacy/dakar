@@ -120,7 +120,7 @@ export default class HeuristicGraph {
 		// Add arrow definition
 		const defs = this.rootSvg.append('svg:defs');
 
-		// Set pattern and marker
+		// Set pattern and arrowhead
 		defs.node().innerHTML
       = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
           <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
@@ -301,7 +301,7 @@ export default class HeuristicGraph {
 
 				const marker = thisElement.append('circle')
 					.attr('r', self.nodeRadius * 2)
-					.attr('fill', 'rgba(var(--v-theme-primary),0.1)')
+					.attr('fill', 'rgba(255, 109, 0, 0.3)')
 					.lower();
 
 				marker.transition().delay(1000).duration(500).attr('r', 0).remove();
