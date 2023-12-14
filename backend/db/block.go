@@ -96,7 +96,7 @@ func (bq blockQuery) payload() (blk Block, err error) {
 // GetBlock gets block information from the database
 func GetBlock(c external.Database, blockHash string) (blk Block, err error) {
 	if blockHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -217,7 +217,7 @@ func GetFullBlock(c external.Database, id int, convertUIDs bool) (blk Block, err
 // GetFrontendBlock gets verbose block information from the database
 func GetFrontendBlock(c external.Database, blockHash string, offset int) (block FrontendBlock, err error) {
 	if blockHash == "" {
-		err = cliutil.NewStackError(errEmptyRequestArgument)
+		err = cliutil.NewStackError(ErrEmptyRequestArgument)
 		return
 	}
 
@@ -374,7 +374,7 @@ func UpsertBlock(c external.Database, block Block) error {
 // InsertArbitraryJSON insert the given JSON into the database. No client-side checks are performed.
 func InsertArbitraryJSON(c external.Database, data []byte) error {
 	if len(data) == 0 {
-		return cliutil.NewStackError(errEmptyRequestArgument)
+		return cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	return TxWithRetry(c, time.Minute*15, &api.Request{

@@ -38,7 +38,7 @@ var (
 	ErrTransactionNotFound = errors.New("no transaction found")
 	// ErrAddressNotFound is returned if no address has been found
 	ErrAddressNotFound      = errors.New("no address found")
-	errEmptyRequestArgument = errors.New("received empty argument")
+	ErrEmptyRequestArgument = errors.New("received empty argument")
 	errInvalidTimeout       = errors.New("invalid timeout")
 	errInvalidResult        = errors.New("invalid result")
 )
@@ -73,7 +73,7 @@ func execTx(db external.Database, timeoutPerRequest time.Duration, req *api.Requ
 	}
 
 	if req == nil {
-		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -94,7 +94,7 @@ func execExistingTx(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.Reque
 	}
 
 	if req == nil {
-		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -119,7 +119,7 @@ func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duratio
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
 			return
 		}
 		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
@@ -142,7 +142,7 @@ func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration
 	req *api.Request) (resp *api.Response, err error) {
 	for i := 0; i < maxRetries; i++ {
 		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
-			errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
+			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
 			return
 		}
 		warn(fmt.Errorf("encountered error, retrying: %w", err), "request", req)
@@ -162,7 +162,7 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 	}
 
 	if q == "" {
-		return nil, cliutil.NewStackError(errEmptyRequestArgument)
+		return nil, cliutil.NewStackError(ErrEmptyRequestArgument)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeoutPerRequest)
@@ -187,7 +187,7 @@ func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duratio
 		}
 		err = txErr
 
-		if errors.Is(err, errInvalidTimeout) || errors.Is(err, errEmptyRequestArgument) {
+		if errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
 			return nil, err
 		}
 
