@@ -28,7 +28,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 				await refreshFlow(onRefreshFlow);
 				return Promise.resolve();
 			case 'security_csrf_violation': // A CSRF violation occurred, remove session and let user login anew
-				context.localStore.setFailedRoute(context.$route);
+				context.navStore.setFailedRoute(context.$route);
 				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				if (error.response.data.error.message) {
@@ -37,7 +37,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 
 				return Promise.resolve();
 			case 'session_inactive':
-				context.localStore.setFailedRoute(context.$route);
+				context.navStore.setFailedRoute(context.$route);
 				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				return Promise.resolve();
