@@ -81,7 +81,7 @@
           :disabled="banner.show || executionStatus.executing"
           @click="hg.centerGraph()"
         >
-          <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
+          <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
           <div class="hidden-sm-and-down">
             Center Graph
           </div>
@@ -166,7 +166,7 @@
 
 <script setup>
 import {
-	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiMagnify, mdiOpenInNew,
+	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiImageFilterCenterFocus, mdiMagnify, mdiOpenInNew,
 	mdiShapeSquarePlus, mdiShapeSquareRoundedPlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
