@@ -91,7 +91,7 @@ export default class HeuristicGraph {
 
 	svgClick() {
 		this.resetClick();
-		if (this.svgClickCallback !== null && this.enableInteractions) {
+		if (this.svgClickCallback !== null) {
 			this.svgClickCallback();
 		}
 	}
