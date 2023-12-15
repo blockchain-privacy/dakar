@@ -362,10 +362,18 @@ export default class HeuristicGraph {
 				self.activeContextMenuSelection = this;
 			})
 			.on('mouseenter', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
 				d3Select(this.parentNode).raise();
 				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius * 1.2);
 			})
 			.on('mouseleave', function () {
+				if (!self.enableInteractions) {
+					return;
+				}
+
 				d3Select(this).select('.node').transition().duration(100).attr('r', self.nodeRadius);
 			});
 

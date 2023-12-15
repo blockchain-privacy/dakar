@@ -35,7 +35,7 @@
     >
       <v-card-text class="d-flex align-center pa-0">
         <p class="mx-3 text-h6">
-          Workspace XYZ
+          XYZ
         </p>
         <v-text-field
           v-model="graphQuery"
@@ -53,7 +53,7 @@
         <v-btn
           style="min-width: 32px !important;"
           class="ms-3 px-2"
-          variant="outlined"
+          variant="text"
           :disabled="banner.show || executionStatus.executing"
           @click="modifyNode()"
         >
@@ -65,7 +65,7 @@
         <v-btn
           style="min-width: 32px !important;"
           class="ms-3 px-2"
-          variant="outlined"
+          variant="text"
           :disabled="banner.show || executionStatus.executing"
           @click="addRandomNode()"
         >
@@ -77,7 +77,7 @@
         <v-btn
           style="min-width: 32px !important;"
           class="ms-3 px-2"
-          variant="outlined"
+          variant="text"
           :disabled="banner.show || executionStatus.executing"
           @click="hg.centerGraph()"
         >
@@ -89,7 +89,7 @@
         <v-btn
           style="min-width: 32px !important;"
           class="ms-3 px-2"
-          variant="outlined"
+          variant="text"
           :disabled="banner.show || executionStatus.executing"
           @click="openTypeSelectionSheet"
         >
@@ -101,7 +101,7 @@
         <v-btn
           style="min-width: 32px !important;"
           class="ms-3 px-2"
-          variant="outlined"
+          variant="text"
           :disabled="banner.show || executionStatus.executing"
           @click="hg.setEnableInteractions(!hg.getEnableInteractions())"
         >
