@@ -585,6 +585,8 @@ definitions:
           $ref: '#/definitions/workspace.GraphNode'
         type: array
     type: object
+  server.addWorkspaceReply:
+    type: object
   server.addressExclusionOverviewReply:
     properties:
       addressCount:
@@ -867,6 +869,13 @@ definitions:
       session_count:
         type: integer
     type: object
+  server.workspacesReply:
+    properties:
+      workspaces:
+        items:
+          $ref: '#/definitions/workspace.Workspace'
+        type: array
+    type: object
   status.FrontendStatus:
     properties:
       isclassifying:
@@ -902,6 +911,21 @@ definitions:
         type: string
       type:
         type: string
+      uid:
+        type: string
+    type: object
+  workspace.Workspace:
+    properties:
+      Workspace.name:
+        type: string
+      Workspace.state:
+        type: string
+      Workspace.ts:
+        type: string
+      dgraph.type:
+        items:
+          type: string
+        type: array
       uid:
         type: string
     type: object
@@ -1062,6 +1086,32 @@ paths:
       summary: Create a new attribution which is visible to all users
       tags:
       - attribution
+  /addWorkspace/{name}:
+    get:
+      parameters:
+      - description: workspace name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.addWorkspaceReply'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.addWorkspaceReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.addWorkspaceReply'
+      summary: Creates a new workspace for the current user
+      tags:
+      - workspace
   /addWorkspaceNode/:
     post:
       consumes:
@@ -2166,4 +2216,24 @@ paths:
       summary: Query for address, transaction or block
       tags:
       - data
+  /workspaces/:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.workspacesReply'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.workspacesReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.workspacesReply'
+      summary: List all workspaces of the current user
+      tags:
+      - workspace
 swagger: "2.0"

@@ -1929,3 +1929,47 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 
 	return
 }
+
+func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply workspacesReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	workspaces, err := workspace.GetFrontendWorkspaces(dgraph, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Workspaces = workspaces
+
+	return
+}
+
+func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addWorkspaceReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	workspaceName := path.Base(r.URL.Path)
+	if workspaceName == "" || len(workspaceName) > 150 {
+		status = http.StatusBadRequest
+		return
+	}
+
+	err = workspace.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}

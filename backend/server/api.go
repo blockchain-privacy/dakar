@@ -797,6 +797,41 @@ func (s *Server) handlerAddWorkspaceNode() http.Handler {
 	})
 }
 
+// List all Workspaces godoc
+//
+//	@Summary	List all workspaces of the current user
+//	@Tags		workspace
+//	@Produce	json
+//	@Success	200		{object}	server.workspacesReply
+//	@Failure	400		{object}	server.workspacesReply
+//	@Failure	500		{object}	server.workspacesReply
+//	@Router		/workspaces/ [get]
+func (s *Server) handlerWorkspaces() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getWorkspacesReply(s.db, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Add Workspace godoc
+//
+//	@Summary	Creates a new workspace for the current user
+//	@Tags		workspace
+//	@Produce	json
+//	@Param		name	path		string	true	"workspace name"
+//	@Success	200		{object}	server.addWorkspaceReply
+//	@Failure	400		{object}	server.addWorkspaceReply
+//	@Failure	500		{object}	server.addWorkspaceReply
+//	@Router		/addWorkspace/{name} [get]
+func (s *Server) handlerAddWorkspace() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getAddWorkspaceReply(s.db, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
 // todo: when https://github.com/golang/go/issues/61410 is merged and released,
 // refactor API design to use consistent endpoint naming:
 // - GET clusters - returns all clusters
@@ -950,4 +985,8 @@ func (s *Server) setupHandlers() {
 	// Workspace
 	s.handler.Handle(getRouteWorkspaceAddNode(), adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(),
 		limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(),
+		limitMethod("GET"), s.authorization()))
+	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(),
+		limitMethod("GET"), s.authorization()))
 }

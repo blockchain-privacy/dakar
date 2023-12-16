@@ -155,6 +155,13 @@ type addWorkspaceNodeReply struct {
 	Nodes []workspace.GraphNode `json:"nodes,omitempty"`
 }
 
+type addWorkspaceReply struct {
+}
+
+type workspacesReply struct {
+	Workspaces []workspace.Workspace `json:"workspaces,omitempty"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"

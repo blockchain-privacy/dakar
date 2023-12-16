@@ -12,7 +12,7 @@
       <v-btn
         v-model="showSearchField"
         variant="text"
-        icon
+        :icon="true"
         @click="showSearchField = !showSearchField"
       >
         <v-icon>{{ mdiMagnify }}</v-icon>
@@ -21,7 +21,7 @@
         <template #activator="{ props }">
           <v-btn
             variant="text"
-            icon
+            :icon="true"
             v-bind="props"
           >
             <v-icon>{{ mdiDotsVertical }}</v-icon>

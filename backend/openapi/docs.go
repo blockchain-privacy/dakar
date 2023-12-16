@@ -241,6 +241,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/addWorkspace/{name}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "Creates a new workspace for the current user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "workspace name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceReply"
+                        }
+                    }
+                }
+            }
+        },
         "/addWorkspaceNode/": {
             "post": {
                 "consumes": [
@@ -1925,6 +1965,37 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/workspaces/": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "List all workspaces of the current user",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.workspacesReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.workspacesReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.workspacesReply"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2754,6 +2825,9 @@ const docTemplate = `{
                 }
             }
         },
+        "server.addWorkspaceReply": {
+            "type": "object"
+        },
         "server.addressExclusionOverviewReply": {
             "type": "object",
             "properties": {
@@ -3176,6 +3250,17 @@ const docTemplate = `{
                 }
             }
         },
+        "server.workspacesReply": {
+            "type": "object",
+            "properties": {
+                "workspaces": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspace.Workspace"
+                    }
+                }
+            }
+        },
         "status.FrontendStatus": {
             "type": "object",
             "properties": {
@@ -3228,6 +3313,29 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
+        "workspace.Workspace": {
+            "type": "object",
+            "properties": {
+                "Workspace.name": {
+                    "type": "string"
+                },
+                "Workspace.state": {
+                    "type": "string"
+                },
+                "Workspace.ts": {
+                    "type": "string"
+                },
+                "dgraph.type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "uid": {
                     "type": "string"
