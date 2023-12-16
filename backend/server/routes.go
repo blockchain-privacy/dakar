@@ -50,6 +50,7 @@ const (
 	routeAddWorkspaceNode             string = "addWorkspaceNode"
 	routeAddWorkspace                 string = "addWorkspace"
 	routeWorkspaces                   string = "workspaces"
+	routeGetWorkspace                 string = "getWorkspace"
 	routeMetrics                      string = "/metrics"
 )
 
@@ -282,7 +283,7 @@ func getRouteWorkspaceAddNode() string {
 	return getRoute(routeAddWorkspaceNode)
 }
 
-// getRouteWorkspaceAddNode returns a route
+// getRouteWorkspaces returns a route
 func getRouteWorkspaces() string {
 	return getRoute(routeWorkspaces)
 }
@@ -290,6 +291,11 @@ func getRouteWorkspaces() string {
 // getRouteAddWorkspace returns a route
 func getRouteAddWorkspace() string {
 	return getRoute(routeAddWorkspace)
+}
+
+// getRouteGetWorkspace returns a route
+func getRouteGetWorkspace() string {
+	return getRoute(routeGetWorkspace)
 }
 
 // getRouteMetrics returns a route

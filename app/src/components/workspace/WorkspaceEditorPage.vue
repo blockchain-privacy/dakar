@@ -32,11 +32,12 @@
     </v-expand-transition>
     <div style="height: 100%; width:100%; position: relative">
       <v-card
+        v-if="workspaceName"
         style="position:absolute; left: 10px; top:10px; z-index:1005; background-color: rgb(var(--v-theme-surface))"
       >
         <v-card-text class="d-flex align-center pa-0">
           <p class="mx-3 text-h6">
-            XYZ
+            {{ workspaceName }}
           </p>
           <v-text-field
             v-model="graphQuery"
@@ -127,7 +128,7 @@
               </v-btn>
             </template>
             <v-list>
-              <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: transactionHash }}">
+              <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: workspaceUID }}">
                 <template #prepend>
                   <v-icon>{{ mdiOpenInNew }}</v-icon>
                 </template>
@@ -213,7 +214,8 @@ const heuristicDetailsMap = new Map();
 
 const isLoading = ref(false);
 const graphQuery = ref('');
-const transactionHash = ref('');
+const workspaceUID = ref('');
+const workspaceName = ref('');
 const isAddHeuristicSheetOpen = ref(false);
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
@@ -289,17 +291,8 @@ watch(isAddHeuristicSheetOpen, newVal => {
 });
 
 // Hooks
-onBeforeUnmount(() => {
-	// Reset memory
-	resetExecutionStatus();
-});
-
 onMounted(async () => {
-	if (!await whenMounted()) {
-		return;
-	}
-
-	startDormantTimer();
+	await whenMounted();
 });
 
 // Functions
@@ -355,11 +348,7 @@ async function newRouting() {
 		return;
 	}
 
-	if (!await whenMounted()) {
-		return;
-	}
-
-	startDormantTimer();
+	await whenMounted();
 }
 
 function setErrorMessage(msg) {
@@ -402,10 +391,6 @@ async function loadHeuristicDetails(uid) {
 function openTypeSelectionSheet() {
 	heuristicSheet.value.isOpen = false;
 	isAddHeuristicSheetOpen.value = true;
-}
-
-function mockGetDBState() {
-	return '[{"uid":"0x1","type":"cluster","children":["0x2","0x3"],"x":365.7393,"y":-279.538},{"uid":"0x2","type":"origin","children":["0x4","0x7"],"x":296.0357,"y":-400.9613},{"uid":"0x3","type":"destination","children":["0x6","0x5"],"x":507.9497,"y":-280.7019},{"uid":"0x4","type":"cluster","x":156.0119,"y":-401.265},{"uid":"0x5","type":"mixing","x":435.9277,"y":-400.7161},{"uid":"0x6","type":"transaction","x":437.8707,"y":-159.5429},{"uid":"0x7","type":"cluster","x":225.7315,"y":-279.86},{"uid":"0x8","type":"transaction","x":-216.1006,"y":-297.2454}]';
 }
 
 async function openPropertySheet(heuristic) {
@@ -465,35 +450,6 @@ function closeSideBars() {
 	isAddHeuristicSheetOpen.value = false;
 }
 
-function setExecutionStatus(status) {
-	switch (status) {
-		case executionStatus.value.enum.added:
-			executionStatus.value.processing = false;
-			executionStatus.value.executing = true;
-			banner.value.show = false;
-			break;
-		case executionStatus.value.enum.inQueue:
-			executionStatus.value.processing = false;
-			executionStatus.value.executing = true;
-			banner.value.show = false;
-			break;
-		case executionStatus.value.enum.processing:
-			executionStatus.value.processing = true;
-			executionStatus.value.executing = true;
-			banner.value.show = false;
-			break;
-		case executionStatus.value.enum.notReady:
-			executionStatus.value.processing = false;
-			executionStatus.value.executing = false;
-			banner.value.show = true;
-			break;
-		default:
-			executionStatus.value.processing = false;
-			executionStatus.value.executing = false;
-			banner.value.show = false;
-	}
-}
-
 function showContextMenu(e) {
 	contextMenuModel.value.display = false;
 
@@ -506,31 +462,28 @@ function showContextMenu(e) {
 	});
 }
 
-async function loadHeuristicData() {
+async function refreshData() {
 	try {
-		data = await dakar.heuristic.heuristicsHashGet({hash: transactionHash.value});
+		const response = await dakar.workspace.getWorkspaceUidGet({uid: workspaceUID.value});
+		if (!response.workspace) {
+			data = null;
+		} else {
+			data = response.workspace;
+			workspaceName.value = data.name;
+		}
+
 		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}
-}
-
-async function refreshData() {
-	await loadHeuristicData();
 
 	if (!data) {
 		return false;
 	}
 
-	setExecutionStatus(data.status);
-
-	if (executionStatus.value.executing) {
-		startActiveTimer();
-	}
-
-	// If the transaction has not yet any heuristics associated
-	if (!data || !data.heuristics) {
-		data.heuristics = [];
+	// If the workspace does not yet contain any nodes
+	if (!data.state) {
+		data.state = [];
 	}
 
 	return true;
@@ -590,11 +543,11 @@ async function whenMounted() {
 	// Remove previous svg children
 	document.getElementById(svgCanvasId).innerHTML = '';
 
-	// Set transaction hashes for this page view
-	transactionHash.value = route.params.id;
+	// Set workspace UID for this page view
+	workspaceUID.value = route.params.id;
 
 	// Set page title
-	document.title = `Heuristic ${transactionHash.value} - ${APPLICATION_NAME}`;
+	document.title = `Heuristic ${workspaceUID.value} - ${APPLICATION_NAME}`;
 
 	if (!hg.setNodeClickHandler(openPropertySheet)) {
 		setErrorMessage('error setting heuristic click handler');
@@ -629,79 +582,15 @@ async function whenMounted() {
 
 	hg.initSvg(svgCanvasId);
 
-	// Const nodesFromDB = JSON.parse(mockGetDBState());
-
-	// Const nodesFromDB = [
-	// 	{uid: '0x1', type: 'cluster', children: ['0x2', '0x3']},
-	// 	{uid: '0x2', type: 'transaction', children: ['0x4', '0x7']},
-	// 	{uid: '0x3', type: 'transaction', children: ['0x6', '0x5']},
-	// 	{uid: '0x4', type: 'cluster'},
-	// 	{uid: '0x5', type: 'transaction'},
-	// 	{uid: '0x6', type: 'transaction'},
-	// 	{uid: '0x7', type: 'cluster'},
-	// 	{uid: '0x8', type: 'transaction'},
-	// ];
-	// hg.addNodes(nodesFromDB);
-	// hg.centerGraph();
-
-	// Await sleep(1000);
-	// hg.addNodes([
-	// 	{uid: '0x10', type: 'heuristic', status: 'loading'},
-	// 	{uid: '0x11', type: 'transaction', children: ['0x10']},
-	// ]);
-	// hg.centerOnNewNodes();
-
 	if (!await refreshData()) {
 		return false;
 	}
 
-	// Await hg.centerGraph();
+	hg.addNodes(data.state);
+
+	await hg.centerGraph();
 
 	return true;
-}
-
-async function updateExecutionStatus() {
-	try {
-		const response = await dakar.heuristic.heuristicStatusHashGet({hash: transactionHash.value});
-		if (!response.status) {
-			throw Error('execution status is not defined');
-		}
-
-		const oldExecutionStatus = executionStatus.value.executing;
-		setExecutionStatus(response.status);
-		// If it was previously executing refresh data
-		if (oldExecutionStatus && !executionStatus.value.executing) {
-			await refreshData();
-			stopActiveTimer();
-		}
-	} catch (e) {
-		setErrorMessage(e);
-	}
-}
-
-function startDormantTimer() {
-	executionStatus.value.dormantTimer.timer = setInterval(async () => {
-		await updateExecutionStatus();
-	}, executionStatus.value.dormantTimer.refreshRate);
-}
-
-function startActiveTimer() {
-	executionStatus.value.activeTimer.timer = setInterval(async () => {
-		await updateExecutionStatus();
-	}, executionStatus.value.activeTimer.refreshRate);
-}
-
-function stopDormantTimer() {
-	clearInterval(executionStatus.value.dormantTimer.timer);
-}
-
-function stopActiveTimer() {
-	clearInterval(executionStatus.value.activeTimer.timer);
-}
-
-function resetExecutionStatus() {
-	stopDormantTimer();
-	stopActiveTimer();
 }
 
 </script>

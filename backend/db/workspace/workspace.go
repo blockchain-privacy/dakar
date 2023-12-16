@@ -6,6 +6,7 @@ import (
 	"backend/external"
 	"encoding/json"
 	"github.com/dgraph-io/dgo/v230/protos/api"
+	"strconv"
 	"time"
 )
 
@@ -85,4 +86,44 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 	}
 
 	return r.Workspaces, nil
+}
+
+// GetFrontendWorkspace returns the specified workspace
+func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Workspace, error) {
+	if userUID == "" {
+		return nil, cliutil.NewStackError(db.ErrEmptyRequestArgument)
+	}
+
+	query := `query Q($user:string,$workspace:string){
+			var(func: uid($user)){
+				w as User.workspaces@filter(uid($workspace))
+			}
+
+			q(func: uid(w)){
+				uid
+				Workspace.name
+				Workspace.ts
+				Workspace.state
+			}
+		}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$user": userUID, "$workspace": uid})
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	// json struct
+	var r struct {
+		Workspaces []Workspace `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	if len(r.Workspaces) != 1 {
+		return nil, cliutil.NewStackErrorStr("invalid number of workspaces returned: " + strconv.Itoa(len(r.Workspaces)))
+	}
+
+	return &r.Workspaces[0], nil
 }

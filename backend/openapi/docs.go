@@ -1359,6 +1359,46 @@ const docTemplate = `{
                 }
             }
         },
+        "/getWorkspace/{uid}": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "Returns the specified workspace",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "workspace UID",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.getWorkspaceReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.getWorkspaceReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.getWorkspaceReply"
+                        }
+                    }
+                }
+            }
+        },
         "/heuristicDescriptors/": {
             "get": {
                 "description": "Returns available heuristic descriptors, which define the heuristic interface",
@@ -3068,6 +3108,14 @@ const docTemplate = `{
                 "to": {
                     "description": "To is the end point of the shortest path lookup",
                     "type": "string"
+                }
+            }
+        },
+        "server.getWorkspaceReply": {
+            "type": "object",
+            "properties": {
+                "workspace": {
+                    "$ref": "#/definitions/workspace.FrontendWorkspace"
                 }
             }
         },

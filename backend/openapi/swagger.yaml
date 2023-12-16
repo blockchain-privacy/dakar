@@ -752,6 +752,11 @@ definitions:
         description: To is the end point of the shortest path lookup
         type: string
     type: object
+  server.getWorkspaceReply:
+    properties:
+      workspace:
+        $ref: '#/definitions/workspace.FrontendWorkspace'
+    type: object
   server.heuristicDescriptorReply:
     properties:
       descriptors:
@@ -1814,6 +1819,32 @@ paths:
       summary: Get all identities
       tags:
       - authentication
+  /getWorkspace/{uid}:
+    get:
+      parameters:
+      - description: workspace UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.getWorkspaceReply'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.getWorkspaceReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.getWorkspaceReply'
+      summary: Returns the specified workspace
+      tags:
+      - workspace
   /heuristicDescriptors/:
     get:
       description: Returns available heuristic descriptors, which define the heuristic

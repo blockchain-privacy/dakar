@@ -1953,6 +1953,32 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 	return
 }
 
+func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getWorkspaceReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	workspaceUID := path.Base(r.URL.Path)
+	if workspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Workspace = w.ToFrontendWorkspace()
+
+	return
+}
+
 func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addWorkspaceReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {

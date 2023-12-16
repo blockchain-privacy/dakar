@@ -162,6 +162,10 @@ type workspacesReply struct {
 	Workspaces []workspace.FrontendWorkspace `json:"workspaces"`
 }
 
+type getWorkspaceReply struct {
+	Workspace workspace.FrontendWorkspace `json:"workspace"`
+}
+
 type queryResultType string
 
 const typeBlock queryResultType = "block"

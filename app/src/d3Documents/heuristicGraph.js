@@ -167,7 +167,6 @@ export default class HeuristicGraph {
 
 	// Creates links based on the given nodes
 	getLinks(nodes) {
-		console.log(nodes);
 		const links = [];
 		nodes.forEach(d => {
 			if (!d.children) {
@@ -182,7 +181,6 @@ export default class HeuristicGraph {
 				links.push({source: child, target: d.uid});
 			});
 		});
-		console.log(links);
 		return links;
 	}
 
@@ -248,7 +246,6 @@ export default class HeuristicGraph {
 		nodes.forEach(node => {
 			this.addNode(node, false);
 		});
-		console.log(this.nodeMap);
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
