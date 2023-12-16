@@ -123,24 +123,16 @@ func main() {
 		return
 	}
 
-	info("dropping roles starting ...")
-	err = db.AlterSchemaDropRoles(dgraph)
+	info("adding workspaces starting ...")
+	err = db.AlterSchemaAddWorkspaces(dgraph)
 	if err != nil {
 		warn(err)
 		return
 	}
-	info("dropping roles finished")
-
-	info("altering user starting ...")
-	err = db.AlterSchemaDropUserPredicates(dgraph)
-	if err != nil {
-		warn(err)
-		return
-	}
-	info("altering user finished")
+	info("adding workspaces finished")
 
 	info("increasing schema version ...")
-	err = status.SetSchemaVersion(dgraph, 3)
+	err = status.SetSchemaVersion(dgraph, 4)
 	if err != nil {
 		warn(err)
 		return

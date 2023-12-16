@@ -13,7 +13,7 @@ import (
 // SchemaVersion is the identifier for the schema defined in SetupSchema.
 // If SchemaVersion is higher than Meta.schemaVersion (which is saved in the db),
 // then a database upgrade is required
-const SchemaVersion uint64 = 3
+const SchemaVersion uint64 = 4
 
 // SetupSchema installs a schema into dgraph
 func SetupSchema(c external.Database) error {
@@ -162,10 +162,22 @@ func SetupSchema(c external.Database) error {
 
 			User.heuristics: [uid] @reverse .
 			User.addressExclusions: [uid] @count @reverse .
-	
+			User.workspaces: [uid] @reverse .
+
 			type User {
 				User.heuristics
 				User.addressExclusions
+				User.workspaces
+			}
+			
+			Workspace.name: string . # the workspace name
+			Workspace.ts: dateTime @index(day) . # modification date of the workspace
+			Workspace.state: string . # JSON encoded state of the workspace
+
+			type Workspace {
+				Workspace.name
+				Workspace.ts
+				Workspace.state
 			}
 
 			Cluster.type: string @index(hash) . # the cluster type
