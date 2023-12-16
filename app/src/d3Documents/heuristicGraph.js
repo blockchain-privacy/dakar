@@ -144,7 +144,7 @@ export default class HeuristicGraph {
 
 				this.rootGroup.attr('transform', event.transform);
 			})
-			.scaleExtent([0.25, 8]);
+			.scaleExtent([0.25, 5]);
 		this.rootSvg.call(this.zoom);
 
 		// Add arrow definition

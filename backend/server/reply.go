@@ -1844,6 +1844,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	type request struct {
 		Query        string                `json:"query,omitempty"`
 		CurrentState []workspace.GraphNode `json:"currentState,omitempty"`
+		WorkspaceUID string                `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -1855,6 +1856,11 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	if !isValid(searchRequest.Query) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if searchRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
@@ -1885,6 +1891,18 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 			}
 		}
 
+		stateBytes, err := json.Marshal(newNodes)
+		if err != nil {
+			status = http.StatusInternalServerError
+			return
+		}
+
+		err = workspace.SetWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, string(stateBytes))
+		if err != nil {
+			status = http.StatusInternalServerError
+			return
+		}
+
 		reply.Nodes = newNodes
 		return
 	}
@@ -1896,8 +1914,13 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		nodeMap[n.UID] = n
 	}
 
+	newState := make([]workspace.GraphNode, 0, len(nodeMap))
+	for _, v := range nodeMap {
+		newState = append(newState, v)
+	}
+
 	// can only search for connections with more than one node
-	if len(searchRequest.CurrentState) > 1 {
+	if len(searchRequest.CurrentState) > 0 {
 		transactions, clusters, addresses, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
 		if err != nil {
 			status = http.StatusInternalServerError
@@ -1925,6 +1948,20 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	reply.Nodes = make([]workspace.GraphNode, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
+	}
+
+	stateBytes, err := json.Marshal(newState)
+	if err != nil {
+		status = http.StatusInternalServerError
+		reply.Nodes = nil
+		return
+	}
+
+	err = workspace.SetWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, string(stateBytes))
+	if err != nil {
+		status = http.StatusInternalServerError
+		reply.Nodes = nil
+		return
 	}
 
 	return
@@ -1973,6 +2010,54 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		warn(err)
 		return
 	}
+
+	var nodes []workspace.GraphNode
+	if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	nodeMap := map[string]workspace.GraphNode{}
+	for _, n := range nodes {
+		nodeMap[n.UID] = n
+	}
+
+	transactions, clusters, addresses, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	for _, node := range append(append(transactions, clusters...), addresses...) {
+		children := make([]string, len(node.Transactions)+len(node.Addresses)+len(node.Clusters))
+		for i, t := range append(append(node.Transactions, node.Addresses...), node.Clusters...) {
+			children[i] = t
+		}
+
+		nodeElement, ok := nodeMap[node.UID]
+		if !ok {
+			status = http.StatusInternalServerError
+			warn(cliutil.NewStackErrorStr("uid not found in map"), "uid", node.UID)
+			return
+		}
+		nodeElement.Children = children
+		nodeMap[node.UID] = nodeElement
+	}
+
+	nodesWithConnection := make([]workspace.GraphNode, 0, len(nodeMap))
+	for _, v := range nodeMap {
+		nodesWithConnection = append(nodesWithConnection, v)
+	}
+
+	stateBytes, err := json.Marshal(nodesWithConnection)
+	if err != nil {
+		status = http.StatusInternalServerError
+		return
+	}
+
+	w.State = string(stateBytes)
 
 	reply.Workspace = w.ToFrontendWorkspace()
 

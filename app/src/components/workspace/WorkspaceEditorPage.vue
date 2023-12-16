@@ -310,6 +310,7 @@ async function handleGraphQuery(query) {
 		const response = await dakar.workspace.addWorkspaceNodePost({query: {
 			query: trimmedQuery,
 			currentState: hg.exportNodes(),
+			workspaceUID: workspaceUID.value,
 		}});
 		console.log(structuredClone(response.nodes));
 		hg.addNodes(response.nodes);
@@ -463,19 +464,26 @@ function showContextMenu(e) {
 }
 
 async function refreshData() {
+	isLoading.value = true;
 	try {
 		const response = await dakar.workspace.getWorkspaceUidGet({uid: workspaceUID.value});
-		if (!response.workspace) {
-			data = null;
-		} else {
+		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
+			if (data.state) {
+				data.state = JSON.parse(data.state);
+				console.log(data);
+			}
+		} else {
+			data = null;
 		}
 
 		msgStore.resetMessages();
 	} catch (e) {
 		handleError(context, e);
 	}
+
+	isLoading.value = false;
 
 	if (!data) {
 		return false;

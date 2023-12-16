@@ -652,6 +652,8 @@ definitions:
         type: array
       query:
         type: string
+      workspaceUID:
+        type: string
     type: object
   server.getAddressOutputRangeReply.request:
     properties:

@@ -46,10 +46,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.0.15":
-  version: 1.0.15
-  resolution: "@blockchain/dakar@npm:1.0.15::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.15.tgz"
-  checksum: b96ec8ead76250da0e5cdd30008621b65cbee30c4a97dc28d0e8876cd6a35ba75f53420e12f7dd60619a179592d82da20591923db011a5207d957bc619fad18e
+"@blockchain/dakar@npm:^1.0.16":
+  version: 1.0.16
+  resolution: "@blockchain/dakar@npm:1.0.16::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.16.tgz"
+  checksum: 167bd4ca1451b403a9cbdd5e13b35947067ea4780554538ceeff23aee21b391713e2b04fcb9800f3c8b641ee96e9f3b7bc423b12281aeb06387487e658da0e0f
   languageName: node
   linkType: hard
 
@@ -1090,7 +1090,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.0.15"
+    "@blockchain/dakar": "npm:^1.0.16"
     "@fontsource/roboto": "npm:^5.0.8"
     "@mdi/js": "npm:^7.3.67"
     "@neondark/wikiapi": "npm:^1.2.24"

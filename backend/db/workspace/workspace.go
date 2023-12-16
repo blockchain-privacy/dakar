@@ -53,6 +53,44 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 	return
 }
 
+// SetWorkspaceState sets the state of the specified workspace
+func SetWorkspaceState(c external.Database, userUID string, workspaceUID string, state string) (err error) {
+	if workspaceUID == "" || userUID == "" || state == "" {
+		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
+	}
+	w := Workspace{
+		UID:   "uid(v)",
+		State: state,
+	}
+	w.SetDType()
+
+	type dummyUser struct {
+		UID        string      `json:"uid,omitempty"`
+		Workspaces []Workspace `json:"User.workspaces,omitempty"`
+	}
+
+	pb, err := json.Marshal(dummyUser{UID: userUID, Workspaces: []Workspace{w}})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	_, err = db.TxWithRetryAndResponse(c, time.Minute*10, &api.Request{
+		Query: "query Q($uid:string){var(func: uid($uid))@filter(type(Workspace)){v as uid}}",
+		Vars:  map[string]string{"$uid": workspaceUID},
+		Mutations: []*api.Mutation{{
+			Cond:    "@if(gt(len(v), 0))",
+			SetJson: pb,
+		}},
+		CommitNow: true,
+	})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 // GetFrontendWorkspaces returns all workspaces of the current user without its state
 func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, error) {
 	if userUID == "" {

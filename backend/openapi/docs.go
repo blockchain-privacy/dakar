@@ -2968,6 +2968,9 @@ const docTemplate = `{
                 },
                 "query": {
                     "type": "string"
+                },
+                "workspaceUID": {
+                    "type": "string"
                 }
             }
         },
