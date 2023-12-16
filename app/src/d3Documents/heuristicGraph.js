@@ -318,7 +318,7 @@ export default class HeuristicGraph {
 			.attr('cursor', 'pointer')
 			.attr('fill', d => {
 				if (this.nodeTypeColorMap) {
-					let nodeColor = '';
+					let nodeColor;
 
 					if (d.privacyType) {
 						nodeColor = this.nodeTypeColorMap.get(getPrivacyTypeLabel(d.privacyType));
@@ -444,17 +444,15 @@ export default class HeuristicGraph {
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
 			.text(d => {
-				let description = '';
-
 				if (d.type === 'cluster') {
-					description = d.addressHash;
-				} else if (d.type === 'transaction') {
-					description = d.transactionHash;
-				} else {
-					description = d.uid;
+					return d.addressHash;
 				}
 
-				return description;
+				if (d.type === 'transaction') {
+					return d.transactionHash;
+				}
+
+				return d.uid;
 			})
 			.each(wrap);
 
@@ -471,15 +469,15 @@ export default class HeuristicGraph {
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
-				let description = '';
-
 				if (d.type === 'cluster') {
-					description = d.clusterType;
-				} else if (d.type === 'transaction' && d.privacyType) {
-					description = getPrivacyTypeLabel(d.privacyType);
+					return d.clusterType;
 				}
 
-				return description;
+				if (d.type === 'transaction' && d.privacyType) {
+					return getPrivacyTypeLabel(d.privacyType);
+				}
+
+				return '';
 			})
 			.each(wrap);
 	}
