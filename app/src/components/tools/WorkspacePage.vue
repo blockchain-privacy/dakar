@@ -62,7 +62,7 @@
           v-model="search"
           :append-inner-icon="mdiMagnify"
           label="Filter items"
-          single-line
+          :single-line="true"
           hide-details
           style="max-width:800px"
         />
@@ -75,6 +75,14 @@
       :headers="headers"
       :items="workspaceList"
     >
+      <template #item.name="{ item }">
+        <router-link
+          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE,
+                 params: { id: item.uid }}"
+        >
+          {{ item.name }}
+        </router-link>
+      </template>
       <template #item.modTimeUnix="{ item }">
         <span>{{ new Date(item.modTimeUnix).toLocaleString() }}</span>
       </template>
@@ -155,8 +163,8 @@
 import {
 	mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
 } from '@mdi/js';
-import {PAGE_TITLE} from '@/constants';
-import {handleError} from '@/utilities';
+import {PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
+import {handleError, shortenHash} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {inject, onMounted, ref} from 'vue';
