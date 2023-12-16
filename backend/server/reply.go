@@ -1945,7 +1945,10 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 		return
 	}
 
-	reply.Workspaces = workspaces
+	reply.Workspaces = make([]workspace.FrontendWorkspace, len(workspaces))
+	for i, w := range workspaces {
+		reply.Workspaces[i] = w.ToFrontendWorkspace()
+	}
 
 	return
 }

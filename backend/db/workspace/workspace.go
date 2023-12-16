@@ -64,6 +64,7 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 			}
 
 			q(func: uid(w)){
+				uid
 				Workspace.name
 				Workspace.ts
 			}

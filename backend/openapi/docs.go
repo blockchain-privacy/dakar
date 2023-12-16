@@ -3256,7 +3256,7 @@ const docTemplate = `{
                 "workspaces": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspace.Workspace"
+                        "$ref": "#/definitions/workspace.FrontendWorkspace"
                     }
                 }
             }
@@ -3290,6 +3290,23 @@ const docTemplate = `{
                 }
             }
         },
+        "workspace.FrontendWorkspace": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "ts": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                }
+            }
+        },
         "workspace.GraphNode": {
             "type": "object",
             "properties": {
@@ -3313,29 +3330,6 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspace.Workspace": {
-            "type": "object",
-            "properties": {
-                "Workspace.name": {
-                    "type": "string"
-                },
-                "Workspace.state": {
-                    "type": "string"
-                },
-                "Workspace.ts": {
-                    "type": "string"
-                },
-                "dgraph.type": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
                 },
                 "uid": {
                     "type": "string"

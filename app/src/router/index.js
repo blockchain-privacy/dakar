@@ -16,6 +16,7 @@ import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
 import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
 import HeuristicsPage from '../components/tools/HeuristicsPage.vue';
+import WorkspacePage from '@/components/tools/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
 import AttributionsPage from '../components/tools/attributions/AttributionsPage.vue';
@@ -178,6 +179,11 @@ export const router = createRouter({
 					path: 'heuristics',
 					name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
 					component: HeuristicsPage,
+				},
+				{
+					path: 'workspaces',
+					name: Constants.ROUTE_NAME_WORKSPACE_PAGE,
+					component: WorkspacePage,
 				},
 				{
 					path: 'connectionLookup',

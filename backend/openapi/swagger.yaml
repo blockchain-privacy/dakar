@@ -873,7 +873,7 @@ definitions:
     properties:
       workspaces:
         items:
-          $ref: '#/definitions/workspace.Workspace'
+          $ref: '#/definitions/workspace.FrontendWorkspace'
         type: array
     type: object
   status.FrontendStatus:
@@ -895,6 +895,17 @@ definitions:
       lastclusteredhmiid:
         type: integer
     type: object
+  workspace.FrontendWorkspace:
+    properties:
+      name:
+        type: string
+      state:
+        type: string
+      ts:
+        type: string
+      uid:
+        type: string
+    type: object
   workspace.GraphNode:
     properties:
       addressHash:
@@ -911,21 +922,6 @@ definitions:
         type: string
       type:
         type: string
-      uid:
-        type: string
-    type: object
-  workspace.Workspace:
-    properties:
-      Workspace.name:
-        type: string
-      Workspace.state:
-        type: string
-      Workspace.ts:
-        type: string
-      dgraph.type:
-        items:
-          type: string
-        type: array
       uid:
         type: string
     type: object

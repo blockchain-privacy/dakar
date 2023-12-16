@@ -21,6 +21,7 @@ export const ROUTE_NAME_ADDRESS_PAGE = 'Address Page';
 export const ROUTE_NAME_USER_HEURISTIC_PAGE = 'User Heuristic Page';
 export const ROUTE_NAME_SHORTEST_PATH_PAGE = 'User Shortest Path Page';
 export const ROUTE_NAME_CONNECTION_LOOKUP_PAGE = 'User Connection Lookup Page';
+export const ROUTE_NAME_WORKSPACE_PAGE = 'Workspace Lookup Page';
 export const ROUTE_NAME_CLUSTER_OVERVIEW = 'Custom Clusters Page';
 export const ROUTE_NAME_ATTRIBUTIONS = 'Attributions Page';
 export const ROUTE_NAME_ADDRESS_EXCLUSIONS = 'Address Exclusions Page';

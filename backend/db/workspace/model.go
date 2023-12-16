@@ -14,6 +14,22 @@ func (w *Workspace) SetDType() {
 	w.DType = []string{DType}
 }
 
+type FrontendWorkspace struct {
+	UID              string `json:"uid,omitempty"`
+	Name             string `json:"name,omitempty"`
+	ModificationTime string `json:"ts,omitempty"`
+	State            string `json:"state,omitempty"`
+}
+
+func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
+	return FrontendWorkspace{
+		UID:              w.UID,
+		Name:             w.Name,
+		ModificationTime: w.ModificationTime,
+		State:            w.State,
+	}
+}
+
 type NodeConnections struct {
 	UID          string   `json:"uid,omitempty"`
 	Clusters     []string `json:"clusters,omitempty"`
