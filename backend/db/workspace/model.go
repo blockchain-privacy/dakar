@@ -1,5 +1,19 @@
 package workspace
 
+const DType = "Workspace"
+
+type Workspace struct {
+	UID              string   `json:"uid,omitempty"`
+	Name             string   `json:"Workspace.name,omitempty"`
+	ModificationTime string   `json:"Workspace.ts,omitempty"`
+	State            string   `json:"Workspace.state,omitempty"`
+	DType            []string `json:"dgraph.type,omitempty"`
+}
+
+func (w *Workspace) SetDType() {
+	w.DType = []string{DType}
+}
+
 type NodeConnections struct {
 	UID          string   `json:"uid,omitempty"`
 	Clusters     []string `json:"clusters,omitempty"`
