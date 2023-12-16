@@ -13,7 +13,7 @@
           title="Heuristics"
         />
         <v-list-item
-          :to="{ name: ROUTE_NAME_WORKSPACE_PAGE}"
+          :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}"
           :prepend-icon="mdiGraph"
           title="Workspaces"
         />
@@ -73,7 +73,7 @@ import {
 	ROUTE_NAME_CLUSTER_OVERVIEW,
 	ROUTE_NAME_ATTRIBUTIONS,
 	ROUTE_NAME_ADDRESS_EXCLUSIONS,
-	ROUTE_NAME_WORKSPACE_PAGE,
+	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
 

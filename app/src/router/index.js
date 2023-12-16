@@ -12,6 +12,7 @@ import TransactionPage from '../components/explorer/transaction/TransactionPage.
 import BlockPage from '../components/explorer/BlockPage.vue';
 import AddressPage from '../components/explorer/address/AddressPage.vue';
 import HeuristicEditorPage from '../components/heuristic/HeuristicEditorPage.vue';
+import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
 import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
@@ -118,6 +119,15 @@ export const router = createRouter({
 			},
 		},
 		{
+			path: '/workspace/:id',
+			name: Constants.ROUTE_NAME_WORKSPACE_PAGE,
+			component: WorkspaceEditorPage,
+			meta: {title: 'Workspace'},
+			async beforeEnter(to, from, next) {
+				checkSession(to, next, isPrivileged);
+			},
+		},
+		{
 			path: '/login',
 			name: Constants.ROUTE_NAME_LOGIN_PAGE,
 			component: LoginPage,
@@ -182,7 +192,7 @@ export const router = createRouter({
 				},
 				{
 					path: 'workspaces',
-					name: Constants.ROUTE_NAME_WORKSPACE_PAGE,
+					name: Constants.ROUTE_NAME_WORKSPACES_PAGE,
 					component: WorkspacePage,
 				},
 				{
