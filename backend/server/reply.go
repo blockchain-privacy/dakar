@@ -13,6 +13,7 @@ import (
 	dbHeuristic "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
+	"backend/db/workspace"
 	"backend/external"
 	"io"
 	"path"
@@ -1827,6 +1828,103 @@ func getHeuristicDescriptorReply() (reply heuristicDescriptorReply) {
 
 	for i, t := range heuristics.ValidHeuristicTypes {
 		reply.Descriptors[i] = t.GetDescriptor()
+	}
+
+	return
+}
+
+func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply addWorkspaceNodeReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		Query        string                `json:"query,omitempty"`
+		CurrentState []workspace.GraphNode `json:"currentState,omitempty"`
+	}
+
+	var searchRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if !isValid(searchRequest.Query) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	newNodes, err := workspace.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err, "query", searchRequest)
+		return
+	}
+
+	if len(newNodes) == 0 {
+		status = http.StatusBadRequest
+		return
+	}
+
+	// if the current state is empty, then there are only connections between the new nodes
+	if len(searchRequest.CurrentState) == 0 {
+		if len(newNodes) > 1 {
+			// add links to each other node in the set
+			for i := range newNodes {
+				for j, n := range newNodes {
+					if j == i {
+						continue
+					}
+					newNodes[i].Children = append(newNodes[i].Children, n.UID)
+				}
+			}
+		}
+
+		reply.Nodes = newNodes
+		return
+	}
+
+	nodeMap := map[string]workspace.GraphNode{}
+	for _, n := range append(newNodes, searchRequest.CurrentState...) {
+		// remove previous connections
+		n.Children = nil
+		nodeMap[n.UID] = n
+	}
+
+	// can only search for connections with more than one node
+	if len(searchRequest.CurrentState) > 1 {
+		transactions, clusters, addresses, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err, "query", searchRequest)
+			return
+		}
+
+		for _, node := range append(append(transactions, clusters...), addresses...) {
+			children := make([]string, len(node.Transactions)+len(node.Addresses)+len(node.Clusters))
+			for i, t := range append(append(node.Transactions, node.Addresses...), node.Clusters...) {
+				children[i] = t
+			}
+
+			nodeElement, ok := nodeMap[node.UID]
+			if !ok {
+				status = http.StatusInternalServerError
+				warn(cliutil.NewStackErrorStr("uid not found in map"), "uid", node.UID)
+				return
+			}
+			nodeElement.Children = children
+			nodeMap[node.UID] = nodeElement
+		}
+	}
+
+	reply.Nodes = make([]workspace.GraphNode, 0, len(nodeMap))
+	for _, n := range nodeMap {
+		reply.Nodes = append(reply.Nodes, n)
 	}
 
 	return

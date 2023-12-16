@@ -47,6 +47,7 @@ const (
 	routeAddressExclusionOverview     string = "addressExclusionOverview"
 	routeAddressExclusionStatus       string = "addressExclusionStatus"
 	routeSpendingFingerprint          string = "spendingFingerprint"
+	routeWorkspaceAddNode             string = "addWorkspaceNode"
 	routeMetrics                      string = "/metrics"
 )
 
@@ -272,6 +273,11 @@ func getRouteAddressExclusionStatus() string {
 // getRouteSpendingFingerprint returns a route
 func getRouteSpendingFingerprint() string {
 	return getRoute(routeSpendingFingerprint)
+}
+
+// getRouteWorkspaceAddNode returns a route
+func getRouteWorkspaceAddNode() string {
+	return getRoute(routeWorkspaceAddNode)
 }
 
 // getRouteMetrics returns a route

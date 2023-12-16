@@ -1,4 +1,4 @@
-import {isFunction} from '@/utilities';
+import {getPrivacyTypeLabel, isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
@@ -167,6 +167,7 @@ export default class HeuristicGraph {
 
 	// Creates links based on the given nodes
 	getLinks(nodes) {
+		console.log(nodes);
 		const links = [];
 		nodes.forEach(d => {
 			if (!d.children) {
@@ -181,7 +182,7 @@ export default class HeuristicGraph {
 				links.push({source: child, target: d.uid});
 			});
 		});
-
+		console.log(links);
 		return links;
 	}
 
@@ -247,6 +248,7 @@ export default class HeuristicGraph {
 		nodes.forEach(node => {
 			this.addNode(node, false);
 		});
+		console.log(this.nodeMap);
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
@@ -316,7 +318,14 @@ export default class HeuristicGraph {
 			.attr('cursor', 'pointer')
 			.attr('fill', d => {
 				if (this.nodeTypeColorMap) {
-					const nodeColor = this.nodeTypeColorMap.get(d.type);
+					let nodeColor = '';
+
+					if (d.privacyType) {
+						nodeColor = this.nodeTypeColorMap.get(getPrivacyTypeLabel(d.privacyType));
+					} else {
+						nodeColor = this.nodeTypeColorMap.get(d.type);
+					}
+
 					if (nodeColor) {
 						if (nodeColor === 'striped' || nodeColor === 'checkers') {
 							return `url(#${nodeColor})`;
@@ -406,7 +415,7 @@ export default class HeuristicGraph {
 		});
 
 		// Add node descriptions
-		const textAreaWidth = 150;
+		const textAreaWidth = 100;
 		const textAreaMargin = 3;
 		const textHeight = 12;
 		const fontSize = textHeight - 2;
@@ -434,7 +443,19 @@ export default class HeuristicGraph {
 			.attr('fill', 'currentColor')
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
-			.text(d => `${d.uid}`)
+			.text(d => {
+				let description = '';
+
+				if (d.type === 'cluster') {
+					description = d.addressHash;
+				} else if (d.type === 'transaction') {
+					description = d.transactionHash;
+				} else {
+					description = d.uid;
+				}
+
+				return description;
+			})
 			.each(wrap);
 
 		let nodeType = groupElement.select('.nodeType');
@@ -449,7 +470,17 @@ export default class HeuristicGraph {
 			.attr('fill', 'currentColor')
 			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
-			.text(d => `${d.type}`)
+			.text(d => {
+				let description = '';
+
+				if (d.type === 'cluster') {
+					description = d.clusterType;
+				} else if (d.type === 'transaction' && d.privacyType) {
+					description = getPrivacyTypeLabel(d.privacyType);
+				}
+
+				return description;
+			})
 			.each(wrap);
 	}
 

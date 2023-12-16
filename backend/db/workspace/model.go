@@ -32,6 +32,20 @@ type connectionRequest struct {
 		} `json:"tx_inputs,omitempty"`
 	} `json:"transactions,omitempty"`
 
+	TransactionAddresses []struct {
+		UID     string `json:"uid,omitempty"`
+		Outputs []struct {
+			Addresses []struct {
+				UID string `json:"uid,omitempty"`
+			} `json:"~addr_outputs,omitempty"`
+		} `json:"tx_outputs,omitempty"`
+		Inputs []struct {
+			Addresses []struct {
+				UID string `json:"uid,omitempty"`
+			} `json:"~addr_outputs,omitempty"`
+		} `json:"tx_inputs,omitempty"`
+	} `json:"transaction_addresses,omitempty"`
+
 	AddressClusters []struct {
 		UID            string `json:"uid,omitempty"`
 		AddressOutputs []struct {
@@ -48,7 +62,6 @@ type connectionRequest struct {
 		UID            string `json:"uid,omitempty"`
 		AddressOutputs []struct {
 			InputTransaction []struct {
-				UID     string `json:"uid,omitempty"`
 				Outputs []struct {
 					Addresses []struct {
 						UID string `json:"uid,omitempty"`
@@ -56,7 +69,6 @@ type connectionRequest struct {
 				} `json:"tx_outputs,omitempty"`
 			} `json:"~tx_inputs,omitempty"`
 			OutputTransaction []struct {
-				UID    string `json:"uid,omitempty"`
 				Inputs []struct {
 					Addresses []struct {
 						UID string `json:"uid,omitempty"`
@@ -79,4 +91,17 @@ type connectionRequest struct {
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
+}
+
+type GraphNode struct {
+	UID  string `json:"uid,omitempty"`
+	Type string `json:"type,omitempty"`
+
+	AddressHash string `json:"addressHash,omitempty"`
+	ClusterType string `json:"clusterType,omitempty"`
+
+	TransactionHash string `json:"transactionHash,omitempty"`
+	PrivacyType     *int   `json:"privacyType,omitempty"`
+
+	Children []string `json:"children,omitempty"`
 }

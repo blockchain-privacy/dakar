@@ -241,6 +241,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/addWorkspaceNode/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "Add a node to the current workspace",
+                "parameters": [
+                    {
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getAddWorkspaceNodeReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceNodeReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceNodeReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.addWorkspaceNodeReply"
+                        }
+                    }
+                }
+            }
+        },
         "/address/{hash}": {
             "get": {
                 "produces": [
@@ -2698,6 +2743,17 @@ const docTemplate = `{
                 }
             }
         },
+        "server.addWorkspaceNodeReply": {
+            "type": "object",
+            "properties": {
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspace.GraphNode"
+                    }
+                }
+            }
+        },
         "server.addressExclusionOverviewReply": {
             "type": "object",
             "properties": {
@@ -2783,6 +2839,20 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "txhash": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.getAddWorkspaceNodeReply.request": {
+            "type": "object",
+            "properties": {
+                "currentState": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspace.GraphNode"
+                    }
+                },
+                "query": {
                     "type": "string"
                 }
             }
@@ -3132,6 +3202,35 @@ const docTemplate = `{
                 },
                 "lastclusteredhmiid": {
                     "type": "integer"
+                }
+            }
+        },
+        "workspace.GraphNode": {
+            "type": "object",
+            "properties": {
+                "addressHash": {
+                    "type": "string"
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "clusterType": {
+                    "type": "string"
+                },
+                "privacyType": {
+                    "type": "integer"
+                },
+                "transactionHash": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
                 }
             }
         }

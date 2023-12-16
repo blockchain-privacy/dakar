@@ -9,6 +9,7 @@ import (
 	"backend/db/analytics/clustering"
 	dbh "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
+	"backend/db/workspace"
 	"backend/external"
 	"encoding/json"
 	"time"
@@ -148,6 +149,10 @@ type spendingFingerprintReply struct {
 	Msg               string             `json:"msg,omitempty"`
 	SessionCount      int                `json:"session_count"`
 	FingerprintScores []fingerprintScore `json:"fingerprint_scores"`
+}
+
+type addWorkspaceNodeReply struct {
+	Nodes []workspace.GraphNode `json:"nodes,omitempty"`
 }
 
 type queryResultType string

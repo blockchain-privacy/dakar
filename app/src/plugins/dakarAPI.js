@@ -5,7 +5,9 @@ import {
 	Configuration,
 	DataApi,
 	HeuristicApi,
-	MetaApi, ToolsApi,
+	MetaApi,
+	ToolsApi,
+	WorkspaceApi,
 } from '@blockchain/dakar';
 import {checkResponseStatus} from '@/utilities';
 import {useNavStore} from '@/pinia/nav';
@@ -34,6 +36,7 @@ export default {
 			meta: new MetaApi(c),
 			heuristic: new HeuristicApi(c),
 			cluster: new ClusterApi(c),
+			workspace: new WorkspaceApi(c),
 			addressExclusion: new AddressExclusionsApi(c),
 		};
 	},

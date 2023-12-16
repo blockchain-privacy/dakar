@@ -61,6 +61,8 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
 	}
+
+	// todo limit user for cluster lookup
 	const query = `query Q($uids:string){
 					# input uids
 					uids as var(func: uid($uids))
@@ -89,6 +91,20 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 							...fGetCluster
 						}
 					}
+
+					transaction_addresses(func: uid(t)){
+						uid
+						tx_outputs{
+							~addr_outputs@filter(uid(a)){
+								uid
+							}
+						}
+						tx_inputs {
+							~addr_outputs@filter(uid(a)){
+								uid
+							}
+						}
+					}
 					
 					address_clusters(func: uid(a)){
 						uid
@@ -99,7 +115,6 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 						uid
 						addr_outputs {
 							~tx_inputs{
-								uid
 								tx_outputs{
 									~addr_outputs@filter(uid(a)){
 										uid
@@ -107,7 +122,6 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 								}
 							}
 							~tx_outputs{
-								uid
 								tx_inputs{
 									~addr_outputs@filter(uid(a)){
 										uid
@@ -190,6 +204,7 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
 	addresses []NodeConnections) {
+	connectedTransactions := map[string]NodeConnections{}
 	for _, queryTx := range r.Transactions {
 		clusterUIDs := map[string]bool{}
 		transactionUIDs := map[string]bool{}
@@ -218,11 +233,31 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 			}
 		}
 
-		transactions = append(transactions, NodeConnections{
+		connectedTransactions[queryTx.UID] = NodeConnections{
 			UID:          queryTx.UID,
 			Transactions: cliutil.GetMapKeys(transactionUIDs),
 			Clusters:     cliutil.GetMapKeys(clusterUIDs),
-		})
+		}
+	}
+
+	for _, queryTx := range r.TransactionAddresses {
+		addressUIDs := map[string]bool{}
+
+		for _, output := range queryTx.Outputs {
+			for _, address := range output.Addresses {
+				addressUIDs[address.UID] = true
+			}
+		}
+
+		for _, inputs := range queryTx.Inputs {
+			for _, address := range inputs.Addresses {
+				addressUIDs[address.UID] = true
+			}
+		}
+
+		cTx := connectedTransactions[queryTx.UID]
+		cTx.Addresses = cliutil.GetMapKeys(addressUIDs)
+		connectedTransactions[queryTx.UID] = cTx
 	}
 
 	connectedAddresses := map[string]NodeConnections{}
@@ -239,12 +274,15 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		connectedAddresses[a.UID] = NodeConnections{UID: a.UID, Clusters: cliutil.GetMapKeys(clusterUIDs)}
 	}
 
+	transactions = make([]NodeConnections, 0, len(connectedTransactions))
+	for _, v := range connectedTransactions {
+		transactions = append(transactions, v)
+	}
+
 	for _, a := range r.AddressAddresses {
 		addressUIDs := map[string]bool{}
-		txUIDs := map[string]bool{}
 		for _, output := range a.AddressOutputs {
 			for _, ot := range output.OutputTransaction {
-				txUIDs[ot.UID] = true
 				for _, i := range ot.Inputs {
 					for _, address := range i.Addresses {
 						addressUIDs[address.UID] = true
@@ -252,7 +290,6 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				}
 			}
 			for _, it := range output.InputTransaction {
-				txUIDs[it.UID] = true
 				for _, i := range it.Outputs {
 					for _, address := range i.Addresses {
 						addressUIDs[address.UID] = true
@@ -263,7 +300,6 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 		address := connectedAddresses[a.UID]
 		address.Addresses = cliutil.GetMapKeys(addressUIDs)
-		address.Transactions = cliutil.GetMapKeys(txUIDs)
 		connectedAddresses[a.UID] = address
 	}
 
@@ -285,6 +321,88 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 			}
 		}
 		clusters = append(clusters, NodeConnections{UID: cluster.UID, Clusters: cliutil.GetMapKeys(clusterUIDs)})
+	}
+
+	return
+}
+
+// SearchForNode returns the uid which matches to the given query. In case the query is an address
+// which is connected to clusters, they are returned instead.
+func SearchForNode(c external.Database, nodeQuery string, userUID string) (nodes []GraphNode, err error) {
+	if nodeQuery == "" || userUID == "" {
+		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
+		return
+	}
+	const query = `query Q($query:string, $user:string){
+						transaction(func: eq(txhash, $query)){
+							uid
+							privacytype
+						}
+						
+						address(func: eq(addresshash, $query)){
+							uid
+							~Cluster.addresses@filter(eq(Cluster.type, "fmi") or (eq(Cluster.type, "custom") and uid_in(Cluster.user, $user))){
+								uid
+								Cluster.type
+							}
+						}
+					}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$query": nodeQuery, "$user": userUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Transactions []struct {
+			UID         string `json:"uid,omitempty"`
+			Hash        string `json:"txhash,omitempty"`
+			PrivacyType *int   `json:"privacytype,omitempty"`
+		} `json:"transaction,omitempty"`
+		Address []struct {
+			UID      string `json:"uid,omitempty"`
+			Clusters []struct {
+				UID  string `json:"uid,omitempty"`
+				Type string `json:"Cluster.type,omitempty"`
+			} `json:"~Cluster.addresses,omitempty"`
+		} `json:"address,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.Transactions) > 0 {
+		tx := r.Transactions[0]
+		nodes = []GraphNode{{UID: tx.UID, Type: "transaction", TransactionHash: nodeQuery}}
+		nodes[0].PrivacyType = tx.PrivacyType
+		return
+	}
+
+	if len(r.Address) > 0 {
+		addr := r.Address[0]
+		if len(addr.Clusters) > 0 {
+			nodes = make([]GraphNode, len(addr.Clusters))
+			for i, cluster := range addr.Clusters {
+				nodes[i] = GraphNode{
+					UID:         cluster.UID,
+					Type:        "cluster",
+					AddressHash: nodeQuery,
+					ClusterType: cluster.Type,
+				}
+			}
+			return
+		}
+
+		nodes = []GraphNode{{
+			UID:         addr.UID,
+			Type:        "cluster",
+			AddressHash: nodeQuery,
+		}}
+		return
 	}
 
 	return
