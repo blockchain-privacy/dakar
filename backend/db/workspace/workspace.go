@@ -59,8 +59,9 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
 	w := Workspace{
-		UID:   "uid(v)",
-		State: state,
+		UID:              "uid(v)",
+		State:            state,
+		ModificationTime: time.Now().UTC().Format(time.RFC3339),
 	}
 	w.SetDType()
 
