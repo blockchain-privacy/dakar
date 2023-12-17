@@ -48,6 +48,10 @@ function dragEnded(event, context) {
 	if (!event.active) {
 		context.simulation.alphaTarget(0);
 	}
+
+	if (context.dragEndCallback !== null) {
+		context.dragEndCallback();
+	}
 }
 
 export default class HeuristicGraph {
@@ -56,6 +60,7 @@ export default class HeuristicGraph {
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
 		this.contextMenuCallback = null;
+		this.dragEndCallback = null;
 
 		// Context menu
 		this.activeContextMenuData = null;
@@ -644,6 +649,17 @@ export default class HeuristicGraph {
 		}
 
 		this.contextMenuCallback = callback;
+		return true;
+	}
+
+	// SetDragCallback receives a function as an argument.
+	// The function is going to be called after each drag event
+	setDragEndCallback(callback) {
+		if (!isFunction(callback)) {
+			return false;
+		}
+
+		this.dragEndCallback = callback;
 		return true;
 	}
 }

@@ -144,6 +144,13 @@
           </v-menu>
         </v-card-text>
       </v-card>
+      <div
+        v-if="workspaceModificationTime"
+        style="position:absolute; top: 10px; right:10px"
+        class="text-caption"
+      >
+        Saved {{ timeAgo(workspaceModificationTime) }}
+      </div>
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <heuristic-details-sidebar
@@ -186,7 +193,7 @@ import {
 import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
-import {onMounted, ref, watch, nextTick, inject} from 'vue';
+import {onMounted, ref, watch, nextTick, inject, onUnmounted} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import HeuristicGraph from '@/d3Documents/heuristicGraph';
@@ -215,6 +222,7 @@ const isLoading = ref(false);
 const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
+const workspaceModificationTime = ref({});
 const isAddHeuristicSheetOpen = ref(false);
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
@@ -294,6 +302,10 @@ onMounted(async () => {
 	await whenMounted();
 });
 
+onUnmounted(() => {
+	clearAutoSaveTimer();
+});
+
 // Functions
 async function handleGraphQuery(query) {
 	const trimmedQuery = query.trim();
@@ -339,6 +351,26 @@ function modifyNode() {
 	}
 
 	flag = !flag;
+}
+
+function timeAgo(input) {
+	const formatter = new Intl.RelativeTimeFormat('en');
+	const ranges = {
+		years: 3600 * 24 * 365,
+		months: 3600 * 24 * 30,
+		weeks: 3600 * 24 * 7,
+		days: 3600 * 24,
+		hours: 3600,
+		minutes: 60,
+		seconds: 1,
+	};
+	const secondsElapsed = (input.getTime() - Date.now()) / 1000;
+	for (const key in ranges) {
+		if (ranges[key] < Math.abs(secondsElapsed)) {
+			const delta = secondsElapsed / ranges[key];
+			return formatter.format(Math.round(delta), key);
+		}
+	}
 }
 
 async function newRouting() {
@@ -468,6 +500,7 @@ async function refreshData() {
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
+			workspaceModificationTime.value = new Date(data.ts);
 			if (data.state) {
 				data.state = JSON.parse(data.state);
 			}
@@ -543,6 +576,28 @@ function createTabs() {
 	}
 }
 
+const autoSave = {
+	timer: null,
+	wasSaved: false,
+};
+
+function clearAutoSaveTimer() {
+	if (autoSave.timer !== null) {
+		clearTimeout(autoSave.timer);
+	}
+}
+
+function queueAutoSave() {
+	clearAutoSaveTimer();
+	autoSave.timer = setTimeout(doAutoSave, 5000);
+	console.log('queued auto save');
+}
+
+function doAutoSave() {
+	autoSave.wasSaved = true;
+	console.log('auto save');
+}
+
 async function whenMounted() {
 	const svgCanvasId = 'svg_canvas';
 	// Remove previous svg children
@@ -573,6 +628,11 @@ async function whenMounted() {
 
 	if (!hg.setContextMenuCallback(showContextMenu)) {
 		setErrorMessage('error setting svg context menu handler');
+		return false;
+	}
+
+	if (!hg.setDragEndCallback(queueAutoSave)) {
+		setErrorMessage('error setting drag end handler');
 		return false;
 	}
 
