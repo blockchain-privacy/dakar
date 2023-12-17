@@ -754,6 +754,15 @@ definitions:
         description: To is the end point of the shortest path lookup
         type: string
     type: object
+  server.getUpdateWorkspace.request:
+    properties:
+      currentState:
+        items:
+          $ref: '#/definitions/workspace.FrontendGraphNode'
+        type: array
+      workspaceUID:
+        type: string
+    type: object
   server.getWorkspaceReply:
     properties:
       workspace:
@@ -875,6 +884,11 @@ definitions:
         type: string
       session_count:
         type: integer
+    type: object
+  server.updateWorkspace:
+    properties:
+      ts:
+        type: string
     type: object
   server.workspacesReply:
     properties:
@@ -2249,6 +2263,35 @@ paths:
       summary: Query for address, transaction or block
       tags:
       - data
+  /updateWorkspace/:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace state
+        in: body
+        name: state
+        required: true
+        schema:
+          $ref: '#/definitions/server.getUpdateWorkspace.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.updateWorkspace'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.updateWorkspace'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.updateWorkspace'
+      summary: Update the workspace
+      tags:
+      - workspace
   /workspaces/:
     get:
       produces:

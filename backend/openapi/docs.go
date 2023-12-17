@@ -2006,6 +2006,51 @@ const docTemplate = `{
                 }
             }
         },
+        "/updateWorkspace/": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "Update the workspace",
+                "parameters": [
+                    {
+                        "description": "Workspace state",
+                        "name": "state",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getUpdateWorkspace.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.updateWorkspace"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.updateWorkspace"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.updateWorkspace"
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces/": {
             "get": {
                 "produces": [
@@ -3114,6 +3159,20 @@ const docTemplate = `{
                 }
             }
         },
+        "server.getUpdateWorkspace.request": {
+            "type": "object",
+            "properties": {
+                "currentState": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/workspace.FrontendGraphNode"
+                    }
+                },
+                "workspaceUID": {
+                    "type": "string"
+                }
+            }
+        },
         "server.getWorkspaceReply": {
             "type": "object",
             "properties": {
@@ -3298,6 +3357,14 @@ const docTemplate = `{
                 },
                 "session_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "server.updateWorkspace": {
+            "type": "object",
+            "properties": {
+                "ts": {
+                    "type": "string"
                 }
             }
         },

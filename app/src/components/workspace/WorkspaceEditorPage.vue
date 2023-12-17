@@ -145,11 +145,16 @@
         </v-card-text>
       </v-card>
       <div
-        v-if="workspaceModificationTime"
         style="position:absolute; top: 10px; right:10px"
         class="text-caption"
       >
-        Saved {{ timeAgo(workspaceModificationTime) }}
+        <template v-if="isSaving">
+          Saving ...
+        </template>
+        <template v-else>
+          <v-icon :icon="mdiCheckCircle" />
+          Saved
+        </template>
       </div>
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
@@ -180,8 +185,16 @@
 
 <script setup>
 import {
-	mdiAlertOctagon, mdiChartBar, mdiDelete, mdiDotsVertical, mdiImageFilterCenterFocus, mdiMagnify, mdiOpenInNew,
-	mdiShapeSquarePlus, mdiShapeSquareRoundedPlus,
+	mdiAlertOctagon,
+	mdiChartBar,
+	mdiCheckCircle,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiImageFilterCenterFocus,
+	mdiMagnify,
+	mdiOpenInNew,
+	mdiShapeSquarePlus,
+	mdiShapeSquareRoundedPlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
@@ -222,7 +235,8 @@ const isLoading = ref(false);
 const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
-const workspaceModificationTime = ref({});
+const workspaceModificationTime = ref();
+const isSaving = ref(false);
 const isAddHeuristicSheetOpen = ref(false);
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
@@ -274,9 +288,14 @@ const contextMenuModel = ref({
 		{title: 'Show Properties', icon: mdiChartBar, action: () => hg.contextMenuNodeClick()},
 		{isDivider: true},
 		{title: 'Add Heuristic', icon: mdiShapeSquarePlus, action: openTypeSelectionSheet, disabled: () => !banner.value.show},
-		{title: 'Delete Node', icon: mdiDelete, action: () => hg.removeContextMenuNode(), disabled: () => !banner.value.show},
+		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
 	],
 });
+
+const autoSave = {
+	timer: null,
+	wasSaved: false,
+};
 
 // Watchers
 watch(route, () => {
@@ -298,15 +317,38 @@ watch(isAddHeuristicSheetOpen, newVal => {
 });
 
 // Hooks
+function onDocumentClose() {
+	if (document.visibilityState === 'hidden') {
+		if (autoSave.timer !== null) {
+			clearTimeout(autoSave.timer);
+			autoSave.timer = null;
+			doAutoSave();
+		}
+	}
+}
+
 onMounted(async () => {
 	await whenMounted();
+	document.addEventListener('visibilitychange', onDocumentClose);
 });
 
 onUnmounted(() => {
-	clearAutoSaveTimer();
+	// Immediately save queued up auto save
+	if (autoSave.timer !== null) {
+		clearTimeout(autoSave.timer);
+		autoSave.timer = null;
+		doAutoSave();
+	}
+
+	document.removeEventListener('visibilitychange', onDocumentClose);
 });
 
 // Functions
+function removeGraphNode() {
+	hg.removeContextMenuNode();
+	queueAutoSave();
+}
+
 async function handleGraphQuery(query) {
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
@@ -351,26 +393,6 @@ function modifyNode() {
 	}
 
 	flag = !flag;
-}
-
-function timeAgo(input) {
-	const formatter = new Intl.RelativeTimeFormat('en');
-	const ranges = {
-		years: 3600 * 24 * 365,
-		months: 3600 * 24 * 30,
-		weeks: 3600 * 24 * 7,
-		days: 3600 * 24,
-		hours: 3600,
-		minutes: 60,
-		seconds: 1,
-	};
-	const secondsElapsed = (input.getTime() - Date.now()) / 1000;
-	for (const key in ranges) {
-		if (ranges[key] < Math.abs(secondsElapsed)) {
-			const delta = secondsElapsed / ranges[key];
-			return formatter.format(Math.round(delta), key);
-		}
-	}
 }
 
 async function newRouting() {
@@ -576,26 +598,32 @@ function createTabs() {
 	}
 }
 
-const autoSave = {
-	timer: null,
-	wasSaved: false,
-};
-
-function clearAutoSaveTimer() {
+function queueAutoSave() {
+	isSaving.value = true;
 	if (autoSave.timer !== null) {
 		clearTimeout(autoSave.timer);
 	}
-}
 
-function queueAutoSave() {
-	clearAutoSaveTimer();
 	autoSave.timer = setTimeout(doAutoSave, 5000);
-	console.log('queued auto save');
 }
 
-function doAutoSave() {
-	autoSave.wasSaved = true;
-	console.log('auto save');
+async function doAutoSave() {
+	isSaving.value = true;
+	autoSave.timer = null;
+	try {
+		const response = await dakar.workspace.updateWorkspacePost({state: {
+			workspaceUID: workspaceUID.value,
+			currentState: hg.exportNodes(),
+		}});
+		if (response.ts) {
+			workspaceModificationTime.value = new Date(response.ts);
+			autoSave.wasSaved = true;
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	isSaving.value = false;
 }
 
 async function whenMounted() {

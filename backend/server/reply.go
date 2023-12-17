@@ -1891,7 +1891,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 			}
 		}
 
-		if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newNodes); err != nil {
+		if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newNodes, time.Now()); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
@@ -1936,7 +1936,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		reply.Nodes = append(reply.Nodes, n)
 	}
 
-	if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newState); err != nil {
+	if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+		newState, time.Now()); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
 		warn(err)
@@ -1946,13 +1947,14 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	return
 }
 
-func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string, nodes any) error {
+func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
+	workspaceUID string, nodes any, timeStamp time.Time) error {
 	stateBytes, err := json.Marshal(nodes)
 	if err != nil {
 		return cliutil.NewStackError(err)
 	}
 
-	err = workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes))
+	err = workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), timeStamp)
 	if err != nil {
 		return cliutil.NewStackError(err)
 	}
@@ -2079,6 +2081,51 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addW
 		warn(err)
 		return
 	}
+
+	return
+}
+
+func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply updateWorkspace, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		CurrentState []workspace.FrontendGraphNode `json:"currentState,omitempty"`
+		WorkspaceUID string                        `json:"workspaceUID,omitempty"`
+	}
+
+	var searchRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if searchRequest.WorkspaceUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	newState := make([]workspace.FrontendGraphNode, len(searchRequest.CurrentState))
+	for i, n := range searchRequest.CurrentState {
+		// remove previous connections
+		n.Children = nil
+		newState[i] = n
+	}
+	now := time.Now()
+	if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+		newState, now); err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.ModificationTime = now.UTC().Format(time.RFC3339)
 
 	return
 }

@@ -158,6 +158,10 @@ type addWorkspaceNodeReply struct {
 type addWorkspaceReply struct {
 }
 
+type updateWorkspace struct {
+	ModificationTime string `json:"ts,omitempty"`
+}
+
 type workspacesReply struct {
 	Workspaces []workspace.FrontendWorkspace `json:"workspaces"`
 }

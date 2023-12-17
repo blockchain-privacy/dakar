@@ -850,6 +850,25 @@ func (s *Server) handlerGetWorkspace() http.Handler {
 	})
 }
 
+// Update Workspace godoc
+//
+//	@Summary	Update the workspace
+//	@Tags		workspace
+//	@Accept		json
+//	@Produce	json
+//	@Param		state	body		server.getUpdateWorkspace.request	true	"Workspace state"
+//	@Success	200		{object}	server.updateWorkspace
+//	@Failure	400		{object}	server.updateWorkspace
+//	@Failure	500		{object}	server.updateWorkspace
+//	@Router		/updateWorkspace/ [post]
+func (s *Server) handlerUpdateWorkspace() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getUpdateWorkspace(s.db, r)
+
+		sendReply(w, reply, status)
+	})
+}
+
 // todo: when https://github.com/golang/go/issues/61410 is merged and released,
 // refactor API design to use consistent endpoint naming:
 // - GET clusters - returns all clusters
@@ -1009,4 +1028,6 @@ func (s *Server) setupHandlers() {
 		limitMethod("GET"), s.authorization()))
 	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(),
 		limitMethod("GET"), s.authorization()))
+	s.handler.Handle(getRouteUpdateWorkspace(), adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(),
+		limitMethod("POST"), s.authorization(), maxBody()))
 }
