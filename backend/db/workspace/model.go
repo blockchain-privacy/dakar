@@ -31,10 +31,8 @@ func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
 }
 
 type NodeConnections struct {
-	UID          string   `json:"uid,omitempty"`
-	Clusters     []string `json:"clusters,omitempty"`
-	Transactions []string `json:"transactions,omitempty"`
-	Addresses    []string `json:"addresses,omitempty"`
+	UID      string   `json:"uid,omitempty"`
+	Children []string `json:"children,omitempty"`
 }
 
 type connectionRequest struct {

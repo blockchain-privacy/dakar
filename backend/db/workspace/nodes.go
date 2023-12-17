@@ -54,8 +54,7 @@ func GetFMIClustersByAddress(c external.Database, addresses []string) (map[strin
 }
 
 // GetWorkspaceConnections returns all connections between the given UIDs
-func GetWorkspaceConnections(c external.Database, uids []string) (transactions []NodeConnections,
-	clusters []NodeConnections, addresses []NodeConnections, err error) {
+func GetWorkspaceConnections(c external.Database, uids []string) (connections []NodeConnections, err error) {
 	// need at least two uids to find connections
 	if len(uids) < 2 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
@@ -196,7 +195,8 @@ func GetWorkspaceConnections(c external.Database, uids []string) (transactions [
 		return
 	}
 
-	transactions, addresses, clusters = parseConnectionResult(r)
+	transactions, addresses, clusters := parseConnectionResult(r)
+	connections = append(transactions, append(addresses, clusters...)...)
 
 	return
 }
@@ -206,37 +206,35 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 	addresses []NodeConnections) {
 	connectedTransactions := map[string]NodeConnections{}
 	for _, queryTx := range r.Transactions {
-		clusterUIDs := map[string]bool{}
-		transactionUIDs := map[string]bool{}
+		children := map[string]bool{}
 
 		for _, output := range queryTx.Outputs {
 			for _, inputTx := range output.InputTransactions {
-				transactionUIDs[inputTx.UID] = true
+				children[inputTx.UID] = true
 			}
 
 			for _, address := range output.Addresses {
 				for _, cluster := range address.Clusters {
-					clusterUIDs[cluster.UID] = true
+					children[cluster.UID] = true
 				}
 			}
 		}
 
 		for _, inputs := range queryTx.Inputs {
 			for _, outputTx := range inputs.OutputTransactions {
-				transactionUIDs[outputTx.UID] = true
+				children[outputTx.UID] = true
 			}
 
 			for _, address := range inputs.Addresses {
 				for _, cluster := range address.Clusters {
-					clusterUIDs[cluster.UID] = true
+					children[cluster.UID] = true
 				}
 			}
 		}
 
 		connectedTransactions[queryTx.UID] = NodeConnections{
-			UID:          queryTx.UID,
-			Transactions: cliutil.GetMapKeys(transactionUIDs),
-			Clusters:     cliutil.GetMapKeys(clusterUIDs),
+			UID:      queryTx.UID,
+			Children: cliutil.GetMapKeys(children),
 		}
 	}
 
@@ -256,7 +254,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		}
 
 		cTx := connectedTransactions[queryTx.UID]
-		cTx.Addresses = cliutil.GetMapKeys(addressUIDs)
+		cTx.Children = append(cTx.Children, cliutil.GetMapKeys(addressUIDs)...)
 		connectedTransactions[queryTx.UID] = cTx
 	}
 
@@ -271,7 +269,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				clusterUIDs[it.ClusterUID] = true
 			}
 		}
-		connectedAddresses[a.UID] = NodeConnections{UID: a.UID, Clusters: cliutil.GetMapKeys(clusterUIDs)}
+		connectedAddresses[a.UID] = NodeConnections{UID: a.UID, Children: cliutil.GetMapKeys(clusterUIDs)}
 	}
 
 	transactions = make([]NodeConnections, 0, len(connectedTransactions))
@@ -299,7 +297,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		}
 
 		address := connectedAddresses[a.UID]
-		address.Addresses = cliutil.GetMapKeys(addressUIDs)
+		address.Children = append(address.Children, cliutil.GetMapKeys(addressUIDs)...)
 		connectedAddresses[a.UID] = address
 	}
 
@@ -320,7 +318,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				}
 			}
 		}
-		clusters = append(clusters, NodeConnections{UID: cluster.UID, Clusters: cliutil.GetMapKeys(clusterUIDs)})
+		clusters = append(clusters, NodeConnections{UID: cluster.UID, Children: cliutil.GetMapKeys(clusterUIDs)})
 	}
 
 	return
