@@ -1916,22 +1916,10 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 
 	// can only search for connections with more than one node
 	if len(searchRequest.CurrentState) > 0 {
-		connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
-		if err != nil {
+		if err := insertNodeConnections(dgraph, nodeMap); err != nil {
 			status = http.StatusInternalServerError
-			warn(err, "query", searchRequest)
+			warn(err)
 			return
-		}
-
-		for _, node := range connections {
-			nodeElement, ok := nodeMap[node.UID]
-			if !ok {
-				status = http.StatusInternalServerError
-				warn(cliutil.NewStackErrorStr("uid not found in map"), "uid", node.UID)
-				return
-			}
-			nodeElement.Children = node.Children
-			nodeMap[node.UID] = nodeElement
 		}
 	}
 
@@ -1959,6 +1947,25 @@ func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, work
 	err = workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes))
 	if err != nil {
 		return cliutil.NewStackError(err)
+	}
+
+	return nil
+}
+
+// insertNodeConnections queries the db for connections between nodes in nodeMap and inserts them
+func insertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.GraphNode) error {
+	connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
+	if err != nil {
+		return err
+	}
+
+	for _, node := range connections {
+		nodeElement, ok := nodeMap[node.UID]
+		if !ok {
+			return cliutil.NewStackErrorf("uid %s not found in map", node.UID)
+		}
+		nodeElement.Children = node.Children
+		nodeMap[node.UID] = nodeElement
 	}
 
 	return nil
@@ -2020,22 +2027,10 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		nodeMap[n.UID] = n
 	}
 
-	connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
-	if err != nil {
+	if err := insertNodeConnections(dgraph, nodeMap); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
-	}
-
-	for _, node := range connections {
-		nodeElement, ok := nodeMap[node.UID]
-		if !ok {
-			status = http.StatusInternalServerError
-			warn(cliutil.NewStackErrorStr("uid not found in map"), "uid", node.UID)
-			return
-		}
-		nodeElement.Children = node.Children
-		nodeMap[node.UID] = nodeElement
 	}
 
 	nodesWithConnection := make([]workspace.GraphNode, 0, len(nodeMap))
