@@ -2860,7 +2860,7 @@ const docTemplate = `{
                 "nodes": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspace.GraphNode"
+                        "$ref": "#/definitions/workspace.FrontendGraphNode"
                     }
                 }
             }
@@ -2963,7 +2963,7 @@ const docTemplate = `{
                 "currentState": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/workspace.GraphNode"
+                        "$ref": "#/definitions/workspace.FrontendGraphNode"
                     }
                 },
                 "query": {
@@ -3341,24 +3341,7 @@ const docTemplate = `{
                 }
             }
         },
-        "workspace.FrontendWorkspace": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "state": {
-                    "type": "string"
-                },
-                "ts": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                }
-            }
-        },
-        "workspace.GraphNode": {
+        "workspace.FrontendGraphNode": {
             "type": "object",
             "properties": {
                 "addressHash": {
@@ -3380,6 +3363,29 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
+        "workspace.FrontendWorkspace": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "state": {
+                    "type": "string"
+                },
+                "ts": {
                     "type": "string"
                 },
                 "uid": {

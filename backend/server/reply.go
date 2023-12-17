@@ -1842,9 +1842,9 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	type request struct {
-		Query        string                `json:"query,omitempty"`
-		CurrentState []workspace.GraphNode `json:"currentState,omitempty"`
-		WorkspaceUID string                `json:"workspaceUID,omitempty"`
+		Query        string                        `json:"query,omitempty"`
+		CurrentState []workspace.FrontendGraphNode `json:"currentState,omitempty"`
+		WorkspaceUID string                        `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -1898,18 +1898,26 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 			return
 		}
 
-		reply.Nodes = newNodes
+		reply.Nodes = make([]workspace.FrontendGraphNode, len(newNodes))
+		for i, n := range newNodes {
+			reply.Nodes[i] = n.ToFrontendGraphNode()
+		}
+
 		return
 	}
 
-	nodeMap := map[string]workspace.GraphNode{}
-	for _, n := range append(newNodes, searchRequest.CurrentState...) {
+	nodeMap := map[string]workspace.FrontendGraphNode{}
+	for _, n := range searchRequest.CurrentState {
 		// remove previous connections
 		n.Children = nil
 		nodeMap[n.UID] = n
 	}
 
-	newState := make([]workspace.GraphNode, 0, len(nodeMap))
+	for _, n := range newNodes {
+		nodeMap[n.UID] = n.ToFrontendGraphNode()
+	}
+
+	newState := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
 	for _, v := range nodeMap {
 		newState = append(newState, v)
 	}
@@ -1923,7 +1931,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		}
 	}
 
-	reply.Nodes = make([]workspace.GraphNode, 0, len(nodeMap))
+	reply.Nodes = make([]workspace.FrontendGraphNode, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
 	}
@@ -1938,7 +1946,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	return
 }
 
-func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string, nodes []workspace.GraphNode) error {
+func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, workspaceUID string, nodes any) error {
 	stateBytes, err := json.Marshal(nodes)
 	if err != nil {
 		return cliutil.NewStackError(err)
@@ -1953,7 +1961,7 @@ func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string, work
 }
 
 // insertNodeConnections queries the db for connections between nodes in nodeMap and inserts them
-func insertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.GraphNode) error {
+func insertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.FrontendGraphNode) error {
 	connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
 	if err != nil {
 		return err
@@ -2015,14 +2023,14 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	var nodes []workspace.GraphNode
+	var nodes []workspace.FrontendGraphNode
 	if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	nodeMap := map[string]workspace.GraphNode{}
+	nodeMap := map[string]workspace.FrontendGraphNode{}
 	for _, n := range nodes {
 		nodeMap[n.UID] = n
 	}
@@ -2033,7 +2041,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	nodesWithConnection := make([]workspace.GraphNode, 0, len(nodeMap))
+	nodesWithConnection := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
 	for _, v := range nodeMap {
 		nodesWithConnection = append(nodesWithConnection, v)
 	}

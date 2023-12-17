@@ -110,7 +110,7 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 						...fCluster
 					}
 				
-					address_addresses(func: uid(a)){
+					address_addresses(func: uid(a))@ignorereflex{
 						uid
 						addr_outputs {
 							~tx_inputs{
@@ -195,7 +195,7 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 		return
 	}
 
-	transactions, addresses, clusters := parseConnectionResult(r)
+	transactions, clusters, addresses := parseConnectionResult(r)
 	connections = append(transactions, append(addresses, clusters...)...)
 
 	return

@@ -152,7 +152,7 @@ type spendingFingerprintReply struct {
 }
 
 type addWorkspaceNodeReply struct {
-	Nodes []workspace.GraphNode `json:"nodes,omitempty"`
+	Nodes []workspace.FrontendGraphNode `json:"nodes,omitempty"`
 }
 
 type addWorkspaceReply struct {

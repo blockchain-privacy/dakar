@@ -133,3 +133,32 @@ type GraphNode struct {
 
 	Children []string `json:"children,omitempty"`
 }
+
+func (g GraphNode) ToFrontendGraphNode() FrontendGraphNode {
+	return FrontendGraphNode{
+		UID:             g.UID,
+		Type:            g.Type,
+		AddressHash:     g.AddressHash,
+		ClusterType:     g.ClusterType,
+		TransactionHash: g.TransactionHash,
+		PrivacyType:     g.PrivacyType,
+		Children:        g.Children,
+	}
+}
+
+// FrontendGraphNode include the coordinates of the client canvas
+type FrontendGraphNode struct {
+	UID  string `json:"uid,omitempty"`
+	Type string `json:"type,omitempty"`
+
+	AddressHash string `json:"addressHash,omitempty"`
+	ClusterType string `json:"clusterType,omitempty"`
+
+	TransactionHash string `json:"transactionHash,omitempty"`
+	PrivacyType     *int   `json:"privacyType,omitempty"`
+
+	Children []string `json:"children,omitempty"`
+
+	X *float32 `json:"x,omitempty"`
+	Y *float32 `json:"y,omitempty"`
+}

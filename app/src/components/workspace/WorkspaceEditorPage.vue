@@ -180,14 +180,13 @@ import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSi
 import {
 	APPLICATION_NAME,
 	CLUSTER_TYPE_CUSTOM,
-	ROUTE_NAME_HEURISTIC_PAGE,
 	ROUTE_NAME_TRANSACTION_PAGE,
-	ROUTE_NAME_USER_HEURISTIC_PAGE,
+	ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_WORKSPACE_PAGE,
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError} from '@/utilities';
 import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
-import {onBeforeUnmount, onMounted, ref, watch, nextTick, inject} from 'vue';
+import {onMounted, ref, watch, nextTick, inject} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import HeuristicGraph from '@/d3Documents/heuristicGraph';
@@ -312,7 +311,6 @@ async function handleGraphQuery(query) {
 			currentState: hg.exportNodes(),
 			workspaceUID: workspaceUID.value,
 		}});
-		console.log(structuredClone(response.nodes));
 		hg.addNodes(response.nodes);
 		hg.centerOnNewNodes();
 	} catch (e) {
@@ -345,7 +343,7 @@ function modifyNode() {
 
 async function newRouting() {
 	const {id} = route.params;
-	if (id === undefined || route.name !== ROUTE_NAME_HEURISTIC_PAGE) {
+	if (id === undefined || route.name !== ROUTE_NAME_WORKSPACE_PAGE) {
 		return;
 	}
 
@@ -472,7 +470,6 @@ async function refreshData() {
 			workspaceName.value = data.name;
 			if (data.state) {
 				data.state = JSON.parse(data.state);
-				console.log(data);
 			}
 		} else {
 			data = null;
@@ -555,7 +552,7 @@ async function whenMounted() {
 	workspaceUID.value = route.params.id;
 
 	// Set page title
-	document.title = `Heuristic ${workspaceUID.value} - ${APPLICATION_NAME}`;
+	document.title = `Workspace - ${APPLICATION_NAME}`;
 
 	if (!hg.setNodeClickHandler(openPropertySheet)) {
 		setErrorMessage('error setting heuristic click handler');
@@ -593,6 +590,9 @@ async function whenMounted() {
 	if (!await refreshData()) {
 		return false;
 	}
+
+	// Update page title
+	document.title = `Workspace ${workspaceName.value} - ${APPLICATION_NAME}`;
 
 	hg.addNodes(data.state);
 

@@ -582,7 +582,7 @@ definitions:
     properties:
       nodes:
         items:
-          $ref: '#/definitions/workspace.GraphNode'
+          $ref: '#/definitions/workspace.FrontendGraphNode'
         type: array
     type: object
   server.addWorkspaceReply:
@@ -648,7 +648,7 @@ definitions:
     properties:
       currentState:
         items:
-          $ref: '#/definitions/workspace.GraphNode'
+          $ref: '#/definitions/workspace.FrontendGraphNode'
         type: array
       query:
         type: string
@@ -902,18 +902,7 @@ definitions:
       lastclusteredhmiid:
         type: integer
     type: object
-  workspace.FrontendWorkspace:
-    properties:
-      name:
-        type: string
-      state:
-        type: string
-      ts:
-        type: string
-      uid:
-        type: string
-    type: object
-  workspace.GraphNode:
+  workspace.FrontendGraphNode:
     properties:
       addressHash:
         type: string
@@ -928,6 +917,21 @@ definitions:
       transactionHash:
         type: string
       type:
+        type: string
+      uid:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
+  workspace.FrontendWorkspace:
+    properties:
+      name:
+        type: string
+      state:
+        type: string
+      ts:
         type: string
       uid:
         type: string
