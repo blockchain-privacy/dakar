@@ -163,8 +163,8 @@
 import {
 	mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
 } from '@mdi/js';
-import {PAGE_TITLE, ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
-import {handleError, shortenHash} from '@/utilities';
+import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
+import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import {inject, onMounted, ref} from 'vue';
