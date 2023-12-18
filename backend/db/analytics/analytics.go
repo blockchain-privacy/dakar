@@ -578,3 +578,194 @@ func GetDestinationTransactionSpenders(c external.Database) (
 
 	return
 }
+
+// GetNumberOfAddresses returns the number of addresses which are not connected to any cluster
+func GetNumberOfAddresses(c external.Database) (int, error) {
+	const query = `{
+		q(func:has(addresshash)){
+			count(uid)
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return 0, err
+	}
+	var r struct {
+		Addresses []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return 0, cliutil.NewStackError(err)
+	}
+
+	if len(r.Addresses) != 1 {
+		return 0, cliutil.NewStackErrorStr("invalid result")
+	}
+
+	return r.Addresses[0].Count, nil
+}
+
+// GetSingleAddressesByOffset returns the uid of all addresses which are not connected to any cluster
+func GetSingleAddressesByOffset(c external.Database, step int, offset int) (uids []string, err error) {
+	const query = `query Q($offset:int,$step:int){
+		var(func:has(addresshash), first:$step, offset:$offset){
+			c as count(~Cluster.addresses)
+		}
+		
+		q(func: uid(c))@filter(eq(val(c),0)){
+			uid
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$offset": strconv.Itoa(offset), "$step": strconv.Itoa(step)})
+	if err != nil {
+		return
+	}
+	var r struct {
+		Addresses []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for _, a := range r.Addresses {
+		uids = append(uids, a.UID)
+	}
+	return
+}
+
+// GetAllSingleAddresses returns the uid of all addresses which are not connected to any cluster
+func GetAllSingleAddresses(c external.Database) (uids []string, err error) {
+	numAddresses, err := GetNumberOfAddresses(c)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("address count: %d\n", numAddresses)
+
+	const stepSize = 10000000
+	var offset = 0
+	for {
+		fmt.Printf("offset: %d\n", offset)
+		addresses, err := GetSingleAddressesByOffset(c, stepSize, offset)
+		if err != nil {
+			return nil, err
+		}
+		uids = append(uids, addresses...)
+
+		offset += stepSize
+		if offset >= numAddresses {
+			break
+		}
+	}
+
+	return
+}
+
+// GetTransactionCountPerAddress returns the number of transactions this address has created
+func GetTransactionCountPerAddress(c external.Database, addressUID string) (int, error) {
+	const query = `query Q($uid:string){
+					var(func: uid($uid)){
+						addr_outputs{
+							t as ~tx_inputs
+						}
+					}
+					
+					q(func: uid(t)){
+						count(uid)
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": addressUID})
+	if err != nil {
+		return 0, err
+	}
+	var r struct {
+		Transaction []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return 0, cliutil.NewStackError(err)
+	}
+
+	if len(r.Transaction) != 1 {
+		return 0, cliutil.NewStackErrorStr("invalid result")
+	}
+
+	return r.Transaction[0].Count, nil
+}
+
+// GetTransactionCountPerCluster returns the number of transactions this cluster has created
+func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, error) {
+	const query = `query Q($uid:string){
+					var(func: uid($uid)){
+						Cluster.addresses {
+							addr_outputs{
+								t as ~tx_inputs
+							}
+						}
+					}
+					
+					q(func: uid(t)){
+						count(uid)
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": clusterUID})
+	if err != nil {
+		return 0, err
+	}
+	var r struct {
+		Transaction []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return 0, cliutil.NewStackError(err)
+	}
+
+	if len(r.Transaction) != 1 {
+		return 0, cliutil.NewStackErrorStr("invalid result")
+	}
+
+	return r.Transaction[0].Count, nil
+}
+
+// GetAllFMIClusters returns the uids of all FMI clusters
+func GetAllFMIClusters(c external.Database) (uids []string, err error) {
+	const query = `{
+		q(func: type(Cluster))@filter(eq(Cluster.type, "fmi")){
+			uid
+		}
+	}`
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return
+	}
+	var r struct {
+		Clusters []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	for _, a := range r.Clusters {
+		uids = append(uids, a.UID)
+	}
+	return
+}
