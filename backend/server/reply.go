@@ -2025,36 +2025,39 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	var nodes []workspace.FrontendGraphNode
-	if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
+	if w.State != "" {
+		var nodes []workspace.FrontendGraphNode
+		if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
+			status = http.StatusInternalServerError
+			warn(cliutil.NewStackError(err))
+			return
+		}
 
-	nodeMap := map[string]workspace.FrontendGraphNode{}
-	for _, n := range nodes {
-		nodeMap[n.UID] = n
-	}
+		nodeMap := map[string]workspace.FrontendGraphNode{}
+		for _, n := range nodes {
+			nodeMap[n.UID] = n
+		}
 
-	if err := insertNodeConnections(dgraph, nodeMap); err != nil {
-		status = http.StatusInternalServerError
-		warn(err)
-		return
-	}
+		if err := insertNodeConnections(dgraph, nodeMap); err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
+		}
 
-	nodesWithConnection := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
-	for _, v := range nodeMap {
-		nodesWithConnection = append(nodesWithConnection, v)
-	}
+		nodesWithConnection := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
+		for _, v := range nodeMap {
+			nodesWithConnection = append(nodesWithConnection, v)
+		}
 
-	stateBytes, err := json.Marshal(nodesWithConnection)
-	if err != nil {
-		status = http.StatusInternalServerError
-		return
-	}
+		stateBytes, err := json.Marshal(nodesWithConnection)
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(cliutil.NewStackError(err))
+			return
+		}
 
-	w.State = string(stateBytes)
+		w.State = string(stateBytes)
+	}
 
 	reply.Workspace = w.ToFrontendWorkspace()
 
