@@ -33,11 +33,15 @@
     <div style="height: 100%; width:100%; position: relative">
       <v-card
         v-if="workspaceName"
-        style="position:absolute; left: 10px; top:10px; z-index:1005; background-color: rgb(var(--v-theme-surface))"
+        class="workspace-toolbar"
       >
         <v-card-text class="d-flex align-center pa-0">
-          <p class="mx-3 text-h6">
-            <v-icon icon="$graphIcon" />
+          <v-icon
+            class="mx-3"
+            icon="$graphIcon"
+            size="x-large"
+          />
+          <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
             {{ workspaceName }}
           </p>
           <v-text-field
@@ -49,6 +53,7 @@
             color="primary"
             :single-line="true"
             label="Add transactions or clusters"
+            :disabled="isLoading || isSaving"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
@@ -67,18 +72,6 @@
             <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
             <div class="hidden-sm-and-down">
               Center Graph
-            </div>
-          </v-btn>
-          <v-btn
-            style="min-width: 32px !important;"
-            class="ms-3 px-2"
-            variant="text"
-            :disabled="banner.show || executionStatus.executing"
-            @click="openTypeSelectionSheet"
-          >
-            <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-            <div class="hidden-sm-and-down">
-              Add Heuristic
             </div>
           </v-btn>
           <v-menu location="bottom">
@@ -104,9 +97,9 @@
         </v-card-text>
       </v-card>
       <div
-        v-if="workspaceName"
-        style="position:absolute; top: 10px; right:10px"
-        class="text-caption"
+        v-if="workspaceName && wasAutoSaved"
+        style=""
+        :class="{'text-caption':true, 'auto-save-small-screen': $vuetify.display.smAndDown, 'auto-save-large-screen': $vuetify.display.mdAndUp }"
       >
         <template v-if="isSaving">
           Saving ...
@@ -188,6 +181,7 @@ let data = null;
 // HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
 const heuristicDetailsMap = new Map();
 
+const wasAutoSaved = ref(false);
 const isLoading = ref(false);
 const graphQuery = ref('');
 const workspaceUID = ref('');
@@ -249,10 +243,7 @@ const contextMenuModel = ref({
 	],
 });
 
-const autoSave = {
-	timer: null,
-	wasSaved: false,
-};
+let autoSaveTimer = null;
 
 // Watchers
 watch(route, () => {
@@ -276,9 +267,9 @@ watch(isAddHeuristicSheetOpen, newVal => {
 // Hooks
 function onDocumentClose() {
 	if (document.visibilityState === 'hidden') {
-		if (autoSave.timer !== null) {
-			clearTimeout(autoSave.timer);
-			autoSave.timer = null;
+		if (autoSaveTimer !== null) {
+			clearTimeout(autoSaveTimer);
+			autoSaveTimer = null;
 			doAutoSave();
 		}
 	}
@@ -291,9 +282,9 @@ onMounted(async () => {
 
 onUnmounted(() => {
 	// Immediately save queued up auto save
-	if (autoSave.timer !== null) {
-		clearTimeout(autoSave.timer);
-		autoSave.timer = null;
+	if (autoSaveTimer !== null) {
+		clearTimeout(autoSaveTimer);
+		autoSaveTimer = null;
 		doAutoSave();
 	}
 
@@ -549,16 +540,17 @@ function createTabs() {
 
 function queueAutoSave() {
 	isSaving.value = true;
-	if (autoSave.timer !== null) {
-		clearTimeout(autoSave.timer);
+	wasAutoSaved.value = true;
+	if (autoSaveTimer !== null) {
+		clearTimeout(autoSaveTimer);
 	}
 
-	autoSave.timer = setTimeout(doAutoSave, 5000);
+	autoSaveTimer = setTimeout(doAutoSave, 5000);
 }
 
 async function doAutoSave() {
 	isSaving.value = true;
-	autoSave.timer = null;
+	autoSaveTimer = null;
 	try {
 		const response = await dakar.workspace.updateWorkspacePost({state: {
 			workspaceUID: workspaceUID.value,
@@ -566,7 +558,6 @@ async function doAutoSave() {
 		}});
 		if (response.ts) {
 			workspaceModificationTime.value = new Date(response.ts);
-			autoSave.wasSaved = true;
 		}
 	} catch (e) {
 		setErrorMessage(e);
@@ -648,4 +639,32 @@ async function whenMounted() {
   filter: drop-shadow(-4px 4px 2px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.2)));
 }
 
+.workspace-name {
+  max-width:275px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.auto-save-large-screen {
+  position:absolute;
+  top: 10px;
+  right: 10px;
+  z-index:1004;
+}
+
+.auto-save-small-screen {
+  position:absolute;
+  top: 65px;
+  left: 10px;
+  z-index:1004;
+}
+
+.workspace-toolbar {
+  position:absolute;
+  left: 10px;
+  top:10px;
+  z-index:1004;
+  background-color: rgb(var(--v-theme-surface))
+}
 </style>
