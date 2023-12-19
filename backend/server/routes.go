@@ -52,6 +52,7 @@ const (
 	routeWorkspaces                   string = "workspaces"
 	routeGetWorkspace                 string = "getWorkspace"
 	routeUpdateWorkspace              string = "updateWorkspace"
+	routeDeleteWorkspace              string = "deleteWorkspace"
 	routeMetrics                      string = "/metrics"
 )
 
@@ -302,6 +303,11 @@ func getRouteGetWorkspace() string {
 // getRouteGetWorkspace returns a route
 func getRouteUpdateWorkspace() string {
 	return getRoute(routeUpdateWorkspace)
+}
+
+// getRouteDeleteWorkspace returns a route
+func getRouteDeleteWorkspace() string {
+	return getRoute(routeDeleteWorkspace)
 }
 
 // getRouteMetrics returns a route

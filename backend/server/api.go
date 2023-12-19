@@ -551,7 +551,7 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json
-//	@Param			heuristic	body		server.getDeleteHeuristicReply.request	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted."
+//	@Param			heuristic	body		server.getDeleteHeuristicReply.request	true	"Heuristic deletion request. Set delete_all to true, only if ALL heuristics should be deleted."
 //	@Success		200			{object}	server.msgReply
 //	@Failure		400			{object}	server.msgReply
 //	@Failure		401			{object}	server.msgReply
@@ -869,6 +869,28 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 	})
 }
 
+// Delete Workspace godoc
+//
+//	@Summary		Deletes either all workspaces or one specific workspace
+//	@Description	Deletes either all workspaces of the current user or one specific workspace of the current user
+//	@Tags			workspace
+//	@Produce		json
+//	@Accept			json
+//	@Param			workspace	body		server.getDeleteWorkspaceReply.request	true	"Workspace deletion request. Set delete_all to true, only if ALL workspaces should be deleted."
+//	@Success		200			{object}	server.msgReply
+//	@Failure		400			{object}	server.msgReply
+//	@Failure		401			{object}	server.msgReply
+//	@Failure		404			{object}	server.msgReply
+//	@Failure		500			{object}	server.msgReply
+//	@Router			/deleteWorkspace/ [post]
+func (s *Server) handlerDeleteWorkspace() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getDeleteWorkspaceReply(r, s.db)
+
+		sendReply(w, reply, status)
+	})
+}
+
 // todo: when https://github.com/golang/go/issues/61410 is merged and released,
 // refactor API design to use consistent endpoint naming:
 // - GET clusters - returns all clusters
@@ -1030,4 +1052,6 @@ func (s *Server) setupHandlers() {
 		limitMethod("GET"), s.authorization()))
 	s.handler.Handle(getRouteUpdateWorkspace(), adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(),
 		limitMethod("POST"), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteDeleteWorkspace(), adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(),
+		limitMethod("POST"), s.authorization(), maxBody()))
 }

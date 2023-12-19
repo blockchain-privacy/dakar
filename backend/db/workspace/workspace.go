@@ -5,9 +5,15 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
+	"errors"
 	"github.com/dgraph-io/dgo/v230/protos/api"
 	"strconv"
 	"time"
+)
+
+var (
+	// ErrNoMutationHappened is returned if no mutation occurred
+	ErrNoMutationHappened = errors.New("no mutation happened")
 )
 
 // AddWorkspace creates a new workspace with the given name
@@ -166,4 +172,50 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Wor
 	}
 
 	return &r.Workspaces[0], nil
+}
+
+// DeleteAllWorkspaces deletes all workspaces of a user
+func DeleteAllWorkspaces(c external.Database, userUID string) error {
+	req := &api.Request{
+		Query: "query Q($user:string){var(func: uid($user)){w as User.workspaces}}}",
+		Vars:  map[string]string{"$user": userUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(` uid(w) * * .
+								<` + userUID + "> <User.workspaces> uid(w) ."),
+		}},
+		CommitNow: true,
+	}
+
+	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
+	return err
+}
+
+// DeleteWorkspace deletes a user's workspace
+func DeleteWorkspace(c external.Database, workspaceUID string, userUID string) error {
+	query := `query Q($user:string, $workspace:string){
+				var(func: uid($user)){
+					w as User.workspaces@filter(uid($workspace))
+				}
+			  }`
+
+	req := &api.Request{
+		Query: query,
+		Vars:  map[string]string{"$user": userUID, "$workspace": workspaceUID},
+		Mutations: []*api.Mutation{{
+			DelNquads: []byte(` uid(w) * * .
+								<` + userUID + "> <User.workspaces> uid(w) ."),
+		}},
+		CommitNow: true,
+	}
+
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+		return cliutil.NewStackError(ErrNoMutationHappened)
+	}
+
+	return nil
 }

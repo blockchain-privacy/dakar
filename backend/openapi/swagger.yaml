@@ -694,6 +694,13 @@ definitions:
       tx_hash:
         type: string
     type: object
+  server.getDeleteWorkspaceReply.request:
+    properties:
+      delete_all:
+        type: boolean
+      workspaceUID:
+        type: string
+    type: object
   server.getHeuristicDetailsReply.request:
     properties:
       uid:
@@ -1667,7 +1674,7 @@ paths:
         of a transaction of the current user
       parameters:
       - description: Heuristic deletion request. Set delete_all to true, only if ALL
-          heuristic should be deleted.
+          heuristics should be deleted.
         in: body
         name: heuristic
         required: true
@@ -1783,6 +1790,46 @@ paths:
       summary: Delete a public attribution
       tags:
       - attribution
+  /deleteWorkspace/:
+    post:
+      consumes:
+      - application/json
+      description: Deletes either all workspaces of the current user or one specific
+        workspace of the current user
+      parameters:
+      - description: Workspace deletion request. Set delete_all to true, only if ALL
+          workspaces should be deleted.
+        in: body
+        name: workspace
+        required: true
+        schema:
+          $ref: '#/definitions/server.getDeleteWorkspaceReply.request'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/server.msgReply'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/server.msgReply'
+      summary: Deletes either all workspaces or one specific workspace
+      tags:
+      - workspace
   /executeHeuristics/{hash}:
     post:
       consumes:

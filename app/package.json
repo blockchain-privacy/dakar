@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.0.19",
+    "@blockchain/dakar": "^1.0.20",
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.3.67",
     "@neondark/wikiapi": "^1.2.24",
@@ -27,7 +27,7 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "pinia": "^2.1.7",
-    "vue": "^3.3.12",
+    "vue": "^3.3.13",
     "vue-router": "^4.2.5",
     "vuetify": "^3.4.7"
   },

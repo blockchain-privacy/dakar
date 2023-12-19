@@ -530,7 +530,6 @@ func getShortestTransactionPathReply(dgraph external.Database, body io.Reader) (
 	return
 }
 
-// getDeleteHeuristicReply reads the data from body and constructs a deleteHeuristicReply
 func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -560,7 +559,7 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 	if req.DeleteAll {
 		if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, tUser.ID); err != nil {
 			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-				reply.Msg = "No data was deleted. The user may not have any heuristics."
+				reply.Msg = "No data was deleted. The user might not have any heuristics."
 				status = http.StatusNotFound
 			} else {
 				reply.Msg = "could not delete data"
@@ -575,7 +574,7 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 
 	if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, tUser.ID); err != nil {
 		if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-			reply.Msg = "No data was deleted. The transaction may not have any heuristics."
+			reply.Msg = "No data was deleted. The transaction might not have any heuristics."
 			status = http.StatusNotFound
 		} else {
 			reply.Msg = "could not delete data"
@@ -2098,6 +2097,63 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 	}
 
 	reply.ModificationTime = now.UTC().Format(time.RFC3339)
+
+	return
+}
+
+func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		DeleteAll    bool   `json:"delete_all"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
+	}
+
+	var req request
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if (req.DeleteAll && len(req.WorkspaceUID) > 0) ||
+		(!req.DeleteAll && len(req.WorkspaceUID) == 0) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	if req.DeleteAll {
+		if err := dbwork.DeleteAllWorkspaces(dgraph, tUser.ID); err != nil {
+			if errors.Is(err, dbwork.ErrNoMutationHappened) {
+				reply.Msg = "No data was deleted. The user might not have any workspaces."
+				status = http.StatusNotFound
+			} else {
+				reply.Msg = "could not delete data"
+				status = http.StatusInternalServerError
+				warn(err)
+			}
+			return
+		}
+
+		return
+	}
+
+	if err := dbwork.DeleteWorkspace(dgraph, req.WorkspaceUID, tUser.ID); err != nil {
+		if errors.Is(err, dbwork.ErrNoMutationHappened) {
+			reply.Msg = "No data was deleted. The transaction might not have any workspaces."
+			status = http.StatusNotFound
+		} else {
+			reply.Msg = "could not delete data"
+			status = http.StatusInternalServerError
+			warn(err)
+		}
+		return
+	}
 
 	return
 }

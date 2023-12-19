@@ -1103,7 +1103,7 @@ const docTemplate = `{
                 "summary": "Deletes either all heuristics or all heuristics of a transaction",
                 "parameters": [
                     {
-                        "description": "Heuristic deletion request. Set delete_all to true, only if ALL heuristic should be deleted.",
+                        "description": "Heuristic deletion request. Set delete_all to true, only if ALL heuristics should be deleted.",
                         "name": "heuristic",
                         "in": "body",
                         "required": true,
@@ -1262,6 +1262,64 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    }
+                }
+            }
+        },
+        "/deleteWorkspace/": {
+            "post": {
+                "description": "Deletes either all workspaces of the current user or one specific workspace of the current user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "workspace"
+                ],
+                "summary": "Deletes either all workspaces or one specific workspace",
+                "parameters": [
+                    {
+                        "description": "Workspace deletion request. Set delete_all to true, only if ALL workspaces should be deleted.",
+                        "name": "workspace",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/server.getDeleteWorkspaceReply.request"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.msgReply"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/server.msgReply"
                         }
@@ -3076,6 +3134,17 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "tx_hash": {
+                    "type": "string"
+                }
+            }
+        },
+        "server.getDeleteWorkspaceReply.request": {
+            "type": "object",
+            "properties": {
+                "delete_all": {
+                    "type": "boolean"
+                },
+                "workspaceUID": {
                     "type": "string"
                 }
             }
