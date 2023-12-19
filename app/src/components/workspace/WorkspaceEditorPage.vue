@@ -692,8 +692,4 @@ async function whenMounted() {
   filter: drop-shadow(-4px 4px 2px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.2)));
 }
 
-:deep( .v-toolbar__content, .v-toolbar__extension ){
-  padding-right: 0
-}
-
 </style>
