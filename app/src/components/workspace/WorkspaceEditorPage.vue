@@ -62,30 +62,6 @@
             class="ms-3 px-2"
             variant="text"
             :disabled="banner.show || executionStatus.executing"
-            @click="modifyNode()"
-          >
-            <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-            <div class="hidden-sm-and-down">
-              Modify Node
-            </div>
-          </v-btn>
-          <v-btn
-            style="min-width: 32px !important;"
-            class="ms-3 px-2"
-            variant="text"
-            :disabled="banner.show || executionStatus.executing"
-            @click="addRandomNode()"
-          >
-            <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-            <div class="hidden-sm-and-down">
-              Add Node
-            </div>
-          </v-btn>
-          <v-btn
-            style="min-width: 32px !important;"
-            class="ms-3 px-2"
-            variant="text"
-            :disabled="banner.show || executionStatus.executing"
             @click="hg.centerGraph()"
           >
             <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
@@ -103,18 +79,6 @@
             <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
             <div class="hidden-sm-and-down">
               Add Heuristic
-            </div>
-          </v-btn>
-          <v-btn
-            style="min-width: 32px !important;"
-            class="ms-3 px-2"
-            variant="text"
-            :disabled="banner.show || executionStatus.executing"
-            @click="hg.setEnableInteractions(!hg.getEnableInteractions())"
-          >
-            <v-icon>{{ mdiShapeSquareRoundedPlus }}</v-icon>
-            <div class="hidden-sm-and-down">
-              Toggle graph interaction
             </div>
           </v-btn>
           <v-menu location="bottom">
@@ -374,26 +338,6 @@ async function handleGraphQuery(query) {
 
 	isLoading.value = false;
 	hg.setEnableInteractions(true);
-}
-
-function addRandomNode() {
-	const allNodes = hg.exportNodes();
-
-	const childNode = allNodes[Math.floor(Math.random() * allNodes.length)];
-
-	hg.addNode({uid: `${Math.random()}`, type: 'cluster', children: [childNode.uid]});
-	hg.centerOnNewNodes();
-}
-
-let flag = false;
-function modifyNode() {
-	if (flag) {
-		hg.addNode({uid: '0x100', type: 'heuristic', status: 'loading'});
-	} else {
-		hg.addNode({uid: '0x100', type: 'heuristic'});
-	}
-
-	flag = !flag;
 }
 
 async function newRouting() {

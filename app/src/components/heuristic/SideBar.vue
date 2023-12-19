@@ -13,7 +13,7 @@
       >
         <slot name="actions" />
         <v-btn
-          icon
+          :icon="true"
           variant="text"
           color="grey"
           @click="inputVal=false"
