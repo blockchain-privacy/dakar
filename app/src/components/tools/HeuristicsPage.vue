@@ -55,9 +55,11 @@
           v-model="search"
           :append-inner-icon="mdiMagnify"
           label="Filter items"
-          single-line
+          :single-line="true"
           hide-details
           style="max-width:800px"
+          :autofocus="true"
+          @keydown.esc="showSearchField = false"
         />
       </div>
     </fade-transition>

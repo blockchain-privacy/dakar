@@ -64,7 +64,9 @@
           label="Filter items"
           :single-line="true"
           hide-details
+          :autofocus="true"
           style="max-width:800px"
+          @keydown.esc="showSearchField = false"
         />
       </div>
     </fade-transition>
@@ -168,6 +170,8 @@
           <v-text-field
             v-model="newWorkspaceName"
             label="Name of the new workspace"
+            :autofocus="true"
+            @keydown.enter="addWorkspace(newWorkspaceName)"
           />
         </v-card-text>
         <v-card-actions>
@@ -301,15 +305,13 @@ async function deleteWorkspace(all) {
 	isLoading.value = true;
 	let arg;
 	if (all) {
-		// eslint-disable-next-line camelcase
-		arg = {delete_all: true};
+		arg = {deleteAll: true};
 	} else {
-		arg = {uid: workspaceToDelete.value.uid};
+		arg = {workspaceUID: workspaceToDelete.value.uid};
 	}
 
 	try {
-		// Todo implement
-		// Const response = await dakar.heuristic.deleteHeuristicPost({heuristic: arg});
+		const response = await dakar.workspace.deleteWorkspacePost({workspace: arg});
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}

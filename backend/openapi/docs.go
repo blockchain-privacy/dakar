@@ -3141,7 +3141,7 @@ const docTemplate = `{
         "server.getDeleteWorkspaceReply.request": {
             "type": "object",
             "properties": {
-                "delete_all": {
+                "deleteAll": {
                     "type": "boolean"
                 },
                 "workspaceUID": {

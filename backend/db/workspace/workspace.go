@@ -177,7 +177,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Wor
 // DeleteAllWorkspaces deletes all workspaces of a user
 func DeleteAllWorkspaces(c external.Database, userUID string) error {
 	req := &api.Request{
-		Query: "query Q($user:string){var(func: uid($user)){w as User.workspaces}}}",
+		Query: "query Q($user:string){var(func: uid($user)){w as User.workspaces}}",
 		Vars:  map[string]string{"$user": userUID},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte(` uid(w) * * .

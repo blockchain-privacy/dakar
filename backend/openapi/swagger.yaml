@@ -696,7 +696,7 @@ definitions:
     type: object
   server.getDeleteWorkspaceReply.request:
     properties:
-      delete_all:
+      deleteAll:
         type: boolean
       workspaceUID:
         type: string

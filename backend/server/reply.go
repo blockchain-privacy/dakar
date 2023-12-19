@@ -2110,7 +2110,7 @@ func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply m
 	}
 
 	type request struct {
-		DeleteAll    bool   `json:"delete_all"`
+		DeleteAll    bool   `json:"deleteAll"`
 		WorkspaceUID string `json:"workspaceUID,omitempty"`
 	}
 
