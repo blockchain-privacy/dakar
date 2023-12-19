@@ -6,13 +6,13 @@
       max-width="350px"
     >
       <div v-if="showTools">
-        <v-row no-gutters>
+        <v-row :no-gutters="true">
           <v-col>
             <link-card
-              title="Heuristics"
-              :icon="mdiGraph"
+              title="Workspaces"
+              icon="$graphIcon"
               :color="iconColor.default"
-              :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE }"
+              :to="{ name: ROUTE_NAME_WORKSPACES_PAGE }"
             />
           </v-col>
           <v-col>
@@ -32,7 +32,7 @@
             />
           </v-col>
         </v-row>
-        <v-row no-gutters>
+        <v-row :no-gutters="true">
           <v-col>
             <link-card
               title="Address Exclusions"
@@ -60,7 +60,7 @@
         </v-row>
       </div>
       <v-divider class="my-2" />
-      <v-row no-gutters>
+      <v-row :no-gutters="true">
         <v-col>
           <link-card
             title="Server Status"
@@ -92,13 +92,13 @@
 
 <script setup>
 import {
-	mdiGraph, mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
+	mdiChartTimelineVariant, mdiTextBoxSearch, mdiAccountSupervisor, mdiServer,
 	mdiMerge, mdiTag, mdiPlaylistRemove, mdiBookOpen,
 } from '@mdi/js';
 import {
 	ROUTE_NAME_SHORTEST_PATH_PAGE, ROUTE_NAME_USER_ADMIN_PAGE, ROUTE_NAME_CONNECTION_LOOKUP_PAGE,
-	ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT,
+	ROUTE_NAME_STATUS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
+	ROUTE_NAME_ATTRIBUTIONS, ROUTE_NAME_ADDRESS_EXCLUSIONS, ROUTE_NAME_WIKI_ROOT, ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import LinkCard from '../common/LinkCard.vue';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
