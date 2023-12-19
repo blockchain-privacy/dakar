@@ -343,6 +343,12 @@ function removeGraphNode() {
 }
 
 async function handleGraphQuery(query) {
+	if (isSaving.value) {
+		msgStore.resetMessages();
+		setInfoMessage('currently saving, please try again later');
+		return;
+	}
+
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
 		return;
@@ -401,6 +407,10 @@ async function newRouting() {
 
 function setErrorMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+}
+
+function setInfoMessage(msg) {
+	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 function addNewHeuristic(heuristic) {
