@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="91.86248mm"
+   height="60.854851mm"
+   viewBox="0 0 91.86248 60.854851"
+   version="1.1"
+   id="svg1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <style
+     id="style3">
+#g3-5,#g4 { 
+    fill:currentColor;
+    stroke:currentColor;
+}
+</style>
+  <defs
+     id="defs1" />
+  <g
+     id="layer1"
+     transform="translate(-549.28859,-19.89339)">
+    <g
+       id="g4">
+      <circle
+         style="fill-opacity:1;stroke:#000000"
+         id="path2-2-7-9-8"
+         cx="629.09222"
+         cy="42.032669"
+         r="11.55885" />
+      <circle
+         style="fill-opacity:1;stroke:#000000"
+         id="path2-7-8-2-7"
+         cx="566.6795"
+         cy="37.284332"
+         r="16.890944" />
+      <circle
+         style="fill-opacity:1;stroke:#000000"
+         id="path2-6-4-0-1"
+         cx="606.36584"
+         cy="68.987091"
+         r="11.261142" />
+      <path
+         style="fill-opacity:1;stroke-width:6;stroke-dasharray:none"
+         d="m 563.01692,36.040662 37.65834,27.715786"
+         id="path3-3-7-6-2-2" />
+      <path
+         style="fill-opacity:1;stroke-width:6;stroke-dasharray:none"
+         d="m 609.73507,64.274734 12.24267,-13.22611"
+         id="path3-3-2-1-6-7" />
+    </g>
+  </g>
+</svg>
