@@ -46,7 +46,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 
 	_, ok := resp.GetUids()[newWorkspaceDummyUID]
 	if !ok {
-		err = cliutil.NewStackErrorStr("no new heuristic created")
+		err = cliutil.NewStackErrorStr("new workspace was not created")
 		return
 	}
 

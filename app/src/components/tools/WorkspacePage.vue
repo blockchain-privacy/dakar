@@ -12,7 +12,7 @@
       <v-btn
         v-model="showSearchField"
         variant="text"
-        @click="addWorkspace"
+        @click="showAddWorkspaceDialogModel = true"
       >
         Add Workspace
       </v-btn>
@@ -156,6 +156,38 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    <v-dialog
+      v-model="showAddWorkspaceDialogModel"
+      max-width="500px"
+    >
+      <v-card>
+        <v-card-title>
+          <span class="text-h5">Add Workspace</span>
+        </v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="newWorkspaceName"
+            label="Name of the new workspace"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            color="red"
+            @click="closeAddWorkspaceDialog"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            variant="text"
+            @click="addWorkspace(newWorkspaceName)"
+          >
+            Add
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -177,11 +209,13 @@ const context = {addMessage: msgStore.addMessage, $route: route};
 const workspaceList = ref([]);
 const showDeleteAllDialog = ref(false);
 const showDeleteWorkspaceDialogModel = ref(false);
+const showAddWorkspaceDialogModel = ref(false);
 const workspaceToDelete = ref(null);
 const isLoading = ref(false);
 const showSearchField = ref(false);
 const search = ref('');
 const sortBy = ref([{key: 'modTimeUnix', order: 'desc'}]);
+const newWorkspaceName = ref('');
 const headers = [
 	{
 		title: 'Name', key: 'name', align: 'start', sortable: false,
@@ -227,10 +261,17 @@ async function loadWorkspaceList() {
 	isLoading.value = false;
 }
 
-async function addWorkspace() {
+async function addWorkspace(name) {
+	showAddWorkspaceDialogModel.value = false;
+	const workspaceName = name.trim();
+	if (workspaceName === '') {
+		setErrorMessage('workspace name must not be empty');
+		return;
+	}
+
 	isLoading.value = true;
 	try {
-		await dakar.workspace.addWorkspaceNameGet({name: 'test'});
+		await dakar.workspace.addWorkspaceNameGet({name: workspaceName});
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
 	} catch (e) {
@@ -302,6 +343,10 @@ function 	showDeleteAllWorkspacesDialog() {
 
 function 	closeDeleteAllWorkspacesDialog() {
 	showDeleteAllDialog.value = false;
+}
+
+function closeAddWorkspaceDialog() {
+	showAddWorkspaceDialogModel.value = false;
 }
 
 </script>
