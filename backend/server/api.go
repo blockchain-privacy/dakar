@@ -891,7 +891,7 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 	})
 }
 
-// todo: when https://github.com/golang/go/issues/61410 is merged and released,
+// todo: review once go 1.22 is merged and released,
 // refactor API design to use consistent endpoint naming:
 // - GET clusters - returns all clusters
 // - GET clusters/{addresshash} - returns all clusters belonging to a specific address

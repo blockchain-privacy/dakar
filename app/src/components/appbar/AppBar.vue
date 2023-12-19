@@ -36,7 +36,7 @@
     />
     <v-btn
       v-if="isPrivilegedOrHigher"
-      icon
+      :icon="true"
     >
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
@@ -50,7 +50,7 @@
         <v-btn
           v-bind="props"
           id="app-bar-menu"
-          icon
+          :icon="true"
         >
           <v-icon>{{ mdiAccount }}</v-icon>
         </v-btn>
