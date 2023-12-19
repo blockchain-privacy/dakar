@@ -1021,7 +1021,7 @@ func (s *Server) setupHandlers() {
 
 	// Workspace
 	s.handler.Handle(getRouteWorkspaceAddNode(), adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(),
-		limitMethod("POST"), s.authorization(), maxBody()))
+		limitMethod("POST"), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(),
 		limitMethod("GET"), s.authorization()))
 	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(),
@@ -1029,5 +1029,5 @@ func (s *Server) setupHandlers() {
 	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(),
 		limitMethod("GET"), s.authorization()))
 	s.handler.Handle(getRouteUpdateWorkspace(), adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(),
-		limitMethod("POST"), s.authorization(), maxBody()))
+		limitMethod("POST"), s.authorization(), maxBodyConfig(50)))
 }
