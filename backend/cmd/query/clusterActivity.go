@@ -47,9 +47,10 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 			break
 		}
 
-		if offset%1000 == 0 {
-			timePerAddress := time.Since(now) / time.Duration(offset)
+		if offset%10000 == 0 {
+			timePerAddress := time.Since(now) / time.Duration(10000)
 			fmt.Printf("received counts for %d addresses. %v/a\n", offset, timePerAddress)
+			now = time.Now()
 		}
 	}
 
@@ -61,7 +62,7 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 	}
 
 	fmt.Println("number of clusters", len(clusters))
-
+	now = time.Now()
 	for i, c := range clusters {
 		txCount, err := analytics.GetTransactionCountPerCluster(dgraph, c)
 		if err != nil {
@@ -73,6 +74,9 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 
 		if i%1000 == 0 {
 			fmt.Printf("received counts for %d clusters\n", i)
+			timePerCluster := time.Since(now) / time.Duration(1000)
+			fmt.Printf("received counts for %d clusters. %v/c\n", i, timePerCluster)
+			now = time.Now()
 		}
 	}
 
