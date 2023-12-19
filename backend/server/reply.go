@@ -1992,7 +1992,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	if w.State != "" {
+	if w.State != "" && w.State != "[]" {
 		var nodes []dbwork.FrontendGraphNode
 		if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
 			status = http.StatusInternalServerError
@@ -2005,10 +2005,12 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 			nodeMap[n.UID] = n
 		}
 
-		if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			return
+		if len(nodeMap) > 1 {
+			if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
+				status = http.StatusInternalServerError
+				warn(err)
+				return
+			}
 		}
 
 		nodesWithConnection := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
