@@ -3,7 +3,6 @@ import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
 import {forceSimulation, forceLink, forceManyBody, forceCollide} from 'd3-force';
-import {reduceX, reduceY} from '@/d3Documents/util';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
