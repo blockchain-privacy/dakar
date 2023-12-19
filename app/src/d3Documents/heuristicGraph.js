@@ -152,10 +152,11 @@ export default class HeuristicGraph {
 			.scaleExtent([0.25, 5]);
 		this.rootSvg.call(this.zoom);
 
-		// Add arrow definition
 		const defs = this.rootSvg.append('svg:defs');
 
-		// Set pattern and arrowhead
+		// Set pattern and arrowhead.
+		// Arrow is unused for now. In case it is used later on, use reduceY and
+		// reduceX to reduce the length of the links (modify d.target.x and d.target.y)
 		defs.node().innerHTML
       = `<pattern id="striped" viewBox="0,0,4,4" width="40%" height="40%">
           <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
@@ -172,6 +173,8 @@ export default class HeuristicGraph {
 
 	// Creates links based on the given nodes
 	getLinks(nodes) {
+		const linkSet = new Set();
+
 		const links = [];
 		nodes.forEach(d => {
 			if (!d.children) {
@@ -183,7 +186,13 @@ export default class HeuristicGraph {
 					return;
 				}
 
+				// Check if link already exists
+				if (linkSet.has(child + d.uid) || linkSet.has(d.uid + child)) {
+					return;
+				}
+
 				links.push({source: child, target: d.uid});
+				linkSet.add(child + d.uid);
 			});
 		});
 		return links;
@@ -511,12 +520,11 @@ export default class HeuristicGraph {
 			.join('line')
 			.attr('x1', d => d.source.x)
 			.attr('y1', d => d.source.y)
-			.attr('x2', d => reduceX(d, this.nodeRadius))
-			.attr('y2', d => reduceY(d, this.nodeRadius))
+			.attr('x2', d => d.target.x)
+			.attr('y2', d => d.target.y)
 			.attr('class', 'arrow')
 			.attr('stroke', '#999')
 			.attr('stroke-opacity', 1)
-			.attr('marker-end', 'url(#arrowhead)')
 			.attr('stroke-width', 1);
 
 		const self = this;
@@ -561,8 +569,8 @@ export default class HeuristicGraph {
 			link
 				.attr('x1', d => d.source.x)
 				.attr('y1', d => d.source.y)
-				.attr('x2', d => reduceX(d, this.nodeRadius))
-				.attr('y2', d => reduceY(d, this.nodeRadius));
+				.attr('x2', d => d.target.x)
+				.attr('y2', d => d.target.y);
 
 			node.attr('transform', d => `translate(${d.x},${d.y})`);
 		});
