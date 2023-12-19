@@ -14,6 +14,7 @@
         variant="text"
         @click="showAddWorkspaceDialogModel = true"
       >
+        <v-icon :icon="mdiPlus" />
         Add Workspace
       </v-btn>
       <v-btn
@@ -196,7 +197,7 @@
 </template>
 
 <script setup>
-import {mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical} from '@mdi/js';
+import {mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
