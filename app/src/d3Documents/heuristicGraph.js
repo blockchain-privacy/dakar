@@ -148,7 +148,7 @@ export default class HeuristicGraph {
 
 				this.rootGroup.attr('transform', event.transform);
 			})
-			.scaleExtent([0.25, 5]);
+			.scaleExtent([0.5, 3]);
 		this.rootSvg.call(this.zoom);
 
 		const defs = this.rootSvg.append('svg:defs');
