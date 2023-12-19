@@ -129,23 +129,18 @@
               </v-btn>
             </template>
             <v-list>
-              <v-list-item :to="{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: workspaceUID }}">
+              <v-list-item :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}">
                 <template #prepend>
                   <v-icon>{{ mdiOpenInNew }}</v-icon>
                 </template>
-                <v-list-item-title>Transaction Page</v-list-item-title>
-              </v-list-item>
-              <v-list-item :to="{ name: ROUTE_NAME_USER_HEURISTIC_PAGE}">
-                <template #prepend>
-                  <v-icon>{{ mdiOpenInNew }}</v-icon>
-                </template>
-                <v-list-item-title>Heuristic Overview</v-list-item-title>
+                <v-list-item-title>Workspaces Overview</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
         </v-card-text>
       </v-card>
       <div
+        v-if="workspaceName"
         style="position:absolute; top: 10px; right:10px"
         class="text-caption"
       >
@@ -199,10 +194,7 @@ import {
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
-	APPLICATION_NAME,
-	CLUSTER_TYPE_CUSTOM,
-	ROUTE_NAME_TRANSACTION_PAGE,
-	ROUTE_NAME_USER_HEURISTIC_PAGE, ROUTE_NAME_WORKSPACE_PAGE,
+	APPLICATION_NAME, CLUSTER_TYPE_CUSTOM, ROUTE_NAME_WORKSPACE_PAGE, ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError} from '@/utilities';
