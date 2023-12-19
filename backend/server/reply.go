@@ -4,6 +4,7 @@ import (
 	"backend/analytics"
 	analyticsClustering "backend/analytics/clustering"
 	"backend/analytics/heuristics"
+	"backend/analytics/workspace"
 	"backend/cmd/cliutil"
 	"backend/db"
 	dbAnalytics "backend/db/analytics"
@@ -13,7 +14,7 @@ import (
 	dbHeuristic "backend/db/analytics/heuristics"
 	dbstat "backend/db/status"
 	dbus "backend/db/user"
-	"backend/db/workspace"
+	dbwork "backend/db/workspace"
 	"backend/external"
 	"io"
 	"path"
@@ -1842,9 +1843,9 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	type request struct {
-		Query        string                        `json:"query,omitempty"`
-		CurrentState []workspace.FrontendGraphNode `json:"currentState,omitempty"`
-		WorkspaceUID string                        `json:"workspaceUID,omitempty"`
+		Query        string                     `json:"query,omitempty"`
+		CurrentState []dbwork.FrontendGraphNode `json:"currentState,omitempty"`
+		WorkspaceUID string                     `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -1865,7 +1866,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	newNodes, err := workspace.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
+	newNodes, err := dbwork.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err, "query", searchRequest)
@@ -1891,14 +1892,14 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 			}
 		}
 
-		if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newNodes, time.Now()); err != nil {
+		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newNodes, time.Now()); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
 			return
 		}
 
-		reply.Nodes = make([]workspace.FrontendGraphNode, len(newNodes))
+		reply.Nodes = make([]dbwork.FrontendGraphNode, len(newNodes))
 		for i, n := range newNodes {
 			reply.Nodes[i] = n.ToFrontendGraphNode()
 		}
@@ -1906,7 +1907,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	nodeMap := map[string]workspace.FrontendGraphNode{}
+	nodeMap := map[string]dbwork.FrontendGraphNode{}
 	for _, n := range searchRequest.CurrentState {
 		// remove previous connections
 		n.Children = nil
@@ -1917,26 +1918,26 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		nodeMap[n.UID] = n.ToFrontendGraphNode()
 	}
 
-	newState := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
+	newState := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	for _, v := range nodeMap {
 		newState = append(newState, v)
 	}
 
 	// can only search for connections with more than one node
 	if len(searchRequest.CurrentState) > 0 {
-		if err := insertNodeConnections(dgraph, nodeMap); err != nil {
+		if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 	}
 
-	reply.Nodes = make([]workspace.FrontendGraphNode, 0, len(nodeMap))
+	reply.Nodes = make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
 	}
 
-	if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
 		newState, time.Now()); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
@@ -1947,40 +1948,6 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	return
 }
 
-func encodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
-	workspaceUID string, nodes any, timeStamp time.Time) error {
-	stateBytes, err := json.Marshal(nodes)
-	if err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	err = workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), timeStamp)
-	if err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
-}
-
-// insertNodeConnections queries the db for connections between nodes in nodeMap and inserts them
-func insertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.FrontendGraphNode) error {
-	connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
-	if err != nil {
-		return err
-	}
-
-	for _, node := range connections {
-		nodeElement, ok := nodeMap[node.UID]
-		if !ok {
-			return cliutil.NewStackErrorf("uid %s not found in map", node.UID)
-		}
-		nodeElement.Children = node.Children
-		nodeMap[node.UID] = nodeElement
-	}
-
-	return nil
-}
-
 func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply workspacesReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
@@ -1989,14 +1956,14 @@ func getWorkspacesReply(dgraph external.Database, r *http.Request) (reply worksp
 		return
 	}
 
-	workspaces, err := workspace.GetFrontendWorkspaces(dgraph, tUser.ID)
+	workspaces, err := dbwork.GetFrontendWorkspaces(dgraph, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	reply.Workspaces = make([]workspace.FrontendWorkspace, len(workspaces))
+	reply.Workspaces = make([]dbwork.FrontendWorkspace, len(workspaces))
 	for i, w := range workspaces {
 		reply.Workspaces[i] = w.ToFrontendWorkspace()
 	}
@@ -2018,7 +1985,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	w, err := workspace.GetFrontendWorkspace(dgraph, workspaceUID, tUser.ID)
+	w, err := dbwork.GetFrontendWorkspace(dgraph, workspaceUID, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -2026,25 +1993,25 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 	}
 
 	if w.State != "" {
-		var nodes []workspace.FrontendGraphNode
+		var nodes []dbwork.FrontendGraphNode
 		if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
 			status = http.StatusInternalServerError
 			warn(cliutil.NewStackError(err))
 			return
 		}
 
-		nodeMap := map[string]workspace.FrontendGraphNode{}
+		nodeMap := map[string]dbwork.FrontendGraphNode{}
 		for _, n := range nodes {
 			nodeMap[n.UID] = n
 		}
 
-		if err := insertNodeConnections(dgraph, nodeMap); err != nil {
+		if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 
-		nodesWithConnection := make([]workspace.FrontendGraphNode, 0, len(nodeMap))
+		nodesWithConnection := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 		for _, v := range nodeMap {
 			nodesWithConnection = append(nodesWithConnection, v)
 		}
@@ -2078,7 +2045,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addW
 		return
 	}
 
-	err = workspace.AddWorkspace(dgraph, workspaceName, tUser.ID)
+	err = dbwork.AddWorkspace(dgraph, workspaceName, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -2097,8 +2064,8 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 	}
 
 	type request struct {
-		CurrentState []workspace.FrontendGraphNode `json:"currentState,omitempty"`
-		WorkspaceUID string                        `json:"workspaceUID,omitempty"`
+		CurrentState []dbwork.FrontendGraphNode `json:"currentState,omitempty"`
+		WorkspaceUID string                     `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -2114,14 +2081,14 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 		return
 	}
 
-	newState := make([]workspace.FrontendGraphNode, len(searchRequest.CurrentState))
+	newState := make([]dbwork.FrontendGraphNode, len(searchRequest.CurrentState))
 	for i, n := range searchRequest.CurrentState {
 		// remove previous connections
 		n.Children = nil
 		newState[i] = n
 	}
 	now := time.Now()
-	if err := encodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
 		newState, now); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
