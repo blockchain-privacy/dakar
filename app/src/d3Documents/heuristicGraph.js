@@ -323,7 +323,7 @@ export default class HeuristicGraph {
 		circleGroup.append('circle')
 			.attr('class', 'node')
 			.attr('r', this.nodeRadius)
-			.attr('stroke', 'white')
+			.attr('stroke', 'currentColor')
 			.attr('stroke-width', 1)
 			.attr('cursor', 'pointer')
 			.attr('fill', d => {
@@ -522,7 +522,7 @@ export default class HeuristicGraph {
 			.attr('x2', d => d.target.x)
 			.attr('y2', d => d.target.y)
 			.attr('class', 'arrow')
-			.attr('stroke', '#999')
+			.attr('stroke', 'currentColor')
 			.attr('stroke-opacity', 1)
 			.attr('stroke-width', 1);
 
