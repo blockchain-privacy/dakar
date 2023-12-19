@@ -6,7 +6,7 @@
   >
     <icon-title
       title="Workspaces"
-      :icon="mdiGraph"
+      icon="$graphIcon"
       :one-line="true"
     >
       <v-btn
@@ -160,9 +160,7 @@
 </template>
 
 <script setup>
-import {
-	mdiGraph, mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical,
-} from '@mdi/js';
+import {mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';

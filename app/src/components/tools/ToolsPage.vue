@@ -14,7 +14,7 @@
         />
         <v-list-item
           :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}"
-          :prepend-icon="mdiGraph"
+          prepend-icon="$graphIcon"
           title="Workspaces"
         />
         <v-list-item
@@ -76,7 +76,6 @@ import {
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
-
 </script>
 
 <style scoped>

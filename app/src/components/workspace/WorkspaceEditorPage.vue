@@ -37,6 +37,7 @@
       >
         <v-card-text class="d-flex align-center pa-0">
           <p class="mx-3 text-h6">
+            <v-icon icon="$graphIcon" />
             {{ workspaceName }}
           </p>
           <v-text-field
