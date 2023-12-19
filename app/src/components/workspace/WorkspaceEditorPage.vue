@@ -358,8 +358,10 @@ async function handleGraphQuery(query) {
 			currentState: hg.exportNodes(),
 			workspaceUID: workspaceUID.value,
 		}});
-		hg.addNodes(response.nodes);
-		hg.centerOnNewNodes();
+		if (response.nodes) {
+			hg.addNodes(response.nodes);
+			hg.centerOnNewNodes();
+		}
 	} catch (e) {
 		setErrorMessage(e);
 	}

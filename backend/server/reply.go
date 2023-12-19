@@ -1877,6 +1877,13 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
+	nodeMap := map[string]dbwork.FrontendGraphNode{}
+	for _, n := range searchRequest.CurrentState {
+		// remove previous connections
+		n.Children = nil
+		nodeMap[n.UID] = n
+	}
+
 	// if the current state is empty, then there are only connections between the new nodes
 	if len(searchRequest.CurrentState) == 0 {
 		if len(newNodes) > 1 {
@@ -1906,11 +1913,11 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	nodeMap := map[string]dbwork.FrontendGraphNode{}
-	for _, n := range searchRequest.CurrentState {
-		// remove previous connections
-		n.Children = nil
-		nodeMap[n.UID] = n
+	if len(newNodes) == 1 {
+		if _, ok := nodeMap[newNodes[0].UID]; ok {
+			// new node is already in current state, therefore there is nothing to do
+			return
+		}
 	}
 
 	for _, n := range newNodes {
