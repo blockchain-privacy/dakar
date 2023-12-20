@@ -198,7 +198,7 @@ import {
 import Histogram from '@/d3Documents/histogram';
 import {getCurrentDate} from '@/utilities';
 import NamedDivider from '@/components/common/NamedDivider.vue';
-import SideBar from '@/components/heuristic/SideBar.vue';
+import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onMounted, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';

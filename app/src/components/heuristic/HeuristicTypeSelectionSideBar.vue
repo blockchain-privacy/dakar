@@ -96,7 +96,7 @@
 
 <script setup>
 import {mdiShapeSquareRoundedPlus} from '@mdi/js';
-import SideBar from '@/components/heuristic/SideBar.vue';
+import SideBar from '@/components/common/SideBar.vue';
 import {computed, ref} from 'vue';
 import {useDisplay} from 'vuetify';
 

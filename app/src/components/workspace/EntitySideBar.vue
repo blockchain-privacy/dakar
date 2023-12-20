@@ -54,7 +54,7 @@
 
 <script setup>
 import {mdiShapeSquareRoundedPlus} from '@mdi/js';
-import SideBar from '@/components/heuristic/SideBar.vue';
+import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
