@@ -6,8 +6,11 @@
     max-width="648px"
   >
     <template #actions>
-      <template v-if="entityData && type === 'transaction' && entityData[0].privacytype >= 0">
+      <template v-if="!isLoading && entityData && type === 'transaction' && entityData[0]?.privacytype >= 0">
         <privacy-chip :privacy-type="entityData[0].privacytype" />
+      </template>
+      <template v-else-if="!isLoading && entityData && type === 'cluster' && entityData?.addresshash">
+        <exclusion-chip :address-hash="entityData.addresshash" />
       </template>
     </template>
     <template #body>
@@ -18,7 +21,7 @@
           type="list-item-three-line, list-item-three-line, list-item-three-line"
         />
         <template v-else>
-          <template v-if="entityData && type === 'transaction'">
+          <template v-if="type === 'transaction' && entityData?.length">
             <!-- duplicate transaction hashes can exist -> loop through all results
             (e.g. d5d27987d2a3dfc724e359870c6644b40e497bdc0589a033220fe15429d88599 in Bitcoin) -->
             <template
@@ -35,6 +38,11 @@
               />
             </template>
           </template>
+          <address-view
+            v-else-if="entityData && type === 'cluster'"
+            :address-data="entityData"
+            :show-title-bar="false"
+          />
           <div v-else>
             Type not recognized
           </div>
@@ -49,10 +57,12 @@ import {mdiShapeSquareRoundedPlus} from '@mdi/js';
 import SideBar from '@/components/heuristic/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
+import AddressView from '@/components/explorer/address/Address.vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
+import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -92,9 +102,12 @@ const title = computed(() => {
 
 // Hooks
 onUpdated(async () => {
-	if (props.type === 'transaction' && props.identifier) {
-		entityData.value = null;
-		await getTransactionData();
+	if (props.identifier) {
+		if (props.type === 'transaction') {
+			await getTransactionData();
+		} else if (props.type === 'cluster') {
+			await getAddressData();
+		}
 	}
 });
 
@@ -105,8 +118,26 @@ async function getTransactionData() {
 	}
 
 	isLoading.value = true;
+	entityData.value = null;
 	try {
 		const response = await dakar.data.txHashGet({hash: props.identifier});
+		entityData.value = response.payload;
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	isLoading.value = false;
+}
+
+async function getAddressData() {
+	if (props.identifier === '') {
+		return;
+	}
+
+	isLoading.value = true;
+	entityData.value = null;
+	try {
+		const response = await dakar.data.addressHashGet({hash: props.identifier});
 		entityData.value = response.payload;
 	} catch (e) {
 		setErrorMessage(e);

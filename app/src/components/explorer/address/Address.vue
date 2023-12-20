@@ -2,32 +2,11 @@
   <div v-if="data">
     <v-card variant="text">
       <icon-title
+        v-if="showTitleBar"
         :title="`Address ${data.addresshash}`"
         :icon="mdiCardBulletedOutline"
       >
-        <v-chip
-          v-if="showExclusionAlert"
-          :rounded="true"
-          color="primary"
-        >
-          <template #append>
-            <v-icon
-              class="ms-1"
-              :icon="mdiCloseCircle"
-              @click="deleteExclusionDialog = true"
-            />
-          </template>
-          <span id="address_excluded">
-            Excluded
-          </span>
-          <v-tooltip
-            activator="#address_excluded"
-            location="bottom"
-          >
-            This address is part of your address exclusion list.
-            Click on the X to remove it from the list.
-          </v-tooltip>
-        </v-chip>
+        <exclusion-chip :address-hash="data.addresshash" />
       </icon-title>
       <v-card-text>
         <v-container>
@@ -196,11 +175,6 @@
         <mixing-activity :address-hash="data.addresshash" />
       </v-window-item>
     </v-window>
-    <delete-address-exclusion-dialog
-      v-model="deleteExclusionDialog"
-      :address-hash="data.addresshash"
-      @deleted="hideExclusionAlert"
-    />
   </div>
 </template>
 <script setup>
@@ -208,7 +182,6 @@ import {
 	mdiBankTransferIn,
 	mdiBankTransferOut,
 	mdiCardBulletedOutline,
-	mdiCloseCircle,
 	mdiPound,
 	mdiScaleBalance,
 } from '@mdi/js';
@@ -219,15 +192,16 @@ import IconItem from '@/components/common/IconItem.vue';
 import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import DeleteAddressExclusionDialog from '@/components/tools/addressExclusions/DeleteAddressExclusionDialog.vue';
 import {computed, inject, onMounted, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg';
 import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
+import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 
 const props = defineProps({
 	addressData: {type: Object, required: true},
+	showTitleBar: {type: Boolean, required: false, default: true},
 });
 
 const dakar = inject('dakar');
@@ -235,10 +209,9 @@ const route = useRoute();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
 const {session} = storeToRefs(useLocalStore());
 
-const showExclusionAlert = ref(false);
 const isLoading = ref(false);
 const tab = ref(null);
-const deleteExclusionDialog = ref(false);
+
 const data = ref();
 const itemsPerPage = 20;
 // EmptyResponse is only used for data loaded after the initial data load
@@ -266,7 +239,6 @@ const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdm
 onMounted(() => {
 	if (props.addressData) {
 		data.value = props.addressData;
-		getExclusionStatus();
 		resetSorting();
 		table.value.page = 1;
 	}
@@ -292,10 +264,6 @@ function resetSorting() {
 		filter: [],
 		order: 0,
 	};
-}
-
-function hideExclusionAlert() {
-	showExclusionAlert.value = false;
 }
 
 async function getTableData() {
@@ -328,18 +296,6 @@ async function getTableData() {
 	isLoading.value = false;
 }
 
-async function getExclusionStatus() {
-	isLoading.value = true;
-
-	try {
-		const response = await dakar.addressExclusion.addressExclusionStatusAddressHashGet({addressHash: data.value.addresshash});
-		showExclusionAlert.value = response.isExclusion;
-	} catch (e) {
-		handleError(context, e);
-	}
-
-	isLoading.value = false;
-}
 </script>
 <style scoped>
 
