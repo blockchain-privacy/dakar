@@ -1,12 +1,13 @@
 <template>
   <v-card :variant="embed?undefined:'text'">
     <icon-title
+      v-if="showTitleBar"
       :title="`Transaction ${tx.txhash}`"
       :icon="mdiTransfer"
       :to="showTitleLink?{ name: ROUTE_NAME_TRANSACTION_PAGE, params: { id: tx.txhash }}:null"
     >
       <privacy-chip
-        v-if="tx.privacytype > 0"
+        v-if="tx.privacytype >= 0"
         class="mx-3"
         :privacy-type="tx.privacytype"
       />
@@ -15,7 +16,7 @@
           v-if="showHeuristicEditorLink"
           :id="`btn_open_heuristic_editor_${tx.txhash}`"
           style="margin-right: 0"
-          icon
+          :icon="true"
           :color="null"
           variant="text"
           :to="{ name: ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }"
@@ -32,7 +33,7 @@
           v-if="showFingerprintLink"
           :id="`btn_find_similar_transactions_${tx.txhash}`"
           style="margin-right: 0"
-          icon
+          :icon="true"
           :color="null"
           variant="text"
           @click="showFingerprintDialog = true"
@@ -273,6 +274,7 @@ const props = defineProps({
 	showDetails: {type: Boolean, required: false, default: false},
 	showTitleLink: {type: Boolean, required: false, default: false},
 	embed: {type: Boolean, required: false, default: false},
+	showTitleBar: {type: Boolean, required: false, default: true},
 });
 
 const showTransactionDetails = toRef(props.showDetails);

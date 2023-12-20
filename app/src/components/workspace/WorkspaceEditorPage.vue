@@ -53,7 +53,7 @@
             color="primary"
             :single-line="true"
             label="Add transactions or clusters"
-            :disabled="isLoading || isSaving"
+            :disabled="isLoading"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
@@ -123,7 +123,11 @@
           :descriptors="heuristicDescriptors"
           @add-heuristic="addNewHeuristic"
         />
-
+        <entity-side-bar
+          v-model="isEntitySideBarOpen"
+          :identifier="entityIdentifier"
+          :type="entityType"
+        />
         <context-menu
           v-model="contextMenuModel.display"
           :position-x="contextMenuModel.x"
@@ -147,7 +151,6 @@ import {
 	mdiMagnify,
 	mdiOpenInNew,
 	mdiShapeSquarePlus,
-	mdiShapeSquareRoundedPlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
@@ -160,6 +163,8 @@ import {onMounted, ref, watch, nextTick, inject, onUnmounted} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import HeuristicGraph from '@/d3Documents/heuristicGraph';
+import {sleep} from '@/d3Documents/util';
+import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -189,6 +194,9 @@ const workspaceName = ref('');
 const workspaceModificationTime = ref();
 const isSaving = ref(false);
 const isAddHeuristicSheetOpen = ref(false);
+const isEntitySideBarOpen = ref(false);
+const entityIdentifier = ref('');
+const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
 const banner = ref({
@@ -264,6 +272,13 @@ watch(isAddHeuristicSheetOpen, newVal => {
 	}
 });
 
+watch(isEntitySideBarOpen, newVal => {
+	// If sheet is being closed reset click state of graph
+	if (!newVal) {
+		hg.resetClick();
+	}
+});
+
 // Hooks
 function onDocumentClose() {
 	if (document.visibilityState === 'hidden') {
@@ -298,12 +313,6 @@ function removeGraphNode() {
 }
 
 async function handleGraphQuery(query) {
-	if (isSaving.value) {
-		msgStore.resetMessages();
-		setInfoMessage('currently saving, please try again later');
-		return;
-	}
-
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
 		return;
@@ -313,6 +322,13 @@ async function handleGraphQuery(query) {
 
 	hg.setEnableInteractions(false);
 	isLoading.value = true;
+
+	// Wait for auto save to finish
+	while (isSaving.value) {
+		// eslint-disable-next-line no-await-in-loop
+		await sleep(500);
+	}
+
 	try {
 		const response = await dakar.workspace.addWorkspaceNodePost({query: {
 			query: trimmedQuery,
@@ -342,10 +358,6 @@ async function newRouting() {
 
 function setErrorMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
-}
-
-function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
 }
 
 function addNewHeuristic(heuristic) {
@@ -383,7 +395,22 @@ async function loadHeuristicDetails(uid) {
 
 function openTypeSelectionSheet() {
 	heuristicSheet.value.isOpen = false;
+	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
+}
+
+function openEntitySideBar(nodeData) {
+	heuristicSheet.value.isOpen = false;
+	isAddHeuristicSheetOpen.value = false;
+	entityType.value = nodeData.type;
+
+	if (entityType.value === 'cluster') {
+		entityIdentifier.value = nodeData.addressHash;
+	} else {
+		entityIdentifier.value = nodeData.transactionHash;
+	}
+
+	isEntitySideBarOpen.value = true;
 }
 
 async function openPropertySheet(heuristic) {
@@ -400,6 +427,7 @@ async function openPropertySheet(heuristic) {
 
 	// Open sheet immediately, but show skeleton loader
 	isAddHeuristicSheetOpen.value = false;
+	isEntitySideBarOpen.value = false;
 	sheet.value.isOpen = true;
 	sheet.value.isLoaded = false;
 
@@ -441,6 +469,7 @@ async function openPropertySheet(heuristic) {
 function closeSideBars() {
 	heuristicSheet.value.isOpen = false;
 	isAddHeuristicSheetOpen.value = false;
+	isEntitySideBarOpen.value = false;
 }
 
 function showContextMenu(e) {
@@ -577,7 +606,7 @@ async function whenMounted() {
 	// Set page title
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
-	if (!hg.setNodeClickHandler(openPropertySheet)) {
+	if (!hg.setNodeClickHandler(openEntitySideBar)) {
 		setErrorMessage('error setting heuristic click handler');
 		return false;
 	}

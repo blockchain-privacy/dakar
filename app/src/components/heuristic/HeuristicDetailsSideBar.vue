@@ -8,7 +8,7 @@
       <v-btn
         v-if="!isHollow && heuristicData.isLoaded"
         id="heuristic_download"
-        icon
+        :icon="true"
         variant="text"
         class="ms-auto"
         @click="downloadSummary"
