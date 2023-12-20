@@ -25,6 +25,8 @@ function dragStarted(event, context) {
 
 	event.subject.fx = event.subject.x;
 	event.subject.fy = event.subject.y;
+	context.dragStartX = event.subject.x;
+	context.dragStartY = event.subject.y;
 }
 
 function dragged(event, context, d3This) {
@@ -48,7 +50,9 @@ function dragEnded(event, context) {
 		context.simulation.alphaTarget(0);
 	}
 
-	if (context.dragEndCallback !== null) {
+	// Call callback only if dragged at least the minimum distance
+	if (context.dragEndCallback !== null
+    && (Math.abs(context.dragStartX - event.x) > 3 || Math.abs(context.dragStartY - event.y) > 3)) {
 		context.dragEndCallback();
 	}
 }
@@ -59,7 +63,11 @@ export default class NodeGraph {
 		this.svgZoomCallback = null;
 		this.svgClickCallback = null;
 		this.contextMenuCallback = null;
+
+		// Drag
 		this.dragEndCallback = null;
+		this.dragStartX = 0;
+		this.dragStartY = 0;
 
 		// Context menu
 		this.activeContextMenuData = null;
@@ -545,7 +553,6 @@ export default class NodeGraph {
 
 				return update;
 			})
-			.attr('class', 'nodeContainer')
 			.call(drag()
 				.on('start', e => {
 					dragStarted(e, self);
@@ -555,8 +562,10 @@ export default class NodeGraph {
 				})
 				.on('end', e => {
 					dragEnded(e, self);
-				}),
+				})
+				.clickDistance(3),
 			)
+			.attr('class', 'nodeContainer')
 			.each(d => {
 				// Exclude every node from force simulation
 				d.fx = d.x;
