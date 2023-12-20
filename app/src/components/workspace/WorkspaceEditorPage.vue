@@ -111,6 +111,29 @@
       </div>
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
+        <v-dialog
+          :model-value="isLoading"
+          :persistent="true"
+          max-width="350px"
+          :contained="true"
+          :no-click-animation="true"
+        >
+          <v-card>
+            <v-card-text class="text-subtitle-1 d-flex align-center">
+              <div style="width:100%">
+                <p class="text-center mb-3">
+                  Loading workspace ...
+                </p>
+                <v-progress-linear
+                  class="mt-3"
+                  :indeterminate="true"
+                  rounded
+                  :color="executionStatus.processing?'primary':''"
+                />
+              </div>
+            </v-card-text>
+          </v-card>
+        </v-dialog>
         <heuristic-details-sidebar
           v-model="heuristicSheet.isOpen"
           :heuristic-data="heuristicSheet"
@@ -150,7 +173,7 @@ import {
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
 	mdiOpenInNew,
-	mdiShapeSquarePlus,
+	mdiShapeSquarePlus, mdiTimerSand,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
@@ -486,6 +509,7 @@ function showContextMenu(e) {
 
 async function refreshData() {
 	isLoading.value = true;
+
 	try {
 		const response = await dakar.workspace.getWorkspaceUidGet({uid: workspaceUID.value});
 		if (response.workspace) {
@@ -649,7 +673,7 @@ async function whenMounted() {
 	}
 
 	// Update page title
-	document.title = `Workspace ${workspaceName.value} - ${APPLICATION_NAME}`;
+	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
 	nodeGraph.addNodes(data.state);
 
