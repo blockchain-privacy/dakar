@@ -53,7 +53,7 @@ function dragEnded(event, context) {
 	}
 }
 
-export default class HeuristicGraph {
+export default class NodeGraph {
 	constructor(nodeTypeColorMap) {
 		this.nodeClickCallBack = null;
 		this.svgZoomCallback = null;

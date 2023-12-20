@@ -67,7 +67,7 @@
             class="ms-3 px-2"
             variant="text"
             :disabled="banner.show || executionStatus.executing"
-            @click="hg.centerGraph()"
+            @click="nodeGraph.centerGraph()"
           >
             <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
             <div class="hidden-sm-and-down">
@@ -162,7 +162,7 @@ import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSide
 import {onMounted, ref, watch, nextTick, inject, onUnmounted} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
-import HeuristicGraph from '@/d3Documents/heuristicGraph';
+import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
 
@@ -179,7 +179,7 @@ colorMap.set('cluster', 'checkers');
 // Non-privacy transaction
 colorMap.set('transaction', 'grey');
 
-const hg = new HeuristicGraph(colorMap);
+const nodeGraph = new NodeGraph(colorMap);
 
 let uidCounter = 1;
 let data = null;
@@ -244,7 +244,7 @@ const contextMenuModel = ref({
 	x: 0,
 	y: 0,
 	items: [
-		{title: 'Show Properties', icon: mdiChartBar, action: () => hg.contextMenuNodeClick()},
+		{title: 'Show Properties', icon: mdiChartBar, action: () => nodeGraph.contextMenuNodeClick()},
 		{isDivider: true},
 		{title: 'Add Heuristic', icon: mdiShapeSquarePlus, action: openTypeSelectionSheet, disabled: () => !banner.value.show},
 		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
@@ -261,21 +261,21 @@ watch(route, () => {
 watch(heuristicSheet.value, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal.isOpen) {
-		hg.resetClick();
+		nodeGraph.resetClick();
 	}
 });
 
 watch(isAddHeuristicSheetOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal.value) {
-		hg.resetClick();
+		nodeGraph.resetClick();
 	}
 });
 
 watch(isEntitySideBarOpen, newVal => {
 	// If sheet is being closed reset click state of graph
 	if (!newVal) {
-		hg.resetClick();
+		nodeGraph.resetClick();
 	}
 });
 
@@ -308,7 +308,7 @@ onUnmounted(() => {
 
 // Functions
 function removeGraphNode() {
-	hg.removeContextMenuNode();
+	nodeGraph.removeContextMenuNode();
 	queueAutoSave();
 }
 
@@ -320,7 +320,7 @@ async function handleGraphQuery(query) {
 
 	graphQuery.value = '';
 
-	hg.setEnableInteractions(false);
+	nodeGraph.setEnableInteractions(false);
 	isLoading.value = true;
 
 	// Wait for auto save to finish
@@ -332,19 +332,19 @@ async function handleGraphQuery(query) {
 	try {
 		const response = await dakar.workspace.addWorkspaceNodePost({query: {
 			query: trimmedQuery,
-			currentState: hg.exportNodes(),
+			currentState: nodeGraph.exportNodes(),
 			workspaceUID: workspaceUID.value,
 		}});
 		if (response.nodes) {
-			hg.addNodes(response.nodes);
-			hg.centerOnNewNodes();
+			nodeGraph.addNodes(response.nodes);
+			nodeGraph.centerOnNewNodes();
 		}
 	} catch (e) {
 		setErrorMessage(e);
 	}
 
 	isLoading.value = false;
-	hg.setEnableInteractions(true);
+	nodeGraph.setEnableInteractions(true);
 }
 
 async function newRouting() {
@@ -583,7 +583,7 @@ async function doAutoSave() {
 	try {
 		const response = await dakar.workspace.updateWorkspacePost({state: {
 			workspaceUID: workspaceUID.value,
-			currentState: hg.exportNodes(),
+			currentState: nodeGraph.exportNodes(),
 		}});
 		if (response.ts) {
 			workspaceModificationTime.value = new Date(response.ts);
@@ -606,29 +606,29 @@ async function whenMounted() {
 	// Set page title
 	document.title = `Workspace - ${APPLICATION_NAME}`;
 
-	if (!hg.setNodeClickHandler(openEntitySideBar)) {
+	if (!nodeGraph.setNodeClickHandler(openEntitySideBar)) {
 		setErrorMessage('error setting heuristic click handler');
 		return false;
 	}
 
-	if (!hg.setSvgZoomCallback(() => {
+	if (!nodeGraph.setSvgZoomCallback(() => {
 		contextMenuModel.value.display = false;
 	})) {
 		setErrorMessage('error setting zoom handler');
 		return false;
 	}
 
-	if (!hg.setSvgClickCallback(closeSideBars)) {
+	if (!nodeGraph.setSvgClickCallback(closeSideBars)) {
 		setErrorMessage('error setting svg click handler');
 		return false;
 	}
 
-	if (!hg.setContextMenuCallback(showContextMenu)) {
+	if (!nodeGraph.setContextMenuCallback(showContextMenu)) {
 		setErrorMessage('error setting svg context menu handler');
 		return false;
 	}
 
-	if (!hg.setDragEndCallback(queueAutoSave)) {
+	if (!nodeGraph.setDragEndCallback(queueAutoSave)) {
 		setErrorMessage('error setting drag end handler');
 		return false;
 	}
@@ -642,7 +642,7 @@ async function whenMounted() {
 	// Creates the tab descriptions based on the heuristic categories
 	createTabs();
 
-	hg.initSvg(svgCanvasId);
+	nodeGraph.initSvg(svgCanvasId);
 
 	if (!await refreshData()) {
 		return false;
@@ -651,9 +651,9 @@ async function whenMounted() {
 	// Update page title
 	document.title = `Workspace ${workspaceName.value} - ${APPLICATION_NAME}`;
 
-	hg.addNodes(data.state);
+	nodeGraph.addNodes(data.state);
 
-	await hg.centerGraph();
+	await nodeGraph.centerGraph();
 
 	return true;
 }
