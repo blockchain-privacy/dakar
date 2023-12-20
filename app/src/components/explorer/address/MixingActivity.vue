@@ -507,7 +507,7 @@ function onTabChange(tab) {
 
 	if (graphMode) {
 		if (!showTooManyTransactionsMsg.value
-        || overrideTooManyTransactionsWarning) {
+        || overrideTooManyTransactionsWarning.value) {
 			updateSvgData();
 		}
 
@@ -592,7 +592,7 @@ async function updateSvgData(pullNewData) {
 	// Draw
 	if (graphMode) {
 		if (!showTooManyTransactionsMsg.value
-        || overrideTooManyTransactionsWarning) {
+        || overrideTooManyTransactionsWarning.value) {
 			svgGraph.draw(filtered.items, filtered.links);
 			showGraph.value = true;
 		}
