@@ -2,7 +2,7 @@
   <side-bar
     v-model="inputVal"
     :title="title"
-    :icon="mdiShapeSquareRoundedPlus"
+    :icon="sideBarIcon"
     max-width="648px"
   >
     <template #actions>
@@ -53,7 +53,7 @@
 </template>
 
 <script setup>
-import {mdiShapeSquareRoundedPlus} from '@mdi/js';
+import {mdiCardBulletedOutline, mdiShapeSquareRoundedPlus, mdiTransfer} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
@@ -108,6 +108,19 @@ onUpdated(async () => {
 		} else if (props.type === 'cluster') {
 			await getAddressData();
 		}
+	}
+});
+
+// Computed
+
+const sideBarIcon = computed(() => {
+	switch (props.type) {
+		case 'transaction':
+			return mdiTransfer;
+		case 'cluster':
+			return mdiCardBulletedOutline;
+		default:
+			return mdiShapeSquareRoundedPlus;
 	}
 });
 
