@@ -704,6 +704,54 @@ func GetTransactionCountPerAddress(c external.Database, addressUID string) (int,
 	return r.Transaction[0].Count, nil
 }
 
+// GetTransactionCountPerAddresses returns the number of transactions each address has created
+func GetTransactionCountPerAddresses(c external.Database, addressUIDs []string) ([]int, error) {
+	if len(addressUIDs) == 0 {
+		return nil, cliutil.NewStackErrorStr("invalid arguments")
+	}
+
+	var queryBody string
+	var output string
+
+	for i, a := range addressUIDs {
+		index := strconv.Itoa(i)
+		queryBody += `
+					var(func: uid(` + a + `)){
+						addr_outputs{
+							t` + index + ` as ~tx_inputs
+						}
+					}
+					
+					var(func: uid(t` + index + `)){
+						c` + index + ` as count(uid)
+					}`
+
+		output += "\n" + `sum(val(c` + index + `))`
+	}
+
+	var query = "{" + queryBody + "q() {" + output + "}}"
+
+	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
+	if err != nil {
+		return nil, err
+	}
+	var r struct {
+		Transaction []map[string]int `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	results := make([]int, len(r.Transaction))
+	for i, v := range r.Transaction {
+		_, item := cliutil.GetOneItem(v)
+		results[i] = item
+	}
+
+	return results, nil
+}
+
 // GetTransactionCountPerCluster returns the number of transactions this cluster has created
 func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, error) {
 	const query = `query Q($uid:string){
