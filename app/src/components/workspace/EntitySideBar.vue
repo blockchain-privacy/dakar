@@ -43,6 +43,10 @@
             :address-data="entityData"
             :show-title-bar="false"
           />
+          <heuristic-details
+            v-else-if="entityData && type === 'heuristic'"
+            :heuristic-data="entityData"
+          />
           <div v-else>
             Type not recognized
           </div>
@@ -53,7 +57,12 @@
 </template>
 
 <script setup>
-import {mdiCardBulletedOutline, mdiShapeSquareRoundedPlus, mdiTransfer} from '@mdi/js';
+import {
+	mdiCardBulletedOutline,
+	mdiChartBar,
+	mdiShapeSquareRoundedPlus,
+	mdiTransfer,
+} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
@@ -64,11 +73,13 @@ import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache';
+import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
 	identifier: {type: String, required: true},
 	type: {type: String, required: true},
+	auxiliaryData: {type: Object, required: false, default: null},
 });
 
 const dakar = inject('dakar');
@@ -97,6 +108,8 @@ const title = computed(() => {
 			return `Transaction ${props.identifier}`;
 		case 'cluster':
 			return `Address ${props.identifier}`;
+		case 'heuristic':
+			return 'Heuristic Properties';
 		default:
 			return 'unknown entity type';
 	}
@@ -106,15 +119,15 @@ const title = computed(() => {
 onUpdated(async () => {
 	if (props.identifier) {
 		// Check if value is in cache, otherwise get data from backend
-		console.log(props.identifier);
 		const cacheValue = cacheStore.getValue(props.identifier);
 		if (cacheValue !== undefined) {
 			entityData.value = cacheValue;
-			console.log(cacheValue);
 		} else if (props.type === 'transaction') {
 			await getTransactionData();
 		} else if (props.type === 'cluster') {
 			await getAddressData();
+		} else if (props.type === 'heuristic') {
+			await getHeuristicData();
 		}
 	}
 });
@@ -127,6 +140,8 @@ const sideBarIcon = computed(() => {
 			return mdiTransfer;
 		case 'cluster':
 			return mdiCardBulletedOutline;
+		case 'heuristic':
+			return mdiChartBar;
 		default:
 			return mdiShapeSquareRoundedPlus;
 	}
@@ -158,10 +173,55 @@ async function getAddressData() {
 
 	isLoading.value = true;
 	entityData.value = null;
+
 	try {
 		const response = await dakar.data.addressHashGet({hash: props.identifier});
 		entityData.value = response.payload;
 		cacheStore.setValue(props.identifier, response.payload);
+	} catch (e) {
+		setErrorMessage(e);
+	}
+
+	isLoading.value = false;
+}
+
+async function getHeuristicData() {
+	if (props.identifier === '') {
+		return;
+	}
+
+	isLoading.value = true;
+	entityData.value = null;
+
+	const tmp = {
+		heuristicParameter: props.auxiliaryData.heuristicParameter,
+		heuristicExcludeAddresses: props.auxiliaryData.heuristicExcludeAddresses,
+		heuristicExcludeSpendingGaps: props.auxiliaryData.heuristicExcludeSpendingGaps,
+		heuristicCustomClusters: props.auxiliaryData.heuristicClusterTypes?.length > 0,
+		heuristicTypeTitle: props.auxiliaryData.displayType,
+		clusterCount: props.auxiliaryData.heuristicClusterCount,
+		heuristicUid: props.auxiliaryData.uid,
+		heuristicTimestamp: new Date(props.auxiliaryData.heuristicTs),
+		clusters: [],
+	};
+
+	// Check if data has to be loaded from backend
+	if (!tmp.clusterCount) {
+		entityData.value = tmp;
+		isLoading.value = false;
+		return;
+	}
+
+	try {
+		const response = await dakar.heuristic.heuristicDetailsPost({heuristic: {uid: props.identifier}});
+
+		if (!response.heuristic) {
+			throw new Error('response contains no heuristics');
+		}
+
+		tmp.clusters = response.heuristic.clusters;
+		entityData.value = tmp;
+		cacheStore.setValue(props.identifier, tmp);
 	} catch (e) {
 		setErrorMessage(e);
 	}

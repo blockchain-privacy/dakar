@@ -243,6 +243,8 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				ExcludeAddresses:    &tmpHeuristic.ExcludeAddresses,
 				ExcludeSpendingGaps: &tmpHeuristic.ExcludeSpendingGaps,
 				ClusterTypes:        h.ClusterTypes,
+				ClusterCount:        &tmpHeuristic.ClusterCount,
+				Timestamp:           h.Timestamp,
 			})
 		}
 		txToHeuristic[heuristicTransaction.UID] = rootHeuristics

@@ -181,4 +181,6 @@ type FrontendGraphNode struct {
 	ExcludeAddresses    *bool    `json:"heuristicExcludeAddresses,omitempty"`
 	ExcludeSpendingGaps *bool    `json:"heuristicExcludeSpendingGaps,omitempty"`
 	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
+	ClusterCount        *int     `json:"heuristicClusterCount,omitempty"`
+	Timestamp           string   `json:"heuristicTs,omitempty"`
 }

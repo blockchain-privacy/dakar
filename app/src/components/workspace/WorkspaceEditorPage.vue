@@ -134,12 +134,6 @@
             </v-card-text>
           </v-card>
         </v-dialog>
-        <heuristic-details-sidebar
-          v-model="heuristicSheet.isOpen"
-          :heuristic-data="heuristicSheet"
-          :new-heuristic-prefix="newUidPrefix"
-          :clusters="heuristicSheet.clusters"
-        />
         <heuristic-type-selection-side-bar
           v-model="isAddHeuristicSheetOpen"
           :tab-items="heuristicTabItems"
@@ -149,6 +143,7 @@
         <entity-side-bar
           v-model="isEntitySideBarOpen"
           :identifier="entityIdentifier"
+          :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
         />
         <context-menu
@@ -181,7 +176,6 @@ import {
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError} from '@/utilities';
-import HeuristicDetailsSidebar from '@/components/heuristic/HeuristicDetailsSideBar.vue';
 import {onMounted, ref, watch, nextTick, inject, onUnmounted} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -206,8 +200,6 @@ const nodeGraph = new NodeGraph(colorMap);
 
 let uidCounter = 1;
 let data = null;
-// HeuristicDetailsMap: map[heuristicUid]map[addressHash]array[originHash]
-const heuristicDetailsMap = new Map();
 
 const wasAutoSaved = ref(false);
 const isLoading = ref(false);
@@ -219,6 +211,7 @@ const isSaving = ref(false);
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const entityIdentifier = ref('');
+const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
@@ -250,18 +243,6 @@ const executionStatus = ref({
 		notReady: 5,
 	},
 });
-const heuristicSheet = ref({
-	isOpen: false,
-	isLoaded: false,
-	heuristicUid: '',
-	heuristicTypeTitle: '',
-	heuristicParameter: '',
-	heuristicCustomClusters: false,
-	heuristicExcludeAddresses: false,
-	heuristicTimestamp: null,
-	clusterCount: null,
-	clusters: [],
-});
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -279,13 +260,6 @@ let autoSaveTimer = null;
 // Watchers
 watch(route, () => {
 	newRouting();
-});
-
-watch(heuristicSheet.value, newVal => {
-	// If sheet is being closed reset click state of graph
-	if (!newVal.isOpen) {
-		nodeGraph.resetClick();
-	}
 });
 
 watch(isAddHeuristicSheetOpen, newVal => {
@@ -401,96 +375,52 @@ function addNewHeuristic(heuristic) {
 	data.heuristics.push(newHeuristic);
 }
 
-async function loadHeuristicDetails(uid) {
-	try {
-		const response = await dakar.heuristic.heuristicDetailsPost({heuristic: {uid}});
-
-		if (!response.heuristic) {
-			throw new Error('response contains no heuristics');
-		}
-
-		heuristicDetailsMap.set(response.heuristic.uid, response.heuristic);
-		msgStore.resetMessages();
-	} catch (e) {
-		handleError(context, e);
-	}
-}
-
 function openTypeSelectionSheet() {
-	heuristicSheet.value.isOpen = false;
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 }
 
 function openEntitySideBar(nodeData) {
-	heuristicSheet.value.isOpen = false;
+	// Do not show sidebar for hollow heuristic
+	if (nodeData.uid.startsWith(newUidPrefix)) {
+		return;
+	}
+
 	isAddHeuristicSheetOpen.value = false;
+	entityAuxiliaryData.value = null;
 	entityType.value = nodeData.type;
 
-	if (entityType.value === 'cluster') {
-		entityIdentifier.value = nodeData.addressHash;
-	} else {
-		entityIdentifier.value = nodeData.transactionHash;
+	switch (entityType.value) {
+		case 'cluster':
+			entityIdentifier.value = nodeData.addressHash;
+			break;
+		case 'transaction':
+			entityIdentifier.value = nodeData.transactionHash;
+			break;
+		case 'heuristic':
+			// Brackets so local variable stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
+			{
+				let displayType = '';
+				for (const descriptor of heuristicDescriptors.value) {
+					if (descriptor.type === nodeData.heuristicType) {
+						displayType = descriptor.title;
+						break;
+					}
+				}
+
+				entityAuxiliaryData.value = nodeData;
+				entityAuxiliaryData.value.displayType = displayType;
+				entityIdentifier.value = nodeData.uid;
+			}
+
+			break;
+		default:
 	}
 
 	isEntitySideBarOpen.value = true;
 }
 
-async function openPropertySheet(heuristic) {
-	const sheet = heuristicSheet;
-
-	// Lookup type title from type id
-	let displayType = '';
-	for (const descriptor of heuristicDescriptors.value) {
-		if (descriptor.type === heuristic.type) {
-			displayType = descriptor.title;
-			break;
-		}
-	}
-
-	// Open sheet immediately, but show skeleton loader
-	isAddHeuristicSheetOpen.value = false;
-	isEntitySideBarOpen.value = false;
-	sheet.value.isOpen = true;
-	sheet.value.isLoaded = false;
-
-	sheet.value.heuristicParameter = heuristic.parameter;
-	sheet.value.heuristicExcludeAddresses = heuristic.excludeAddresses;
-	sheet.value.heuristicExcludeSpendingGaps = heuristic.excludeSpendingGaps;
-	sheet.value.heuristicCustomClusters = heuristic.clusterTypes?.length > 0;
-	sheet.value.heuristicTypeTitle = displayType;
-	sheet.value.clusterCount = heuristic.clusterCount;
-	sheet.value.heuristicUid = heuristic.uid;
-	sheet.value.heuristicTimestamp = new Date(heuristic.ts);
-	sheet.value.clusters = [];
-
-	// Check if data has to be loaded from backend
-	if (!heuristic.clusterCount || heuristic.uid.startsWith(newUidPrefix)) {
-		sheet.value.isLoaded = true;
-		return;
-	}
-
-	if (heuristicDetailsMap.has(heuristic.uid)) {
-		sheet.value.clusters = heuristicDetailsMap.get(heuristic.uid).clusters;
-		sheet.value.isLoaded = true;
-		return;
-	}
-
-	// Request data from backend
-	await loadHeuristicDetails(heuristic.uid);
-
-	// Return if request was not successful
-	if (heuristicDetailsMap.size === 0
-        || !heuristicDetailsMap.has(heuristic.uid)) {
-		return;
-	}
-
-	sheet.value.clusters = heuristicDetailsMap.get(heuristic.uid).clusters;
-	sheet.value.isLoaded = true;
-}
-
 function closeSideBars() {
-	heuristicSheet.value.isOpen = false;
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = false;
 }
