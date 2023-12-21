@@ -669,41 +669,6 @@ func GetAllSingleAddresses(c external.Database) (uids []string, err error) {
 	return
 }
 
-// GetTransactionCountPerAddress returns the number of transactions this address has created
-func GetTransactionCountPerAddress(c external.Database, addressUID string) (int, error) {
-	const query = `query Q($uid:string){
-					var(func: uid($uid)){
-						addr_outputs{
-							t as ~tx_inputs
-						}
-					}
-					
-					q(func: uid(t)){
-						count(uid)
-					}
-				}`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": addressUID})
-	if err != nil {
-		return 0, err
-	}
-	var r struct {
-		Transaction []struct {
-			Count int `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return 0, cliutil.NewStackError(err)
-	}
-
-	if len(r.Transaction) != 1 {
-		return 0, cliutil.NewStackErrorStr("invalid result")
-	}
-
-	return r.Transaction[0].Count, nil
-}
-
 // GetTransactionCountPerAddresses returns the number of transactions each address has created
 func GetTransactionCountPerAddresses(c external.Database, addressUIDs []string) ([]int, error) {
 	if len(addressUIDs) == 0 {
