@@ -3,6 +3,7 @@ package workspace
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/heuristics"
 	"backend/external"
 	"encoding/json"
 	"time"
@@ -53,8 +54,9 @@ func GetFMIClustersByAddress(c external.Database, addresses []string) (map[strin
 	return addressClusterMapping, nil
 }
 
-// GetWorkspaceConnections returns all connections between the given UIDs
-func GetWorkspaceConnections(c external.Database, uids []string) (connections []NodeConnections, err error) {
+// GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
+func GetWorkspaceConnections(c external.Database, uids []string, userUID string) (
+	connections []NodeConnections, heuristicNodes []FrontendGraphNode, err error) {
 	// need at least two uids to find connections
 	if len(uids) < 2 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
@@ -62,13 +64,18 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 	}
 
 	// todo limit user for cluster lookup
-	const query = `query Q($uids:string){
+	const query = `query Q($uids:string,$user:string){
 					# input uids
 					uids as var(func: uid($uids))
 					
 					# transaction uids
 					t as var(func: uid(uids))@filter(type("Transaction"))
 					
+					# heuristic uids
+					var(func: uid($user)){
+						h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
+					}
+
 					# flat cluster uids
 					c as var(func: uid(uids))@filter(type("Cluster") and not eq(Cluster.type, "hmi"))
 					
@@ -155,9 +162,13 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 							}
 						}
 					}
+
+					heuristics(func: uid(t)){
+						uid
+						~Heuristic.transaction@filter(uid(h)){` + heuristics.QueryBasicHeuristicAttributes + `}
+					}
 				}
-					
-				
+
 				fragment fCluster {
 					addr_outputs {
 						~tx_inputs@normalize{
@@ -181,7 +192,8 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 					}
 				}`
 
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{"$uids": db.CreateCommaArray(uids)})
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query, map[string]string{
+		"$uids": db.CreateCommaArray(uids), "$user": userUID})
 	if err != nil {
 		err = cliutil.NewStackError(err)
 		return
@@ -195,7 +207,7 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 		return
 	}
 
-	transactions, clusters, addresses := parseConnectionResult(r)
+	transactions, clusters, addresses, heuristicNodes := parseConnectionResult(r)
 	connections = append(transactions, append(addresses, clusters...)...)
 
 	return
@@ -203,10 +215,49 @@ func GetWorkspaceConnections(c external.Database, uids []string) (connections []
 
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
-	addresses []NodeConnections) {
+	addresses []NodeConnections, heuristics []FrontendGraphNode) {
+	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
+	// This map is used to add the contained heuristic uids as children to their corresponding transaction.
+	txToHeuristic := map[string][]string{}
+	for _, heuristicTransaction := range r.HeuristicTransactions {
+		var rootHeuristics []string
+		for _, h := range heuristicTransaction.Heuristics {
+			// todo review once go 1.22 is released
+			tmpHeuristic := h
+			// no parent -> root heuristic
+			if len(h.ParentHeuristic) == 0 {
+				rootHeuristics = append(rootHeuristics, h.UID)
+			}
+
+			children := make([]string, len(h.ChildHeuristics))
+			for i, c := range h.ChildHeuristics {
+				children[i] = c.UID
+			}
+
+			heuristics = append(heuristics, FrontendGraphNode{
+				UID:                 h.UID,
+				Type:                "heuristic",
+				Children:            children,
+				HeuristicType:       h.Type,
+				Parameter:           h.Parameter,
+				ExcludeAddresses:    &tmpHeuristic.ExcludeAddresses,
+				ExcludeSpendingGaps: &tmpHeuristic.ExcludeSpendingGaps,
+				ClusterTypes:        h.ClusterTypes,
+			})
+		}
+		txToHeuristic[heuristicTransaction.UID] = rootHeuristics
+	}
+
 	connectedTransactions := map[string]NodeConnections{}
 	for _, queryTx := range r.Transactions {
 		children := map[string]bool{}
+
+		// add root heuristics to transaction if available
+		if rootHeuristics, ok := txToHeuristic[queryTx.UID]; ok {
+			for _, h := range rootHeuristics {
+				children[h] = true
+			}
+		}
 
 		for _, output := range queryTx.Outputs {
 			for _, inputTx := range output.InputTransactions {

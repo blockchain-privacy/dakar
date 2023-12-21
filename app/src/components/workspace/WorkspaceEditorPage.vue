@@ -665,9 +665,8 @@ async function whenMounted() {
 
 	// Creates the tab descriptions based on the heuristic categories
 	createTabs();
-
+	nodeGraph.populateHeuristicMap(heuristicDescriptors.value);
 	nodeGraph.initSvg(svgCanvasId);
-
 	if (!await refreshData()) {
 		return false;
 	}

@@ -1879,13 +1879,18 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 
 	nodeMap := map[string]dbwork.FrontendGraphNode{}
 	for _, n := range searchRequest.CurrentState {
+		// do not consider heuristics
+		if n.Type == "heuristic" {
+			continue
+		}
 		// remove previous connections
 		n.Children = nil
 		nodeMap[n.UID] = n
 	}
 
-	// if the current state is empty, then there are only connections between the new nodes
-	if len(searchRequest.CurrentState) == 0 {
+	// If the transmitted state is empty, then there are only connections between the new nodes.
+	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
+	if len(nodeMap) == 0 && !(len(newNodes) == 1 && newNodes[0].IsDestination()) {
 		if len(newNodes) > 1 {
 			// add links to each other node in the set
 			for i := range newNodes {
@@ -1929,13 +1934,10 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		newState = append(newState, v)
 	}
 
-	// can only search for connections with more than one node
-	if len(searchRequest.CurrentState) > 0 {
-		if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
-			status = http.StatusInternalServerError
-			warn(err)
-			return
-		}
+	if err := workspace.InsertNodeConnections(dgraph, nodeMap, tUser.ID); err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
 	}
 
 	reply.Nodes = make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
@@ -2008,11 +2010,14 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 
 		nodeMap := map[string]dbwork.FrontendGraphNode{}
 		for _, n := range nodes {
+			if n.UID == "" || n.Type == "" || n.Type == "heuristic" {
+				continue
+			}
 			nodeMap[n.UID] = n
 		}
 
 		if len(nodeMap) > 1 {
-			if err := workspace.InsertNodeConnections(dgraph, nodeMap); err != nil {
+			if err := workspace.InsertNodeConnections(dgraph, nodeMap, tUser.ID); err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
 				return
@@ -2089,11 +2094,15 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 		return
 	}
 
-	newState := make([]dbwork.FrontendGraphNode, len(searchRequest.CurrentState))
-	for i, n := range searchRequest.CurrentState {
+	var newState []dbwork.FrontendGraphNode //nolint:prealloc
+	for _, n := range searchRequest.CurrentState {
+		// do not save heuristics in state
+		if n.Type == "heuristic" {
+			continue
+		}
 		// remove previous connections
 		n.Children = nil
-		newState[i] = n
+		newState = append(newState, n)
 	}
 	now := time.Now()
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,

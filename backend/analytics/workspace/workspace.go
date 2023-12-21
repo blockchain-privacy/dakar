@@ -24,8 +24,8 @@ func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
 }
 
 // InsertNodeConnections queries the db for connections between nodes in nodeMap and inserts them
-func InsertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.FrontendGraphNode) error {
-	connections, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap))
+func InsertNodeConnections(dgraph external.Database, nodeMap map[string]workspace.FrontendGraphNode, userUID string) error {
+	connections, heuristics, err := workspace.GetWorkspaceConnections(dgraph, cliutil.GetMapKeys(nodeMap), userUID)
 	if err != nil {
 		return err
 	}
@@ -37,6 +37,11 @@ func InsertNodeConnections(dgraph external.Database, nodeMap map[string]workspac
 		}
 		nodeElement.Children = node.Children
 		nodeMap[node.UID] = nodeElement
+	}
+
+	// add heuristic nodes to map
+	for _, h := range heuristics {
+		nodeMap[h.UID] = h
 	}
 
 	return nil

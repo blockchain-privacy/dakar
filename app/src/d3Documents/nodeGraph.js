@@ -87,6 +87,9 @@ export default class NodeGraph {
 		this.nodeMap = new Map();
 		this.changedData = new Map();
 
+		// Heuristic type map
+		this.heuristicTypeMap = new Map();
+
 		// Node type
 		this.nodeTypeColorMap = nodeTypeColorMap;
 
@@ -470,6 +473,13 @@ export default class NodeGraph {
 					return d.transactionHash;
 				}
 
+				if (d.type === 'heuristic') {
+					const title = this.heuristicTypeMap.get(d.heuristicType);
+					if (title !== undefined) {
+						return title;
+					}
+				}
+
 				return d.uid;
 			})
 			.each(wrap);
@@ -677,5 +687,10 @@ export default class NodeGraph {
 
 		this.dragEndCallback = callback;
 		return true;
+	}
+
+	populateHeuristicMap(heuristicDescriptions) {
+		// Titles to map
+		heuristicDescriptions.forEach(e => this.heuristicTypeMap.set(e.type, e.title));
 	}
 }

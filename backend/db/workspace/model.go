@@ -1,5 +1,10 @@
 package workspace
 
+import (
+	"backend/constants"
+	"backend/db/analytics/heuristics"
+)
+
 const DType = "Workspace"
 
 type Workspace struct {
@@ -119,6 +124,10 @@ type connectionRequest struct {
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
+	HeuristicTransactions []struct {
+		UID        string                         `json:"uid,omitempty"`
+		Heuristics []heuristics.FrontendHeuristic `json:"~Heuristic.transaction,omitempty"`
+	} `json:"heuristics,omitempty"`
 }
 
 type GraphNode struct {
@@ -146,19 +155,30 @@ func (g GraphNode) ToFrontendGraphNode() FrontendGraphNode {
 	}
 }
 
+func (g GraphNode) IsDestination() bool {
+	return g.Type == "transaction" && g.PrivacyType != nil && constants.PrivacyType(*g.PrivacyType).IsDestination()
+}
+
 // FrontendGraphNode include the coordinates of the client canvas
 type FrontendGraphNode struct {
-	UID  string `json:"uid,omitempty"`
-	Type string `json:"type,omitempty"`
+	UID      string   `json:"uid,omitempty"`
+	Type     string   `json:"type,omitempty"`
+	Children []string `json:"children,omitempty"`
+	X        *float32 `json:"x,omitempty"`
+	Y        *float32 `json:"y,omitempty"`
 
+	// address
 	AddressHash string `json:"addressHash,omitempty"`
 	ClusterType string `json:"clusterType,omitempty"`
 
+	// transaction
 	TransactionHash string `json:"transactionHash,omitempty"`
 	PrivacyType     *int   `json:"privacyType,omitempty"`
 
-	Children []string `json:"children,omitempty"`
-
-	X *float32 `json:"x,omitempty"`
-	Y *float32 `json:"y,omitempty"`
+	// heuristic
+	HeuristicType       string   `json:"heuristicType,omitempty"`
+	Parameter           string   `json:"heuristicParameter,omitempty"`
+	ExcludeAddresses    *bool    `json:"heuristicExcludeAddresses,omitempty"`
+	ExcludeSpendingGaps *bool    `json:"heuristicExcludeSpendingGaps,omitempty"`
+	ClusterTypes        []string `json:"heuristicClusterTypes,omitempty"`
 }

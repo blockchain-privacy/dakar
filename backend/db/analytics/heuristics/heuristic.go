@@ -635,6 +635,23 @@ func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (a
 	return
 }
 
+const QueryBasicHeuristicAttributes = `
+	uid
+	ts:Heuristic.ts
+	type:Heuristic.type
+	parameter:Heuristic.parameter
+	clusterTypes:Heuristic.clusterTypes
+	excludeAddresses:Heuristic.excludeAddresses
+	excludeSpendingGaps:Heuristic.excludeSpendingGaps
+	parent:Heuristic.parent{
+		uid
+	}
+	children:~Heuristic.parent{
+		uid
+	}
+	clusterCount: count(Heuristic.clusters)
+`
+
 // GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only.
 func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID string) (
 	heuristics []FrontendHeuristic, err error) {
@@ -645,22 +662,7 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 					h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(tx)))
 				}
 				
-				q(func: uid(h)){
-					uid
-					ts:Heuristic.ts
-					type:Heuristic.type
-					parameter:Heuristic.parameter
-					clusterTypes:Heuristic.clusterTypes
-					excludeAddresses:Heuristic.excludeAddresses
-					excludeSpendingGaps:Heuristic.excludeSpendingGaps
-					parent:Heuristic.parent{
-						uid
-					}
-					children:~Heuristic.parent{
-						uid
-					}
-					clusterCount: count(Heuristic.clusters)
-				}
+				q(func: uid(h)){` + QueryBasicHeuristicAttributes + `}
 			  }`
 
 	ctx, cancel := db.GetFrontendContext()
