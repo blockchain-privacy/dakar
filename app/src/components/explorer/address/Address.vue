@@ -192,7 +192,7 @@ import IconItem from '@/components/common/IconItem.vue';
 import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {computed, inject, onMounted, ref} from 'vue';
+import {computed, inject, onMounted, onUpdated, ref} from 'vue';
 import {useMsgStore} from '@/pinia/msg';
 import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
@@ -237,14 +237,22 @@ const showAdvanced = computed(() => isPrivilegedIdentity(session.value) || isAdm
 
 // Hooks
 onMounted(() => {
+	init();
+});
+
+onUpdated(() => {
+	init();
+});
+
+// Functions
+function init() {
 	if (props.addressData) {
 		data.value = props.addressData;
 		resetSorting();
 		table.value.page = 1;
 	}
-});
+}
 
-// Functions
 function isResponseValid(newData) {
 	return !(!newData.type || newData.type !== 'addr' || !newData.payload || !newData.payload.addr_outputs
     || newData.payload.addr_outputs.length === 0);

@@ -173,7 +173,7 @@ import {
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
 	mdiOpenInNew,
-	mdiShapeSquarePlus, mdiTimerSand,
+	mdiShapeSquarePlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {

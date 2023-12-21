@@ -63,6 +63,7 @@ import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
+import {useCacheStore} from '@/pinia/cache';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -73,6 +74,7 @@ const props = defineProps({
 const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
+const cacheStore = useCacheStore();
 
 const isLoading = ref(true);
 const entityData = ref();
@@ -103,7 +105,13 @@ const title = computed(() => {
 // Hooks
 onUpdated(async () => {
 	if (props.identifier) {
-		if (props.type === 'transaction') {
+		// Check if value is in cache, otherwise get data from backend
+		console.log(props.identifier);
+		const cacheValue = cacheStore.getValue(props.identifier);
+		if (cacheValue !== undefined) {
+			entityData.value = cacheValue;
+			console.log(cacheValue);
+		} else if (props.type === 'transaction') {
 			await getTransactionData();
 		} else if (props.type === 'cluster') {
 			await getAddressData();
@@ -135,6 +143,7 @@ async function getTransactionData() {
 	try {
 		const response = await dakar.data.txHashGet({hash: props.identifier});
 		entityData.value = response.payload;
+		cacheStore.setValue(props.identifier, response.payload);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -152,6 +161,7 @@ async function getAddressData() {
 	try {
 		const response = await dakar.data.addressHashGet({hash: props.identifier});
 		entityData.value = response.payload;
+		cacheStore.setValue(props.identifier, response.payload);
 	} catch (e) {
 		setErrorMessage(e);
 	}
