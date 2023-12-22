@@ -1878,14 +1878,16 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	nodeMap := map[string]dbwork.FrontendGraphNode{}
+	heuristicMap := map[string]dbwork.FrontendGraphNode{}
 	for _, n := range searchRequest.CurrentState {
 		// do not consider heuristics
 		if n.Type == "heuristic" {
-			continue
+			heuristicMap[n.UID] = n
+		} else {
+			// remove previous connections
+			n.Children = nil
+			nodeMap[n.UID] = n
 		}
-		// remove previous connections
-		n.Children = nil
-		nodeMap[n.UID] = n
 	}
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
@@ -1934,7 +1936,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		newState = append(newState, v)
 	}
 
-	if err := workspace.InsertNodeConnections(dgraph, nodeMap, tUser.ID); err != nil {
+	if err := workspace.InsertNodeConnections(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
@@ -2009,15 +2011,22 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		}
 
 		nodeMap := map[string]dbwork.FrontendGraphNode{}
+		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
+		heuristicMap := map[string]dbwork.FrontendGraphNode{}
 		for _, n := range nodes {
-			if n.UID == "" || n.Type == "" || n.Type == "heuristic" {
+			if n.UID == "" || n.Type == "" {
 				continue
 			}
-			nodeMap[n.UID] = n
+
+			if n.Type == "heuristic" {
+				heuristicMap[n.UID] = n
+			} else {
+				nodeMap[n.UID] = n
+			}
 		}
 
 		if len(nodeMap) > 1 {
-			if err := workspace.InsertNodeConnections(dgraph, nodeMap, tUser.ID); err != nil {
+			if err := workspace.InsertNodeConnections(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
 				return
@@ -2096,10 +2105,6 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 
 	var newState []dbwork.FrontendGraphNode //nolint:prealloc
 	for _, n := range searchRequest.CurrentState {
-		// do not save heuristics in state
-		if n.Type == "heuristic" {
-			continue
-		}
 		// remove previous connections
 		n.Children = nil
 		newState = append(newState, n)
