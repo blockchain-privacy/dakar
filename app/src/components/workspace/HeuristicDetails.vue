@@ -125,7 +125,7 @@
           Not enough data to display diagram
         </v-card-title>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes > 0">
-          {{ `Only ${durationInMinutes} ${plural('minute',durationInMinutes)} between earliest and latest origin.` }}
+          {{ `Only ${durationInMinutes} ${plural('minute', durationInMinutes)} between earliest and latest origin.` }}
         </v-card-text>
         <v-card-text v-if="!enoughDataForGraph && durationInMinutes === 0">
           All origins occur in the same point of time.
@@ -147,8 +147,13 @@
 import Results from '@/components/heuristic/Results.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiApplicationVariableOutline, mdiClockAlertOutline,
-	mdiMerge, mdiPlaylistRemove, mdiPoundBoxOutline, mdiTune, mdiCalendar,
+	mdiApplicationVariableOutline,
+	mdiCalendar,
+	mdiClockAlertOutline,
+	mdiMerge,
+	mdiPlaylistRemove,
+	mdiPoundBoxOutline,
+	mdiTune,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram';
 import NamedDivider from '@/components/common/NamedDivider.vue';
@@ -216,7 +221,7 @@ function updateData(graphData) {
   fill: rgb(var(--v-theme-primary));
 }
 
-:deep(.hide){
+:deep(.hide) {
   display: none;
   height: 0;
 }

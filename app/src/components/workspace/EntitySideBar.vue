@@ -3,14 +3,25 @@
     v-model="inputVal"
     :title="title"
     :icon="sideBarIcon"
-    max-width="648px"
+    max-width="700px"
+    :title-one-line="!isDestintationTransaction"
   >
     <template #actions>
       <template v-if="!isLoading && entityData">
-        <privacy-chip
-          v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
-          :privacy-type="entityData[0].privacytype"
-        />
+        <template v-if="type === 'transaction' && entityData[0]?.privacytype >= 0">
+          <v-chip
+            v-if="isDestination(entityData[0].privacytype)"
+            :rounded="true"
+            color="primary"
+            variant="tonal"
+            class="me-2"
+            @click="console.log('clicked')"
+          >
+            <v-icon :icon="mdiPlus" />
+            Add Heuristic
+          </v-chip>
+          <privacy-chip :privacy-type="entityData[0].privacytype" />
+        </template>
         <exclusion-chip
           v-else-if="type === 'cluster' && entityData?.addresshash"
           :address-hash="entityData.addresshash"
@@ -58,11 +69,11 @@
               />
             </template>
           </template>
-            <address-view
+          <address-view
             v-else-if="entityData && type === 'cluster'"
-              :address-data="entityData"
-              :show-title-bar="false"
-            />
+            :address-data="entityData"
+            :show-title-bar="false"
+          />
           <heuristic-details
             v-else-if="entityData.heuristicUid && type === 'heuristic'"
             :heuristic-data="entityData"
@@ -79,7 +90,9 @@
 <script setup>
 import {
 	mdiCardBulletedOutline,
-	mdiChartBar, mdiFileDownloadOutline,
+	mdiChartBar,
+	mdiFileDownloadOutline,
+	mdiPlus,
 	mdiShapeSquareRoundedPlus,
 	mdiTransfer,
 } from '@mdi/js';
@@ -94,7 +107,7 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
-import {getCurrentDate} from '@/utilities';
+import {getCurrentDate, isDestination} from '@/utilities';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -134,6 +147,11 @@ const title = computed(() => {
 		default:
 			return 'unknown entity type';
 	}
+});
+
+const isDestintationTransaction = computed(() => {
+	console.log(Boolean(entityData.value && entityData.value[0] && isDestination(entityData.value[0].privacytype)));
+	return Boolean(entityData.value && entityData.value[0] && isDestination(entityData.value[0].privacytype));
 });
 
 // Hooks

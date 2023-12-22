@@ -9,7 +9,7 @@
       <icon-title
         :title="title"
         :icon="icon"
-        :one-line="true"
+        :one-line="titleOneLine"
       >
         <slot name="actions" />
         <v-btn
@@ -38,6 +38,7 @@ const props = defineProps({
 	icon: {type: String, required: true},
 	maxWidth: {type: String, required: false, default: '600px'},
 	minWidth: {type: String, required: false, default: '300px'},
+	titleOneLine: {type: Boolean, required: false, default: true},
 });
 
 const emit = defineEmits(['update:modelValue']);
