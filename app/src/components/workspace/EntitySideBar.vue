@@ -8,20 +8,23 @@
   >
     <template #actions>
       <template v-if="!isLoading && entityData">
-        <template v-if="type === 'transaction' && entityData[0]?.privacytype >= 0">
+        <template v-if="type === 'heuristic' || (type === 'transaction' && entityData[0]?.privacytype >= 0)">
           <v-chip
-            v-if="isDestination(entityData[0].privacytype)"
+            v-if="type === 'heuristic' || isDestination(entityData[0].privacytype)"
             :rounded="true"
             color="primary"
             variant="tonal"
             class="me-2"
-            @click="console.log('clicked')"
+            @click="handleAddHeuristicClick"
           >
             <v-icon :icon="mdiPlus" />
             Add Heuristic
           </v-chip>
-          <privacy-chip :privacy-type="entityData[0].privacytype" />
         </template>
+        <privacy-chip
+          v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
+          :privacy-type="entityData[0].privacytype"
+        />
         <exclusion-chip
           v-else-if="type === 'cluster' && entityData?.addresshash"
           :address-hash="entityData.addresshash"
@@ -124,7 +127,7 @@ const cacheStore = useCacheStore();
 const isLoading = ref(true);
 const entityData = ref();
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'addHeuristic']);
 
 // Computed
 const inputVal = computed({
@@ -149,10 +152,8 @@ const title = computed(() => {
 	}
 });
 
-const isDestintationTransaction = computed(() => {
-	console.log(Boolean(entityData.value && entityData.value[0] && isDestination(entityData.value[0].privacytype)));
-	return Boolean(entityData.value && entityData.value[0] && isDestination(entityData.value[0].privacytype));
-});
+const isDestintationTransaction = computed(() => Boolean(entityData.value
+  && entityData.value[0] && isDestination(entityData.value[0].privacytype)));
 
 // Hooks
 onUpdated(async () => {
@@ -288,6 +289,10 @@ async function downloadSummary() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+function handleAddHeuristicClick() {
+	emit('addHeuristic', props.identifier, props.type);
 }
 
 </script>

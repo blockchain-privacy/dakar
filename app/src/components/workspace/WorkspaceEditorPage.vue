@@ -19,7 +19,8 @@
           class="text-h6"
           style="color:white"
         >
-          Server is not ready to accept request for new heuristics. Please try again later. Existing heuristic results can be viewed.
+          Server is not ready to accept request for new heuristics. Please try again later. Existing heuristic results
+          can be viewed.
         </p>
         <v-btn
           variant="text"
@@ -145,6 +146,7 @@
           :identifier="entityIdentifier"
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
+          @add-heuristic="openTypeSelectionSheet"
         />
         <context-menu
           v-model="contextMenuModel.display"
@@ -172,11 +174,14 @@ import {
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
-	APPLICATION_NAME, CLUSTER_TYPE_CUSTOM, ROUTE_NAME_WORKSPACE_PAGE, ROUTE_NAME_WORKSPACES_PAGE,
+	APPLICATION_NAME,
+	CLUSTER_TYPE_CUSTOM,
+	ROUTE_NAME_WORKSPACE_PAGE,
+	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError} from '@/utilities';
-import {onMounted, ref, watch, nextTick, inject, onUnmounted} from 'vue';
+import {inject, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph';
@@ -250,7 +255,12 @@ const contextMenuModel = ref({
 	items: [
 		{title: 'Show Properties', icon: mdiChartBar, action: () => nodeGraph.contextMenuNodeClick()},
 		{isDivider: true},
-		{title: 'Add Heuristic', icon: mdiShapeSquarePlus, action: openTypeSelectionSheet, disabled: () => !banner.value.show},
+		{
+			title: 'Add Heuristic',
+			icon: mdiShapeSquarePlus,
+			action: openTypeSelectionSheet,
+			disabled: () => !banner.value.show,
+		},
 		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
 	],
 });
@@ -327,11 +337,13 @@ async function handleGraphQuery(query) {
 	}
 
 	try {
-		const response = await dakar.workspace.addWorkspaceNodePost({query: {
-			query: trimmedQuery,
-			currentState: nodeGraph.exportNodes(),
-			workspaceUID: workspaceUID.value,
-		}});
+		const response = await dakar.workspace.addWorkspaceNodePost({
+			query: {
+				query: trimmedQuery,
+				currentState: nodeGraph.exportNodes(),
+				workspaceUID: workspaceUID.value,
+			},
+		});
 		if (response.nodes) {
 			nodeGraph.addNodes(response.nodes);
 			nodeGraph.centerOnNewNodes();
@@ -375,7 +387,8 @@ function addNewHeuristic(heuristic) {
 	data.heuristics.push(newHeuristic);
 }
 
-function openTypeSelectionSheet() {
+function openTypeSelectionSheet(id, type) {
+	console.log(id, type);
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 }
@@ -535,10 +548,12 @@ async function doAutoSave() {
 	isSaving.value = true;
 	autoSaveTimer = null;
 	try {
-		const response = await dakar.workspace.updateWorkspacePost({state: {
-			workspaceUID: workspaceUID.value,
-			currentState: nodeGraph.exportNodes(),
-		}});
+		const response = await dakar.workspace.updateWorkspacePost({
+			state: {
+				workspaceUID: workspaceUID.value,
+				currentState: nodeGraph.exportNodes(),
+			},
+		});
 		if (response.ts) {
 			workspaceModificationTime.value = new Date(response.ts);
 		}
@@ -622,31 +637,31 @@ async function whenMounted() {
 }
 
 .workspace-name {
-  max-width:275px;
+  max-width: 275px;
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .auto-save-large-screen {
-  position:absolute;
+  position: absolute;
   top: 10px;
   right: 10px;
-  z-index:1004;
+  z-index: 1004;
 }
 
 .auto-save-small-screen {
-  position:absolute;
+  position: absolute;
   top: 65px;
   left: 10px;
-  z-index:1004;
+  z-index: 1004;
 }
 
 .workspace-toolbar {
-  position:absolute;
+  position: absolute;
   left: 10px;
-  top:10px;
-  z-index:1004;
+  top: 10px;
+  z-index: 1004;
   background-color: rgb(var(--v-theme-surface))
 }
 </style>
