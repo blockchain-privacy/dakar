@@ -4,7 +4,7 @@
       v-if="inputVal"
       class="sidebar"
       elevation="4"
-      :style="`max-width:${maxWidth}; min-width:${minWidth}`"
+      :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
     >
       <icon-title
         :title="title"
