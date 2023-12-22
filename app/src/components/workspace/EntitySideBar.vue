@@ -7,28 +7,30 @@
   >
     <template #actions>
       <template v-if="!isLoading && entityData">
-        <template v-if="type === 'transaction' && entityData[0]?.privacytype >= 0">
-          <privacy-chip :privacy-type="entityData[0].privacytype" />
-        </template>
-        <template v-else-if="type === 'cluster' && entityData?.addresshash">
-          <exclusion-chip :address-hash="entityData.addresshash" />
-        </template>
-        <template v-else-if="type === 'heuristic' && entityData?.clusterCount > 0">
-          <v-btn
-            id="heuristic_download"
-            :icon="true"
-            variant="text"
-            @click="downloadSummary"
-          >
-            <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
-          </v-btn>
-          <v-tooltip
-            location="bottom"
-            activator="#heuristic_download"
-          >
-            <span>Download heuristic summary</span>
-          </v-tooltip>
-        </template>
+        <privacy-chip
+          v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
+          :privacy-type="entityData[0].privacytype"
+        />
+        <exclusion-chip
+          v-else-if="type === 'cluster' && entityData?.addresshash"
+          :address-hash="entityData.addresshash"
+        />
+        <v-tooltip
+          v-else-if="type === 'heuristic' && entityData?.clusterCount > 0"
+          location="bottom"
+        >
+          <template #activator="item">
+            <v-btn
+              id="heuristic_download"
+              :icon="true"
+              variant="text"
+              v-bind="item.props"
+              @click="downloadSummary"
+            >
+              <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
       </template>
     </template>
     <template #body>
@@ -56,13 +58,13 @@
               />
             </template>
           </template>
-          <address-view
+            <address-view
             v-else-if="entityData && type === 'cluster'"
-            :address-data="entityData"
-            :show-title-bar="false"
-          />
+              :address-data="entityData"
+              :show-title-bar="false"
+            />
           <heuristic-details
-            v-else-if="entityData && type === 'heuristic'"
+            v-else-if="entityData.heuristicUid && type === 'heuristic'"
             :heuristic-data="entityData"
           />
           <div v-else>
@@ -76,10 +78,10 @@
 
 <script setup>
 import {
-  mdiCardBulletedOutline,
-  mdiChartBar, mdiFileDownloadOutline,
-  mdiShapeSquareRoundedPlus,
-  mdiTransfer,
+	mdiCardBulletedOutline,
+	mdiChartBar, mdiFileDownloadOutline,
+	mdiShapeSquareRoundedPlus,
+	mdiTransfer,
 } from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
@@ -92,7 +94,7 @@ import FadeTransition from '@/components/common/FadeTransition.vue';
 import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
-import {getCurrentDate} from "@/utilities";
+import {getCurrentDate} from '@/utilities';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -253,21 +255,21 @@ function setErrorMessage(msg) {
 }
 
 async function downloadSummary() {
-  try {
-    const response = await dakar.heuristic.heuristicsSummaryHeuristicUIDGet({heuristicUID: entityData.value.heuristicUid});
-    // Looks hacky, but it is the only way with good UX
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(response);
+	try {
+		const response = await dakar.heuristic.heuristicsSummaryHeuristicUIDGet({heuristicUID: entityData.value.heuristicUid});
+		// Looks hacky, but it is the only way with good UX
+		const a = document.createElement('a');
+		a.href = URL.createObjectURL(response);
 
-    a.setAttribute(
-      'download',
-      `heuristic_summary_${getCurrentDate()}_${entityData.value.heuristicUid}.csv`,
-    );
-    a.click();
-    a.remove();
-  } catch (e) {
-    setErrorMessage(e);
-  }
+		a.setAttribute(
+			'download',
+			`heuristic_summary_${getCurrentDate()}_${entityData.value.heuristicUid}.csv`,
+		);
+		a.click();
+		a.remove();
+	} catch (e) {
+		setErrorMessage(e);
+	}
 }
 
 </script>
