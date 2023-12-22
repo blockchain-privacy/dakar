@@ -6,21 +6,33 @@
       elevation="4"
       :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
     >
-      <icon-title
-        :title="title"
-        :icon="icon"
-        :one-line="titleOneLine"
+      <v-card-title class="d-flex align-center py-0 mb-1">
+        <v-icon class="me-2">
+          {{ icon }}
+        </v-icon>
+        <span class="shorten"> {{ title }}</span>
+        <div class="ms-auto">
+          <slot
+            v-if="titleOneLine || !$vuetify.display.xs"
+            name="actions"
+          />
+          <v-btn
+            :icon="true"
+            variant="text"
+            color="grey"
+            @click="inputVal=false"
+          >
+            <v-icon :icon="mdiCloseCircle" />
+          </v-btn>
+        </div>
+      </v-card-title>
+      <v-card-title
+        v-if="!titleOneLine && $vuetify.display.xs"
+        class="d-flex align-center justify-end mb-1 pt-0"
+        style="margin-top: -5px"
       >
         <slot name="actions" />
-        <v-btn
-          :icon="true"
-          variant="text"
-          color="grey"
-          @click="inputVal=false"
-        >
-          <v-icon :icon="mdiCloseCircle" />
-        </v-btn>
-      </icon-title>
+      </v-card-title>
       <v-divider />
       <slot name="body" />
     </v-sheet>
@@ -28,7 +40,6 @@
 </template>
 
 <script setup>
-import IconTitle from '@/components/common/IconTitle.vue';
 import {mdiCloseCircle} from '@mdi/js';
 import {computed} from 'vue';
 
@@ -63,5 +74,12 @@ const inputVal = computed({
   /* Heuristic toolbar a z-index of 1004, therefore set z-index to the same so top shadow is not visible */
   z-index: 1004;
   overflow: auto;
+}
+
+.shorten {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-right: 2px;
 }
 </style>

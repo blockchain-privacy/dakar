@@ -4,7 +4,7 @@
     :title="title"
     :icon="sideBarIcon"
     max-width="700px"
-    :title-one-line="!isDestintationTransaction"
+    :title-one-line="!isTwoLineTitle"
   >
     <template #actions>
       <template v-if="!isLoading && entityData">
@@ -15,9 +15,9 @@
             color="primary"
             variant="tonal"
             class="me-2"
+            :prepend-icon="mdiPlus"
             @click="handleAddHeuristicClick"
           >
-            <v-icon :icon="mdiPlus" />
             Add Heuristic
           </v-chip>
         </template>
@@ -29,22 +29,16 @@
           v-else-if="type === 'cluster' && entityData?.addresshash"
           :address-hash="entityData.addresshash"
         />
-        <v-tooltip
+        <v-chip
           v-else-if="type === 'heuristic' && entityData?.clusterCount > 0"
-          location="bottom"
+          :rounded="true"
+          color="primary"
+          variant="tonal"
+          :prepend-icon="mdiFileDownloadOutline"
+          @click="downloadSummary"
         >
-          <template #activator="item">
-            <v-btn
-              id="heuristic_download"
-              :icon="true"
-              variant="text"
-              v-bind="item.props"
-              @click="downloadSummary"
-            >
-              <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
-            </v-btn>
-          </template>
-        </v-tooltip>
+          Download
+        </v-chip>
       </template>
     </template>
     <template #body>
@@ -152,8 +146,7 @@ const title = computed(() => {
 	}
 });
 
-const isDestintationTransaction = computed(() => Boolean(entityData.value
-  && entityData.value[0] && isDestination(entityData.value[0].privacytype)));
+const isTwoLineTitle = computed(() => props.type === 'heuristic' || (entityData.value && entityData.value[0]?.privacytype > 0));
 
 // Hooks
 onUpdated(async () => {
@@ -173,7 +166,6 @@ onUpdated(async () => {
 });
 
 // Computed
-
 const sideBarIcon = computed(() => {
 	switch (props.type) {
 		case 'transaction':
