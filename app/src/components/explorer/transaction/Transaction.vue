@@ -246,6 +246,7 @@
       <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
     </v-btn>
     <fingerprint-transactions-dialog
+      v-if="showTitleBar"
       v-model="showFingerprintDialog"
       :transaction-hash="tx.txhash"
     />
