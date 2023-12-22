@@ -13,7 +13,7 @@
         :clearable="true"
         :flat="true"
         hide-details
-        style="min-width: 200px"
+        style="min-width: 250px"
         :append-inner-icon="mdiMagnify"
         label="Filter by tag and transaction hash"
       />
