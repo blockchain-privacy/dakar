@@ -2,7 +2,7 @@ import {getPrivacyTypeLabel, isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
-import {forceSimulation, forceLink, forceManyBody, forceCollide} from 'd3-force';
+import {forceCollide, forceLink, forceManyBody, forceSimulation} from 'd3-force';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -172,9 +172,9 @@ export default class NodeGraph {
           <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
           <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style="stroke:black; stroke-width:1.5 "/>
         </pattern>
-        <pattern id="checkers" viewBox="0,0,4,4" width="40%" height="40%" patternTransform="translate(-2, -2)">
-          <rect width="4" height="4" fill="rgb(var(--v-theme-primary))" />
-          <path id="a" data-color="fill" fill="#000" d="M2 2h2v2H2zM0 0h2v2H0z"></path>
+        <pattern id="checkers" viewBox="0,0,8,8" width="60%" height="60%" patternTransform="translate(0, -4)">
+          <rect width="8" height="8" fill="rgb(var(--v-theme-primary))" />
+          <path id="a" data-color="fill" fill="#000" d="M4 4h4v4H4zM0 0h4v4H0z"></path>
         </pattern>
         <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="#999"/>
