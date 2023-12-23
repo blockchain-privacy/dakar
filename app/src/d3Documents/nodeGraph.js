@@ -321,6 +321,44 @@ export default class NodeGraph {
 		this.rootSvg.transition().duration(250).call(this.zoom.translateTo, centerX, centerY);
 	}
 
+	drawIcons(groupElement, icons, parameter) {
+		if (icons.length === 0) {
+			return;
+		}
+
+		let iconGroup = groupElement.select('.iconGroup');
+		if (iconGroup.empty()) {
+			iconGroup = groupElement.append('g').attr('class', 'iconGroup');
+		}
+
+		const textAreaMargin = 3;
+		const textHeight = 12;
+		const iconWidth = 12;
+		const iconMargin = 1;
+		const iconY = this.nodeRadius + textHeight + textAreaMargin * 2;
+
+		iconGroup.innerHTML = '';
+
+		icons.forEach((icon, i) => {
+			iconGroup.append('path')
+				.attr('transform', `translate(${iconWidth * i + iconMargin * i},${iconY}) scale(0.45,0.45)`)
+				.attr('fill', 'currentColor')
+				.attr('d', icon);
+		});
+
+		if (parameter) {
+			iconGroup.append('text')
+				.attr('transform', `translate(${iconWidth * icons.length + iconMargin * icons.length},${iconY + 9})`)
+				.attr('font-size', 10)
+				.style('cursor', 'default')
+				.attr('fill', 'currentColor')
+				.text(parameter);
+		}
+
+		const groupWidth = iconGroup.node().getBoundingClientRect().width;
+		iconGroup.attr('transform', `translate(${-groupWidth / 2},0)`);
+	}
+
 	drawNode(groupElement) {
 		const self = this;
 		// CircleGroup contains the node circle and loading circle
@@ -533,117 +571,30 @@ export default class NodeGraph {
 				return abbreviateNumber(d.heuristicClusterCount);
 			});
 
-		const iconScale = 'scale(0.45,0.45)';
-		const iconWidth = 12;
-		const iconMargin = 1;
-		const iconY = this.nodeRadius + textHeight + textAreaMargin * 2;
-
-		// Exclusion list icon
-		let exclusionIcon = groupElement.select('.exclusionIcon');
-		if (exclusionIcon.empty()) {
-			exclusionIcon = groupElement.append('path').attr('class', 'exclusionIcon');
-		}
-
-		exclusionIcon
-			.attr('transform', `translate(${-iconWidth * 2 - iconMargin * 2},${iconY}) ${iconScale}`)
-			.attr('fill', 'currentColor')
-			.attr('d', d => {
+		groupElement
+			.each(function (d) {
 				if (d.type !== 'heuristic') {
-					return '';
+					return;
 				}
 
+				const icons = [];
 				if (d.heuristicExcludeAddresses) {
-					return mdiPlaylistRemove;
-				}
-
-				return '';
-			});
-
-		// Cluster icon
-		let clusterIcon = groupElement.select('.clusterIcon');
-		if (clusterIcon.empty()) {
-			clusterIcon = groupElement.append('path').attr('class', 'clusterIcon');
-		}
-
-		clusterIcon
-			.attr('transform', `translate(${-iconWidth - iconMargin},${iconY}) ${iconScale}`)
-			.attr('fill', 'currentColor')
-			.attr('d', d => {
-				if (d.type !== 'heuristic') {
-					return '';
+					icons.push(mdiPlaylistRemove);
 				}
 
 				if (d.heuristicClusterTypes?.length > 0) {
-					return mdiMerge;
-				}
-
-				return '';
-			});
-
-		// Spending gap icon
-		let spendingGapIcon = groupElement.select('.spendingGapIcon');
-		if (spendingGapIcon.empty()) {
-			spendingGapIcon = groupElement.append('path').attr('class', 'spendingGapIcon');
-		}
-
-		spendingGapIcon
-			.attr('transform', `translate(${0},${iconY}) ${iconScale}`)
-			.attr('fill', 'currentColor')
-			.attr('d', d => {
-				if (d.type !== 'heuristic') {
-					return '';
+					icons.push(mdiMerge);
 				}
 
 				if (d.heuristicExcludeSpendingGaps) {
-					return mdiClockAlertOutline;
-				}
-
-				return '';
-			});
-
-		// Paramter icon
-		let parameterIcon = groupElement.select('.parameterIcon');
-		if (parameterIcon.empty()) {
-			parameterIcon = groupElement.append('path').attr('class', 'parameterIcon');
-		}
-
-		parameterIcon
-			.attr('transform', `translate(${iconWidth + iconMargin * 2},${iconY}) ${iconScale}`)
-			.attr('fill', 'currentColor')
-			.attr('d', d => {
-				if (d.type !== 'heuristic') {
-					return '';
+					icons.push(mdiClockAlertOutline);
 				}
 
 				if (d.heuristicParameter) {
-					return mdiTune;
+					icons.push(mdiTune);
 				}
 
-				return '';
-			});
-
-		// Paramter text
-		let parameterText = groupElement.select('.parameterText');
-		if (parameterText.empty()) {
-			parameterText = groupElement.append('text').attr('class', 'parameterText');
-		}
-
-		parameterText
-			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
-			.attr('x', iconWidth * 2 + iconMargin * 3)
-			.attr('font-size', fontSize)
-			.style('cursor', 'default')
-			.attr('fill', 'currentColor')
-			.text(d => {
-				if (d.type !== 'heuristic') {
-					return '';
-				}
-
-				if (d.heuristicParameter) {
-					return d.heuristicParameter;
-				}
-
-				return '';
+				self.drawIcons(d3Select(this), icons, d.heuristicParameter);
 			});
 	}
 
