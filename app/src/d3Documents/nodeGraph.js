@@ -337,7 +337,8 @@ export default class NodeGraph {
 		const iconMargin = 1;
 		const iconY = this.nodeRadius + textHeight + textAreaMargin * 2;
 
-		iconGroup.innerHTML = '';
+		// Remove all children
+		iconGroup.selectAll('*').remove();
 
 		icons.forEach((icon, i) => {
 			iconGroup.append('path')
@@ -355,7 +356,7 @@ export default class NodeGraph {
 				.text(parameter);
 		}
 
-		const groupWidth = iconGroup.node().getBoundingClientRect().width;
+		const groupWidth = iconGroup.node().getBBox().width;
 		iconGroup.attr('transform', `translate(${-groupWidth / 2},0)`);
 	}
 
@@ -495,7 +496,7 @@ export default class NodeGraph {
 		// Node title
 		let nodeTitle = groupElement.select('.nodeTitle');
 		if (nodeTitle.empty()) {
-			nodeTitle = groupElement.append('text').attr('class', 'nodeDescription');
+			nodeTitle = groupElement.append('text').attr('class', 'nodeTitle');
 		}
 
 		nodeTitle
@@ -526,7 +527,7 @@ export default class NodeGraph {
 
 		let nodeSubtitle = groupElement.select('.nodeSubtitle');
 		if (nodeSubtitle.empty()) {
-			nodeSubtitle = groupElement.append('text').attr('class', 'nodeType');
+			nodeSubtitle = groupElement.append('text').attr('class', 'nodeSubtitle');
 		}
 
 		nodeSubtitle
