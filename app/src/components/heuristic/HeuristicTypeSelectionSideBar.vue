@@ -123,7 +123,7 @@ const parameterRules = new Map([
 	['string', null],
 ]);
 
-const heuristicTabs = ref(null);
+const heuristicTabs = ref(0);
 
 const heuristicTypes = computed(() => props.descriptors.map(descriptor => {
 	// Extend descriptor objects with default values for the switches

@@ -192,13 +192,20 @@
 import Results from '@/components/heuristic/Results.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import {
-	mdiApplicationVariableOutline, mdiChartBar, mdiClockAlertOutline, mdiFileDownloadOutline,
-	mdiMerge, mdiPlaylistRemove, mdiPoundBoxOutline, mdiTune, mdiCalendar,
+	mdiApplicationVariableOutline,
+	mdiCalendar,
+	mdiChartBar,
+	mdiClockAlertOutline,
+	mdiFileDownloadOutline,
+	mdiMerge,
+	mdiPlaylistRemove,
+	mdiPoundBoxOutline,
+	mdiTune,
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram';
 import {getCurrentDate} from '@/utilities';
 import NamedDivider from '@/components/common/NamedDivider.vue';
-import SideBar from '@/components/common/SideBar.vue';
+import SideBar from '@/components/heuristic/CustomSideBar.vue';
 import {computed, inject, onMounted, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -305,7 +312,7 @@ async function downloadSummary() {
   fill: rgb(var(--v-theme-primary));
 }
 
-:deep(.hide){
+:deep(.hide) {
   display: none;
   height: 0;
 }

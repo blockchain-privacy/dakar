@@ -1,7 +1,7 @@
 <template>
   <v-slide-x-reverse-transition>
     <v-sheet
-      v-show="inputVal"
+      v-if="inputVal"
       class="sidebar"
       elevation="4"
       :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
