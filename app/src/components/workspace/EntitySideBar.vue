@@ -84,26 +84,47 @@
   </side-bar>
   <v-dialog
     v-model="routeGuardDialogModel"
-    max-width="350px"
+    max-width="300px"
     :contained="true"
     :no-click-animation="true"
   >
     <v-card>
-      <v-card-text class="text-subtitle-1 d-flex align-center">
-        <div style="width:100%">
-          <p class="text-center mb-3">
-            Do you really want to go to this route?
-          </p>
-        </div>
+      <v-card-text class="d-flex align-center flex-column">
+        <v-btn
+          class="mx-auto"
+          variant="text"
+          size="x-large"
+          @click="handleRouteGuardDialogRouting"
+        >
+          <v-icon
+            :icon="mdiOpenInNew"
+            class="me-2"
+          />
+          <div
+            class="shorten"
+            style="max-width: 200px"
+          >
+            Go to {{ routeGuardId }}
+          </div>
+        </v-btn>
+        <named-divider
+          title="Or"
+          style="width:100%"
+          :vertical-margin="2"
+        />
+        <v-btn
+          class="mx-auto"
+          variant="text"
+          size="x-large"
+          @click="handleRouteGuardDialogAdd"
+        >
+          <v-icon
+            :icon="mdiPlus"
+            class="me-2"
+          />
+          Add to Workspace
+        </v-btn>
       </v-card-text>
-      <v-card-actions>
-        <v-btn @click="handleRouteGuardDialogRouting">
-          Go to route
-        </v-btn>
-        <v-btn @click="handleRouteGuardDialogAdd">
-          Add to Graph
-        </v-btn>
-      </v-card-actions>
     </v-card>
   </v-dialog>
 </template>
@@ -113,6 +134,7 @@ import {
 	mdiCardBulletedOutline,
 	mdiChartBar,
 	mdiFileDownloadOutline,
+	mdiOpenInNew,
 	mdiPlus,
 	mdiShapeSquareRoundedPlus,
 	mdiTransfer,
@@ -130,6 +152,7 @@ import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
 import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import NamedDivider from '@/components/common/NamedDivider.vue';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -347,5 +370,10 @@ function handleRouteGuardDialogAdd() {
 </script>
 
 <style scoped>
-
+.shorten {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-right: 2px;
+}
 </style>
