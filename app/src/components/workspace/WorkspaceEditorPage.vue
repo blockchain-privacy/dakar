@@ -196,10 +196,10 @@ const context = {addMessage: msgStore.addMessage, $route: route};
 const newUidPrefix = 'newUid_';
 
 const colorMap = getColorMap();
-colorMap.set('heuristic', 'striped');
-colorMap.set('cluster', 'checkers');
+colorMap.set('heuristic', '#4CAF50');
+colorMap.set('cluster', '#CDDC39');
 // Non-privacy transaction
-colorMap.set('transaction', 'grey');
+colorMap.set('transaction', '#607D8B');
 
 const nodeGraph = new NodeGraph(colorMap);
 
