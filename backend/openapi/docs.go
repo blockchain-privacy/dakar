@@ -3481,6 +3481,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "addressHash": {
+                    "description": "address",
                     "type": "string"
                 },
                 "children": {
@@ -3492,10 +3493,36 @@ const docTemplate = `{
                 "clusterType": {
                     "type": "string"
                 },
+                "heuristicClusterCount": {
+                    "type": "integer"
+                },
+                "heuristicClusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "heuristicExcludeAddresses": {
+                    "type": "boolean"
+                },
+                "heuristicExcludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "heuristicParameter": {
+                    "type": "string"
+                },
+                "heuristicTs": {
+                    "type": "string"
+                },
+                "heuristicType": {
+                    "description": "heuristic",
+                    "type": "string"
+                },
                 "privacyType": {
                     "type": "integer"
                 },
                 "transactionHash": {
+                    "description": "transaction",
                     "type": "string"
                 },
                 "type": {

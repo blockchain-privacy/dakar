@@ -46,10 +46,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.0.21":
-  version: 1.0.21
-  resolution: "@blockchain/dakar@npm:1.0.21::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.21.tgz"
-  checksum: 6c8d9d51064856c761a31ba97278019ad27e3b82d0b3f067f1790ea835d482c9ad5f625184a425efc47a1cc08ff12d9f7af40ff1b931c55a903b10f1b7cea6dd
+"@blockchain/dakar@npm:^1.0.22":
+  version: 1.0.22
+  resolution: "@blockchain/dakar@npm:1.0.22::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.0.22.tgz"
+  checksum: 7992c7901ec7da0172a235594e64433ee0772a9e220d2e69a65b809834a03480c74ed111c26e354ac1f3d384bda484644256a4458c260a62885d0e08f5a900f0
   languageName: node
   linkType: hard
 
@@ -372,12 +372,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ory/client@npm:^1.4.6":
-  version: 1.4.6
-  resolution: "@ory/client@npm:1.4.6"
+"@ory/client@npm:^1.4.7":
+  version: 1.4.7
+  resolution: "@ory/client@npm:1.4.7"
   dependencies:
     axios: "npm:^0.27.2"
-  checksum: 408dac94c088a17b396b66a57d0864b299391415175a1b630d31949da3fb246b09d38ec4655a462b0e3f4c555b9a1e7741b7aa53365026119579c56de02a508a
+  checksum: a679652aee5251776cc63f75740f75d4be64a79462f16bb24159286d277eb7bab3548fcd16fe0ec23b5c6fca9c99202e09eb8f018e4725bd8f0d8703cedb63fd
   languageName: node
   linkType: hard
 
@@ -1160,11 +1160,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.0.21"
+    "@blockchain/dakar": "npm:^1.0.22"
     "@fontsource/roboto": "npm:^5.0.8"
     "@mdi/js": "npm:^7.3.67"
     "@neondark/wikiapi": "npm:^1.2.24"
-    "@ory/client": "npm:^1.4.6"
+    "@ory/client": "npm:^1.4.7"
     "@vitejs/plugin-vue": "npm:^4.5.2"
     d3-array: "npm:^3.2.4"
     d3-axis: "npm:^3.0.0"

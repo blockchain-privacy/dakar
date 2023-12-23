@@ -926,6 +926,7 @@ definitions:
   workspace.FrontendGraphNode:
     properties:
       addressHash:
+        description: address
         type: string
       children:
         items:
@@ -933,9 +934,27 @@ definitions:
         type: array
       clusterType:
         type: string
+      heuristicClusterCount:
+        type: integer
+      heuristicClusterTypes:
+        items:
+          type: string
+        type: array
+      heuristicExcludeAddresses:
+        type: boolean
+      heuristicExcludeSpendingGaps:
+        type: boolean
+      heuristicParameter:
+        type: string
+      heuristicTs:
+        type: string
+      heuristicType:
+        description: heuristic
+        type: string
       privacyType:
         type: integer
       transactionHash:
+        description: transaction
         type: string
       type:
         type: string

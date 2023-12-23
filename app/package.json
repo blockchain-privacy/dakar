@@ -9,11 +9,11 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.0.21",
+    "@blockchain/dakar": "^1.0.22",
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.3.67",
     "@neondark/wikiapi": "^1.2.24",
-    "@ory/client": "^1.4.6",
+    "@ory/client": "^1.4.7",
     "d3-array": "^3.2.4",
     "d3-axis": "^3.0.0",
     "d3-drag": "^3.0.0",
