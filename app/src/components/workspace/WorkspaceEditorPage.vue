@@ -633,7 +633,6 @@ async function whenMounted() {
 :deep( #svg_canvas ) {
   height: 100%;
   width: 100%;
-  filter: drop-shadow(-4px 4px 2px var(--v-shadow-key-penumbra-opacity, rgba(0, 0, 0, 0.2)));
 }
 
 .workspace-name {
