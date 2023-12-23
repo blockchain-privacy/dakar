@@ -387,7 +387,7 @@ export default class NodeGraph {
 				}
 
 				if (self.contextMenuCallback !== null) {
-					self.contextMenuCallback(e);
+					self.contextMenuCallback(e, d);
 				}
 
 				self.activeContextMenuData = d;

@@ -180,7 +180,7 @@ import {
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import ContextMenu from '../common/ContextMenu.vue';
-import {getColorMap, handleError} from '@/utilities';
+import {getColorMap, handleError, isDestination} from '@/utilities';
 import {inject, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
@@ -248,6 +248,8 @@ const executionStatus = ref({
 		notReady: 5,
 	},
 });
+
+const showContextMenuAddHeuristic = ref(false);
 const contextMenuModel = ref({
 	display: false,
 	x: 0,
@@ -259,7 +261,7 @@ const contextMenuModel = ref({
 			title: 'Add Heuristic',
 			icon: mdiShapeSquarePlus,
 			action: openTypeSelectionSheet,
-			disabled: () => !banner.value.show,
+			disabled: () => !banner.value.show && showContextMenuAddHeuristic.value,
 		},
 		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
 	],
@@ -438,10 +440,17 @@ function closeSideBars() {
 	isEntitySideBarOpen.value = false;
 }
 
-function showContextMenu(e) {
+function showContextMenu(e, nodeData) {
 	contextMenuModel.value.display = false;
 
 	e.preventDefault();
+
+	if (nodeData?.type === 'heuristic' || isDestination(nodeData.privacyType)) {
+		showContextMenuAddHeuristic.value = true;
+	} else {
+		showContextMenuAddHeuristic.value = false;
+	}
+
 	contextMenuModel.value.x = e.clientX;
 	contextMenuModel.value.y = e.clientY;
 
