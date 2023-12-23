@@ -3,6 +3,7 @@ import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
 import {forceCollide, forceLink, forceManyBody, forceSimulation} from 'd3-force';
+import {abbreviateNumber} from '@/d3Documents/util';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -452,17 +453,39 @@ export default class NodeGraph {
 			}
 		}
 
-		let nodeDescription = groupElement.select('.nodeDescription');
-		if (nodeDescription.empty()) {
-			nodeDescription = groupElement.append('text').attr('class', 'nodeDescription');
+		// Cluster count
+		let nodeClusterCount = circleGroup.select('.clusterCount');
+		if (nodeClusterCount.empty()) {
+			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
 		}
 
-		nodeDescription
+		nodeClusterCount
+			.attr('text-anchor', 'middle')
+			.style('cursor', 'pointer')
+			.style('font-weight', 'bold')
+			.attr('dominant-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', 12)
+			.attr('y', 1)
+			.text(d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				return abbreviateNumber(d.heuristicClusterCount);
+			});
+
+		// Node title
+		let nodeTitle = groupElement.select('.nodeTitle');
+		if (nodeTitle.empty()) {
+			nodeTitle = groupElement.append('text').attr('class', 'nodeDescription');
+		}
+
+		nodeTitle
 			.attr('font-size', fontSize)
-			.style('text-anchor', 'middle')
+			.attr('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
-			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight + textAreaMargin)
 			.text(d => {
 				if (d.type === 'cluster') {
@@ -484,17 +507,16 @@ export default class NodeGraph {
 			})
 			.each(wrap);
 
-		let nodeType = groupElement.select('.nodeType');
-		if (nodeType.empty()) {
-			nodeType = groupElement.append('text').attr('class', 'nodeType');
+		let nodeSubtitle = groupElement.select('.nodeSubtitle');
+		if (nodeSubtitle.empty()) {
+			nodeSubtitle = groupElement.append('text').attr('class', 'nodeType');
 		}
 
-		nodeType
+		nodeSubtitle
 			.attr('font-size', fontSize)
-			.style('text-anchor', 'middle')
+			.attr('text-anchor', 'middle')
 			.style('cursor', 'default')
 			.attr('fill', 'currentColor')
-			.attr('stroke-width', 0)
 			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
 			.text(d => {
 				if (d.type === 'cluster') {
