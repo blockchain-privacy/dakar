@@ -147,6 +147,7 @@
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
           @add-heuristic="openTypeSelectionSheet"
+          @add-node="handleGraphQuery"
         />
         <context-menu
           v-model="contextMenuModel.display"
@@ -335,7 +336,7 @@ async function handleGraphQuery(query) {
 	// Wait for auto save to finish
 	while (isSaving.value) {
 		// eslint-disable-next-line no-await-in-loop
-		await sleep(500);
+		await sleep(200);
 	}
 
 	try {

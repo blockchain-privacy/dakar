@@ -82,6 +82,30 @@
       </fade-transition>
     </template>
   </side-bar>
+  <v-dialog
+    v-model="routeGuardDialogModel"
+    max-width="350px"
+    :contained="true"
+    :no-click-animation="true"
+  >
+    <v-card>
+      <v-card-text class="text-subtitle-1 d-flex align-center">
+        <div style="width:100%">
+          <p class="text-center mb-3">
+            Do you really want to go to this route?
+          </p>
+        </div>
+      </v-card-text>
+      <v-card-actions>
+        <v-btn @click="handleRouteGuardDialogRouting">
+          Go to route
+        </v-btn>
+        <v-btn @click="handleRouteGuardDialogAdd">
+          Add to Graph
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup>
@@ -97,7 +121,7 @@ import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import {useRoute} from 'vue-router';
+import {onBeforeRouteLeave, useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
@@ -105,6 +129,7 @@ import ExclusionChip from '@/components/explorer/address/ExclusionChip.vue';
 import {useCacheStore} from '@/pinia/cache';
 import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
+import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 
 const props = defineProps({
 	modelValue: {type: Boolean, required: true},
@@ -115,13 +140,19 @@ const props = defineProps({
 
 const dakar = inject('dakar');
 const route = useRoute();
+const router = useRouter();
 const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
 
 const isLoading = ref(true);
 const entityData = ref();
 
-const emit = defineEmits(['update:modelValue', 'addHeuristic']);
+let routeGuardEnabled = true;
+let routeGuardTo = null;
+let routeGuardId = '';
+const routeGuardDialogModel = ref(false);
+
+const emit = defineEmits(['update:modelValue', 'addHeuristic', 'addNode']);
 
 // Computed
 const inputVal = computed({
@@ -163,6 +194,22 @@ onUpdated(async () => {
 			await getHeuristicData();
 		}
 	}
+});
+
+onBeforeRouteLeave(to => {
+	// Don't activate route guard if sidbar is closed
+	if (!routeGuardEnabled || !inputVal.value) {
+		return true;
+	}
+
+	if ((to.name === ROUTE_NAME_TRANSACTION_PAGE || to.name === ROUTE_NAME_ADDRESS_PAGE) && to.params?.id) {
+		routeGuardTo = to;
+		routeGuardId = to.params.id;
+		routeGuardDialogModel.value = true;
+		return false;
+	}
+
+	return true;
 });
 
 // Computed
@@ -285,6 +332,16 @@ async function downloadSummary() {
 
 function handleAddHeuristicClick() {
 	emit('addHeuristic', props.identifier, props.type);
+}
+
+function handleRouteGuardDialogRouting() {
+	routeGuardEnabled = false;
+	router.push(routeGuardTo);
+}
+
+function handleRouteGuardDialogAdd() {
+	emit('addNode', routeGuardId);
+	routeGuardDialogModel.value = false;
 }
 
 </script>
