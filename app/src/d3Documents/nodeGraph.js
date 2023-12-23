@@ -4,6 +4,7 @@ import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
 import {forceCollide, forceLink, forceManyBody, forceSimulation} from 'd3-force';
 import {abbreviateNumber} from '@/d3Documents/util';
+import {mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune} from '@mdi/js';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -453,28 +454,6 @@ export default class NodeGraph {
 			}
 		}
 
-		// Cluster count
-		let nodeClusterCount = circleGroup.select('.clusterCount');
-		if (nodeClusterCount.empty()) {
-			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
-		}
-
-		nodeClusterCount
-			.attr('text-anchor', 'middle')
-			.style('cursor', 'pointer')
-			.style('font-weight', 'bold')
-			.attr('dominant-baseline', 'middle')
-			.attr('fill', 'white')
-			.attr('font-size', 12)
-			.attr('y', 1)
-			.text(d => {
-				if (d.type !== 'heuristic') {
-					return '';
-				}
-
-				return abbreviateNumber(d.heuristicClusterCount);
-			});
-
 		// Node title
 		let nodeTitle = groupElement.select('.nodeTitle');
 		if (nodeTitle.empty()) {
@@ -530,6 +509,142 @@ export default class NodeGraph {
 				return '';
 			})
 			.each(wrap);
+
+		// Heuristic properties
+		// Cluster count
+		let nodeClusterCount = circleGroup.select('.clusterCount');
+		if (nodeClusterCount.empty()) {
+			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
+		}
+
+		nodeClusterCount
+			.attr('text-anchor', 'middle')
+			.style('cursor', 'pointer')
+			.style('font-weight', 'bold')
+			.attr('dominant-baseline', 'middle')
+			.attr('fill', 'white')
+			.attr('font-size', 12)
+			.attr('y', 1)
+			.text(d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				return abbreviateNumber(d.heuristicClusterCount);
+			});
+
+		const iconScale = 'scale(0.45,0.45)';
+		const iconWidth = 12;
+		const iconMargin = 1;
+		const iconY = this.nodeRadius + textHeight + textAreaMargin * 2;
+
+		// Exclusion list icon
+		let exclusionIcon = groupElement.select('.exclusionIcon');
+		if (exclusionIcon.empty()) {
+			exclusionIcon = groupElement.append('path').attr('class', 'exclusionIcon');
+		}
+
+		exclusionIcon
+			.attr('transform', `translate(${-iconWidth * 2 - iconMargin * 2},${iconY}) ${iconScale}`)
+			.attr('fill', 'currentColor')
+			.attr('d', d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				if (d.heuristicExcludeAddresses) {
+					return mdiPlaylistRemove;
+				}
+
+				return '';
+			});
+
+		// Cluster icon
+		let clusterIcon = groupElement.select('.clusterIcon');
+		if (clusterIcon.empty()) {
+			clusterIcon = groupElement.append('path').attr('class', 'clusterIcon');
+		}
+
+		clusterIcon
+			.attr('transform', `translate(${-iconWidth - iconMargin},${iconY}) ${iconScale}`)
+			.attr('fill', 'currentColor')
+			.attr('d', d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				if (d.heuristicClusterTypes?.length > 0) {
+					return mdiMerge;
+				}
+
+				return '';
+			});
+
+		// Spending gap icon
+		let spendingGapIcon = groupElement.select('.spendingGapIcon');
+		if (spendingGapIcon.empty()) {
+			spendingGapIcon = groupElement.append('path').attr('class', 'spendingGapIcon');
+		}
+
+		spendingGapIcon
+			.attr('transform', `translate(${0},${iconY}) ${iconScale}`)
+			.attr('fill', 'currentColor')
+			.attr('d', d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				if (d.heuristicExcludeSpendingGaps) {
+					return mdiClockAlertOutline;
+				}
+
+				return '';
+			});
+
+		// Paramter icon
+		let parameterIcon = groupElement.select('.parameterIcon');
+		if (parameterIcon.empty()) {
+			parameterIcon = groupElement.append('path').attr('class', 'parameterIcon');
+		}
+
+		parameterIcon
+			.attr('transform', `translate(${iconWidth + iconMargin * 2},${iconY}) ${iconScale}`)
+			.attr('fill', 'currentColor')
+			.attr('d', d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				if (d.heuristicParameter) {
+					return mdiTune;
+				}
+
+				return '';
+			});
+
+		// Paramter text
+		let parameterText = groupElement.select('.parameterText');
+		if (parameterText.empty()) {
+			parameterText = groupElement.append('text').attr('class', 'parameterText');
+		}
+
+		parameterText
+			.attr('y', this.nodeRadius + textHeight * 2 + textAreaMargin)
+			.attr('x', iconWidth * 2 + iconMargin * 3)
+			.attr('font-size', fontSize)
+			.style('cursor', 'default')
+			.attr('fill', 'currentColor')
+			.text(d => {
+				if (d.type !== 'heuristic') {
+					return '';
+				}
+
+				if (d.heuristicParameter) {
+					return d.heuristicParameter;
+				}
+
+				return '';
+			});
 	}
 
 	// Draws the state of the graph, returns all newly added nodes
