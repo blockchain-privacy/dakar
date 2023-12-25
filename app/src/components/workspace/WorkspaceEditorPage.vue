@@ -59,10 +59,6 @@
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
           />
-          <v-progress-circular
-            v-if="isLoading"
-            :indeterminate="true"
-          />
           <v-btn
             style="min-width: 32px !important;"
             class="ms-3 px-2"
@@ -96,6 +92,12 @@
             </v-list>
           </v-menu>
         </v-card-text>
+        <v-progress-linear
+          v-if="isLoading"
+          :indeterminate="true"
+          :rounded="true"
+          location="bottom"
+        />
       </v-card>
       <div
         v-if="workspaceName && wasAutoSaved"
