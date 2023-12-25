@@ -208,6 +208,10 @@ const nodeGraph = new NodeGraph(colorMap);
 
 let uidCounter = 1;
 let data = null;
+// Node which triggered the heuristic type selection,
+// and to which will be the parent of the new heuristic.
+// May be a destination transaction or another heuristic
+let newHeuristicParentNodeUID = '';
 
 const wasAutoSaved = ref(false);
 const isLoading = ref(false);
@@ -263,7 +267,7 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeSquarePlus,
-			action: openTypeSelectionSheet,
+			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
 			disabled: () => !banner.value.show && showContextMenuAddHeuristic.value,
 		},
 		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
@@ -389,11 +393,40 @@ function addNewHeuristic(heuristic) {
 
 	uidCounter += 1;
 
-	data.heuristics.push(newHeuristic);
+	const parentNode = nodeGraph.getNode(newHeuristicParentNodeUID);
+	if (!parentNode) {
+		return;
+	}
+
+	if (parentNode.children) {
+		parentNode.children.push(newHeuristic.uid);
+	} else {
+		parentNode.children = [newHeuristic.uid];
+	}
+
+	nodeGraph.addNodes([parentNode, {
+		uid: newHeuristic.uid,
+		type: 'heuristic',
+		status: 'loading',
+		heuristicType: newHeuristic.type,
+		heuristicExcludeAddresses: newHeuristic.excludeAddresses,
+		heuristicExcludeSpendingGaps: newHeuristic.excludeSpendingGaps,
+		heuristicClusterTypes: newHeuristic.clusterTypes,
+		heuristicParameter: newHeuristic.parameter,
+	}], true);
 }
 
-function openTypeSelectionSheet(id, type) {
-	console.log(id, type);
+function contextMenuOpenTypeSelection(node) {
+	if (!node) {
+		return;
+	}
+
+	newHeuristicParentNodeUID = node.uid;
+
+	openTypeSelectionSheet();
+}
+
+function openTypeSelectionSheet() {
 	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
 }
@@ -403,6 +436,8 @@ function openEntitySideBar(nodeData) {
 	if (nodeData.uid.startsWith(newUidPrefix)) {
 		return;
 	}
+
+	newHeuristicParentNodeUID = nodeData.uid;
 
 	isAddHeuristicSheetOpen.value = false;
 	entityAuxiliaryData.value = null;
@@ -416,7 +451,7 @@ function openEntitySideBar(nodeData) {
 			entityIdentifier.value = nodeData.transactionHash;
 			break;
 		case 'heuristic':
-			// Brackets so local variable stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
+			// Brackets so local variables stay local (more info: https://eslint.org/docs/latest/rules/no-case-declarations)
 			{
 				let displayType = '';
 				for (const descriptor of heuristicDescriptors.value) {

@@ -277,6 +277,12 @@ export default class NodeGraph {
 		}
 	}
 
+	// Returns the node specified node. If the node does not
+	// exist in the graph, undefined is returned.
+	getNode(uid) {
+		return this.nodeMap.get(uid);
+	}
+
 	centerOnNewNodes() {
 		this.centerOnSelection(this.newNodes);
 	}
@@ -767,6 +773,11 @@ export default class NodeGraph {
 
 		this.contextMenuCallback = callback;
 		return true;
+	}
+
+	// Returns the node which triggered the context menu event
+	getContextMenuNode() {
+		return this.activeContextMenuData;
 	}
 
 	// SetDragCallback receives a function as an argument.

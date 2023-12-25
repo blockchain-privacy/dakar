@@ -357,7 +357,7 @@ async function downloadSummary() {
 }
 
 function handleAddHeuristicClick() {
-	emit('addHeuristic', props.identifier, props.type);
+	emit('addHeuristic');
 }
 
 function handleRouteGuardDialogRouting() {
