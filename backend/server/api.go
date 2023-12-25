@@ -496,7 +496,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json
-//	@Param			hash		path		string										true	"0x123"
+//	@Param			hash		path		string										true	"Transaction hash"
 //	@Param			heuristic	body		server.getHeuristicExecutionReply.request	true	"Heuristics to queue"
 //	@Success		200			{object}	server.heuristicExecutionReply
 //	@Failure		400			{object}	server.heuristicExecutionReply
