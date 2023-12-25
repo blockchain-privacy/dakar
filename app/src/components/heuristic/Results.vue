@@ -13,7 +13,7 @@
         :clearable="true"
         :flat="true"
         hide-details
-        style="min-width: 250px"
+        style="min-width: 300px"
         :append-inner-icon="mdiMagnify"
         label="Filter by tag and transaction hash"
       />
@@ -103,10 +103,7 @@
 </template>
 
 <script setup>
-import {
-	mdiChevronLeft, mdiChevronRight, mdiMagnify,
-	mdiArrowUp, mdiArrowDown,
-} from '@mdi/js';
+import {mdiArrowDown, mdiArrowUp, mdiChevronLeft, mdiChevronRight, mdiMagnify} from '@mdi/js';
 import AttributionTag from '../tools/attributions/AttributionTag.vue';
 import ResultItem from '@/components/heuristic/ResultItem.vue';
 import {computed, onMounted, onUpdated, ref} from 'vue';
