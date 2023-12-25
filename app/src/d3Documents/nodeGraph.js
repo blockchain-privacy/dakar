@@ -614,7 +614,7 @@ export default class NodeGraph {
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
 			.force('charge', forceManyBody().strength(-50))
-			.force('collide', forceCollide(this.nodeRadius * 5)).stop();
+			.force('collide', forceCollide(this.nodeRadius * 4)).stop();
 
 		// 100 iterations: 1-0.001^(1/100) = 0.06674569920300896
 		this.simulation.alphaDecay(0.06675);
