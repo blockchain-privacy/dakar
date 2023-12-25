@@ -171,6 +171,7 @@ const cacheStore = useCacheStore();
 const isLoading = ref(true);
 const entityData = ref();
 
+let oldIdentifier = null;
 let routeGuardEnabled = true;
 let routeGuardTo = null;
 let routeGuardId = '';
@@ -205,7 +206,8 @@ const isTwoLineTitle = computed(() => props.type === 'heuristic' || (entityData.
 
 // Hooks
 onUpdated(async () => {
-	if (props.identifier) {
+	if (props.identifier && props.identifier !== oldIdentifier) {
+		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
 		const cacheValue = cacheStore.getValue(props.identifier);
 		if (cacheValue !== undefined) {
