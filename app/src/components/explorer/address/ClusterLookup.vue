@@ -159,7 +159,7 @@ import ClusterDetails from './ClusterDetails.vue';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
 import AttributionTag from '../../tools/attributions/AttributionTag.vue';
 import WikiTooltip from '../../wiki/WikiTooltip.vue';
-import {inject, ref} from 'vue';
+import {inject, onUpdated, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -189,19 +189,27 @@ const deleteClusterDialogModel = ref({
 	uid: '',
 	size: -1,
 });
+let oldAddressHash = null;
+
+// Hooks
+onUpdated(() => {
+	doLookup();
+});
 
 // Functions
-function getQuery() {
-	return {addressHash: props.addressHash.trim()};
-}
-
 async function doLookup() {
+	if (!props.addressHash || props.addressHash === oldAddressHash) {
+		return;
+	}
+
+	oldAddressHash = props.addressHash;
+
 	isLoading.value = true;
 	showEmptyText.value = false;
 	clusters.value = [];
 
 	try {
-		const response = await dakar.cluster.clusterLookupAddressHashGet(getQuery());
+		const response = await dakar.cluster.clusterLookupAddressHashGet({addressHash: props.addressHash.trim()});
 
 		if (response.clusters && response.clusters.length > 0) {
 			const clusterMap = new Map();
@@ -211,7 +219,7 @@ async function doLookup() {
 			response.clusters.forEach(d => {
 				clusterMap.set(d.type, d);
 				if (d.type !== CLUSTER_TYPE_HMI
-            && d.type !== CLUSTER_TYPE_FMI) {
+          && d.type !== CLUSTER_TYPE_FMI) {
 					filteredCluster.push(d);
 				}
 			});
@@ -238,11 +246,15 @@ async function doLookup() {
 }
 
 async function downloadClusterSummary() {
+	if (!props.addressHash) {
+		return;
+	}
+
 	isClusterSummaryLoading.value = true;
 	const fileName = props.addressHash.trim();
 
 	try {
-		const response = await 	dakar.cluster.clusterSummaryAddressHashGet({addressHash: props.addressHash.trim()});
+		const response = await dakar.cluster.clusterSummaryAddressHashGet({addressHash: props.addressHash.trim()});
 
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');
