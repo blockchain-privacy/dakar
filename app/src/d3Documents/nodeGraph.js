@@ -283,6 +283,10 @@ export default class NodeGraph {
 		return this.nodeMap.get(uid);
 	}
 
+	getNodes() {
+		return Array.from(this.nodeMap.values());
+	}
+
 	centerOnNewNodes() {
 		this.centerOnSelection(this.newNodes);
 	}

@@ -414,6 +414,42 @@ function addNewHeuristic(heuristic) {
 		heuristicClusterTypes: newHeuristic.clusterTypes,
 		heuristicParameter: newHeuristic.parameter,
 	}], true);
+	const nodes = nodeGraph.getNodes();
+	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
+	if (!txHash) {
+		setErrorMessage('something went wrong');
+	}
+
+	console.log(txHash);
+
+	// Todo execute new heuristic
+}
+
+// Returns the transaction hash of the given heuristic
+function getHeuristicTransaction(nodes, uid) {
+	const node = nodeGraph.getNode(uid);
+	if (!node) {
+		return '';
+	}
+
+	if (node.type === 'transaction') {
+		// Found it
+		return node.transactionHash;
+	}
+
+	if (node.type === 'heuristic') {
+		// Find parent and do recursive call
+		const parent = nodes.find(v => v.children?.includes(uid));
+
+		// Parent not found -> something went wrong
+		if (!parent) {
+			return '';
+		}
+
+		return getHeuristicTransaction(nodes, parent.uid);
+	}
+
+	return '';
 }
 
 function contextMenuOpenTypeSelection(node) {
@@ -432,7 +468,7 @@ function openTypeSelectionSheet() {
 }
 
 function openEntitySideBar(nodeData) {
-	// Do not show sidebar for hollow heuristic
+	// Do not show sidebar for heuristic placeholder
 	if (nodeData.uid.startsWith(newUidPrefix)) {
 		return;
 	}
