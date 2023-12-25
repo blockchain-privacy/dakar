@@ -1931,20 +1931,18 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		nodeMap[n.UID] = n.ToFrontendGraphNode()
 	}
 
-	newState := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
-	for _, v := range nodeMap {
-		newState = append(newState, v)
-	}
-
-	if err := workspace.InsertNodeConnections(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
+	if err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
+	newState := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	reply.Nodes = make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
+		n.Children = nil
+		newState = append(newState, n)
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
@@ -2026,7 +2024,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		}
 
 		if len(nodeMap) > 1 {
-			if err := workspace.InsertNodeConnections(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
+			if err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
 				return
