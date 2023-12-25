@@ -102,7 +102,7 @@
           />
           <div
             class="shorten"
-            style="max-width: 200px"
+            style="max-width: 200px; text-transform: none !important;"
           >
             Go to {{ routeGuardId }}
           </div>
@@ -116,6 +116,7 @@
           class="mx-auto"
           variant="text"
           size="x-large"
+          style="text-transform: none !important;"
           @click="handleRouteGuardDialogAdd"
         >
           <v-icon
