@@ -116,7 +116,7 @@ export default class NodeGraph {
 	resetClick() {
 		this.nodeGroup.selectAll('.clicked')
 			.classed('clicked', false)
-			.attr('stroke', 'white')
+			.attr('stroke', 'currentColor')
 			.attr('stroke-width', 1);
 	}
 
