@@ -556,6 +556,8 @@ export default class NodeGraph {
 			nodeClusterCount = circleGroup.append('text').attr('class', 'clusterCount');
 		}
 
+		nodeClusterCount.raise();
+
 		nodeClusterCount
 			.attr('text-anchor', 'middle')
 			.style('cursor', 'pointer')
