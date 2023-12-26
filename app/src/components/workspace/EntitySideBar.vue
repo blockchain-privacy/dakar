@@ -137,7 +137,7 @@ import {
 	mdiFileDownloadOutline,
 	mdiOpenInNew,
 	mdiPlus,
-	mdiShapeSquareRoundedPlus,
+	mdiShapeCirclePlus,
 	mdiTransfer,
 } from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
@@ -248,7 +248,7 @@ const sideBarIcon = computed(() => {
 		case 'heuristic':
 			return mdiChartBar;
 		default:
-			return mdiShapeSquareRoundedPlus;
+			return mdiShapeCirclePlus;
 	}
 });
 

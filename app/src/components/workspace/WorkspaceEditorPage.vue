@@ -5,7 +5,7 @@
   >
     <v-expand-transition>
       <div
-        v-if="banner.show && banner.display"
+        v-if="!isHeuristicWorkerReady"
         class="d-flex align-center py-2"
         style="background-color: #FB8C00; z-index: 1004"
       >
@@ -22,13 +22,6 @@
           Server is not ready to accept request for new heuristics. Please try again later. Existing heuristic results
           can be viewed.
         </p>
-        <v-btn
-          variant="text"
-          class="ms-auto"
-          @click="banner.display = false"
-        >
-          Dismiss
-        </v-btn>
       </div>
     </v-expand-transition>
     <div style="height: 100%; width:100%; position: relative">
@@ -54,7 +47,7 @@
             color="primary"
             :single-line="true"
             label="Add transactions or clusters"
-            :disabled="isLoading"
+            :disabled="isModifyingWorkspace"
             :append-inner-icon="mdiMagnify"
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
@@ -63,7 +56,6 @@
             style="min-width: 32px !important;"
             class="ms-3 px-2"
             variant="text"
-            :disabled="banner.show || executionStatus.executing"
             @click="nodeGraph.centerGraph()"
           >
             <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
@@ -93,7 +85,7 @@
           </v-menu>
         </v-card-text>
         <v-progress-linear
-          v-if="isLoading"
+          v-if="isModifyingWorkspace"
           :indeterminate="true"
           :rounded="true"
           location="bottom"
@@ -115,7 +107,7 @@
       <!-- position: relative; is needed so the dialog is contained in its parent -->
       <div style="position: relative; height: 100%; width: 100%; overflow: hidden">
         <v-dialog
-          :model-value="isLoading"
+          :model-value="isLoadingWorkspace"
           :persistent="true"
           max-width="350px"
           :contained="true"
@@ -151,12 +143,35 @@
           @add-heuristic="openTypeSelectionSheet"
           @add-node="handleGraphQuery"
         />
-        <context-menu
+        <v-menu
           v-model="contextMenuModel.display"
-          :position-x="contextMenuModel.x"
-          :position-y="contextMenuModel.y"
-          :menu-items="contextMenuModel.items"
-        />
+          :open-on-hover="false"
+          transition="fade-transition"
+          :target="[contextMenuModel.x,contextMenuModel.y]"
+        >
+          <v-list>
+            <template
+              v-for="(item, index) in contextMenuModel.items"
+              :key="index"
+            >
+              <v-divider v-if="item.isDivider" />
+              <v-list-item
+                v-else
+                :key="index"
+                :disabled="item.disabled && item.disabled()"
+                @click="item.action(item)"
+              >
+                <template
+                  v-if="item.icon"
+                  #prepend
+                >
+                  <v-icon>{{ item.icon }}</v-icon>
+                </template>
+                <v-list-item-title>{{ item.title }}</v-list-item-title>
+              </v-list-item>
+            </template>
+          </v-list>
+        </v-menu>
         <svg id="svg_canvas" />
       </div>
     </div>
@@ -173,7 +188,7 @@ import {
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
 	mdiOpenInNew,
-	mdiShapeSquarePlus,
+	mdiShapeCirclePlus,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
 import {
@@ -182,7 +197,6 @@ import {
 	ROUTE_NAME_WORKSPACE_PAGE,
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
-import ContextMenu from '../common/ContextMenu.vue';
 import {getColorMap, handleError, isDestination} from '@/utilities';
 import {inject, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
 import {useRoute} from 'vue-router';
@@ -214,7 +228,8 @@ let data = null;
 let newHeuristicParentNodeUID = '';
 
 const wasAutoSaved = ref(false);
-const isLoading = ref(false);
+const isLoadingWorkspace = ref(false);
+const isModifyingWorkspace = ref(false);
 const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
@@ -227,12 +242,7 @@ const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
-const banner = ref({
-	// Show is the switch for the warning banner
-	// which gets displayed if the heuristic worker is not ready to accept requests
-	show: false,
-	display: true,
-});
+const isHeuristicWorkerReady = ref(true);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -266,11 +276,11 @@ const contextMenuModel = ref({
 		{isDivider: true},
 		{
 			title: 'Add Heuristic',
-			icon: mdiShapeSquarePlus,
+			icon: mdiShapeCirclePlus,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
-			disabled: () => !banner.value.show && showContextMenuAddHeuristic.value,
+			disabled: () => !isHeuristicWorkerReady.value || !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !banner.value.show},
+		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !isHeuristicWorkerReady.value},
 	],
 });
 
@@ -324,8 +334,27 @@ onUnmounted(() => {
 
 // Functions
 function removeGraphNode() {
+	// Todo check if this is a heuristic, and handle differently
 	nodeGraph.removeContextMenuNode();
 	queueAutoSave();
+}
+
+// Getlock prevents further actions causing an autosave event to occur,
+// and waits until the current autosave event is done.
+async function getLock() {
+	nodeGraph.setEnableInteractions(false);
+	isModifyingWorkspace.value = true;
+
+	// Wait for auto save to finish
+	while (isSaving.value) {
+		// eslint-disable-next-line no-await-in-loop
+		await sleep(200);
+	}
+}
+
+function releaseLock() {
+	isModifyingWorkspace.value = false;
+	nodeGraph.setEnableInteractions(true);
 }
 
 async function handleGraphQuery(query) {
@@ -336,14 +365,7 @@ async function handleGraphQuery(query) {
 
 	graphQuery.value = '';
 
-	nodeGraph.setEnableInteractions(false);
-	isLoading.value = true;
-
-	// Wait for auto save to finish
-	while (isSaving.value) {
-		// eslint-disable-next-line no-await-in-loop
-		await sleep(200);
-	}
+	await getLock();
 
 	try {
 		const response = await dakar.workspace.addWorkspaceNodePost({
@@ -361,8 +383,7 @@ async function handleGraphQuery(query) {
 		setErrorMessage(e);
 	}
 
-	isLoading.value = false;
-	nodeGraph.setEnableInteractions(true);
+	releaseLock();
 }
 
 async function newRouting() {
@@ -378,12 +399,14 @@ function setErrorMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
-function addNewHeuristic(heuristic) {
+async function addNewHeuristic(heuristic) {
+	await getLock();
+
 	const newHeuristic = {
 		uid: `${newUidPrefix}${uidCounter}`,
 		type: heuristic.type,
 		clusterTypes: heuristic.useCustomClusters ? [CLUSTER_TYPE_CUSTOM] : [],
-		excludeAddresses: heuristic.useAddressExclusionList,
+		useAddressExclusionList: heuristic.useAddressExclusionList,
 		excludeSpendingGaps: heuristic.excludeSpendingGaps,
 	};
 
@@ -395,6 +418,7 @@ function addNewHeuristic(heuristic) {
 
 	const parentNode = nodeGraph.getNode(newHeuristicParentNodeUID);
 	if (!parentNode) {
+		releaseLock();
 		return;
 	}
 
@@ -402,6 +426,18 @@ function addNewHeuristic(heuristic) {
 		parentNode.children.push(newHeuristic.uid);
 	} else {
 		parentNode.children = [newHeuristic.uid];
+	}
+
+	const nodes = nodeGraph.getNodes();
+	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
+	if (!txHash) {
+		releaseLock();
+		return;
+	}
+
+	if (nodeGraph.getNode(newHeuristicParentNodeUID).type === 'heuristic') {
+		// Only set parent if the direct parent is a heuristic
+		newHeuristic.parent = [{uid: newHeuristicParentNodeUID}];
 	}
 
 	nodeGraph.addNodes([parentNode, {
@@ -414,15 +450,10 @@ function addNewHeuristic(heuristic) {
 		heuristicClusterTypes: newHeuristic.clusterTypes,
 		heuristicParameter: newHeuristic.parameter,
 	}], true);
-	const nodes = nodeGraph.getNodes();
-	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
-	if (!txHash) {
-		setErrorMessage('something went wrong');
-	}
 
-	console.log(txHash);
+	dakar.heuristic.executeHeuristicsHashPost({hash: txHash, heuristic: {changed: [newHeuristic]}});
 
-	// Todo execute new heuristic
+	releaseLock();
 }
 
 // Returns the transaction hash of the given heuristic
@@ -534,7 +565,7 @@ function showContextMenu(e, nodeData) {
 }
 
 async function refreshData() {
-	isLoading.value = true;
+	isLoadingWorkspace.value = true;
 
 	try {
 		const response = await dakar.workspace.getWorkspaceUidGet({uid: workspaceUID.value});
@@ -554,7 +585,7 @@ async function refreshData() {
 		handleError(context, e);
 	}
 
-	isLoading.value = false;
+	isLoadingWorkspace.value = false;
 
 	if (!data) {
 		return false;
