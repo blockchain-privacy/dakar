@@ -96,7 +96,7 @@
         style=""
         :class="{'text-caption':true, 'auto-save-small-screen': $vuetify.display.smAndDown, 'auto-save-large-screen': $vuetify.display.mdAndUp }"
       >
-        <template v-if="isSaving">
+        <template v-if="isAutosaving">
           Saving ...
         </template>
         <template v-else>
@@ -227,6 +227,7 @@ let data = null;
 // May be a destination transaction or another heuristic
 let newHeuristicParentNodeUID = '';
 
+const isAutosaving = ref(false);
 const wasAutoSaved = ref(false);
 const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
@@ -234,7 +235,6 @@ const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
 const workspaceModificationTime = ref();
-const isSaving = ref(false);
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const entityIdentifier = ref('');
@@ -341,18 +341,18 @@ function removeGraphNode() {
 
 // Getlock prevents further actions causing an autosave event to occur,
 // and waits until the current autosave event is done.
-async function getLock() {
+async function lockAutosave() {
 	nodeGraph.setEnableInteractions(false);
 	isModifyingWorkspace.value = true;
 
 	// Wait for auto save to finish
-	while (isSaving.value) {
+	while (isAutosaving.value) {
 		// eslint-disable-next-line no-await-in-loop
 		await sleep(200);
 	}
 }
 
-function releaseLock() {
+function releaseAutosaveLock() {
 	isModifyingWorkspace.value = false;
 	nodeGraph.setEnableInteractions(true);
 }
@@ -365,7 +365,7 @@ async function handleGraphQuery(query) {
 
 	graphQuery.value = '';
 
-	await getLock();
+	await lockAutosave();
 
 	try {
 		const response = await dakar.workspace.addWorkspaceNodePost({
@@ -383,7 +383,7 @@ async function handleGraphQuery(query) {
 		setErrorMessage(e);
 	}
 
-	releaseLock();
+	releaseAutosaveLock();
 }
 
 async function newRouting() {
@@ -400,7 +400,8 @@ function setErrorMessage(msg) {
 }
 
 async function addNewHeuristic(heuristic) {
-	await getLock();
+	// Todo allow multiple heuristic creations concurrently, need to introduce new backend api which checks if a specicfic heuristic is done executing
+	await lockAutosave();
 
 	const newHeuristic = {
 		uid: `${newUidPrefix}${uidCounter}`,
@@ -418,7 +419,7 @@ async function addNewHeuristic(heuristic) {
 
 	const parentNode = nodeGraph.getNode(newHeuristicParentNodeUID);
 	if (!parentNode) {
-		releaseLock();
+		releaseAutosaveLock();
 		return;
 	}
 
@@ -431,7 +432,7 @@ async function addNewHeuristic(heuristic) {
 	const nodes = nodeGraph.getNodes();
 	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
 	if (!txHash) {
-		releaseLock();
+		releaseAutosaveLock();
 		return;
 	}
 
@@ -453,7 +454,7 @@ async function addNewHeuristic(heuristic) {
 
 	dakar.heuristic.executeHeuristicsHashPost({hash: txHash, heuristic: {changed: [newHeuristic]}});
 
-	releaseLock();
+	releaseAutosaveLock();
 }
 
 // Returns the transaction hash of the given heuristic
@@ -649,7 +650,7 @@ function createTabs() {
 }
 
 function queueAutoSave() {
-	isSaving.value = true;
+	isAutosaving.value = true;
 	wasAutoSaved.value = true;
 	if (autoSaveTimer !== null) {
 		clearTimeout(autoSaveTimer);
@@ -659,7 +660,7 @@ function queueAutoSave() {
 }
 
 async function doAutoSave() {
-	isSaving.value = true;
+	isAutosaving.value = true;
 	autoSaveTimer = null;
 	try {
 		const response = await dakar.workspace.updateWorkspacePost({
@@ -675,7 +676,7 @@ async function doAutoSave() {
 		setErrorMessage(e);
 	}
 
-	isSaving.value = false;
+	isAutosaving.value = false;
 }
 
 async function whenMounted() {
