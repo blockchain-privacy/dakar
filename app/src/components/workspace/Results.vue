@@ -105,7 +105,7 @@
 <script setup>
 import {mdiArrowDown, mdiArrowUp, mdiChevronLeft, mdiChevronRight, mdiMagnify} from '@mdi/js';
 import AttributionTag from '../tools/attributions/AttributionTag.vue';
-import ResultItem from '@/components/heuristic/ResultItem.vue';
+import ResultItem from '@/components/workspace/ResultItem.vue';
 import {computed, onMounted, onUpdated, ref} from 'vue';
 
 const props = defineProps({resultItems: {type: Array, required: true}});

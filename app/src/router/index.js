@@ -1,7 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router';
-import {
-	isAdminIdentity, isPrivilegedIdentity, isSessionExpired,
-} from '@/utilities';
+import {isAdminIdentity, isPrivilegedIdentity, isSessionExpired} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';
 import ConnectionLookupPage from '../components/tools/ConnectionLookupPage.vue';
 import SettingsPage from '../components/user/SettingsPage.vue';
@@ -11,12 +9,10 @@ import LoginPage from '../components/user/LoginPage.vue';
 import TransactionPage from '../components/explorer/transaction/TransactionPage.vue';
 import BlockPage from '../components/explorer/BlockPage.vue';
 import AddressPage from '../components/explorer/address/AddressPage.vue';
-import HeuristicEditorPage from '../components/heuristic/HeuristicEditorPage.vue';
 import WorkspaceEditorPage from '../components/workspace/WorkspaceEditorPage.vue';
 import StatusPage from '../components/StatusPage.vue';
 import ToolsPage from '../components/tools/ToolsPage.vue';
 import ShortestPathPage from '../components/tools/ShortestPathPage.vue';
-import HeuristicsPage from '../components/tools/HeuristicsPage.vue';
 import WorkspacePage from '@/components/tools/WorkspacePage.vue';
 import * as Constants from '../constants';
 import ClusterPage from '../components/tools/clusters/ClusterPage.vue';
@@ -60,7 +56,12 @@ function checkSession(to, next, fn) {
 	if (isSessionExpired(localStore.getSession)) {
 		navStore.setFailedRoute(to);
 		localStore.setSession(null);
-		msgStore.addMessage({type: 'info', text: 'Your session timed out', temporary: true, category: Constants.ROUTE_NAME_LOGIN_PAGE});
+		msgStore.addMessage({
+			type: 'info',
+			text: 'Your session timed out',
+			temporary: true,
+			category: Constants.ROUTE_NAME_LOGIN_PAGE,
+		});
 		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
 		return;
 	}
@@ -108,15 +109,6 @@ export const router = createRouter({
 			name: Constants.ROUTE_NAME_ADDRESS_PAGE,
 			component: AddressPage,
 			meta: {title: 'Address'},
-		},
-		{
-			path: '/heuristic/:id',
-			name: Constants.ROUTE_NAME_HEURISTIC_PAGE,
-			component: HeuristicEditorPage,
-			meta: {title: 'Heuristic'},
-			async beforeEnter(to, from, next) {
-				checkSession(to, next, isPrivileged);
-			},
 		},
 		{
 			path: '/workspace/:id',
@@ -184,11 +176,6 @@ export const router = createRouter({
 					path: 'shortestPath',
 					name: Constants.ROUTE_NAME_SHORTEST_PATH_PAGE,
 					component: ShortestPathPage,
-				},
-				{
-					path: 'heuristics',
-					name: Constants.ROUTE_NAME_USER_HEURISTIC_PAGE,
-					component: HeuristicsPage,
 				},
 				{
 					path: 'workspaces',

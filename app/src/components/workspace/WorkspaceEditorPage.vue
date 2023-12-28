@@ -168,7 +168,7 @@ import {
 	mdiOpenInNew,
 	mdiShapeCirclePlus,
 } from '@mdi/js';
-import HeuristicTypeSelectionSideBar from '../heuristic/HeuristicTypeSelectionSideBar.vue';
+import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
 	APPLICATION_NAME,
 	CLUSTER_TYPE_CUSTOM,

@@ -144,7 +144,7 @@
 </template>
 
 <script setup>
-import Results from '@/components/heuristic/Results.vue';
+import Results from '@/components/workspace/Results.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import {
 	mdiApplicationVariableOutline,

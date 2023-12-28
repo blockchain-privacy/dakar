@@ -13,23 +13,6 @@
       />
       <template v-if="isDestination(tx.privacytype)">
         <v-btn
-          v-if="showHeuristicEditorLink"
-          :id="`btn_open_heuristic_editor_${tx.txhash}`"
-          style="margin-right: 0"
-          :icon="true"
-          :color="null"
-          variant="text"
-          :to="{ name: ROUTE_NAME_HEURISTIC_PAGE,params: { id: tx.txhash } }"
-        >
-          <v-icon>{{ mdiGraph }}</v-icon>
-        </v-btn>
-        <v-tooltip
-          location="bottom"
-          :activator="`#btn_open_heuristic_editor_${tx.txhash}`"
-        >
-          <span>Open the heuristic editor for this transaction</span>
-        </v-tooltip>
-        <v-btn
           v-if="showFingerprintLink"
           :id="`btn_find_similar_transactions_${tx.txhash}`"
           style="margin-right: 0"
@@ -255,13 +238,19 @@
 
 <script setup>
 import {
-	mdiTransfer, mdiGraph, mdiFormatListNumbered, mdiCalendar,
-	mdiCash, mdiFormatHeaderPound, 	mdiChevronDown,
-	mdiChevronUp, mdiPickaxe, mdiFingerprint,
+	mdiCalendar,
+	mdiCash,
+	mdiChevronDown,
+	mdiChevronUp,
+	mdiFingerprint,
+	mdiFormatHeaderPound,
+	mdiFormatListNumbered,
+	mdiPickaxe,
+	mdiTransfer,
 } from '@mdi/js';
 import OutputItem from './OutputItem.vue';
-import {shortenHash, convertAmount, isDestination} from '@/utilities';
-import {ROUTE_NAME_HEURISTIC_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
+import {convertAmount, isDestination, shortenHash} from '@/utilities';
+import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
 import FingerprintTransactionsDialog from './FingerprintTransactionsDialog.vue';
 import {computed, isProxy, ref, toRaw, toRef} from 'vue';
@@ -309,7 +298,7 @@ function getLabel(count, label) {
 	return `${count} ${label}`;
 }
 
-function 	sortByTimestamp(outputs) {
+function sortByTimestamp(outputs) {
 	if (!outputs) {
 		return [];
 	}
