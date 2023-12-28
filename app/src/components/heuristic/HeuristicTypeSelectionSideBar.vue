@@ -154,6 +154,7 @@ function addNewHeuristicAction(item) {
 	}
 
 	emit('add-heuristic', item);
+	inputVal.value = false;
 }
 
 </script>

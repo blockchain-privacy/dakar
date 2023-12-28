@@ -1349,7 +1349,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "0x123",
+                        "description": "Transaction hash",
                         "name": "hash",
                         "in": "path",
                         "required": true
@@ -1457,6 +1457,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/heuristicByWorkID/{workID}": {
+            "get": {
+                "description": "Get a specific heuristic by work ID",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "heuristic"
+                ],
+                "summary": "Get a specific heuristic by work ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "heuristic work ID",
+                        "name": "workID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicByWorkIDReply"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicByWorkIDReply"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicByWorkIDReply"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/server.heuristicByWorkIDReply"
+                        }
+                    }
+                }
+            }
+        },
         "/heuristicDescriptors/": {
             "get": {
                 "description": "Returns available heuristic descriptors, which define the heuristic interface",
@@ -1559,46 +1606,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/heuristicStatus/{hash}": {
-            "get": {
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "heuristic"
-                ],
-                "summary": "Get the status of all heuristics per transaction",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "0x123",
-                        "name": "hash",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/server.heuristicStatusReply"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/server.heuristicStatusReply"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/server.heuristicStatusReply"
-                        }
-                    }
-                }
-            }
-        },
         "/heuristics/{hash}": {
             "get": {
                 "description": "Get all heuristics defined for a transaction and the current heuristic execution status",
@@ -1612,7 +1619,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "0x123",
+                        "description": "Transaction hash",
                         "name": "hash",
                         "in": "path",
                         "required": true
@@ -1622,25 +1629,25 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/server.heuristicReply"
+                            "$ref": "#/definitions/server.heuristicsReply"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/server.heuristicReply"
+                            "$ref": "#/definitions/server.heuristicsReply"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/server.heuristicReply"
+                            "$ref": "#/definitions/server.heuristicsReply"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/server.heuristicReply"
+                            "$ref": "#/definitions/server.heuristicsReply"
                         }
                     }
                 }
@@ -2711,6 +2718,35 @@ const docTemplate = `{
                 }
             }
         },
+        "heuristics.DatabaseHeuristicRequest": {
+            "type": "object",
+            "properties": {
+                "clusterTypes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clustering.ClusterType"
+                    }
+                },
+                "excludeSpendingGaps": {
+                    "type": "boolean"
+                },
+                "parameter": {
+                    "type": "string"
+                },
+                "parentUID": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "uid": {
+                    "type": "string"
+                },
+                "useAddressExclusionList": {
+                    "type": "boolean"
+                }
+            }
+        },
         "heuristics.Descriptor": {
             "type": "object",
             "properties": {
@@ -2892,68 +2928,11 @@ const docTemplate = `{
                 }
             }
         },
-        "heuristics.HeuristicQueueStatus": {
-            "type": "integer",
-            "enum": [
-                0,
-                1,
-                2,
-                3,
-                4,
-                5
-            ],
-            "x-enum-varnames": [
-                "StatusHeuristicAdded",
-                "StatusHeuristicDuplicate",
-                "StatusHeuristicNotInQueue",
-                "StatusHeuristicInQueue",
-                "StatusHeuristicProcessing",
-                "StatusHeuristicWorkerNotReady"
-            ]
-        },
         "heuristics.HollowHeuristic": {
             "type": "object",
             "properties": {
                 "uid": {
                     "type": "string"
-                }
-            }
-        },
-        "server.ClientHeuristicRequest": {
-            "type": "object",
-            "properties": {
-                "children": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HollowHeuristic"
-                    }
-                },
-                "clusterTypes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/clustering.ClusterType"
-                    }
-                },
-                "excludeSpendingGaps": {
-                    "type": "boolean"
-                },
-                "parameter": {
-                    "type": "string"
-                },
-                "parent": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/heuristics.HollowHeuristic"
-                    }
-                },
-                "type": {
-                    "type": "string"
-                },
-                "uid": {
-                    "type": "string"
-                },
-                "useAddressExclusionList": {
-                    "type": "boolean"
                 }
             }
         },
@@ -3160,17 +3139,8 @@ const docTemplate = `{
         "server.getHeuristicExecutionReply.request": {
             "type": "object",
             "properties": {
-                "changed": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/server.ClientHeuristicRequest"
-                    }
-                },
-                "deleted": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
+                "newHeuristic": {
+                    "$ref": "#/definitions/heuristics.DatabaseHeuristicRequest"
                 }
             }
         },
@@ -3250,6 +3220,14 @@ const docTemplate = `{
                 }
             }
         },
+        "server.heuristicByWorkIDReply": {
+            "type": "object",
+            "properties": {
+                "heuristic": {
+                    "$ref": "#/definitions/heuristics.FrontendHeuristic"
+                }
+            }
+        },
         "server.heuristicDescriptorReply": {
             "type": "object",
             "properties": {
@@ -3272,8 +3250,8 @@ const docTemplate = `{
         "server.heuristicExecutionReply": {
             "type": "object",
             "properties": {
-                "status": {
-                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
+                "workID": {
+                    "type": "string"
                 }
             }
         },
@@ -3288,7 +3266,7 @@ const docTemplate = `{
                 }
             }
         },
-        "server.heuristicReply": {
+        "server.heuristicsReply": {
             "type": "object",
             "properties": {
                 "heuristics": {
@@ -3296,17 +3274,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/heuristics.FrontendHeuristic"
                     }
-                },
-                "status": {
-                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
-                }
-            }
-        },
-        "server.heuristicStatusReply": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "$ref": "#/definitions/heuristics.HeuristicQueueStatus"
                 }
             }
         },

@@ -80,8 +80,6 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
 func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
-	uidList := db.CreateCommaArray(uids)
-
 	const query = `query Q($user:string, $uids:string){
 				h as var(func: uid($uids))@filter(uid_in(~User.heuristics,$user) AND eq(dgraph.type,` + DType + `)){
 					hc as Heuristic.clusters{
@@ -92,7 +90,7 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 
 	req := &api.Request{
 		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$uids": uidList},
+		Vars:  map[string]string{"$user": userUID, "$uids": db.CreateCommaArray(uids)},
 		Mutations: []*api.Mutation{{
 			DelNquads: []byte(` uid(hr) * * .
 								uid(hc) * * .
@@ -593,48 +591,6 @@ func GetInputAmounts(c external.Database, tx string) (transaction HeuristicTrans
 	return
 }
 
-// DoesHeuristicUIDExist checks if the given heuristic uids exist. All heuristics must belong to the same transaction
-func DoesHeuristicUIDExist(c external.Database, txhash string, uids []string) (allExist bool, err error) {
-	uidList := db.CreateCommaArray(uids)
-
-	const query = `query Q($hash:string, $uids:string){
-				# get tx uid
-				tx as var(func: eq(txhash, $hash))
-				# filter and count
-				q(func: uid($uids))@filter(uid_in(Heuristic.transaction, uid(tx)) AND eq(dgraph.type,` + DType + `)){
-					count(uid)
-				}
-			  }`
-
-	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*5, query,
-		map[string]string{"$hash": txhash, "$uids": uidList})
-	if err != nil {
-		return
-	}
-
-	var r struct {
-		Count []struct {
-			Number int `json:"count,omitempty"`
-		} `json:"q,omitempty"`
-	}
-
-	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		err = cliutil.NewStackError(err)
-		return
-	}
-
-	if len(r.Count) == 0 || len(r.Count) > 1 {
-		err = cliutil.NewStackErrorStr("error invalid response from database")
-		return
-	} else if r.Count[0].Number != len(uids) {
-		err = cliutil.NewStackErrorStr("error received number of uids does not match")
-		return
-	}
-
-	allExist = true
-	return
-}
-
 const QueryBasicHeuristicAttributes = `
 	uid
 	ts:Heuristic.ts
@@ -652,8 +608,8 @@ const QueryBasicHeuristicAttributes = `
 	clusterCount: count(Heuristic.clusters)
 `
 
-// GetBasicFrontendHeuristic returns all heuristics for a given transaction created by userUid. Basic information only.
-func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID string) (
+// GetBasicFrontendHeuristics returns all heuristics for a given transaction created by userUid. Basic information only.
+func GetBasicFrontendHeuristics(c external.Database, txHash string, userUID string) (
 	heuristics []FrontendHeuristic, err error) {
 	const query = `query Q($hash:string, $user:string){
 				# get tx uid
@@ -684,6 +640,44 @@ func GetBasicFrontendHeuristic(c external.Database, txHash string, userUID strin
 	}
 
 	heuristics = r.Heuristics
+
+	return
+}
+
+// GetBasicFrontendHeuristic returns the requested heuristic, if it belong the the provided user. Basic information only.
+func GetBasicFrontendHeuristic(c external.Database, heuristicUID string,
+	userUID string) (heuristic FrontendHeuristic, err error) {
+	const query = `query Q($uid:string, $user:string){
+				var(func: uid($user)){
+					h as User.heuristics@filter(uid($uid))
+				}
+				
+				q(func: uid(h)){` + QueryBasicHeuristicAttributes + `}
+			  }`
+
+	ctx, cancel := db.GetFrontendContext()
+	defer cancel()
+	resp, err := c.Query(ctx, query, map[string]string{"$uid": heuristicUID, "$user": userUID})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Heuristics []FrontendHeuristic `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.Heuristics) == 0 {
+		return
+	}
+
+	heuristic = r.Heuristics[0]
 
 	return
 }

@@ -154,8 +154,7 @@ type DatabaseHeuristicRequest struct {
 	UID                 string                   `json:"uid,omitempty"`
 	Type                string                   `json:"type,omitempty"`
 	Parameter           string                   `json:"parameter,omitempty"`
-	ParentHeuristic     []Heuristic              `json:"parent,omitempty"`
-	ChildHeuristics     []Heuristic              `json:"children,omitempty"`
+	ParentHeuristicUID  string                   `json:"parentUID,omitempty"`
 	ClusterTypes        []clustering.ClusterType `json:"clusterTypes,omitempty"`
 	ExcludeAddresses    bool                     `json:"useAddressExclusionList"`
 	ExcludeSpendingGaps bool                     `json:"excludeSpendingGaps"`
@@ -172,7 +171,7 @@ type FrontendHeuristic struct {
 	ClusterTypes        []string                  `json:"clusterTypes,omitempty"`
 	ParentHeuristic     []HollowHeuristic         `json:"parent,omitempty"`
 	ChildHeuristics     []HollowHeuristic         `json:"children,omitempty"`
-	ClusterCount        int                       `json:"clusterCount,omitempty"`
+	ClusterCount        *int                      `json:"clusterCount,omitempty"`
 	Results             []FrontendHeuristicResult `json:"results,omitempty"`
 }
 

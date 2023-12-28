@@ -214,6 +214,8 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 }
 
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
+//
+//nolint:gocyclo
 func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
 	addresses []NodeConnections, heuristics []FrontendGraphNode) {
 	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
@@ -243,7 +245,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				ExcludeAddresses:    &tmpHeuristic.ExcludeAddresses,
 				ExcludeSpendingGaps: &tmpHeuristic.ExcludeSpendingGaps,
 				ClusterTypes:        h.ClusterTypes,
-				ClusterCount:        &tmpHeuristic.ClusterCount,
+				ClusterCount:        tmpHeuristic.ClusterCount,
 				Timestamp:           h.Timestamp,
 			})
 		}

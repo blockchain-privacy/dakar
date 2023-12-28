@@ -271,7 +271,7 @@ func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identi
 	return
 }
 
-func getHeuristicReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker) (reply heuristicReply, status int) {
+func getHeuristicsReply(r *http.Request, dgraph external.Database) (reply heuristicsReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -286,7 +286,7 @@ func getHeuristicReply(r *http.Request, dgraph external.Database, worker *heuris
 		return
 	}
 
-	results, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, txHashString, tUser.ID)
+	results, err := dbHeuristic.GetBasicFrontendHeuristics(dgraph, txHashString, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -294,12 +294,12 @@ func getHeuristicReply(r *http.Request, dgraph external.Database, worker *heuris
 	}
 
 	reply.Heuristics = results
-	reply.Status = worker.GetStatus(txHashString, tUser.ID)
 
 	return
 }
 
-func getHeuristicStatusReply(r *http.Request, worker *heuristics.Worker) (reply heuristicStatusReply, status int) {
+func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
+	worker *heuristics.Worker) (reply heuristicByWorkIDReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -307,13 +307,41 @@ func getHeuristicStatusReply(r *http.Request, worker *heuristics.Worker) (reply 
 		return
 	}
 
-	txHashString := path.Base(r.URL.Path)
-	if !isValid(txHashString) {
+	workID := path.Base(r.URL.Path)
+	if workID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	reply.Status = worker.GetStatus(txHashString, tUser.ID)
+	workIDInteger, err := strconv.Atoi(workID)
+	if err != nil {
+		status = http.StatusBadRequest
+		return
+	}
+
+	uid, err := worker.GetFinishedHeuristicUID(workIDInteger, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	// todo also check ongoing work directly, if the heuristic is not in cache AND also not in the map, then return a special status
+	// this should be the case when the server is restarted, with the special status, the frontend can remove the "loading" node
+
+	// heuristic not finished executing
+	if uid == "" {
+		return
+	}
+
+	h, err := dbHeuristic.GetBasicFrontendHeuristic(dgraph, uid, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	reply.Heuristic = &h
 
 	return
 }
@@ -338,7 +366,7 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 		return
 	}
 
-	if len(heuristicRequest.HeuristicUID) == 0 {
+	if heuristicRequest.HeuristicUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
@@ -350,12 +378,12 @@ func getHeuristicDetailsReply(r *http.Request, dgraph external.Database) (reply 
 		return
 	}
 
-	reply.Heuristic = heuristic
+	reply.Heuristic = &heuristic
 
 	return
 }
 
-func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
+func getHeuristicExecutionReply(r *http.Request, worker *heuristics.Worker) (reply heuristicExecutionReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -369,20 +397,8 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	if !worker.IsReady() {
-		reply.Status = heuristics.StatusHeuristicWorkerNotReady
-		return
-	}
-
-	if worker.IsInQueue(txHashString, tUser.ID) {
-		reply.Status = heuristics.StatusHeuristicDuplicate
-		info("heuristic already in queue")
-		return
-	}
-
 	type request struct {
-		Changed []ClientHeuristicRequest `json:"changed,omitempty"`
-		Deleted []string                 `json:"deleted,omitempty"`
+		NewHeuristic dbHeuristic.DatabaseHeuristicRequest `json:"newHeuristic,omitempty"`
 	}
 
 	var heuristicRequest request
@@ -393,28 +409,14 @@ func getHeuristicExecutionReply(r *http.Request, dgraph external.Database, worke
 		return
 	}
 
-	if len(heuristicRequest.Changed) == 0 && len(heuristicRequest.Deleted) == 0 {
-		status = http.StatusBadRequest
-		return
-	}
-
-	changes := make([]dbHeuristic.DatabaseHeuristicRequest, len(heuristicRequest.Changed))
-	for i, c := range heuristicRequest.Changed {
-		changes[i] = c.ToDatabaseRequest()
-	}
-
-	work, err := heuristics.CreateWork(dgraph, txHashString, changes, heuristicRequest.Deleted, tUser.ID)
+	work, err := heuristics.CreateWork(heuristicRequest.NewHeuristic, txHashString, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
 
-	if worker.AddWork(txHashString, tUser.ID, work) {
-		reply.Status = heuristics.StatusHeuristicAdded
-	} else {
-		reply.Status = heuristics.StatusHeuristicDuplicate
-	}
+	reply.WorkID = strconv.Itoa(worker.AddWork(tUser.ID, work))
 
 	return
 }

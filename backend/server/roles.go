@@ -43,9 +43,9 @@ var (
 		getRouteModifyUser():     true,
 		getRouteDeleteIdentity(): true,
 		// heuristics
-		getRouteHeuristicStatus():      true,
 		getRouteHeuristicDetails():     true,
 		getRouteHeuristicsExecution():  true,
+		getRouteHeuristicByWorkID():    true,
 		getRouteHeuristics():           true,
 		getRouteHeuristicsSummary():    true,
 		getRouteHeuristicList():        true,
@@ -76,6 +76,13 @@ var (
 		getRouteDeleteAddressExclusion():     true,
 		getRouteAddAddressExclusions():       true,
 		getRouteDeleteAllAddressExclusions(): true,
+		// workspace
+		getRouteWorkspaceAddNode(): true,
+		getRouteWorkspaces():       true,
+		getRouteAddWorkspace():     true,
+		getRouteGetWorkspace():     true,
+		getRouteUpdateWorkspace():  true,
+		getRouteDeleteWorkspace():  true,
 	}
 )
 

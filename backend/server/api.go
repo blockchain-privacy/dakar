@@ -413,21 +413,41 @@ func (s *Server) handlerAddressExclusionOverview() http.Handler {
 	})
 }
 
-// Heuristic godoc
+// Heuristics godoc
 //
 //	@Summary		Get all heuristics defined for a transaction
 //	@Description	Get all heuristics defined for a transaction and the current heuristic execution status
 //	@Tags			heuristic
 //	@Produce		json
-//	@Param			hash	path		string	true	"0x123"
-//	@Success		200		{object}	server.heuristicReply
-//	@Failure		400		{object}	server.heuristicReply
-//	@Failure		401		{object}	server.heuristicReply
-//	@Failure		500		{object}	server.heuristicReply
+//	@Param			hash	path		string	true	"Transaction hash"
+//	@Success		200		{object}	server.heuristicsReply
+//	@Failure		400		{object}	server.heuristicsReply
+//	@Failure		401		{object}	server.heuristicsReply
+//	@Failure		500		{object}	server.heuristicsReply
 //	@Router			/heuristics/{hash} [get]
 func (s *Server) handlerHeuristics() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicReply(r, s.db, s.worker)
+		reply, status := getHeuristicsReply(r, s.db)
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Heuristic by Work ID godoc
+//
+//	@Summary		Get a specific heuristic by work ID
+//	@Description	Get a specific heuristic by work ID
+//	@Tags			heuristic
+//	@Produce		json
+//	@Param			workID	path		string	true	"heuristic work ID"
+//	@Success		200		{object}	server.heuristicByWorkIDReply
+//	@Failure		400		{object}	server.heuristicByWorkIDReply
+//	@Failure		401		{object}	server.heuristicByWorkIDReply
+//	@Failure		500		{object}	server.heuristicByWorkIDReply
+//	@Router			/heuristicByWorkID/{workID} [get]
+func (s *Server) handlerHeuristicByWorkID() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getHeuristicByWorkIDReply(r, s.db, s.worker)
 
 		sendReply(w, reply, status)
 	})
@@ -446,24 +466,6 @@ func (s *Server) handlerHeuristics() http.Handler {
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHMILookupReply(s.db, path.Base(r.URL.Path))
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Heuristic Status godoc
-//
-//	@Summary	Get the status of all heuristics per transaction
-//	@Tags		heuristic
-//	@Produce	json
-//	@Param		hash	path		string	true	"0x123"
-//	@Success	200		{object}	server.heuristicStatusReply
-//	@Failure	400		{object}	server.heuristicStatusReply
-//	@Failure	401		{object}	server.heuristicStatusReply
-//	@Router		/heuristicStatus/{hash} [get]
-func (s *Server) handlerHeuristicStatus() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicStatusReply(r, s.worker)
 
 		sendReply(w, reply, status)
 	})
@@ -505,7 +507,7 @@ func (s *Server) handlerHeuristicsDetails() http.Handler {
 //	@Router			/executeHeuristics/{hash} [post]
 func (s *Server) handlerHeuristicsExecution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHeuristicExecutionReply(r, s.db, s.worker)
+		reply, status := getHeuristicExecutionReply(r, s.worker)
 
 		sendReply(w, reply, status)
 	})
@@ -927,11 +929,11 @@ func (s *Server) setupHandlers() {
 		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
+	s.handler.Handle(getRouteHeuristicByWorkID(),
+		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(),
+			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristics(),
 		adapt(s.handlerHeuristics(), getRouteHeuristics(),
-			limitMethod("GET"), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicStatus(),
-		adapt(s.handlerHeuristicStatus(), getRouteHeuristicStatus(),
 			limitMethod("GET"), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDetails(),
 		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(),

@@ -8,11 +8,11 @@ const (
 	routeBlock                        string = "blk"
 	routeAddress                      string = "address"
 	routeMeta                         string = "meta"
+	routeHeuristicByWorkID            string = "heuristicByWorkID"
 	routeHeuristics                   string = "heuristics"
 	routeHeuristicsSummary            string = "heuristicsSummary"
 	routeHeuristicsExecution          string = "executeHeuristics"
 	routeHeuristicDetails             string = "heuristicDetails"
-	routeHeuristicStatus              string = "heuristicStatus"
 	routeHeuristicList                string = "heuristicList"
 	routeHeuristicDescriptors         string = "heuristicDescriptors"
 	routeDeleteHeuristic              string = "deleteHeuristic"
@@ -80,6 +80,11 @@ func getRouteMeta() string {
 	return getRoute(routeMeta)
 }
 
+// getRouteHeuristicByWorkID returns a route
+func getRouteHeuristicByWorkID() string {
+	return getRoute(routeHeuristicByWorkID)
+}
+
 // getRouteHeuristics returns a route
 func getRouteHeuristics() string {
 	return getRoute(routeHeuristics)
@@ -98,11 +103,6 @@ func getRouteHeuristicsExecution() string {
 // getRouteHeuristicDetails returns a route
 func getRouteHeuristicDetails() string {
 	return getRoute(routeHeuristicDetails)
-}
-
-// getRouteHeuristicStatus returns a route
-func getRouteHeuristicStatus() string {
-	return getRoute(routeHeuristicStatus)
 }
 
 // getRouteHeuristicList returns a route

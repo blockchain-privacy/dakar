@@ -298,24 +298,14 @@ func isParentHeuristicSet(parentHeuristicUID string) bool {
 
 // heuristicExecutor holds information for executing on heuristic and its children
 type heuristicExecutor struct {
-	rootUID        string
-	thisHeuristic  heuristic
-	nextHeuristics []heuristicExecutor
+	rootUID       string
+	thisHeuristic heuristic
 }
 
-// buildExecutor is a convenience function for building heuristic executors
-func buildExecutor(thisHeuristic heuristic, nextHeuristics ...heuristicExecutor) heuristicExecutor {
-	return heuristicExecutor{
-		thisHeuristic:  thisHeuristic,
-		nextHeuristics: nextHeuristics,
-	}
-}
-
-// run start the execution of the given heuristic executor. The executor runs initial heuristic and
-// triggers the run function of all nextHeuristics. If parentHeuristicUID is not
+// run start the execution of the given heuristic executor. If parentHeuristicUID is not
 // set (e.g. "") than the heuristicExecutor.rootUID is used
 func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHash string,
-	parentHeuristicUID string, userUID string) error {
+	parentHeuristicUID string, userUID string) (string, error) {
 	thisRootUID := hx.rootUID
 	if parentHeuristicUID != "" {
 		thisRootUID = parentHeuristicUID
@@ -323,20 +313,11 @@ func (hx heuristicExecutor) run(dgraph external.Database, g *graph.Wrapper, txHa
 
 	newUID, err := exec(dgraph, g, txHash, thisRootUID, hx.thisHeuristic, userUID)
 	if err != nil {
-		return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
+		return "", fmt.Errorf("heuristic type: %s, parameter: %s, %w",
 			hx.thisHeuristic.getType(), hx.thisHeuristic.getParameterString(), err)
 	}
 
-	for _, executor := range hx.nextHeuristics {
-		if runErr := executor.run(dgraph, g, txHash, newUID, userUID); runErr != nil {
-			return fmt.Errorf("heuristic type: %s, parameter: %s, %w",
-				executor.thisHeuristic.getType(), executor.thisHeuristic.getParameterString(), runErr)
-		}
-	}
-
-	var returnError error
-
-	return returnError
+	return newUID, nil
 }
 
 // exec executes the heuristic on the transaction specified by txHash for the given userUID

@@ -428,7 +428,11 @@ func main() {
 	}
 
 	graphWrapper := graph.NewWrapper(appContext, graphDB)
-	worker := heuristic.NewWorker(graphWrapper)
+	worker, err := heuristic.NewWorker(graphWrapper)
+	if err != nil {
+		warn(err)
+		return
+	}
 	var classifierStarted bool
 
 	if config.Modules.HTTP.Active && config.Modules.Heuristics {

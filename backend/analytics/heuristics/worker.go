@@ -3,9 +3,11 @@ package heuristics
 import (
 	"backend/analytics/graph"
 	"backend/cmd/cliutil"
-	dbtxh "backend/db/analytics/heuristics"
 	"backend/external"
+	"fmt"
+	"github.com/dgraph-io/ristretto"
 	"log/slog"
+	"math/rand"
 
 	"context"
 	"sync"
@@ -13,24 +15,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-)
-
-// HeuristicQueueStatus is an enum which holds the status of the heuristic queue
-type HeuristicQueueStatus int
-
-const (
-	// StatusHeuristicAdded is set if the heuristic has been successfully added
-	StatusHeuristicAdded = HeuristicQueueStatus(iota)
-	// StatusHeuristicDuplicate is set if the heuristic is already in the Work queue
-	StatusHeuristicDuplicate
-	// StatusHeuristicNotInQueue is set if the heuristic is not in the Work queue
-	StatusHeuristicNotInQueue
-	// StatusHeuristicInQueue is set if the heuristic is in the Work queue
-	StatusHeuristicInQueue
-	// StatusHeuristicProcessing is set if the heuristic is currently being processed
-	StatusHeuristicProcessing
-	// StatusHeuristicWorkerNotReady is set if the heuristic worker is not ready yet
-	StatusHeuristicWorkerNotReady
 )
 
 var thisLogger *slog.Logger
@@ -49,16 +33,22 @@ func warn(err error, v ...any) {
 }
 
 type workKey struct {
-	txhash  string
+	// todo rethink limits of queue per user and how to add the temp unique identifier
 	userUID string
+	// workID is used to identify the work package per user
+	workID int
+}
+
+func (w workKey) toString() string {
+	return fmt.Sprintf("%s|%d", w.userUID, w.workID)
 }
 
 // Work holds all Work related data for the Worker
 type Work struct {
-	// executors contains the heuristicExecutor trees
-	executors []heuristicExecutor
-	// removableHeuristics contains the uids of all heuristics are ready for deletion
-	removableHeuristics []string
+	// executor contains the heuristicExecutor trees
+	executor heuristicExecutor
+	// transactionHash is the hash of the transaction to which the executor belongs
+	transactionHash string
 }
 
 // Worker works on the data defined in Work
@@ -83,10 +73,21 @@ type Worker struct {
 
 	// graphWrapper gives access to graph functions
 	graphWrapper *graph.Wrapper
+
+	finishedWork *ristretto.Cache
 }
 
 // NewWorker constructs a new Worker
-func NewWorker(gWrapper *graph.Wrapper) *Worker {
+func NewWorker(gWrapper *graph.Wrapper) (*Worker, error) {
+	cache, err := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 5000, // number of keys to track frequency of
+		MaxCost:     500,  // number of mappings
+		BufferItems: 64,   // number of keys per Get buffer
+	})
+	if err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
 	return &Worker{
 		jobsAdded: promauto.NewCounter(prometheus.CounterOpts{
 			Name: "dakar_heuristic_jobs_added_total",
@@ -112,7 +113,8 @@ func NewWorker(gWrapper *graph.Wrapper) *Worker {
 		mapMutex:     new(sync.RWMutex),
 		activeMutex:  new(sync.RWMutex),
 		graphWrapper: gWrapper,
-	}
+		finishedWork: cache,
+	}, nil
 }
 
 // Start starts the worker. To stop the worker cancel the context or call Stop.
@@ -143,68 +145,44 @@ func (w *Worker) Stop() {
 }
 
 // AddWork adds a Work item. Returns false if the transactionHash and userUID combination already exists in the queue.
-func (w *Worker) AddWork(transactionHash string, userUID string, work Work) bool {
-	key := workKey{
-		txhash:  transactionHash,
-		userUID: userUID,
-	}
-
+func (w *Worker) AddWork(userUID string, work Work) int {
 	w.mapMutex.Lock()
 	defer w.mapMutex.Unlock()
 
-	if _, exists := w.executionMap[key]; exists {
-		return false
+	key := workKey{userUID: userUID}
+	for {
+		// no secure random number is needed here
+		key.workID = rand.Int() //nolint:gosec
+		if _, exists := w.executionMap[key]; !exists {
+			break
+		}
 	}
 
 	w.executionMap[key] = work
-
 	w.jobsAdded.Inc()
 
-	return true
+	return key.workID
 }
 
-// IsInQueue returns true if the given transaction hash and user id is in the Work queue
-func (w *Worker) IsInQueue(tx string, userUID string) bool {
-	key := workKey{
-		txhash:  tx,
-		userUID: userUID,
+// GetFinishedHeuristicUID returns the heuristic UID if the Work package specified by its id and user is finished executing
+// Returns an empty string, if the work package is not found in the list of finished Work packages.
+func (w *Worker) GetFinishedHeuristicUID(workID int, userUID string) (string, error) {
+	heuristicUIDInterface, ok := w.finishedWork.Get(workKey{workID: workID, userUID: userUID}.toString())
+	if !ok {
+		return "", nil
 	}
 
-	w.mapMutex.RLock()
-	defer w.mapMutex.RUnlock()
-	_, ok := w.executionMap[key]
-	return ok
+	heuristicUID, ok := heuristicUIDInterface.(string)
+	if !ok {
+		return "", cliutil.NewStackErrorStr("not able to convert cache item to string")
+	}
+
+	return heuristicUID, nil
 }
 
 // IsReady returns true the worker is ready to Work
 func (w *Worker) IsReady() bool {
 	return w.graphWrapper.IsTransactionGraphLoaded()
-}
-
-// GetStatus returns the current execution status of the given transaction hash and user id
-func (w *Worker) GetStatus(tx string, userUID string) HeuristicQueueStatus {
-	if !w.IsReady() {
-		return StatusHeuristicWorkerNotReady
-	}
-
-	key := workKey{
-		txhash:  tx,
-		userUID: userUID,
-	}
-
-	w.mapMutex.RLock()
-	defer w.mapMutex.RUnlock()
-	_, ok := w.executionMap[key]
-
-	if !ok {
-		return StatusHeuristicNotInQueue
-	}
-
-	if w.currentWorkItem == key {
-		return StatusHeuristicProcessing
-	}
-
-	return StatusHeuristicInQueue
 }
 
 func stoppingWork() {
@@ -231,32 +209,25 @@ mainLoop:
 
 			// get Work for this cycle
 			w.mapMutex.RLock()
+			if len(w.executionMap) == 0 {
+				w.mapMutex.RUnlock()
+				continue
+			}
 			w.currentWorkItem, work = cliutil.GetOneItem(w.executionMap)
 			w.mapMutex.RUnlock()
 
-			// do we have something to do?
-			if len(work.executors) > 0 || len(work.removableHeuristics) > 0 {
-				info("processing Work package")
-
-				// delete changed or removable heuristics
-				if err := dbtxh.DeleteUserHeuristics(dgraph, work.removableHeuristics, w.currentWorkItem.userUID); err != nil {
-					warn(err)
-					// no return/break because we want to keep working even if we are failing
-					// no continue because we still need to do the deletion of this (faulty) job and reset the memory
-				} else {
-					// if no error occurred -> execute the new heuristics
-					for _, e := range work.executors {
-						if err = e.run(dgraph, w.graphWrapper, w.currentWorkItem.txhash, "",
-							w.currentWorkItem.userUID); err != nil {
-							warn(err)
-						}
-					}
-				}
-				w.jobsCompleted.Inc()
-				info("processing Work done")
+			// if no error occurred -> execute the new heuristics
+			heuristicUID, err := work.executor.run(dgraph, w.graphWrapper, work.transactionHash, "",
+				w.currentWorkItem.userUID)
+			if err != nil {
+				warn(err)
 			}
 
+			w.jobsCompleted.Inc()
+
 			w.mapMutex.Lock()
+			w.finishedWork.SetWithTTL(w.currentWorkItem.toString(), heuristicUID, 1, 12*time.Hour)
+
 			delete(w.executionMap, w.currentWorkItem)
 			w.currentWorkItem = workKey{}
 			w.mapMutex.Unlock()

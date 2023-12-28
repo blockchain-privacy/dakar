@@ -62,7 +62,7 @@ func NewServer(db external.Database, adminAuth *ory.APIClient, auth *ory.APIClie
 		BufferItems: 64,      // number of keys per Get buffer.
 	})
 	if err != nil {
-		return nil, err
+		return nil, cliutil.NewStackError(err)
 	}
 
 	return &Server{

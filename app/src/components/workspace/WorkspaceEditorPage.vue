@@ -3,27 +3,6 @@
     class="flex-column d-flex"
     style="height: 100%;position:relative"
   >
-    <v-expand-transition>
-      <div
-        v-if="!isHeuristicWorkerReady"
-        class="d-flex align-center py-2"
-        style="background-color: #FB8C00; z-index: 1004"
-      >
-        <v-icon
-          :icon="mdiAlertOctagon"
-          size="large"
-          class="mx-2"
-          color="white"
-        />
-        <p
-          class="text-h6"
-          style="color:white"
-        >
-          Server is not ready to accept request for new heuristics. Please try again later. Existing heuristic results
-          can be viewed.
-        </p>
-      </div>
-    </v-expand-transition>
     <div style="height: 100%; width:100%; position: relative">
       <v-card
         v-if="workspaceName"
@@ -180,7 +159,6 @@
 
 <script setup>
 import {
-	mdiAlertOctagon,
 	mdiChartBar,
 	mdiCheckCircle,
 	mdiDelete,
@@ -226,6 +204,8 @@ let data = null;
 // and to which will be the parent of the new heuristic.
 // May be a destination transaction or another heuristic
 let newHeuristicParentNodeUID = '';
+// Holds the references of all timers
+const heuristicTimers = [];
 
 const isAutosaving = ref(false);
 const wasAutoSaved = ref(false);
@@ -242,7 +222,6 @@ const entityAuxiliaryData = ref(null);
 const entityType = ref('');
 const heuristicDescriptors = ref([]);
 const heuristicTabItems = ref([]);
-const isHeuristicWorkerReady = ref(true);
 const executionStatus = ref({
 	dormantTimer: {
 		timer: null,
@@ -278,9 +257,9 @@ const contextMenuModel = ref({
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
-			disabled: () => !isHeuristicWorkerReady.value || !showContextMenuAddHeuristic.value,
+			disabled: () => !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode, disabled: () => !isHeuristicWorkerReady.value},
+		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode},
 	],
 });
 
@@ -328,6 +307,9 @@ onUnmounted(() => {
 		autoSaveTimer = null;
 		doAutoSave();
 	}
+
+	// Stop all heuristic timers
+	heuristicTimers.forEach(d => clearTimeout(d));
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
 });
@@ -400,7 +382,6 @@ function setErrorMessage(msg) {
 }
 
 async function addNewHeuristic(heuristic) {
-	// Todo allow multiple heuristic creations concurrently, need to introduce new backend api which checks if a specicfic heuristic is done executing
 	await lockAutosave();
 
 	const newHeuristic = {
@@ -423,12 +404,6 @@ async function addNewHeuristic(heuristic) {
 		return;
 	}
 
-	if (parentNode.children) {
-		parentNode.children.push(newHeuristic.uid);
-	} else {
-		parentNode.children = [newHeuristic.uid];
-	}
-
 	const nodes = nodeGraph.getNodes();
 	const txHash = getHeuristicTransaction(nodes, newHeuristicParentNodeUID);
 	if (!txHash) {
@@ -438,23 +413,84 @@ async function addNewHeuristic(heuristic) {
 
 	if (nodeGraph.getNode(newHeuristicParentNodeUID).type === 'heuristic') {
 		// Only set parent if the direct parent is a heuristic
-		newHeuristic.parent = [{uid: newHeuristicParentNodeUID}];
+		newHeuristic.parentUID = newHeuristicParentNodeUID;
 	}
 
-	nodeGraph.addNodes([parentNode, {
-		uid: newHeuristic.uid,
-		type: 'heuristic',
-		status: 'loading',
-		heuristicType: newHeuristic.type,
-		heuristicExcludeAddresses: newHeuristic.excludeAddresses,
-		heuristicExcludeSpendingGaps: newHeuristic.excludeSpendingGaps,
-		heuristicClusterTypes: newHeuristic.clusterTypes,
-		heuristicParameter: newHeuristic.parameter,
-	}], true);
+	try {
+		const response = await dakar.heuristic.executeHeuristicsHashPost({hash: txHash, heuristic: {newHeuristic}});
+		heuristicTimers.push(setTimeout(checkWork, 2000, response.workID, newHeuristicParentNodeUID));
 
-	dakar.heuristic.executeHeuristicsHashPost({hash: txHash, heuristic: {changed: [newHeuristic]}});
+		if (parentNode.children) {
+			parentNode.children.push(response.workID);
+		} else {
+			parentNode.children = [response.workID];
+		}
+
+		nodeGraph.addNodes([parentNode, {
+			uid: response.workID,
+			type: 'heuristic',
+			status: 'loading',
+			heuristicType: newHeuristic.type,
+			heuristicExcludeAddresses: newHeuristic.excludeAddresses,
+			heuristicExcludeSpendingGaps: newHeuristic.excludeSpendingGaps,
+			heuristicClusterTypes: newHeuristic.clusterTypes,
+			heuristicParameter: newHeuristic.parameter,
+		}]);
+	} catch (e) {
+		setErrorMessage(e);
+	}
 
 	releaseAutosaveLock();
+}
+
+// Periodically check
+async function checkWork(workID, parentUID) {
+	try {
+		const response = await dakar.heuristic.heuristicByWorkIDWorkIDGet({workID});
+		if (response.heuristic) {
+			replaceTemporaryHeuristic(workID, parentUID, response.heuristic);
+		} else {
+			heuristicTimers.push(setTimeout(checkWork, 2000, workID, parentUID));
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
+}
+
+function replaceTemporaryHeuristic(workID, parentUID, heuristic) {
+	// If temporary node exists in graph, collect coordinates
+	const n = nodeGraph.getNode(workID);
+	if (n) {
+		heuristic.x = n.x;
+		heuristic.y = n.y;
+	}
+
+	// If parent exists, set connection to new heuristic
+	const parent = nodeGraph.getNode(parentUID);
+	if (parent) {
+		const childPos = parent.children.indexOf(workID);
+		if (childPos === -1) {
+			// Temporary node not found in children -> create new connection
+			parent.children.push(heuristic.uid);
+		} else {
+			// Temporary node found in children -> replace connection
+			parent.children[childPos] = heuristic.uid;
+		}
+	}
+
+	nodeGraph.removeNode(workID, false);
+	nodeGraph.addNodes([parent, {
+		uid: heuristic.uid,
+		type: 'heuristic',
+		heuristicType: heuristic.type,
+		heuristicExcludeAddresses: heuristic.excludeAddresses,
+		heuristicExcludeSpendingGaps: heuristic.excludeSpendingGaps,
+		heuristicClusterTypes: heuristic.clusterTypes,
+		heuristicParameter: heuristic.parameter,
+		heuristicClusterCount: heuristic.clusterCount,
+		x: heuristic.x,
+		y: heuristic.y,
+	}]);
 }
 
 // Returns the transaction hash of the given heuristic
