@@ -541,8 +541,9 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 	}
 
 	type request struct {
-		DeleteAll       bool   `json:"delete_all"`
-		TransactionHash string `json:"tx_hash,omitempty"`
+		DeleteAll       *bool    `json:"deleteAll,omitempty"`
+		TransactionHash string   `json:"transactionHash,omitempty"`
+		UIDs            []string `json:"uids,omitempty"`
 	}
 
 	var req request
@@ -552,13 +553,12 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 		return
 	}
 
-	if (req.DeleteAll && len(req.TransactionHash) > 0) ||
-		(!req.DeleteAll && len(req.TransactionHash) == 0) {
+	if req.DeleteAll == nil && req.TransactionHash == "" && len(req.UIDs) == 0 {
 		status = http.StatusBadRequest
 		return
 	}
 
-	if req.DeleteAll {
+	if req.DeleteAll != nil && *req.DeleteAll {
 		if err := dbHeuristic.DeleteAllUserHeuristics(dgraph, tUser.ID); err != nil {
 			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
 				reply.Msg = "No data was deleted. The user might not have any heuristics."
@@ -574,16 +574,32 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 		return
 	}
 
-	if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, tUser.ID); err != nil {
-		if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
-			reply.Msg = "No data was deleted. The transaction might not have any heuristics."
-			status = http.StatusNotFound
-		} else {
-			reply.Msg = "could not delete data"
-			status = http.StatusInternalServerError
-			warn(err)
+	if req.TransactionHash != "" {
+		if err := dbHeuristic.DeleteAllUserTxHeuristics(dgraph, req.TransactionHash, tUser.ID); err != nil {
+			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+				reply.Msg = "No data was deleted. The transaction might not have any heuristics."
+				status = http.StatusNotFound
+			} else {
+				reply.Msg = "could not delete data"
+				status = http.StatusInternalServerError
+				warn(err)
+			}
+			return
 		}
-		return
+	}
+
+	if len(req.UIDs) > 0 {
+		if err := dbHeuristic.DeleteUserHeuristics(dgraph, req.UIDs, tUser.ID); err != nil {
+			if errors.Is(err, dbHeuristic.ErrNoMutationHappened) {
+				reply.Msg = "No data was deleted. The uids might be invalid."
+				status = http.StatusNotFound
+			} else {
+				reply.Msg = "could not delete data"
+				status = http.StatusInternalServerError
+				warn(err)
+			}
+			return
+		}
 	}
 
 	return

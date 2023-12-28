@@ -314,10 +314,69 @@ onUnmounted(() => {
 	document.removeEventListener('visibilitychange', onDocumentClose);
 });
 
+function getDecendants(uid) {
+	const descendants = [];
+	const node = nodeGraph.getNode(uid);
+	if (!node || node.type !== 'heuristic') {
+		return descendants;
+	}
+
+	descendants.push(node.uid);
+
+	if (!node.children) {
+		return descendants;
+	}
+
+	node.children.forEach(child => {
+		descendants.push(...getDecendants(child));
+	});
+
+	return descendants;
+}
+
+// Deletes the given heuristic and all its connected children. The uids of all delete nodes are returned.
+async function deleteHeuristicSubGraph(uid) {
+	const uids = getDecendants(uid);
+	if (!uids) {
+		// Something went wrong, not deleting anything
+		return [];
+	}
+
+	try {
+		await dakar.heuristic.deleteHeuristicPost({heuristic: {uids}});
+	} catch (e) {
+		setErrorMessage(e);
+		return [];
+	}
+
+	return uids;
+}
+
 // Functions
-function removeGraphNode() {
-	// Todo check if this is a heuristic, and handle differently
-	nodeGraph.removeContextMenuNode();
+async function removeGraphNode() {
+	const node = nodeGraph.getContextMenuNode();
+	if (!node) {
+		return;
+	}
+
+	if (node.type === 'heuristic') {
+		const deletedUIDs = await deleteHeuristicSubGraph(node.uid);
+		if (deletedUIDs) {
+			nodeGraph.removeNodes(deletedUIDs);
+		}
+	} else if (isDestination(node.privacyType)) {
+		// Remove desitnation node and all connected heuristics from graph
+		const uids = [node.uid];
+
+		if (node.children) {
+			node.children.forEach(child => uids.push(...getDecendants(child)));
+		}
+
+		nodeGraph.removeNodes(uids);
+	} else {
+		nodeGraph.removeContextMenuNode();
+	}
+
 	queueAutoSave();
 }
 

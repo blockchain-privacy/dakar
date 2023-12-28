@@ -1090,7 +1090,7 @@ const docTemplate = `{
         },
         "/deleteHeuristic/": {
             "post": {
-                "description": "Deletes either all heuristics of the current user or all heuristics of a transaction of the current user",
+                "description": "Deletes either all heuristics of the current user, all heuristics of a transaction of the current user, or heuristics specified by uid",
                 "consumes": [
                     "application/json"
                 ],
@@ -1100,7 +1100,7 @@ const docTemplate = `{
                 "tags": [
                     "heuristic"
                 ],
-                "summary": "Deletes either all heuristics or all heuristics of a transaction",
+                "summary": "Delete heuristics either by transaction, uid or user",
                 "parameters": [
                     {
                         "description": "Heuristic deletion request. Set delete_all to true, only if ALL heuristics should be deleted.",
@@ -3109,11 +3109,17 @@ const docTemplate = `{
         "server.getDeleteHeuristicReply.request": {
             "type": "object",
             "properties": {
-                "delete_all": {
+                "deleteAll": {
                     "type": "boolean"
                 },
-                "tx_hash": {
+                "transactionHash": {
                     "type": "string"
+                },
+                "uids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.0.27",
+    "@blockchain/dakar": "^1.0.30",
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.4.47",
     "@neondark/wikiapi": "^1.2.24",
@@ -20,7 +20,6 @@
     "d3-ease": "^3.0.1",
     "d3-force": "^3.0.0",
     "d3-format": "^3.1.0",
-    "d3-hierarchy": "^3.1.2",
     "d3-scale": "^4.0.2",
     "d3-selection": "^3.0.0",
     "d3-time": "^3.1.0",

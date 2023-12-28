@@ -548,8 +548,8 @@ func (s *Server) handlerHeuristicDescriptors() http.Handler {
 
 // Delete Heuristic godoc
 //
-//	@Summary		Deletes either all heuristics or all heuristics of a transaction
-//	@Description	Deletes either all heuristics of the current user or all heuristics of a transaction of the current user
+//	@Summary		Delete heuristics either by transaction, uid or user
+//	@Description	Deletes either all heuristics of the current user, all heuristics of a transaction of the current user, or heuristics specified by uid
 //	@Tags			heuristic
 //	@Produce		json
 //	@Accept			json

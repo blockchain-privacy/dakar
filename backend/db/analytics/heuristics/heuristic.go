@@ -79,7 +79,7 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string) (insertUI
 }
 
 // DeleteUserHeuristics deletes all given heuristic uids of a user
-func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (err error) {
+func DeleteUserHeuristics(c external.Database, uids []string, userUID string) error {
 	const query = `query Q($user:string, $uids:string){
 				h as var(func: uid($uids))@filter(uid_in(~User.heuristics,$user) AND eq(dgraph.type,` + DType + `)){
 					hc as Heuristic.clusters{
@@ -100,7 +100,16 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string) (e
 		CommitNow: true,
 	}
 
-	return db.TxWithRetry(c, time.Minute*5, req)
+	resp, err := db.TxWithRetryAndResponse(c, time.Minute*5, req)
+	if err != nil {
+		return err
+	}
+
+	if v, ok := resp.Metrics.NumUids["mutation_cost"]; !ok || v == 0 {
+		return cliutil.NewStackError(ErrNoMutationHappened)
+	}
+
+	return nil
 }
 
 // DeleteAllUserHeuristics deletes all heuristics of a user
