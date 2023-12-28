@@ -29,7 +29,7 @@
     "pinia": "^2.1.7",
     "vue": "^3.3.13",
     "vue-router": "^4.2.5",
-    "vuetify": "^3.4.8"
+    "vuetify": "^3.4.9"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
