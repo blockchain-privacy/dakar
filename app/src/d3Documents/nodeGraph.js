@@ -114,10 +114,7 @@ export default class NodeGraph {
 	}
 
 	resetClick() {
-		this.nodeGroup.selectAll('.clicked')
-			.classed('clicked', false)
-			.attr('stroke', 'currentColor')
-			.attr('stroke-width', 1);
+		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
 	}
 
 	contextMenuNodeClick() {
@@ -135,10 +132,7 @@ export default class NodeGraph {
 			return;
 		}
 
-		d3Select(d3This).select('.node')
-			.classed('clicked', true)
-			.attr('stroke', '#B71C1C')
-			.attr('stroke-width', 3);
+		d3Select(d3This).select('.node').classed('clicked', true);
 
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
@@ -181,6 +175,15 @@ export default class NodeGraph {
         <marker id="arrowhead" viewBox="0 -5 10 10" refX="9" refY="0" markerWidth="10" markerHeight="10" orient="auto">
             <path d="M0,-5L10,0L0,5" fill="#999"/>
         </marker>`;
+
+		const style = this.rootSvg.append('svg:style');
+		style.node().innerHTML
+      = `
+        .clicked {
+            stroke: #B71C1C;
+            stroke-width: 3;
+         }
+    `;
 	}
 
 	// Creates links based on the given nodes
@@ -434,6 +437,8 @@ export default class NodeGraph {
 				if (!self.enableInteractions) {
 					return;
 				}
+
+				d3Select(this).select('.node').classed('clicked', true);
 
 				if (self.contextMenuCallback !== null) {
 					self.contextMenuCallback(e, d);

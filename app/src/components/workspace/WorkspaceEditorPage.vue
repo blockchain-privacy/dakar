@@ -272,14 +272,14 @@ watch(route, () => {
 
 watch(isAddHeuristicSheetOpen, newVal => {
 	// If sheet is being closed reset click state of graph
-	if (!newVal.value) {
+	if (!newVal && !isEntitySideBarOpen.value) {
 		nodeGraph.resetClick();
 	}
 });
 
 watch(isEntitySideBarOpen, newVal => {
 	// If sheet is being closed reset click state of graph
-	if (!newVal) {
+	if (!newVal && !isAddHeuristicSheetOpen.value) {
 		nodeGraph.resetClick();
 	}
 });
@@ -590,8 +590,8 @@ function contextMenuOpenTypeSelection(node) {
 }
 
 function openTypeSelectionSheet() {
-	isEntitySideBarOpen.value = false;
 	isAddHeuristicSheetOpen.value = true;
+	isEntitySideBarOpen.value = false;
 }
 
 function openEntitySideBar(nodeData) {
@@ -601,8 +601,6 @@ function openEntitySideBar(nodeData) {
 	}
 
 	newHeuristicParentNodeUID = nodeData.uid;
-
-	isAddHeuristicSheetOpen.value = false;
 	entityAuxiliaryData.value = null;
 	entityType.value = nodeData.type;
 
@@ -633,6 +631,7 @@ function openEntitySideBar(nodeData) {
 		default:
 	}
 
+	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = true;
 }
 
