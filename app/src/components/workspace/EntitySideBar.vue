@@ -1,6 +1,6 @@
 <template>
   <side-bar
-    v-model="inputVal"
+    v-model="model"
     :title="title"
     :icon="sideBarIcon"
     max-width="700px"
@@ -156,7 +156,6 @@ import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants'
 import NamedDivider from '@/components/common/NamedDivider.vue';
 
 const props = defineProps({
-	modelValue: {type: Boolean, required: true},
 	identifier: {type: String, required: true},
 	type: {type: String, required: true},
 	auxiliaryData: {type: Object, required: false, default: null},
@@ -177,18 +176,10 @@ let routeGuardTo = null;
 let routeGuardId = '';
 const routeGuardDialogModel = ref(false);
 
-const emit = defineEmits(['update:modelValue', 'addHeuristic', 'addNode']);
+const emit = defineEmits(['addHeuristic', 'addNode']);
+const model = defineModel({type: Boolean});
 
 // Computed
-const inputVal = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(val) {
-		emit('update:modelValue', val);
-	},
-});
-
 const title = computed(() => {
 	switch (props.type) {
 		case 'transaction':
@@ -227,7 +218,7 @@ onUpdated(async () => {
 
 onBeforeRouteLeave(to => {
 	// Don't activate route guard if sidbar is closed
-	if (!routeGuardEnabled || !inputVal.value) {
+	if (!routeGuardEnabled || !model.value) {
 		return true;
 	}
 

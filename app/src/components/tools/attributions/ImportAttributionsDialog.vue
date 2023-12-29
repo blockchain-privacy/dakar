@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="1000px"
   >
     <v-card class="mx-auto pb-2">
@@ -73,7 +73,7 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
               variant="text"
               :disabled="isLoading"
               class="mr-2"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -92,10 +92,9 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
 </template>
 
 <script setup>
-import {isAdminIdentity} from '@/utilities';
+import {fileRule, isAdminIdentity} from '@/utilities';
 import {computed, inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
-import {fileRule} from '@/utilities';
 import {useLocalStore} from '@/pinia/local';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -104,8 +103,8 @@ const route = useRoute();
 const localStore = useLocalStore();
 const msgStore = useMsgStore();
 
-const props = defineProps({modelValue: {type: Boolean, required: true}});
-const emit = defineEmits(['added', 'update:modelValue']);
+const model = defineModel({type: Boolean});
+const emit = defineEmits(['added']);
 
 // Template ref
 const csvForm = ref(null);
@@ -124,15 +123,6 @@ const separatorItems = [
 ];
 
 // Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
-
 const isAdmin = computed(() => isAdminIdentity(localStore.getSession));
 
 // Functions
@@ -196,7 +186,7 @@ async function handleCSVUpload() {
 
 	isLoading.value = false;
 	csv.value.file = null;
-	show.value = false;
+	model.value = false;
 }
 </script>
 

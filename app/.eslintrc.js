@@ -15,4 +15,8 @@ module.exports = {
 		'no-mixed-operators': 'off',
 		'vue/component-name-in-template-casing': ['error', 'kebab-case'],
 	},
+	// Todo review if this is needed in the future
+	globals: {
+		defineModel: 'readonly',
+	},
 };

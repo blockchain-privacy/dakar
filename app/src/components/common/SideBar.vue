@@ -1,7 +1,7 @@
 <template>
   <v-slide-x-reverse-transition>
     <v-sheet
-      v-show="inputVal"
+      v-show="model"
       class="sidebar"
       elevation="4"
       :style="`max-width:min(${maxWidth}, 100vw); min-width:${minWidth}`"
@@ -20,7 +20,7 @@
             :icon="true"
             variant="text"
             color="grey"
-            @click="inputVal=false"
+            @click="model = false"
           >
             <v-icon :icon="mdiCloseCircle" />
           </v-btn>
@@ -41,10 +41,8 @@
 
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
-import {computed} from 'vue';
 
-const props = defineProps({
-	modelValue: {type: Boolean, required: true},
+defineProps({
 	title: {type: String, required: true},
 	icon: {type: String, required: true},
 	maxWidth: {type: String, required: false, default: '600px'},
@@ -52,16 +50,7 @@ const props = defineProps({
 	titleOneLine: {type: Boolean, required: false, default: true},
 });
 
-const emit = defineEmits(['update:modelValue']);
-
-const inputVal = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(val) {
-		emit('update:modelValue', val);
-	},
-});
+const model = defineModel({type: Boolean});
 
 </script>
 

@@ -1,6 +1,6 @@
 <template>
   <v-menu
-    v-model="inputVal"
+    v-model="model"
     :open-on-hover="false"
     transition="fade-transition"
     :target="[positionX,positionY]"
@@ -31,26 +31,14 @@
 </template>
 
 <script setup>
-import {computed} from 'vue';
 
-const props = defineProps({
-	modelValue: Boolean,
+defineProps({
 	menuItems: {type: Array, default: () => []},
 	positionX: {type: Number, default: 0},
 	positionY: {type: Number, default: 0},
 });
 
-const emit = defineEmits(['update:modelValue']);
-
-// Computed
-const inputVal = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(val) {
-		emit('update:modelValue', val);
-	},
-});
+const model = defineModel({type: Boolean});
 
 // Functions
 function emitClickEvent(item) {
@@ -58,7 +46,7 @@ function emitClickEvent(item) {
 		item.action();
 	}
 
-	inputVal.value = false;
+	model.value = false;
 }
 
 </script>

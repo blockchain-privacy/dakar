@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="700px"
   >
     <v-card class="pb-2">
@@ -109,7 +109,7 @@
             <v-btn
               variant="text"
               class="mr-2"
-              @click="show = false"
+              @click="model = false"
             >
               Back
             </v-btn>
@@ -124,16 +124,12 @@
 import {mdiTestTube} from '@mdi/js';
 import {ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {computed, inject, ref, watch} from 'vue';
+import {inject, ref, watch} from 'vue';
 
 const dakar = inject('dakar');
 
-const props = defineProps({
-	modelValue: {type: Boolean, required: true},
-	transactionHash: {type: String, required: true},
-});
-
-const emit = defineEmits(['update:modelValue']);
+const props = defineProps({transactionHash: {type: String, required: true}});
+const model = defineModel({type: Boolean});
 
 const isLoading = ref(false);
 const fingerprintScores = ref([]);
@@ -149,16 +145,6 @@ watch(() => props.modelValue, newVal => {
 	}
 
 	searchForSimilarTransactions();
-});
-
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
 });
 
 // Functions

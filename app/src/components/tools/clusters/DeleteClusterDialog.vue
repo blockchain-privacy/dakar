@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="400px"
   >
     <v-card class="mx-auto pb-2">
@@ -17,7 +17,7 @@
             <v-btn
               variant="text"
               :disabled="isLoading"
-              @click="show = false"
+              @click="model = false"
             >
               Cancel
             </v-btn>
@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import {computed, inject, ref} from 'vue';
+import {inject, ref} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -45,24 +45,14 @@ const dakar = inject('dakar');
 const route = useRoute();
 const msgStore = useMsgStore();
 
+const model = defineModel({type: Boolean});
 const props = defineProps({
-	modelValue: {type: Boolean, required: true},
 	clusterUid: {type: String, required: true},
 	numAddresses: {type: Number, required: true},
 });
-const emit = defineEmits(['update:modelValue', 'deleted']);
+const emit = defineEmits(['deleted']);
 
 const isLoading = ref(false);
-
-// Computed
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
 
 // Functions
 function setPersistentErrorMessage(msg) {
@@ -76,7 +66,7 @@ function setInfoMessage(msg) {
 async function deleteCluster() {
 	if (props.clusterUid === '' || props.numAddresses <= 0) {
 		setPersistentErrorMessage('could not delete cluster');
-		show.value = false;
+		model.value = false;
 		return;
 	}
 
@@ -94,7 +84,7 @@ async function deleteCluster() {
 	}
 
 	isLoading.value = false;
-	show.value = false;
+	model.value = false;
 }
 
 </script>

@@ -1,10 +1,10 @@
 <template>
   <v-dialog
-    v-model="show"
+    v-model="model"
     max-width="500px"
     transition="fade-transition"
   >
-    <v-card>
+    <v-card class="mx-auto">
       <v-card-title>
         <span class="text-h5">{{ formTitle }}</span>
       </v-card-title>
@@ -44,7 +44,7 @@
         <v-spacer />
         <v-btn
           color="red"
-          @click="show = false"
+          @click="model = false"
         >
           Cancel
         </v-btn>
@@ -67,10 +67,9 @@ const dakar = inject('dakar');
 const msgStore = useMsgStore();
 const context = {addMessage: msgStore.addMessage, $route: route};
 
-const emit = defineEmits(['update:modelValue', 'saved']);
-
+const emit = defineEmits(['saved']);
+const model = defineModel({type: Boolean});
 const props = defineProps({
-	modelValue: {type: Boolean, required: true},
 	identity: {type: Object, required: true},
 	createNewUser: {type: Boolean, required: true},
 });
@@ -94,15 +93,6 @@ const rules = {
 
 // Computed
 const formTitle = computed(() => props.createNewUser ? 'Create Identity' : 'Edit Identity');
-
-const show = computed({
-	get() {
-		return props.modelValue;
-	},
-	set(value) {
-		emit('update:modelValue', value);
-	},
-});
 
 onMounted(() => {
 	shadowIdentity.value = props.identity;
@@ -163,7 +153,7 @@ async function saveIdentity() {
 	}
 
 	isLoading.value = false;
-	show.value = false;
+	model.value = false;
 }
 
 </script>
