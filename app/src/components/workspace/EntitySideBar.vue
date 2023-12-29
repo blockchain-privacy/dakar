@@ -207,6 +207,7 @@ const isTwoLineTitle = computed(() => props.type === 'heuristic' || (entityData.
 // Hooks
 onUpdated(async () => {
 	if (props.identifier && props.identifier !== oldIdentifier) {
+		isLoading.value = true;
 		oldIdentifier = props.identifier;
 		// Check if value is in cache, otherwise get data from backend
 		const cacheValue = cacheStore.getValue(props.identifier);
@@ -219,6 +220,8 @@ onUpdated(async () => {
 		} else if (props.type === 'heuristic') {
 			await getHeuristicData();
 		}
+
+		isLoading.value = false;
 	}
 });
 
@@ -258,7 +261,6 @@ async function getTransactionData() {
 		return;
 	}
 
-	isLoading.value = true;
 	entityData.value = null;
 	try {
 		const response = await dakar.data.txHashGet({hash: props.identifier});
@@ -267,8 +269,6 @@ async function getTransactionData() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
-
-	isLoading.value = false;
 }
 
 async function getAddressData() {
@@ -276,7 +276,6 @@ async function getAddressData() {
 		return;
 	}
 
-	isLoading.value = true;
 	entityData.value = null;
 
 	try {
@@ -286,8 +285,6 @@ async function getAddressData() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
-
-	isLoading.value = false;
 }
 
 async function getHeuristicData() {
@@ -295,7 +292,6 @@ async function getHeuristicData() {
 		return;
 	}
 
-	isLoading.value = true;
 	entityData.value = null;
 
 	const tmp = {
@@ -313,7 +309,6 @@ async function getHeuristicData() {
 	// Check if data has to be loaded from backend
 	if (!tmp.clusterCount) {
 		entityData.value = tmp;
-		isLoading.value = false;
 		return;
 	}
 
@@ -330,8 +325,6 @@ async function getHeuristicData() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
-
-	isLoading.value = false;
 }
 
 function setErrorMessage(msg) {
