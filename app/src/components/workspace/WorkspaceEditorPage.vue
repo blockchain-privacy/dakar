@@ -251,7 +251,7 @@ const contextMenuModel = ref({
 	x: 0,
 	y: 0,
 	items: [
-		{title: 'Show Properties', icon: mdiChartBar, action: () => nodeGraph.contextMenuNodeClick()},
+		{title: 'Show Properties', icon: mdiChartBar, action: () => nodeGraph.simulateClick()},
 		{isDivider: true},
 		{
 			title: 'Add Heuristic',
@@ -272,14 +272,14 @@ watch(route, () => {
 
 watch(isAddHeuristicSheetOpen, newVal => {
 	// If sheet is being closed reset click state of graph
-	if (!newVal && !isEntitySideBarOpen.value) {
+	if (!newVal) {
 		nodeGraph.resetClick();
 	}
 });
 
 watch(isEntitySideBarOpen, newVal => {
 	// If sheet is being closed reset click state of graph
-	if (!newVal && !isAddHeuristicSheetOpen.value) {
+	if (!newVal) {
 		nodeGraph.resetClick();
 	}
 });
@@ -590,8 +590,10 @@ function contextMenuOpenTypeSelection(node) {
 }
 
 function openTypeSelectionSheet() {
-	isAddHeuristicSheetOpen.value = true;
 	isEntitySideBarOpen.value = false;
+	isAddHeuristicSheetOpen.value = true;
+	// Next tick so watcher actions are executed first
+	nextTick(() => nodeGraph.setContextNodeClicked());
 }
 
 function openEntitySideBar(nodeData) {
@@ -633,6 +635,8 @@ function openEntitySideBar(nodeData) {
 
 	isAddHeuristicSheetOpen.value = false;
 	isEntitySideBarOpen.value = true;
+	// Next tick so watcher actions are executed first
+	nextTick(() => nodeGraph.setContextNodeClicked());
 }
 
 function closeSideBars() {

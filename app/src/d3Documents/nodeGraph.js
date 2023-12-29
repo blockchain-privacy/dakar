@@ -71,9 +71,9 @@ export default class NodeGraph {
 		this.dragStartX = 0;
 		this.dragStartY = 0;
 
-		// Context menu
-		this.activeContextMenuData = null;
-		this.activeContextMenuSelection = null;
+		// Context node, set when a node is clicked or the contextmenu is shown
+		this.contextNodeData = null;
+		this.contextNodeSelection = null;
 
 		// Svg
 		this.simulation = null;
@@ -117,8 +117,13 @@ export default class NodeGraph {
 		this.nodeGroup.selectAll('.clicked').classed('clicked', false);
 	}
 
-	contextMenuNodeClick() {
-		this.nodeClick(null, this.activeContextMenuData, this.activeContextMenuSelection);
+	setContextNodeClicked() {
+		this.resetClick();
+		d3Select(this.contextNodeSelection).select('.node').classed('clicked', true);
+	}
+
+	simulateClick() {
+		this.nodeClick(null, this.contextNodeData, this.contextNodeSelection);
 	}
 
 	nodeClick(e, d, d3This) {
@@ -126,13 +131,12 @@ export default class NodeGraph {
 			e.stopPropagation();
 		}
 
-		this.resetClick();
-
 		if (!this.enableInteractions) {
 			return;
 		}
 
-		d3Select(d3This).select('.node').classed('clicked', true);
+		this.contextNodeData = d;
+		this.contextNodeSelection = d3This;
 
 		if (this.nodeClickCallBack !== null) {
 			this.nodeClickCallBack(d);
@@ -220,10 +224,10 @@ export default class NodeGraph {
 	}
 
 	removeContextMenuNode() {
-		if (this.activeContextMenuData?.uid && this.enableInteractions) {
-			this.removeNode(this.activeContextMenuData.uid);
-			this.activeContextMenuData = null;
-			this.activeContextMenuSelection = null;
+		if (this.contextNodeData?.uid && this.enableInteractions) {
+			this.removeNode(this.contextNodeData.uid);
+			this.contextNodeData = null;
+			this.contextNodeSelection = null;
 		}
 	}
 
@@ -438,14 +442,12 @@ export default class NodeGraph {
 					return;
 				}
 
-				d3Select(this).select('.node').classed('clicked', true);
+				self.contextNodeData = d;
+				self.contextNodeSelection = this;
 
 				if (self.contextMenuCallback !== null) {
 					self.contextMenuCallback(e, d);
 				}
-
-				self.activeContextMenuData = d;
-				self.activeContextMenuSelection = this;
 			})
 			.on('mouseenter', function () {
 				if (!self.enableInteractions) {
@@ -786,7 +788,7 @@ export default class NodeGraph {
 
 	// Returns the node which triggered the context menu event
 	getContextMenuNode() {
-		return this.activeContextMenuData;
+		return this.contextNodeData;
 	}
 
 	// SetDragCallback receives a function as an argument.
