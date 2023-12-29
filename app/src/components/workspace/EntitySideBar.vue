@@ -4,7 +4,7 @@
     :title="title"
     :icon="sideBarIcon"
     max-width="700px"
-    :title-one-line="!isTwoLineTitle"
+    :title-one-line="false"
   >
     <template #actions>
       <template v-if="!isLoading && entityData">
@@ -15,7 +15,7 @@
             color="primary"
             variant="tonal"
             class="me-2"
-            :prepend-icon="mdiPlus"
+            :prepend-icon="mdiShapeCirclePlus"
             @click="handleAddHeuristicClick"
           >
             Add Heuristic
@@ -40,6 +40,15 @@
           Download
         </v-chip>
       </template>
+      <v-chip
+        :rounded="true"
+        class="ms-2"
+        variant="tonal"
+        :prepend-icon="mdiDelete"
+        @click="emitDeleteEntity"
+      >
+        Delete
+      </v-chip>
     </template>
     <template #body>
       <fade-transition>
@@ -134,6 +143,7 @@
 import {
 	mdiCardBulletedOutline,
 	mdiChartBar,
+	mdiDelete,
 	mdiFileDownloadOutline,
 	mdiOpenInNew,
 	mdiPlus,
@@ -176,7 +186,7 @@ let routeGuardTo = null;
 let routeGuardId = '';
 const routeGuardDialogModel = ref(false);
 
-const emit = defineEmits(['addHeuristic', 'addNode']);
+const emit = defineEmits(['addHeuristic', 'addNode', 'deleteEntity']);
 const model = defineModel({type: Boolean});
 
 // Computed
@@ -192,8 +202,6 @@ const title = computed(() => {
 			return 'unknown entity type';
 	}
 });
-
-const isTwoLineTitle = computed(() => props.type === 'heuristic' || (entityData.value && entityData.value[0]?.privacytype > 0));
 
 // Hooks
 onUpdated(async () => {
@@ -338,6 +346,11 @@ async function downloadSummary() {
 	} catch (e) {
 		setErrorMessage(e);
 	}
+}
+
+function emitDeleteEntity() {
+	emit('deleteEntity', props.identifier);
+	model.value = false;
 }
 
 function handleAddHeuristicClick() {

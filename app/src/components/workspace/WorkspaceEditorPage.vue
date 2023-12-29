@@ -121,6 +121,7 @@
           :type="entityType"
           @add-heuristic="openTypeSelectionSheet"
           @add-node="handleGraphQuery"
+          @delete-entity="removeGraphNode"
         />
         <v-menu
           v-model="contextMenuModel.display"
@@ -259,7 +260,7 @@ const contextMenuModel = ref({
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
 			disabled: () => !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete Node', icon: mdiDelete, action: removeGraphNode},
+		{title: 'Delete', icon: mdiDelete, action: removeGraphNode},
 	],
 });
 

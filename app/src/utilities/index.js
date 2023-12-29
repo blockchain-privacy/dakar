@@ -108,7 +108,7 @@ export function handleUnauthorizedRequest(router, navStore, localStore, currentR
 // IsSessionExpired returns true if the session has expired
 export function isSessionExpired(session) {
 	return !session || !session.expires_at
-      || new Date() > new Date(session.expires_at);
+    || new Date() > new Date(session.expires_at);
 }
 
 export function handleError(context, error) {
@@ -163,8 +163,8 @@ export function isValidQuery(str) {
 
 function isRole(session, roleName) {
 	return Boolean(session && session.identity && session.identity.metadata_public
-      && session.identity.metadata_public.roles
-      && session.identity.metadata_public.roles.some(d => d === roleName));
+    && session.identity.metadata_public.roles
+    && session.identity.metadata_public.roles.some(d => d === roleName));
 }
 
 export function isPrivilegedIdentity(session) {
@@ -184,23 +184,23 @@ export function getPrivacyTypeLabel(privacyType) {
 	}
 
 	if (t <= 99) {
-		return 'mixing';
+		return 'Mixing';
 	}
 
 	if (t <= 199) {
-		return 'destination';
+		return 'Destination';
 	}
 
 	if (t <= 299) {
-		return 'origin';
+		return 'Origin';
 	}
 
 	if (t <= 399) {
-		return 'collateral creation';
+		return 'Collateral Creation';
 	}
 
 	if (t <= 499) {
-		return 'collateral payment';
+		return 'Collateral Payment';
 	}
 
 	return '';
