@@ -145,7 +145,7 @@
                   v-if="item.icon"
                   #prepend
                 >
-                  <v-icon>{{ item.icon }}</v-icon>
+                  <v-icon>{{ item.icon() }}</v-icon>
                 </template>
                 <v-list-item-title>{{ item.title }}</v-list-item-title>
               </v-list-item>
@@ -160,6 +160,7 @@
 
 <script setup>
 import {
+	mdiCardBulletedOutline,
 	mdiChartBar,
 	mdiCheckCircle,
 	mdiDelete,
@@ -168,6 +169,7 @@ import {
 	mdiMagnify,
 	mdiOpenInNew,
 	mdiShapeCirclePlus,
+	mdiTransfer,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -252,15 +254,15 @@ const contextMenuModel = ref({
 	x: 0,
 	y: 0,
 	items: [
-		{title: 'Show Properties', icon: mdiChartBar, action: () => nodeGraph.simulateClick()},
+		{title: 'Show Properties', icon: contextMenuPropertyIcon, action: () => nodeGraph.simulateClick()},
 		{isDivider: true},
 		{
 			title: 'Add Heuristic',
-			icon: mdiShapeCirclePlus,
+			icon: () => mdiShapeCirclePlus,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
 			disabled: () => !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete', icon: mdiDelete, action: removeGraphNode},
+		{title: 'Delete', icon: () => mdiDelete, action: removeGraphNode},
 	],
 });
 
@@ -315,6 +317,20 @@ onUnmounted(() => {
 	document.removeEventListener('visibilitychange', onDocumentClose);
 });
 
+function contextMenuPropertyIcon() {
+	switch (nodeGraph.contextNodeData.type) {
+		case 'transaction':
+			return mdiTransfer;
+		case 'cluster':
+			return mdiCardBulletedOutline;
+		case 'heuristic':
+			return mdiChartBar;
+		default:
+			return mdiChartBar;
+	}
+}
+
+// Functions
 function getDecendants(uid) {
 	const descendants = [];
 	const node = nodeGraph.getNode(uid);
