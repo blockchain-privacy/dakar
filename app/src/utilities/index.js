@@ -184,23 +184,23 @@ export function getPrivacyTypeLabel(privacyType) {
 	}
 
 	if (t <= 99) {
-		return 'Mixing';
+		return 'mixing';
 	}
 
 	if (t <= 199) {
-		return 'Destination';
+		return 'destination';
 	}
 
 	if (t <= 299) {
-		return 'Origin';
+		return 'origin';
 	}
 
 	if (t <= 399) {
-		return 'Collateral Creation';
+		return 'collateral creation';
 	}
 
 	if (t <= 499) {
-		return 'Collateral Payment';
+		return 'collateral payment';
 	}
 
 	return '';

@@ -122,10 +122,6 @@ export default class NodeGraph {
 		d3Select(this.contextNodeSelection).select('.node').classed('clicked', true);
 	}
 
-	simulateClick() {
-		this.nodeClick(null, this.contextNodeData, this.contextNodeSelection);
-	}
-
 	nodeClick(e, d, d3This) {
 		if (e) {
 			e.stopPropagation();
@@ -249,6 +245,19 @@ export default class NodeGraph {
 		if (draw === undefined || draw === true) {
 			this.draw();
 		}
+	}
+
+	reorderNodes() {
+		for (const [key, value] of this.nodeMap) {
+			delete value.x;
+			delete value.y;
+			delete value.fx;
+			delete value.fy;
+			this.nodeMap[key] = value;
+		}
+
+		this.draw();
+		this.centerGraph();
 	}
 
 	// Adds the given node. If a node with the
@@ -510,10 +519,16 @@ export default class NodeGraph {
 			}
 		}
 
+		// Text container
+		let textContainer = groupElement.select('.textContainer');
+		if (textContainer.empty()) {
+			textContainer = groupElement.append('g').attr('class', 'textContainer');
+		}
+
 		// Node title
-		let nodeTitle = groupElement.select('.nodeTitle');
+		let nodeTitle = textContainer.select('.nodeTitle');
 		if (nodeTitle.empty()) {
-			nodeTitle = groupElement.append('text').attr('class', 'nodeTitle');
+			nodeTitle = textContainer.append('text').attr('class', 'nodeTitle');
 		}
 
 		nodeTitle
@@ -542,9 +557,9 @@ export default class NodeGraph {
 			})
 			.each(wrap);
 
-		let nodeSubtitle = groupElement.select('.nodeSubtitle');
+		let nodeSubtitle = textContainer.select('.nodeSubtitle');
 		if (nodeSubtitle.empty()) {
-			nodeSubtitle = groupElement.append('text').attr('class', 'nodeSubtitle');
+			nodeSubtitle = textContainer.append('text').attr('class', 'nodeSubtitle');
 		}
 
 		nodeSubtitle
@@ -591,7 +606,7 @@ export default class NodeGraph {
 				return abbreviateNumber(d.heuristicClusterCount);
 			});
 
-		groupElement
+		textContainer
 			.each(function (d) {
 				if (d.type !== 'heuristic') {
 					return;

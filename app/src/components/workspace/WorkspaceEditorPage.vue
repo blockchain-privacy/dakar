@@ -31,17 +31,6 @@
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
           />
-          <v-btn
-            style="min-width: 32px !important;"
-            class="ms-3 px-2"
-            variant="text"
-            @click="nodeGraph.centerGraph()"
-          >
-            <v-icon>{{ mdiImageFilterCenterFocus }}</v-icon>
-            <div class="hidden-sm-and-down">
-              Center Graph
-            </div>
-          </v-btn>
           <v-menu location="bottom">
             <template #activator="{ props }">
               <v-btn
@@ -54,9 +43,26 @@
               </v-btn>
             </template>
             <v-list>
+              <v-list-item @click="nodeGraph.reorderNodes()">
+                <template #prepend>
+                  <v-icon :icon="mdiCached" />
+                </template>
+                <v-list-item-title>
+                  Reorder Nodes
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="nodeGraph.centerGraph()">
+                <template #prepend>
+                  <v-icon :icon="mdiImageFilterCenterFocus" />
+                </template>
+                <v-list-item-title>
+                  Center Graph
+                </v-list-item-title>
+              </v-list-item>
+              <v-divider />
               <v-list-item :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}">
                 <template #prepend>
-                  <v-icon>{{ mdiOpenInNew }}</v-icon>
+                  <v-icon :icon="mdiOpenInNew" />
                 </template>
                 <v-list-item-title>Workspaces Overview</v-list-item-title>
               </v-list-item>
@@ -145,7 +151,7 @@
                   v-if="item.icon"
                   #prepend
                 >
-                  <v-icon>{{ item.icon() }}</v-icon>
+                  <v-icon :icon="item.icon" />
                 </template>
                 <v-list-item-title>{{ item.title }}</v-list-item-title>
               </v-list-item>
@@ -160,8 +166,7 @@
 
 <script setup>
 import {
-	mdiCardBulletedOutline,
-	mdiChartBar,
+	mdiCached,
 	mdiCheckCircle,
 	mdiDelete,
 	mdiDotsVertical,
@@ -169,7 +174,6 @@ import {
 	mdiMagnify,
 	mdiOpenInNew,
 	mdiShapeCirclePlus,
-	mdiTransfer,
 } from '@mdi/js';
 import HeuristicTypeSelectionSideBar from './HeuristicTypeSelectionSideBar.vue';
 import {
@@ -254,15 +258,13 @@ const contextMenuModel = ref({
 	x: 0,
 	y: 0,
 	items: [
-		{title: 'Show Properties', icon: contextMenuPropertyIcon, action: () => nodeGraph.simulateClick()},
-		{isDivider: true},
 		{
 			title: 'Add Heuristic',
-			icon: () => mdiShapeCirclePlus,
+			icon: mdiShapeCirclePlus,
 			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
 			disabled: () => !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete', icon: () => mdiDelete, action: removeGraphNode},
+		{title: 'Delete', icon: mdiDelete, action: removeGraphNode},
 	],
 });
 
@@ -316,19 +318,6 @@ onUnmounted(() => {
 
 	document.removeEventListener('visibilitychange', onDocumentClose);
 });
-
-function contextMenuPropertyIcon() {
-	switch (nodeGraph.contextNodeData.type) {
-		case 'transaction':
-			return mdiTransfer;
-		case 'cluster':
-			return mdiCardBulletedOutline;
-		case 'heuristic':
-			return mdiChartBar;
-		default:
-			return mdiChartBar;
-	}
-}
 
 // Functions
 function getDecendants(uid) {
