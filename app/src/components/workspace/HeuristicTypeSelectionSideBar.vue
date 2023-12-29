@@ -2,7 +2,7 @@
   <side-bar
     v-model="inputVal"
     title="Add Heuristic"
-    :icon="mdiShapeSquareRoundedPlus"
+    :icon="mdiShapeCirclePlus"
     max-width="648px"
   >
     <template #body>
@@ -95,7 +95,7 @@
 </template>
 
 <script setup>
-import {mdiShapeSquareRoundedPlus} from '@mdi/js';
+import {mdiShapeCirclePlus} from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
 import {computed, ref} from 'vue';
 import {useDisplay} from 'vuetify';
