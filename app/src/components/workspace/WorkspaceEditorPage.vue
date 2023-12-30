@@ -268,7 +268,7 @@ const contextMenuModel = ref({
 			title: 'Delete',
 			icon: mdiDelete,
 			action: removeGraphNode,
-			disabled: () => nodeGraph.getContextNode().status === 'loading',
+			disabled: () => nodeGraph.getContextNode()?.status === 'loading',
 		},
 	],
 });

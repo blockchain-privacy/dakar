@@ -3,7 +3,6 @@ package workspace
 import (
 	"backend/cmd/cliutil"
 	"backend/db"
-	"backend/db/analytics/heuristics"
 	"backend/external"
 	"encoding/json"
 	"time"
@@ -165,7 +164,29 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 
 					heuristics(func: uid(t)){
 						uid
-						~Heuristic.transaction@filter(uid(h)){` + heuristics.QueryBasicHeuristicAttributes + `}
+						~Heuristic.transaction@filter(uid(h)){
+								uid
+								ts:Heuristic.ts
+								type:Heuristic.type
+								parameter:Heuristic.parameter
+								clusterTypes:Heuristic.clusterTypes
+								excludeAddresses:Heuristic.excludeAddresses
+								excludeSpendingGaps:Heuristic.excludeSpendingGaps
+								parent:Heuristic.parent{
+									uid
+								}
+								children:~Heuristic.parent{
+									uid
+								}
+								clusterCount: count(Heuristic.clusters)
+								Heuristic.clusters{
+									HeuristicCluster.results{
+										HeuristicResult.origin@filter(uid(t)){
+											uid
+										}
+									}
+								}
+						}
 					}
 				}
 
@@ -221,7 +242,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
 	// This map is used to add the contained heuristic uids as children to their corresponding transaction.
 	txToHeuristic := map[string][]string{}
-	for _, heuristicTransaction := range r.HeuristicTransactions {
+	for _, heuristicTransaction := range r.Heuristics {
 		var rootHeuristics []string
 		for _, h := range heuristicTransaction.Heuristics {
 			// todo review once go 1.22 is released
@@ -234,6 +255,13 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 			children := make([]string, len(h.ChildHeuristics))
 			for i, c := range h.ChildHeuristics {
 				children[i] = c.UID
+			}
+
+			// add connections between heuristics and their found origins
+			for _, cluster := range h.Clusters {
+				for _, result := range cluster.Results {
+					children = append(children, result.Origin.UID)
+				}
 			}
 
 			heuristics = append(heuristics, FrontendGraphNode{

@@ -124,9 +124,27 @@ type connectionRequest struct {
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
-	HeuristicTransactions []struct {
-		UID        string                         `json:"uid,omitempty"`
-		Heuristics []heuristics.FrontendHeuristic `json:"~Heuristic.transaction,omitempty"`
+	Heuristics []struct {
+		UID        string `json:"uid,omitempty"`
+		Heuristics []struct {
+			UID                 string                       `json:"uid,omitempty"`
+			Timestamp           string                       `json:"ts,omitempty"`
+			Type                string                       `json:"type,omitempty"`
+			Parameter           string                       `json:"parameter,omitempty"`
+			ExcludeAddresses    bool                         `json:"excludeAddresses"`
+			ExcludeSpendingGaps bool                         `json:"excludeSpendingGaps"`
+			ClusterTypes        []string                     `json:"clusterTypes,omitempty"`
+			ParentHeuristic     []heuristics.HollowHeuristic `json:"parent,omitempty"`
+			ChildHeuristics     []heuristics.HollowHeuristic `json:"children,omitempty"`
+			ClusterCount        *int                         `json:"clusterCount,omitempty"`
+			Clusters            []struct {
+				Results []struct {
+					Origin struct {
+						UID string `json:"uid,omitempty"`
+					} `json:"HeuristicResult.origin,omitempty"`
+				} `json:"HeuristicCluster.results,omitempty"`
+			} `json:"Heuristic.clusters,omitempty"`
+		} `json:"~Heuristic.transaction,omitempty"`
 	} `json:"heuristics,omitempty"`
 }
 
