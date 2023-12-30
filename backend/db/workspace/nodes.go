@@ -184,6 +184,9 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 										HeuristicResult.origin@filter(uid(t)){
 											uid
 										}
+										HeuristicResult.destinations@filter(uid(t)){
+											uid
+										}
 									}
 								}
 						}
@@ -261,6 +264,9 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 			for _, cluster := range h.Clusters {
 				for _, result := range cluster.Results {
 					children = append(children, result.Origin.UID)
+					for _, destination := range result.Destinations {
+						children = append(children, destination.UID)
+					}
 				}
 			}
 

@@ -142,6 +142,9 @@ type connectionRequest struct {
 					Origin struct {
 						UID string `json:"uid,omitempty"`
 					} `json:"HeuristicResult.origin,omitempty"`
+					Destinations []struct {
+						UID string `json:"uid,omitempty"`
+					} `json:"HeuristicResult.destinations,omitempty"`
 				} `json:"HeuristicCluster.results,omitempty"`
 			} `json:"Heuristic.clusters,omitempty"`
 		} `json:"~Heuristic.transaction,omitempty"`
