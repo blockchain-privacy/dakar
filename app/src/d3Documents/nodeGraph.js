@@ -801,8 +801,8 @@ export default class NodeGraph {
 		return true;
 	}
 
-	// Returns the node which triggered the context menu event
-	getContextMenuNode() {
+	// Returns the node which triggered the context menu event or click event
+	getContextNode() {
 		return this.contextNodeData;
 	}
 

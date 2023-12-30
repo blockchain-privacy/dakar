@@ -261,10 +261,15 @@ const contextMenuModel = ref({
 		{
 			title: 'Add Heuristic',
 			icon: mdiShapeCirclePlus,
-			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextMenuNode()),
+			action: () => contextMenuOpenTypeSelection(nodeGraph.getContextNode()),
 			disabled: () => !showContextMenuAddHeuristic.value,
 		},
-		{title: 'Delete', icon: mdiDelete, action: removeGraphNode},
+		{
+			title: 'Delete',
+			icon: mdiDelete,
+			action: removeGraphNode,
+			disabled: () => nodeGraph.getContextNode().status === 'loading',
+		},
 	],
 });
 
@@ -360,8 +365,8 @@ async function deleteHeuristicSubGraph(uid) {
 
 // Functions
 async function removeGraphNode() {
-	const node = nodeGraph.getContextMenuNode();
-	if (!node) {
+	const node = nodeGraph.getContextNode();
+	if (!node || node.status === 'loading') {
 		return;
 	}
 
