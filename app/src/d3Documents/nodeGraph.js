@@ -481,7 +481,7 @@ export default class NodeGraph {
 		const gapString = `${gap} ${gap}`;
 
 		circleGroup.each(function (d) {
-			if (d.status !== 'loading') {
+			if (!d.loading) {
 				return;
 			}
 
@@ -645,11 +645,8 @@ export default class NodeGraph {
 
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			.force('charge', forceManyBody().strength(-50))
+			.force('charge', forceManyBody().strength(-100).distanceMax(50))
 			.force('collide', forceCollide(this.nodeRadius * 4)).stop();
-
-		// 100 iterations: 1-0.001^(1/100) = 0.06674569920300896
-		this.simulation.alphaDecay(0.06675);
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
@@ -658,14 +655,14 @@ export default class NodeGraph {
 			.selectAll('.arrow')
 			.data(links, d => `${d.source}${d.target}`)
 			.join('line')
-			.attr('x1', d => d.source.x)
-			.attr('y1', d => d.source.y)
-			.attr('x2', d => d.target.x)
-			.attr('y2', d => d.target.y)
 			.attr('class', 'arrow')
 			.attr('stroke', 'currentColor')
 			.attr('stroke-opacity', 1)
-			.attr('stroke-width', 1);
+			.attr('stroke-width', 1)
+			.attr('x1', d => d.source.x)
+			.attr('y1', d => d.source.y)
+			.attr('x2', d => d.target.x)
+			.attr('y2', d => d.target.y);
 
 		const self = this;
 		const node = this.nodeGroup

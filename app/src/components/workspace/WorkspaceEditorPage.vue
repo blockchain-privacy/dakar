@@ -125,6 +125,7 @@
           :identifier="entityIdentifier"
           :auxiliary-data="entityAuxiliaryData"
           :type="entityType"
+          :disable-adding-nodes="isModifyingWorkspace"
           @add-heuristic="openTypeSelectionSheet"
           @add-node="handleGraphQuery"
           @delete-entity="removeGraphNode"
@@ -268,7 +269,7 @@ const contextMenuModel = ref({
 			title: 'Delete',
 			icon: mdiDelete,
 			action: removeGraphNode,
-			disabled: () => nodeGraph.getContextNode()?.status === 'loading',
+			disabled: () => nodeGraph.getContextNode()?.loading,
 		},
 	],
 });
@@ -366,7 +367,7 @@ async function deleteHeuristicSubGraph(uid) {
 // Functions
 async function removeGraphNode() {
 	const node = nodeGraph.getContextNode();
-	if (!node || node.status === 'loading') {
+	if (!node || node.loading) {
 		return;
 	}
 
@@ -410,6 +411,10 @@ function releaseAutosaveLock() {
 }
 
 async function handleGraphQuery(query) {
+	if (isModifyingWorkspace.value) {
+		return;
+	}
+
 	const trimmedQuery = query.trim();
 	if (!trimmedQuery) {
 		return;
@@ -499,7 +504,7 @@ async function addNewHeuristic(heuristic) {
 		nodeGraph.addNodes([parentNode, {
 			uid: response.workID,
 			type: 'heuristic',
-			status: 'loading',
+			loading: true,
 			heuristicType: newHeuristic.type,
 			heuristicExcludeAddresses: newHeuristic.excludeAddresses,
 			heuristicExcludeSpendingGaps: newHeuristic.excludeSpendingGaps,

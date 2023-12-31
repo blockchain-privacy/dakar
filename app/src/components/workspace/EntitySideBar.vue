@@ -126,6 +126,7 @@
           variant="text"
           size="x-large"
           style="text-transform: none !important;"
+          :disabled="disableAddingNodes"
           @click="handleRouteGuardDialogAdd"
         >
           <v-icon
@@ -169,7 +170,10 @@ const props = defineProps({
 	identifier: {type: String, required: true},
 	type: {type: String, required: true},
 	auxiliaryData: {type: Object, required: false, default: null},
+	disableAddingNodes: {type: Boolean, required: true},
 });
+const emit = defineEmits(['addHeuristic', 'addNode', 'deleteEntity']);
+const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -185,9 +189,6 @@ let routeGuardEnabled = true;
 let routeGuardTo = null;
 let routeGuardId = '';
 const routeGuardDialogModel = ref(false);
-
-const emit = defineEmits(['addHeuristic', 'addNode', 'deleteEntity']);
-const model = defineModel({type: Boolean});
 
 // Computed
 const title = computed(() => {
