@@ -1,5 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router';
-import {isAdminIdentity, isPrivilegedIdentity, isSessionExpired} from '@/utilities';
+import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import EntryPage from '../components/EntryPage.vue';
 import ConnectionLookupPage from '../components/tools/ConnectionLookupPage.vue';
 import SettingsPage from '../components/user/SettingsPage.vue';
@@ -48,20 +48,6 @@ function isAdmin() {
 function checkSession(to, next, fn) {
 	if (!localStore.getSession) {
 		navStore.setFailedRoute(to);
-		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
-		return;
-	}
-
-	// Check if token timeout has been reached
-	if (isSessionExpired(localStore.getSession)) {
-		navStore.setFailedRoute(to);
-		localStore.setSession(null);
-		msgStore.addMessage({
-			type: 'info',
-			text: 'Your session timed out',
-			temporary: true,
-			category: Constants.ROUTE_NAME_LOGIN_PAGE,
-		});
 		next({name: Constants.ROUTE_NAME_LOGIN_PAGE});
 		return;
 	}

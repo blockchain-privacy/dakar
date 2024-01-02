@@ -113,10 +113,9 @@ func (s *Server) authorization() adapter {
 				return
 			}
 
-			// if only reissueDuration is left of the token lifetime it gets reissued
-			const reissueDuration = time.Hour * 24 / 4
-
-			if time.Until(*session.ExpiresAt) <= reissueDuration {
+			// if less than half of the token lifetime is left, it gets reissued
+			const reissueDuration = 72 * time.Hour / 2
+			if time.Until(*session.ExpiresAt) < reissueDuration {
 				_, extensionResponse, extensionErr := s.adminAuth.IdentityApi.
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {

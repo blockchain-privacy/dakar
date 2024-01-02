@@ -105,12 +105,6 @@ export function handleUnauthorizedRequest(router, navStore, localStore, currentR
 	router.push({name: ROUTE_NAME_LOGIN_PAGE});
 }
 
-// IsSessionExpired returns true if the session has expired
-export function isSessionExpired(session) {
-	return !session || !session.expires_at
-    || new Date() > new Date(session.expires_at);
-}
-
 export function handleError(context, error) {
 	let errMsg;
 	if (error.cause?.status === 500) {

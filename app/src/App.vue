@@ -17,13 +17,10 @@
 <script setup>
 import MsgBox from './components/notification/MsgBox.vue';
 import '@fontsource/roboto';
-import {
-	DEFAULT_SETTINGS, ROUTE_NAME_ENTRY_PAGE,
-} from './constants';
+import {DEFAULT_SETTINGS, ROUTE_NAME_ENTRY_PAGE} from './constants';
 import AppBar from './components/appbar/AppBar.vue';
-import {isSessionExpired} from './utilities';
 import FadeTransition from '@/components/common/FadeTransition.vue';
-import {computed, onBeforeMount, onMounted, toRaw} from 'vue';
+import {computed, onBeforeMount} from 'vue';
 import {useRoute} from 'vue-router';
 import {useTheme} from 'vuetify';
 import {useLocalStore} from '@/pinia/local';
@@ -33,14 +30,6 @@ const theme = useTheme();
 const localStore = useLocalStore();
 
 // Computed
-const session = computed({
-	get() {
-		return localStore.getSession;
-	},
-	set(value) {
-		localStore.setSession(value);
-	},
-});
 const settings = computed({
 	get() {
 		return localStore.getSettings;
@@ -70,12 +59,6 @@ function setDarkTheme() {
 }
 
 // Hooks
-onMounted(() => {
-	if (isSessionExpired(toRaw(session.value))) {
-		session.value = null;
-	}
-});
-
 onBeforeMount(() => {
 	setDarkTheme();
 	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
