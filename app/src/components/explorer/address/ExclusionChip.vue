@@ -33,23 +33,40 @@
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
 import DeleteAddressExclusionDialog from '@/components/tools/addressExclusions/DeleteAddressExclusionDialog.vue';
-import {inject, onMounted, ref} from 'vue';
-import {handleError} from '@/utilities';
+import {computed, inject, onMounted, ref} from 'vue';
+import {handleError, isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
+import {useLocalStore} from '@/pinia/local';
 
 const props = defineProps({addressHash: {type: String, required: true}});
 
 const dakar = inject('dakar');
 const route = useRoute();
+const localStore = useLocalStore();
 const context = {addMessage: useMsgStore().addMessage, $route: route};
-
-onMounted(() => {
-	getExclusionStatus();
-});
 
 const deleteExclusionDialog = ref(false);
 const showExclusionChip = ref(false);
+
+// Computed
+const session = computed({
+	get() {
+		return localStore.getSession;
+	},
+	set(value) {
+		localStore.setSession(value);
+	},
+});
+
+const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
+
+// Hooks
+onMounted(() => {
+	if (isPrivilegedOrHigher.value) {
+		getExclusionStatus();
+	}
+});
 
 // Functions
 async function getExclusionStatus() {
