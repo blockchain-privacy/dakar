@@ -65,7 +65,9 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	}
 
 	if (response.status === 401) {
-		handleUnauthorizedRequest(context.$router, navStore, localStore, context.$route);
+		navStore.setFailedRoute(context.$route);
+		localStore.setSession(null);
+		context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 		throw new Error('Please login again.', {cause: response});
 	}
 
@@ -95,14 +97,6 @@ export async function checkResponseStatus(context, navStore, localStore, respons
 	}
 
 	throw new Error(errMsg, {cause: response});
-}
-
-// HandleUnauthorizedRequest directs to the login page
-export function handleUnauthorizedRequest(router, navStore, localStore, currentRoute) {
-	// Set failed route so we can reroute to it later
-	navStore.setFailedRoute(currentRoute);
-	localStore.setSession(null);
-	router.push({name: ROUTE_NAME_LOGIN_PAGE});
 }
 
 export function handleError(context, error) {
