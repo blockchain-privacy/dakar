@@ -5,6 +5,7 @@ import {zoom} from 'd3-zoom';
 import {forceCollide, forceLink, forceManyBody, forceSimulation} from 'd3-force';
 import {abbreviateNumber} from '@/d3Documents/util';
 import {mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune} from '@mdi/js';
+import forceLimit from '@/d3Documents/forceLimit';
 
 // Sets a node with a valid x attribute to be excluded from force simulations
 function setFxFy(node) {
@@ -643,10 +644,13 @@ export default class NodeGraph {
 		const nodes = [...this.nodeMap.values()];
 		const links = this.getLinks(nodes);
 
+		const svgRect = this.rootSvg.node().getBoundingClientRect();
+
 		this.simulation = forceSimulation(nodes)
 			.force('link', forceLink(links).id(d => d.uid))
-			.force('charge', forceManyBody().strength(-100).distanceMax(50))
-			.force('collide', forceCollide(this.nodeRadius * 4)).stop();
+			.force('charge', forceManyBody().strength(-150))
+			.force('collide', forceCollide(this.nodeRadius * 4))
+			.force('limit', forceLimit().x0(0).x1(svgRect.width).y0(0).y1(svgRect.height).radius(this.nodeRadius)).stop();
 
 		// Do simulation
 		this.simulation.tick(Math.ceil(Math.log(this.simulation.alphaMin()) / Math.log(1 - this.simulation.alphaDecay())));
