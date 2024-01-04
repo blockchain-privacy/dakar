@@ -32,12 +32,17 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				if (error.response.data.error.message) {
-					context.msgStore.addMessage({text: error.response.data.error.reason, type: 'error', temporary: true, category: context.$route.name});
+					context.msgStore.addMessage({
+						text: error.response.data.error.reason,
+						type: 'error',
+						temporary: true,
+						category: context.$route.name,
+					});
 				}
 
 				return Promise.resolve();
 			case 'session_inactive':
-				context.navStore.setFailedRoute(context.$route);
+				await context.navStore.setFailedRoute(context.$route);
 				context.localStore.setSession(null);
 				context.$router.push({name: ROUTE_NAME_LOGIN_PAGE});
 				return Promise.resolve();
@@ -53,7 +58,7 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 			case 401: { // Unauthorized access -> show error
 				await refreshFlow(onRefreshFlow);
 				let msg = '';
-				if (error.response.data && error.response.data.error && error.response.data.error.reason) {
+				if (error.response.data?.error?.reason) {
 					msg = error.response.data.error.reason;
 				} else {
 					msg = error.response.statusText;

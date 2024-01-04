@@ -118,12 +118,17 @@
 </template>
 
 <script setup>
-import {mdiDelete, mdiAlert, mdiDotsVertical, mdiLinux,
-	mdiAndroid, mdiApple, mdiLaptop, mdiMicrosoftWindows,
-} from '@mdi/js';
 import {
-	PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE,
-} from '@/constants';
+	mdiAlert,
+	mdiAndroid,
+	mdiApple,
+	mdiDelete,
+	mdiDotsVertical,
+	mdiLaptop,
+	mdiLinux,
+	mdiMicrosoftWindows,
+} from '@mdi/js';
+import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@/constants';
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
@@ -224,7 +229,7 @@ function setSuccessMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'success', temporary: true});
 }
 
-function 	setErrorMessage(msg) {
+function setErrorMessage(msg) {
 	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
 }
 
@@ -265,7 +270,7 @@ async function getSessions() {
 
 	try {
 		// Get a maximum of 30 sessions
-		const response = await 	ory.frontend.listMySessions({page: 1, perPage: 30});
+		const response = await ory.frontend.listMySessions({page: 1, perPage: 30});
 
 		userSessions.value = response.data.map(d => {
 			d.authenticatedAt = new Date(d.authenticated_at).getTime();
@@ -365,7 +370,7 @@ async function tryRefreshSession() {
 	let success = false;
 
 	try {
-		const response = await 	ory.frontend.toSession();
+		const response = await ory.frontend.toSession();
 		if (response.status === 200) {
 			session.value = response.data;
 			success = true;
