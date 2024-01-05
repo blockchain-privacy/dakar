@@ -12,7 +12,7 @@
           <v-icon
             class="mx-3"
             icon="$graphIcon"
-            size="x-large"
+            size="32"
           />
           <p class="me-3 text-h6 workspace-name hidden-sm-and-down">
             {{ workspaceName }}
