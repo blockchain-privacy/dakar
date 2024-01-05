@@ -103,7 +103,9 @@
           class="mx-auto"
           variant="text"
           size="x-large"
-          @click="handleRouteGuardDialogRouting"
+          :to="routeGuardTo"
+          target="_blank"
+          @click="routeGuardDialogModel = false"
         >
           <v-icon
             :icon="mdiOpenInNew"
@@ -155,7 +157,7 @@ import SideBar from '@/components/common/SideBar.vue';
 import {computed, inject, onUpdated, ref} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
-import {onBeforeRouteLeave, useRoute, useRouter} from 'vue-router';
+import {onBeforeRouteLeave, useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import FadeTransition from '@/components/common/FadeTransition.vue';
@@ -177,7 +179,6 @@ const model = defineModel({type: Boolean});
 
 const dakar = inject('dakar');
 const route = useRoute();
-const router = useRouter();
 const msgStore = useMsgStore();
 const cacheStore = useCacheStore();
 
@@ -185,7 +186,6 @@ const isLoading = ref(true);
 const entityData = ref();
 
 let oldIdentifier = null;
-let routeGuardEnabled = true;
 let routeGuardTo = null;
 let routeGuardId = '';
 const routeGuardDialogModel = ref(false);
@@ -227,7 +227,7 @@ onUpdated(async () => {
 
 onBeforeRouteLeave(to => {
 	// Don't activate route guard if sidbar is closed
-	if (!routeGuardEnabled || !model.value) {
+	if (!model.value) {
 		return true;
 	}
 
@@ -356,11 +356,6 @@ function emitDeleteEntity() {
 
 function handleAddHeuristicClick() {
 	emit('addHeuristic');
-}
-
-function handleRouteGuardDialogRouting() {
-	routeGuardEnabled = false;
-	router.push(routeGuardTo);
 }
 
 function handleRouteGuardDialogAdd() {
