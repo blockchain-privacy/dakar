@@ -16,9 +16,30 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 		warn(err)
 		return
 	}
+
 	fmt.Println("number of addresses", len(addresses))
 
-	results := map[int]int{}
+	f, err := os.Create(fileName)
+	defer func(f *os.File) {
+		err := f.Close()
+		if err != nil {
+			warn(err)
+		}
+	}(f)
+
+	if err != nil {
+		warn(err)
+		return
+	}
+
+	w := csv.NewWriter(f)
+	defer w.Flush()
+
+	// header
+	if err := w.Write([]string{"cluster uid", "number of created transactions", "number of received transactions"}); err != nil {
+		warn(err, "msg", "error writing record to file")
+		return
+	}
 
 	// handle addresses
 	const step = 200
@@ -31,15 +52,26 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 			upperBound = addressCount
 		}
 
-		counts, err := analytics.GetTransactionCountPerAddresses(dgraph, addresses[offset:upperBound])
+		addressSlice := addresses[offset:upperBound]
+
+		inputCounts, outputCounts, err := analytics.GetTransactionCountPerAddresses(dgraph, addressSlice)
 		if err != nil {
 			warn(err)
 			return
 		}
 
-		for _, c := range counts {
-			results[c]++
+		for i, address := range addressSlice {
+			// column 1: cluster uid
+			// column 2: number of created transactions
+			// column 3: number of received transactions
+			line := []string{address, strconv.Itoa(inputCounts[i]), strconv.Itoa(outputCounts[i])}
+			if err := w.Write(line); err != nil {
+				warn(err, "msg", "error writing record to file")
+				return
+			}
 		}
+
+		w.Flush()
 
 		offset += step
 
@@ -64,51 +96,26 @@ func doExportClusterActivity(dgraph external.Database, fileName string) {
 	fmt.Println("number of clusters", len(clusters))
 	now = time.Now()
 	for i, c := range clusters {
-		txCount, err := analytics.GetTransactionCountPerCluster(dgraph, c)
+		inputCount, outputCount, err := analytics.GetTransactionCountPerCluster(dgraph, c)
 		if err != nil {
 			warn(err)
 			return
 		}
 
-		results[txCount]++
+		// column 1: cluster uid
+		// column 2: number of created transactions
+		// column 3: number of received transactions
+		line := []string{c, strconv.Itoa(inputCount), strconv.Itoa(outputCount)}
+		if err := w.Write(line); err != nil {
+			warn(err, "msg", "error writing record to file")
+			return
+		}
 
 		if i%1000 == 0 {
 			fmt.Printf("received counts for %d clusters\n", i)
 			timePerCluster := time.Since(now) / time.Duration(1000)
 			fmt.Printf("received counts for %d clusters. %v/c\n", i, timePerCluster)
 			now = time.Now()
-		}
-	}
-
-	f, err := os.Create(fileName)
-	defer func(f *os.File) {
-		err := f.Close()
-		if err != nil {
-			warn(err)
-		}
-	}(f)
-
-	if err != nil {
-		warn(err)
-		return
-	}
-
-	w := csv.NewWriter(f)
-	defer w.Flush()
-
-	// header
-	if err := w.Write([]string{"number of transactions", "cluster count"}); err != nil {
-		warn(err, "msg", "error writing record to file")
-		return
-	}
-
-	for k, v := range results {
-		// column 1: number of transactions
-		// column 2: cluster count
-		line := []string{strconv.Itoa(k), strconv.Itoa(v)}
-		if err := w.Write(line); err != nil {
-			warn(err, "msg", "error writing record to file")
-			return
 		}
 	}
 

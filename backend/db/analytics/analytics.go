@@ -670,88 +670,115 @@ func GetAllSingleAddresses(c external.Database) (uids []string, err error) {
 }
 
 // GetTransactionCountPerAddresses returns the number of transactions each address has created
-func GetTransactionCountPerAddresses(c external.Database, addressUIDs []string) ([]int, error) {
+func GetTransactionCountPerAddresses(c external.Database, addressUIDs []string) ([]int, []int, error) {
 	if len(addressUIDs) == 0 {
-		return nil, cliutil.NewStackErrorStr("invalid arguments")
+		return nil, nil, cliutil.NewStackErrorStr("invalid arguments")
 	}
 
 	var queryBody string
-	var output string
+	var sumInputs string
+	var sumOutputs string
 
 	for i, a := range addressUIDs {
 		index := strconv.Itoa(i)
 		queryBody += `
 					var(func: uid(` + a + `)){
 						addr_outputs{
-							t` + index + ` as ~tx_inputs
+							i` + index + ` as ~tx_inputs
+							o` + index + ` as ~tx_outputs
 						}
 					}
 					
-					var(func: uid(t` + index + `)){
-						c` + index + ` as count(uid)
+					var(func: uid(i` + index + `)){
+						ci` + index + ` as count(uid)
+					}
+
+					var(func: uid(o` + index + `)){
+						co` + index + ` as count(uid)
 					}`
 
-		output += "\n" + `sum(val(c` + index + `))`
+		sumInputs += "\n" + `sum(val(ci` + index + `))`
+		sumOutputs += "\n" + `sum(val(co` + index + `))`
 	}
 
-	var query = "{" + queryBody + "q() {" + output + "}}"
+	var query = "{" + queryBody + "q() {" + sumInputs + "}\nx(){" + sumOutputs + "}}"
 
 	resp, err := db.ReadOnlyTxWithRetry(c, time.Minute*20, query)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var r struct {
-		Transaction []map[string]int `json:"q,omitempty"`
+		Inputs  []map[string]int `json:"q,omitempty"`
+		Outputs []map[string]int `json:"x,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return nil, cliutil.NewStackError(err)
+		return nil, nil, cliutil.NewStackError(err)
 	}
 
-	results := make([]int, len(r.Transaction))
-	for i, v := range r.Transaction {
+	if len(r.Inputs) != len(r.Outputs) || len(r.Outputs) != len(addressUIDs) {
+		return nil, nil, cliutil.NewStackErrorf(
+			"length of inputs (%d) and outputs (%d) do not match", len(r.Inputs), len(r.Outputs))
+	}
+
+	inputSums := make([]int, len(r.Inputs))
+	for i, v := range r.Inputs {
 		_, item := cliutil.GetOneItem(v)
-		results[i] = item
+		inputSums[i] = item
 	}
 
-	return results, nil
+	outputSums := make([]int, len(r.Outputs))
+	for i, v := range r.Outputs {
+		_, item := cliutil.GetOneItem(v)
+		outputSums[i] = item
+	}
+
+	return inputSums, outputSums, nil
 }
 
 // GetTransactionCountPerCluster returns the number of transactions this cluster has created
-func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, error) {
+func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int, int, error) {
 	const query = `query Q($uid:string){
 					var(func: uid($uid)){
 						Cluster.addresses {
 							addr_outputs{
-								t as ~tx_inputs
+								i as ~tx_inputs
+								o as ~tx_outputs
 							}
 						}
 					}
 					
-					q(func: uid(t)){
+					q(func: uid(o)){
+						count(uid)
+					}
+
+					x(func: uid(i)){
 						count(uid)
 					}
 				}`
 
 	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*20, query, map[string]string{"$uid": clusterUID})
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	var r struct {
-		Transaction []struct {
+		Inputs []struct {
 			Count int `json:"count,omitempty"`
 		} `json:"q,omitempty"`
+		Ouptuts []struct {
+			Count int `json:"count,omitempty"`
+		} `json:"x,omitempty"`
 	}
 
 	if err = json.Unmarshal(resp.Json, &r); err != nil {
-		return 0, cliutil.NewStackError(err)
+		return 0, 0, cliutil.NewStackError(err)
 	}
 
-	if len(r.Transaction) != 1 {
-		return 0, cliutil.NewStackErrorStr("invalid result")
+	if len(r.Inputs) != 1 || len(r.Ouptuts) != 1 {
+		return 0, 0, cliutil.NewStackErrorStr("invalid result")
 	}
 
-	return r.Transaction[0].Count, nil
+	return r.Inputs[0].Count, r.Ouptuts[0].Count, nil
 }
 
 // GetAllFMIClusters returns the uids of all FMI clusters
