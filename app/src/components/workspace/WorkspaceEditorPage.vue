@@ -31,43 +31,7 @@
             @click:append-inner="handleGraphQuery(graphQuery)"
             @keydown.enter="handleGraphQuery(graphQuery)"
           />
-          <v-menu location="bottom">
-            <template #activator="{ props }">
-              <v-btn
-                :icon="true"
-                variant="text"
-                v-bind="props"
-                style="outline: 0"
-              >
-                <v-icon>{{ mdiDotsVertical }}</v-icon>
-              </v-btn>
-            </template>
-            <v-list>
-              <v-list-item @click="nodeGraph.reorderNodes()">
-                <template #prepend>
-                  <v-icon :icon="mdiCached" />
-                </template>
-                <v-list-item-title>
-                  Reorder Nodes
-                </v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="nodeGraph.centerGraph()">
-                <template #prepend>
-                  <v-icon :icon="mdiImageFilterCenterFocus" />
-                </template>
-                <v-list-item-title>
-                  Center Graph
-                </v-list-item-title>
-              </v-list-item>
-              <v-divider />
-              <v-list-item :to="{ name: ROUTE_NAME_WORKSPACES_PAGE}">
-                <template #prepend>
-                  <v-icon :icon="mdiOpenInNew" />
-                </template>
-                <v-list-item-title>Workspaces Overview</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+          <adaptive-menu :items="menuItems" />
         </v-card-text>
         <v-progress-linear
           v-if="isModifyingWorkspace"
@@ -170,7 +134,6 @@ import {
 	mdiCached,
 	mdiCheckCircle,
 	mdiDelete,
-	mdiDotsVertical,
 	mdiImageFilterCenterFocus,
 	mdiMagnify,
 	mdiOpenInNew,
@@ -190,6 +153,7 @@ import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph';
 import {sleep} from '@/d3Documents/util';
 import EntitySideBar from '@/components/workspace/EntitySideBar.vue';
+import AdaptiveMenu from '@/components/workspace/AdaptiveMenu.vue';
 
 const dakar = inject('dakar');
 const route = useRoute();
@@ -273,6 +237,12 @@ const contextMenuModel = ref({
 		},
 	],
 });
+
+const menuItems = [
+	{title: 'Reorder Nodes', icon: mdiCached, action: () => nodeGraph.reorderNodes()},
+	{title: 'Center Graph', icon: mdiImageFilterCenterFocus, action: () => nodeGraph.centerGraph()},
+	{title: 'Workspaces Overview', icon: mdiOpenInNew, to: {name: ROUTE_NAME_WORKSPACES_PAGE}},
+];
 
 let autoSaveTimer = null;
 
