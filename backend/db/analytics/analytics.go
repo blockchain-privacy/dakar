@@ -748,11 +748,11 @@ func GetTransactionCountPerCluster(c external.Database, clusterUID string) (int,
 						}
 					}
 					
-					q(func: uid(o)){
+					q(func: uid(i)){
 						count(uid)
 					}
 
-					x(func: uid(i)){
+					x(func: uid(o)){
 						count(uid)
 					}
 				}`
