@@ -26,7 +26,6 @@ NEEDS_TAG=$(git tag --points-at HEAD)
 if [ -z "$NEEDS_TAG" ]; then
     echo "Tagged with $NEW_TAG"
     git tag "$NEW_TAG"
-    git push
     git push --tags
 else
     echo "Already a tag on this commit"
