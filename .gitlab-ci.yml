@@ -137,7 +137,7 @@ npm-client:
     - yarn npm publish
 
 upload:
-  needs: [ "compile_binary" ]
+  needs: [ "build" ]
   stage: publish
   image: curlimages/curl:latest
   rules:
