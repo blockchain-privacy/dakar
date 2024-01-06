@@ -27,6 +27,7 @@ stages:
   - dependencies
   - test
   - build
+  - publish
 
 before_script:
   - cd backend
