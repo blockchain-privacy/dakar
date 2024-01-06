@@ -33,7 +33,7 @@ before_script:
 
 test:
   stage: test
-  needs: ["dependencies"]
+  needs: [ "dependencies" ]
   variables:
     DB_TESTS: "1" # variable which controls if tests requiring the database should be run
     RPC_TESTS: "1" # variable which controls if tests requiring the RPC-client should be run
@@ -59,7 +59,7 @@ lint:
 
 vet:
   stage: test
-  needs: ["dependencies"]
+  needs: [ "dependencies" ]
   script: make vet
   cache:
     <<: *modcache
@@ -79,9 +79,9 @@ swaggo:
     - tar -xvzf swag_"${SWAGGO_VERSION}"_Linux_x86_64.tar.gz
     - make swagger-fmt
     - make swagger-create
-#  artifacts:
-#    paths:
-#      - backend/openapi
+  artifacts:
+    paths:
+      - backend/openapi
 
 #openapi:
 #  needs: ["swaggo"]
