@@ -1,7 +1,7 @@
 BUILD_DIR := "build"
 CRAWLER_DIR := "./cmd/crawler"
 
-.PHONY: all dep build dash bitcoin clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt
+.PHONY: all dep build dash bitcoin clean test lint tidy update_dependencies docker-dash docker-bitcoin swagger-create swagger-fmt push-tag
 
 all: build
 
@@ -50,6 +50,9 @@ endif
 
 swagger-fmt: ## Formats swagger annotations
 	./swag fmt -d cmd/crawler,server
+
+push-tag: ## increment the most recent tag and push it and any local commits
+	bash createTag.sh
 
 help: ## Display this help screen
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
