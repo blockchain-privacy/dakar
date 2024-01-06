@@ -144,8 +144,10 @@ upload:
   rules:
     - if: $CI_COMMIT_TAG
   script:
-    - curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_dash "${PACKAGE_REGISTRY_URL}"
-    - curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_bitcoin "${PACKAGE_REGISTRY_URL}"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_dash "${PACKAGE_REGISTRY_URL}"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build/crawler_bitcoin "${PACKAGE_REGISTRY_URL}"
 
 release:
   needs: [ "upload" ]
