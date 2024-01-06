@@ -28,6 +28,7 @@ stages:
   - test
   - build
   - publish
+  - release
 
 before_script:
   - cd backend
@@ -134,3 +135,24 @@ npm-client:
       EOF
     - yarn install
     - yarn npm publish
+
+upload:
+  needs: [ "compile_binary" ]
+  stage: publish
+  image: curlimages/curl:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file build "${PACKAGE_REGISTRY_URL}/dakar"
+
+release:
+  needs: [ "upload" ]
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      release-cli create --name "$CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
+        --assets-link "{\"name\":\"dakar\",\"url\":\"${PACKAGE_REGISTRY_URL}/dakar\"}"
