@@ -71,6 +71,9 @@ build:
   cache:
     <<: *modcache
     policy: pull
+  artifacts:
+    paths:
+      - backend/build
 
 swaggo:
   stage: build
@@ -83,12 +86,12 @@ swaggo:
     paths:
       - backend/openapi
 
-#openapi:
-#  needs: ["swaggo"]
-#  image: openapitools/openapi-generator-cli:v7.0.1
-#  stage: build
-#  script:
-#    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
-#  artifacts:
-#    paths:
-#      - backend/openapi/client
+openapi:
+  needs: [ "swaggo" ]
+  image: openapitools/openapi-generator-cli:v7.2.0
+  stage: build
+  script:
+    - /usr/local/bin/docker-entrypoint.sh generate -i openapi/swagger.yaml -g typescript-fetch -o openapi/client/typescript-fetch --additional-properties modelPropertyNaming=original
+  artifacts:
+    paths:
+      - backend/openapi/client
