@@ -47,13 +47,18 @@ test:
     - tar -xvzf btcd-linux-amd64-$BTCD_VERSION.tar.gz
     - mv btcd-linux-amd64-$BTCD_VERSION/btcd /bin/btcd
     # start tests
-    - make test
+    - go install gotest.tools/gotestsum@latest
+    - $GOPATH/bin/gotestsum --junitfile report.xml -- -cover -race -p 1 ./...
   services:
     - name: dgraph/standalone:$DGRAPH_VERSION
       alias: dgraph_db # database for db module
   cache:
     <<: *modcache
     policy: pull
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
 
 lint:
   image: golangci/golangci-lint:latest
