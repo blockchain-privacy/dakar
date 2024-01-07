@@ -58,7 +58,7 @@ test:
   artifacts:
     when: always
     reports:
-      junit: report.xml
+      junit: backend/report.xml
 
 lint:
   image: golangci/golangci-lint:latest
