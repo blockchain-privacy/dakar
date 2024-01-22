@@ -31,17 +31,11 @@
               Add Heuristic
             </v-chip>
           </template>
-          <v-chip
+          <fingerprint-chip
             v-if="type === 'transaction' && entityData[0] && isDestination(entityData[0].privacytype)"
-            :rounded="true"
-            color="primary"
-            variant="tonal"
-            :prepend-icon="mdiFingerprint"
+            :transaction-hash="identifier"
             class="me-2"
-            @click="() => {console.log('implement me')}"
-          >
-            Fingerprint
-          </v-chip>
+          />
           <privacy-chip
             v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
             :privacy-type="entityData[0].privacytype"
@@ -161,7 +155,6 @@ import {
 	mdiChartBar,
 	mdiDelete,
 	mdiFileDownloadOutline,
-	mdiFingerprint,
 	mdiOpenInNew,
 	mdiPlus,
 	mdiShapeCirclePlus,
@@ -181,6 +174,7 @@ import HeuristicDetails from '@/components/workspace/HeuristicDetails.vue';
 import {getCurrentDate, isDestination} from '@/utilities';
 import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import NamedDivider from '@/components/common/NamedDivider.vue';
+import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 
 const props = defineProps({
 	identifier: {type: String, required: true},

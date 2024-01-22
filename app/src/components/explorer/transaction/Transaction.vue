@@ -11,25 +11,11 @@
         class="mx-3"
         :privacy-type="tx.privacytype"
       />
-      <template v-if="isDestination(tx.privacytype)">
-        <v-btn
-          v-if="showFingerprintLink"
-          :id="`btn_find_similar_transactions_${tx.txhash}`"
-          style="margin-right: 0"
-          :icon="true"
-          :color="null"
-          variant="text"
-          @click="showFingerprintDialog = true"
-        >
-          <v-icon>{{ mdiFingerprint }}</v-icon>
-        </v-btn>
-        <v-tooltip
-          location="bottom"
-          :activator="`#btn_find_similar_transactions_${tx.txhash}`"
-        >
-          <span>Search for similar destination transactions</span>
-        </v-tooltip>
-      </template>
+      <fingerprint-chip
+        v-if="showFingerprintLink && isDestination(tx.privacytype)"
+        :transaction-hash="tx.txhash"
+        class="ms-2"
+      />
     </icon-title>
     <v-card-text>
       <v-expand-transition>
@@ -228,11 +214,6 @@
     >
       <v-icon>{{ showAllOutputs ? mdiChevronUp : mdiChevronDown }}</v-icon>
     </v-btn>
-    <fingerprint-transactions-dialog
-      v-if="showTitleBar"
-      v-model="showFingerprintDialog"
-      :transaction-hash="tx.txhash"
-    />
   </v-card>
 </template>
 
@@ -242,7 +223,6 @@ import {
 	mdiCash,
 	mdiChevronDown,
 	mdiChevronUp,
-	mdiFingerprint,
 	mdiFormatHeaderPound,
 	mdiFormatListNumbered,
 	mdiPickaxe,
@@ -252,10 +232,10 @@ import OutputItem from './OutputItem.vue';
 import {convertAmount, isDestination, shortenHash} from '@/utilities';
 import {ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
 import IconItem from '../../common/IconItem.vue';
-import FingerprintTransactionsDialog from './FingerprintTransactionsDialog.vue';
 import {computed, isProxy, ref, toRaw, toRef} from 'vue';
 import PrivacyChip from '@/components/common/PrivacyChip.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
+import FingerprintChip from '@/components/explorer/transaction/FingerprintChip.vue';
 
 const props = defineProps({
 	tx: {type: Object, required: true},
@@ -269,7 +249,6 @@ const props = defineProps({
 
 const showTransactionDetails = toRef(props.showDetails);
 const showAllOutputs = ref(false);
-const showFingerprintDialog = ref(false);
 const maxOutputs = ref(3);
 
 // Computed
