@@ -13,7 +13,7 @@
         <span class="shorten"> {{ title }}</span>
         <div class="ms-auto">
           <slot
-            v-if="titleOneLine || !$vuetify.display.xs"
+            v-if="titleOneLine"
             name="actions"
           />
           <v-btn
@@ -27,8 +27,8 @@
         </div>
       </v-card-title>
       <v-card-title
-        v-if="!titleOneLine && $vuetify.display.xs"
-        class="d-flex align-center justify-end mb-1 pt-0"
+        v-if="!titleOneLine"
+        class="d-flex align-center justify-start mb-1 pt-0"
         style="margin-top: -5px"
       >
         <slot name="actions" />
