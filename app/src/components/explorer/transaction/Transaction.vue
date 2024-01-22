@@ -8,8 +8,8 @@
     >
       <privacy-chip
         v-if="tx.privacytype >= 0"
-        class="mx-3"
         :privacy-type="tx.privacytype"
+        class="ms-2"
       />
       <fingerprint-chip
         v-if="showFingerprintLink && isDestination(tx.privacytype)"
