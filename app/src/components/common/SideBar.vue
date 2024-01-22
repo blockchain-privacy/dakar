@@ -41,6 +41,7 @@
 
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
+import {onMounted, onUnmounted} from 'vue';
 
 defineProps({
 	title: {type: String, required: true},
@@ -51,6 +52,22 @@ defineProps({
 });
 
 const model = defineModel({type: Boolean});
+
+// Hooks
+onMounted(() => {
+	window.addEventListener('keydown', keyListener);
+});
+
+onUnmounted(() => {
+	window.removeEventListener('keydown', keyListener);
+});
+
+// Functions
+function keyListener(event) {
+	if (event.key === 'Escape') {
+		model.value = false;
+	}
+}
 
 </script>
 
