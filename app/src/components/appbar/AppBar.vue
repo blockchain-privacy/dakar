@@ -41,11 +41,7 @@
       <v-icon>{{ mdiDotsGrid }}</v-icon>
       <page-menu />
     </v-btn>
-    <!-- todo: check if https://github.com/vuetifyjs/vuetify/issues/17234 is fixed (wrong menu position after window resize) -->
-    <v-menu
-      v-if="session"
-      @update:model-value="triggerMenuResize"
-    >
+    <v-menu v-if="session">
       <template #activator="{ props }">
         <v-btn
           v-bind="props"
@@ -113,16 +109,14 @@
 </template>
 
 <script setup>
-import {
-	mdiAccount, mdiAccountCircle, mdiCog, mdiLogin, mdiLogout,
-	mdiDotsGrid, mdiThemeLightDark,
-} from '@mdi/js';
+import {mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiThemeLightDark} from '@mdi/js';
 import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
 import {
 	APPLICATION_NAME,
-	ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_LOGIN_PAGE,
+	ROUTE_NAME_ENTRY_PAGE,
+	ROUTE_NAME_LOGIN_PAGE,
 	ROUTE_NAME_USER_PROFILE_PAGE,
 } from '@/constants';
 import {isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
@@ -153,23 +147,7 @@ const session = computed({
 
 const isPrivilegedOrHigher = computed(() => isPrivilegedIdentity(session.value) || isAdminIdentity(session.value));
 
-// Function
-// Workaround for https://github.com/vuetifyjs/vuetify/issues/17234,
-// trigger resize a few times so the menu size is updated.
-async function triggerMenuResize(val) {
-	if (!val) {
-		return;
-	}
-
-	for (let i = 0; i < 20; i++) {
-		// eslint-disable-next-line no-await-in-loop
-		await new Promise(resolve => {
-			setTimeout(resolve, 10);
-		});
-		window.dispatchEvent(new Event('resize'));
-	}
-}
-
+// Functions
 // GoToPage should receive a page name from ./constants
 function goToPage(pageName) {
 	// Only change route if not already on page
