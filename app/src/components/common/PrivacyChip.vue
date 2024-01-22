@@ -8,6 +8,8 @@
       color="purple"
       :size="size"
       style="cursor: pointer"
+      v-bind="$attrs"
+      class="text-capitalize"
     >
       <v-icon
         :icon="mdiIncognito"
