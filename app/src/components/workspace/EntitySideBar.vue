@@ -7,48 +7,61 @@
     :title-one-line="false"
   >
     <template #actions>
-      <template v-if="!isLoading && entityData">
-        <template v-if="type === 'heuristic' || (type === 'transaction' && entityData[0]?.privacytype >= 0)">
+      <div class="overflow-auto">
+        <v-chip
+          :rounded="true"
+          class="me-2"
+          variant="tonal"
+          :prepend-icon="mdiDelete"
+          @click="emitDeleteEntity"
+        >
+          Delete
+        </v-chip>
+        <template v-if="!isLoading && entityData">
+          <template v-if="type === 'heuristic' || (type === 'transaction' && entityData[0]?.privacytype >= 0)">
+            <v-chip
+              v-if="type === 'heuristic' || isDestination(entityData[0].privacytype)"
+              :rounded="true"
+              color="primary"
+              variant="tonal"
+              class="me-2"
+              :prepend-icon="mdiShapeCirclePlus"
+              @click="handleAddHeuristicClick"
+            >
+              Add Heuristic
+            </v-chip>
+          </template>
           <v-chip
-            v-if="type === 'heuristic' || isDestination(entityData[0].privacytype)"
+            v-if="type === 'transaction' && entityData[0] && isDestination(entityData[0].privacytype)"
             :rounded="true"
             color="primary"
             variant="tonal"
+            :prepend-icon="mdiFingerprint"
             class="me-2"
-            :prepend-icon="mdiShapeCirclePlus"
-            @click="handleAddHeuristicClick"
+            @click="() => {console.log('implement me')}"
           >
-            Add Heuristic
+            Fingerprint
+          </v-chip>
+          <privacy-chip
+            v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
+            :privacy-type="entityData[0].privacytype"
+          />
+          <exclusion-chip
+            v-else-if="type === 'cluster' && entityData?.addresshash"
+            :address-hash="entityData.addresshash"
+          />
+          <v-chip
+            v-else-if="type === 'heuristic' && entityData?.clusterCount > 0"
+            :rounded="true"
+            color="primary"
+            variant="tonal"
+            :prepend-icon="mdiFileDownloadOutline"
+            @click="downloadSummary"
+          >
+            Download
           </v-chip>
         </template>
-        <privacy-chip
-          v-if="type === 'transaction' && entityData[0]?.privacytype >= 0"
-          :privacy-type="entityData[0].privacytype"
-        />
-        <exclusion-chip
-          v-else-if="type === 'cluster' && entityData?.addresshash"
-          :address-hash="entityData.addresshash"
-        />
-        <v-chip
-          v-else-if="type === 'heuristic' && entityData?.clusterCount > 0"
-          :rounded="true"
-          color="primary"
-          variant="tonal"
-          :prepend-icon="mdiFileDownloadOutline"
-          @click="downloadSummary"
-        >
-          Download
-        </v-chip>
-      </template>
-      <v-chip
-        :rounded="true"
-        class="ms-2"
-        variant="tonal"
-        :prepend-icon="mdiDelete"
-        @click="emitDeleteEntity"
-      >
-        Delete
-      </v-chip>
+      </div>
     </template>
     <template #body>
       <fade-transition>
@@ -148,6 +161,7 @@ import {
 	mdiChartBar,
 	mdiDelete,
 	mdiFileDownloadOutline,
+	mdiFingerprint,
 	mdiOpenInNew,
 	mdiPlus,
 	mdiShapeCirclePlus,
