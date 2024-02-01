@@ -45,7 +45,7 @@
         style=""
         :class="{'text-caption':true, 'auto-save-small-screen': $vuetify.display.smAndDown, 'auto-save-large-screen': $vuetify.display.mdAndUp }"
       >
-        <template v-if="isAutosaving">
+        <template v-if="isAutoSaving">
           Saving ...
         </template>
         <template v-else>
@@ -174,12 +174,12 @@ let uidCounter = 1;
 let data = null;
 // Node which triggered the heuristic type selection,
 // and to which will be the parent of the new heuristic.
-// May be a destination transaction or another heuristic
+// It may be a destination transaction or another heuristic
 let newHeuristicParentNodeUID = '';
 // Holds the references of all timers
 const heuristicTimers = [];
 
-const isAutosaving = ref(false);
+const isAutoSaving = ref(false);
 const wasAutoSaved = ref(false);
 const isLoadingWorkspace = ref(false);
 const isModifyingWorkspace = ref(false);
@@ -347,7 +347,7 @@ async function removeGraphNode() {
 			nodeGraph.removeNodes(deletedUIDs);
 		}
 	} else if (isDestination(node.privacyType)) {
-		// Remove desitnation node and all connected heuristics from graph
+		// Remove destination node and all connected heuristics from graph
 		const uids = [node.uid];
 
 		if (node.children) {
@@ -359,7 +359,8 @@ async function removeGraphNode() {
 		nodeGraph.removeContextMenuNode();
 	}
 
-	queueAutoSave();
+	// Save immediately
+	queueAutoSave(0);
 }
 
 // Getlock prevents further actions causing an autosave event to occur,
@@ -369,7 +370,7 @@ async function lockAutosave() {
 	isModifyingWorkspace.value = true;
 
 	// Wait for auto save to finish
-	while (isAutosaving.value) {
+	while (isAutoSaving.value) {
 		// eslint-disable-next-line no-await-in-loop
 		await sleep(200);
 	}
@@ -733,18 +734,18 @@ function createTabs() {
 	}
 }
 
-function queueAutoSave() {
-	isAutosaving.value = true;
+function queueAutoSave(t = 5000) {
+	isAutoSaving.value = true;
 	wasAutoSaved.value = true;
 	if (autoSaveTimer !== null) {
 		clearTimeout(autoSaveTimer);
 	}
 
-	autoSaveTimer = setTimeout(doAutoSave, 5000);
+	autoSaveTimer = setTimeout(doAutoSave, t);
 }
 
 async function doAutoSave() {
-	isAutosaving.value = true;
+	isAutoSaving.value = true;
 	autoSaveTimer = null;
 	try {
 		const response = await dakar.workspace.updateWorkspacePost({
@@ -760,7 +761,7 @@ async function doAutoSave() {
 		setErrorMessage(e);
 	}
 
-	isAutosaving.value = false;
+	isAutoSaving.value = false;
 }
 
 async function whenMounted() {
