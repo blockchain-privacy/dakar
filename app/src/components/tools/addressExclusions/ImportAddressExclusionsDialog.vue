@@ -85,15 +85,21 @@ const csv = ref({
 
 // Functions
 function setSuccessMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'success', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'success', temporary: true, category: route.name,
+	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function handleCSVUpload() {

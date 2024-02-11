@@ -2,7 +2,9 @@ import {isFunction} from '@/utilities';
 import {drag as d3Drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
-import {forceSimulation, forceLink, forceManyBody, forceX, forceY, forceRadial, forceCenter} from 'd3-force';
+import {
+	forceSimulation, forceLink, forceManyBody, forceX, forceY, forceRadial, forceCenter,
+} from 'd3-force';
 import {reduceX, reduceY} from '@/d3Documents/util';
 
 function drag(simulation) {

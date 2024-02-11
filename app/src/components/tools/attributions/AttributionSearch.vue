@@ -54,7 +54,9 @@ function isValidQuery(query) {
 }
 
 function setWarningMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
+	});
 }
 
 async function handleQuery() {

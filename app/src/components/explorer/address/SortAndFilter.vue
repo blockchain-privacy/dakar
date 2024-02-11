@@ -85,8 +85,12 @@ const sort = ref({
 const filter = ref({
 	selected: [],
 	items: [
-		{id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false},
-		{id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false},
+		{
+			id: 0, text: 'Only show coinbase outputs', chip: 'Coinbase outputs', disabled: false,
+		},
+		{
+			id: 1, text: 'Only show unspent outputs', chip: 'Unspent outputs', disabled: false,
+		},
 	],
 });
 

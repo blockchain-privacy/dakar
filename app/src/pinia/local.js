@@ -1,5 +1,7 @@
 import {defineStore} from 'pinia';
-import {getLocalSession, getLocalSettings, setLocalSession, setLocalSettings} from '@/utilities';
+import {
+	getLocalSession, getLocalSettings, setLocalSession, setLocalSettings,
+} from '@/utilities';
 
 // InsertLocalSettingsData inserts settings data, which is
 // stored in LocalStorage, into the store. This is not done

@@ -109,7 +109,9 @@
 </template>
 
 <script setup>
-import {mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiThemeLightDark} from '@mdi/js';
+import {
+	mdiAccount, mdiAccountCircle, mdiCog, mdiDotsGrid, mdiLogin, mdiLogout, mdiThemeLightDark,
+} from '@mdi/js';
 import PageMenu from './PageMenu.vue';
 import QueryInput from './QueryInput.vue';
 import DarkModeSwitch from './DarkModeSwitch.vue';
@@ -131,7 +133,9 @@ const ory = inject('ory');
 const localStore = useLocalStore();
 const route = useRoute();
 const router = useRouter();
-const context = {$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore()};
+const context = {
+	$route: route, $router: router, navStore: useNavStore(), localStore, msgStore: useMsgStore(),
+};
 
 defineProps({minimize: {type: Boolean, required: true}});
 

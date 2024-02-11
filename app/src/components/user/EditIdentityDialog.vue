@@ -58,7 +58,9 @@
 
 <script setup>
 import {emailRules, handleError} from '@/utilities';
-import {computed, inject, onMounted, ref} from 'vue';
+import {
+	computed, inject, onMounted, ref,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -75,7 +77,9 @@ const props = defineProps({
 });
 
 const isLoading = ref(false);
-const shadowIdentity = ref({id: '', email: '', roles: [], state: ''});
+const shadowIdentity = ref({
+	id: '', email: '', roles: [], state: '',
+});
 // Template ref
 const modifyIdentityForm = ref(null);
 
@@ -99,11 +103,15 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 async function saveIdentity() {

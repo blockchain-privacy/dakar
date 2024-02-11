@@ -147,7 +147,9 @@ import {
 	ROUTE_NAME_WORKSPACES_PAGE,
 } from '@/constants';
 import {getColorMap, handleError, isDestination} from '@/utilities';
-import {inject, nextTick, onMounted, onUnmounted, ref, watch} from 'vue';
+import {
+	inject, nextTick, onMounted, onUnmounted, ref, watch,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 import NodeGraph from '@/d3Documents/nodeGraph';
@@ -424,7 +426,9 @@ async function newRouting() {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function addNewHeuristic(heuristic) {
@@ -659,9 +663,8 @@ async function refreshData() {
 			data = response.workspace;
 			workspaceName.value = data.name;
 			workspaceModificationTime.value = new Date(data.ts);
-			if (data.state) {
-				data.state = JSON.parse(data.state);
-			}
+			// Parse state if set
+			data.state &&= JSON.parse(data.state);
 		} else {
 			data = null;
 		}
@@ -677,10 +680,8 @@ async function refreshData() {
 		return false;
 	}
 
-	// If the workspace does not yet contain any nodes
-	if (!data.state) {
-		data.state = [];
-	}
+	// If the workspace does not yet contain any nodes, set an empty array
+	data.state ??= [];
 
 	return true;
 }

@@ -73,7 +73,9 @@ export default async function handleGetFlowError(context, error, onRefreshFlow) 
 	}
 
 	if (error.message) {
-		context.msgStore.addMessage({text: error.message, type: 'error', temporary: true, category: context.$route.name});
+		context.msgStore.addMessage({
+			text: error.message, type: 'error', temporary: true, category: context.$route.name,
+		});
 	}
 
 	// Return error if it was not possible to handle it

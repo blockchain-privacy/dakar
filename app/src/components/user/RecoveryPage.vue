@@ -45,7 +45,9 @@ const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
-const context = {$route: route, $router: router, navStore, localStore, msgStore};
+const context = {
+	$route: route, $router: router, navStore, localStore, msgStore,
+};
 
 const recoveryFlow = ref(null);
 const disabledForms = ref([]);
@@ -72,7 +74,9 @@ onMounted(async () => {
 
 // Functions
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function initRecoveryFlow() {

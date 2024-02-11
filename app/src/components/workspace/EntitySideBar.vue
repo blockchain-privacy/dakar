@@ -161,7 +161,9 @@ import {
 	mdiTransfer,
 } from '@mdi/js';
 import SideBar from '@/components/common/SideBar.vue';
-import {computed, inject, onUpdated, ref} from 'vue';
+import {
+	computed, inject, onUpdated, ref,
+} from 'vue';
 import Transaction from '@/components/explorer/transaction/Transaction.vue';
 import AddressView from '@/components/explorer/address/Address.vue';
 import {onBeforeRouteLeave, useRoute} from 'vue-router';
@@ -336,7 +338,9 @@ async function getHeuristicData() {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function downloadSummary() {

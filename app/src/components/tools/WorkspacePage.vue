@@ -197,7 +197,9 @@
 </template>
 
 <script setup>
-import {mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus} from '@mdi/js';
+import {
+	mdiRefresh, mdiDelete, mdiMagnify, mdiDotsVertical, mdiPlus,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WORKSPACE_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import IconTitle from '@/components/common/IconTitle.vue';
@@ -241,11 +243,15 @@ onMounted(() => {
 
 // Functions
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 function setInfoMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'info', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'info', temporary: true, category: route.name,
+	});
 }
 
 async function loadWorkspaceList() {

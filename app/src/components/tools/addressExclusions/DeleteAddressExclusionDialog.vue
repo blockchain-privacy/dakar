@@ -53,7 +53,9 @@ const isLoading = ref(false);
 
 // Functions
 function setPersistentErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: false, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: false, category: route.name,
+	});
 }
 
 async function deleteAddressExclusion() {

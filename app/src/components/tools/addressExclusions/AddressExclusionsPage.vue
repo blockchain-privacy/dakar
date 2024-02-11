@@ -142,7 +142,9 @@
 </template>
 
 <script setup>
-import {mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport} from '@mdi/js';
+import {
+	mdiPlaylistRemove, mdiDelete, mdiDotsVertical, mdiFileImport,
+} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_ADDRESS_PAGE} from '@/constants';
 import {handleError} from '@/utilities';
 import ImportAddressExclusionsDialog from './ImportAddressExclusionsDialog.vue';

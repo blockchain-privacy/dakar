@@ -153,7 +153,9 @@
 
 <script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {CLUSTER_TYPE_FMI, CLUSTER_TYPE_HMI, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
+import {
+	CLUSTER_TYPE_FMI, CLUSTER_TYPE_HMI, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
+} from '@/constants';
 import {getClusterTypeLabel, getCurrentDate, handleError} from '@/utilities';
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';

@@ -57,7 +57,9 @@
 </template>
 
 <script setup>
-import {mdiChartTimelineVariant, mdiMerge, mdiPlaylistRemove, mdiTag, mdiTextBoxSearch, mdiToolbox} from '@mdi/js';
+import {
+	mdiChartTimelineVariant, mdiMerge, mdiPlaylistRemove, mdiTag, mdiTextBoxSearch, mdiToolbox,
+} from '@mdi/js';
 import {
 	ROUTE_NAME_ADDRESS_EXCLUSIONS,
 	ROUTE_NAME_ATTRIBUTIONS,

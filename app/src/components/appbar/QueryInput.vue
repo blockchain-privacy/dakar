@@ -23,7 +23,9 @@ import {
 	ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_BLOCK_PAGE, ROUTE_NAME_NO_RESULTS, ROUTE_NAME_TRANSACTION_PAGE,
 } from '@/constants';
 import {handleError, isValidQuery, isValidQueryInput} from '@/utilities';
-import {computed, inject, ref, watch} from 'vue';
+import {
+	computed, inject, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {useMsgStore} from '@/pinia/msg';
@@ -163,7 +165,9 @@ async function handleQuery(q, type) {
 }
 
 function setWarningMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'warning', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'warning', temporary: true, category: route.name,
+	});
 }
 
 // Initial routing

@@ -54,7 +54,9 @@ import {
 } from '@/constants';
 import handleGetFlowError from '@/kratos';
 import OryFlow from './ory/OryFlow.vue';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onMounted, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {storeToRefs} from 'pinia';
 import {useLocalStore} from '@/pinia/local';
@@ -68,7 +70,9 @@ const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
 const {failedRoute} = storeToRefs(navStore);
-const context = {$route: route, $router: router, navStore, localStore, msgStore};
+const context = {
+	$route: route, $router: router, navStore, localStore, msgStore,
+};
 
 const loginFlow = ref(null);
 const showLogoutButton = ref(false);
@@ -113,7 +117,9 @@ onMounted(() => {
 
 // Functions
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 function goToPage(pageObj) {

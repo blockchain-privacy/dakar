@@ -322,8 +322,12 @@ const sessionHeaders = [
 ];
 
 const createNewUser = ref(false);
-const editedItem = ref({id: '', email: '', state: '', roles: []});
-const defaultItem = ref({id: '', email: '', state: '', roles: []});
+const editedItem = ref({
+	id: '', email: '', state: '', roles: [],
+});
+const defaultItem = ref({
+	id: '', email: '', state: '', roles: [],
+});
 const identities = ref(null);
 const sessions = ref(null);
 const identityPropertyDialogData = ref(null);
@@ -334,7 +338,9 @@ onMounted(() => {
 });
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function loadUserList() {

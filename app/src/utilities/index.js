@@ -107,7 +107,9 @@ export function handleError(context, error) {
 		errMsg = error.message;
 	}
 
-	context.addMessage({text: errMsg, type: 'error', temporary: true, category: context.$route.name});
+	context.addMessage({
+		text: errMsg, type: 'error', temporary: true, category: context.$route.name,
+	});
 }
 
 export const emailRules = [

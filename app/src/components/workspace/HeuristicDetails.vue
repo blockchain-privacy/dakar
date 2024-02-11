@@ -157,7 +157,9 @@ import {
 } from '@mdi/js';
 import Histogram from '@/d3Documents/histogram';
 import NamedDivider from '@/components/common/NamedDivider.vue';
-import {computed, onMounted, onUpdated, ref} from 'vue';
+import {
+	computed, onMounted, onUpdated, ref,
+} from 'vue';
 import {plural} from '@/utilities';
 
 const props = defineProps({

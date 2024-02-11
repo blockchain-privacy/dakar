@@ -132,7 +132,9 @@ import {PAGE_TITLE, ROUTE_NAME_ENTRY_PAGE, ROUTE_NAME_USER_PROFILE_PAGE} from '@
 import OryFlow from './ory/OryFlow.vue';
 import handleGetFlowError from '@/kratos';
 import {handleError} from '@/utilities';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onMounted, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useLocalStore} from '@/pinia/local';
 import {useNavStore} from '@/pinia/nav';
@@ -145,7 +147,9 @@ const router = useRouter();
 const localStore = useLocalStore();
 const navStore = useNavStore();
 const msgStore = useMsgStore();
-const context = {$route: route, $router: router, navStore, localStore, msgStore};
+const context = {
+	$route: route, $router: router, navStore, localStore, msgStore,
+};
 
 const settingsFlow = ref(null);
 const userSessions = ref([]);
@@ -230,7 +234,9 @@ function setSuccessMessage(msg) {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function deleteIdentity() {

@@ -104,10 +104,12 @@
 </template>
 
 <script setup>
-import {mdiBookOpen, mdiBook, mdiMagnify} from '@mdi/js';
+import {mdiBook, mdiBookOpen, mdiMagnify} from '@mdi/js';
 import {PAGE_TITLE, ROUTE_NAME_WIKI, ROUTE_NAME_WIKI_ROOT} from '@/constants';
 import FadeTransition from '../common/FadeTransition.vue';
-import {computed, inject, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onMounted, ref, watch,
+} from 'vue';
 import {useRoute, useRouter} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -214,9 +216,7 @@ function getFileHierarchy() {
 				props = hierarchy.get(directory);
 			}
 
-			if (!props.items) {
-				props.items = [];
-			}
+			props.items ??= [];
 
 			props.items.push({name: fileName, path: d});
 			hierarchy.set(directory, props);
@@ -235,7 +235,9 @@ function getFileHierarchy() {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 async function getFileIndex() {

@@ -147,7 +147,9 @@ import IconItem from '../common/IconItem.vue';
 import Transaction from './transaction/Transaction.vue';
 import FadeTransition from '../common/FadeTransition.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {computed, inject, onMounted, onUpdated, watch} from 'vue';
+import {
+	computed, inject, onMounted, onUpdated, watch,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useExplorerStore} from '@/pinia/explorer';
 import {storeToRefs} from 'pinia';

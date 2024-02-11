@@ -2,9 +2,13 @@ import {getPrivacyTypeLabel, isFunction} from '@/utilities';
 import {drag} from 'd3-drag';
 import {select as d3Select} from 'd3-selection';
 import {zoom} from 'd3-zoom';
-import {forceCollide, forceLink, forceManyBody, forceSimulation} from 'd3-force';
+import {
+	forceCollide, forceLink, forceManyBody, forceSimulation,
+} from 'd3-force';
 import {abbreviateNumber} from '@/d3Documents/util';
-import {mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune} from '@mdi/js';
+import {
+	mdiClockAlertOutline, mdiMerge, mdiPlaylistRemove, mdiTune,
+} from '@mdi/js';
 import forceLimit from '@/d3Documents/forceLimit';
 
 // Sets a node with a valid x attribute to be excluded from force simulations

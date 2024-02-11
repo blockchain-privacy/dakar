@@ -253,7 +253,9 @@ import {getColorMap, getPrivacyTypeLabel} from '@/utilities';
 import WikiTooltip from '@/components/wiki/WikiTooltip.vue';
 import TransactionTableDialog from '@/components/explorer/address/TransactionTableDialog.vue';
 import TransactionDialog from '@/components/explorer/address/TransactionDialog.vue';
-import {computed, inject, onBeforeMount, onMounted, ref, watch} from 'vue';
+import {
+	computed, inject, onBeforeMount, onMounted, ref, watch,
+} from 'vue';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';
 
@@ -373,7 +375,9 @@ function capitalize(str) {
 }
 
 function setErrorMessage(msg) {
-	msgStore.addMessage({text: msg, type: 'error', temporary: true, category: route.name});
+	msgStore.addMessage({
+		text: msg, type: 'error', temporary: true, category: route.name,
+	});
 }
 
 function onBarClick(data) {

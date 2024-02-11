@@ -33,7 +33,9 @@
 <script setup>
 import {mdiCloseCircle} from '@mdi/js';
 import DeleteAddressExclusionDialog from '@/components/tools/addressExclusions/DeleteAddressExclusionDialog.vue';
-import {computed, inject, onMounted, ref} from 'vue';
+import {
+	computed, inject, onMounted, ref,
+} from 'vue';
 import {handleError, isAdminIdentity, isPrivilegedIdentity} from '@/utilities';
 import {useRoute} from 'vue-router';
 import {useMsgStore} from '@/pinia/msg';

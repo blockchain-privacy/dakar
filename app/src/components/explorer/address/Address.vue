@@ -186,13 +186,17 @@ import {
 	mdiScaleBalance,
 } from '@mdi/js';
 import {COIN_UNIT, ROUTE_NAME_TRANSACTION_PAGE} from '@/constants';
-import {convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash} from '@/utilities';
+import {
+	convertAmount, handleError, isAdminIdentity, isPrivilegedIdentity, shortenHash,
+} from '@/utilities';
 import MixingActivity from '@/components/explorer/address/MixingActivity.vue';
 import IconItem from '@/components/common/IconItem.vue';
 import SortAndFilter from '@/components/explorer/address/SortAndFilter.vue';
 import ClusterLookup from '@/components/explorer/address/ClusterLookup.vue';
 import IconTitle from '@/components/common/IconTitle.vue';
-import {computed, inject, onMounted, onUpdated, ref} from 'vue';
+import {
+	computed, inject, onMounted, onUpdated, ref,
+} from 'vue';
 import {useMsgStore} from '@/pinia/msg';
 import {useRoute} from 'vue-router';
 import {storeToRefs} from 'pinia';
