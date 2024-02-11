@@ -128,42 +128,8 @@ const showRootPage = ref(true);
 const query = ref(null);
 
 // Computed
-const fileHierarchy = computed(() => getFileHierarchy());
 
-// NamePathPairs returns an array of name and
-// path pairs [{name: filename, path: filename.md}, ...]
-const namePathPairs = computed(() => {
-	const pairs = [];
-
-	fileHierarchy.value.forEach(d => {
-		if (d.items) {
-			d.items.forEach(l => {
-				pairs.push(l);
-			});
-		} else {
-			pairs.push(d);
-		}
-	});
-
-	return pairs;
-});
-
-// SeparateWords adds a space before each capitalized letter
-function separateWords(string) {
-	return string.replace(/([A-Z])/g, ' $1').trim();
-}
-
-// Capitalize capitalizes the given string
-function capitalize(string) {
-	return string[0].toUpperCase() + string.slice(1);
-}
-
-// CleanName capitalizes the given string and remove the '.md' postfix
-function cleanName(fileName) {
-	return capitalize(separateWords(fileName)).replace('.md', '').replace('-', ' ');
-}
-
-// GetFileHierarchy returns a file hierarchy based on the given directories.
+// fileHierarchy returns a file hierarchy based on the given directories.
 // convert map to array of objects
 // result:
 // [
@@ -187,7 +153,7 @@ function cleanName(fileName) {
 //     "path": "transactionTypes/destination.md"
 //   }
 // ]
-function getFileHierarchy() {
+const fileHierarchy = computed(() => {
 	if (fileSet.value === null) {
 		return [];
 	}
@@ -232,6 +198,39 @@ function getFileHierarchy() {
 	});
 
 	return hierarchyArray;
+});
+
+// NamePathPairs returns an array of name and
+// path pairs [{name: filename, path: filename.md}, ...]
+const namePathPairs = computed(() => {
+	const pairs = [];
+
+	fileHierarchy.value.forEach(d => {
+		if (d.items) {
+			d.items.forEach(l => {
+				pairs.push(l);
+			});
+		} else {
+			pairs.push(d);
+		}
+	});
+
+	return pairs;
+});
+
+// SeparateWords adds a space before each capitalized letter
+function separateWords(string) {
+	return string.replace(/([A-Z])/g, ' $1').trim();
+}
+
+// Capitalize capitalizes the given string
+function capitalize(string) {
+	return string[0].toUpperCase() + string.slice(1);
+}
+
+// CleanName capitalizes the given string and remove the '.md' postfix
+function cleanName(fileName) {
+	return capitalize(separateWords(fileName)).replace('.md', '').replace('-', ' ');
 }
 
 function setErrorMessage(msg) {
