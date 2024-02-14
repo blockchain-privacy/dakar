@@ -411,7 +411,7 @@ func TestGetTransactionUIDMapping(t *testing.T) {
 			require.Error(t, err)
 		} else {
 			require.NoError(t, err)
-			require.EqualValues(t, tt.wantTxCount, len(gotTxs))
+			require.Len(t, gotTxs, tt.wantTxCount)
 		}
 	}
 }

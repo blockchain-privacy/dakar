@@ -127,7 +127,7 @@ func getNodeNumbers(g *mgraph.ReversibleGraph, nodeID int64, maxLookBackTime tim
 	globalAddressMap := make(map[int64]bool)
 	globalMixingMap := make(map[int64]bool)
 
-	w.Walk(g, node, func(n graph.Node, d int) bool {
+	w.Walk(g, node, func(n graph.Node, _ int) bool {
 		from := g.From(n.ID())
 		if from.Len() == 0 {
 			globalEndpointMap[n.ID()] = true

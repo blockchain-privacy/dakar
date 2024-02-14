@@ -20,7 +20,7 @@ func TestGenerateRandomPassword(t *testing.T) {
 		pw, err := generateRandomPassword()
 		require.NoError(t, err)
 		require.NotEmpty(t, pw, "password is empty")
-		require.EqualValues(t, len(pw), 22, "got random password with wrong size:")
+		require.Len(t, pw, 22, "got random password with wrong size:")
 		pwMap[pw] = true
 	}
 

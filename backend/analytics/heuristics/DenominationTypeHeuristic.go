@@ -7,7 +7,6 @@ import (
 	"backend/db/analytics/clustering"
 	"backend/db/analytics/heuristics"
 	"backend/external"
-	"fmt"
 )
 
 // denominationTypeHeuristic - see exec for description
@@ -88,7 +87,7 @@ func (h *denominationTypeHeuristic) setUserUID(uid string) {
 }
 
 func (h denominationTypeHeuristic) String() string {
-	return fmt.Sprintf("Type: %s", h.heuristicType)
+	return "Type: " + h.heuristicType
 }
 
 func (h denominationTypeHeuristic) GetDescriptor() Descriptor {

@@ -4,8 +4,6 @@ import (
 	"backend/constants"
 	dban "backend/db/analytics"
 	"backend/external"
-	"fmt"
-
 	"encoding/csv"
 	"os"
 	"time"
@@ -21,7 +19,7 @@ type privacyTypePair struct {
 func exportTransactionData(database external.Database, directory string) {
 	info("Creating privacy transaction charts")
 	if len(directory) == 0 {
-		info(fmt.Sprintf("invalid directory: %s", directory))
+		info("invalid directory: " + directory)
 		return
 	}
 

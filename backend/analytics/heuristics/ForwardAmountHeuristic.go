@@ -9,8 +9,6 @@ import (
 	"backend/external"
 	"strconv"
 	"time"
-
-	"fmt"
 )
 
 // forwardAmountHeuristic - see exec for description
@@ -103,7 +101,7 @@ func (h *forwardAmountHeuristic) setUserUID(uid string) {
 }
 
 func (h *forwardAmountHeuristic) String() string {
-	return fmt.Sprintf("Type: %s", h.heuristicType)
+	return "Type: " + h.heuristicType
 }
 
 func (h *forwardAmountHeuristic) GetDescriptor() Descriptor {

@@ -241,7 +241,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 
 // maxBody limits the amount of bytes which can be read from the request body to maxBodySize.
 func maxBody() adapter {
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 			h.ServeHTTP(w, r)
@@ -251,7 +251,7 @@ func maxBody() adapter {
 
 // maxBodyConfig limits the amount of bytes which can be read from the request body to size (in number of MiB).
 func maxBodyConfig(size int64) adapter {
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*size)
 			h.ServeHTTP(w, r)

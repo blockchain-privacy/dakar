@@ -34,7 +34,7 @@ func (b *Block) String() string {
 	}
 
 	if b.PrevBlock != nil {
-		output += fmt.Sprintf(", PrevBlockHash: %s", b.PrevBlock.Hash)
+		output += ", PrevBlockHash: " + b.PrevBlock.Hash
 	}
 
 	if b.Transactions != nil {

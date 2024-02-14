@@ -384,7 +384,7 @@ func processBlock(dgraph external.Database, transactions []db.Transaction, curre
 	})
 }
 
-var errBlockIdsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
+var errBlockIDsDoNotMatch = errors.New("block id of last crawled block and highest found block do not match")
 
 // getStartingID gets the block id from which the crawling will be resumed. If no crawling has
 // happened yet, the block id is set to 1.
@@ -406,7 +406,7 @@ func getStartingID(dgraph external.Database) (startID uint64, err error) {
 	}
 
 	if *status.LastBlockID != highestBlockID {
-		err = errBlockIdsDoNotMatch
+		err = errBlockIDsDoNotMatch
 	}
 
 	startID = *status.LastBlockID
@@ -474,10 +474,10 @@ func getRPCNumberOfBlocks(client external.RPCClient) (uint64, error) {
 // getInitialState creates the initial state of the processing loop
 func getInitialState(dgraph external.Database, client external.RPCClient) (state crawlerState, err error) {
 	if state.id, err = getStartingID(dgraph); err != nil {
-		if !errors.Is(err, errBlockIdsDoNotMatch) {
+		if !errors.Is(err, errBlockIDsDoNotMatch) {
 			return
 		}
-		warn(cliutil.NewStackError(errBlockIdsDoNotMatch), "continuing...")
+		warn(cliutil.NewStackError(errBlockIDsDoNotMatch), "continuing...")
 	}
 
 	if state.chainHash, err = client.GetBlockHash(int64(state.id)); err != nil {

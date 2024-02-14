@@ -84,7 +84,7 @@ func getOriginDistance(g *mgraph.ReversibleGraph, nodeID int64) (distances []int
 	}
 
 	w := traverse.BreadthFirst{
-		Traverse: func(e graph.Edge) bool {
+		Traverse: func(_ graph.Edge) bool {
 			// true: follow this link
 			// false: do not follow this link
 			return true

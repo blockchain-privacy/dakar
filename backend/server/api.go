@@ -97,7 +97,7 @@ func (s *Server) handlerBlockRange() http.Handler {
 //	@Failure	500	{object}	server.metaReply
 //	@Router		/meta/ [get]
 func (s *Server) handlerMeta() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		reply, status := getMetaReply(s.db, s.client)
 
 		sendReply(w, reply, status)
@@ -539,7 +539,7 @@ func (s *Server) handlerHeuristicList() http.Handler {
 //	@Success		200	{object}	server.heuristicDescriptorReply
 //	@Router			/heuristicDescriptors/ [get]
 func (s *Server) handlerHeuristicDescriptors() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		reply := getHeuristicDescriptorReply()
 
 		sendReply(w, reply, http.StatusOK)

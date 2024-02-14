@@ -5,7 +5,6 @@ import (
 	"backend/cmd/cliutil"
 	"backend/external"
 	"errors"
-	"fmt"
 	"github.com/dgraph-io/ristretto"
 	ory "github.com/ory/kratos-client-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -96,7 +95,7 @@ func (s *Server) StartServer(wg *sync.WaitGroup, port uint) *http.Server {
 		wg.Done()
 	}()
 
-	info(fmt.Sprintf("Started API server at endpoint http://localhost%s", srv.Addr))
+	info("Started API server at endpoint http://localhost" + srv.Addr)
 
 	return srv
 }
@@ -122,7 +121,7 @@ func StartMetrics(wg *sync.WaitGroup, port uint) *http.Server {
 		wg.Done()
 	}()
 
-	info(fmt.Sprintf("Started metrics server at endpoint http://localhost%s", srv.Addr))
+	info("Started metrics server at endpoint http://localhost" + srv.Addr)
 
 	return srv
 }

@@ -217,7 +217,7 @@ func exportReverseLookup(g *mgraph.ReversibleGraph, nodeIDStr string,
 
 	var exportTransactions []exportTransaction
 
-	w.Walk(g, node, func(n graph.Node, d int) bool {
+	w.Walk(g, node, func(n graph.Node, _ int) bool {
 		var reachableNodes graph.Nodes
 		if getInputs {
 			reachableNodes = g.To(n.ID())
