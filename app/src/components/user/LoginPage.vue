@@ -194,17 +194,9 @@ async function handleOrySubmitLogin(formID) {
 	try {
 		const response = await ory.frontend.updateLoginFlow({flow, updateLoginFlowBody: body});
 
-		if (response.status === 200 && response.data?.session) {
-			// Reminder: check when https://github.com/ory/kratos/pull/3572 is released
-			if (response.data.session.identity) {
-				session.value = response.data.session;
-				leave();
-				return;
-			}
-
-			// Aal2 not done yet
-			await initLoginFlow('aal2');
-
+		if (response.status === 200 && response.data?.session?.identity) {
+			session.value = response.data.session;
+			leave();
 			return;
 		}
 
@@ -255,15 +247,6 @@ async function initLoginFlow(aal) {
 		const response = await ory.frontend.createBrowserLoginFlow({refresh: false, aal});
 		setFlowData(response.data);
 	} catch (e) {
-		if (e.response?.data?.error?.id === 'session_already_available') {
-			// Reminder: check when https://github.com/ory/kratos/pull/3572 is released
-			// If the response indicates that the session is already available,
-			// it might be only aal1 even though aal2 might be required.
-			// This can be checked by requesting the session. If it fails the aal2 dialog will be rendered
-			await tryToGetSession();
-			return;
-		}
-
 		await handleGetFlowError(context, e, null);
 	}
 }
