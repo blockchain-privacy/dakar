@@ -94,7 +94,7 @@ func extractDgraphUID(metadataPublic any) (string, error) {
 func (s *Server) authorization() adapter {
 	return func(h http.Handler, route string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			session, sessionResponse, err := s.auth.FrontendApi.ToSession(r.Context()).
+			session, sessionResponse, err := s.auth.FrontendAPI.ToSession(r.Context()).
 				Cookie(r.Header.Get("Cookie")).Execute() //nolint:bodyclose
 			if err != nil {
 				sendUnauthorizedMessage(w)
@@ -116,7 +116,7 @@ func (s *Server) authorization() adapter {
 			// if less than half of the token lifetime is left, it gets reissued
 			const reissueDuration = 72 * time.Hour / 2
 			if time.Until(*session.ExpiresAt) < reissueDuration {
-				_, extensionResponse, extensionErr := s.adminAuth.IdentityApi.
+				_, extensionResponse, extensionErr := s.adminAuth.IdentityAPI.
 					ExtendSession(r.Context(), session.Id).Execute()
 				if extensionErr != nil {
 					sendUnauthorizedMessage(w)

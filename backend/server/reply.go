@@ -237,7 +237,7 @@ func getMetaReply(dgraph external.Database, rpcClient external.RPCClient) (metaR
 
 func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identitiesReply, status int) {
 	// get identity list
-	identities, response, err := adminAuth.IdentityApi.ListIdentities(r.Context()).Execute() //nolint:bodyclose
+	identities, response, err := adminAuth.IdentityAPI.ListIdentities(r.Context()).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(cliutil.NewStackError(err))
@@ -247,7 +247,7 @@ func getIdentitiesReply(adminAuth *ory.APIClient, r *http.Request) (reply identi
 		_ = Body.Close()
 	}(response.Body)
 
-	sessions, response, err := adminAuth.IdentityApi.ListSessions(r.Context()).
+	sessions, response, err := adminAuth.IdentityAPI.ListSessions(r.Context()).
 		Active(true).Expand([]string{"Identity"}).PageSize(100).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -1585,7 +1585,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	}
 
 	// get identity data
-	identity, response, err := adminAuth.IdentityApi.GetIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
+	identity, response, err := adminAuth.IdentityAPI.GetIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(cliutil.NewStackError(err))
@@ -1630,7 +1630,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 		warn(err)
 		return
 	}
-	response, err = adminAuth.IdentityApi.DeleteIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
+	response, err = adminAuth.IdentityAPI.DeleteIdentity(r.Context(), kratosID).Execute() //nolint:bodyclose
 	if err != nil {
 		reply.Msg = "could not delete identity"
 		status = http.StatusInternalServerError
@@ -1689,7 +1689,7 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 		return
 	}
 
-	initialIdentity, getIdentityResponse, err := adminAuth.IdentityApi.GetIdentity(r.Context(),
+	initialIdentity, getIdentityResponse, err := adminAuth.IdentityAPI.GetIdentity(r.Context(),
 		modRequest.UID).Execute() //nolint:bodyclose
 	if err != nil {
 		status = http.StatusInternalServerError
@@ -1737,18 +1737,17 @@ func getModifyIdentityReply(adminAuth *ory.APIClient, r *http.Request) (reply ms
 		}
 	}
 
-	// handle state
+	// check state
 	if len(modRequest.State) > 0 {
-		newState, err := ory.NewIdentityStateFromValue(modRequest.State)
-		if err != nil {
+		if !dbus.IsStateValid(modRequest.State) {
 			status = http.StatusBadRequest
-			warn(cliutil.NewStackError(err), "modification_request", modRequest)
+			warn(cliutil.NewStackErrorStr("invalid identity state: "+modRequest.State), "modification_request", modRequest)
 			return
 		}
-		initialIdentity.SetState(*newState)
+		initialIdentity.SetState(modRequest.State)
 	}
 
-	_, response, err := adminAuth.IdentityApi.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
+	_, response, err := adminAuth.IdentityAPI.UpdateIdentity(r.Context(), modRequest.UID).UpdateIdentityBody(ory.UpdateIdentityBody{
 		MetadataAdmin:  initialIdentity.MetadataAdmin,
 		MetadataPublic: initialIdentity.MetadataPublic,
 		SchemaId:       initialIdentity.SchemaId,
