@@ -7,21 +7,6 @@ import svgLoader from 'vite-svg-loader';
 import {defineConfig} from 'vite';
 import {fileURLToPath, URL} from 'node:url';
 
-// Workaround for https://github.com/vitejs/vite/issues/2415:
-// For markdown files served via /wikiapi/ rewrite the request url
-const fixMarkdownFiles = () => ({
-	name: 'dot-path-fix-plugin',
-	configureServer(server) {
-		server.middlewares.use((req, _, next) => {
-			if (req.url.endsWith('.md') && !req.url.startsWith('/wikiapi/')) {
-				req.url = '/';
-			}
-
-			next();
-		});
-	},
-});
-
 // https://vitejs.dev/config/
 export default defineConfig({
 	build: {
@@ -31,7 +16,6 @@ export default defineConfig({
 		vue({
 			template: {transformAssetUrls},
 		}),
-		fixMarkdownFiles(),
 		// https://github.com/vuetifyjs/vuetify-loader/tree/next/packages/vite-plugin
 		vuetify({
 			autoImport: true,
