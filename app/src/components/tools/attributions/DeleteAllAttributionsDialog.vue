@@ -66,7 +66,7 @@ async function deleteAllAttributions() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.attribution.deleteAllPrivateAttributionsGet();
+		const response = await dakar.attribution.attributionsDelete();
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}

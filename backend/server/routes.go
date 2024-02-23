@@ -233,7 +233,7 @@ func getRouteDeleteAllPrivateAttributions() string {
 
 // getRouteSearchAttributions returns a route
 func getRouteSearchAttributions() string {
-	return buildRoutePattern(httpGET, routeAttributionsSearch, "")
+	return buildRoutePattern(httpGET, routeAttributionsSearch, "query")
 }
 
 // getRouteAddAddressExclusions returns a route

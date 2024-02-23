@@ -225,8 +225,8 @@ async function doLookup() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.tools.connectionLookupTxHashGet({
-			txHash: fromTransaction.value.trim(),
+		const response = await dakar.tools.connectionLookupHashGet({
+			hash: fromTransaction.value.trim(),
 			forward: isDirectionForward.value,
 			t: maxLookBackTime.value,
 		});

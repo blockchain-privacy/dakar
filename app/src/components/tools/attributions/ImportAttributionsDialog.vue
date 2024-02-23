@@ -177,9 +177,9 @@ async function handleCSVUpload() {
 
 	try {
 		if (areAttributionsPublic.value) {
-			await dakar.attribution.addPublicAttributionPost(attributionData);
+			await dakar.attribution.attributionsPublicPost(attributionData);
 		} else {
-			await dakar.attribution.addPrivateAttributionPost(attributionData);
+			await dakar.attribution.attributionsPost(attributionData);
 		}
 
 		setSuccessMessage('import was successful');

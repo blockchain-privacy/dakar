@@ -121,7 +121,7 @@ async function loadOverviewData() {
 	items.value = [];
 
 	try {
-		const response = await dakar.attribution.attributionOverviewGet();
+		const response = await dakar.attribution.attributionsGet();
 
 		if (response.attributions) {
 			// Parse date

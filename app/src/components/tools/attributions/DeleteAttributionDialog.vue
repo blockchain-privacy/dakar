@@ -78,8 +78,8 @@ async function deleteAttribution() {
 
 	try {
 		const response = props.public
-			? await dakar.attribution.deletePublicAttributionAttributionUidGet({attributionUid: props.attributionUid})
-			: await dakar.attribution.deletePrivateAttributionAttributionUidGet({attributionUid: props.attributionUid});
+			? await dakar.attribution.attributionsPublicUidDelete({uid: props.attributionUid})
+			: await dakar.attribution.attributionsUidDelete({uid: props.attributionUid});
 
 		if (response.msg) {
 			setInfoMessage(response.msg);

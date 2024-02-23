@@ -282,7 +282,7 @@ async function addWorkspace(name) {
 
 	isLoading.value = true;
 	try {
-		await dakar.workspace.addWorkspaceNameGet({name: workspaceName});
+		await dakar.workspace.workspacesNamePost({name: workspaceName});
 		msgStore.resetMessages();
 		await refreshWorkspaceList();
 	} catch (e) {
@@ -310,22 +310,29 @@ async function refreshWorkspaceList() {
 
 async function deleteWorkspace(all) {
 	isLoading.value = true;
-	let arg;
+
 	if (all) {
-		arg = {deleteAll: true};
-	} else {
-		arg = {workspaceUID: workspaceToDelete.value.uid};
-	}
+		try {
+			const response = await dakar.workspace.workspacesDelete();
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
 
-	try {
-		const response = await dakar.workspace.deleteWorkspacePost({workspace: arg});
-		if (response.msg) {
-			setInfoMessage(response.msg);
+			await refreshWorkspaceList();
+		} catch (e) {
+			setErrorMessage(e);
 		}
+	} else {
+		try {
+			const response = await dakar.workspace.workspacesUidDelete({uid: workspaceToDelete.value.uid});
+			if (response.msg) {
+				setInfoMessage(response.msg);
+			}
 
-		await refreshWorkspaceList();
-	} catch (e) {
-		setErrorMessage(e);
+			await refreshWorkspaceList();
+		} catch (e) {
+			setErrorMessage(e);
+		}
 	}
 
 	isLoading.value = false;

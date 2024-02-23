@@ -890,7 +890,7 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 //	@Tags			workspace
 //	@Produce		json
 //	@Accept			json
-//	@Param		uid	path		string	true	"Workspace UID"//	@Success		200			{object}	server.msgReply
+//	@Success		200			{object}	server.msgReply
 //	@Failure		400			{object}	server.msgReply
 //	@Failure		401			{object}	server.msgReply
 //	@Failure		404			{object}	server.msgReply

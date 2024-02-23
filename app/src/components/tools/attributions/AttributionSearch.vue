@@ -74,7 +74,7 @@ async function loadSearchData(query) {
 	attributions.value = [];
 
 	try {
-		const response = await dakar.attribution.searchAttributionsPost({attribution: {q: query}});
+		const response = await dakar.attribution.attributionsSearchQueryGet({query});
 
 		if (response.attributions) {
 			// Parse date
