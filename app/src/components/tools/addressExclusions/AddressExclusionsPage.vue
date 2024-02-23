@@ -180,7 +180,7 @@ async function loadData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.addressExclusion.addressExclusionOverviewGet();
+		const response = await dakar.addressExclusion.exclusionsGet();
 
 		if (response.addresses) {
 			items.value = response.addresses;

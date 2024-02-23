@@ -61,7 +61,7 @@ async function deleteAllAddressExclusions() {
 	isLoading.value = true;
 
 	try {
-		await dakar.addressExclusion.deleteAllAddressExclusionsGet();
+		await dakar.addressExclusion.exclusionsDelete();
 		emit('deleted');
 	} catch (e) {
 		setPersistentErrorMessage(e);

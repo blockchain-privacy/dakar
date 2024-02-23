@@ -68,7 +68,7 @@ async function deleteAddressExclusion() {
 	isLoading.value = true;
 
 	try {
-		await dakar.addressExclusion.deleteAddressExclusionAddressHashGet({addressHash: props.addressHash});
+		await dakar.addressExclusion.exclusionsHashDelete({hash: props.addressHash});
 		emit('deleted', props.addressHash);
 	} catch (e) {
 		setPersistentErrorMessage(e);

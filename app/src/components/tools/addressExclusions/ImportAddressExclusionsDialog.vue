@@ -111,7 +111,7 @@ async function handleCSVUpload() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.addressExclusion.addAddressExclusionsPost({file: csv.value.file[0]});
+		const response = await dakar.addressExclusion.exclusionsPost({file: csv.value.file[0]});
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}
