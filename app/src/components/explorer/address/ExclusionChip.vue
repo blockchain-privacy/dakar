@@ -77,7 +77,7 @@ async function getExclusionStatus() {
 	}
 
 	try {
-		const response = await dakar.addressExclusion.addressExclusionStatusAddressHashGet({addressHash: props.addressHash});
+		const response = await dakar.addressExclusion.exclusionsHashGet({hash: props.addressHash});
 		showExclusionChip.value = response.isExclusion;
 	} catch (e) {
 		handleError(context, e);

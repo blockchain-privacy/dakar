@@ -124,7 +124,7 @@ async function saveIdentity() {
 	isLoading.value = true;
 	if (props.createNewUser) {
 		try {
-			const response = await dakar.authentication.createIdentityPost({
+			const response = await dakar.identity.identitiesPostRaw({
 				identity: {
 					email: shadowIdentity.value.email,
 					roles: shadowIdentity.value.roles,
@@ -141,7 +141,7 @@ async function saveIdentity() {
 		}
 	} else {
 		try {
-			const response = await dakar.authentication.modifyIdentityPost({
+			const response = await dakar.identity.identitiesPut({
 				identity: {
 					uid: shadowIdentity.value.id,
 					email: shadowIdentity.value.email,

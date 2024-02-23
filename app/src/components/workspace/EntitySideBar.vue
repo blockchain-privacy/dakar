@@ -345,7 +345,7 @@ function setErrorMessage(msg) {
 
 async function downloadSummary() {
 	try {
-		const response = await dakar.heuristic.heuristicsSummaryHeuristicUIDGet({heuristicUID: entityData.value.heuristicUid});
+		const response = await dakar.heuristic.heuristicsSummaryUidGet({uid: entityData.value.heuristicUid});
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(response);

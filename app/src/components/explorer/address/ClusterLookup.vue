@@ -256,7 +256,7 @@ async function downloadClusterSummary() {
 	const fileName = props.addressHash.trim();
 
 	try {
-		const response = await dakar.cluster.clusterSummaryHashGet({addressHash: props.addressHash.trim()});
+		const response = await dakar.cluster.clusterSummaryHashGet({hash: props.addressHash.trim()});
 
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');

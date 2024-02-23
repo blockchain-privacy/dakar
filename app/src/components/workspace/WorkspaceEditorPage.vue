@@ -658,7 +658,7 @@ async function refreshData() {
 	isLoadingWorkspace.value = true;
 
 	try {
-		const response = await dakar.workspace.getWorkspaceUidGet({uid: workspaceUID.value});
+		const response = await dakar.workspace.workspacesUidGet({uid: workspaceUID.value});
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
@@ -749,7 +749,7 @@ async function doAutoSave() {
 	isAutoSaving.value = true;
 	autoSaveTimer = null;
 	try {
-		const response = await dakar.workspace.updateWorkspacePost({
+		const response = await dakar.workspace.workspacesPut({
 			state: {
 				workspaceUID: workspaceUID.value,
 				currentState: nodeGraph.exportNodes(),

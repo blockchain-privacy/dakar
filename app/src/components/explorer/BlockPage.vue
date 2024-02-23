@@ -220,7 +220,7 @@ async function addNewData({done}) {
 	}
 
 	try {
-		const response = await dakar.data.blkRangeBlockHashPost({blockHash: block.value.blockhash, offset: {offset}});
+		const response = await dakar.data.blkRangeHashPost({hash: block.value.blockhash, offset: {offset}});
 
 		if (isResponseValid(response)) {
 			block.value.transactions = [...block.value.transactions, ...response.payload.transactions];

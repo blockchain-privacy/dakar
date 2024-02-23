@@ -286,8 +286,8 @@ async function getTableData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.data.addressOutputRangeAddressHashPost({
-			addressHash: data.value.addresshash,
+		const response = await dakar.data.addressOutputRangeHashPost({
+			hash: data.value.addresshash,
 			options: {
 				offset: offset.value,
 				filter: sortAndFilterModel.value.filter,

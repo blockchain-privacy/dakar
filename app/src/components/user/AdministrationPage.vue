@@ -346,7 +346,7 @@ function setErrorMessage(msg) {
 async function loadUserList() {
 	isLoading.value = true;
 	try {
-		const response = await dakar.authentication.getIdentitiesGet();
+		const response = await dakar.identity.identitiesGet();
 
 		identities.value = response.identities;
 		sessions.value = response.sessions;
@@ -429,7 +429,7 @@ async function deleteIdentity(identity) {
 	isLoading.value = true;
 
 	try {
-		await dakar.authentication.adminDeleteIdentityIdentityUIDGet({identityUID: identity.id});
+		await dakar.identity.identitiesUidDelete({uid: identity.id});
 		await refreshUsers();
 	} catch (e) {
 		setErrorMessage(e);
