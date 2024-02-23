@@ -706,7 +706,7 @@ func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clu
 		return
 	}
 
-	addressHash := r.PathValue("addressHash")
+	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
 		status = http.StatusBadRequest
 		return
@@ -748,7 +748,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 // writeHeuristicSummary writes heuristic data in CSV format
 func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
-	heuristicUID := r.PathValue("heuristic_UID")
+	heuristicUID := r.PathValue("uid")
 	if heuristicUID == "" {
 		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
 		return
@@ -822,7 +822,7 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 // writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
-	addressHash := r.PathValue("addressHash")
+	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
 		http.Error(w, "no address hash provided", http.StatusNotFound)
 		return
@@ -1208,7 +1208,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 		return
 	}
 
-	clusterUID := r.PathValue("cluster_uid")
+	clusterUID := r.PathValue("uid")
 	if clusterUID == "" {
 		status = http.StatusBadRequest
 		reply.Msg = "cluster uid was not set"
@@ -1272,7 +1272,7 @@ func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	attributionUID := r.PathValue("attribution_uid")
+	attributionUID := r.PathValue("uid")
 	if attributionUID == "" {
 		reply.Msg = "attribution uid was not set"
 		status = http.StatusBadRequest
@@ -1313,7 +1313,7 @@ func getDeleteAllAttributionsReply(r *http.Request, dgraph external.Database) (r
 	return
 }
 
-func getAttributionSearchReply(r *http.Request, dgraph external.Database) (reply attributionOverviewReply, status int) {
+func getAttributionSearchReply(r *http.Request, dgraph external.Database, query string) (reply attributionOverviewReply, status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -1321,24 +1321,12 @@ func getAttributionSearchReply(r *http.Request, dgraph external.Database) (reply
 		return
 	}
 
-	type request struct {
-		Query string `json:"q,omitempty"`
-	}
-
-	var searchRequest request
-
-	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
-		status = http.StatusBadRequest
-		warn(cliutil.NewStackError(err))
-		return
-	}
-
-	if searchRequest.Query == "" {
+	if query == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	attributions, err := attribution.SearchAttributions(dgraph, tUser.ID, searchRequest.Query)
+	attributions, err := attribution.SearchAttributions(dgraph, tUser.ID, query)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
@@ -1464,7 +1452,7 @@ func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) i
 		return http.StatusUnauthorized
 	}
 
-	addressHash := r.PathValue("addressHash")
+	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
 		return http.StatusBadRequest
 	}
@@ -1563,7 +1551,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	adminAuth *ory.APIClient, isAdmin bool) (reply msgReply, status int) {
 	var kratosID string
 	if isAdmin {
-		kratosID = r.PathValue("identityUID")
+		kratosID = r.PathValue("uid")
 	} else {
 		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
@@ -2141,43 +2129,38 @@ func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply m
 		return
 	}
 
-	type request struct {
-		DeleteAll    bool   `json:"deleteAll"`
-		WorkspaceUID string `json:"workspaceUID,omitempty"`
-	}
-
-	var req request
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	workspaceUID := r.PathValue("uid")
+	if workspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	if (req.DeleteAll && len(req.WorkspaceUID) > 0) ||
-		(!req.DeleteAll && len(req.WorkspaceUID) == 0) {
-		status = http.StatusBadRequest
-		return
-	}
-
-	if req.DeleteAll {
-		if err := dbwork.DeleteAllWorkspaces(dgraph, tUser.ID); err != nil {
-			if errors.Is(err, dbwork.ErrNoMutationHappened) {
-				reply.Msg = "No data was deleted. The user might not have any workspaces."
-				status = http.StatusNotFound
-			} else {
-				reply.Msg = "could not delete data"
-				status = http.StatusInternalServerError
-				warn(err)
-			}
-			return
-		}
-
-		return
-	}
-
-	if err := dbwork.DeleteWorkspace(dgraph, req.WorkspaceUID, tUser.ID); err != nil {
+	if err := dbwork.DeleteWorkspace(dgraph, workspaceUID, tUser.ID); err != nil {
 		if errors.Is(err, dbwork.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction might not have any workspaces."
+			status = http.StatusNotFound
+		} else {
+			reply.Msg = "could not delete data"
+			status = http.StatusInternalServerError
+			warn(err)
+		}
+		return
+	}
+
+	return
+}
+
+func getDeleteAllWorkspacesReply(r *http.Request, dgraph external.Database) (reply msgReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	if err := dbwork.DeleteAllWorkspaces(dgraph, tUser.ID); err != nil {
+		if errors.Is(err, dbwork.ErrNoMutationHappened) {
+			reply.Msg = "No data was deleted. The user might not have any workspaces."
 			status = http.StatusNotFound
 		} else {
 			reply.Msg = "could not delete data"

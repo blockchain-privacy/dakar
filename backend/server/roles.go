@@ -64,23 +64,24 @@ var (
 		// getRouteHMILookup():     true,
 		// Attribution
 		getRouteAddPrivateAttribution():        true,
-		getRouteAttributionOverview():          true,
+		getRouteAttributionList():              true,
 		getRouteDeletePrivateAttribution():     true,
 		getRouteDeleteAllPrivateAttributions(): true,
 		getRouteSearchAttributions():           true,
 		// Address exclusion
-		getRouteAddressExclusionOverview():   true,
+		getRouteAddressExclusionList():       true,
 		getRouteAddressExclusionStatus():     true,
 		getRouteDeleteAddressExclusion():     true,
 		getRouteAddAddressExclusions():       true,
 		getRouteDeleteAllAddressExclusions(): true,
 		// workspace
-		getRouteWorkspaceAddNode(): true,
-		getRouteWorkspaces():       true,
-		getRouteAddWorkspace():     true,
-		getRouteGetWorkspace():     true,
-		getRouteUpdateWorkspace():  true,
-		getRouteDeleteWorkspace():  true,
+		getRouteWorkspaceAddNode():    true,
+		getRouteWorkspaces():          true,
+		getRouteAddWorkspace():        true,
+		getRouteGetWorkspace():        true,
+		getRouteUpdateWorkspace():     true,
+		getRouteDeleteWorkspace():     true,
+		getRouteDeleteAllWorkspaces(): true,
 	}
 )
 
