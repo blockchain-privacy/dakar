@@ -211,7 +211,7 @@ async function doLookup() {
 	clusters.value = [];
 
 	try {
-		const response = await dakar.cluster.clusterLookupAddressHashGet({addressHash: props.addressHash.trim()});
+		const response = await dakar.cluster.clustersHashGet({hash: props.addressHash.trim()});
 
 		if (response.clusters && response.clusters.length > 0) {
 			const clusterMap = new Map();
@@ -256,7 +256,7 @@ async function downloadClusterSummary() {
 	const fileName = props.addressHash.trim();
 
 	try {
-		const response = await dakar.cluster.clusterSummaryAddressHashGet({addressHash: props.addressHash.trim()});
+		const response = await dakar.cluster.clusterSummaryHashGet({addressHash: props.addressHash.trim()});
 
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');

@@ -66,7 +66,7 @@ async function deleteAllClusters() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.cluster.deleteAllClustersGet();
+		const response = await dakar.cluster.clustersDelete();
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}

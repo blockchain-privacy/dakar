@@ -175,7 +175,7 @@ async function loadData() {
 	isLoading.value = true;
 
 	try {
-		const response = await 	dakar.cluster.clusterOverviewGet();
+		const response = await 	dakar.cluster.clustersGet();
 
 		if (response.clusters) {
 			// Parse date

@@ -77,7 +77,7 @@ async function deleteCluster() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.cluster.deleteClusterClusterUidGet({clusterUid: props.clusterUid});
+		const response = await dakar.cluster.clustersUidDelete({uid: props.clusterUid});
 		if (response.msg) {
 			setInfoMessage(response.msg);
 		}

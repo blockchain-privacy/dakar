@@ -129,7 +129,7 @@ async function handleCSVUpload() {
 	isLoading.value = true;
 
 	try {
-		await dakar.cluster.addClusterPost({
+		await dakar.cluster.clustersPost({
 			separator: csv.value.separator,
 			hasHeader: csv.value.firstRowContainsHeader,
 			file: csv.value.file[0],
