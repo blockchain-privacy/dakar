@@ -28,7 +28,6 @@ var (
 		getRouteSearch():             true,
 		getRouteAddressOutputRange(): true,
 		// user
-		getRouteModifyUser():     true,
 		getRouteDeleteIdentity(): true,
 	}
 	privilegedRoleMap = map[string]bool{
@@ -40,7 +39,6 @@ var (
 		getRouteSearch():             true,
 		getRouteAddressOutputRange(): true,
 		// user
-		getRouteModifyUser():     true,
 		getRouteDeleteIdentity(): true,
 		// heuristics
 		getRouteHeuristicDetails():     true,

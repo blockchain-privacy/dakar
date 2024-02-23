@@ -17,7 +17,6 @@ import (
 	dbwork "backend/db/workspace"
 	"backend/external"
 	"io"
-	"path"
 	"strings"
 	"time"
 
@@ -279,8 +278,7 @@ func getHeuristicsReply(r *http.Request, dgraph external.Database) (reply heuris
 		return
 	}
 
-	txHashString := path.Base(r.URL.Path)
-
+	txHashString := r.PathValue("hash")
 	if !isValid(txHashString) {
 		status = http.StatusBadRequest
 		return
@@ -307,7 +305,7 @@ func getHeuristicByWorkIDReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	workID := path.Base(r.URL.Path)
+	workID := r.PathValue("workID")
 	if workID == "" {
 		status = http.StatusBadRequest
 		return
@@ -391,7 +389,7 @@ func getHeuristicExecutionReply(r *http.Request, worker *heuristics.Worker) (rep
 		return
 	}
 
-	txHashString := path.Base(r.URL.Path)
+	txHashString := r.PathValue("hash")
 	if !isValid(txHashString) {
 		status = http.StatusBadRequest
 		return
@@ -607,7 +605,7 @@ func getDeleteHeuristicReply(r *http.Request, dgraph external.Database) (reply m
 
 // getConnectionLookupReply returns the result of a reverse lookup
 func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worker,
-	urlHandle *url.URL) (reply connectionLookupReply, status int) {
+	transactionHash string, urlHandle *url.URL) (reply connectionLookupReply, status int) {
 	if !worker.IsReady() {
 		reply.Msg = "Server is not ready to receive connection lookups. Please try again later."
 		return
@@ -643,13 +641,11 @@ func getConnectionLookupReply(dgraph external.Database, worker *heuristics.Worke
 
 	lookBackTime := time.Duration(numDays)
 
-	txhash := path.Base(urlHandle.Path)
-
-	uid, err := db.GetTransactionUID(dgraph, txhash)
+	uid, err := db.GetTransactionUID(dgraph, transactionHash)
 	if err != nil {
 		if errors.Is(err, db.ErrTransactionNotFound) {
 			status = http.StatusNotFound
-			reply.Msg = "Transaction " + txhash + " does not exist"
+			reply.Msg = "Transaction " + transactionHash + " does not exist"
 			return
 		}
 
@@ -710,7 +706,7 @@ func getClusterLookupReply(r *http.Request, dgraph external.Database) (reply clu
 		return
 	}
 
-	addressHash := path.Base(r.URL.Path)
+	addressHash := r.PathValue("addressHash")
 	if !isValid(addressHash) {
 		status = http.StatusBadRequest
 		return
@@ -752,7 +748,7 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 // writeHeuristicSummary writes heuristic data in CSV format
 func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
-	heuristicUID := path.Base(r.URL.Path)
+	heuristicUID := r.PathValue("heuristic_UID")
 	if heuristicUID == "" {
 		http.Error(w, "no heuristic UID provided", http.StatusNotFound)
 		return
@@ -826,7 +822,7 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 // writeClusterSummary writes cluster data in CSV format
 func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
-	addressHash := path.Base(r.URL.Path)
+	addressHash := r.PathValue("addressHash")
 	if !isValid(addressHash) {
 		http.Error(w, "no address hash provided", http.StatusNotFound)
 		return
@@ -1212,7 +1208,7 @@ func getDeleteClusterReply(r *http.Request, dgraph external.Database) (reply msg
 		return
 	}
 
-	clusterUID := path.Base(r.URL.Path)
+	clusterUID := r.PathValue("cluster_uid")
 	if clusterUID == "" {
 		status = http.StatusBadRequest
 		reply.Msg = "cluster uid was not set"
@@ -1276,7 +1272,7 @@ func getDeleteAttributionReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	attributionUID := path.Base(r.URL.Path)
+	attributionUID := r.PathValue("attribution_uid")
 	if attributionUID == "" {
 		reply.Msg = "attribution uid was not set"
 		status = http.StatusBadRequest
@@ -1468,7 +1464,7 @@ func getDeleteAddressExclusionReply(r *http.Request, dgraph external.Database) i
 		return http.StatusUnauthorized
 	}
 
-	addressHash := path.Base(r.URL.Path)
+	addressHash := r.PathValue("addressHash")
 	if !isValid(addressHash) {
 		return http.StatusBadRequest
 	}
@@ -1567,7 +1563,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 	adminAuth *ory.APIClient, isAdmin bool) (reply msgReply, status int) {
 	var kratosID string
 	if isAdmin {
-		kratosID = path.Base(r.URL.Path)
+		kratosID = r.PathValue("identityUID")
 	} else {
 		tUser, err := extractTokenUser(r.Context())
 		if err != nil {
@@ -2004,7 +2000,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	workspaceUID := path.Base(r.URL.Path)
+	workspaceUID := r.PathValue("uid")
 	if workspaceUID == "" {
 		status = http.StatusBadRequest
 		return
@@ -2076,7 +2072,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addW
 		return
 	}
 
-	workspaceName := path.Base(r.URL.Path)
+	workspaceName := r.PathValue("name")
 	if workspaceName == "" || len(workspaceName) > 150 {
 		status = http.StatusBadRequest
 		return

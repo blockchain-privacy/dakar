@@ -3,7 +3,6 @@ package server
 import (
 	"backend/external"
 	"net/http"
-	"path"
 	"time"
 )
 
@@ -21,7 +20,7 @@ import (
 //	@Router			/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSearchReply(s.db, path.Base(r.URL.Path))
+		reply, status := getSearchReply(s.db, r.PathValue("query"))
 
 		sendReply(w, reply, status)
 	})
@@ -42,7 +41,7 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Router		/tx/{hash} [get]
 func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDataDetailsReply(s.db, fn, path.Base(r.URL.Path))
+		reply, status := getDataDetailsReply(s.db, fn, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -62,7 +61,7 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Router		/addressOutputRange/{addressHash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressOutputRangeReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getAddressOutputRangeReply(r, s.db, r.PathValue("addressHash"))
 
 		sendReply(w, reply, status)
 	})
@@ -82,7 +81,7 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Router		/blkRange/{blockHash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getBlockRangeReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getBlockRangeReply(r, s.db, r.PathValue("blockHash"))
 
 		sendReply(w, reply, status)
 	})
@@ -465,7 +464,7 @@ func (s *Server) handlerHeuristicByWorkID() http.Handler {
 //	@Router		/hmiLookup/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getHMILookupReply(s.db, path.Base(r.URL.Path))
+		reply, status := getHMILookupReply(s.db, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -699,7 +698,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Router		/connectionLookup/{txHash} [get]
 func (s *Server) handlerConnectionLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getConnectionLookupReply(s.db, s.worker, r.URL)
+		reply, status := getConnectionLookupReply(s.db, s.worker, r.PathValue("txHash"), r.URL)
 
 		sendReply(w, reply, status)
 	})
@@ -756,7 +755,7 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Router		/addressExclusionStatus/{address_hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddressExclusionStatusReply(r, s.db, path.Base(r.URL.Path))
+		reply, status := getAddressExclusionStatusReply(r, s.db, r.PathValue("address_hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -774,7 +773,7 @@ func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 //	@Router		/spendingFingerprint/{hash} [get]
 func (s *Server) handlerSpendingFingerprint() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getSpendingFingerprintReply(s.db, s.worker, path.Base(r.URL.Path))
+		reply, status := getSpendingFingerprintReply(s.db, s.worker, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -903,157 +902,122 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 // setupHandlers creates endpoint handlers
 func (s *Server) setupHandlers() {
 	// Search
-	s.handler.Handle(getRouteSearch(), adapt(s.handlerSearch(), getRouteSearch(),
-		limitMethod("GET"), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(getRouteSearch(),
+		adapt(s.handlerSearch(), getRouteSearch(), s.useCache(time.Minute*10), maxBody()))
 
 	// Common data
 	s.handler.Handle(getRouteTransaction(),
-		adapt(s.handlerDetails(GetTransaction), getRouteTransaction(),
-			limitMethod("GET"), s.useCache(time.Second*0), maxBody()))
+		adapt(s.handlerDetails(GetTransaction), getRouteTransaction(), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
-	s.handler.Handle(getRouteBlock(), adapt(s.handlerDetails(GetBlock), getRouteBlock(),
-		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
-	s.handler.Handle(getRouteAddress(), adapt(s.handlerDetails(GetAddress), getRouteAddress(),
-		limitMethod("GET"), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteBlock(),
+		adapt(s.handlerDetails(GetBlock), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteAddress(),
+		adapt(s.handlerDetails(GetAddress), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
 
 	s.handler.Handle(getRouteAddressOutputRange(),
-		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(),
-			limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
 
-	s.handler.Handle(getRouteBlockRange(), adapt(s.handlerBlockRange(), getRouteBlockRange(),
-		limitMethod("POST"), s.useCache(time.Minute*10), maxBody()))
+	s.handler.Handle(getRouteBlockRange(),
+		adapt(s.handlerBlockRange(), getRouteBlockRange(), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
-	s.handler.Handle(getRouteMeta(), adapt(s.handlerMeta(), getRouteMeta(),
-		limitMethod("GET"), s.authorization(), s.useCache(time.Second*10), maxBody()))
+	s.handler.Handle(getRouteMeta(),
+		adapt(s.handlerMeta(), getRouteMeta(), s.authorization(), s.useCache(time.Second*10), maxBody()))
 
 	// heuristic
 	s.handler.Handle(getRouteHeuristicByWorkID(),
-		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristicByWorkID(), getRouteHeuristicByWorkID(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristics(),
-		adapt(s.handlerHeuristics(), getRouteHeuristics(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristics(), getRouteHeuristics(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDetails(),
-		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicsExecution(),
-		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicsSummary(),
-		adapt(s.handlerHeuristicsSummary(), getRouteHeuristicsSummary(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristicsSummary(), getRouteHeuristicsSummary(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicList(),
-		adapt(s.handlerHeuristicList(), getRouteHeuristicList(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerHeuristicList(), getRouteHeuristicList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDescriptors(),
-		adapt(s.handlerHeuristicDescriptors(), getRouteHeuristicDescriptors(),
-			limitMethod("GET"), s.authorization(), s.useCache(0), maxBody()))
+		adapt(s.handlerHeuristicDescriptors(), getRouteHeuristicDescriptors(), s.authorization(), s.useCache(0), maxBody()))
 	s.handler.Handle(getRouteDeleteHeuristic(),
-		adapt(s.handlerDeleteHeuristic(), getRouteDeleteHeuristic(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteHeuristic(), getRouteDeleteHeuristic(), s.authorization(), maxBody()))
 
 	// Analytics
 	s.handler.Handle(getRouteShortestTransactionPath(),
-		adapt(s.handlerShortestTransactionPath(), getRouteShortestTransactionPath(),
-			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerShortestTransactionPath(), getRouteShortestTransactionPath(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteConnectionLookup(),
-		adapt(s.handlerConnectionLookup(), getRouteConnectionLookup(),
-			limitMethod("GET"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerConnectionLookup(), getRouteConnectionLookup(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteMixingActivity(),
-		adapt(s.handlerMixingActivity(), getRouteMixingActivity(),
-			limitMethod("POST"), s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerMixingActivity(), getRouteMixingActivity(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 	s.handler.Handle(getRouteSpendingFingerprint(),
-		adapt(s.handlerSpendingFingerprint(), getRouteSpendingFingerprint(), limitMethod("GET"),
-			s.authorization(), s.useCache(time.Minute*10), maxBody()))
+		adapt(s.handlerSpendingFingerprint(), getRouteSpendingFingerprint(), s.authorization(), s.useCache(time.Minute*10), maxBody()))
 
 	// Clusters
 	s.handler.Handle(getRouteClusterLookup(),
-		adapt(s.handlerClusterLookup(), getRouteClusterLookup(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerClusterLookup(), getRouteClusterLookup(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHMILookup(),
-		adapt(s.handlerHMILookup(), getRouteHMILookup(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerHMILookup(), getRouteHMILookup(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteClusterSummary(),
-		adapt(s.handlerClusterSummary(), getRouteClusterSummary(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerClusterSummary(), getRouteClusterSummary(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddCluster(),
-		adapt(s.handlerAddCluster(), getRouteAddCluster(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerAddCluster(), getRouteAddCluster(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteCluster(),
-		adapt(s.handlerDeleteCluster(), getRouteDeleteCluster(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteCluster(), getRouteDeleteCluster(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllClusters(),
-		adapt(s.handlerDeleteAllClusters(), getRouteDeleteAllClusters(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllClusters(), getRouteDeleteAllClusters(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteClusterOverview(),
-		adapt(s.handlerClusterOverview(), getRouteClusterOverview(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerClusterOverview(), getRouteClusterOverview(), s.authorization(), maxBody()))
 
 	// Attributions
 	s.handler.Handle(getRouteAddPrivateAttribution(),
-		adapt(s.handlerAddPrivateAttribution(), getRouteAddPrivateAttribution(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerAddPrivateAttribution(), getRouteAddPrivateAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddPublicAttribution(),
-		adapt(s.handlerAddPublicAttribution(), getRouteAddPublicAttribution(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerAddPublicAttribution(), getRouteAddPublicAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAttributionOverview(),
-		adapt(s.handlerAttributionOverview(), getRouteAttributionOverview(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerAttributionOverview(), getRouteAttributionOverview(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeletePrivateAttribution(),
-		adapt(s.handlerDeletePrivateAttribution(), getRouteDeletePrivateAttribution(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeletePrivateAttribution(), getRouteDeletePrivateAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeletePublicAttribution(),
-		adapt(s.handlerDeletePublicAttribution(), getRouteDeletePublicAttribution(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeletePublicAttribution(), getRouteDeletePublicAttribution(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllPrivateAttributions(),
-		adapt(s.handlerDeleteAllPrivateAttributions(), getRouteDeleteAllPrivateAttributions(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllPrivateAttributions(), getRouteDeleteAllPrivateAttributions(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteSearchAttributions(),
-		adapt(s.handlerSearchAttributions(), getRouteSearchAttributions(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerSearchAttributions(), getRouteSearchAttributions(), s.authorization(), maxBody()))
 
 	// Address Exclusions
 	s.handler.Handle(getRouteAddAddressExclusions(),
-		adapt(s.handlerAddAddressExclusions(), getRouteAddAddressExclusions(),
-			limitMethod("POST"), s.authorization(), maxBody()))
+		adapt(s.handlerAddAddressExclusions(), getRouteAddAddressExclusions(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAddressExclusion(),
-		adapt(s.handlerDeleteAddressExclusion(), getRouteDeleteAddressExclusion(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAddressExclusion(), getRouteDeleteAddressExclusion(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteAllAddressExclusions(),
-		adapt(s.handlerDeleteAllAddressExclusions(), getRouteDeleteAllAddressExclusions(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerDeleteAllAddressExclusions(), getRouteDeleteAllAddressExclusions(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddressExclusionOverview(),
-		adapt(s.handlerAddressExclusionOverview(), getRouteAddressExclusionOverview(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerAddressExclusionOverview(), getRouteAddressExclusionOverview(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddressExclusionStatus(),
-		adapt(s.handlerGetAddressExclusionStatus(), getRouteAddressExclusionStatus(),
-			limitMethod("GET"), s.authorization(), maxBody()))
+		adapt(s.handlerGetAddressExclusionStatus(), getRouteAddressExclusionStatus(), s.authorization(), maxBody()))
 
 	// User
-	s.handler.Handle(getRouteGetIdentities(), adapt(s.handlerGetIdentities(), getRouteGetIdentities(),
-		limitMethod("GET"), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteCreateIdentity(), adapt(s.handlerCreateIdentity(), getRouteCreateIdentity(),
-		limitMethod("POST"), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteAdminDeleteIdentity(), adapt(s.handlerAdminDeleteIdentity(), getRouteDeleteIdentity(),
-		limitMethod("GET"), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteDeleteIdentity(), adapt(s.handlerDeleteIdentity(), getRouteDeleteIdentity(),
-		limitMethod("GET"), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteModifyIdentity(), adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(),
-		limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteGetIdentities(),
+		adapt(s.handlerGetIdentities(), getRouteGetIdentities(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteCreateIdentity(),
+		adapt(s.handlerCreateIdentity(),
+			getRouteCreateIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteAdminDeleteIdentity(),
+		adapt(s.handlerAdminDeleteIdentity(), getRouteDeleteIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteDeleteIdentity(),
+		adapt(s.handlerDeleteIdentity(), getRouteDeleteIdentity(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteModifyIdentity(),
+		adapt(s.handlerModifyIdentity(), getRouteModifyIdentity(), s.authorization(), maxBody()))
 
 	// Workspace
-	s.handler.Handle(getRouteWorkspaceAddNode(), adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(),
-		limitMethod("POST"), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(),
-		limitMethod("GET"), s.authorization()))
-	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(),
-		limitMethod("GET"), s.authorization()))
-	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(),
-		limitMethod("GET"), s.authorization()))
-	s.handler.Handle(getRouteUpdateWorkspace(), adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(),
-		limitMethod("POST"), s.authorization(), maxBodyConfig(50)))
-	s.handler.Handle(getRouteDeleteWorkspace(), adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(),
-		limitMethod("POST"), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteWorkspaceAddNode(),
+		adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(), s.authorization()))
+	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(), s.authorization()))
+	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(), s.authorization()))
+	s.handler.Handle(getRouteUpdateWorkspace(),
+		adapt(s.handlerUpdateWorkspace(), getRouteUpdateWorkspace(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteDeleteWorkspace(),
+		adapt(s.handlerDeleteWorkspace(), getRouteDeleteWorkspace(), s.authorization(), maxBody()))
 }

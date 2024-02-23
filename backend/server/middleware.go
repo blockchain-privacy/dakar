@@ -180,7 +180,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 		header     http.Header
 		statusCode int
 	}
-	return func(h http.Handler, route string) http.Handler {
+	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// extract body
 			body, err := io.ReadAll(r.Body)
@@ -191,8 +191,7 @@ func (s *Server) useCache(ttl time.Duration) adapter {
 			}
 			// reset body, so it can be read by the next handler
 			r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-			cacheKey := buildKey(route, r.URL.Path[len(route):]+r.URL.RawQuery, body)
+			cacheKey := buildKey(r.RequestURI, body)
 
 			// try to get request from cache
 			value, found := s.cache.Get(cacheKey)
@@ -254,20 +253,6 @@ func maxBodyConfig(size int64) adapter {
 	return func(h http.Handler, _ string) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, 1024*1024*size)
-			h.ServeHTTP(w, r)
-		})
-	}
-}
-
-func limitMethod(method string) adapter {
-	return func(h http.Handler, route string) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Method != method {
-				warn(cliutil.NewStackErrorf("error received %s request for route %s instead of %s", r.Method, route, method))
-				w.WriteHeader(http.StatusMethodNotAllowed)
-				return
-			}
-
 			h.ServeHTTP(w, r)
 		})
 	}

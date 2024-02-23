@@ -22,7 +22,6 @@ const (
 	routeGetIdentities                string = "getIdentities"
 	routeDeleteIdentity               string = "deleteIdentity"
 	routeAdminDeleteIdentity          string = "adminDeleteIdentity"
-	routeModifyUser                   string = "modifyUser"
 	routeModifyIdentity               string = "modifyIdentity"
 	routeShortestTxPath               string = "shortestTransactionPath"
 	routeConnectionLookup             string = "connectionLookup"
@@ -56,261 +55,266 @@ const (
 	routeMetrics                      string = "/metrics"
 )
 
-func getRoute(r string) string {
-	return routePrefix + r + "/"
+const (
+	httpGET  = "GET"
+	httpPOST = "POST"
+)
+
+func buildRoutePattern(httpMethod string, r string, query string) string {
+	base := httpMethod + " " + routePrefix + r + "/"
+
+	if query != "" {
+		base += "{" + query + "}"
+	}
+	return base
 }
 
 // getRouteTransaction returns a route
 func getRouteTransaction() string {
-	return getRoute(routeTransaction)
+	return buildRoutePattern(httpGET, routeTransaction, "hash")
 }
 
 // getRouteBlock returns a route
 func getRouteBlock() string {
-	return getRoute(routeBlock)
+	return buildRoutePattern(httpGET, routeBlock, "hash")
 }
 
 // getRouteAddress returns a route
 func getRouteAddress() string {
-	return getRoute(routeAddress)
+	return buildRoutePattern(httpGET, routeAddress, "hash")
 }
 
 // getRouteMeta returns a route
 func getRouteMeta() string {
-	return getRoute(routeMeta)
+	return buildRoutePattern(httpGET, routeMeta, "")
 }
 
 // getRouteHeuristicByWorkID returns a route
 func getRouteHeuristicByWorkID() string {
-	return getRoute(routeHeuristicByWorkID)
+	return buildRoutePattern(httpGET, routeHeuristicByWorkID, "workID")
 }
 
 // getRouteHeuristics returns a route
 func getRouteHeuristics() string {
-	return getRoute(routeHeuristics)
+	return buildRoutePattern(httpGET, routeHeuristics, "hash")
 }
 
 // getRouteHeuristicsSummary returns a route
 func getRouteHeuristicsSummary() string {
-	return getRoute(routeHeuristicsSummary)
+	return buildRoutePattern(httpGET, routeHeuristicsSummary, "heuristic_UID")
 }
 
 // getRouteHeuristicsExecution returns a route
 func getRouteHeuristicsExecution() string {
-	return getRoute(routeHeuristicsExecution)
+	return buildRoutePattern(httpPOST, routeHeuristicsExecution, "hash")
 }
 
 // getRouteHeuristicDetails returns a route
 func getRouteHeuristicDetails() string {
-	return getRoute(routeHeuristicDetails)
+	return buildRoutePattern(httpPOST, routeHeuristicDetails, "")
 }
 
 // getRouteHeuristicList returns a route
 func getRouteHeuristicList() string {
-	return getRoute(routeHeuristicList)
+	return buildRoutePattern(httpGET, routeHeuristicList, "")
 }
 
 // getRouteHeuristicDescriptors returns a route
 func getRouteHeuristicDescriptors() string {
-	return getRoute(routeHeuristicDescriptors)
+	return buildRoutePattern(httpGET, routeHeuristicDescriptors, "")
 }
 
 // getRouteDeleteHeuristic returns a route
 func getRouteDeleteHeuristic() string {
-	return getRoute(routeDeleteHeuristic)
+	return buildRoutePattern(httpPOST, routeDeleteHeuristic, "")
 }
 
 // getRouteSearch returns a route
 func getRouteSearch() string {
-	return getRoute(routeSearch)
+	return buildRoutePattern(httpGET, routeSearch, "query")
 }
 
 // getRouteAddressOutputRange returns a route
 func getRouteAddressOutputRange() string {
-	return getRoute(routeAddressOutputRange)
+	return buildRoutePattern(httpPOST, routeAddressOutputRange, "addressHash")
 }
 
 // getRouteBlockRange returns a route
 func getRouteBlockRange() string {
-	return getRoute(routeBlockRange)
+	return buildRoutePattern(httpPOST, routeBlockRange, "blockHash")
 }
 
 // getRouteCreateIdentity returns a route
 func getRouteCreateIdentity() string {
-	return getRoute(routeCreateIdentity)
+	return buildRoutePattern(httpPOST, routeCreateIdentity, "")
 }
 
 // getRouteGetIdentities returns a route
 func getRouteGetIdentities() string {
-	return getRoute(routeGetIdentities)
+	return buildRoutePattern(httpGET, routeGetIdentities, "")
 }
 
 // getRouteDeleteIdentity returns a route
 func getRouteDeleteIdentity() string {
-	return getRoute(routeDeleteIdentity)
+	return buildRoutePattern(httpGET, routeDeleteIdentity, "")
 }
 
 // getRouteAdminDeleteIdentity returns a route
 func getRouteAdminDeleteIdentity() string {
-	return getRoute(routeAdminDeleteIdentity)
-}
-
-// getRouteModifyUser returns a route
-func getRouteModifyUser() string {
-	return getRoute(routeModifyUser)
+	return buildRoutePattern(httpGET, routeAdminDeleteIdentity, "identityUID")
 }
 
 // getRouteModifyIdentity returns a route
 func getRouteModifyIdentity() string {
-	return getRoute(routeModifyIdentity)
+	return buildRoutePattern(httpPOST, routeModifyIdentity, "")
 }
 
 // getRouteShortestTransactionPath returns a route
 func getRouteShortestTransactionPath() string {
-	return getRoute(routeShortestTxPath)
+	return buildRoutePattern(httpPOST, routeShortestTxPath, "")
 }
 
 // getRouteConnectionLookup returns a route
 func getRouteConnectionLookup() string {
-	return getRoute(routeConnectionLookup)
+	return buildRoutePattern(httpGET, routeConnectionLookup, "txHash")
 }
 
 // getRouteClusterLookup returns a route
 func getRouteClusterLookup() string {
-	return getRoute(routeClusterLookup)
+	return buildRoutePattern(httpGET, routeClusterLookup, "addressHash")
 }
 
 // getRouteHMILookup returns a route
 func getRouteHMILookup() string {
-	return getRoute(routeHMILookup)
+	return buildRoutePattern(httpGET, routeHMILookup, "hash")
 }
 
 // getRouteClusterSummary returns a route
 func getRouteClusterSummary() string {
-	return getRoute(routeClusterSummary)
+	return buildRoutePattern(httpGET, routeClusterSummary, "addressHash")
 }
 
 // getRouteMixingActivity returns a route
 func getRouteMixingActivity() string {
-	return getRoute(routeMixingActivity)
+	return buildRoutePattern(httpPOST, routeMixingActivity, "")
 }
 
 // getRouteAddCluster returns a route
 func getRouteAddCluster() string {
-	return getRoute(routeAddCluster)
+	return buildRoutePattern(httpPOST, routeAddCluster, "")
 }
 
 // getRouteDeleteCluster returns a route
 func getRouteDeleteCluster() string {
-	return getRoute(routeDeleteCluster)
+	return buildRoutePattern(httpGET, routeDeleteCluster, "cluster_uid")
 }
 
 // getRouteDeleteAllClusters returns a route
 func getRouteDeleteAllClusters() string {
-	return getRoute(routeDeleteAllClusters)
+	return buildRoutePattern(httpGET, routeDeleteAllClusters, "")
 }
 
 // getRouteClusterOverview returns a route
 func getRouteClusterOverview() string {
-	return getRoute(routeClusterOverview)
+	return buildRoutePattern(httpGET, routeClusterOverview, "")
 }
 
 // getRouteAddPrivateAttribution returns a route
 func getRouteAddPrivateAttribution() string {
-	return getRoute(routeAddPrivateAttribution)
+	return buildRoutePattern(httpPOST, routeAddPrivateAttribution, "")
 }
 
 // getRouteAddPublicAttribution returns a route
 func getRouteAddPublicAttribution() string {
-	return getRoute(routeAddPublicAttribution)
+	return buildRoutePattern(httpPOST, routeAddPublicAttribution, "")
 }
 
 // getRouteAttributionOverview returns a route
 func getRouteAttributionOverview() string {
-	return getRoute(routeAttributionOverview)
+	return buildRoutePattern(httpGET, routeAttributionOverview, "")
 }
 
 // getRouteDeletePrivateAttribution returns a route
 func getRouteDeletePrivateAttribution() string {
-	return getRoute(routeDeletePrivateAttribution)
+	return buildRoutePattern(httpGET, routeDeletePrivateAttribution, "attribution_uid")
 }
 
 // getRouteDeletePublicAttribution returns a route
 func getRouteDeletePublicAttribution() string {
-	return getRoute(routeDeletePublicAttribution)
+	return buildRoutePattern(httpGET, routeDeletePublicAttribution, "attribution_uid")
 }
 
 // getRouteDeleteAllPrivateAttributions returns a route
 func getRouteDeleteAllPrivateAttributions() string {
-	return getRoute(routeDeleteAllPrivateAttributions)
+	return buildRoutePattern(httpGET, routeDeleteAllPrivateAttributions, "")
 }
 
 // getRouteSearchAttributions returns a route
 func getRouteSearchAttributions() string {
-	return getRoute(routeSearchAttributions)
+	return buildRoutePattern(httpPOST, routeSearchAttributions, "")
 }
 
 // getRouteAddAddressExclusions returns a route
 func getRouteAddAddressExclusions() string {
-	return getRoute(routeAddAddressExclusions)
+	return buildRoutePattern(httpPOST, routeAddAddressExclusions, "")
 }
 
 // getRouteDeleteAddressExclusion returns a route
 func getRouteDeleteAddressExclusion() string {
-	return getRoute(routeDeleteAddressExclusion)
+	return buildRoutePattern(httpGET, routeDeleteAddressExclusion, "addressHash")
 }
 
 // getRouteDeleteAllAddressExclusions returns a route
 func getRouteDeleteAllAddressExclusions() string {
-	return getRoute(routeDeleteAllAddressExclusions)
+	return buildRoutePattern(httpGET, routeDeleteAllAddressExclusions, "")
 }
 
 // getRouteAddressExclusionOverview returns a route
 func getRouteAddressExclusionOverview() string {
-	return getRoute(routeAddressExclusionOverview)
+	return buildRoutePattern(httpGET, routeAddressExclusionOverview, "")
 }
 
 // getRouteAddressExclusionStatus returns a route
 func getRouteAddressExclusionStatus() string {
-	return getRoute(routeAddressExclusionStatus)
+	return buildRoutePattern(httpGET, routeAddressExclusionStatus, "address_hash")
 }
 
 // getRouteSpendingFingerprint returns a route
 func getRouteSpendingFingerprint() string {
-	return getRoute(routeSpendingFingerprint)
+	return buildRoutePattern(httpGET, routeSpendingFingerprint, "hash")
 }
 
 // getRouteWorkspaceAddNode returns a route
 func getRouteWorkspaceAddNode() string {
-	return getRoute(routeAddWorkspaceNode)
+	return buildRoutePattern(httpPOST, routeAddWorkspaceNode, "")
 }
 
 // getRouteWorkspaces returns a route
 func getRouteWorkspaces() string {
-	return getRoute(routeWorkspaces)
+	return buildRoutePattern(httpGET, routeWorkspaces, "")
 }
 
 // getRouteAddWorkspace returns a route
 func getRouteAddWorkspace() string {
-	return getRoute(routeAddWorkspace)
+	return buildRoutePattern(httpGET, routeAddWorkspace, "name")
 }
 
 // getRouteGetWorkspace returns a route
 func getRouteGetWorkspace() string {
-	return getRoute(routeGetWorkspace)
+	return buildRoutePattern(httpGET, routeGetWorkspace, "uid")
 }
 
 // getRouteGetWorkspace returns a route
 func getRouteUpdateWorkspace() string {
-	return getRoute(routeUpdateWorkspace)
+	return buildRoutePattern(httpPOST, routeUpdateWorkspace, "")
 }
 
 // getRouteDeleteWorkspace returns a route
 func getRouteDeleteWorkspace() string {
-	return getRoute(routeDeleteWorkspace)
+	return buildRoutePattern(httpPOST, routeDeleteWorkspace, "")
 }
 
 // getRouteMetrics returns a route
 func getRouteMetrics() string {
-	return routeMetrics
+	return httpGET + " " + routeMetrics
 }

@@ -182,13 +182,12 @@ type SearchResult struct {
 }
 
 // buildKey build a key from the given arguments
-func buildKey(route string, query string, body []byte) string {
-	key := route + query
+func buildKey(requestURI string, body []byte) string {
 	if len(body) > 0 {
-		key += string(body)
+		requestURI += string(body)
 	}
 
-	return key
+	return requestURI
 }
 
 // GetBlock searches for the hash specified in query. If a block is found the returned bool is true
