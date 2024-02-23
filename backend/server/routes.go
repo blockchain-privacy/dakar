@@ -293,12 +293,12 @@ func getRouteUpdateWorkspace() string {
 
 // getRouteDeleteWorkspace returns a route
 func getRouteDeleteWorkspace() string {
-	return buildRoutePattern(httpDELETE, routeWorkspaces, "")
+	return buildRoutePattern(httpDELETE, routeWorkspaces, "uid")
 }
 
 // getRouteDeleteAllWorkspaces returns a route
 func getRouteDeleteAllWorkspaces() string {
-	return buildRoutePattern(httpDELETE, routeWorkspaces, "uid")
+	return buildRoutePattern(httpDELETE, routeWorkspaces, "")
 }
 
 // getRouteMetrics returns a route

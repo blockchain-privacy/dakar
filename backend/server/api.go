@@ -53,11 +53,11 @@ func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult
 //	@Tags		data
 //	@Produce	json
 //	@Param		hash	path		string										true	"Address hash"
-//	@Param		options		body		server.getAddressOutputRangeReply.request	true	"query options"
-//	@Success	200			{object}	server.searchReply
-//	@Failure	400			{object}	server.searchReply
-//	@Failure	404			{object}	server.searchReply
-//	@Failure	500			{object}	server.searchReply
+//	@Param		options	body		server.getAddressOutputRangeReply.request	true	"query options"
+//	@Success	200		{object}	server.searchReply
+//	@Failure	400		{object}	server.searchReply
+//	@Failure	404		{object}	server.searchReply
+//	@Failure	500		{object}	server.searchReply
 //	@Router		/addressOutputRange/{hash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -73,11 +73,11 @@ func (s *Server) handlerAddressOutputRange() http.Handler {
 //	@Tags		data
 //	@Produce	json
 //	@Param		hash	path		string								true	"Block hash"
-//	@Param		offset		body		server.getBlockRangeReply.request	true	"transaction offset"
-//	@Success	200			{object}	server.searchReply
-//	@Failure	400			{object}	server.searchReply
-//	@Failure	404			{object}	server.searchReply
-//	@Failure	500			{object}	server.searchReply
+//	@Param		offset	body		server.getBlockRangeReply.request	true	"transaction offset"
+//	@Success	200		{object}	server.searchReply
+//	@Failure	400		{object}	server.searchReply
+//	@Failure	404		{object}	server.searchReply
+//	@Failure	500		{object}	server.searchReply
 //	@Router		/blkRange/{hash} [post]
 func (s *Server) handlerBlockRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -109,8 +109,8 @@ func (s *Server) handlerMeta() http.Handler {
 //	@Tags		heuristic
 //	@Produce	text/csv
 //	@Param		uid	path		string	true	"Heuristic UID"
-//	@Success	200				{file}		file	"comma separated values"
-//	@Failure	500				{string}	string	"encoding error"
+//	@Success	200	{file}		file	"comma separated values"
+//	@Failure	500	{string}	string	"encoding error"
 //	@Router		/heuristicsSummary/{uid} [get]
 func (s *Server) handlerHeuristicsSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -125,8 +125,8 @@ func (s *Server) handlerHeuristicsSummary() http.Handler {
 //	@Produce	text/csv
 //	@Accept		json
 //	@Param		hash	path		string	true	"Address hash"
-//	@Success	200			{file}		file	"comma separated values"
-//	@Failure	500			{string}	string	"encoding error"
+//	@Success	200		{file}		file	"comma separated values"
+//	@Failure	500		{string}	string	"encoding error"
 //	@Router		/clusterSummary/{hash} [get]
 func (s *Server) handlerClusterSummary() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -159,10 +159,10 @@ func (s *Server) handlerAddCluster() http.Handler {
 //	@Tags		cluster
 //	@Produce	json
 //	@Param		uid	path		string	true	"Cluster UID"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	401			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/clusters/{uid} [delete]
 func (s *Server) handlerDeleteCluster() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -271,10 +271,10 @@ func (s *Server) handlerAddPublicAttribution() http.Handler {
 //	@Tags		attribution
 //	@Produce	json
 //	@Param		uid	path		string	true	"Attribution UID"
-//	@Success	200				{object}	server.msgReply
-//	@Failure	400				{object}	server.msgReply
-//	@Failure	401				{object}	server.msgReply
-//	@Failure	500				{object}	server.msgReply
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/attributions/{uid} [delete]
 func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -290,10 +290,10 @@ func (s *Server) handlerDeletePrivateAttribution() http.Handler {
 //	@Tags		attribution
 //	@Produce	json
 //	@Param		uid	path		string	true	"Attribution UID"
-//	@Success	200				{object}	server.msgReply
-//	@Failure	400				{object}	server.msgReply
-//	@Failure	401				{object}	server.msgReply
-//	@Failure	500				{object}	server.msgReply
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/attributions/public/{uid} [delete]
 func (s *Server) handlerDeletePublicAttribution() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -325,11 +325,11 @@ func (s *Server) handlerDeleteAllPrivateAttributions() http.Handler {
 //	@Summary	Search all public attributions and the attributions belonging to the current user
 //	@Tags		attribution
 //	@Produce	json
-//	@Param		query	path		string								true	"Attribution query"
-//	@Success	200			{object}	server.attributionOverviewReply
-//	@Failure	400			{object}	server.attributionOverviewReply
-//	@Failure	401			{object}	server.attributionOverviewReply
-//	@Failure	500			{object}	server.attributionOverviewReply
+//	@Param		query	path		string	true	"Attribution query"
+//	@Success	200		{object}	server.attributionOverviewReply
+//	@Failure	400		{object}	server.attributionOverviewReply
+//	@Failure	401		{object}	server.attributionOverviewReply
+//	@Failure	500		{object}	server.attributionOverviewReply
 //	@Router		/attributions/search/{query} [get]
 func (s *Server) handlerSearchAttributions() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -364,10 +364,10 @@ func (s *Server) handlerAddAddressExclusions() http.Handler {
 //	@Tags		address exclusions
 //	@Produce	text/plain
 //	@Param		hash	path		string	true	"Address hash"
-//	@Success	200			{string}	string
-//	@Failure	400			{string}	string
-//	@Failure	401			{string}	string
-//	@Failure	500			{string}	string
+//	@Success	200		{string}	string
+//	@Failure	400		{string}	string
+//	@Failure	401		{string}	string
+//	@Failure	500		{string}	string
 //	@Router		/exclusions/{hash} [delete]
 func (s *Server) handlerDeleteAddressExclusion() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -591,10 +591,10 @@ func (s *Server) handlerCreateIdentity() http.Handler {
 //	@Tags		identity
 //	@Produce	json
 //	@Param		uid	path		string	true	"Identity UID"
-//	@Success	200			{object}	server.msgReply
-//	@Failure	400			{object}	server.msgReply
-//	@Failure	401			{object}	server.msgReply
-//	@Failure	500			{object}	server.msgReply
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
 //	@Router		/identities/{uid} [delete]
 func (s *Server) handlerAdminDeleteIdentity() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -683,7 +683,7 @@ func (s *Server) handlerShortestTransactionPath() http.Handler {
 //	@Produce	json
 //	@Param		hash	path		string	true	"Transaction hash"
 //	@Param		forward	query		bool	true	"search direction"
-//	@Param		t		query		int		true	"time range in number of days"	maximum(90) minimum(1)
+//	@Param		t		query		int		true	"time range in number of days"	maximum(90)	minimum(1)
 //	@Success	200		{object}	server.connectionLookupReply
 //	@Failure	400		{object}	server.connectionLookupReply
 //	@Failure	404		{object}	server.connectionLookupReply
@@ -703,10 +703,10 @@ func (s *Server) handlerConnectionLookup() http.Handler {
 //	@Tags		cluster
 //	@Produce	json
 //	@Param		hash	path		string	true	"Address hash"
-//	@Success	200			{object}	server.clusterLookupReply
-//	@Failure	400			{object}	server.clusterLookupReply
-//	@Failure	401			{object}	server.clusterLookupReply
-//	@Failure	500			{object}	server.clusterLookupReply
+//	@Success	200		{object}	server.clusterLookupReply
+//	@Failure	400		{object}	server.clusterLookupReply
+//	@Failure	401		{object}	server.clusterLookupReply
+//	@Failure	500		{object}	server.clusterLookupReply
 //	@Router		/clusters/{hash} [get]
 func (s *Server) handlerClusterLookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -741,10 +741,10 @@ func (s *Server) handlerMixingActivity() http.Handler {
 //	@Tags		address exclusions
 //	@Produce	json
 //	@Param		hash	path		string	true	"Address hash"
-//	@Success	200				{object}	server.addressExclusionStatusReply
-//	@Failure	400				{object}	server.addressExclusionStatusReply
-//	@Failure	401				{object}	server.addressExclusionStatusReply
-//	@Failure	500				{object}	server.addressExclusionStatusReply
+//	@Success	200		{object}	server.addressExclusionStatusReply
+//	@Failure	400		{object}	server.addressExclusionStatusReply
+//	@Failure	401		{object}	server.addressExclusionStatusReply
+//	@Failure	500		{object}	server.addressExclusionStatusReply
 //	@Router		/exclusions/{hash} [get]
 func (s *Server) handlerGetAddressExclusionStatus() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -796,9 +796,9 @@ func (s *Server) handlerAddWorkspaceNode() http.Handler {
 //	@Summary	List all workspaces of the current user
 //	@Tags		workspace
 //	@Produce	json
-//	@Success	200		{object}	server.workspacesReply
-//	@Failure	400		{object}	server.workspacesReply
-//	@Failure	500		{object}	server.workspacesReply
+//	@Success	200	{object}	server.workspacesReply
+//	@Failure	400	{object}	server.workspacesReply
+//	@Failure	500	{object}	server.workspacesReply
 //	@Router		/workspaces/ [get]
 func (s *Server) handlerWorkspaces() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -832,9 +832,9 @@ func (s *Server) handlerAddWorkspace() http.Handler {
 //	@Tags		workspace
 //	@Produce	json
 //	@Param		uid	path		string	true	"Workspace UID"
-//	@Success	200		{object}	server.getWorkspaceReply
-//	@Failure	400		{object}	server.getWorkspaceReply
-//	@Failure	500		{object}	server.getWorkspaceReply
+//	@Success	200	{object}	server.getWorkspaceReply
+//	@Failure	400	{object}	server.getWorkspaceReply
+//	@Failure	500	{object}	server.getWorkspaceReply
 //	@Router		/workspaces/{uid} [get]
 func (s *Server) handlerGetWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -865,17 +865,16 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 
 // Delete a Workspace godoc
 //
-//	@Summary		Deletes a workspace of the current user
-//	@Tags			workspace
-//	@Produce		json
-//	@Accept			json
+//	@Summary	Deletes a workspace of the current user
+//	@Tags		workspace
+//	@Produce	json
 //	@Param		uid	path		string	true	"Workspace UID"
-//	@Success		200			{object}	server.msgReply
-//	@Failure		400			{object}	server.msgReply
-//	@Failure		401			{object}	server.msgReply
-//	@Failure		404			{object}	server.msgReply
-//	@Failure		500			{object}	server.msgReply
-//	@Router			/workspaces/{uid} [delete]
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	404	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
+//	@Router		/workspaces/{uid} [delete]
 func (s *Server) handlerDeleteWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteWorkspaceReply(r, s.db)
@@ -886,16 +885,15 @@ func (s *Server) handlerDeleteWorkspace() http.Handler {
 
 // Delete All Workspace godoc
 //
-//	@Summary		Deletes all workspaces of the current user
-//	@Tags			workspace
-//	@Produce		json
-//	@Accept			json
-//	@Success		200			{object}	server.msgReply
-//	@Failure		400			{object}	server.msgReply
-//	@Failure		401			{object}	server.msgReply
-//	@Failure		404			{object}	server.msgReply
-//	@Failure		500			{object}	server.msgReply
-//	@Router			/workspaces/ [delete]
+//	@Summary	Deletes all workspaces of the current user
+//	@Tags		workspace
+//	@Produce	json
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	401	{object}	server.msgReply
+//	@Failure	404	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
+//	@Router		/workspaces/ [delete]
 func (s *Server) handlerDeleteAllWorkspaces() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getDeleteAllWorkspacesReply(r, s.db)
