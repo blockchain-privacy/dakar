@@ -567,6 +567,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@vue/devtools-api@npm:^6.5.1":
+  version: 6.6.1
+  resolution: "@vue/devtools-api@npm:6.6.1"
+  checksum: ab9a1e09baae514b0d3a8bf1d670ecb7724f7e55b82eea30aa2e7255e6200b45c1086c1376560f243cf86e98c0726e94d69cefe0ad23dfd50c7c49dfcb1fbf21
+  languageName: node
+  linkType: hard
+
 "@vue/reactivity@npm:3.4.19":
   version: 3.4.19
   resolution: "@vue/reactivity@npm:3.4.19"
@@ -1167,7 +1174,7 @@ __metadata:
     d3-zoom: "npm:^3.0.0"
     eslint: "npm:^8.56.0"
     eslint-config-xo: "npm:^0.44.0"
-    eslint-plugin-vue: "npm:^9.21.1"
+    eslint-plugin-vue: "npm:^9.22.0"
     eslint-plugin-vuetify: "npm:^2.1.1"
     pinia: "npm:^2.1.7"
     sass: "npm:^1.71.1"
@@ -1175,8 +1182,8 @@ __metadata:
     vite-plugin-vuetify: "npm:^2.0.1"
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.19"
-    vue-router: "npm:^4.2.5"
-    vuetify: "npm:^3.5.4"
+    vue-router: "npm:^4.3.0"
+    vuetify: "npm:^3.5.5"
   languageName: unknown
   linkType: soft
 
@@ -1402,7 +1409,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-vue@npm:^9.21.1, eslint-plugin-vue@npm:^9.6.0":
+"eslint-plugin-vue@npm:^9.22.0":
+  version: 9.22.0
+  resolution: "eslint-plugin-vue@npm:9.22.0"
+  dependencies:
+    "@eslint-community/eslint-utils": "npm:^4.4.0"
+    natural-compare: "npm:^1.4.0"
+    nth-check: "npm:^2.1.1"
+    postcss-selector-parser: "npm:^6.0.15"
+    semver: "npm:^7.6.0"
+    vue-eslint-parser: "npm:^9.4.2"
+    xml-name-validator: "npm:^4.0.0"
+  peerDependencies:
+    eslint: ^6.2.0 || ^7.0.0 || ^8.0.0
+  checksum: d83fc9aba9f0f7eef0a0dfd05464d2b4a568b424f4b3ed93aae4274c653e9287bbd88c9d3fdb8a9d72a180e6dfcc53519fd76706b8c72dc6ec17ab8d09d69da1
+  languageName: node
+  linkType: hard
+
+"eslint-plugin-vue@npm:^9.6.0":
   version: 9.21.1
   resolution: "eslint-plugin-vue@npm:9.21.1"
   dependencies:
@@ -2426,7 +2450,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss-selector-parser@npm:^6.0.13":
+"postcss-selector-parser@npm:^6.0.13, postcss-selector-parser@npm:^6.0.15":
   version: 6.0.15
   resolution: "postcss-selector-parser@npm:6.0.15"
   dependencies:
@@ -2642,6 +2666,17 @@ __metadata:
   bin:
     semver: bin/semver.js
   checksum: 5160b06975a38b11c1ab55950cb5b8a23db78df88275d3d8a42ccf1f29e55112ac995b3a26a522c36e3b5f76b0445f1eef70d696b8c7862a2b4303d7b0e7609e
+  languageName: node
+  linkType: hard
+
+"semver@npm:^7.6.0":
+  version: 7.6.0
+  resolution: "semver@npm:7.6.0"
+  dependencies:
+    lru-cache: "npm:^6.0.0"
+  bin:
+    semver: bin/semver.js
+  checksum: fbfe717094ace0aa8d6332d7ef5ce727259815bd8d8815700853f4faf23aacbd7192522f0dc5af6df52ef4fa85a355ebd2f5d39f554bd028200d6cf481ab9b53
   languageName: node
   linkType: hard
 
@@ -2978,14 +3013,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-router@npm:^4.2.5":
-  version: 4.2.5
-  resolution: "vue-router@npm:4.2.5"
+"vue-router@npm:^4.3.0":
+  version: 4.3.0
+  resolution: "vue-router@npm:4.3.0"
   dependencies:
-    "@vue/devtools-api": "npm:^6.5.0"
+    "@vue/devtools-api": "npm:^6.5.1"
   peerDependencies:
     vue: ^3.2.0
-  checksum: 63e51f437a1f10a97fce97c04cde3f87958049c5e20f8b238b66b9a9080c99db0124e680ed0e9921af1f6d81c00bf181e280e36e2370cafea581539334d895ef
+  checksum: 72865ad2e5e17035f1d38311caaec77759f9813f3a627553994c05c43d04ceeaf1f9325260be4c060411c49ed176035579bf4815a4c084b908688c0cc6b3cf72
   languageName: node
   linkType: hard
 
@@ -3007,9 +3042,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.5.4":
-  version: 3.5.4
-  resolution: "vuetify@npm:3.5.4"
+"vuetify@npm:^3.5.5":
+  version: 3.5.5
+  resolution: "vuetify@npm:3.5.5"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=1.0.0-alpha.12"
@@ -3025,7 +3060,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: e48745e6eafdc4a16cd5a09fb715c2c31c87a705cf7f3f3d94a0b125bc2e1c2d0b083f39912b7843b091f828bbd0b0b7f67a93b1c480ed3d33c1bf2e1d0b5a3a
+  checksum: c5b2d1fc7bc1fd76f9e3b19bd95f672ce567c3ae4696c662dd7721fc15d583934429f989ee8f076ec4506213b049710c79b1b4b7d7ae8467030e5bcebe723ed6
   languageName: node
   linkType: hard
 
