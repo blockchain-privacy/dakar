@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/dgraph-io/ristretto"
 	"log/slog"
-	"math/rand"
+	"math/rand/v2"
 
 	"context"
 	"sync"
