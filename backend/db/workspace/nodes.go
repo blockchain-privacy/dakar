@@ -5,6 +5,7 @@ import (
 	"backend/db"
 	"backend/external"
 	"encoding/json"
+	"slices"
 	"time"
 )
 
@@ -232,7 +233,8 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 	}
 
 	transactions, clusters, addresses, heuristicNodes := parseConnectionResult(r)
-	connections = append(transactions, append(addresses, clusters...)...)
+
+	connections = slices.Concat(transactions, addresses, clusters)
 
 	return
 }
