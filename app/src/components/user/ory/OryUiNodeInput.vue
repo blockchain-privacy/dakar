@@ -33,7 +33,7 @@
     />
   </div>
   <v-text-field
-    v-else-if="attributes.type === 'text'"
+    v-else-if="attributes.type === 'text' || (attributes.type === 'text'&& metaLabel === 'E-Mail')"
     :key="meta?.label?.id"
     :label="metaLabel"
     :model-value="attributes.value?attributes.value:''"
@@ -88,7 +88,7 @@ const password = ref({show: false});
 
 // Computed
 const metaLabel = computed(() => {
-	if (props.meta.label && props.meta.label.text) {
+	if (props.meta.label?.text) {
 		return props.meta.label.text;
 	}
 
@@ -104,7 +104,11 @@ const inputIcon = computed(() => {
 		return mdiFormTextboxPassword;
 	}
 
-	if (metaLabel.value === 'ID') {
+	if (metaLabel.value === 'E-Mail') {
+		return mdiEmail;
+	}
+
+	if (props.attributes?.name === 'identifier') {
 		return mdiAccount;
 	}
 
