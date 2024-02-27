@@ -264,7 +264,7 @@ async function downloadClusterReport() {
 
 		a.setAttribute(
 			'download',
-			`cluster_summary_${getCurrentDate()}_${fileName}.csv`,
+			`cluster_report_${getCurrentDate()}_${fileName}.csv`,
 		);
 		a.click();
 		a.remove();
