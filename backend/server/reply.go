@@ -31,19 +31,12 @@ import (
 	"strconv"
 )
 
-const (
-	errorClusterReport    = "error getting cluster summary"
-	errorHeuristicSummary = "error getting heuristic summary"
-)
-
 // getSearchReply searches for the given query in the database
 func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	reply := searchReply{
 		Type:    typeEmpty,
 		Payload: nil,
 	}
-
-	status := http.StatusOK
 
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
@@ -55,6 +48,8 @@ func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	} else if isLikelyAddress(query) {
 		searchOrder = []func(external.Database, string) (SearchResult, bool, error){GetAddress, GetTransaction, GetBlock}
 	}
+
+	status := http.StatusOK
 
 	// iterate over db access functions
 	for _, fn := range searchOrder {
@@ -745,8 +740,8 @@ func getHMILookupReply(dgraph external.Database, addressHash string) (reply hmiL
 	return
 }
 
-// writeHeuristicSummary writes heuristic data in CSV format
-func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+// writeHeuristicReport writes heuristic data in CSV format
+func writeHeuristicReport(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
 	heuristicUID := r.PathValue("uid")
 	if heuristicUID == "" {
@@ -754,22 +749,24 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 		return
 	}
 
+	const errReport = "error getting heuristic report"
+
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	cHeuristic, err := dbHeuristic.GetFrontendHeuristicByUID(dgraph, heuristicUID, tUser.ID)
 	if err != nil {
-		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	if cHeuristic.UID == "" {
-		http.Error(w, errorHeuristicSummary, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		return
 	}
 
@@ -828,22 +825,24 @@ func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.
 		return
 	}
 
+	const errReport = "error getting cluster report"
+
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		http.Error(w, errorClusterReport, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	clusters, err := clustering.GetClusters(dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
-		http.Error(w, errorClusterReport, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	if len(clusters) == 0 {
-		http.Error(w, errorClusterReport, http.StatusNotFound)
+		http.Error(w, errReport, http.StatusNotFound)
 		return
 	}
 

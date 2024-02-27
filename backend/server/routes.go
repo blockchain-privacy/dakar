@@ -10,7 +10,7 @@ const (
 	routeMeta                 string = "meta"
 	routeHeuristicByWorkID    string = "heuristicByWorkID"
 	routeHeuristics           string = "heuristics"
-	routeHeuristicsSummary    string = "heuristicsSummary"
+	routeHeuristicReport      string = "heuristics/report"
 	routeHeuristicsExecution  string = "executeHeuristics"
 	routeHeuristicDetails     string = "heuristicDetails"
 	routeHeuristicList        string = "heuristicList"
@@ -81,9 +81,9 @@ func getRouteHeuristics() string {
 	return buildRoutePattern(httpGET, routeHeuristics, "hash")
 }
 
-// getRouteHeuristicsSummary returns a route
-func getRouteHeuristicsSummary() string {
-	return buildRoutePattern(httpGET, routeHeuristicsSummary, "uid")
+// getRouteHeuristicReport returns a route
+func getRouteHeuristicReport() string {
+	return buildRoutePattern(httpGET, routeHeuristicReport, "uid")
 }
 
 // getRouteHeuristicsExecution returns a route
