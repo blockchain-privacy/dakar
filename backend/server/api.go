@@ -103,34 +103,34 @@ func (s *Server) handlerMeta() http.Handler {
 	})
 }
 
-// Heuristic Summary godoc
+// Heuristic Report godoc
 //
-//	@Summary	Heuristic Summary
+//	@Summary	Get a CSV file containing results of the specified heuristic
 //	@Tags		heuristic
 //	@Produce	text/csv
 //	@Param		uid	path		string	true	"Heuristic UID"
 //	@Success	200	{file}		file	"comma separated values"
 //	@Failure	500	{string}	string	"encoding error"
-//	@Router		/heuristicsSummary/{uid} [get]
-func (s *Server) handlerHeuristicsSummary() http.Handler {
+//	@Router		/heuristics/report/{uid} [get]
+func (s *Server) handlerHeuristicsReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeHeuristicSummary(w, r, s.db)
+		writeHeuristicReport(w, r, s.db)
 	})
 }
 
-// Cluster Summary godoc
+// Cluster Report godoc
 //
-//	@Summary	Get all clusters of an address
+//	@Summary	Get a CSV file containing all clusters for the given address
 //	@Tags		cluster
 //	@Produce	text/csv
 //	@Accept		json
 //	@Param		hash	path		string	true	"Address hash"
 //	@Success	200		{file}		file	"comma separated values"
 //	@Failure	500		{string}	string	"encoding error"
-//	@Router		/clusterSummary/{hash} [get]
-func (s *Server) handlerClusterSummary() http.Handler {
+//	@Router		/clusters/report/{hash} [get]
+func (s *Server) handlerClusterReport() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		writeClusterSummary(w, r, s.db)
+		writeClusterReport(w, r, s.db)
 	})
 }
 
@@ -453,14 +453,14 @@ func (s *Server) handlerHeuristicByWorkID() http.Handler {
 
 // HMI clusters godoc
 //
-//	@Summary	Get HMI clusters per transaction
+//	@Summary	Get HMI clusters per address
 //	@Tags		cluster
 //	@Produce	json
 //	@Param		hash	path		string	true	"Transaction hash"
 //	@Success	200		{object}	server.hmiLookupReply
 //	@Failure	400		{object}	server.hmiLookupReply
 //	@Failure	500		{object}	server.hmiLookupReply
-//	@Router		/hmiLookup/{hash} [get]
+//	@Router		/clusters/hmi/{hash} [get]
 func (s *Server) handlerHMILookup() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getHMILookupReply(s.db, r.PathValue("hash"))
@@ -937,8 +937,8 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerHeuristicsDetails(), getRouteHeuristicDetails(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicsExecution(),
 		adapt(s.handlerHeuristicsExecution(), getRouteHeuristicsExecution(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteHeuristicsSummary(),
-		adapt(s.handlerHeuristicsSummary(), getRouteHeuristicsSummary(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteHeuristicReport(),
+		adapt(s.handlerHeuristicsReport(), getRouteHeuristicReport(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicList(),
 		adapt(s.handlerHeuristicList(), getRouteHeuristicList(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHeuristicDescriptors(),
@@ -961,8 +961,8 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerClusterLookup(), getRouteClusterLookup(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteHMILookup(),
 		adapt(s.handlerHMILookup(), getRouteHMILookup(), s.authorization(), maxBody()))
-	s.handler.Handle(getRouteClusterSummary(),
-		adapt(s.handlerClusterSummary(), getRouteClusterSummary(), s.authorization(), maxBody()))
+	s.handler.Handle(getRouteClusterReport(),
+		adapt(s.handlerClusterReport(), getRouteClusterReport(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteAddCluster(),
 		adapt(s.handlerAddCluster(), getRouteAddCluster(), s.authorization(), maxBody()))
 	s.handler.Handle(getRouteDeleteCluster(),

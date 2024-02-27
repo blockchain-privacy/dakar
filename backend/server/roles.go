@@ -45,7 +45,7 @@ var (
 		getRouteHeuristicsExecution():  true,
 		getRouteHeuristicByWorkID():    true,
 		getRouteHeuristics():           true,
-		getRouteHeuristicsSummary():    true,
+		getRouteHeuristicReport():      true,
 		getRouteHeuristicList():        true,
 		getRouteDeleteHeuristic():      true,
 		getRouteHeuristicDescriptors(): true,
@@ -56,7 +56,7 @@ var (
 		getRouteSpendingFingerprint():     true,
 		// clusters
 		getRouteClusterLookup():     true,
-		getRouteClusterSummary():    true,
+		getRouteClusterReport():     true,
 		getRouteAddCluster():        true,
 		getRouteDeleteCluster():     true,
 		getRouteDeleteAllClusters(): true,

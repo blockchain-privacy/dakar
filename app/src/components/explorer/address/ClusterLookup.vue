@@ -25,8 +25,8 @@
             icon
             variant="text"
             class="ms-auto"
-            :loading="isClusterSummaryLoading"
-            @click="downloadClusterSummary"
+            :loading="isClusterReportLoading"
+            @click="downloadClusterReport"
           >
             <v-icon>{{ mdiFileDownloadOutline }}</v-icon>
           </v-btn>
@@ -174,7 +174,7 @@ const props = defineProps({addressHash: {type: String, required: true}});
 // V-model
 const isLoading = ref(false);
 const clusters = ref([]);
-const isClusterSummaryLoading = ref(false);
+const isClusterReportLoading = ref(false);
 const showEmptyText = ref(false);
 const tableHeaders = [
 	{
@@ -247,16 +247,16 @@ async function doLookup() {
 	isLoading.value = false;
 }
 
-async function downloadClusterSummary() {
+async function downloadClusterReport() {
 	if (!props.addressHash) {
 		return;
 	}
 
-	isClusterSummaryLoading.value = true;
+	isClusterReportLoading.value = true;
 	const fileName = props.addressHash.trim();
 
 	try {
-		const response = await dakar.cluster.clusterSummaryHashGet({hash: props.addressHash.trim()});
+		const response = await dakar.cluster.clustersReportHashGet({hash: props.addressHash.trim()});
 
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');
@@ -264,7 +264,7 @@ async function downloadClusterSummary() {
 
 		a.setAttribute(
 			'download',
-			`cluster_summary_${getCurrentDate()}_${fileName}.csv`,
+			`cluster_report_${getCurrentDate()}_${fileName}.csv`,
 		);
 		a.click();
 		a.remove();
@@ -272,7 +272,7 @@ async function downloadClusterSummary() {
 		handleError(context, e);
 	}
 
-	isClusterSummaryLoading.value = false;
+	isClusterReportLoading.value = false;
 }
 
 function deleteCluster(clusterUid, clusterSize) {

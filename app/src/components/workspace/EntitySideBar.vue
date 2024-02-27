@@ -50,7 +50,7 @@
             color="primary"
             variant="tonal"
             :prepend-icon="mdiFileDownloadOutline"
-            @click="downloadSummary"
+            @click="downloadReport"
           >
             Download
           </v-chip>
@@ -343,16 +343,16 @@ function setErrorMessage(msg) {
 	});
 }
 
-async function downloadSummary() {
+async function downloadReport() {
 	try {
-		const response = await dakar.heuristic.heuristicsSummaryUidGet({uid: entityData.value.heuristicUid});
+		const response = await dakar.heuristic.heuristicsReportUidGet({uid: entityData.value.heuristicUid});
 		// Looks hacky, but it is the only way with good UX
 		const a = document.createElement('a');
 		a.href = URL.createObjectURL(response);
 
 		a.setAttribute(
 			'download',
-			`heuristic_summary_${getCurrentDate()}_${entityData.value.heuristicUid}.csv`,
+			`heuristic_report_${getCurrentDate()}_${entityData.value.heuristicUid}.csv`,
 		);
 		a.click();
 		a.remove();
