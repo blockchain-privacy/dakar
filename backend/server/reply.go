@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	errorClusterSummary   = "error getting cluster summary"
+	errorClusterReport    = "error getting cluster summary"
 	errorHeuristicSummary = "error getting heuristic summary"
 )
 
@@ -819,8 +819,8 @@ func writeHeuristicSummary(w http.ResponseWriter, r *http.Request, dgraph extern
 	csvWriter.Flush()
 }
 
-// writeClusterSummary writes cluster data in CSV format
-func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
+// writeClusterReport writes cluster data in CSV format
+func writeClusterReport(w http.ResponseWriter, r *http.Request, dgraph external.Database) {
 	setCORSHeaders(w)
 	addressHash := r.PathValue("hash")
 	if !isValid(addressHash) {
@@ -830,20 +830,20 @@ func writeClusterSummary(w http.ResponseWriter, r *http.Request, dgraph external
 
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
-		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		http.Error(w, errorClusterReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	clusters, err := clustering.GetClusters(dgraph, addressHash, 0, tUser.ID)
 	if err != nil {
-		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		http.Error(w, errorClusterReport, http.StatusNotFound)
 		warn(err)
 		return
 	}
 
 	if len(clusters) == 0 {
-		http.Error(w, errorClusterSummary, http.StatusNotFound)
+		http.Error(w, errorClusterReport, http.StatusNotFound)
 		return
 	}
 

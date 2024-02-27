@@ -56,7 +56,7 @@ var (
 		getRouteSpendingFingerprint():     true,
 		// clusters
 		getRouteClusterLookup():     true,
-		getRouteClusterSummary():    true,
+		getRouteClusterReport():     true,
 		getRouteAddCluster():        true,
 		getRouteDeleteCluster():     true,
 		getRouteDeleteAllClusters(): true,

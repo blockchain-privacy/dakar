@@ -20,13 +20,13 @@ const (
 	routeBlockRange           string = "blkRange"
 	routeShortestTxPath       string = "shortestTransactionPath"
 	routeConnectionLookup     string = "connectionLookup"
-	routeClusterSummary       string = "clusterSummary"
-	routeHMILookup            string = "hmiLookup"
 	routeMixingActivity       string = "mixingActivity"
 	routeSpendingFingerprint  string = "spendingFingerprint"
 	routeIdentities           string = "identities"
 	routeExclusions           string = "exclusions"
 	routeClusters             string = "clusters"
+	routeHMILookup            string = "clusters/hmi"
+	clusterReport             string = "clusters/report"
 	routeAttributions         string = "attributions"
 	routeAttributionsPublic   string = "attributions/public"
 	routeAttributionsSearch   string = "attributions/search"
@@ -171,9 +171,9 @@ func getRouteHMILookup() string {
 	return buildRoutePattern(httpGET, routeHMILookup, "hash")
 }
 
-// getRouteClusterSummary returns a route
-func getRouteClusterSummary() string {
-	return buildRoutePattern(httpGET, routeClusterSummary, "hash")
+// getRouteClusterReport returns a route
+func getRouteClusterReport() string {
+	return buildRoutePattern(httpGET, clusterReport, "hash")
 }
 
 // getRouteMixingActivity returns a route
