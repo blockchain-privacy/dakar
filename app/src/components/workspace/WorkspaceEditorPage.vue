@@ -398,7 +398,7 @@ async function handleGraphQuery(query) {
 	await lockAutosave();
 
 	try {
-		const response = await dakar.workspace.addWorkspaceNodePost({
+		const response = await dakar.workspace.workspacesNodePost({
 			query: {
 				query: trimmedQuery,
 				currentState: nodeGraph.exportNodes(),

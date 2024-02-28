@@ -116,7 +116,7 @@ async function handleInput(q) {
 	}
 }
 
-async function storeResult(promise, action, piniaAction) {
+async function storeResult(promise, piniaAction) {
 	try {
 		const response = await promise;
 		piniaAction(response);
@@ -149,17 +149,17 @@ async function handleQuery(q, type) {
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
+			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
+			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
 
-			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
+			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
+			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), explorerStore.updateSearchResult);
 	}
 
 	return true;

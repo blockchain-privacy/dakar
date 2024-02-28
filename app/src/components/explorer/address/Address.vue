@@ -257,11 +257,6 @@ function init() {
 	}
 }
 
-function isResponseValid(newData) {
-	return !(!newData.type || newData.type !== 'addr' || !newData.payload || !newData.payload.addr_outputs
-    || newData.payload.addr_outputs.length === 0);
-}
-
 function handleFilterOrSortChange() {
 	table.value.page = 1;
 	getTableData();
@@ -295,7 +290,7 @@ async function getTableData() {
 			},
 		});
 
-		if (isResponseValid(response)) {
+		if (response.payload?.addr_outputs?.length > 0) {
 			data.value = response.payload;
 			emptyResponse.value = false;
 		} else {

@@ -25,16 +25,16 @@ export const useExplorerStore = defineStore('explorer', {
 			this.block = payload;
 		},
 		updateBlock(payload) {
-			this.searchResultType = payload.type;
-			this.block = payload.payload;
+			this.searchResultType = RESPONSE_TYPE_BLOCK;
+			this.block = payload.block;
 		},
 		updateTransaction(payload) {
-			this.searchResultType = payload.type;
-			this.transaction = payload.payload;
+			this.searchResultType = RESPONSE_TYPE_TRANSACTION;
+			this.transaction = payload.transactions;
 		},
 		updateAddress(payload) {
-			this.searchResultType = payload.type;
-			this.address = payload.payload;
+			this.searchResultType = RESPONSE_TYPE_ADDRESS;
+			this.address = payload.address;
 		},
 		updateSearchResult(payload) {
 			this.searchResultType = payload.type;

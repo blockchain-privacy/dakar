@@ -274,8 +274,8 @@ async function getTransactionData() {
 	entityData.value = null;
 	try {
 		const response = await dakar.data.blockchainTransactionsHashGet({hash: props.identifier});
-		entityData.value = response.payload;
-		cacheStore.setValue(props.identifier, response.payload);
+		entityData.value = response.transactions;
+		cacheStore.setValue(props.identifier, response.transactions);
 	} catch (e) {
 		setErrorMessage(e);
 	}
@@ -290,8 +290,8 @@ async function getAddressData() {
 
 	try {
 		const response = await dakar.data.blockchainAddressesHashGet({hash: props.identifier});
-		entityData.value = response.payload;
-		cacheStore.setValue(props.identifier, response.payload);
+		entityData.value = response.address;
+		cacheStore.setValue(props.identifier, response.address);
 	} catch (e) {
 		setErrorMessage(e);
 	}
