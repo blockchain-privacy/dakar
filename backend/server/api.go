@@ -774,7 +774,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 
 // Add Node godoc
 //
-//	@Summary	Add a node to the current workspace
+//	@Summary	Add a node to a workspace. This will also add connections between existing nodes.
 //	@Tags		workspace
 //	@Accept		json
 //	@Produce	json
@@ -782,7 +782,7 @@ func (s *Server) handlerSpendingFingerprint() http.Handler {
 //	@Success	200		{object}	server.addWorkspaceNodeReply
 //	@Failure	400		{object}	server.addWorkspaceNodeReply
 //	@Failure	500		{object}	server.addWorkspaceNodeReply
-//	@Router		/addWorkspaceNode/ [post]
+//	@Router		/workspaces/node/ [post]
 func (s *Server) handlerAddWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddWorkspaceNodeReply(s.db, r)

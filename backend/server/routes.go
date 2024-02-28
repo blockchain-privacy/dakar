@@ -30,8 +30,8 @@ const (
 	routeAttributions         string = "attributions"
 	routeAttributionsPublic   string = "attributions/public"
 	routeAttributionsSearch   string = "attributions/search"
-	routeAddWorkspaceNode     string = "addWorkspaceNode"
 	routeWorkspaces           string = "workspaces"
+	routeAddWorkspaceNode     string = "workspaces/node"
 	routeMetrics              string = "/metrics"
 )
 
