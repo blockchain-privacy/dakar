@@ -99,12 +99,24 @@ func getAddressReply(dgraph external.Database, query string) (reply addressReply
 	return
 }
 
-func getBlockReply(dgraph external.Database, query string) (reply blockReply, status int) {
+func getBlockReply(r *http.Request, dgraph external.Database, query string) (reply blockReply, status int) {
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
 
-	block, err := db.GetFrontendBlock(dgraph, query, 0)
+	offset := 0
+	strOffset := r.URL.Query().Get("offset")
+
+	if strOffset != "" {
+		var err error
+		offset, err = strconv.Atoi(strOffset)
+		if err != nil {
+			status = http.StatusBadRequest
+			return
+		}
+	}
+
+	block, err := db.GetFrontendBlock(dgraph, query, offset)
 	if err != nil {
 		if errors.Is(err, db.ErrBlockNotFound) {
 			status = http.StatusNotFound
@@ -190,52 +202,6 @@ func getAddressOutputRangeReply(r *http.Request, dgraph external.Database, addre
 		addressRequest.Order, addressRequest.Offset, addressRequest.Filter)
 	if addrErr != nil {
 		status = http.StatusInternalServerError
-	} else if ok {
-		reply.Payload = data.result
-		reply.Type = data.resultType
-	} else {
-		status = http.StatusNotFound
-	}
-
-	return reply, status
-}
-
-// getBlockRangeReply searches for the given block hash in the database with the options stored in the request
-func getBlockRangeReply(r *http.Request, dgraph external.Database, blockHash string) (searchReply, int) {
-	reply := searchReply{
-		Type:    "response_empty",
-		Payload: nil,
-	}
-
-	type request struct {
-		Offset int `json:"offset"`
-	}
-
-	if !isValid(blockHash) {
-		return reply, http.StatusBadRequest
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return reply, http.StatusBadRequest
-	}
-
-	var blockRequest request
-	blockRequest.Offset = -1
-
-	if decodeErr := json.Unmarshal(body, &blockRequest); decodeErr != nil {
-		return reply, http.StatusBadRequest
-	}
-
-	if blockRequest.Offset < 0 {
-		return reply, http.StatusBadRequest
-	}
-
-	status := http.StatusOK
-	data, ok, blockErr := GetBlockWithOptions(dgraph, blockHash, blockRequest.Offset)
-	if blockErr != nil {
-		warn(blockErr)
-		status = http.StatusBadRequest
 	} else if ok {
 		reply.Payload = data.result
 		reply.Type = data.resultType

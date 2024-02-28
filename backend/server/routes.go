@@ -3,10 +3,11 @@ package server
 const (
 	routePrefix string = "/api/v1/"
 
-	routeSearch               string = "search"
-	routeTransaction          string = "tx"
-	routeBlock                string = "blk"
-	routeAddress              string = "address"
+	routeSearch               string = "blockchain/search"
+	routeTransaction          string = "blockchain/transactions"
+	routeBlock                string = "blockchain/blocks"
+	routeAddress              string = "blockchain/addresses"
+	routeAddressOutputRange   string = "blockchain/outputs"
 	routeMeta                 string = "meta"
 	routeHeuristicByWorkID    string = "heuristicByWorkID"
 	routeHeuristics           string = "heuristics"
@@ -16,8 +17,6 @@ const (
 	routeHeuristicList        string = "heuristicList"
 	routeHeuristicDescriptors string = "heuristicDescriptors"
 	routeDeleteHeuristic      string = "deleteHeuristic"
-	routeAddressOutputRange   string = "addressOutputRange"
-	routeBlockRange           string = "blkRange"
 	routeShortestTxPath       string = "shortestTransactionPath"
 	routeConnectionLookup     string = "connectionLookup"
 	routeMixingActivity       string = "mixingActivity"
@@ -119,11 +118,6 @@ func getRouteSearch() string {
 // getRouteAddressOutputRange returns a route
 func getRouteAddressOutputRange() string {
 	return buildRoutePattern(httpPOST, routeAddressOutputRange, "hash")
-}
-
-// getRouteBlockRange returns a route
-func getRouteBlockRange() string {
-	return buildRoutePattern(httpPOST, routeBlockRange, "hash")
 }
 
 // getRouteCreateIdentity returns a route

@@ -16,7 +16,7 @@ import (
 //	@Failure		400		{object}	server.searchReply
 //	@Failure		404		{object}	server.searchReply
 //	@Failure		500		{object}	server.searchReply
-//	@Router			/search/{query} [get]
+//	@Router			/blockchain/search/{query} [get]
 func (s *Server) handlerSearch() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getSearchReply(s.db, r.PathValue("query"))
@@ -35,7 +35,7 @@ func (s *Server) handlerSearch() http.Handler {
 //	@Failure	400		{object}	server.addressReply
 //	@Failure	404		{object}	server.addressReply
 //	@Failure	500		{object}	server.addressReply
-//	@Router		/address/{hash} [get]
+//	@Router		/blockchain/addresses/{hash} [get]
 func (s *Server) handlerAddress() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressReply(s.db, r.PathValue("hash"))
@@ -50,14 +50,15 @@ func (s *Server) handlerAddress() http.Handler {
 //	@Tags		data
 //	@Produce	json
 //	@Param		hash	path		string	true	"Hash"
+//	@Param		offset	query		int		false	"transaction offset"
 //	@Success	200		{object}	server.blockReply
 //	@Failure	400		{object}	server.blockReply
 //	@Failure	404		{object}	server.blockReply
 //	@Failure	500		{object}	server.blockReply
-//	@Router		/blk/{hash} [get]
+//	@Router		/blockchain/blocks/{hash} [get]
 func (s *Server) handlerBlock() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getBlockReply(s.db, r.PathValue("hash"))
+		reply, status := getBlockReply(r, s.db, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -73,7 +74,7 @@ func (s *Server) handlerBlock() http.Handler {
 //	@Failure	400		{object}	server.transactionReply
 //	@Failure	404		{object}	server.transactionReply
 //	@Failure	500		{object}	server.transactionReply
-//	@Router		/tx/{hash} [get]
+//	@Router		/blockchain/transactions/{hash} [get]
 func (s *Server) handlerTransaction() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getTransactionReply(s.db, r.PathValue("hash"))
@@ -93,30 +94,10 @@ func (s *Server) handlerTransaction() http.Handler {
 //	@Failure	400		{object}	server.searchReply
 //	@Failure	404		{object}	server.searchReply
 //	@Failure	500		{object}	server.searchReply
-//	@Router		/addressOutputRange/{hash} [post]
+//	@Router		/blockchain/outputs/{hash} [post]
 func (s *Server) handlerAddressOutputRange() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reply, status := getAddressOutputRangeReply(r, s.db, r.PathValue("hash"))
-
-		sendReply(w, reply, status)
-	})
-}
-
-// Block Range godoc
-//
-//	@Summary	Get transactions of the given block
-//	@Tags		data
-//	@Produce	json
-//	@Param		hash	path		string								true	"Block hash"
-//	@Param		offset	body		server.getBlockRangeReply.request	true	"transaction offset"
-//	@Success	200		{object}	server.searchReply
-//	@Failure	400		{object}	server.searchReply
-//	@Failure	404		{object}	server.searchReply
-//	@Failure	500		{object}	server.searchReply
-//	@Router		/blkRange/{hash} [post]
-func (s *Server) handlerBlockRange() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getBlockRangeReply(r, s.db, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -952,12 +933,8 @@ func (s *Server) setupHandlers() {
 		adapt(s.handlerBlock(), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
 	s.handler.Handle(getRouteAddress(),
 		adapt(s.handlerAddress(), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
-
 	s.handler.Handle(getRouteAddressOutputRange(),
 		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
-
-	s.handler.Handle(getRouteBlockRange(),
-		adapt(s.handlerBlockRange(), getRouteBlockRange(), s.useCache(time.Minute*10), maxBody()))
 
 	// Meta
 	s.handler.Handle(getRouteMeta(),
