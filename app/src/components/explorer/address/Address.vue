@@ -286,7 +286,7 @@ async function getTableData() {
 	isLoading.value = true;
 
 	try {
-		const response = await dakar.data.addressOutputRangeHashPost({
+		const response = await dakar.data.blockchainOutputsHashPost({
 			hash: data.value.addresshash,
 			options: {
 				offset: offset.value,

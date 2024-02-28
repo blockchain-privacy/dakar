@@ -149,7 +149,7 @@ async function executeQuery(query) {
 	let ok = false;
 
 	try {
-		const response = await dakar.data.searchQueryGet({query});
+		const response = await dakar.data.blockchainSearchQueryGet({query});
 
 		explorerStore.updateSearchResult(response);
 		ok = response?.type !== RESPONSE_EMPTY;

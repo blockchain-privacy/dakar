@@ -149,16 +149,17 @@ async function handleQuery(q, type) {
 
 	switch (type) {
 		case RESPONSE_TYPE_TRANSACTION:
-			await storeResult(dakar.data.txHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
+			await storeResult(dakar.data.blockchainTransactionsHashGet({hash: trimmedQuery}), 'updateTransactionData', explorerStore.updateTransaction);
 			break;
 		case RESPONSE_TYPE_BLOCK:
-			await storeResult(dakar.data.blkHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
+			await storeResult(dakar.data.blockchainBlocksHashGet({hash: trimmedQuery}), 'updateBlockData', explorerStore.updateBlock);
 			break;
 		case RESPONSE_TYPE_ADDRESS:
-			await storeResult(dakar.data.addressHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
+
+			await storeResult(dakar.data.blockchainAddressesHashGet({hash: trimmedQuery}), 'updateAddressData', explorerStore.updateAddress);
 			break;
 		default:
-			await storeResult(dakar.data.searchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
+			await storeResult(dakar.data.blockchainSearchQueryGet({query: trimmedQuery}), 'updateSearchResult', explorerStore.updateSearchResult);
 	}
 
 	return true;

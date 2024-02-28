@@ -328,7 +328,7 @@ type transactionReply struct {
 }
 
 type addressReply struct {
-	Address *db.FrontendAddress `json:"block"`
+	Address *db.FrontendAddress `json:"address"`
 }
 
 // isValidEmail is a regex filter which checks if the input conforms to an email string

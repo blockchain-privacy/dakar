@@ -46,10 +46,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.15":
-  version: 1.1.15
-  resolution: "@blockchain/dakar@npm:1.1.15::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.15.tgz"
-  checksum: 10c0/94cad88d7f5ef2659d26a260678ed30676b82b18e10f05a11bbe00259d0c120609861cb1df746d72b0d5887a6f3141f29cd58715964a54c2440cdfe7556cc595
+"@blockchain/dakar@npm:^1.1.16":
+  version: 1.1.16
+  resolution: "@blockchain/dakar@npm:1.1.16::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.16.tgz"
+  checksum: 10c0/2f87885d5a7b9d001af0edc55c2765b54d0a12757a34ab02458bdfa4b0063498f0ad2fd4add35f9d2888ad5998d962fcfe1d0b1d7e81be4e4a9f9e287a0736b5
   languageName: node
   linkType: hard
 
@@ -616,15 +616,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vuetify/loader-shared@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "@vuetify/loader-shared@npm:2.0.1"
+"@vuetify/loader-shared@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "@vuetify/loader-shared@npm:2.0.2"
   dependencies:
     upath: "npm:^2.0.1"
   peerDependencies:
     vue: ^3.0.0
     vuetify: ^3.0.0
-  checksum: 10c0/d96cc9e31cdd403319291631824d8d2137ae82a535b9dbfb125b245b2d5cf5856927b73cc086cc31dfa7581c01981c149c49abc7ea3d03ff6601895e5d065ba0
+  checksum: 10c0/d0edb419c2d1fb040761101394d5bc94727e4f28d45dde6003b21ed1c0db41aa407f0ed6860b0ad1fc5c442bb011909e5abe3a48ded540d4c3cb501868059239
   languageName: node
   linkType: hard
 
@@ -1148,7 +1148,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.15"
+    "@blockchain/dakar": "npm:^1.1.16"
     "@fontsource/roboto": "npm:^5.0.8"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/wikiapi": "npm:^1.2.32"
@@ -1172,7 +1172,7 @@ __metadata:
     pinia: "npm:^2.1.7"
     sass: "npm:^1.71.1"
     vite: "npm:^5.1.4"
-    vite-plugin-vuetify: "npm:^2.0.1"
+    vite-plugin-vuetify: "npm:^2.0.2"
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.20"
     vue-router: "npm:^4.3.0"
@@ -2885,18 +2885,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-plugin-vuetify@npm:^2.0.1":
-  version: 2.0.1
-  resolution: "vite-plugin-vuetify@npm:2.0.1"
+"vite-plugin-vuetify@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "vite-plugin-vuetify@npm:2.0.2"
   dependencies:
-    "@vuetify/loader-shared": "npm:^2.0.1"
+    "@vuetify/loader-shared": "npm:^2.0.2"
     debug: "npm:^4.3.3"
     upath: "npm:^2.0.1"
   peerDependencies:
     vite: ">=5"
     vue: ^3.0.0
     vuetify: ^3.0.0
-  checksum: 10c0/71bf11a266b7ba078f483b5819193b1ee8cc4b6dd92e5600dcceec0779cafb23a4108bcd69c5b9749a29ac3f43365a69da1a29b53a24cb508e8d816948058d76
+  checksum: 10c0/24a072f5a826b5d84377861f762cc2316e1e6abfb87b7304f4182db873ed3900f69c3beb6f9d933cc4a69a193ce5656de61a398f71144ec37ac4875e14821350
   languageName: node
   linkType: hard
 

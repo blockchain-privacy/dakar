@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.15",
+    "@blockchain/dakar": "^1.1.16",
     "@fontsource/roboto": "^5.0.8",
     "@mdi/js": "^7.4.47",
     "@neondark/wikiapi": "^1.2.32",
@@ -39,7 +39,7 @@
     "eslint-plugin-vuetify": "^2.1.1",
     "sass": "^1.71.1",
     "vite": "^5.1.4",
-    "vite-plugin-vuetify": "^2.0.1",
+    "vite-plugin-vuetify": "^2.0.2",
     "vite-svg-loader": "^5.1.0"
   },
   "packageManager": "yarn@4.1.0"
