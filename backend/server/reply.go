@@ -76,30 +76,71 @@ func getSearchReply(dgraph external.Database, query string) (searchReply, int) {
 	return reply, status
 }
 
-// getDataDetailsReply searches for the given query in the database via the provided function fn
-func getDataDetailsReply(dgraph external.Database, fn func(external.Database, string) (SearchResult, bool, error), query string) (searchReply, int) {
-	reply := searchReply{
-		Type:    typeEmpty,
-		Payload: nil,
-	}
-
-	status := http.StatusOK
+func getAddressReply(dgraph external.Database, query string) (reply addressReply, status int) {
 	if !isValid(query) {
 		return reply, http.StatusBadRequest
 	}
 
-	data, ok, err := fn(dgraph, query)
+	addr, err := db.GetFrontendAddress(dgraph, query, db.SortAscendingByOutputTime, 0, nil)
 	if err != nil {
+		// only print error if it is not expected
+		if errors.Is(err, db.ErrAddressNotFound) {
+			status = http.StatusNotFound
+			return
+		}
+
 		warn(err)
 		status = http.StatusInternalServerError
-	} else if ok {
-		reply.Payload = data.result
-		reply.Type = data.resultType
-	} else {
-		status = http.StatusNotFound
+		return
 	}
 
-	return reply, status
+	reply.Address = &addr
+
+	return
+}
+
+func getBlockReply(dgraph external.Database, query string) (reply blockReply, status int) {
+	if !isValid(query) {
+		return reply, http.StatusBadRequest
+	}
+
+	block, err := db.GetFrontendBlock(dgraph, query, 0)
+	if err != nil {
+		if errors.Is(err, db.ErrBlockNotFound) {
+			status = http.StatusNotFound
+			return
+		}
+
+		warn(err)
+		status = http.StatusInternalServerError
+		return
+	}
+
+	reply.Block = &block
+
+	return
+}
+
+func getTransactionReply(dgraph external.Database, query string) (reply transactionReply, status int) {
+	if !isValid(query) {
+		return reply, http.StatusBadRequest
+	}
+
+	transactions, err := db.GetFrontendTransaction(dgraph, query)
+	if err != nil {
+		// only print error if it is not expected
+		if errors.Is(err, db.ErrTransactionNotFound) {
+			status = http.StatusNotFound
+			return
+		}
+		warn(err)
+		status = http.StatusInternalServerError
+		return
+	}
+
+	reply.Transactions = transactions
+
+	return
 }
 
 // getAddressOutputRangeReply searches for the given address hash in the database with the options stored in the request

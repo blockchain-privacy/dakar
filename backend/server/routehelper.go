@@ -319,6 +319,18 @@ type identitiesReply struct {
 	Sessions   []client.Session  `json:"sessions"`
 }
 
+type blockReply struct {
+	Block *db.FrontendBlock `json:"block"`
+}
+
+type transactionReply struct {
+	Transactions []db.FrontendTransaction `json:"transactions"`
+}
+
+type addressReply struct {
+	Address *db.FrontendAddress `json:"block"`
+}
+
 // isValidEmail is a regex filter which checks if the input conforms to an email string
 var isValidEmail = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]" +
 	"{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").MatchString

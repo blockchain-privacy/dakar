@@ -1,7 +1,6 @@
 package server
 
 import (
-	"backend/external"
 	"net/http"
 	"time"
 )
@@ -26,22 +25,58 @@ func (s *Server) handlerSearch() http.Handler {
 	})
 }
 
-// Query for Address, Transaction or Block godoc
+// Query for an Address godoc
 //
-//	@Summary	Query for address, transaction or block
+//	@Summary	Query for an address
 //	@Tags		data
 //	@Produce	json
 //	@Param		hash	path		string	true	"Hash"
-//	@Success	200		{object}	server.searchReply
-//	@Failure	400		{object}	server.searchReply
-//	@Failure	404		{object}	server.searchReply
-//	@Failure	500		{object}	server.searchReply
-//	@Router		/blk/{hash} [get]
+//	@Success	200		{object}	server.addressReply
+//	@Failure	400		{object}	server.addressReply
+//	@Failure	404		{object}	server.addressReply
+//	@Failure	500		{object}	server.addressReply
 //	@Router		/address/{hash} [get]
-//	@Router		/tx/{hash} [get]
-func (s *Server) handlerDetails(fn func(external.Database, string) (SearchResult, bool, error)) http.Handler {
+func (s *Server) handlerAddress() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getDataDetailsReply(s.db, fn, r.PathValue("hash"))
+		reply, status := getAddressReply(s.db, r.PathValue("hash"))
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Query for a Block godoc
+//
+//	@Summary	Query for a block
+//	@Tags		data
+//	@Produce	json
+//	@Param		hash	path		string	true	"Hash"
+//	@Success	200		{object}	server.blockReply
+//	@Failure	400		{object}	server.blockReply
+//	@Failure	404		{object}	server.blockReply
+//	@Failure	500		{object}	server.blockReply
+//	@Router		/blk/{hash} [get]
+func (s *Server) handlerBlock() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getBlockReply(s.db, r.PathValue("hash"))
+
+		sendReply(w, reply, status)
+	})
+}
+
+// Query for a Transaction godoc
+//
+//	@Summary	Query for a transaction
+//	@Tags		data
+//	@Produce	json
+//	@Param		hash	path		string	true	"Hash"
+//	@Success	200		{object}	server.transactionReply
+//	@Failure	400		{object}	server.transactionReply
+//	@Failure	404		{object}	server.transactionReply
+//	@Failure	500		{object}	server.transactionReply
+//	@Router		/tx/{hash} [get]
+func (s *Server) handlerTransaction() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getTransactionReply(s.db, r.PathValue("hash"))
 
 		sendReply(w, reply, status)
 	})
@@ -138,7 +173,7 @@ func (s *Server) handlerClusterReport() http.Handler {
 // @Tags		cluster
 // @Produce	json
 // @Param		separator	formData	string	true	"separator of the CSV file; only comma and semicolon are allowed."
-// @Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+// @Param		hasHeader	formData	bool	true	"controls whether the first line should be skipped"
 // @Param		file		formData	file	true	"the CSV file"
 // @Success	200			{object}	server.msgReply
 // @Failure	400			{object}	server.msgReply
@@ -229,7 +264,7 @@ func (s *Server) handlerAttributionList() http.Handler {
 //	@Tags		attribution
 //	@Produce	text/csv
 //	@Param		separator	formData	string	true	"separator of the CSV file"
-//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skipped"
 //	@Param		file		formData	file	true	"the CSV file"
 //	@Success	200			{object}	server.msgReply
 //	@Failure	400			{object}	server.msgReply
@@ -250,7 +285,7 @@ func (s *Server) handlerAddPrivateAttribution() http.Handler {
 //	@Tags		attribution
 //	@Produce	text/csv
 //	@Param		separator	formData	string	true	"separator of the CSV file"
-//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skiped"
+//	@Param		hasHeader	formData	bool	true	"controls whether the first line should be skipped"
 //	@Param		file		formData	file	true	"the CSV file"
 //	@Success	200			{object}	server.msgReply
 //	@Failure	400			{object}	server.msgReply
@@ -910,13 +945,13 @@ func (s *Server) setupHandlers() {
 
 	// Common data
 	s.handler.Handle(getRouteTransaction(),
-		adapt(s.handlerDetails(GetTransaction), getRouteTransaction(), s.useCache(time.Second*0), maxBody()))
+		adapt(s.handlerTransaction(), getRouteTransaction(), s.useCache(time.Second*0), maxBody()))
 	// setting block cache time to 10 Minutes because blocks at
 	// the tip get updated via adding the 'next block' reference
 	s.handler.Handle(getRouteBlock(),
-		adapt(s.handlerDetails(GetBlock), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
+		adapt(s.handlerBlock(), getRouteBlock(), s.useCache(time.Second*10), maxBody()))
 	s.handler.Handle(getRouteAddress(),
-		adapt(s.handlerDetails(GetAddress), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
+		adapt(s.handlerAddress(), getRouteAddress(), s.useCache(time.Second*10), maxBody()))
 
 	s.handler.Handle(getRouteAddressOutputRange(),
 		adapt(s.handlerAddressOutputRange(), getRouteAddressOutputRange(), s.useCache(time.Minute*10), maxBody()))
