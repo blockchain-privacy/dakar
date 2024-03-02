@@ -1176,7 +1176,7 @@ __metadata:
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.21"
     vue-router: "npm:^4.3.0"
-    vuetify: "npm:^3.5.6"
+    vuetify: "npm:^3.5.7"
   languageName: unknown
   linkType: soft
 
@@ -3013,9 +3013,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:^3.5.6":
-  version: 3.5.6
-  resolution: "vuetify@npm:3.5.6"
+"vuetify@npm:^3.5.7":
+  version: 3.5.7
+  resolution: "vuetify@npm:3.5.7"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=1.0.0-alpha.12"
@@ -3031,7 +3031,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/5a4b8e68f01a2465d952b5a4459404d801f6abd972f7861c3c010de0728624264de5980e668ed7604d1ec4dcf00e78ae75f761c117a94c3e62623f010c7d0d72
+  checksum: 10c0/256abdc6f1b0c86ae13c019aec7f4da06252ff18142ccf397326f4de6d338cf5d8fa47a9d4fb31bddaf172b24f9ad3cc3703fdba1962053f8e195e66d5b59fa8
   languageName: node
   linkType: hard
 
