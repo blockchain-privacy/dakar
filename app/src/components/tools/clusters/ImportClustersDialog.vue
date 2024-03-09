@@ -42,9 +42,10 @@
             label="Click here to select a file"
             truncate-length="15"
           />
-          <div class="d-flex align-center flex-wrap">
+          <div class=" align-center flex-wrap d-inline-flex">
             <v-checkbox
               v-model="csv.firstRowContainsHeader"
+              class="me-2"
               label="First row of file contains headers"
               :disabled="isLoading"
             />

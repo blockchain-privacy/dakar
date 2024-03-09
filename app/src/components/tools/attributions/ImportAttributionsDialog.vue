@@ -48,17 +48,19 @@ XbpGcNSKaLnbfS9hPPa3yoE1boNqd3Ytij;exchange-Bitfinex;;;</code></pre>
             label="Click here to select a file"
             truncate-length="15"
           />
-          <div class="d-flex align-center flex-wrap">
+          <div class="d-inline-flex align-center flex-wrap">
             <v-checkbox
               v-model="csv.firstRowContainsHeader"
               label="First row of file contains headers"
               :disabled="isLoading"
+              class="me-2"
             />
             <v-checkbox
               v-if="isAdmin"
               v-model="areAttributionsPublic"
               label="Public attributions"
               :disabled="isLoading"
+              class="me-2"
             />
             <v-select
               v-model="csv.separator"
