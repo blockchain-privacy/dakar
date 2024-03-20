@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 func TestGenerateRandomPassword(t *testing.T) {
 	const numPasswords = 10000
 	pwMap := make(map[string]bool, numPasswords)
-	for i := 0; i < numPasswords; i++ {
+	for range numPasswords {
 		pw, err := generateRandomPassword()
 		require.NoError(t, err)
 		require.NotEmpty(t, pw, "password is empty")

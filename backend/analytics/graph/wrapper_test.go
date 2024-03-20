@@ -44,13 +44,13 @@ func TestWrapper_IsTransactionGraphLoaded(t *testing.T) {
 	// should be thread safe
 	numGoroutines := 10
 	responses := make(chan bool, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			responses <- w.IsTransactionGraphLoaded()
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		require.True(t, r)
 	}
@@ -117,14 +117,14 @@ func TestWrapper_ReverseLookup(t *testing.T) {
 		res map[string]bool
 	}
 	responses := make(chan response, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			results, err := w.ReverseLookup(ToHex(tt.args.nodeID), tt.args.maxLookBackTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 			responses <- response{err: err, res: results}
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		if tt.wantErr {
 			require.Error(t, r.err)
@@ -195,14 +195,14 @@ func TestWrapper_ForwardLookup(t *testing.T) {
 		res map[string]bool
 	}
 	responses := make(chan response, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			results, err := w.ForwardLookup(ToHex(tt.args.nodeID), ToHex(tt.args.targetID), tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 			responses <- response{err: err, res: results}
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		if tt.wantErr {
 			require.Error(t, r.err)
@@ -273,14 +273,14 @@ func TestWrapper_ForwardLookupByTime(t *testing.T) {
 		res map[string]bool
 	}
 	responses := make(chan response, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			results, err := w.ForwardLookupByTime(ToHex(tt.args.nodeID), tt.args.maxLookForwardTime, tt.args.addressExclusions, tt.args.excludeSpendingGaps)
 			responses <- response{err: err, res: results}
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		if tt.wantErr {
 			require.Error(t, r.err)
@@ -378,14 +378,14 @@ func TestWrapper_SpendingFingerprint(t *testing.T) {
 		numSessions  int
 	}
 	responses := make(chan response, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			fingerprints, sessionCount, err := w.SpendingFingerprint(tt.uid)
 			responses <- response{err: err, fingerprints: fingerprints, numSessions: sessionCount}
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		if tt.wantErr {
 			require.Error(t, err)
@@ -455,14 +455,14 @@ func TestWrapper_GetInputTransactions(t *testing.T) {
 		res []string
 	}
 	responses := make(chan response, numGoroutines)
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		go func() {
 			results, err := w.GetInputTransactions(tt.uid)
 			responses <- response{err: err, res: results}
 		}()
 	}
 
-	for i := 0; i < numGoroutines; i++ {
+	for range numGoroutines {
 		r := <-responses
 		if tt.wantErr {
 			require.Error(t, r.err)

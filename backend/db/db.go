@@ -117,7 +117,7 @@ func TxWithRetry(db external.Database, timeoutPerRequest time.Duration, req *api
 // TxWithRetryAndResponse executes the given request. In case the request fails repeat it
 func TxWithRetryAndResponse(db external.Database, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		if resp, err = execTx(db, timeoutPerRequest, req); err == nil ||
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
 			return
@@ -140,7 +140,7 @@ func ExistingTxWithRetry(tx *dgo.Txn, timeoutPerRequest time.Duration, req *api.
 // ExistingTxWithRetryAndResponse executes the given request. In case the request fails repeat it
 func ExistingTxWithRetryAndResponse(tx *dgo.Txn, timeoutPerRequest time.Duration,
 	req *api.Request) (resp *api.Response, err error) {
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		if resp, err = execExistingTx(tx, timeoutPerRequest, req); err == nil ||
 			errors.Is(err, errInvalidTimeout) || errors.Is(err, ErrEmptyRequestArgument) {
 			return
@@ -180,7 +180,7 @@ func execReadOnlyTx(db external.Database, timeoutPerRequest time.Duration, q str
 func ReadOnlyTxVarWithRetry(db external.Database, timeoutPerRequest time.Duration, q string,
 	vars map[string]string) (*api.Response, error) {
 	var err error
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		resp, txErr := execReadOnlyTx(db, timeoutPerRequest, q, vars)
 		if txErr == nil {
 			return resp, nil

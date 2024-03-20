@@ -135,7 +135,7 @@ func main() {
 	}
 
 	if config.CreateMassUsers {
-		for i := 1; i <= 3; i++ {
+		for i := range 4 {
 			email := "workshop" + strconv.Itoa(i) + "@example.null"
 			pw := "cryptoworkshop" + strconv.Itoa(i)
 			if err := dbus.CreatePrivilegedUser(dgraph, kratos, email, pw); err != nil {

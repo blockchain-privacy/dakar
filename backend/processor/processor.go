@@ -534,7 +534,7 @@ func createTransactionHashmap(client external.BatchRPCClient,
 
 	// collect future results
 	var futures []txLookup
-	for i := 0; i < len(transactions); i++ {
+	for range len(transactions) {
 		lookup := <-c
 		if lookup.err != nil {
 			return nil, cliutil.NewStackError(lookup.err)

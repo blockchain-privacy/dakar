@@ -38,7 +38,7 @@ func doDestinationCountAnalysis(dgraph external.Database, g *graph.ReversibleGra
 
 	wg := sync.WaitGroup{}
 
-	for w := 0; w < 150; w++ {
+	for range 150 {
 		wg.Add(1)
 		go func(jobs <-chan analytics.SpenderTransaction) {
 			defer wg.Done()

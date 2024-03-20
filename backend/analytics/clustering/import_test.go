@@ -98,7 +98,7 @@ func Test_validateAddresses(t *testing.T) {
 
 	// generate 1001 address hashes
 	oneThousandAndOneAddresses := make([]ExternalClusterItem, 1001)
-	for i := 0; i < 1001; i++ {
+	for i := range 1001 {
 		oneThousandAndOneAddresses[i] = ExternalClusterItem{ClusterID: "a", AddressHash: strconv.Itoa(i)}
 	}
 

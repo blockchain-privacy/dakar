@@ -139,7 +139,7 @@ func waitForRPCClient(client external.RPCClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		_, err := client.GetBlockCount()
 		if err == nil {
 			if printedErrMessage {
@@ -173,7 +173,7 @@ func waitForBatchRPCClient(client external.BatchRPCClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		result := client.GetBlockCountAsync()
 		err := client.Send()
 		if err != nil {
@@ -319,7 +319,7 @@ func waitForKratos(auth *ory.APIClient) bool {
 
 	var printedErrMessage bool
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		if isKratosAlive(auth) {
 			if printedErrMessage {
 				fmt.Println("Successfully established connection to kratos")
