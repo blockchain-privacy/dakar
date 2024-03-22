@@ -533,13 +533,13 @@ func createTransactionHashmap(client external.BatchRPCClient,
 	}
 
 	// collect future results
-	var futures []txLookup
-	for range len(transactions) {
+	futures := make([]txLookup, len(transactions))
+	for i := range len(transactions) {
 		lookup := <-c
 		if lookup.err != nil {
 			return nil, cliutil.NewStackError(lookup.err)
 		}
-		futures = append(futures, lookup)
+		futures[i] = lookup
 	}
 
 	// send batch request
@@ -548,7 +548,7 @@ func createTransactionHashmap(client external.BatchRPCClient,
 	}
 
 	// collect results
-	txs := make(map[string]btcjson.TxRawResult)
+	txs := map[string]btcjson.TxRawResult{}
 	for _, f := range futures {
 		r, err := f.result.Receive()
 		if err != nil {
