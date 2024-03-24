@@ -28,3 +28,4 @@ linters:
     - sloglint
     - mirror
     - gocheckcompilerdirectives
+    - intrange
