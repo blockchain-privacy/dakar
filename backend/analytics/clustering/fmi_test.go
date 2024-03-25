@@ -58,6 +58,12 @@ func Test_addClustersToMergeList(t *testing.T) {
 		AddressCount: &one,
 	}
 
+	clusterStore["C4"] = clustering.Cluster{
+		UID:          "C4",
+		Type:         "fmi",
+		AddressCount: &one,
+	}
+
 	newAddresses2 := make(map[string]bool)
 
 	newClusters["C1"] = true
@@ -82,6 +88,43 @@ func Test_addClustersToMergeList(t *testing.T) {
 	require.Len(t, addressMergeMap, 7)
 	require.Equal(t, 1, countPointer(clusterMergeMap))
 	require.Equal(t, 1, countPointer(addressMergeMap))
+
+	newAddresses4 := make(map[string]bool)
+	newAddresses4["A8"] = true
+
+	// case: single address cluster
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx5", nil, newAddresses4)
+	require.Len(t, clusterMergeMap, 3)
+	require.Len(t, addressMergeMap, 8)
+	require.Equal(t, 1, countPointer(clusterMergeMap))
+	require.Equal(t, 2, countPointer(addressMergeMap))
+	require.Equal(t, "tx5", addressMergeMap["A8"].changeTransaction)
+
+	// case: update single address with new transaction
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx6", nil, newAddresses4)
+	require.Len(t, clusterMergeMap, 3)
+	require.Len(t, addressMergeMap, 8)
+	require.Equal(t, 1, countPointer(clusterMergeMap))
+	require.Equal(t, 2, countPointer(addressMergeMap))
+	require.Equal(t, "tx6", addressMergeMap["A8"].changeTransaction)
+
+	// case: update single address cluster with new transaction
+	singeCluster := map[string]bool{"C4": true}
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx7", singeCluster, nil)
+	require.Len(t, clusterMergeMap, 4)
+	require.Len(t, addressMergeMap, 8)
+	require.Equal(t, 2, countPointer(clusterMergeMap))
+	require.Equal(t, 2, countPointer(addressMergeMap))
+	require.Equal(t, "tx7", clusterMergeMap["C4"].changeTransaction)
+
+	// case: update single address cluster with new transaction again
+	addClustersToMergeList(clusterMergeMap, addressMergeMap, clusterStore, "tx8", singeCluster, nil)
+	require.Len(t, clusterMergeMap, 4)
+	require.Len(t, addressMergeMap, 8)
+	require.Equal(t, 2, countPointer(clusterMergeMap))
+	require.Equal(t, 2, countPointer(addressMergeMap))
+	require.Equal(t, "tx8", clusterMergeMap["C4"].changeTransaction)
+
 }
 
 func countPointer(data map[string]*newCluster) int {
