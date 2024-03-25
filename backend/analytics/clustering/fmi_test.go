@@ -124,7 +124,6 @@ func Test_addClustersToMergeList(t *testing.T) {
 	require.Equal(t, 2, countPointer(clusterMergeMap))
 	require.Equal(t, 2, countPointer(addressMergeMap))
 	require.Equal(t, "tx8", clusterMergeMap["C4"].changeTransaction)
-
 }
 
 func countPointer(data map[string]*newCluster) int {

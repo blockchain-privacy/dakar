@@ -168,5 +168,4 @@ func main() {
 		return
 	}
 	info("reset FMI cluster status")
-
 }
