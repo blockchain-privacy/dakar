@@ -1,10 +1,15 @@
 package main
 
 import (
+	"backend/analytics"
+	heuristic "backend/analytics/heuristics"
 	cli "backend/cmd/cliutil"
 	"backend/db"
+	"backend/db/analytics/clustering"
 	"backend/db/status"
 	"backend/external"
+	"backend/processor"
+	"backend/server"
 	"flag"
 	"fmt"
 	"io"
@@ -26,6 +31,12 @@ func initLogger(fileHandle *os.File) {
 	slog.SetDefault(logger)
 
 	thisLogger = slog.With(slog.String("module", "dbUpgrade"))
+
+	analytics.InitLogger()
+	db.InitLogger()
+	processor.InitLogger()
+	server.InitLogger()
+	heuristic.InitLogger()
 }
 
 func info(msg string, v ...any) {
@@ -138,4 +149,24 @@ func main() {
 		return
 	}
 	info("increased schema version")
+
+	info("deleting all FMI clusters ...")
+	err = clustering.DeleteAllFMIClusters(dgraph)
+	if err != nil {
+		return
+	}
+	info("deleted all FMI clusters")
+
+	info("resetting FMI cluster status ...")
+	// old: 1555184
+	zero := uint64(0)
+	err = status.SetClusteringFMIStatus(dgraph, status.ClusteringFlatMultiInputStatus{
+		LastClusteredBlockID: &zero,
+	})
+	if err != nil {
+		warn(err)
+		return
+	}
+	info("reset FMI cluster status")
+
 }
