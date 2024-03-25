@@ -44,6 +44,5 @@ export const COIN_UNIT_BTC = 'BTC';
 export const COIN_UNIT = COIN_UNIT_DASH;
 
 // Cluster
-export const CLUSTER_TYPE_HMI = 'hmi';
 export const CLUSTER_TYPE_FMI = 'fmi';
 export const CLUSTER_TYPE_CUSTOM = 'custom';

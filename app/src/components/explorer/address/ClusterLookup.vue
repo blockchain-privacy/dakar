@@ -101,17 +101,6 @@
             :block-id="c.bid"
             :timestamp="c.ts"
           />
-          <div v-if="c.hmi">
-            <p class="text-subtitle-1">
-              First included by
-            </p>
-            <cluster-details
-              :tx-hash="c.hmi.txhash"
-              :block-hash="c.hmi.bhash"
-              :block-id="c.hmi.bid"
-              :timestamp="c.hmi.ts"
-            />
-          </div>
         </v-card-text>
         <v-expansion-panels
           v-if="c.addresses && c.addresses.length > 0"
@@ -153,9 +142,7 @@
 
 <script setup>
 import {mdiDelete, mdiFileDownloadOutline} from '@mdi/js';
-import {
-	CLUSTER_TYPE_FMI, CLUSTER_TYPE_HMI, ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW,
-} from '@/constants';
+import {ROUTE_NAME_ADDRESS_PAGE, ROUTE_NAME_CLUSTER_OVERVIEW} from '@/constants';
 import {getClusterTypeLabel, getCurrentDate, handleError} from '@/utilities';
 import ClusterDetails from './ClusterDetails.vue';
 import DeleteClusterDialog from '../../tools/clusters/DeleteClusterDialog.vue';
@@ -213,30 +200,9 @@ async function doLookup() {
 	try {
 		const response = await dakar.cluster.clustersHashGet({hash: props.addressHash.trim()});
 
-		if (response.clusters && response.clusters.length > 0) {
-			const clusterMap = new Map();
-			const filteredCluster = [];
-
-			// Add all clusters to array if they are not hmi and fmi
-			response.clusters.forEach(d => {
-				clusterMap.set(d.type, d);
-				if (d.type !== CLUSTER_TYPE_HMI
-          && d.type !== CLUSTER_TYPE_FMI) {
-					filteredCluster.push(d);
-				}
-			});
-
-			// Insert hmi cluster into fmi cluster and add the composite cluster into the array
-			if (clusterMap.has(CLUSTER_TYPE_FMI)) {
-				const fmiCluster = clusterMap.get(CLUSTER_TYPE_FMI);
-				if (clusterMap.has(CLUSTER_TYPE_HMI)) {
-					fmiCluster.hmi = clusterMap.get(CLUSTER_TYPE_HMI);
-				}
-
-				filteredCluster.push(fmiCluster);
-			}
-
-			clusters.value = filteredCluster;
+		if (response.clusters?.length > 0) {
+			// Add all clusters to array if they are not fmi
+			clusters.value = response.clusters;
 		} else {
 			showEmptyText.value = true;
 		}
