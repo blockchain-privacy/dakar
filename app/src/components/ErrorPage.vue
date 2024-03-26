@@ -49,8 +49,8 @@ onMounted(async () => {
 	// If id query parameter is present, then check if error messages can be pulled
 	if (route.query.id) {
 		const response = await ory.frontend.getFlowError({id: route.query.id});
-		if (response.data?.error?.message) {
-			errorDescription.value = `${response.data.error.message}. ${response.data.error.reason}`;
+		if (response?.error?.message) {
+			errorDescription.value = `${response.error.message}. ${response.error.reason}`;
 		}
 	}
 });
