@@ -129,12 +129,10 @@ function goToPage(pageObj) {
 async function tryToGetSession() {
 	try {
 		const response = await ory.frontend.toSession();
-		if (response.status === 200) {
-			session.value = response.data;
-			leave();
-		}
+		session.value = response;
+		leave();
 	} catch (e) {
-		if (e.response?.data?.error?.id === 'session_aal2_required') {
+		if (e.response?.error?.id === 'session_aal2_required') {
 			await initLoginFlow('aal2');
 			return;
 		}
@@ -159,19 +157,16 @@ function leave() {
 async function logoutAndGoToPage(pageName) {
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
-		if (!response.data.logout_token) {
+		if (!response.logout_token) {
 			return;
 		}
 
-		const newResponse = await ory.frontend.updateLogoutFlow({token: response.data.logout_token});
-
-		if (newResponse.status === 204) {
-			session.value = null;
-			goToPage({name: pageName});
-		}
+		await ory.frontend.updateLogoutFlow({token: response.logout_token});
+		session.value = null;
+		goToPage({name: pageName});
 	} catch (e) {
 		// Could not log out because no session was found -> go to requested page
-		if (e.response?.data?.error?.id === 'session_inactive') {
+		if (e.response?.error?.id === 'session_inactive') {
 			goToPage({name: pageName});
 		} else {
 			await handleGetFlowError(context, e, null);
@@ -194,23 +189,23 @@ async function handleOrySubmitLogin(formID) {
 	try {
 		const response = await ory.frontend.updateLoginFlow({flow, updateLoginFlowBody: body});
 
-		if (response.status === 200 && response.data?.session?.identity) {
-			session.value = response.data.session;
+		if (response?.session?.identity) {
+			session.value = response.session;
 			leave();
 			return;
 		}
 
 		// Something went wrong and we need to display some data
-		if (response.data && response.data.ui) {
-			setFlowData(response.data);
+		if (response?.ui) {
+			setFlowData(response);
 		}
 
 		if (response.error && response.error.reason) {
 			setErrorMessage(response.error.reason);
 		}
 	} catch (e) {
-		if (e.response?.data?.ui) {
-			setFlowData(e.response.data);
+		if (e.response?.ui) {
+			setFlowData(e.response);
 		} else {
 			handleGetFlowError(context, e, () => {
 				initLoginFlow('aal1');
@@ -231,7 +226,7 @@ async function initFlow() {
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getLoginFlow({id: flow});
-			setFlowData(response.data);
+			setFlowData(response);
 		} catch (e) {
 			await handleGetFlowError(context, e, () => initLoginFlow('aal1'));
 		}
@@ -245,7 +240,7 @@ async function initFlow() {
 async function initLoginFlow(aal) {
 	try {
 		const response = await ory.frontend.createBrowserLoginFlow({refresh: false, aal});
-		setFlowData(response.data);
+		setFlowData(response);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}

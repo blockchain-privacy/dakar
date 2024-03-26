@@ -54,6 +54,21 @@
       :value="attributes.value"
       type="hidden"
     >
+    <!-- workaround for: https://github.com/ory/kratos/issues/2504 -->
+    <template v-if="name === 'totp_unlink'">
+      <input
+        name="method"
+        value="totp"
+        type="hidden"
+      >
+    </template>
+    <template v-else-if="name === 'webauthn_remove'">
+      <input
+        name="method"
+        value="webauthn"
+        type="hidden"
+      >
+    </template>
     <v-btn
       :name="name"
       :loading="!submitEnabled"

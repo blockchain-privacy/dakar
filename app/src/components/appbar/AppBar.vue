@@ -163,16 +163,13 @@ function goToPage(pageName) {
 async function initLogoutFlow() {
 	try {
 		const response = await ory.frontend.createBrowserLogoutFlow();
-		if (!response.data.logout_token) {
+		if (!response.logout_token) {
 			return;
 		}
 
-		const logoutResponse = await ory.frontend.updateLogoutFlow({token: response.data.logout_token});
-
-		if (logoutResponse.status === 204) {
-			session.value = null;
-			goToPage(ROUTE_NAME_ENTRY_PAGE);
-		}
+		await ory.frontend.updateLogoutFlow({token: response.logout_token});
+		session.value = null;
+		goToPage(ROUTE_NAME_ENTRY_PAGE);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}

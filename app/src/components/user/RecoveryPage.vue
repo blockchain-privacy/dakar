@@ -61,7 +61,7 @@ onMounted(async () => {
 	if (typeof flow === 'string') {
 		try {
 			const response = await ory.frontend.getRecoveryFlow({id: flow});
-			setFlowData(response.data);
+			setFlowData(response);
 		} catch (e) {
 			await handleGetFlowError(context, e, initRecoveryFlow);
 		}
@@ -82,7 +82,7 @@ function setErrorMessage(msg) {
 async function initRecoveryFlow() {
 	try {
 		const response = await 	ory.frontend.createBrowserRecoveryFlow();
-		setFlowData(response.data);
+		setFlowData(response);
 	} catch (e) {
 		await handleGetFlowError(context, e, null);
 	}
@@ -125,16 +125,16 @@ async function handleOrySubmitRecovery(formID, btnName) {
 
 	try {
 		const response = await ory.frontend.updateRecoveryFlow({flow, updateRecoveryFlowBody: body});
-		if (response.data?.ui) {
-			setFlowData(response.data);
+		if (response?.ui) {
+			setFlowData(response);
 		}
 
 		if (response.error?.reason) {
 			setErrorMessage(response.error.reason);
 		}
 	} catch (e) {
-		if (e.response?.data?.ui) {
-			setFlowData(e.response.data);
+		if (e.response?.ui) {
+			setFlowData(e.response);
 		} else {
 			try {
 				await handleGetFlowError(context, e, initRecoveryFlow);

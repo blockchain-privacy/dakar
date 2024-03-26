@@ -14,6 +14,7 @@ module.exports = {
 		'vue/multi-word-component-names': 'off',
 		'no-mixed-operators': 'off',
 		'vue/component-name-in-template-casing': ['error', 'kebab-case'],
+		'no-return-await': 'off',
 	},
 	// Todo review if this is needed in the future
 	globals: {
