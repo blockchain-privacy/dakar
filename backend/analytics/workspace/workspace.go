@@ -15,12 +15,7 @@ func EncodeAndStoreWorkspaceState(dgraph external.Database, userUID string,
 		return cliutil.NewStackError(err)
 	}
 
-	err = workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), timeStamp)
-	if err != nil {
-		return cliutil.NewStackError(err)
-	}
-
-	return nil
+	return workspace.SetWorkspaceState(dgraph, userUID, workspaceUID, string(stateBytes), timeStamp)
 }
 
 // InsertNodeConnectionsAndHeuristics queries the db for connections between nodes in nodeMap and inserts them
