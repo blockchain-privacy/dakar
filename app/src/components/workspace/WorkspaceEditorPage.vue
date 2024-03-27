@@ -663,8 +663,6 @@ async function refreshData() {
 			data = response.workspace;
 			workspaceName.value = data.name;
 			workspaceModificationTime.value = new Date(data.ts);
-			// Parse state if set
-			data.state &&= JSON.parse(data.state);
 		} else {
 			data = null;
 		}
@@ -681,7 +679,7 @@ async function refreshData() {
 	}
 
 	// If the workspace does not yet contain any nodes, set an empty array
-	data.state ??= [];
+	data.nodes ??= [];
 
 	return true;
 }
@@ -820,7 +818,7 @@ async function whenMounted() {
 	// Update page title
 	document.title = `${workspaceName.value} - Workspace - ${APPLICATION_NAME}`;
 
-	nodeGraph.addNodes(data.state);
+	nodeGraph.addNodes(data.nodes);
 
 	await nodeGraph.centerGraph();
 
