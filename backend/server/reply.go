@@ -1990,9 +1990,9 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	if w.State != "" && w.State != "[]" {
-		var nodes []dbwork.FrontendGraphNode
-		if err := json.Unmarshal([]byte(w.State), &nodes); err != nil {
+	if w.State != "" && w.State != "[]" && w.State != "{}" {
+		var workspaceState dbwork.State
+		if err := json.Unmarshal([]byte(w.State), &workspaceState); err != nil {
 			status = http.StatusInternalServerError
 			warn(cliutil.NewStackError(err))
 			return
@@ -2001,7 +2001,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		nodeMap := map[string]dbwork.FrontendGraphNode{}
 		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
 		heuristicMap := map[string]dbwork.FrontendGraphNode{}
-		for _, n := range nodes {
+		for _, n := range workspaceState.Nodes {
 			if n.UID == "" || n.Type == "" {
 				continue
 			}
@@ -2013,17 +2013,10 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 			}
 		}
 
+		var clusterHeight int64
 		if len(nodeMap) > 1 {
-			clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
+			clusterHeight, err = workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
 				heuristicMap, tUser.ID)
-			if err != nil {
-				status = http.StatusInternalServerError
-				warn(err)
-				return
-			}
-
-			err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID,
-				dbwork.State{ClusterHeight: &clusterHeight, Nodes: nil}, time.Now().UTC())
 			if err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
@@ -2034,6 +2027,14 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		nodesWithConnection := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 		for _, v := range nodeMap {
 			nodesWithConnection = append(nodesWithConnection, v)
+		}
+
+		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID,
+			dbwork.State{ClusterHeight: &clusterHeight, Nodes: nodesWithConnection}, time.Now().UTC())
+		if err != nil {
+			status = http.StatusInternalServerError
+			warn(err)
+			return
 		}
 
 		stateBytes, err := json.Marshal(nodesWithConnection)
