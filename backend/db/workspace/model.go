@@ -11,6 +11,7 @@ type Workspace struct {
 	UID              string   `json:"uid,omitempty"`
 	Name             string   `json:"Workspace.name,omitempty"`
 	ModificationTime string   `json:"Workspace.ts,omitempty"`
+	ClusterHeight    *int64   `json:"Workspace.clusterHeight,omitempty"`
 	State            string   `json:"Workspace.state,omitempty"`
 	DType            []string `json:"dgraph.type,omitempty"`
 }
@@ -19,11 +20,28 @@ func (w *Workspace) SetDType() {
 	w.DType = []string{DType}
 }
 
+type DecodedWorkspace struct {
+	UID              string
+	Name             string
+	ModificationTime string
+	ClusterHeight    *int64
+	Nodes            []FrontendGraphNode
+}
+
+func (w *DecodedWorkspace) ToFrontendWorkspace() FrontendWorkspace {
+	return FrontendWorkspace{
+		UID:              w.UID,
+		Name:             w.Name,
+		ModificationTime: w.ModificationTime,
+		Nodes:            w.Nodes,
+	}
+}
+
 type FrontendWorkspace struct {
-	UID              string `json:"uid,omitempty"`
-	Name             string `json:"name,omitempty"`
-	ModificationTime string `json:"ts,omitempty"`
-	State            string `json:"state,omitempty"`
+	UID              string              `json:"uid,omitempty"`
+	Name             string              `json:"name,omitempty"`
+	ModificationTime string              `json:"ts,omitempty"`
+	Nodes            []FrontendGraphNode `json:"nodes,omitempty"`
 }
 
 func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
@@ -31,7 +49,6 @@ func (w *Workspace) ToFrontendWorkspace() FrontendWorkspace {
 		UID:              w.UID,
 		Name:             w.Name,
 		ModificationTime: w.ModificationTime,
-		State:            w.State,
 	}
 }
 
@@ -115,11 +132,6 @@ type connectionRequest struct {
 			} `json:"Heuristic.clusters,omitempty"`
 		} `json:"~Heuristic.transaction,omitempty"`
 	} `json:"heuristics,omitempty"`
-}
-
-type State struct {
-	ClusterHeight *int64              `json:"clusterHeight,omitempty"`
-	Nodes         []FrontendGraphNode `json:"nodes,omitempty"`
 }
 
 type GraphNode struct {

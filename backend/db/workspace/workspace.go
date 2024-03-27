@@ -26,6 +26,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 		UID:              "_:" + newWorkspaceDummyUID,
 		Name:             name,
 		ModificationTime: time.Now().UTC().Format(time.RFC3339),
+		ClusterHeight:    nil, // unset
 	}
 	w.SetDType()
 
@@ -61,7 +62,7 @@ func AddWorkspace(c external.Database, name string, userUID string) (err error) 
 
 // SetWorkspaceState sets the state of the specified workspace
 func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
-	state string, timeStamp time.Time) (err error) {
+	state string, timeStamp time.Time, clusterHeight *int64) (err error) {
 	if workspaceUID == "" || userUID == "" || state == "" {
 		return cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
@@ -69,6 +70,7 @@ func SetWorkspaceState(c external.Database, userUID string, workspaceUID string,
 		UID:              "uid(v)",
 		State:            state,
 		ModificationTime: timeStamp.UTC().Format(time.RFC3339),
+		ClusterHeight:    clusterHeight,
 	}
 	w.SetDType()
 
@@ -134,8 +136,12 @@ func GetFrontendWorkspaces(c external.Database, userUID string) ([]Workspace, er
 	return r.Workspaces, nil
 }
 
+func IsStateEmpty(state string) bool {
+	return state == "" || state == "[]" || state == "{}"
+}
+
 // GetFrontendWorkspace returns the specified workspace
-func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Workspace, error) {
+func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*DecodedWorkspace, error) {
 	if userUID == "" {
 		return nil, cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
@@ -150,6 +156,7 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Wor
 				Workspace.name
 				Workspace.ts
 				Workspace.state
+				Workspace.clusterHeight
 			}
 		}`
 
@@ -171,7 +178,22 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Wor
 		return nil, cliutil.NewStackErrorStr("invalid number of workspaces returned: " + strconv.Itoa(len(r.Workspaces)))
 	}
 
-	return &r.Workspaces[0], nil
+	decodedWorkspace := DecodedWorkspace{
+		UID:              r.Workspaces[0].UID,
+		Name:             r.Workspaces[0].Name,
+		ModificationTime: r.Workspaces[0].ModificationTime,
+		ClusterHeight:    r.Workspaces[0].ClusterHeight,
+	}
+
+	if IsStateEmpty(r.Workspaces[0].State) {
+		return &decodedWorkspace, nil
+	}
+
+	if err := json.Unmarshal([]byte(r.Workspaces[0].State), &decodedWorkspace.Nodes); err != nil {
+		return nil, cliutil.NewStackError(err)
+	}
+
+	return &decodedWorkspace, nil
 }
 
 // DeleteAllWorkspaces deletes all workspaces of a user
@@ -218,4 +240,50 @@ func DeleteWorkspace(c external.Database, workspaceUID string, userUID string) e
 	}
 
 	return nil
+}
+
+func IsWorkspaceStateOutdated(c external.Database, height int64, nodeUIDs []string) (isOutdated bool, err error) {
+	const query = `query Q($uids:string){
+					var(func: uid($uids))@filter(type("Address")){
+						 ~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+							Cluster.transaction{
+								~transactions{
+									h as id
+								}
+							}
+						}
+					}
+
+					q(){
+						max_height:max(val(h))
+					}
+				}`
+
+	resp, err := db.ReadOnlyTxVarWithRetry(c, time.Minute*2, query,
+		map[string]string{"$uids": db.CreateCommaArray(nodeUIDs)})
+	if err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	// json struct
+	var r struct {
+		Height []struct {
+			MaxHeight *int64 `json:"max_height,omitempty"`
+		} `json:"q,omitempty"`
+	}
+
+	if err = json.Unmarshal(resp.Json, &r); err != nil {
+		err = cliutil.NewStackError(err)
+		return
+	}
+
+	if len(r.Height) != 1 || r.Height[0].MaxHeight == nil {
+		err = cliutil.NewStackErrorf("invalid max height returned: %v", r.Height)
+		return
+	}
+
+	isOutdated = height < *r.Height[0].MaxHeight
+
+	return
 }

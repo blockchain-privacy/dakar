@@ -23,11 +23,13 @@ func AlterSchemaAddWorkspaces(c external.Database) error {
 			Workspace.name: string . # the workspace name
 			Workspace.ts: dateTime @index(day) . # modification date of the workspace
 			Workspace.state: string . # JSON encoded state of the workspace
+			Workspace.clusterHeight: int . # last clustered block at which this workspace was updated
 
 			type Workspace {
 				Workspace.name
 				Workspace.ts
 				Workspace.state
+				Workspace.clusterHeight
 			}`,
 	})
 }

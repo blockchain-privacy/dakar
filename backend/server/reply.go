@@ -1849,9 +1849,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	type request struct {
-		Query        string                     `json:"query,omitempty"`
-		CurrentState []dbwork.FrontendGraphNode `json:"currentState,omitempty"`
-		WorkspaceUID string                     `json:"workspaceUID,omitempty"`
+		Query        string `json:"query,omitempty"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
 	}
 
 	var searchRequest request
@@ -1884,9 +1883,15 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
+	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusBadRequest
+		return
+	}
+
 	nodeMap := map[string]dbwork.FrontendGraphNode{}
 	heuristicMap := map[string]dbwork.FrontendGraphNode{}
-	for _, n := range searchRequest.CurrentState {
+	for _, n := range w.Nodes {
 		// do not consider heuristics
 		if n.Type == "heuristic" {
 			heuristicMap[n.UID] = n
@@ -1899,10 +1904,10 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
-	if len(nodeMap) == 0 && !(newNode.IsDestination()) {
+	if len(nodeMap) == 0 && !newNode.IsDestination() {
 		frontEndNodes := []dbwork.FrontendGraphNode{newNode.ToFrontendGraphNode()}
 		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-			dbwork.State{Nodes: frontEndNodes}, time.Now().UTC()); err != nil {
+			frontEndNodes, time.Now(), w.ClusterHeight); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
@@ -1936,7 +1941,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		dbwork.State{ClusterHeight: &clusterHeight, Nodes: newState}, time.Now().UTC()); err != nil {
+		newState, time.Now().UTC(), &clusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
 		warn(err)
@@ -1990,18 +1995,18 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		return
 	}
 
-	if w.State != "" && w.State != "[]" && w.State != "{}" {
-		var workspaceState dbwork.State
-		if err := json.Unmarshal([]byte(w.State), &workspaceState); err != nil {
-			status = http.StatusInternalServerError
-			warn(cliutil.NewStackError(err))
-			return
-		}
+	isOutdated, err := workspace.IsWorkspaceOutdated(dgraph, w)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackError(err))
+		return
+	}
 
+	if isOutdated {
 		nodeMap := map[string]dbwork.FrontendGraphNode{}
 		// save heuristics in separate map, as they are transient. Use stored heuristics only for coordinates
 		heuristicMap := map[string]dbwork.FrontendGraphNode{}
-		for _, n := range workspaceState.Nodes {
+		for _, n := range w.Nodes {
 			if n.UID == "" || n.Type == "" {
 				continue
 			}
@@ -2030,21 +2035,14 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		}
 
 		err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID,
-			dbwork.State{ClusterHeight: &clusterHeight, Nodes: nodesWithConnection}, time.Now().UTC())
+			nodesWithConnection, time.Now(), &clusterHeight)
 		if err != nil {
 			status = http.StatusInternalServerError
 			warn(err)
 			return
 		}
 
-		stateBytes, err := json.Marshal(nodesWithConnection)
-		if err != nil {
-			status = http.StatusInternalServerError
-			warn(cliutil.NewStackError(err))
-			return
-		}
-
-		w.State = string(stateBytes)
+		w.Nodes = nodesWithConnection
 	}
 
 	reply.Workspace = w.ToFrontendWorkspace()
@@ -2102,16 +2100,34 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 		return
 	}
 
-	var newState []dbwork.FrontendGraphNode //nolint:prealloc
-	for _, n := range searchRequest.CurrentState {
-		// remove previous connections
-		n.Children = nil
-		newState = append(newState, n)
+	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
 	}
-	now := time.Now().UTC()
-	// todo only allow update of node positions
+
+	if len(w.Nodes) == 0 {
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackErrorStr("received update for empty workspace"))
+		return
+	}
+
+	frontendState := make(map[string]dbwork.FrontendGraphNode, len(searchRequest.CurrentState))
+	for _, n := range searchRequest.CurrentState {
+		frontendState[n.UID] = n
+	}
+
+	for i, backendNode := range w.Nodes {
+		if frontendNode, ok := frontendState[backendNode.UID]; ok {
+			w.Nodes[i].X = frontendNode.X
+			w.Nodes[i].Y = frontendNode.Y
+		}
+	}
+
+	now := time.Now()
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		dbwork.State{ClusterHeight: nil, Nodes: newState}, now); err != nil {
+		w.Nodes, now, w.ClusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
