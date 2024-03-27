@@ -41,6 +41,13 @@ type NodeConnections struct {
 }
 
 type connectionRequest struct {
+	AddressClusters []struct {
+		UID     string `json:"uid,omitempty"`
+		Cluster []struct {
+			UID string `json:"uid,omitempty"`
+		} `json:"cluster,omitempty"`
+	} `json:"address_cluster,omitempty"`
+
 	Transactions []struct {
 		UID     string `json:"uid,omitempty"`
 		Outputs []struct {
@@ -65,52 +72,6 @@ type connectionRequest struct {
 		} `json:"tx_inputs,omitempty"`
 	} `json:"transactions,omitempty"`
 
-	TransactionAddresses []struct {
-		UID     string `json:"uid,omitempty"`
-		Outputs []struct {
-			Addresses []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~addr_outputs,omitempty"`
-		} `json:"tx_outputs,omitempty"`
-		Inputs []struct {
-			Addresses []struct {
-				UID string `json:"uid,omitempty"`
-			} `json:"~addr_outputs,omitempty"`
-		} `json:"tx_inputs,omitempty"`
-	} `json:"transaction_addresses,omitempty"`
-
-	AddressClusters []struct {
-		UID            string `json:"uid,omitempty"`
-		AddressOutputs []struct {
-			InputTransaction []struct {
-				ClusterUID string `json:"uid,omitempty"`
-			} `json:"~tx_inputs,omitempty"`
-			OutputTransaction []struct {
-				ClusterUID string `json:"uid,omitempty"`
-			} `json:"~tx_outputs,omitempty"`
-		} `json:"addr_outputs,omitempty"`
-	} `json:"address_clusters,omitempty"`
-
-	AddressAddresses []struct {
-		UID            string `json:"uid,omitempty"`
-		AddressOutputs []struct {
-			InputTransaction []struct {
-				Outputs []struct {
-					Addresses []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~addr_outputs,omitempty"`
-				} `json:"tx_outputs,omitempty"`
-			} `json:"~tx_inputs,omitempty"`
-			OutputTransaction []struct {
-				Inputs []struct {
-					Addresses []struct {
-						UID string `json:"uid,omitempty"`
-					} `json:"~addr_outputs,omitempty"`
-				} `json:"tx_inputs,omitempty"`
-			} `json:"~tx_outputs,omitempty"`
-		} `json:"addr_outputs,omitempty"`
-	} `json:"address_addresses,omitempty"`
-
 	ClusterClusters []struct {
 		UID       string `json:"uid,omitempty"`
 		Addresses []struct {
@@ -124,6 +85,7 @@ type connectionRequest struct {
 			} `json:"addr_outputs,omitempty"`
 		} `json:"Cluster.addresses,omitempty"`
 	} `json:"cluster_clusters,omitempty"`
+
 	Heuristics []struct {
 		UID        string `json:"uid,omitempty"`
 		Heuristics []struct {

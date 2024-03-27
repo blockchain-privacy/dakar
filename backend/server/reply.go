@@ -1862,24 +1862,24 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	if !isValid(searchRequest.Query) {
-		status = http.StatusBadRequest
-		return
-	}
-
 	if searchRequest.WorkspaceUID == "" {
 		status = http.StatusBadRequest
 		return
 	}
 
-	newNodes, err := dbwork.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
+	if !isValid(searchRequest.Query) {
+		status = http.StatusBadRequest
+		return
+	}
+
+	newNode, err := dbwork.SearchForNode(dgraph, searchRequest.Query, tUser.ID)
 	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err, "query", searchRequest)
 		return
 	}
 
-	if len(newNodes) == 0 {
+	if newNode == nil {
 		status = http.StatusBadRequest
 		return
 	}
@@ -1899,45 +1899,25 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
-	if len(nodeMap) == 0 && !(len(newNodes) == 1 && newNodes[0].IsDestination()) {
-		if len(newNodes) > 1 {
-			// add links to each other node in the set
-			for i := range newNodes {
-				for j, n := range newNodes {
-					if j == i {
-						continue
-					}
-					newNodes[i].Children = append(newNodes[i].Children, n.UID)
-				}
-			}
-		}
-
-		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, newNodes, time.Now()); err != nil {
+	if len(nodeMap) == 0 && !(newNode.IsDestination()) {
+		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, []dbwork.GraphNode{*newNode}, time.Now()); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
 			return
 		}
 
-		reply.Nodes = make([]dbwork.FrontendGraphNode, len(newNodes))
-		for i, n := range newNodes {
-			reply.Nodes[i] = n.ToFrontendGraphNode()
-		}
+		reply.Nodes = []dbwork.FrontendGraphNode{newNode.ToFrontendGraphNode()}
 
 		return
 	}
 
-	if len(newNodes) == 1 {
-		if _, ok := nodeMap[newNodes[0].UID]; ok {
-			// new node is already in current state, therefore there is nothing to do
-			return
-		}
+	if _, ok := nodeMap[newNode.UID]; ok {
+		// new node is already in current state, therefore there is nothing to do
+		return
 	}
 
-	for _, n := range newNodes {
-		nodeMap[n.UID] = n.ToFrontendGraphNode()
-	}
-
+	nodeMap[newNode.UID] = newNode.ToFrontendGraphNode()
 	if err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)

@@ -14,7 +14,7 @@ func GetFMIClustersByAddress(c external.Database, addresses []string) (map[strin
 	if len(addresses) == 0 {
 		return nil, cliutil.NewStackError(db.ErrEmptyRequestArgument)
 	}
-
+	// todo check if this function is still needed
 	// todo check address input at some point, also handle merging of clusters in client data
 	query := `query {
 			q(func: eq(addresshash,` + db.CreateCommaList(addresses) + `)){
@@ -75,11 +75,13 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 						h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
 					}
 
-					# fmi cluster uids
-					c as var(func: uid(uids))@filter(eq(Cluster.type, "fmi"))
-					
-					# address uids
-					a as var(func: uid(uids))@filter(type("Address"))
+					# find fmi cluster for each address
+					address_cluster(func: uid(uids))@filter(type("Address")){
+						uid
+						c as cluster:~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
+							uid
+						}
+					}
 					
 					transactions(func: uid(t)){
 						uid
@@ -94,45 +96,6 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 								uid
 							}
 							...fGetCluster
-						}
-					}
-
-					transaction_addresses(func: uid(t)){
-						uid
-						tx_outputs{
-							~addr_outputs@filter(uid(a)){
-								uid
-							}
-						}
-						tx_inputs {
-							~addr_outputs@filter(uid(a)){
-								uid
-							}
-						}
-					}
-					
-					address_clusters(func: uid(a)){
-						uid
-						...fCluster
-					}
-				
-					address_addresses(func: uid(a))@ignorereflex{
-						uid
-						addr_outputs {
-							~tx_inputs{
-								tx_outputs{
-									~addr_outputs@filter(uid(a)){
-										uid
-									}
-								}
-							}
-							~tx_outputs{
-								tx_inputs{
-									~addr_outputs@filter(uid(a)){
-										uid
-									}
-								}
-							}
 						}
 					}
 				
@@ -192,21 +155,6 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 						}
 					}
 				}
-
-				fragment fCluster {
-					addr_outputs {
-						~tx_inputs@normalize{
-							tx_outputs{
-								...fGetCluster
-							}
-						}
-						~tx_outputs@normalize{
-							tx_inputs{
-								...fGetCluster
-							}
-						}
-					}
-				}
 				
 				fragment fGetCluster {
 					~addr_outputs{
@@ -231,9 +179,9 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 		return
 	}
 
-	transactions, clusters, addresses, heuristicNodes := parseConnectionResult(r)
+	transactions, clusters, heuristicNodes := parseConnectionResult(r)
 
-	connections = slices.Concat(transactions, addresses, clusters)
+	connections = slices.Concat(transactions, clusters)
 
 	return
 }
@@ -241,16 +189,25 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 //
 //nolint:gocyclo
-func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections,
-	addresses []NodeConnections, heuristics []FrontendGraphNode) {
+func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections, heuristics []FrontendGraphNode) {
+	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
+	// This map is used to replace the uid of clusters with the uid of addresse.
+	// This is done because we ultimatly want to store the address uids, not the cluster uids as they are not static.
+	clusterToAddress := map[string]string{}
+	for _, address := range r.AddressClusters {
+		if len(address.Cluster) != 1 {
+			continue
+		}
+
+		clusterToAddress[address.Cluster[0].UID] = address.UID
+	}
+
 	// txToHeuristic contains the mapping of transaction to its directly connected heuristics (root heuristics).
 	// This map is used to add the contained heuristic uids as children to their corresponding transaction.
 	txToHeuristic := map[string][]string{}
 	for _, heuristicTransaction := range r.Heuristics {
 		var rootHeuristics []string
 		for _, h := range heuristicTransaction.Heuristics {
-			// todo review once go 1.22 is released
-			tmpHeuristic := h
 			// no parent -> root heuristic
 			if len(h.ParentHeuristic) == 0 {
 				rootHeuristics = append(rootHeuristics, h.UID)
@@ -277,10 +234,10 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				Children:            children,
 				HeuristicType:       h.Type,
 				Parameter:           h.Parameter,
-				ExcludeAddresses:    &tmpHeuristic.ExcludeAddresses,
-				ExcludeSpendingGaps: &tmpHeuristic.ExcludeSpendingGaps,
+				ExcludeAddresses:    &h.ExcludeAddresses,
+				ExcludeSpendingGaps: &h.ExcludeSpendingGaps,
 				ClusterTypes:        h.ClusterTypes,
-				ClusterCount:        tmpHeuristic.ClusterCount,
+				ClusterCount:        h.ClusterCount,
 				Timestamp:           h.Timestamp,
 			})
 		}
@@ -305,7 +262,10 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 			for _, address := range output.Addresses {
 				for _, cluster := range address.Clusters {
-					children[cluster.UID] = true
+					// find corresponding address UID and set it connected to this transaction
+					if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+						children[addressUID] = true
+					}
 				}
 			}
 		}
@@ -317,7 +277,10 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 			for _, address := range inputs.Addresses {
 				for _, cluster := range address.Clusters {
-					children[cluster.UID] = true
+					// find corresponding address UID and set it connected to this transaction
+					if addressUID, ok := clusterToAddress[cluster.UID]; ok {
+						children[addressUID] = true
+					}
 				}
 			}
 		}
@@ -328,87 +291,35 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 		}
 	}
 
-	for _, queryTx := range r.TransactionAddresses {
-		addressUIDs := map[string]bool{}
-
-		for _, output := range queryTx.Outputs {
-			for _, address := range output.Addresses {
-				addressUIDs[address.UID] = true
-			}
-		}
-
-		for _, inputs := range queryTx.Inputs {
-			for _, address := range inputs.Addresses {
-				addressUIDs[address.UID] = true
-			}
-		}
-
-		cTx := connectedTransactions[queryTx.UID]
-		cTx.Children = append(cTx.Children, cliutil.GetMapKeys(addressUIDs)...)
-		connectedTransactions[queryTx.UID] = cTx
-	}
-
-	connectedAddresses := map[string]NodeConnections{}
-	for _, a := range r.AddressClusters {
-		clusterUIDs := map[string]bool{}
-		for _, output := range a.AddressOutputs {
-			for _, ot := range output.OutputTransaction {
-				clusterUIDs[ot.ClusterUID] = true
-			}
-			for _, it := range output.InputTransaction {
-				clusterUIDs[it.ClusterUID] = true
-			}
-		}
-		connectedAddresses[a.UID] = NodeConnections{UID: a.UID, Children: cliutil.GetMapKeys(clusterUIDs)}
-	}
-
 	transactions = make([]NodeConnections, 0, len(connectedTransactions))
 	for _, v := range connectedTransactions {
 		transactions = append(transactions, v)
 	}
 
-	for _, a := range r.AddressAddresses {
-		addressUIDs := map[string]bool{}
-		for _, output := range a.AddressOutputs {
-			for _, ot := range output.OutputTransaction {
-				for _, i := range ot.Inputs {
-					for _, address := range i.Addresses {
-						addressUIDs[address.UID] = true
-					}
-				}
-			}
-			for _, it := range output.InputTransaction {
-				for _, i := range it.Outputs {
-					for _, address := range i.Addresses {
-						addressUIDs[address.UID] = true
-					}
-				}
-			}
+	for _, cluster := range r.ClusterClusters {
+		thisClusterAddressUID, ok := clusterToAddress[cluster.UID]
+		if !ok {
+			continue
 		}
 
-		address := connectedAddresses[a.UID]
-		address.Children = append(address.Children, cliutil.GetMapKeys(addressUIDs)...)
-		connectedAddresses[a.UID] = address
-	}
-
-	addresses = make([]NodeConnections, 0, len(connectedAddresses))
-	for _, v := range connectedAddresses {
-		addresses = append(addresses, v)
-	}
-
-	for _, cluster := range r.ClusterClusters {
 		clusterUIDs := map[string]bool{}
 		for _, address := range cluster.Addresses {
 			for _, output := range address.Outputs {
 				for _, outputCluster := range output.OutputClusters {
-					clusterUIDs[outputCluster.UID] = true
+					// find corresponding address UID and set it connected to this transaction
+					if addressUID, ok := clusterToAddress[outputCluster.UID]; ok {
+						clusterUIDs[addressUID] = true
+					}
 				}
 				for _, inputCluster := range output.InputClusters {
-					clusterUIDs[inputCluster.UID] = true
+					// find corresponding address UID and set it connected to this transaction
+					if addressUID, ok := clusterToAddress[inputCluster.UID]; ok {
+						clusterUIDs[addressUID] = true
+					}
 				}
 			}
 		}
-		clusters = append(clusters, NodeConnections{UID: cluster.UID, Children: cliutil.GetMapKeys(clusterUIDs)})
+		clusters = append(clusters, NodeConnections{UID: thisClusterAddressUID, Children: cliutil.GetMapKeys(clusterUIDs)})
 	}
 
 	return
@@ -416,7 +327,7 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 
 // SearchForNode returns the uid which matches to the given query. In case the query is an address
 // which is connected to clusters, they are returned instead.
-func SearchForNode(c external.Database, nodeQuery string, userUID string) (nodes []GraphNode, err error) {
+func SearchForNode(c external.Database, nodeQuery string, userUID string) (node *GraphNode, err error) {
 	if nodeQuery == "" || userUID == "" {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
 		return
@@ -429,7 +340,7 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (nodes
 						
 						address(func: eq(addresshash, $query)){
 							uid
-							~Cluster.addresses@filter(eq(Cluster.type, "fmi") or (eq(Cluster.type, "custom") and uid_in(Cluster.user, $user))){
+							~Cluster.addresses@filter(eq(Cluster.type, "fmi")){
 								uid
 								Cluster.type
 							}
@@ -465,33 +376,19 @@ func SearchForNode(c external.Database, nodeQuery string, userUID string) (nodes
 
 	if len(r.Transactions) > 0 {
 		tx := r.Transactions[0]
-		nodes = []GraphNode{{UID: tx.UID, Type: "transaction", TransactionHash: nodeQuery}}
-		nodes[0].PrivacyType = tx.PrivacyType
+		node = &GraphNode{UID: tx.UID, Type: "transaction", TransactionHash: nodeQuery, PrivacyType: tx.PrivacyType}
 		return
 	}
 
 	if len(r.Address) > 0 {
 		addr := r.Address[0]
-		if len(addr.Clusters) > 0 {
-			nodes = make([]GraphNode, len(addr.Clusters))
-			for i, cluster := range addr.Clusters {
-				nodes[i] = GraphNode{
-					UID:         cluster.UID,
-					Type:        "cluster",
-					AddressHash: nodeQuery,
-					ClusterType: cluster.Type,
-				}
-			}
-			return
+		if len(addr.Clusters) != 1 {
+			return nil, cliutil.NewStackErrorStr("address has no cluster attached")
 		}
 
-		nodes = []GraphNode{{
-			UID:         addr.UID,
-			Type:        "cluster",
-			AddressHash: nodeQuery,
-		}}
+		node = &GraphNode{UID: addr.UID, Type: "cluster", AddressHash: nodeQuery, ClusterType: addr.Clusters[0].Type}
 		return
 	}
 
-	return
+	return nil, nil
 }
