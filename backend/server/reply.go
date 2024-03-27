@@ -1932,16 +1932,13 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 		return
 	}
 
-	newState := make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	reply.Nodes = make([]dbwork.FrontendGraphNode, 0, len(nodeMap))
 	for _, n := range nodeMap {
 		reply.Nodes = append(reply.Nodes, n)
-		n.Children = nil
-		newState = append(newState, n)
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		newState, time.Now().UTC(), &clusterHeight); err != nil {
+		reply.Nodes, time.Now(), &clusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
 		warn(err)
