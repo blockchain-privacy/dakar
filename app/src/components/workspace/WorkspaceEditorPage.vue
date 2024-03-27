@@ -401,7 +401,6 @@ async function handleGraphQuery(query) {
 		const response = await dakar.workspace.workspacesNodePost({
 			query: {
 				query: trimmedQuery,
-				currentState: nodeGraph.exportNodes(),
 				workspaceUID: workspaceUID.value,
 			},
 		});
