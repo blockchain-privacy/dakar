@@ -63,7 +63,6 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 		return
 	}
 
-	// todo limit user for cluster lookup
 	const query = `query Q($uids:string,$user:string){
 					# input uids
 					uids as var(func: uid($uids))
@@ -76,8 +75,8 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 						h as User.heuristics@filter(uid_in(Heuristic.transaction, uid(t)))
 					}
 
-					# flat cluster uids
-					c as var(func: uid(uids))@filter(type("Cluster") and not eq(Cluster.type, "hmi"))
+					# fmi cluster uids
+					c as var(func: uid(uids))@filter(eq(Cluster.type, "fmi"))
 					
 					# address uids
 					a as var(func: uid(uids))@filter(type("Address"))
