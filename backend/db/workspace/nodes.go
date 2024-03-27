@@ -55,8 +55,8 @@ func GetFMIClustersByAddress(c external.Database, addresses []string) (map[strin
 }
 
 // GetWorkspaceConnections returns all connections between the given UIDs, and all connected heuristics
-func GetWorkspaceConnections(c external.Database, uids []string, userUID string) (
-	connections []NodeConnections, heuristicNodes []FrontendGraphNode, err error) {
+func GetWorkspaceConnections(c external.Database, uids []string, userUID string) (connections []NodeConnections,
+	heuristicNodes []FrontendGraphNode, clusterHeight int64, err error) {
 	// need at least two uids to find connections
 	if len(uids) < 2 {
 		err = cliutil.NewStackError(db.ErrEmptyRequestArgument)
@@ -64,6 +64,11 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 	}
 
 	const query = `query Q($uids:string,$user:string){
+					# get cluster height
+					cluster_height(func: type(CFMIStatus)){
+						lastclusteredid
+					}
+
 					# input uids
 					uids as var(func: uid($uids))
 					
@@ -179,7 +184,10 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 		return
 	}
 
-	transactions, clusters, heuristicNodes := parseConnectionResult(r)
+	transactions, clusters, heuristicNodes, clusterHeight, err := parseConnectionResult(r)
+	if err != nil {
+		return
+	}
 
 	connections = slices.Concat(transactions, clusters)
 
@@ -189,14 +197,27 @@ func GetWorkspaceConnections(c external.Database, uids []string, userUID string)
 // parseConnectionResult parses the result of a connection request and returns the resulting connections
 //
 //nolint:gocyclo
-func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections, heuristics []FrontendGraphNode) {
+func parseConnectionResult(r connectionRequest) (transactions []NodeConnections, clusters []NodeConnections, heuristics []FrontendGraphNode, clusterHeight int64, err error) {
+	if len(r.ClusterHeight) != 1 {
+		err = cliutil.NewStackErrorf("invalid number of cluster information: %d", len(r.ClusterHeight))
+		return
+	}
+
+	if r.ClusterHeight[0].LastClusteredID == nil {
+		err = cliutil.NewStackErrorStr("null pointer received for last clustered ID")
+		return
+	}
+
+	clusterHeight = *r.ClusterHeight[0].LastClusteredID
+
 	// clusterToAddress contains the mapping of flat multi-input clusters to their addresses.
 	// This map is used to replace the uid of clusters with the uid of addresse.
 	// This is done because we ultimatly want to store the address uids, not the cluster uids as they are not static.
 	clusterToAddress := map[string]string{}
 	for _, address := range r.AddressClusters {
 		if len(address.Cluster) != 1 {
-			continue
+			err = cliutil.NewStackErrorf("address not attached to FMI-cluster: %s", address)
+			return
 		}
 
 		clusterToAddress[address.Cluster[0].UID] = address.UID
@@ -234,8 +255,8 @@ func parseConnectionResult(r connectionRequest) (transactions []NodeConnections,
 				Children:            children,
 				HeuristicType:       h.Type,
 				Parameter:           h.Parameter,
-				ExcludeAddresses:    &h.ExcludeAddresses,
-				ExcludeSpendingGaps: &h.ExcludeSpendingGaps,
+				ExcludeAddresses:    &h.ExcludeAddresses,    // #nosec G601, false positive as of go1.22
+				ExcludeSpendingGaps: &h.ExcludeSpendingGaps, // #nosec G601, false positive as of go1.22
 				ClusterTypes:        h.ClusterTypes,
 				ClusterCount:        h.ClusterCount,
 				Timestamp:           h.Timestamp,

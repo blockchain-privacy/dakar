@@ -1900,14 +1900,16 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	// If the transmitted state is empty, then there are only connections between the new nodes.
 	// If newNodes is a destination transaction, it might be connected to heuristics. Therefore, do not go into this block.
 	if len(nodeMap) == 0 && !(newNode.IsDestination()) {
-		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID, []dbwork.GraphNode{*newNode}, time.Now()); err != nil {
+		frontEndNodes := []dbwork.FrontendGraphNode{newNode.ToFrontendGraphNode()}
+		if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+			dbwork.State{Nodes: frontEndNodes}, time.Now().UTC()); err != nil {
 			status = http.StatusInternalServerError
 			reply.Nodes = nil
 			warn(err)
 			return
 		}
 
-		reply.Nodes = []dbwork.FrontendGraphNode{newNode.ToFrontendGraphNode()}
+		reply.Nodes = frontEndNodes
 
 		return
 	}
@@ -1918,7 +1920,8 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	nodeMap[newNode.UID] = newNode.ToFrontendGraphNode()
-	if err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
+	clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID)
+	if err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
@@ -1933,7 +1936,7 @@ func getAddWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply 
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		newState, time.Now()); err != nil {
+		dbwork.State{ClusterHeight: &clusterHeight, Nodes: newState}, time.Now().UTC()); err != nil {
 		status = http.StatusInternalServerError
 		reply.Nodes = nil
 		warn(err)
@@ -2011,7 +2014,17 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 		}
 
 		if len(nodeMap) > 1 {
-			if err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap, heuristicMap, tUser.ID); err != nil {
+			clusterHeight, err := workspace.InsertNodeConnectionsAndHeuristics(dgraph, nodeMap,
+				heuristicMap, tUser.ID)
+			if err != nil {
+				status = http.StatusInternalServerError
+				warn(err)
+				return
+			}
+
+			err = workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, workspaceUID,
+				dbwork.State{ClusterHeight: &clusterHeight, Nodes: nil}, time.Now().UTC())
+			if err != nil {
 				status = http.StatusInternalServerError
 				warn(err)
 				return
@@ -2094,9 +2107,10 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 		n.Children = nil
 		newState = append(newState, n)
 	}
-	now := time.Now()
+	now := time.Now().UTC()
+	// todo only allow update of node positions
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		newState, now); err != nil {
+		dbwork.State{ClusterHeight: nil, Nodes: newState}, now); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return

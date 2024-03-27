@@ -11,7 +11,6 @@ linters:
     - unused
     - bodyclose
     - errorlint
-    - exportloopref
     - gocyclo
     - goprintffuncname
     - gosec

@@ -41,6 +41,10 @@ type NodeConnections struct {
 }
 
 type connectionRequest struct {
+	ClusterHeight []struct {
+		LastClusteredID *int64 `json:"lastclusteredid,omitempty"`
+	} `json:"cluster_height,omitempty"`
+
 	AddressClusters []struct {
 		UID     string `json:"uid,omitempty"`
 		Cluster []struct {
@@ -111,6 +115,11 @@ type connectionRequest struct {
 			} `json:"Heuristic.clusters,omitempty"`
 		} `json:"~Heuristic.transaction,omitempty"`
 	} `json:"heuristics,omitempty"`
+}
+
+type State struct {
+	ClusterHeight *int64              `json:"clusterHeight,omitempty"`
+	Nodes         []FrontendGraphNode `json:"nodes,omitempty"`
 }
 
 type GraphNode struct {
