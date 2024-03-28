@@ -884,9 +884,10 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 //	@Summary	Deletes a workspace node
 //	@Tags		workspace
 //	@Produce	json
-//	@Success	200	{object}	server.msgReply
-//	@Failure	400	{object}	server.msgReply
-//	@Failure	500	{object}	server.msgReply
+//	@Param		state	body		server.deleteWorkspaceNodeReply.request	true	"Node UID"
+//	@Success	200		{object}	server.deleteWorkspaceNodeReply
+//	@Failure	400		{object}	server.deleteWorkspaceNodeReply
+//	@Failure	500		{object}	server.deleteWorkspaceNodeReply
 //	@Router		/workspaces/node/ [delete]
 func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
