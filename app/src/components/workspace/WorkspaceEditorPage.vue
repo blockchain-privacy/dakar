@@ -347,21 +347,34 @@ async function removeGraphNode() {
 		if (deletedUIDs) {
 			nodeGraph.removeNodes(deletedUIDs);
 		}
-	} else if (isDestination(node.privacyType)) {
-		// Remove destination node and all connected heuristics from graph
-		const uids = [node.uid];
 
-		if (node.children) {
-			node.children.forEach(child => uids.push(...getDecendants(child)));
-		}
-
-		nodeGraph.removeNodes(uids);
-	} else {
-		nodeGraph.removeContextMenuNode();
+		return;
 	}
 
-	// Save immediately
-	queueAutoSave(0);
+	try {
+		const response = await dakar.workspace.workspacesNodeDelete({
+			state: {
+				nodeUID: node.uid,
+				workspaceUID: workspaceUID.value,
+			},
+		});
+
+		console.log('delete this uids:', response.deletedNodeUIDs);
+		if (isDestination(node.privacyType)) {
+			// Remove destination node and all connected heuristics from graph
+			const uids = [node.uid];
+
+			if (node.children) {
+				node.children.forEach(child => uids.push(...getDecendants(child)));
+			}
+
+			nodeGraph.removeNodes(uids);
+		} else {
+			nodeGraph.removeNodes(response.deletedNodeUIDs);
+		}
+	} catch (e) {
+		setErrorMessage(e);
+	}
 }
 
 // Getlock prevents further actions causing an autosave event to occur,
