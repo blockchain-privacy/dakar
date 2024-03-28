@@ -884,7 +884,7 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 //	@Summary	Deletes a workspace node
 //	@Tags		workspace
 //	@Produce	json
-//	@Param		state	body		server.deleteWorkspaceNodeReply.request	true	"Node UID"
+//	@Param		state	body		server.getDeleteWorkspaceNodeReply.request	true	"Node which shall be deleted"
 //	@Success	200		{object}	server.deleteWorkspaceNodeReply
 //	@Failure	400		{object}	server.deleteWorkspaceNodeReply
 //	@Failure	500		{object}	server.deleteWorkspaceNodeReply
