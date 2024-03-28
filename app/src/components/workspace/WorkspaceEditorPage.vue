@@ -188,7 +188,6 @@ const isModifyingWorkspace = ref(false);
 const graphQuery = ref('');
 const workspaceUID = ref('');
 const workspaceName = ref('');
-const workspaceModificationTime = ref();
 const isAddHeuristicSheetOpen = ref(false);
 const isEntitySideBarOpen = ref(false);
 const entityIdentifier = ref('');
@@ -661,7 +660,6 @@ async function refreshData() {
 		if (response.workspace) {
 			data = response.workspace;
 			workspaceName.value = data.name;
-			workspaceModificationTime.value = new Date(data.ts);
 		} else {
 			data = null;
 		}
@@ -746,15 +744,12 @@ async function doAutoSave() {
 	isAutoSaving.value = true;
 	autoSaveTimer = null;
 	try {
-		const response = await dakar.workspace.workspacesPut({
+		await dakar.workspace.workspacesPut({
 			state: {
 				workspaceUID: workspaceUID.value,
 				currentState: nodeGraph.exportNodes(),
 			},
 		});
-		if (response.ts) {
-			workspaceModificationTime.value = new Date(response.ts);
-		}
 	} catch (e) {
 		setErrorMessage(e);
 	}

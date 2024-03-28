@@ -2071,7 +2071,7 @@ func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addW
 	return
 }
 
-func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply updateWorkspace, status int) {
+func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -2122,15 +2122,12 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (reply update
 		}
 	}
 
-	now := time.Now()
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
-		w.Nodes, now, w.ClusterHeight); err != nil {
+		w.Nodes, time.Now(), w.ClusterHeight); err != nil {
 		status = http.StatusInternalServerError
 		warn(err)
 		return
 	}
-
-	reply.ModificationTime = now.UTC().Format(time.RFC3339)
 
 	return
 }

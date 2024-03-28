@@ -867,15 +867,15 @@ func (s *Server) handlerGetWorkspace() http.Handler {
 //	@Accept		json
 //	@Produce	json
 //	@Param		state	body		server.getUpdateWorkspace.request	true	"Workspace state"
-//	@Success	200		{object}	server.updateWorkspace
-//	@Failure	400		{object}	server.updateWorkspace
-//	@Failure	500		{object}	server.updateWorkspace
+//	@Success	200		{string}	string
+//	@Failure	400		{string}	string
+//	@Failure	500		{string}	string
 //	@Router		/workspaces/ [put]
 func (s *Server) handlerUpdateWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getUpdateWorkspace(s.db, r)
+		status := getUpdateWorkspace(s.db, r)
 
-		sendReply(w, reply, status)
+		sendReply(w, "", status)
 	})
 }
 
