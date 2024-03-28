@@ -17,6 +17,7 @@ import (
 	dbwork "backend/db/workspace"
 	"backend/external"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -2047,7 +2048,7 @@ func getGetWorkspaceReply(dgraph external.Database, r *http.Request) (reply getW
 	return
 }
 
-func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (reply addWorkspaceReply, status int) {
+func getAddWorkspaceReply(dgraph external.Database, r *http.Request) (status int) {
 	tUser, err := extractTokenUser(r.Context())
 	if err != nil {
 		status = http.StatusUnauthorized
@@ -2120,6 +2121,70 @@ func getUpdateWorkspace(dgraph external.Database, r *http.Request) (status int) 
 			w.Nodes[i].X = frontendNode.X
 			w.Nodes[i].Y = frontendNode.Y
 		}
+	}
+
+	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,
+		w.Nodes, time.Now(), w.ClusterHeight); err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	return
+}
+
+func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (reply deleteWorkspaceNodeReply, status int) {
+	tUser, err := extractTokenUser(r.Context())
+	if err != nil {
+		status = http.StatusUnauthorized
+		warn(err)
+		return
+	}
+
+	type request struct {
+		NodeUID      string `json:"nodeUID,omitempty"`
+		WorkspaceUID string `json:"workspaceUID,omitempty"`
+	}
+
+	var searchRequest request
+
+	if err := json.NewDecoder(r.Body).Decode(&searchRequest); err != nil {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackError(err))
+		return
+	}
+
+	if searchRequest.WorkspaceUID == "" || searchRequest.NodeUID == "" {
+		status = http.StatusBadRequest
+		return
+	}
+
+	w, err := dbwork.GetFrontendWorkspace(dgraph, searchRequest.WorkspaceUID, tUser.ID)
+	if err != nil {
+		status = http.StatusInternalServerError
+		warn(err)
+		return
+	}
+
+	if len(w.Nodes) == 0 {
+		status = http.StatusInternalServerError
+		warn(cliutil.NewStackErrorf("received node deletion request for empty workspace. request %v", searchRequest))
+		return
+	}
+
+	foundNode := false
+	for i, n := range w.Nodes {
+		if n.UID == searchRequest.NodeUID {
+			slices.Delete(w.Nodes, i, i)
+			foundNode = true
+			break
+		}
+	}
+
+	if !foundNode {
+		status = http.StatusBadRequest
+		warn(cliutil.NewStackErrorf("node does not exist in workspace. request: %v", searchRequest))
+		return
 	}
 
 	if err := workspace.EncodeAndStoreWorkspaceState(dgraph, tUser.ID, searchRequest.WorkspaceUID,

@@ -836,9 +836,9 @@ func (s *Server) handlerWorkspaces() http.Handler {
 //	@Router		/workspaces/{name} [post]
 func (s *Server) handlerAddWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		reply, status := getAddWorkspaceReply(s.db, r)
+		status := getAddWorkspaceReply(s.db, r)
 
-		sendReply(w, reply, status)
+		sendReply(w, "", status)
 	})
 }
 
@@ -876,6 +876,23 @@ func (s *Server) handlerUpdateWorkspace() http.Handler {
 		status := getUpdateWorkspace(s.db, r)
 
 		sendReply(w, "", status)
+	})
+}
+
+// Delete a Workspace Node godoc
+//
+//	@Summary	Deletes a workspace node
+//	@Tags		workspace
+//	@Produce	json
+//	@Success	200	{object}	server.msgReply
+//	@Failure	400	{object}	server.msgReply
+//	@Failure	500	{object}	server.msgReply
+//	@Router		/workspaces/node/ [delete]
+func (s *Server) handlerDeleteWorkspaceNode() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reply, status := getDeleteWorkspaceNodeReply(s.db, r)
+
+		sendReply(w, reply, status)
 	})
 }
 
@@ -1027,6 +1044,8 @@ func (s *Server) setupHandlers() {
 	// Workspace
 	s.handler.Handle(getRouteWorkspaceAddNode(),
 		adapt(s.handlerAddWorkspaceNode(), getRouteWorkspaceAddNode(), s.authorization(), maxBodyConfig(50)))
+	s.handler.Handle(getRouteWorkspaceDeleteNode(),
+		adapt(s.handlerDeleteWorkspaceNode(), getRouteWorkspaceDeleteNode(), s.authorization(), maxBodyConfig(50)))
 	s.handler.Handle(getRouteWorkspaces(), adapt(s.handlerWorkspaces(), getRouteWorkspaces(), s.authorization()))
 	s.handler.Handle(getRouteAddWorkspace(), adapt(s.handlerAddWorkspace(), getRouteAddWorkspace(), s.authorization()))
 	s.handler.Handle(getRouteGetWorkspace(), adapt(s.handlerGetWorkspace(), getRouteGetWorkspace(), s.authorization()))

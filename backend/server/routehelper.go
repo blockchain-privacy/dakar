@@ -153,7 +153,8 @@ type addWorkspaceNodeReply struct {
 	Nodes []workspace.FrontendGraphNode `json:"nodes,omitempty"`
 }
 
-type addWorkspaceReply struct {
+type deleteWorkspaceNodeReply struct {
+	DeletedNodeUIDs []string `json:"deletedNodeUIDs,omitempty"`
 }
 
 type workspacesReply struct {
