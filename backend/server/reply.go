@@ -2175,7 +2175,7 @@ func getDeleteWorkspaceNodeReply(dgraph external.Database, r *http.Request) (rep
 	foundNode := false
 	for i, n := range w.Nodes {
 		if n.UID == searchRequest.NodeUID {
-			slices.Delete(w.Nodes, i, i)
+			w.Nodes = slices.Delete(w.Nodes, i, i)
 			foundNode = true
 			break
 		}
