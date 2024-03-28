@@ -830,9 +830,9 @@ func (s *Server) handlerWorkspaces() http.Handler {
 //	@Tags		workspace
 //	@Produce	json
 //	@Param		name	path		string	true	"Workspace name"
-//	@Success	200		{object}	server.addWorkspaceReply
-//	@Failure	400		{object}	server.addWorkspaceReply
-//	@Failure	500		{object}	server.addWorkspaceReply
+//	@Success	200		{string}	string
+//	@Failure	400		{string}	string
+//	@Failure	500		{string}	string
 //	@Router		/workspaces/{name} [post]
 func (s *Server) handlerAddWorkspace() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
