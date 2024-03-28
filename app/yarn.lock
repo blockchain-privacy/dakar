@@ -46,10 +46,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@blockchain/dakar@npm:^1.1.21":
-  version: 1.1.21
-  resolution: "@blockchain/dakar@npm:1.1.21::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.21.tgz"
-  checksum: 10c0/6ad2d4d529a845631a6b58c580c51f54912e3ed855eafdcc722c28aec7bbc5af83eafd86afb1c1ca8046f1d3de6bf32e0546c27560ebe596c9bf73c3d9d6f5b6
+"@blockchain/dakar@npm:^1.1.23":
+  version: 1.1.23
+  resolution: "@blockchain/dakar@npm:1.1.23::__archiveUrl=https%3A%2F%2Fgit.gvk.idi.ntnu.no%2Fapi%2Fv4%2Fprojects%2F410%2Fpackages%2Fnpm%2F%40blockchain%2Fdakar%2F-%2F%40blockchain%2Fdakar-1.1.23.tgz"
+  checksum: 10c0/8356bbe83247a27d84d5da6d4d01fd25b637b1f8704b8276e9e35f6fa835c0ea8e3578b6e3e6687bedce12e4b86b1b3a5850915a964aecfea72ab8ed4ade82be
   languageName: node
   linkType: hard
 
@@ -1133,7 +1133,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "dakar-frontend@workspace:."
   dependencies:
-    "@blockchain/dakar": "npm:^1.1.21"
+    "@blockchain/dakar": "npm:^1.1.23"
     "@fontsource/roboto": "npm:^5.0.12"
     "@mdi/js": "npm:^7.4.47"
     "@neondark/wikiapi": "npm:^1.2.32"
@@ -1161,7 +1161,7 @@ __metadata:
     vite-svg-loader: "npm:^5.1.0"
     vue: "npm:^3.4.21"
     vue-router: "npm:^4.3.0"
-    vuetify: "npm:3.5.12"
+    vuetify: "npm:^3.5.13"
   languageName: unknown
   linkType: soft
 
@@ -1682,8 +1682,8 @@ __metadata:
   linkType: hard
 
 "glob@npm:^10.2.2, glob@npm:^10.3.10":
-  version: 10.3.11
-  resolution: "glob@npm:10.3.11"
+  version: 10.3.12
+  resolution: "glob@npm:10.3.12"
   dependencies:
     foreground-child: "npm:^3.1.0"
     jackspeak: "npm:^2.3.6"
@@ -1692,7 +1692,7 @@ __metadata:
     path-scurry: "npm:^1.10.2"
   bin:
     glob: dist/esm/bin.mjs
-  checksum: 10c0/7308c7fffee9b017cbc5f6b928c30d06d2f82b01af59dfcc7052ad7636321d3546ebd3983c711778de52833d13ba74a88faafbcd8fb7e07b6129f90ad99d6be2
+  checksum: 10c0/f60cefdc1cf3f958b2bb5823e1b233727f04916d489dc4641d76914f016e6704421e06a83cbb68b0cb1cb9382298b7a88075b844ad2127fc9727ea22b18b0711
   languageName: node
   linkType: hard
 
@@ -2954,9 +2954,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vuetify@npm:3.5.12":
-  version: 3.5.12
-  resolution: "vuetify@npm:3.5.12"
+"vuetify@npm:^3.5.13":
+  version: 3.5.13
+  resolution: "vuetify@npm:3.5.13"
   peerDependencies:
     typescript: ">=4.7"
     vite-plugin-vuetify: ">=1.0.0"
@@ -2972,7 +2972,7 @@ __metadata:
       optional: true
     webpack-plugin-vuetify:
       optional: true
-  checksum: 10c0/c8bd0279a4a62396f9426555e07422193be83fd352954194a2e18d48b980c235c27f71c4cae2e69acca3c6591865138711b4fc5ce17a37c1930a5377b62dc2de
+  checksum: 10c0/ddebd713ec3045edc942ea333b94c9424954362da6dd7b199450dfc3ba77d9260d1baac653e94efc0371faab7c30cd4a5b9fad0cf3236556c0e93f3c634cebf9
   languageName: node
   linkType: hard
 

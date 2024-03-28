@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .js,.vue --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@blockchain/dakar": "^1.1.21",
+    "@blockchain/dakar": "^1.1.23",
     "@fontsource/roboto": "^5.0.12",
     "@mdi/js": "^7.4.47",
     "@neondark/wikiapi": "^1.2.32",
@@ -29,7 +29,7 @@
     "pinia": "^2.1.7",
     "vue": "^3.4.21",
     "vue-router": "^4.3.0",
-    "vuetify": "3.5.12"
+    "vuetify": "^3.5.13"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
