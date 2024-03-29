@@ -197,35 +197,37 @@ func GetFrontendWorkspace(c external.Database, uid string, userUID string) (*Dec
 	return &decodedWorkspace, nil
 }
 
-// DeleteAllWorkspaces deletes all workspaces of a user
+// DeleteAllWorkspaces deletes a user's workspaces and their heuristics
 func DeleteAllWorkspaces(c external.Database, userUID string) error {
-	req := &api.Request{
-		Query: "query Q($user:string){var(func: uid($user)){w as User.workspaces}}",
-		Vars:  map[string]string{"$user": userUID},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(w) * * .
-								<` + userUID + "> <User.workspaces> uid(w) ."),
-		}},
-		CommitNow: true,
-	}
-
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	return err
+	return DeleteWorkspace(c, userUID, "")
 }
 
 // DeleteWorkspace deletes a user's workspace
-func DeleteWorkspace(c external.Database, workspaceUID string, userUID string) error {
-	query := `query Q($user:string, $workspace:string){
-				var(func: uid($user)){
-					w as User.workspaces@filter(uid($workspace))
-				}
-			  }`
+func DeleteWorkspace(c external.Database, userUID string, workspaceUID string) error {
+	var filterWorkspaces string
+
+	if workspaceUID != "" {
+		filterWorkspaces = "@filter(uid($workspace))"
+	}
 
 	req := &api.Request{
-		Query: query,
-		Vars:  map[string]string{"$user": userUID, "$workspace": workspaceUID},
+		Query: `query Q($user:string, $workspace:string){
+				var(func: uid($user)){
+					w as User.workspaces` + filterWorkspaces + `{
+						h as Workspace.heuristics{
+							hc as Heuristic.clusters{
+								hr as HeuristicCluster.results
+							}
+						}
+					}
+				}
+			  }`,
+		Vars: map[string]string{"$user": userUID, "$workspace": workspaceUID},
 		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(w) * * .
+			DelNquads: []byte(` uid(hr) * * .
+								uid(hc) * * .
+								uid(h) * * .
+								uid(w) * * .
 								<` + userUID + "> <User.workspaces> uid(w) ."),
 		}},
 		CommitNow: true,

@@ -1557,7 +1557,7 @@ func getDeleteIdentityReply(r *http.Request, dgraph external.Database,
 		return
 	}
 
-	if err := dbHeuristic.DeleteAllWorkspacesAndUserHeuristics(dgraph, uid); err != nil {
+	if err := dbwork.DeleteAllWorkspaces(dgraph, uid); err != nil {
 		reply.Msg = "could not delete users " + uid + " heuristics"
 		status = http.StatusInternalServerError
 		warn(err)
@@ -2219,7 +2219,7 @@ func getDeleteWorkspaceReply(r *http.Request, dgraph external.Database) (reply m
 		return
 	}
 
-	if err := dbwork.DeleteWorkspace(dgraph, workspaceUID, tUser.ID); err != nil {
+	if err := dbwork.DeleteWorkspace(dgraph, tUser.ID, workspaceUID); err != nil {
 		if errors.Is(err, dbwork.ErrNoMutationHappened) {
 			reply.Msg = "No data was deleted. The transaction might not have any workspaces."
 			status = http.StatusNotFound

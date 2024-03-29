@@ -53,7 +53,6 @@ func InsertHeuristic(c external.Database, h Heuristic, userUID string, workspace
 		Heuristics    []Heuristic `json:"Workspace.heuristics,omitempty"`
 	}
 
-	// todo when deleting workspace and/or user make sure to also delete heuristics attached to workspaces
 	// set cluster height to 0, to force an update of the corresponding workspace
 	pb, err := json.Marshal(dummyWorkspace{UID: workspaceUID, Heuristics: []Heuristic{h}, ClusterHeight: 0})
 	if err != nil {
@@ -123,37 +122,6 @@ func DeleteUserHeuristics(c external.Database, uids []string, userUID string, wo
 	}
 
 	return nil
-}
-
-// DeleteAllWorkspacesAndUserHeuristics deletes a user's workspaces and their heuristics
-func DeleteAllWorkspacesAndUserHeuristics(c external.Database, userUID string) error {
-	// todo test if this works (workspaces)
-	req := &api.Request{
-		Query: `query Q($user:string){
-				var(func: uid($user)){
-					w as User.workspaces{
-						h as Workspace.heuristics{
-							hc as Heuristic.clusters{
-								hr as HeuristicCluster.results
-							}
-						}
-					}
-				}
-}`,
-		Vars: map[string]string{"$user": userUID},
-		Mutations: []*api.Mutation{{
-			DelNquads: []byte(` uid(hr) * * .
-								uid(hc) * * .
-								uid(h) * * .
-								uid(w) * * .
-								<` + userUID + "> <User.heuristics> uid(h) ." +
-				"<" + userUID + "> <User.workspaces> uid(w)"),
-		}},
-		CommitNow: true,
-	}
-
-	_, err := db.TxWithRetryAndResponse(c, time.Minute*10, req)
-	return err
 }
 
 // GetHeuristicResults returns the connected transactions of heuristic
